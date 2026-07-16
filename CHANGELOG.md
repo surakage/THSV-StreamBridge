@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-07-16
+
+### Fixed
+
+- Replaced translucent blur on standalone Chat cards with an opaque high-contrast surface for crisp browser-source text.
+- Made the Chat container fit narrow and wide source viewports without stretching text or changing card proportions.
+- Replaced the translated arrival animation with an opacity-only transition to avoid compositor softening after messages settle.
+
 ## [0.9.5] - 2026-07-16
 
 ### Fixed

@@ -141,9 +141,11 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/alerts': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-0.9.5.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/app-0.9.6.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/styles-0.9.6.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }

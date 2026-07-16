@@ -43,6 +43,7 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - Simulated events remain visibly labeled and may be disabled through configuration.
 - Combined, Chat-only, and Alerts-only layouts use the same projection stream and do not make additional platform API calls.
 - The standalone Chat canvas is transparent when empty. Messages appear as bottom-anchored cards and grow upward, so sizing the source does not create a permanent panel background.
+- Standalone Chat cards use an opaque high-contrast surface with no backdrop blur or scale transform. The container narrows to the available browser viewport while preserving readable type and card proportions.
 
 ## Configuration
 

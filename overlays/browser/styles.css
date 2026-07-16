@@ -1,5 +1,5 @@
 /* Shared browser-source styling for Meld, OBS Studio, Streamlabs Desktop, and compatible hosts. */
-:root { color-scheme: dark; font-family: Inter, "Segoe UI", sans-serif; --ink: #f7f3ff; --muted: #bdb3ce; --glass: rgba(18, 13, 28, .82); --violet: #9672ff; --mint: #72efc2; }
+:root { color-scheme: dark; font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; --ink: #fff; --muted: #cfc8da; --glass: rgba(18, 13, 28, .82); --violet: #a98cff; --mint: #7ff5cc; }
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; color: var(--ink); }
 .overlay { position: relative; width: 100%; height: 100%; padding: 3vh 3vw; }
@@ -30,14 +30,15 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 @media (max-width: 900px) { .chat-shell { width: 48vw; } }
 body[data-mode="chat"] .alerts, body[data-mode="alerts"] .chat-shell { display: none; }
 body[data-mode="chat"] .overlay, body[data-mode="alerts"] .overlay { padding: 0; }
-body[data-mode="chat"] .chat-shell { right: clamp(24px, 2vw, 40px); bottom: clamp(24px, 4vh, 44px); width: clamp(420px, 28vw, 520px); max-height: 78vh; padding: 8px; border: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+body[data-mode="chat"] .chat-shell { right: clamp(16px, 2vw, 40px); bottom: clamp(16px, 4vh, 44px); width: min(520px, calc(100vw - 32px)); max-height: 78vh; padding: 8px; border: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
 body[data-mode="chat"] .chat-shell header { display: none; }
 body[data-mode="chat"] .chat { max-height: 78vh; gap: clamp(8px, 1vh, 12px); }
-body[data-mode="chat"] .message { padding: clamp(12px, 1.25vh, 16px) clamp(14px, 1vw, 18px); border: 1px solid rgba(255,255,255,.14); border-left: 4px solid var(--violet); border-radius: 12px; background: linear-gradient(145deg, rgba(32,24,48,.92), rgba(18,13,28,.88)); box-shadow: 0 10px 32px rgba(0,0,0,.3); backdrop-filter: blur(14px); }
-body[data-mode="chat"] .platform, body[data-mode="chat"] .role { font-size: clamp(10px, .62vw, 12px); }
-body[data-mode="chat"] .display-name { font-size: clamp(15px, .9vw, 18px); }
-body[data-mode="chat"] .body { margin-top: 7px; font-size: clamp(17px, 1vw, 20px); line-height: 1.4; }
+body[data-mode="chat"] .message { padding: clamp(12px, 1.25vh, 16px) clamp(14px, 1vw, 18px); border: 1px solid rgba(255,255,255,.24); border-left: 4px solid var(--violet); border-radius: 10px; background: #171120; box-shadow: 0 4px 14px rgba(0,0,0,.34); backdrop-filter: none; animation: chat-arrive .16s linear both; }
+body[data-mode="chat"] .platform, body[data-mode="chat"] .role { font-size: clamp(10px, .62vw, 12px); text-shadow: none; }
+body[data-mode="chat"] .display-name { color: #fff; font-size: clamp(15px, .9vw, 18px); font-weight: 700; text-shadow: none; }
+body[data-mode="chat"] .body { margin-top: 7px; color: #fff; font-size: clamp(16px, 1vw, 19px); font-weight: 500; line-height: 1.4; text-shadow: none; }
 body[data-mode="chat"][data-layout="compact"] .overlay { display: flex; flex-direction: column; justify-content: flex-end; }
 body[data-mode="chat"][data-layout="compact"] .chat-shell { position: relative; inset: auto; width: 100%; max-height: 100%; flex: 0 0 auto; }
 body[data-mode="chat"][data-layout="compact"] .chat { max-height: 100vh; }
 body[data-mode="alerts"] .alerts { inset: 0; width: 100%; transform: none; }
+@keyframes chat-arrive { from { opacity: 0; } }

@@ -76,8 +76,10 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("requestedLayout === 'compact' ? 'compact' : 'canvas'");
     expect(source).not.toContain('verticalScale');
     expect(styles).not.toContain('scaleY');
-    expect(styles).toContain('width: clamp(420px, 28vw, 520px)');
-    expect(styles).toContain('font-size: clamp(17px, 1vw, 20px)');
+    expect(styles).toContain('width: min(520px, calc(100vw - 32px))');
+    expect(styles).toContain('background: #171120;');
+    expect(styles).toContain('font-size: clamp(16px, 1vw, 19px)');
+    expect(styles).toContain('backdrop-filter: none; animation: chat-arrive');
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .overlay { display: flex; flex-direction: column; justify-content: flex-end; }');
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .chat-shell { position: relative; inset: auto;');
     expect(styles).toContain('background: transparent;');
