@@ -6,12 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-15
+
 ### Added
 
-- Milestone 1 Bridge Core foundation.
-- Strict normalized event and configuration schemas.
-- Deduplication, event bus, adapter contracts, mock simulation, and Streamer.bot WebSocket foundation.
-- Health/readiness diagnostics, bounded structured logs, atomic state, Windows scripts, fixtures, tests, and documentation.
+- Token-authenticated, Origin-checked, rate/concurrency-bounded local control endpoints.
+- Registry-backed input/output adapters, open platform/output records, namespaced events, and normalization helpers.
+- Bounded asynchronous output queues, delivery metrics, failure-aware readiness, pending acknowledgement limits, and persisted deduplication state.
+- Tests for security, delivery pressure, lifecycle, persistence, redaction, adapter registration, and failure paths.
+
+### Changed
+
+- Example configuration now defaults to truthful live Streamer.bot delivery; test mode is explicit and visibly non-live.
+- Canonical deduplication is stable across payload key order and mixed channel ID availability.
+- Post-acceptance state-write failures are reported diagnostically without falsely rejecting delivered or queued events.
 
 ## [0.1.0] - 2026-07-15
 

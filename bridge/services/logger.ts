@@ -17,6 +17,7 @@ export interface Logger {
 export class StructuredLogger implements Logger {
   private writeQueue: Promise<void> = Promise.resolve();
   private readonly filePath: string;
+  private readonly sensitiveValues = new Set<string>();
 
   public constructor(
     private readonly minimumLevel: LogLevel,
@@ -34,9 +35,18 @@ export class StructuredLogger implements Logger {
 
   public async flush(): Promise<void> { await this.writeQueue; }
 
+  public addSensitiveValue(value: string | undefined): void {
+    if (value !== undefined && value.length >= 4) this.sensitiveValues.add(value);
+  }
+
   private log(level: LogLevel, message: string, fields: LogFields): void {
     if (LEVELS[level] < LEVELS[this.minimumLevel]) return;
-    const entry = JSON.stringify({ timestamp: new Date().toISOString(), level, message, ...(sanitize(fields) as Record<string, unknown>) });
+    const entry = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level,
+      message: sanitizeString(message, this.sensitiveValues),
+      ...(sanitize(fields, '', this.sensitiveValues) as Record<string, unknown>),
+    });
     const line = `${entry}\n`;
     process.stdout.write(line);
     this.writeQueue = this.writeQueue.then(() => this.writeLine(line)).catch((error: unknown) => {
@@ -61,12 +71,21 @@ export class StructuredLogger implements Logger {
   }
 }
 
-function sanitize(value: unknown, key = ''): unknown {
+function sanitize(value: unknown, key = '', sensitiveValues: ReadonlySet<string> = new Set()): unknown {
   if (SENSITIVE_KEY.test(key)) return '[REDACTED]';
-  if (value instanceof Error) return { name: value.name, message: value.message };
-  if (Array.isArray(value)) return value.map((item) => sanitize(item));
+  if (value instanceof Error) return { name: value.name, message: sanitizeString(value.message, sensitiveValues) };
+  if (typeof value === 'string') return sanitizeString(value, sensitiveValues);
+  if (Array.isArray(value)) return value.map((item) => sanitize(item, '', sensitiveValues));
   if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([childKey, childValue]) => [childKey, sanitize(childValue, childKey)]));
+    return Object.fromEntries(Object.entries(value).map(([childKey, childValue]) => [childKey, sanitize(childValue, childKey, sensitiveValues)]));
   }
   return value;
+}
+
+function sanitizeString(value: string, sensitiveValues: ReadonlySet<string>): string {
+  let sanitized = value
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [REDACTED]')
+    .replace(/\b(password|token|secret|cookie|authorization)\s*[:=]\s*[^\s,;]+/gi, '$1=[REDACTED]');
+  for (const sensitive of sensitiveValues) sanitized = sanitized.replaceAll(sensitive, '[REDACTED]');
+  return sanitized;
 }

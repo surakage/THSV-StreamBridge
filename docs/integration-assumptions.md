@@ -14,4 +14,6 @@
 - Speaker.bot speech generation, voice aliases, queue controls, and generated-audio metadata.
 - Production Twitch, YouTube, Kick, TikTok, and Facebook transports.
 
+Third-party platform and output providers must still be explicitly registered by trusted application composition code. The framework does not dynamically execute arbitrary packages named by untrusted configuration.
+
 Future Speaker.bot integration will execute speech decisions made by Streamer.bot; it will not decide whether a message may speak.

@@ -1,108 +1,178 @@
 import { Buffer } from 'node:buffer';
 import { normalizedEventSchema, type NormalizedEvent } from '../../schemas/event.js';
 import type { BridgeConfig } from '../../schemas/config.js';
-import { MockAdapter } from '../adapters/mock-adapter.js';
-import { PlaceholderAdapter } from '../adapters/placeholder-adapter.js';
-import { StreamerBotAdapter } from '../adapters/streamerbot-adapter.js';
-import type { AdapterStatus, PlatformAdapter } from '../adapters/adapter.js';
+import type { AdapterStatus, InputAdapter, OutputAdapter, SimulationAdapter } from '../adapters/adapter.js';
+import { isSimulationAdapter } from '../adapters/adapter.js';
 import type { Logger } from '../services/logger.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
+import type { DeduplicationStore } from '../services/deduplication-store.js';
 import { EventDeduplicator } from './deduplicator.js';
 import { InternalEventBus } from './event-bus.js';
+import { OutputDeliveryManager } from './delivery-manager.js';
 
-export type IngestResult = { readonly accepted: true; readonly duplicate: boolean; readonly eventId: string };
+export type IngestResult = {
+  readonly accepted: true;
+  readonly duplicate: boolean;
+  readonly eventId: string;
+  readonly delivery: 'queued' | 'none';
+  readonly outputs: readonly string[];
+};
+
+export type StateWriter = (path: string, value: unknown) => Promise<void>;
 
 export class PayloadTooLargeError extends Error {}
 export class InvalidEventError extends Error {
   public constructor(public readonly details: readonly string[]) { super('Event validation failed'); }
 }
 
+export interface StreamBridgeDependencies {
+  readonly inputs: readonly InputAdapter[];
+  readonly outputs: readonly OutputAdapter[];
+  readonly deduplicationStore: DeduplicationStore;
+  readonly stateWriter?: StateWriter;
+}
+
 export class StreamBridge {
   private readonly bus = new InternalEventBus();
   private readonly deduplicator: EventDeduplicator;
-  private readonly adapters: PlatformAdapter[];
-  private readonly streamerbot: StreamerBotAdapter;
+  private readonly inputs: readonly InputAdapter[];
+  private readonly simulationAdapter: SimulationAdapter;
+  private readonly delivery: OutputDeliveryManager;
+  private readonly stateWriter: StateWriter;
   private running = false;
   private startedAt: string | undefined;
-  private lastSuccessfulEventAt: string | undefined;
-  public readonly mockAdapter: MockAdapter;
+  private lastAcceptedEventAt: string | undefined;
+  private statePersistenceError: string | undefined;
 
-  public constructor(private readonly config: BridgeConfig, private readonly logger: Logger) {
+  public constructor(
+    private readonly config: BridgeConfig,
+    private readonly logger: Logger,
+    private readonly dependencies: StreamBridgeDependencies,
+  ) {
     this.deduplicator = new EventDeduplicator(config.deduplication.ttlMs, config.deduplication.maxEntries);
-    this.mockAdapter = new MockAdapter(config.platforms.mock);
-    this.adapters = [
-      new PlaceholderAdapter('twitch', config.platforms.twitch, 'Twitch production transport is deferred.'),
-      new PlaceholderAdapter('youtube', config.platforms.youtube, 'YouTube production transport is deferred.'),
-      new PlaceholderAdapter('kick', config.platforms.kick, 'Kick production transport is deferred.'),
-      new PlaceholderAdapter('tikfinity', config.platforms.tiktok, 'TikFinity payloads and local API are unverified; only fixtures are supported.'),
-      new PlaceholderAdapter('facebook', config.platforms.facebook, 'Facebook production transport is deferred.'),
-      this.mockAdapter,
-    ];
-    this.streamerbot = new StreamerBotAdapter(config.streamerbot, logger);
-    this.bus.subscribe(async (event) => {
-      try { await this.streamerbot.sendEvent(event); }
-      catch (error) { this.logger.warn('Streamer.bot delivery failed without stopping the bridge', { eventId: event.eventId, error }); }
-    });
+    this.inputs = dependencies.inputs;
+    const simulationAdapter = this.inputs.find(isSimulationAdapter);
+    if (simulationAdapter === undefined) throw new Error('No simulation-capable input adapter is registered');
+    this.simulationAdapter = simulationAdapter;
+    this.delivery = new OutputDeliveryManager(
+      dependencies.outputs,
+      config.streamerbot.deliveryQueueCapacity,
+      config.streamerbot.deliveryConcurrency,
+      config.streamerbot.deliveryFailureThreshold,
+      logger,
+    );
+    this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
   }
+
+  public subscribe(handler: Parameters<InternalEventBus['subscribe']>[0]): () => void { return this.bus.subscribe(handler); }
 
   public async start(): Promise<void> {
     if (this.running) return;
+    this.deduplicator.restore(await this.dependencies.deduplicationStore.load());
     this.startedAt = new Date().toISOString();
     this.running = true;
-    for (const adapter of this.adapters) {
+    await this.delivery.start();
+    for (const adapter of this.inputs) {
       if (!adapter.config.enabled) continue;
-      try { await adapter.start({ logger: this.logger, emit: (event) => this.ingest(event).then(() => undefined) }); }
-      catch (error) { this.logger.error('Adapter startup failed; bridge remains active', { adapter: adapter.name, error }); }
+      try { await adapter.start({ logger: this.logger, emit: (event, byteLength) => this.ingest(event, byteLength) }); }
+      catch (error) { this.logger.error('Input adapter startup failed; bridge remains active', { adapter: adapter.name, error }); }
     }
-    try { await this.streamerbot.start(); }
-    catch (error) { this.logger.warn('Streamer.bot startup failed; bridge remains active', { error }); }
     this.logger.info('Bridge core started', { service: this.config.service.name });
   }
 
   public async stop(): Promise<void> {
     if (!this.running) return;
     this.running = false;
-    const stops = [...this.adapters.map((adapter) => adapter.stop()), this.streamerbot.stop()];
-    const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Graceful shutdown timed out')), this.config.service.shutdownTimeoutMs));
-    await Promise.race([Promise.allSettled(stops), timeout]);
+    const controller = new AbortController();
+    const operations = [
+      ...this.inputs.map((adapter) => adapter.stop(controller.signal)),
+      this.delivery.stop(controller.signal),
+      this.dependencies.deduplicationStore.flush(),
+    ];
+    const completion = Promise.allSettled(operations).then(() => 'complete' as const);
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<'timeout'>((resolve) => { timer = setTimeout(() => resolve('timeout'), this.config.service.shutdownTimeoutMs); });
+    const result = await Promise.race([completion, timeout]);
+    if (timer !== undefined) clearTimeout(timer);
+    if (result === 'timeout') {
+      controller.abort();
+      this.logger.warn('Graceful shutdown timed out; remaining operations were cancelled where supported');
+    }
     this.logger.info('Bridge core stopped');
   }
 
-  public async ingest(input: unknown): Promise<IngestResult> {
-    const size = Buffer.byteLength(JSON.stringify(input));
+  public async simulate(input: unknown, byteLength?: number): Promise<IngestResult> {
+    const result = await this.simulationAdapter.simulate(input, byteLength);
+    if (!isIngestResult(result)) throw new Error('Simulation adapter completed without an ingest result');
+    return result;
+  }
+
+  public async ingest(input: unknown, byteLength?: number): Promise<IngestResult> {
+    const size = byteLength ?? Buffer.byteLength(JSON.stringify(input));
     if (size > this.config.security.maxPayloadBytes) throw new PayloadTooLargeError(`Payload is ${String(size)} bytes; maximum is ${String(this.config.security.maxPayloadBytes)}`);
     const parsed = normalizedEventSchema.safeParse(input);
     if (!parsed.success) throw new InvalidEventError(parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`));
     const event = this.config.security.preserveRawPayloads ? parsed.data : withoutRawPayload(parsed.data);
     if (this.deduplicator.isDuplicate(event)) {
       this.logger.debug('Duplicate event ignored', { eventId: event.eventId, eventType: event.eventType, platform: event.platform });
-      return { accepted: true, duplicate: true, eventId: event.eventId };
+      return { accepted: true, duplicate: true, eventId: event.eventId, delivery: 'none', outputs: [] };
     }
-    await this.bus.publish(event);
-    this.lastSuccessfulEventAt = new Date().toISOString();
-    await writeJsonAtomic('data/state/bridge-status.json', { lastSuccessfulEventAt: this.lastSuccessfulEventAt, lastEventId: event.eventId });
-    this.logger.info('Event accepted', { eventId: event.eventId, eventType: event.eventType, platform: event.platform });
-    return { accepted: true, duplicate: false, eventId: event.eventId };
+
+    try {
+      await this.bus.publish(event);
+      const outputs = this.delivery.enqueue(event);
+      this.lastAcceptedEventAt = new Date().toISOString();
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      await this.persistAcceptedState(event);
+      this.logger.info('Event accepted for delivery', { eventId: event.eventId, eventType: event.eventType, platform: event.platform, outputs });
+      return { accepted: true, duplicate: false, eventId: event.eventId, delivery: outputs.length === 0 ? 'none' : 'queued', outputs };
+    } catch (error) {
+      this.deduplicator.forget(event);
+      throw error;
+    }
   }
 
   public health(): Readonly<Record<string, unknown>> {
-    return { status: this.running ? 'healthy' : 'stopped', service: this.config.service.name, startedAt: this.startedAt, lastSuccessfulEventAt: this.lastSuccessfulEventAt };
+    return {
+      status: this.running ? 'healthy' : 'stopped',
+      service: this.config.service.name,
+      startedAt: this.startedAt,
+      lastAcceptedEventAt: this.lastAcceptedEventAt,
+      ...(this.statePersistenceError === undefined ? {} : { statePersistenceError: this.statePersistenceError }),
+    };
   }
 
   public readiness(): Readonly<Record<string, unknown>> {
     const adapterStatuses = this.adapterStatuses();
-    const streamerbotStatus = this.streamerbot.status();
     const blocking = adapterStatuses.filter((adapter) => adapter.state !== 'connected' && adapter.state !== 'disabled');
-    const streamerbotBlocking = this.config.streamerbot.enabled && streamerbotStatus['state'] !== 'connected';
-    const ready = this.running && blocking.length === 0 && !streamerbotBlocking;
-    return { status: ready ? 'ready' : 'not-ready', ready, adapters: adapterStatuses, streamerbot: streamerbotStatus };
+    const ready = this.running && blocking.length === 0 && this.delivery.ready();
+    return { status: ready ? 'ready' : 'not-ready', ready, adapters: adapterStatuses, outputs: this.delivery.statuses() };
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
-    return { ...this.health(), ...this.readiness(), deduplicationEntries: this.deduplicator.size };
+    return {
+      ...this.health(),
+      ...this.readiness(),
+      deduplicationEntries: this.deduplicator.size,
+      deduplicationPersistence: this.dependencies.deduplicationStore.status(),
+    };
   }
 
-  private adapterStatuses(): AdapterStatus[] { return this.adapters.map((adapter) => adapter.status()); }
+  private adapterStatuses(): AdapterStatus[] { return this.inputs.map((adapter) => adapter.status()); }
+
+  private async persistAcceptedState(event: NormalizedEvent): Promise<void> {
+    try {
+      await this.stateWriter('data/state/bridge-status.json', { lastAcceptedEventAt: this.lastAcceptedEventAt, lastEventId: event.eventId });
+      this.statePersistenceError = undefined;
+    } catch (error) {
+      this.statePersistenceError = error instanceof Error ? error.message : String(error);
+      this.logger.warn('Event was accepted but bridge status persistence failed', { eventId: event.eventId, error });
+    }
+  }
+}
+
+function isIngestResult(value: unknown): value is IngestResult {
+  return value !== null && typeof value === 'object' && (value as Record<string, unknown>)['accepted'] === true && typeof (value as Record<string, unknown>)['eventId'] === 'string';
 }
 
 function withoutRawPayload(event: NormalizedEvent): NormalizedEvent {

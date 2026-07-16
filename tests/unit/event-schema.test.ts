@@ -8,8 +8,13 @@ describe('normalized event schema', () => {
   });
 
   it('rejects an invalid event type', async () => {
-    const event = { ...(await fixture()), eventType: 'unknown.event' };
+    const event = { ...(await fixture()), eventType: 'Unknown Event' };
     expect(normalizedEventSchema.safeParse(event).success).toBe(false);
+  });
+
+  it('accepts a namespaced extension event type and platform', async () => {
+    const event = { ...(await fixture()), eventType: 'tikfinity.share', platform: 'future-platform' };
+    expect(normalizedEventSchema.safeParse(event).success).toBe(true);
   });
 
   it('rejects a missing required field', async () => {

@@ -9,7 +9,12 @@
   },
   "security": {
     "maxPayloadBytes": 262144,
-    "preserveRawPayloads": false
+    "preserveRawPayloads": false,
+    "controlTokenEnv": "THSV_STREAMBRIDGE_CONTROL_TOKEN",
+    "controlTokenFile": "data/runtime/control-token",
+    "allowedOrigins": [],
+    "maxRequestsPerMinute": 60,
+    "maxConcurrentRequests": 4
   },
   "logging": {
     "level": "info",
@@ -19,15 +24,22 @@
   },
   "deduplication": {
     "ttlMs": 300000,
-    "maxEntries": 10000
+    "maxEntries": 10000,
+    "persistAcrossRestarts": true,
+    "stateFile": "data/state/deduplication.json"
   },
   "streamerbot": {
     "enabled": true,
     "url": "ws://127.0.0.1:8080/",
+    "allowRemote": false,
     "passwordEnv": "STREAMERBOT_PASSWORD",
     "actionAlias": "THSV StreamBridge - Receive Event",
     "acknowledgementTimeoutMs": 5000,
-    "testMode": true,
+    "maxPendingRequests": 16,
+    "deliveryQueueCapacity": 100,
+    "deliveryConcurrency": 2,
+    "deliveryFailureThreshold": 3,
+    "testMode": false,
     "reconnect": {
       "enabled": true,
       "initialDelayMs": 250,
@@ -42,5 +54,8 @@
     "tiktok": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "tikfinity-placeholder", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "channelUpdates"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
     "facebook": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "facebook-placeholder", "capabilities": ["chatInput", "chatOutput", "follows", "subscriptions", "donations", "moderation", "channelUpdates"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
     "mock": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "mock", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "donations", "raids", "moderation", "channelUpdates"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } }
+  },
+  "outputs": {
+    "streamerbot": { "enabled": true, "adapter": "streamerbot", "settings": {} }
   }
 }

@@ -24,7 +24,7 @@ const reconnectSchema = z
     message: 'maxDelayMs must be greater than or equal to initialDelayMs',
   });
 
-const platformSchema = z
+export const platformSchema = z
   .object({
     enabled: z.boolean(),
     inputEnabled: z.boolean(),
@@ -34,6 +34,12 @@ const platformSchema = z
     reconnect: reconnectSchema,
   })
   .strict();
+
+export const outputSchema = z.object({
+  enabled: z.boolean(),
+  adapter: z.string().min(1).max(100),
+  settings: z.record(z.string(), z.json()).default({}),
+}).strict();
 
 export const bridgeConfigSchema = z
   .object({
@@ -55,6 +61,11 @@ export const bridgeConfigSchema = z
       .object({
         maxPayloadBytes: z.number().int().min(1_024).max(10_485_760),
         preserveRawPayloads: z.boolean(),
+        controlTokenEnv: z.string().regex(/^[A-Z][A-Z0-9_]*$/).default('THSV_STREAMBRIDGE_CONTROL_TOKEN'),
+        controlTokenFile: z.string().min(1).default('data/runtime/control-token'),
+        allowedOrigins: z.array(z.url()).max(20).default([]),
+        maxRequestsPerMinute: z.number().int().min(1).max(10_000).default(60),
+        maxConcurrentRequests: z.number().int().min(1).max(100).default(4),
       })
       .strict(),
     logging: z
@@ -69,35 +80,47 @@ export const bridgeConfigSchema = z
       .object({
         ttlMs: z.number().int().min(1_000).max(86_400_000),
         maxEntries: z.number().int().min(10).max(1_000_000),
+        persistAcrossRestarts: z.boolean().default(true),
+        stateFile: z.string().min(1).default('data/state/deduplication.json'),
       })
       .strict(),
     streamerbot: z
       .object({
         enabled: z.boolean(),
-        url: z.url().refine((url) => url.startsWith('ws://127.0.0.1') || url.startsWith('ws://localhost') || url.startsWith('wss://'), {
-          message: 'Use a loopback ws:// URL or secure wss:// URL',
-        }),
+        url: z.url(),
+        allowRemote: z.boolean().default(false),
         passwordEnv: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
         actionAlias: z.string().min(1).max(200),
         actionId: z.uuid().optional(),
         acknowledgementTimeoutMs: z.number().int().min(100).max(60_000),
+        maxPendingRequests: z.number().int().min(1).max(1_000).default(16),
+        deliveryQueueCapacity: z.number().int().min(1).max(100_000).default(100),
+        deliveryConcurrency: z.number().int().min(1).max(32).default(2),
+        deliveryFailureThreshold: z.number().int().min(1).max(100).default(3),
         testMode: z.boolean(),
         reconnect: reconnectSchema,
       })
-      .strict(),
-    platforms: z
-      .object({
-        twitch: platformSchema,
-        youtube: platformSchema,
-        kick: platformSchema,
-        tiktok: platformSchema,
-        facebook: platformSchema,
-        mock: platformSchema,
-      })
-      .strict(),
+      .strict()
+      .superRefine((streamerbot, context) => {
+        const url = new URL(streamerbot.url);
+        const loopback = ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(url.hostname);
+        if (!['ws:', 'wss:'].includes(url.protocol)) context.addIssue({ code: 'custom', path: ['url'], message: 'URL must use ws:// or wss://' });
+        if (url.username.length > 0 || url.password.length > 0 || url.search.length > 0) context.addIssue({ code: 'custom', path: ['url'], message: 'URL must not contain credentials or query parameters; use environment variables for secrets' });
+        if (!loopback && !streamerbot.allowRemote) context.addIssue({ code: 'custom', path: ['url'], message: 'Remote Streamer.bot URLs require allowRemote=true' });
+        if (!loopback && url.protocol !== 'wss:') context.addIssue({ code: 'custom', path: ['url'], message: 'Remote Streamer.bot URLs must use wss://' });
+      }),
+    platforms: z.record(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), platformSchema),
+    outputs: z.record(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), outputSchema).default({
+      streamerbot: { enabled: true, adapter: 'streamerbot', settings: {} },
+    }),
   })
-  .strict();
+  .strict()
+  .refine((config) => Object.values(config.platforms).some((platform) => platform.adapter === 'mock'), {
+    message: 'At least one platform entry must use the mock adapter for simulation',
+    path: ['platforms'],
+  });
 
 export type BridgeConfig = z.infer<typeof bridgeConfigSchema>;
 export type PlatformConfig = z.infer<typeof platformSchema>;
+export type OutputConfig = z.infer<typeof outputSchema>;
 export type Capability = (typeof CAPABILITY_VALUES)[number];

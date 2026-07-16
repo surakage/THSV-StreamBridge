@@ -3,6 +3,9 @@ import type { BridgeConfig, PlatformConfig } from '../schemas/config.js';
 import { bridgeConfigSchema } from '../schemas/config.js';
 import type { Logger } from '../bridge/services/logger.js';
 import type { NormalizedEvent } from '../schemas/event.js';
+import { StreamBridge, type StateWriter } from '../bridge/core/bridge.js';
+import { createDefaultAdapterRegistry } from '../bridge/adapters/registry.js';
+import { NoopDeduplicationStore } from '../bridge/services/deduplication-store.js';
 
 export const silentLogger: Logger = {
   debug: () => undefined,
@@ -13,8 +16,23 @@ export const silentLogger: Logger = {
 
 export async function testConfig(): Promise<BridgeConfig> {
   const input = JSON.parse(await readFile('config/bridge.example.json', 'utf8')) as unknown;
-  return bridgeConfigSchema.parse(input);
+  const config = bridgeConfigSchema.parse(input);
+  config.deduplication.persistAcrossRestarts = false;
+  config.streamerbot.testMode = true;
+  return config;
 }
+
+export function createTestBridge(config: BridgeConfig, stateWriter?: StateWriter): StreamBridge {
+  const registry = createDefaultAdapterRegistry(config, silentLogger);
+  return new StreamBridge(config, silentLogger, {
+    inputs: registry.createInputs(config.platforms),
+    outputs: registry.createOutputs(config.outputs),
+    deduplicationStore: new NoopDeduplicationStore(),
+    ...(stateWriter === undefined ? {} : { stateWriter }),
+  });
+}
+
+export const TEST_CONTROL_TOKEN = 'test-control-token-with-at-least-32-characters';
 
 export async function fixture(name = 'twitch-chat.json'): Promise<NormalizedEvent> {
   return JSON.parse(await readFile(`tests/fixtures/${name}`, 'utf8')) as NormalizedEvent;

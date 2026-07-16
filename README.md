@@ -12,9 +12,9 @@ Bridge Core includes:
 - Bounded TTL deduplication and an internal event bus
 - Independently enabled platform adapters with honest capability reporting
 - A deterministic mock adapter and event simulator
-- A Streamer.bot WebSocket adapter foundation with authentication, acknowledgements, bounded reconnects, action aliases, and test mode
+- A Streamer.bot output adapter with authentication, acknowledgements, bounded reconnects, action aliases, bounded asynchronous delivery, and explicit test mode
 - Structured redacted logs, bounded log rotation, atomic local state, and graceful lifecycle handling
-- Loopback-only HTTP health, readiness, diagnostics, and simulation endpoints
+- Token-protected loopback HTTP controls plus health, readiness, diagnostics, and simulation endpoints
 - Deterministic unit and integration tests that need no accounts or live stream
 
 TikFinity, Meld Studio, and Speaker.bot production transports are deliberately deferred. TikFinity fixtures are marked unverified.
@@ -38,7 +38,9 @@ npm run simulate
 .\scripts\stop.ps1
 ```
 
-The checked-in example configuration is safe for local test mode. To create creator-specific settings, copy `config/bridge.example.json`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON.
+The checked-in example uses live Streamer.bot delivery and will report not-ready until Streamer.bot's WebSocket server is available. For a network-free check, copy the configuration and explicitly set `streamerbot.testMode` to `true`. Test mode is clearly reported as non-live in diagnostics and never contacts Streamer.bot.
+
+To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
 See [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), and [Streamer.bot setup](docs/streamerbot-setup.md).
 

@@ -21,6 +21,22 @@ describe('EventDeduplicator', () => {
     expect(deduplicator.isDuplicate({ ...event, eventId: 'another-id', source })).toBe(true);
   });
 
+  it('canonicalizes payload key order and channel identity presence', async () => {
+    const event = await fixture();
+    const source = { adapter: event.source.adapter, eventName: event.source.eventName };
+    const deduplicator = new EventDeduplicator(1_000, 10);
+    const first = { ...event, source, payload: { alpha: 1, beta: { one: true, two: false } } };
+    const second = {
+      ...event,
+      eventId: 'different-local-id',
+      source,
+      channel: { name: event.channel.name },
+      payload: { beta: { two: false, one: true }, alpha: 1 },
+    };
+    expect(deduplicator.isDuplicate(first)).toBe(false);
+    expect(deduplicator.isDuplicate(second)).toBe(true);
+  });
+
   it('evicts old entries when the cache reaches its limit', async () => {
     const base = await fixture();
     const deduplicator = new EventDeduplicator(1_000, 2);

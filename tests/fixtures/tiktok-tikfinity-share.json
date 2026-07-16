@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "eventId": "sim-tiktok-share-001",
-  "eventType": "system.custom",
+  "eventType": "tikfinity.share",
   "platform": "tiktok",
   "source": { "adapter": "tikfinity-fixture-unverified", "eventId": "tikfinity-source-005", "eventName": "Share" },
   "receivedAt": "2026-01-01T00:00:07.000Z",

@@ -40,3 +40,7 @@ Desktop.ini
 *.tgz
 packages/*
 !packages/.gitkeep
+
+# Local creator application installations (never package or commit)
+THSV Streamer Bot/
+THSV Speaker Bot/

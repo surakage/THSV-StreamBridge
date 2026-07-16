@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const PLATFORM_VALUES = [
+export const STANDARD_PLATFORM_VALUES = [
   'twitch',
   'youtube',
   'kick',
@@ -30,6 +30,10 @@ export const EVENT_TYPE_VALUES = [
   'system.timed',
 ] as const;
 
+const namespacedIdentifierSchema = z.string().min(3).max(128).regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/);
+export const platformSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
+export const eventTypeSchema = z.union([z.enum(EVENT_TYPE_VALUES), namespacedIdentifierSchema]);
+
 const jsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 export type JsonValue = z.infer<typeof jsonPrimitiveSchema> | JsonValue[] | { [key: string]: JsonValue };
 export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
@@ -40,8 +44,8 @@ export const normalizedEventSchema = z
   .object({
     schemaVersion: z.literal('1.0.0'),
     eventId: z.string().min(1).max(256),
-    eventType: z.enum(EVENT_TYPE_VALUES),
-    platform: z.enum(PLATFORM_VALUES),
+    eventType: eventTypeSchema,
+    platform: platformSchema,
     source: z
       .object({
         adapter: z.string().min(1).max(100),
@@ -78,5 +82,5 @@ export const normalizedEventSchema = z
   .strict();
 
 export type NormalizedEvent = z.infer<typeof normalizedEventSchema>;
-export type Platform = (typeof PLATFORM_VALUES)[number];
-export type EventType = (typeof EVENT_TYPE_VALUES)[number];
+export type Platform = string;
+export type EventType = string;

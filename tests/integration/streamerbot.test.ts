@@ -43,4 +43,26 @@ describe('Streamer.bot adapter', () => {
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
+
+  it('bounds outstanding acknowledgement requests', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const adapter = new StreamerBotAdapter({
+      ...config.streamerbot,
+      testMode: false,
+      url: `ws://127.0.0.1:${String(port)}`,
+      maxPendingRequests: 1,
+      acknowledgementTimeoutMs: 2_000,
+      reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+    }, silentLogger);
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => socket.send(JSON.stringify({ request: 'Hello', info: {} })));
+    await adapter.start();
+    const first = adapter.sendEvent(await fixture());
+    const firstRejection = expect(first).rejects.toThrow('stopped');
+    await expect(adapter.sendEvent(await fixture('kick-follow.json'))).rejects.toThrow('pending request capacity');
+    await adapter.stop();
+    await firstRejection;
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
 });

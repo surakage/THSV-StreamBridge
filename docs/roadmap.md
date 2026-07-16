@@ -2,7 +2,7 @@
 
 ## Milestone 1: Bridge Core
 
-Implemented in version `0.1.0`. Production validation against a user-configured Streamer.bot instance remains a manual installation check.
+Implemented in version `0.1.0` and live-validated against Streamer.bot Alpha. Version `0.2.0` adds the Milestone 1.1 security, reliability, truthfulness, extensibility, and test hardening pass before feature work.
 
 ## Deferred milestones
 

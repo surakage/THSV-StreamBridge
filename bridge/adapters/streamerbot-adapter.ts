@@ -30,7 +30,9 @@ export class StreamerBotAdapter {
   private authenticated = false;
   private readonly pending = new Map<string, PendingRequest>();
 
-  public constructor(private readonly config: BridgeConfig['streamerbot'], private readonly logger: Logger) {}
+  public constructor(private readonly config: BridgeConfig['streamerbot'], private readonly logger: Logger, public readonly name = 'streamerbot') {}
+
+  public get enabled(): boolean { return this.config.enabled; }
 
   public async start(): Promise<void> {
     if (!this.config.enabled) { this.state = 'disabled'; return; }
@@ -44,7 +46,7 @@ export class StreamerBotAdapter {
     await this.connect();
   }
 
-  public async stop(): Promise<void> {
+  public async stop(signal?: AbortSignal): Promise<void> {
     this.stopping = true;
     if (this.reconnectTimer !== undefined) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
@@ -57,8 +59,15 @@ export class StreamerBotAdapter {
     this.socket = undefined;
     if (socket !== undefined && socket.readyState < WebSocket.CLOSING) {
       await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, 500);
-        socket.once('close', () => { clearTimeout(timer); resolve(); });
+        const finish = (): void => {
+          clearTimeout(timer);
+          signal?.removeEventListener('abort', finish);
+          resolve();
+        };
+        const timer = setTimeout(finish, 500);
+        const onAbort = finish;
+        signal?.addEventListener('abort', onAbort, { once: true });
+        socket.once('close', finish);
         socket.close(1000, 'Bridge shutdown');
       });
     }
@@ -85,9 +94,13 @@ export class StreamerBotAdapter {
     this.lastEventAt = new Date().toISOString();
   }
 
+  public async deliver(event: NormalizedEvent): Promise<void> { await this.sendEvent(event); }
+
   public status(): Readonly<Record<string, unknown>> {
     return {
-      name: 'streamerbot', state: this.config.enabled ? this.state : 'disabled', reconnectAttempts: this.reconnectAttempts,
+      name: this.name, state: this.config.enabled ? this.state : 'disabled', reconnectAttempts: this.reconnectAttempts,
+      liveDelivery: this.config.enabled && !this.config.testMode,
+      pendingRequests: this.pending.size,
       ...(this.lastEventAt === undefined ? {} : { lastEventAt: this.lastEventAt }),
       ...(this.lastError === undefined ? {} : { lastError: this.lastError }),
     };
@@ -172,6 +185,7 @@ export class StreamerBotAdapter {
 
   private sendRequest(id: string, value: unknown): Promise<void> {
     if (this.socket?.readyState !== WebSocket.OPEN) return Promise.reject(new Error('Streamer.bot socket is not open'));
+    if (this.pending.size >= this.config.maxPendingRequests) return Promise.reject(new Error('Streamer.bot pending request capacity reached'));
     return new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);

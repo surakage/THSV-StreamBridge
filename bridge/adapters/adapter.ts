@@ -1,4 +1,5 @@
 import type { Capability, PlatformConfig } from '../../schemas/config.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
 import type { Logger } from '../services/logger.js';
 
 export type ConnectionState = 'disabled' | 'stopped' | 'connecting' | 'connected' | 'degraded' | 'error';
@@ -10,31 +11,44 @@ export interface AdapterStatus {
   readonly lastEventAt?: string;
   readonly lastError?: string;
   readonly reconnectAttempts: number;
+  readonly liveDelivery?: boolean;
 }
 
 export interface AdapterContext {
   readonly logger: Logger;
-  readonly emit: (event: unknown) => Promise<void>;
+  readonly emit: (event: unknown, byteLength?: number) => Promise<unknown>;
 }
 
-export interface PlatformAdapter {
+export interface InputAdapter {
   readonly name: string;
   readonly config: PlatformConfig;
   start(context: AdapterContext): Promise<void>;
-  stop(): Promise<void>;
+  stop(signal?: AbortSignal): Promise<void>;
   status(): AdapterStatus;
 }
 
-export abstract class ManagedAdapter implements PlatformAdapter {
+export interface SimulationAdapter extends InputAdapter {
+  simulate(event: unknown, byteLength?: number): Promise<unknown>;
+}
+
+export interface OutputAdapter {
+  readonly name: string;
+  readonly enabled: boolean;
+  start(): Promise<void>;
+  stop(signal?: AbortSignal): Promise<void>;
+  deliver(event: NormalizedEvent): Promise<void>;
+  status(): Readonly<Record<string, unknown>>;
+}
+
+export abstract class ManagedAdapter implements InputAdapter {
   protected state: ConnectionState = 'stopped';
   protected lastEventAt: string | undefined;
   protected lastError: string | undefined;
   protected reconnectAttempts = 0;
 
-  public abstract readonly name: string;
-  public constructor(public readonly config: PlatformConfig) {}
+  public constructor(public readonly name: string, public readonly config: PlatformConfig) {}
   public abstract start(context: AdapterContext): Promise<void>;
-  public abstract stop(): Promise<void>;
+  public abstract stop(signal?: AbortSignal): Promise<void>;
 
   public status(): AdapterStatus {
     return {
@@ -51,4 +65,8 @@ export abstract class ManagedAdapter implements PlatformAdapter {
     this.state = 'error';
     this.lastError = error instanceof Error ? error.message : String(error);
   }
+}
+
+export function isSimulationAdapter(adapter: InputAdapter): adapter is SimulationAdapter {
+  return 'simulate' in adapter && typeof (adapter as Partial<SimulationAdapter>).simulate === 'function';
 }

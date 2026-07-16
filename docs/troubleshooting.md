@@ -6,7 +6,9 @@ Another process owns the configured diagnostics port. Run `Get-NetTCPConnection 
 
 ## Readiness is not ready
 
-Open `http://127.0.0.1:8787/diagnostics`. Disabled adapters do not block readiness. Any enabled adapter that is not connected, including a deferred placeholder, blocks readiness.
+Open `http://127.0.0.1:8787/diagnostics`. Disabled adapters do not block readiness. Any enabled adapter that is not connected, a deferred placeholder, or an output crossing its delivery-failure threshold blocks readiness.
+
+`health.ps1` reports not-ready responses without dumping a PowerShell web exception.
 
 ## Streamer.bot is unavailable
 

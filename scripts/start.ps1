@@ -19,6 +19,7 @@ try {
     $stderr = Join-Path $repo 'data\logs\service.stderr.log'
     $process = Start-Process -FilePath 'node' -ArgumentList 'dist/apps/bridge-service.js' -WorkingDirectory $repo -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru -WindowStyle Hidden
     Set-Content -LiteralPath $pidFile -Value $process.Id -Encoding ascii
+    Set-Content -LiteralPath (Join-Path $repo 'data\runtime\active-config.txt') -Value $Config -Encoding utf8
     Start-Sleep -Milliseconds 500
     if ($process.HasExited) { throw "THSV StreamBridge exited during startup. Check $stderr." }
     Write-Output "THSV StreamBridge started with PID $($process.Id)."

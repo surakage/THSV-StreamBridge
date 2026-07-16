@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { StreamBridge } from '../../bridge/core/bridge.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DiagnosticsServer } from '../../bridge/services/http-server.js';
-import { fixture, silentLogger, testConfig } from '../helpers.js';
+import { createTestBridge, fixture, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
+import type { StreamBridge } from '../../bridge/core/bridge.js';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
@@ -10,8 +10,8 @@ async function runningService(maxPayloadBytes = 262_144): Promise<{ bridge: Stre
   const config = await testConfig();
   config.service.port = 0;
   config.security.maxPayloadBytes = maxPayloadBytes;
-  const bridge = new StreamBridge(config, silentLogger);
-  const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger);
+  const bridge = createTestBridge(config);
+  const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN);
   await bridge.start();
   await server.start();
   stops.push(async () => { await server.stop(); await bridge.stop(); });
@@ -22,23 +22,80 @@ describe('bridge HTTP integration', () => {
   it('accepts a valid event, rejects its duplicate, and reports health', async () => {
     const { baseUrl } = await runningService();
     const event = await fixture();
-    const first = await fetch(`${baseUrl}/simulate`, { method: 'POST', body: JSON.stringify(event) });
-    const second = await fetch(`${baseUrl}/simulate`, { method: 'POST', body: JSON.stringify(event) });
+    const options = { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, body: JSON.stringify(event) };
+    const first = await fetch(`${baseUrl}/simulate`, options);
+    const second = await fetch(`${baseUrl}/simulate`, options);
     expect(first.status).toBe(202);
     expect(second.status).toBe(202);
-    const health = await fetch(`${baseUrl}/health`).then((response) => response.json()) as { status: string; lastSuccessfulEventAt?: string };
+    const health = await fetch(`${baseUrl}/health`).then((response) => response.json()) as { status: string; lastAcceptedEventAt?: string };
     const readiness = await fetch(`${baseUrl}/ready`);
     expect(health.status).toBe('healthy');
-    expect(health.lastSuccessfulEventAt).toBeTypeOf('string');
+    expect(health.lastAcceptedEventAt).toBeTypeOf('string');
     expect(readiness.status).toBe(200);
   });
 
   it('rejects invalid and oversized payloads', async () => {
     const { baseUrl } = await runningService(1_024);
-    const invalid = await fetch(`${baseUrl}/simulate`, { method: 'POST', body: '{}' });
-    const oversized = await fetch(`${baseUrl}/simulate`, { method: 'POST', body: JSON.stringify({ padding: 'x'.repeat(2_000) }) });
+    const invalid = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, body: '{}' });
+    const oversized = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, body: JSON.stringify({ padding: 'x'.repeat(2_000) }) });
     expect(invalid.status).toBe(400);
     expect(oversized.status).toBe(413);
+  });
+
+  it('rejects unauthenticated, non-JSON, and browser-origin mutation requests', async () => {
+    const { baseUrl } = await runningService();
+    const event = JSON.stringify(await fixture());
+    const unauthorized = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: event });
+    const textPlain = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'text/plain' }, body: event });
+    const browser = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json', origin: 'https://attacker.example' }, body: event });
+    expect(unauthorized.status).toBe(401);
+    expect(textPlain.status).toBe(415);
+    expect(browser.status).toBe(403);
+    expect(browser.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('forces simulation identity instead of trusting caller metadata', async () => {
+    const { bridge, baseUrl } = await runningService();
+    let observed: Awaited<ReturnType<typeof fixture>> | undefined;
+    const unsubscribe = bridge.subscribe((event) => { observed = event; });
+    const event = { ...(await fixture()), source: { adapter: 'forged', eventName: 'ChatMessage' }, metadata: { simulated: false } };
+    const response = await fetch(`${baseUrl}/simulate`, {
+      method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify(event),
+    });
+    unsubscribe();
+    expect(response.status).toBe(202);
+    expect(observed?.metadata.simulated).toBe(true);
+    expect(observed?.source.adapter).toBe('mock');
+  });
+
+  it('protects shutdown with the control token', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const shutdown = vi.fn();
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, shutdown);
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    expect((await fetch(`${baseUrl}/shutdown`, { method: 'POST' })).status).toBe(401);
+    expect((await fetch(`${baseUrl}/shutdown`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(202);
+    await expect.poll(() => shutdown).toHaveBeenCalledOnce();
+  });
+
+  it('rate-limits mutable requests', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    config.security.maxRequestsPerMinute = 1;
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN);
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const options = { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify(await fixture()) };
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    expect((await fetch(`${baseUrl}/simulate`, options)).status).toBe(202);
+    expect((await fetch(`${baseUrl}/simulate`, options)).status).toBe(429);
   });
 
   it('stops cleanly', async () => {
@@ -52,8 +109,8 @@ describe('bridge HTTP integration', () => {
     const first = await runningService();
     const config = await testConfig();
     config.service.port = first.server.port;
-    const secondBridge = new StreamBridge(config, silentLogger);
-    const secondServer = new DiagnosticsServer({ ...config.service, ...config.security }, secondBridge, silentLogger);
+    const secondBridge = createTestBridge(config);
+    const secondServer = new DiagnosticsServer({ ...config.service, ...config.security }, secondBridge, silentLogger, TEST_CONTROL_TOKEN);
     await secondBridge.start();
     stops.push(() => secondBridge.stop());
     await expect(secondServer.start()).rejects.toThrow('Port conflict');

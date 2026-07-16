@@ -2,8 +2,8 @@ import type { AdapterContext } from './adapter.js';
 import { ManagedAdapter } from './adapter.js';
 
 export class PlaceholderAdapter extends ManagedAdapter {
-  public constructor(public readonly name: string, config: ManagedAdapter['config'], private readonly note: string) {
-    super(config);
+  public constructor(name: string, config: ManagedAdapter['config'], private readonly note: string) {
+    super(name, config);
   }
 
   public async start(context: AdapterContext): Promise<void> {
