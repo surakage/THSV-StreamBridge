@@ -1,0 +1,42 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime data
+data/runtime/*
+data/state/*
+data/logs/*
+data/backups/*
+!data/runtime/.gitkeep
+!data/state/.gitkeep
+!data/logs/.gitkeep
+!data/backups/.gitkeep
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+.cache/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Packages and release artifacts
+*.zip
+*.tgz
+packages/*
+!packages/.gitkeep
