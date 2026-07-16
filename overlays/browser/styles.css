@@ -30,6 +30,8 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 @media (max-width: 900px) { .chat-shell { width: 48vw; } }
 body[data-mode="chat"] .alerts, body[data-mode="alerts"] .chat-shell { display: none; }
 body[data-mode="chat"] .overlay, body[data-mode="alerts"] .overlay { padding: 0; }
-body[data-mode="chat"] .chat-shell { inset: 0; width: 100%; max-height: 100%; border-radius: 18px; }
-body[data-mode="chat"] .chat { max-height: calc(100vh - 55px); }
+body[data-mode="chat"] .chat-shell { inset: auto 0 0; width: 100%; max-height: 100%; padding: 8px; border: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+body[data-mode="chat"] .chat-shell header { display: none; }
+body[data-mode="chat"] .chat { max-height: 100vh; }
+body[data-mode="chat"] .message { border: 1px solid rgba(255,255,255,.14); border-left: 4px solid var(--violet); background: linear-gradient(145deg, rgba(32,24,48,.92), rgba(18,13,28,.88)); box-shadow: 0 10px 32px rgba(0,0,0,.3); backdrop-filter: blur(14px); }
 body[data-mode="alerts"] .alerts { inset: 0; width: 100%; transform: none; }

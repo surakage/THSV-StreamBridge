@@ -27,6 +27,7 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - HTTPS avatar/badge URLs, validated hex name colors, and subscription renewal/upgrade/month/streak/gift provenance are supported when a verified adapter supplies them.
 - Simulated events remain visibly labeled and may be disabled through configuration.
 - Combined, Chat-only, and Alerts-only layouts use the same projection stream and do not make additional platform API calls.
+- The standalone Chat canvas is transparent when empty. Messages appear as bottom-anchored cards and grow upward, so sizing the source does not create a permanent panel background.
 
 ## Configuration
 

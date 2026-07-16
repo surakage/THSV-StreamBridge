@@ -69,4 +69,11 @@ describe('Browser Overlay Hub contract', () => {
       expect(reviewedSource).not.toContain('eval(');
     }
   });
+
+  it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {
+    const styles = await readFile('overlays/browser/styles.css', 'utf8');
+    expect(styles).toContain('body[data-mode="chat"] .chat-shell { inset: auto 0 0;');
+    expect(styles).toContain('background: transparent;');
+    expect(styles).toContain('body[data-mode="chat"] .chat-shell header { display: none; }');
+  });
 });

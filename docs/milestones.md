@@ -239,7 +239,7 @@ Verification evidence:
 
 ## Milestone 8 — Browser Overlay Hub
 
-Status: **Implementation complete; separate-source live verification pending** — bridge candidate `0.9.2`.
+Status: **Implementation complete; separate-source live verification pending** — bridge candidate `0.9.3`.
 
 - [x] A transparent browser overlay is served locally without a cloud host or broadcasting-app credential.
 - [x] A loopback-only WebSocket broadcasts public presentation projections rather than raw events.
@@ -266,6 +266,6 @@ Current verification evidence:
 - `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` are the independently movable section URLs.
 - Automated browser-source review requires `textContent` and rejects `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, and `eval`.
 - Integration coverage opens `/overlay/events` through an actual loopback WebSocket and observes a projected public chat event.
-- Full validation: 31 test files and 141 tests passed; lint, typecheck, build, and configuration validation are clean.
+- Full validation: 31 test files and 142 tests passed; lint, typecheck, build, and configuration validation are clean.
 - Chromium acceptance: the live local page rendered Twitch chat and a YouTube Super Chat, labeled the simulated alert, reported `LIVE`, retained a transparent `rgba(0, 0, 0, 0)` body, removed the chat after a correlated moderation event, and logged no browser warnings or errors.
 - Official Meld, OBS Studio, and Streamlabs documentation confirms URL Browser layers/sources use browser-compatible rendering; OBS explicitly documents CEF and transparent browser-source defaults.
