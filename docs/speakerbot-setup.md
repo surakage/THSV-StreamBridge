@@ -7,7 +7,7 @@ Milestone 6 uses Streamer.bot as the decision engine and Speaker.bot as the loca
 1. In Speaker.bot, configure a speech engine and create at least one voice alias.
 2. In Speaker.bot **Settings > WebSocket Server**, bind to `127.0.0.1`, keep the chosen port aligned with Streamer.bot, and enable Auto Start if desired. Current Speaker.bot documentation lists `7680` as the default; the verified installed `0.1.7` instance retained `7580`, so use the value shown in the running application rather than assuming either port.
 3. In Streamer.bot **Integrations > Speaker.bot**, use `127.0.0.1`, the matching WebSocket port, Auto Connect, and Auto Reconnect.
-4. Import `packages\streamerbot\speaker-orchestration\THSV-StreamBridge-Speaker-Orchestration-1.0.0.sb`.
+4. Import `packages\streamerbot\speaker-orchestration\THSV-StreamBridge-Speaker-Orchestration-1.0.1.sb`.
 5. Leave the imported action triggerless.
 
 Queue controls use Speaker.bot's always-on localhost UDP interface on fixed port `6669`; they do not depend on the configurable WebSocket port.
@@ -39,3 +39,6 @@ Inspect Action History. The expected result is `speakerValid=True`, `speakerDisp
 - Simulated events are denied unless the caller explicitly enables them. Use dry run for routine fixture testing.
 - Queue controls are local operator functions. Do not expose stop, pause, resume, or clear to public chat commands.
 - Generated duration and audio-file metadata are not available from `CPH.TtsSpeak`. Streamer.bot's native delayed/silent Speaker.bot Speak sub-action exposes those fields when a future workflow genuinely needs them.
+- `speakerDispatched=True` reports only a positive local transport result. It does not validate a voice alias or acknowledge playback; test every alias inside Speaker.bot before relying on it.
+- Apply creator-side cooldown and request-ID deduplication before invoking speech. Do not expose raw URLs or markup to TTS; explicitly strip or replace them before setting `speakerTextSource=creator-approved`.
+- Concurrent execution keeps stop/pause/clear responsive, but creator logic must serialize or otherwise coordinate speak requests to prevent overlapping audio.

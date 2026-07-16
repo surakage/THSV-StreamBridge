@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Speaker Orchestration",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "surakage",
   "description": "Creator-approved Speaker.bot speech and queue-control boundary for THSV StreamBridge.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
@@ -11,7 +11,7 @@
     "id": "0f738349-303a-5c90-926f-1134a736d232",
     "sourceSubActionId": "aaea2d03-d4e1-5725-af39-80e75b16c499",
     "source": "src/ProcessSpeakerRequest.cs",
-    "importFile": "THSV-StreamBridge-Speaker-Orchestration-1.0.0.sb"
+    "importFile": "THSV-StreamBridge-Speaker-Orchestration-1.0.1.sb"
   },
   "runtime": {
     "queue": "Default",

@@ -24,7 +24,7 @@ Implemented in version `0.6.0` and review-hardened in `0.6.1`. Multi-Alerts proj
 
 ## Milestone 6: Speaker.bot Orchestration
 
-Implemented offline in version `0.7.0`; live Speaker.bot compile, connection, dry-run, and queue-control verification remain pending. Streamer.bot must explicitly approve every request. Raw event text and unapproved simulated events are denied, bad-word filtering is mandatory, and the package supports speak plus stop/pause/resume/clear without direct triggers.
+Implemented and live-verified in version `0.7.0`, then review-hardened in `0.7.1`. Streamer.bot must explicitly approve every request. Raw event text and unapproved simulated events are denied, bad-word filtering is mandatory, and the package supports speak plus stop/pause/resume/clear without direct triggers. A positive dispatch result confirms only the local transport send; Speaker.bot voice acceptance and playback remain unacknowledged.
 
 ## Carried requirements
 
@@ -35,6 +35,10 @@ Implemented offline in version `0.7.0`; live Speaker.bot compile, connection, dr
 - Command cooldowns and spam throttles must not ship before Milestone 9 establishes cross-platform viewer identity; platform-scoped user IDs would make such limits trivially bypassable.
 - Operator/debug commands remain a separate `operator.command-received` pathway and require an explicit future package; the public Multi-Commands package must continue to bypass them.
 - Speaker orchestration must continue to default-deny raw actor names, item names, tiers, and messages for TTS. Only creator-authored templates or explicitly allowlisted/filtered fields may be spoken, and simulated alerts must never update production statistics.
+- TTS cooldown and repeated-request suppression require creator policy now and must use unified cross-platform identity when Milestone 9 adds a shared implementation; platform-scoped limits must not be presented as bypass-resistant.
+- Milestone 8 must decide whether captions are in scope before relying on Speaker Orchestration: the current CPH transport exposes no playback timing, duration, generated file, or engine acknowledgement with which to synchronize them.
+- Milestone 8 owns TTS-aware alert priority/preemption and must define how it coordinates with stop/clear, audio ducking recovery, and concurrent speak dispatches.
+- URL and markup speech policy remains creator-side: raw event text is denied, and explicitly approved text must be stripped or transformed before TTS when reading links or markup is undesirable.
 - Before the first live financial adapter ships, output delivery requires a crash-recoverable durable outbox and replay test; an accepted-but-not-yet-delivered donation must survive process failure.
 - Before the first high-volume gift adapter ships, define platform-specific bundle/coalescing behavior and a retry/backpressure policy for capacity rejection.
 - Milestone 8 owns alert priority/preemption, subscription lifecycle fields (new/renewal/upgrade, months, streak, gift provenance), avatars, and contextual HTML escaping.
@@ -46,7 +50,7 @@ Implemented offline in version `0.7.0`; live Speaker.bot compile, connection, dr
 3. Multi-Chat — complete
 4. Multi-Commands — complete
 5. Multi-Alerts — complete
-6. Speaker.bot Orchestration — implementation complete; live verification pending
+6. Speaker.bot Orchestration — complete and review-hardened
 7. Multi-Timed Actions
 8. Meld Overlay Hub
 9. Viewer Identity and Progression

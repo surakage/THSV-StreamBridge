@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 public class CPHInline
 {
     private const string ContractVersion = "1.0.0";
-    private const string PackageVersion = "1.0.0";
+    private const string PackageVersion = "1.0.1";
     private const int SpeakerBotUdpPort = 6669;
     private const int MaximumMessageLength = 500;
     private const int MaximumVoiceAliasLength = 100;
@@ -66,6 +66,7 @@ public class CPHInline
                     ? CPH.TtsSpeak(voiceAlias, message, true)
                     : CPH.BroadcastUdp(SpeakerBotUdpPort, JsonConvert.SerializeObject(new { command = operation, id = requestId }));
                 CPH.SetArgument("speakerDispatchResult", result);
+                if (result <= 0) return Fail("Speaker.bot transport returned a non-positive dispatch result.");
                 CPH.SetArgument("speakerDispatched", true);
             }
             catch (Exception error)

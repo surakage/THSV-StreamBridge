@@ -39,6 +39,8 @@ describe('Speaker Orchestration Streamer.bot package', () => {
     });
     expect(reviewedSource).toContain('CPH.TtsSpeak(voiceAlias, message, true)');
     expect(reviewedSource).toContain('CPH.BroadcastUdp(SpeakerBotUdpPort');
+    expect(reviewedSource).toContain('if (result <= 0) return Fail("Speaker.bot transport returned a non-positive dispatch result.")');
+    expect(reviewedSource.indexOf('if (result <= 0)')).toBeLessThan(reviewedSource.indexOf('CPH.SetArgument("speakerDispatched", true)'));
     expect(reviewedSource).toContain('SpeakerBotUdpPort = 6669');
     expect(reviewedSource).not.toContain('RegularExpressions');
     expect(reviewedSource).not.toContain('Regex.');

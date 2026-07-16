@@ -65,7 +65,7 @@ Multi-Alerts adds:
 - A versioned `THSV StreamBridge - Multi-Alerts` Streamer.bot package with no rendering, sound, TTS, globals, or platform output
 - A triggerless `THSV StreamBridge - Speaker Orchestration` package for creator-approved speech and queue controls with default-deny raw text
 
-Import the package and follow the inline action-chain instructions in the [Multi-Alerts package guide](packages/streamerbot/multi-alerts/README.md). Meld presentation remains Milestone 8; Speaker.bot orchestration is implemented in `0.7.0` with live local verification pending.
+Import the package and follow the inline action-chain instructions in the [Multi-Alerts package guide](packages/streamerbot/multi-alerts/README.md). Meld presentation remains Milestone 8; Speaker.bot orchestration was live-verified in `0.7.0` and review-hardened in `0.7.1`.
 
 Speaker.bot setup and safe dry-run testing are documented in [Speaker.bot setup](docs/speakerbot-setup.md). The orchestration package never speaks raw event fields automatically.
 

@@ -177,7 +177,7 @@ Verification evidence:
 
 ## Milestone 6 — Speaker.bot Orchestration
 
-Status: **Complete** — verified on July 16, 2026 against bridge version `0.7.0`, Speaker Orchestration package `1.0.0`, Streamer.bot `1.0.5-alpha.31`, and Speaker.bot `0.1.7`.
+Status: **Complete and review-hardened** — live-verified on July 16, 2026 against bridge `0.7.0`, Speaker Orchestration package `1.0.0`, Streamer.bot `1.0.5-alpha.31`, and Speaker.bot `0.1.7`; focused-review hardening is implemented and release-verified in bridge `0.7.1` / package `1.0.1`.
 
 - [x] Streamer.bot remains the only decision engine that can approve speech or queue control.
 - [x] Speak, stop, pause, resume, and clear use one versioned platform-neutral request contract.
@@ -201,3 +201,6 @@ Verification evidence:
 - Local connection: Speaker.bot `0.1.7` ran its WebSocket server at `ws://127.0.0.1:7580` and its fixed UDP listener at localhost port `6669`.
 - Queue controls: stop, pause, resume, and clear each completed in Streamer.bot with 26 result variables and no dispatch exception. Speaker.bot's log independently recorded `UDP Pause`, `UDP Resume`, and `UDP Clear`; stop was dispatched while no speech was active, so it correctly had no current speech to terminate.
 - Safety evidence: the dry run used creator-authored text, explicit approval, explicit simulated-event permission, and forced bad-word filtering while remaining non-dispatching.
+- Focused-review hardening: the C# action now requires a positive `TtsSpeak`/`BroadcastUdp` result before setting `speakerDispatched=True`; zero or negative transport results fail with a readable error.
+- Runtime truthfulness check: Streamer.bot returned `151` for a deliberately nonexistent voice alias, proving the integer represents local UDP dispatch rather than Speaker.bot voice acceptance. Documentation now explicitly reserves alias validation and playback acknowledgement instead of overstating success.
+- Carried policy: creator actions own speech cooldown, stable request-ID deduplication, URL/markup transformation, and speak serialization; Milestones 8 and 9 own the shared priority/caption/ducking and cross-platform identity decisions respectively.

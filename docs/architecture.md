@@ -53,6 +53,8 @@ The package exposes transport uncertainty through `multiAlertVerifiedTransport` 
 
 Streamer.bot remains the authorization and composition boundary. A trusted creator action constructs an explicit `speaker*` request and invokes the triggerless Speaker Orchestration package. The package rejects missing approval, raw-event provenance, and simulated events by default. Approved speech uses Streamer.bot's Speaker.bot `TtsSpeak` integration with bad-word filtering forced on; stop, pause, resume, and clear use Speaker.bot's documented localhost UDP interface. No platform event automatically becomes speech.
 
+The package treats only a positive CPH transport result as dispatched. That value confirms a local send, not voice-alias validity, engine acceptance, audio generation, or playback. Cooldowns, request-ID deduplication, URL/markup policy, priority, and speak serialization remain explicit creator-side responsibilities until the roadmap milestones named below provide shared identity and presentation orchestration.
+
 The selected C# path is intentionally asynchronous and exposes no playback-completion or generated-file guarantee. It reports dispatch without claiming that audio finished. Generated duration/file metadata remain explicitly unavailable until a workflow adopts Streamer.bot's native delayed or silent Speaker.bot Speak sub-action.
 
 ## Deduplication
