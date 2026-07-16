@@ -4,11 +4,12 @@
   const chat = document.getElementById('chat');
   const alerts = document.getElementById('alerts');
   const status = document.getElementById('status');
+  const mode = location.pathname.endsWith('/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
+  document.body.dataset.mode = mode;
   const alertQueue = [];
   const priorityRank = { low: 1, normal: 2, high: 3 };
   let activeAlert;
   let alertTimer;
-  let reconnectTimer;
   let clientConfig = { maxChatMessages: 40, alertDurationMs: 7000 };
 
   function element(tag, className, text) {
@@ -18,21 +19,47 @@
     return node;
   }
 
-  function connect() {
+  function receive(event) {
+    if (event.kind === 'chat.add' && mode !== 'alerts') addChat(event.payload);
+    else if (event.kind === 'chat.remove' && mode !== 'alerts') removeChat(event.payload.targetEventId);
+    else if (event.kind === 'alert.show' && mode !== 'chat') enqueueAlert(event.payload);
+  }
+
+  function transportStatus(state) {
+    status.textContent = state === 'live' ? 'LIVE' : 'RECONNECTING';
+    status.dataset.state = state;
+  }
+
+  function connectDirectly() {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(`${protocol}//${location.host}/overlay/events`);
-    socket.addEventListener('open', () => { status.textContent = 'LIVE'; status.dataset.state = 'live'; });
+    let reconnectTimer;
+    socket.addEventListener('open', () => transportStatus('live'));
     socket.addEventListener('message', (message) => {
       let event;
       try { event = JSON.parse(message.data); } catch { return; }
-      if (event.kind === 'chat.add') addChat(event.payload);
-      else if (event.kind === 'chat.remove') removeChat(event.payload.targetEventId);
-      else if (event.kind === 'alert.show') enqueueAlert(event.payload);
+      receive(event);
     });
     socket.addEventListener('close', () => {
-      status.textContent = 'RECONNECTING'; status.dataset.state = 'offline';
-      clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connect, 1500);
+      transportStatus('reconnecting');
+      clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connectDirectly, 1500);
     });
+  }
+
+  function connect() {
+    if ('SharedWorker' in window) {
+      try {
+        const worker = new SharedWorker('/overlay/worker.js', 'thsv-browser-overlay');
+        worker.port.addEventListener('message', (message) => {
+          if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
+          else receive(message.data);
+        });
+        worker.port.start();
+        addEventListener('pagehide', () => worker.port.postMessage({ kind: 'disconnect' }), { once: true });
+        return;
+      } catch { /* Isolated browser sources fall back to a direct connection. */ }
+    }
+    connectDirectly();
   }
 
   function addChat(message) {
@@ -84,16 +111,16 @@
 
   function alertTitle(alert) {
     const actor = alert.actor ? alert.actor.displayName : 'The community';
-    return `${actor} · ${alert.alertType.replaceAll('-', ' ')}`;
+    return `${actor} \u00b7 ${alert.alertType.replaceAll('-', ' ')}`;
   }
 
   function alertDetail(alert) {
     if (alert.subscription) {
       const parts = [alert.subscription.kind, alert.subscription.months ? `${alert.subscription.months} months` : '', alert.subscription.streakMonths ? `${alert.subscription.streakMonths} month streak` : '', alert.subscription.gifterName ? `gifted by ${alert.subscription.gifterName}` : ''].filter(Boolean);
-      if (parts.length) return parts.join(' · ');
+      if (parts.length) return parts.join(' \u00b7 ');
     }
-    if (alert.amount && alert.currency) return `${alert.amount} ${alert.currency}${alert.message ? ` · ${alert.message}` : ''}`;
-    if (alert.quantity) return `${alert.quantity}${alert.itemName ? ` × ${alert.itemName}` : ''}`;
+    if (alert.amount && alert.currency) return `${alert.amount} ${alert.currency}${alert.message ? ` \u00b7 ${alert.message}` : ''}`;
+    if (alert.quantity) return `${alert.quantity}${alert.itemName ? ` \u00d7 ${alert.itemName}` : ''}`;
     return alert.message || alert.tier || (alert.value !== undefined ? `${alert.metric}: ${alert.value}` : '');
   }
 

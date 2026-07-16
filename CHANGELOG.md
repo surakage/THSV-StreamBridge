@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-07-16
+
+### Added
+
+- Independently movable Chat-only and Alerts-only browser-source URLs alongside the existing combined overlay.
+- A same-origin `SharedWorker` that multiplexes separate overlay sections over one WebSocket when supported, with a safe direct-connection fallback for isolated browser-source hosts.
+
 ## [0.9.1] - 2026-07-16
 
 ### Changed

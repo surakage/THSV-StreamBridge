@@ -127,7 +127,7 @@ export class DiagnosticsServer {
     const body = await readFile(resolve(process.cwd(), 'overlays', 'browser', asset.file));
     response.statusCode = 200;
     response.setHeader('content-type', asset.contentType);
-    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src https: data:");
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src https: data:");
     response.end(body);
   }
 }
@@ -135,7 +135,10 @@ export class DiagnosticsServer {
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
   '/overlay': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/chat': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/alerts': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
 };
 

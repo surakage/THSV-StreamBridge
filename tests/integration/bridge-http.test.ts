@@ -111,6 +111,16 @@ describe('bridge HTTP integration', () => {
     expect(page.status).toBe(200);
     expect(page.headers.get('content-type')).toContain('text/html');
     expect(page.headers.get('content-security-policy')).toContain("default-src 'none'");
+    expect(page.headers.get('content-security-policy')).toContain("worker-src 'self'");
+    for (const route of ['/overlay/chat', '/overlay/alerts']) {
+      const section = await fetch(`${baseUrl}${route}`);
+      expect(section.status).toBe(200);
+      expect(section.headers.get('content-type')).toContain('text/html');
+    }
+    const worker = await fetch(`${baseUrl}/overlay/worker.js`);
+    expect(worker.status).toBe(200);
+    expect(worker.headers.get('content-type')).toContain('text/javascript');
+    expect(await worker.text()).toContain('for (const port of ports)');
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toMatchObject({ maxChatMessages: 40, alertDurationMs: 7000 });
 
     const messages: Array<Record<string, unknown>> = [];

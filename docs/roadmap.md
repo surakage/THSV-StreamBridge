@@ -32,7 +32,7 @@ Implemented and live-verified in `0.8.0`, then review-hardened in `0.8.1`. Timer
 
 ## Milestone 8: Browser Overlay Hub
 
-Implemented for offline acceptance in `0.9.0` and generalized across browser-source hosts in `0.9.1`; live Meld Studio, OBS Studio, and Streamlabs Desktop verification remains pending. One local browser source receives public-only chat, moderation removal, and alert projections over a loopback WebSocket. Rendering is context-safe, retention is bounded, visual alerts are priority-aware, and presentation metadata includes validated badges, avatars, colors, and subscription lifecycle fields. Captions and TTS/audio preemption are explicitly not claimed because the adopted Speaker.bot transport exposes no playback timing or completion acknowledgement.
+Implemented for offline acceptance in `0.9.0`, generalized across browser-source hosts in `0.9.1`, and split into independently movable, connection-sharing sources in `0.9.2`. Combined rendering, reconnect, chat, moderation removal, and alerts are live-verified in Meld Studio; separate-source Meld and OBS Studio/Streamlabs Desktop verification remains pending. Rendering is context-safe, retention is bounded, visual alerts are priority-aware, and presentation metadata includes validated badges, avatars, colors, and subscription lifecycle fields. Captions and TTS/audio preemption are explicitly not claimed because the adopted Speaker.bot transport exposes no playback timing or completion acknowledgement.
 
 ## Carried requirements
 

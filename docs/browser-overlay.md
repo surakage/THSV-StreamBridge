@@ -1,14 +1,19 @@
 # Browser Overlay Hub
 
-Milestone 8 serves a transparent local browser overlay at `http://127.0.0.1:8787/overlay/`. It uses standard HTML, CSS, JavaScript, HTTP, and WebSocket APIs and works with Chromium/CEF Browser Sources in Meld Studio, OBS Studio, Streamlabs Desktop, and compatible broadcasting software. No cloud host or broadcasting-software credential is required.
+Milestone 8 serves transparent local browser overlays for combined, chat-only, and alert-only layouts. It uses standard HTML, CSS, JavaScript, HTTP, and WebSocket APIs and works with Chromium/CEF Browser Sources in Meld Studio, OBS Studio, Streamlabs Desktop, and compatible broadcasting software. No cloud host or broadcasting-software credential is required.
 
 ## Add it to a broadcasting app
 
 1. Start THSV StreamBridge with your local configuration.
 2. In Meld Studio add a **Browser** layer, or in OBS Studio/Streamlabs Desktop add a **Browser Source**.
-3. Set its URL to `http://127.0.0.1:8787/overlay/`.
-4. Size the layer to the canvas, normally 1920 by 1080, and keep its background transparent.
+3. Choose one of these URLs:
+   - Combined: `http://127.0.0.1:8787/overlay/` (normally 1920 by 1080)
+   - Chat only: `http://127.0.0.1:8787/overlay/chat` (a useful starting size is 500 by 700)
+   - Alerts only: `http://127.0.0.1:8787/overlay/alerts` (a useful starting size is 800 by 260)
+4. For independent placement, add Chat and Alerts as two separate browser sources. Move, crop, resize, hide, or assign each source to scenes normally in the broadcasting app.
 5. Run a harmless simulated chat or alert fixture and confirm it appears.
+
+Chat and Alerts opened by the same browser-source host share a `SharedWorker`, which owns one event WebSocket and fans events out locally. This keeps the independently movable sources from doubling the normal WebSocket traffic. If a broadcasting app isolates browser sources or lacks `SharedWorker`, each source safely falls back to its own reconnecting WebSocket; presentation still works, but the host will show one connection per isolated source.
 
 Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser), OBS Studio's [Browser Source documentation](https://obsproject.com/kb/browser-source), and Streamlabs Desktop's [Browser Source instructions](https://streamlabs.com/content-hub/post/introducing-browser-source-interaction-for-streamlabs-desktop) all support a URL-based browser source. Meld's separate WebChannel API and OBS's separate WebSocket API are not required merely to render this overlay.
 
@@ -21,6 +26,7 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - Alerts use a bounded visual queue. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
 - HTTPS avatar/badge URLs, validated hex name colors, and subscription renewal/upgrade/month/streak/gift provenance are supported when a verified adapter supplies them.
 - Simulated events remain visibly labeled and may be disabled through configuration.
+- Combined, Chat-only, and Alerts-only layouts use the same projection stream and do not make additional platform API calls.
 
 ## Configuration
 

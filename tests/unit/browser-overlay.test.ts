@@ -58,8 +58,15 @@ describe('Browser Overlay Hub contract', () => {
 
   it('uses text-only DOM sinks in the reviewed browser source', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
+    const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write/u);
-    expect(source).not.toContain('eval(');
+    expect(source).toContain("new SharedWorker('/overlay/worker.js'");
+    expect(source).toContain('connectDirectly');
+    expect(worker.match(/new WebSocket/gu)).toHaveLength(1);
+    expect(worker).toContain('for (const port of ports)');
+    for (const reviewedSource of [source, worker]) {
+      expect(reviewedSource).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write/u);
+      expect(reviewedSource).not.toContain('eval(');
+    }
   });
 });

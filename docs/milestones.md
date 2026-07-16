@@ -239,7 +239,7 @@ Verification evidence:
 
 ## Milestone 8 — Browser Overlay Hub
 
-Status: **Implementation complete; live broadcasting-app verification pending** — bridge candidate `0.9.1`.
+Status: **Implementation complete; separate-source live verification pending** — bridge candidate `0.9.2`.
 
 - [x] A transparent browser overlay is served locally without a cloud host or broadcasting-app credential.
 - [x] A loopback-only WebSocket broadcasts public presentation projections rather than raw events.
@@ -252,13 +252,18 @@ Status: **Implementation complete; live broadcasting-app verification pending** 
 - [x] Creator configuration controls enablement, chat retention, alert duration, bot visibility, and simulated-event visibility.
 - [x] Simulated alerts remain visibly labeled and cannot silently become production statistics.
 - [x] Browser assets use a restrictive CSP and reviewed JavaScript contains no HTML-injection or dynamic-code execution sink.
+- [x] Combined, Chat-only, and Alerts-only URLs allow independent positioning without duplicating normal WebSocket traffic in a SharedWorker-capable host.
+- [x] Isolated browser-source hosts safely fall back to one reconnecting WebSocket per source.
 - [x] Unit and integration tests exercise projection, privacy boundaries, deletion correlation, hostile markup, configuration, fixed assets, CSP, and the real loopback WebSocket.
 - [x] Caption synchronization and TTS/audio preemption are documented as unsupported because the adopted Speaker.bot transport provides no playback timing or completion acknowledgement.
-- [ ] Add the overlay URL to installed Meld Studio, OBS Studio, and Streamlabs Desktop Browser layers/sources and verify transparency, sizing, live reconnect, public chat, deletion, and alert presentation.
+- [x] Add the combined overlay URL to Meld Studio and verify transparency, sizing, live reconnect, public chat, deletion, and alert presentation.
+- [ ] Add the separate Chat and Alerts URLs to Meld Studio and verify independent movement/sizing and shared connection behavior.
+- [ ] Verify the adopted overlay URLs in installed OBS Studio and Streamlabs Desktop Browser Sources.
 
 Current verification evidence:
 
 - `http://127.0.0.1:8787/overlay/` is the fixed local Browser-layer URL.
+- `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` are the independently movable section URLs.
 - Automated browser-source review requires `textContent` and rejects `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, and `eval`.
 - Integration coverage opens `/overlay/events` through an actual loopback WebSocket and observes a projected public chat event.
 - Full validation: 31 test files and 141 tests passed; lint, typecheck, build, and configuration validation are clean.

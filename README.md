@@ -91,8 +91,9 @@ Browser Overlay Hub adds one local transparent browser source for Meld Studio, O
 - Platform, role, bot, badge, avatar, and validated name-color presentation
 - Priority-aware public alerts with subscription lifecycle and gift provenance fields
 - Loopback-only live WebSocket delivery and creator controls for duration, retention, bots, and simulated events
+- Independently movable Chat and Alerts browser sources that share one WebSocket when the host supports `SharedWorker`
 
-Add `http://127.0.0.1:8787/overlay/` as a Browser layer/source and follow the [Browser Overlay Hub guide](docs/browser-overlay.md). The implementation is Chromium-verified; acceptance in installed broadcast applications remains pending.
+Use `http://127.0.0.1:8787/overlay/` for the combined canvas, or add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). Combined rendering is live-verified in Meld Studio; separate-source acceptance in installed broadcasting applications remains pending.
 
 ## Requirements
 

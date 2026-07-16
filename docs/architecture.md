@@ -73,6 +73,8 @@ The overlay hub subscribes to the accepted internal event stream and projects on
 
 Chat and alert projections reuse the reviewed shared contracts, then add presentation-only metadata. The browser uses DOM node construction and `textContent`, has a restrictive Content Security Policy, bounds chat retention, and removes moderated messages by their stable event ID. Alert ordering is a visual type-priority queue; it does not infer financial importance and does not claim Speaker.bot playback control. Private, system, operator, and command event types are excluded before broadcast.
 
+The combined, Chat-only, and Alerts-only pages are independent layout surfaces. Pages in the same Chromium/CEF browser-source host connect to one same-origin `SharedWorker`; that worker owns one WebSocket and distributes projected events to the pages. Hosts that isolate sources or do not implement `SharedWorker` fall back to one reconnecting WebSocket per page without changing the event contract.
+
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.
