@@ -43,4 +43,28 @@ describe('OutputDeliveryManager', () => {
     await expect.poll(() => manager.ready()).toBe(true);
     await manager.stop();
   });
+
+  it('starts a 100-event burst in FIFO order while respecting configured concurrency', async () => {
+    const output = new FakeOutput();
+    const started: string[] = [];
+    let active = 0;
+    let maximumActive = 0;
+    output.deliverImpl = async (event) => {
+      started.push(event.eventId);
+      active += 1;
+      maximumActive = Math.max(maximumActive, active);
+      await new Promise((resolve) => setTimeout(resolve, Number(event.eventId.split('-').at(-1)) % 3));
+      active -= 1;
+    };
+    const manager = new OutputDeliveryManager([output], 100, 2, 3, silentLogger);
+    await manager.start();
+    const template = await fixture();
+    const expected = Array.from({ length: 100 }, (_, index) => `burst-${String(index).padStart(3, '0')}`);
+    for (const eventId of expected) manager.enqueue({ ...template, eventId });
+
+    await expect.poll(() => (manager.statuses()[0]?.['delivery'] as Record<string, unknown>)['delivered'], { timeout: 5_000 }).toBe(100);
+    expect(started).toEqual(expected);
+    expect(maximumActive).toBe(2);
+    await manager.stop();
+  });
 });

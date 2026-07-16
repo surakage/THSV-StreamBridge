@@ -12,6 +12,9 @@ export const STANDARD_PLATFORM_VALUES = [
 
 export const EVENT_TYPE_VALUES = [
   'chat.message',
+  'chat.private-message',
+  'chat.system-message',
+  'operator.message',
   'command.received',
   'channel.follow',
   'channel.subscription',
@@ -65,6 +68,7 @@ export const normalizedEventSchema = z
         id: z.string().max(256).optional(),
         name: z.string().min(1).max(256),
         displayName: z.string().min(1).max(256).optional(),
+        actorType: z.enum(['human', 'bot', 'system']).default('human'),
         roles: z.array(z.string().max(64)).max(32).default([]),
       })
       .strict()
@@ -73,6 +77,7 @@ export const normalizedEventSchema = z
     metadata: z
       .object({
         correlationId: z.string().max(256).optional(),
+        bridgeSequence: z.number().int().positive().optional(),
         simulated: z.boolean().default(false),
         unverifiedFields: z.array(z.string().max(256)).max(100).optional(),
         rawPayload: jsonValueSchema.optional(),

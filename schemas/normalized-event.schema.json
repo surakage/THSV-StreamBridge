@@ -13,8 +13,8 @@
     "source": { "type": "object", "additionalProperties": false, "required": ["adapter", "eventName"], "properties": { "adapter": { "type": "string" }, "eventId": { "type": "string" }, "eventName": { "type": "string" } } },
     "receivedAt": { "type": "string", "format": "date-time" },
     "channel": { "type": "object", "additionalProperties": false, "required": ["name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" } } },
-    "user": { "type": "object", "additionalProperties": false, "required": ["name", "roles"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "displayName": { "type": "string" }, "roles": { "type": "array", "items": { "type": "string" } } } },
+    "user": { "type": "object", "additionalProperties": false, "required": ["name", "roles"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "displayName": { "type": "string" }, "actorType": { "type": "string", "enum": ["human", "bot", "system"], "default": "human" }, "roles": { "type": "array", "items": { "type": "string" } } } },
     "payload": { "type": "object" },
-    "metadata": { "type": "object", "additionalProperties": false, "required": ["simulated"], "properties": { "correlationId": { "type": "string" }, "simulated": { "type": "boolean" }, "unverifiedFields": { "type": "array", "items": { "type": "string" } }, "rawPayload": {} } }
+    "metadata": { "type": "object", "additionalProperties": false, "required": ["simulated"], "properties": { "correlationId": { "type": "string" }, "bridgeSequence": { "type": "integer", "minimum": 1, "description": "Process-local arrival sequence assigned by the bridge after deduplication; caller-supplied values are overwritten." }, "simulated": { "type": "boolean" }, "unverifiedFields": { "type": "array", "items": { "type": "string" } }, "rawPayload": {} } }
   }
 }

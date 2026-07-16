@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-16
+
+### Added
+
+- Process-local bridge arrival sequences that overwrite caller values after deduplication and let consumers reconstruct cross-platform order.
+- Multi-Chat event ID, received timestamp, sequence, public visibility, actor type, and bot provenance outputs.
+- Standard private chat, system chat, and operator message event types that never enter the public Multi-Chat path.
+- Deterministic sequence, privacy-boundary, actor-provenance, and 100-event burst tests.
+
+### Changed
+
+- Core receiver package updated to `1.0.2` with argument contract `1.1.0`.
+- Multi-Chat package and contract updated to `1.1.0`.
+- Streamer.bot export generation preserves stable action and C# sub-action IDs across package upgrades.
+
 ## [0.4.0] - 2026-07-16
 
 ### Added

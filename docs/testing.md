@@ -19,3 +19,5 @@ npm run simulate -- tests/fixtures/facebook-chat.json
 ```
 
 With live Streamer.bot delivery configured, each receiver action must run Multi-Chat immediately and expose the same `multiChat*` output contract. Fixture fields prove framework routing only; they are not claims about production platform transports.
+
+The unit suite also runs a 100-event delivery burst. It verifies FIFO start order and the configured concurrency ceiling. Since Streamer.bot's Default queue is non-blocking, downstream timeline consumers use the bridge-assigned sequence rather than action completion time.

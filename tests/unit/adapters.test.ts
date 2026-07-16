@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MockAdapter } from '../../bridge/adapters/mock-adapter.js';
 import { PlaceholderAdapter } from '../../bridge/adapters/placeholder-adapter.js';
 import { fixture, platformConfig, silentLogger } from '../helpers.js';
-import { buildNormalizedEvent } from '../../bridge/adapters/normalization.js';
+import { assertAdapterCapability, buildNormalizedEvent } from '../../bridge/adapters/normalization.js';
 
 describe('adapter lifecycle', () => {
   it('does not start a disabled adapter or emit warnings', async () => {
@@ -33,5 +33,9 @@ describe('adapter lifecycle', () => {
     await adapter.start({ logger: silentLogger, emit: () => Promise.resolve() });
     const follow = await fixture('kick-follow.json');
     await expect(adapter.simulate(follow)).rejects.toThrow('required capability follows');
+  });
+
+  it.each(['chat.private-message', 'chat.system-message'])('requires chatInput for %s', (eventType) => {
+    expect(() => assertAdapterCapability(eventType, [])).toThrow('chatInput');
   });
 });

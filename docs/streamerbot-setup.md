@@ -7,9 +7,9 @@ The foundation sends a `DoAction` WebSocket request and waits for the correlated
 1. In Streamer.bot, open **Servers/Clients > WebSocket Server**.
 2. Keep the address at `127.0.0.1`, port `8080`, and endpoint `/`, or update the bridge URL to match.
 3. Enable **Auto Start** and start the WebSocket server.
-4. Import `packages\streamerbot\core-receiver\THSV-StreamBridge-Core-Receiver-1.0.1.sb`. It installs `THSV StreamBridge - Receive Event` in the `THSV StreamBridge` group.
+4. Import `packages\streamerbot\core-receiver\THSV-StreamBridge-Core-Receiver-1.0.2.sb`. It installs or upgrades `THSV StreamBridge - Receive Event` in the `THSV StreamBridge` group.
 5. Keep `streamerbot.actionAlias` set to `THSV StreamBridge - Receive Event`. The receiver validates the full `streamBridgeEvent` JSON and exposes the versioned, platform-neutral arguments documented in the adjacent package manifest.
-6. Import `packages\streamerbot\multi-chat\THSV-StreamBridge-Multi-Chat-1.0.0.sb`.
+6. Import `packages\streamerbot\multi-chat\THSV-StreamBridge-Multi-Chat-1.1.0.sb`.
 7. In the receiver action, add **Core > Actions > Run Action** after the enabled receiver C# sub-action. Select `THSV StreamBridge - Multi-Chat` and leave **Run Action Immediately** enabled so it receives the validated argument stack.
 8. For a network-free check, explicitly set `streamerbot.testMode` true and run the simulator. Diagnostics will report `liveDelivery: false`; neither action will execute.
 9. For a live check, set test mode false, start Streamer.bot, start the bridge, and run each chat fixture listed in [Testing](testing.md).

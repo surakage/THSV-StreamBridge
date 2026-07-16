@@ -12,7 +12,14 @@ Implemented in version `0.3.0` and review-hardened in `0.3.1`. The repository no
 
 ## Milestone 3: Multi-Chat
 
-Implemented in version `0.4.0`. Multi-Chat projects normalized chat events into one versioned platform-neutral contract, ships as a portable receiver-dependent Streamer.bot action, normalizes unsafe control/whitespace characters without damaging Unicode, derives common role flags, and includes deterministic fixtures for all five planned platforms. Production platform transports remain later adapter work.
+Implemented in version `0.4.0` and review-hardened in `0.4.1`. Multi-Chat projects normalized chat events into one versioned platform-neutral contract, ships as a portable receiver-dependent Streamer.bot action, normalizes unsafe control/whitespace characters without damaging Unicode, derives common role flags, exposes identity/timestamp/order/provenance fields, and keeps private, system, and operator messages outside the public path. Production platform transports remain later adapter work.
+
+## Carried requirements
+
+- Milestone 8 must contextually HTML-escape every chat field at its rendering sink and correlate moderation/deletion events by `multiChatEventId`.
+- Badge icons, name colors, subscription tiers, and other visual presentation metadata are intentionally deferred to the Milestone 8 schema/design pass; adapters must not hide them in unreviewed platform-specific shared fields.
+- Production adapter milestones must test reconnect replay against persisted deduplication and must classify human, bot, system, public, private, and operator events explicitly.
+- Creator-configurable bot suppression remains deferred until real adapters can supply verified bot provenance; contract `1.1.0` exposes `multiChatIsBot` so consumers can make an explicit policy decision now.
 
 ## Planned milestones
 

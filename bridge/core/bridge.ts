@@ -43,6 +43,7 @@ export class StreamBridge {
   private startedAt: string | undefined;
   private lastAcceptedEventAt: string | undefined;
   private statePersistenceError: string | undefined;
+  private nextSequence = 0;
 
   public constructor(
     private readonly config: BridgeConfig,
@@ -112,11 +113,13 @@ export class StreamBridge {
     if (size > this.config.security.maxPayloadBytes) throw new PayloadTooLargeError(`Payload is ${String(size)} bytes; maximum is ${String(this.config.security.maxPayloadBytes)}`);
     const parsed = normalizedEventSchema.safeParse(input);
     if (!parsed.success) throw new InvalidEventError(parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`));
-    const event = this.config.security.preserveRawPayloads ? parsed.data : withoutRawPayload(parsed.data);
-    if (this.deduplicator.isDuplicate(event)) {
-      this.logger.debug('Duplicate event ignored', { eventId: event.eventId, eventType: event.eventType, platform: event.platform });
-      return { accepted: true, duplicate: true, eventId: event.eventId, delivery: 'none', outputs: [] };
+    const validatedEvent = this.config.security.preserveRawPayloads ? parsed.data : withoutRawPayload(parsed.data);
+    if (this.deduplicator.isDuplicate(validatedEvent)) {
+      this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
+      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', outputs: [] };
     }
+
+    const event = withBridgeSequence(validatedEvent, ++this.nextSequence);
 
     try {
       await this.bus.publish(event);
@@ -154,6 +157,7 @@ export class StreamBridge {
       ...this.health(),
       ...this.readiness(),
       deduplicationEntries: this.deduplicator.size,
+      lastBridgeSequence: this.nextSequence,
       deduplicationPersistence: this.dependencies.deduplicationStore.status(),
     };
   }
@@ -180,4 +184,8 @@ function withoutRawPayload(event: NormalizedEvent): NormalizedEvent {
   const { rawPayload: _ignored, ...metadata } = event.metadata;
   void _ignored;
   return { ...event, metadata };
+}
+
+function withBridgeSequence(event: NormalizedEvent, bridgeSequence: number): NormalizedEvent {
+  return { ...event, metadata: { ...event.metadata, bridgeSequence } };
 }

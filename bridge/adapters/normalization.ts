@@ -47,7 +47,7 @@ export function assertAdapterCapability(eventType: EventType, capabilities: read
 }
 
 function capabilityForEvent(eventType: EventType): Capability | undefined {
-  if (eventType === 'chat.message' || eventType === 'command.received') return 'chatInput';
+  if (['chat.message', 'chat.private-message', 'chat.system-message', 'command.received'].includes(eventType)) return 'chatInput';
   if (eventType === 'channel.follow') return 'follows';
   if (['channel.subscription', 'channel.membership', 'channel.gift-subscription'].includes(eventType)) return 'subscriptions';
   if (eventType === 'engagement.gift') return 'gifts';

@@ -6,8 +6,8 @@ using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
-    private const string ContractVersion = "1.0.0";
-    private const string PackageVersion = "1.0.1";
+    private const string ContractVersion = "1.1.0";
+    private const string PackageVersion = "1.0.2";
     private const string SupportedSchemaVersion = "1.0.0";
 
     public bool Execute()
@@ -58,15 +58,20 @@ public class CPHInline
             return Fail("Missing or invalid metadata.simulated boolean.");
         if (!IsOptionalString(metadata, "correlationId", 256))
             return Fail("Invalid metadata.correlationId.");
+        if (!IsOptionalPositiveInteger(metadata, "bridgeSequence"))
+            return Fail("Invalid metadata.bridgeSequence.");
 
         JObject user = envelope["user"] as JObject;
         string userName = user == null ? string.Empty : ReadRequiredString(user, "name", 256);
-        if (user != null && (userName == null || !IsOptionalString(user, "id", 256) || !IsOptionalString(user, "displayName", 256) || !IsRoles(user["roles"])))
+        string userActorType = user == null ? string.Empty : ReadActorType(user);
+        if (user != null && (userName == null || userActorType == null || !IsOptionalString(user, "id", 256) || !IsOptionalString(user, "displayName", 256) || !IsRoles(user["roles"])))
             return Fail("Invalid user data.");
 
         CPH.SetArgument("streamBridgeSchemaVersion", schemaVersion);
         CPH.SetArgument("streamBridgeEventId", eventId);
         CPH.SetArgument("streamBridgeEventType", eventType);
+        CPH.SetArgument("streamBridgeReceivedAt", receivedAt);
+        CPH.SetArgument("streamBridgeSequence", ReadOptionalPositiveInteger(metadata, "bridgeSequence"));
         CPH.SetArgument("streamBridgePlatform", platform);
         CPH.SetArgument("streamBridgeSourceAdapter", ReadRequiredString(source, "adapter", 100));
         CPH.SetArgument("streamBridgeChannelId", ReadOptionalString(channel, "id"));
@@ -74,6 +79,7 @@ public class CPHInline
         CPH.SetArgument("streamBridgeUserId", user == null ? string.Empty : ReadOptionalString(user, "id"));
         CPH.SetArgument("streamBridgeUserName", userName ?? string.Empty);
         CPH.SetArgument("streamBridgeUserDisplayName", user == null ? string.Empty : ReadOptionalString(user, "displayName", userName));
+        CPH.SetArgument("streamBridgeUserActorType", userActorType ?? string.Empty);
         CPH.SetArgument("streamBridgeUserRoles", user?["roles"]?.ToString(Formatting.None) ?? "[]");
         CPH.SetArgument("streamBridgePayload", payload.ToString(Formatting.None));
         CPH.SetArgument("streamBridgeMetadata", metadata.ToString(Formatting.None));
@@ -93,6 +99,8 @@ public class CPHInline
         CPH.SetArgument("streamBridgeSchemaVersion", string.Empty);
         CPH.SetArgument("streamBridgeEventId", string.Empty);
         CPH.SetArgument("streamBridgeEventType", string.Empty);
+        CPH.SetArgument("streamBridgeReceivedAt", string.Empty);
+        CPH.SetArgument("streamBridgeSequence", 0L);
         CPH.SetArgument("streamBridgePlatform", string.Empty);
         CPH.SetArgument("streamBridgeSourceAdapter", string.Empty);
         CPH.SetArgument("streamBridgeChannelId", string.Empty);
@@ -100,6 +108,7 @@ public class CPHInline
         CPH.SetArgument("streamBridgeUserId", string.Empty);
         CPH.SetArgument("streamBridgeUserName", string.Empty);
         CPH.SetArgument("streamBridgeUserDisplayName", string.Empty);
+        CPH.SetArgument("streamBridgeUserActorType", string.Empty);
         CPH.SetArgument("streamBridgeUserRoles", "[]");
         CPH.SetArgument("streamBridgePayload", "{}");
         CPH.SetArgument("streamBridgeMetadata", "{}");
@@ -180,6 +189,30 @@ public class CPHInline
             if (role.Type != JTokenType.String || role.ToString().Length > 64) return false;
         }
         return true;
+    }
+
+    private static bool IsOptionalPositiveInteger(JObject value, string property)
+    {
+        JToken token = value[property];
+        if (token == null) return true;
+        return token.Type == JTokenType.Integer && ReadOptionalPositiveInteger(value, property) > 0;
+    }
+
+    private static long ReadOptionalPositiveInteger(JObject value, string property)
+    {
+        JToken token = value[property];
+        if (token == null || token.Type != JTokenType.Integer) return 0L;
+        long parsed;
+        return long.TryParse(token.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) && parsed > 0 ? parsed : 0L;
+    }
+
+    private static string ReadActorType(JObject user)
+    {
+        JToken token = user["actorType"];
+        if (token == null) return "human";
+        if (token.Type != JTokenType.String) return null;
+        string value = token.ToString();
+        return value == "human" || value == "bot" || value == "system" ? value : null;
     }
 
     private static string ReadRequiredString(JObject value, string property, int maxLength)

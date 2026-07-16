@@ -12,6 +12,8 @@ interface ExportManifest {
   readonly action: {
     readonly name: string;
     readonly group: string;
+    readonly id?: string;
+    readonly sourceSubActionId?: string;
     readonly source: string;
     readonly importFile: string;
   };
@@ -25,8 +27,6 @@ if (packageArgument === undefined) {
 const packageDirectory = resolve(packageArgument);
 const manifest = JSON.parse(await readFile(resolve(packageDirectory, 'manifest.json'), 'utf8')) as ExportManifest;
 const source = await readFile(resolve(packageDirectory, manifest.action.source));
-const identity = `${manifest.name}@${manifest.version}`;
-
 const exported = {
   meta: {
     name: manifest.name,
@@ -38,7 +38,7 @@ const exported = {
   },
   data: {
     actions: [{
-      id: stableUuid(`${identity}:action`),
+      id: manifest.action.id ?? stableUuid(`${manifest.name}:action`),
       queue: '00000000-0000-0000-0000-000000000000',
       enabled: true,
       excludeFromHistory: false,
@@ -58,7 +58,7 @@ const exported = {
         delayStart: false,
         saveResultToVariable: false,
         saveToVariable: null,
-        id: stableUuid(`${identity}:source`),
+        id: manifest.action.sourceSubActionId ?? stableUuid(`${manifest.name}:source`),
         weight: 0,
         type: 99_999,
         parentId: null,

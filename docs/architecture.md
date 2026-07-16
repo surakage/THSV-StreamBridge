@@ -31,7 +31,11 @@ Raw payloads are discarded unless `security.preserveRawPayloads` is explicitly e
 
 The core receiver remains the only Streamer.bot action that parses the normalized envelope. Multi-Chat runs inline after that receiver and consumes only its validated `streamBridge*` argument stack. It does not read Twitch, YouTube, Kick, TikTok, Facebook, or TikFinity payload shapes.
 
-`bridge/core/multi-chat.ts` is the TypeScript reference contract for adapter and test authors. The versioned Streamer.bot package implements the same projection at the automation boundary: normalized platform/channel/user identity, plain-text message, role flags, and simulated status. Non-chat events are successful no-ops, while invalid chat semantics fail with a readable feature-level error.
+`bridge/core/multi-chat.ts` is the TypeScript reference contract for adapter and test authors. The versioned Streamer.bot package implements the same projection at the automation boundary: event identity, validated timestamp, process-local arrival sequence, explicit public visibility, normalized platform/channel/user identity, actor provenance, plain-text message, role flags, and simulated status. Non-chat events are successful no-ops, while invalid chat semantics fail with a readable feature-level error.
+
+The bridge assigns `metadata.bridgeSequence` only after validation and deduplication, overwriting any caller value. Multiple delivery requests may complete out of order because the Default Streamer.bot queue is non-blocking; consumers reconstruct accepted arrival order with `multiChatSequence`, using `multiChatReceivedAt` and `multiChatEventId` as durable context. Sequence numbers reset when the bridge restarts and may contain gaps after later delivery rejection.
+
+Privacy is separated by event type before any public presentation exists. `chat.message` is public. `chat.private-message`, `chat.system-message`, and `operator.message` bypass Multi-Chat. Adapters must never normalize whispers, direct messages, moderator notes, or operator traffic as `chat.message`.
 
 ## Deduplication
 

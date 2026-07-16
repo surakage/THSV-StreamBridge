@@ -75,7 +75,7 @@ Verification evidence:
 
 ## Milestone 3 — Multi-Chat
 
-Status: **Complete** — verified on July 16, 2026 against bridge version `0.4.0`, Multi-Chat package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+Status: **Complete and review-hardened** — verified on July 16, 2026 against bridge version `0.4.1`, core receiver `1.0.2`, Multi-Chat package `1.1.0`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] One versioned chat contract represents messages from every registered platform without platform checks in shared logic.
 - [x] Chat messages require normalized user identity and string `payload.message` data.
@@ -88,6 +88,10 @@ Status: **Complete** — verified on July 16, 2026 against bridge version `0.4.0
 - [x] Twitch, YouTube, Kick, TikTok, and Facebook offline chat fixtures produce the same contract.
 - [x] Unit and package-integrity tests cover valid, invalid, non-chat, Unicode, role, and export cases.
 - [x] Streamer.bot compiles the imported C# action and an inline receiver invocation exposes verified `multiChat*` values.
+- [x] Installed output exposes event ID, receive timestamp, bridge sequence, public visibility, and actor provenance.
+- [x] Public chat excludes private chat, system chat, and operator messages by event type.
+- [x] Caller-supplied sequence values are overwritten after deduplication, and consumers can reconstruct accepted arrival order.
+- [x] A 100-event burst preserves FIFO delivery start order and respects the configured concurrency bound.
 
 Verification evidence:
 
@@ -97,3 +101,8 @@ Verification evidence:
 - Facebook live output: `multiChatHandled=True`, `multiChatValid=True`, contract/package `1.0.0`, platform `facebook`, the expected viewer identity, and the expected normalized message.
 - Kick live output: platform `kick`, role array `["moderator"]`, expected normalized message, and `multiChatIsModerator=True`.
 - Lifecycle check: the bridge reported `healthy`/`ready` during the matrix and stopped successfully afterward.
+- Review hardening: receiver `1.0.2` compiled successfully after removing an unnecessary `System.Core` dependency exposed by live Alpha compilation.
+- Ordering live output: YouTube event `sim-youtube-chat-001` exposed receiver/Multi-Chat sequence `2`, event ID, validated receive timestamp, and `multiChatVisibility=public`.
+- Bot live output: `review-bot-chat-001` exposed sequence `3`, `multiChatActorType=bot`, and `multiChatIsBot=True`.
+- Privacy live output: `review-private-chat-001` was receiver-valid with sequence `4`, while Multi-Chat returned `multiChatHandled=False`, empty public fields, and no validation error.
+- Delivery diagnostics: four review events were delivered with zero failures; readiness remained healthy and the bridge stopped with port 8787 closed.

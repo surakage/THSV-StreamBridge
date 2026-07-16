@@ -1,35 +1,41 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Multi-Chat",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "surakage",
   "description": "Platform-neutral chat projection for receiver-validated THSV StreamBridge events.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
   "action": {
     "name": "THSV StreamBridge - Multi-Chat",
     "group": "THSV StreamBridge",
+    "id": "99e202ab-0ee9-58d1-b22c-95b30fdc702e",
+    "sourceSubActionId": "0e0167a4-ad96-5c5b-a77d-2fa9551b6853",
     "source": "src/ProcessChat.cs",
-    "importFile": "THSV-StreamBridge-Multi-Chat-1.0.0.sb"
+    "importFile": "THSV-StreamBridge-Multi-Chat-1.1.0.sb"
   },
   "runtime": {
     "queue": "Default",
     "concurrent": false,
     "dependencies": [
-      "THSV StreamBridge - Core Receiver 1.0.1 or later",
+      "THSV StreamBridge - Core Receiver 1.0.2 or later",
       "Streamer.bot CPH API",
       "Newtonsoft.Json/JObject default C# reference"
     ]
   },
   "contract": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "acceptedEventType": "chat.message",
     "maximumMessageCharacters": 2000,
     "requiredInputArguments": [
       "streamBridgeValid",
       "streamBridgeEventType",
+      "streamBridgeEventId",
+      "streamBridgeReceivedAt",
+      "streamBridgeSequence",
       "streamBridgePlatform",
       "streamBridgeChannelName",
       "streamBridgeUserName",
+      "streamBridgeUserActorType",
       "streamBridgePayload"
     ],
     "outputArguments": [
@@ -38,18 +44,24 @@
       "multiChatValidationError",
       "multiChatContractVersion",
       "multiChatPackageVersion",
+      "multiChatEventId",
+      "multiChatReceivedAt",
+      "multiChatSequence",
+      "multiChatVisibility",
       "multiChatPlatform",
       "multiChatChannelId",
       "multiChatChannelName",
       "multiChatUserId",
       "multiChatUserName",
       "multiChatUserDisplayName",
+      "multiChatActorType",
       "multiChatUserRoles",
       "multiChatMessage",
       "multiChatMessageLength",
       "multiChatIsBroadcaster",
       "multiChatIsModerator",
       "multiChatIsSubscriber",
+      "multiChatIsBot",
       "multiChatSimulated"
     ]
   }
