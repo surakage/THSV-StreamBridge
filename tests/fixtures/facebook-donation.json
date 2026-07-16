@@ -7,6 +7,6 @@
   "receivedAt": "2026-01-01T00:00:08.000Z",
   "channel": { "name": "ExampleChannel" },
   "user": { "name": "example_supporter", "roles": ["viewer"] },
-  "payload": { "amount": 10, "currency": "USD" },
+  "payload": { "amount": "10.00", "currency": "USD" },
   "metadata": { "simulated": true }
 }

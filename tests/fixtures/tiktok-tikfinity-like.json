@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.0.0",
   "eventId": "sim-tiktok-like-001",
-  "eventType": "tikfinity.like-milestone",
+  "eventType": "engagement.milestone",
   "platform": "tiktok",
   "source": { "adapter": "tikfinity-fixture-unverified", "eventId": "tikfinity-source-004", "eventName": "LikeMilestone" },
   "receivedAt": "2026-01-01T00:00:06.000Z",
   "channel": { "name": "ExampleChannel" },
-  "payload": { "likes": 100 },
-  "metadata": { "simulated": true, "unverifiedFields": ["payload.likes", "source.eventName"] }
+  "payload": { "metric": "likes", "value": 100 },
+  "metadata": { "simulated": true, "unverifiedFields": ["payload.metric", "payload.value", "source.eventName"] }
 }

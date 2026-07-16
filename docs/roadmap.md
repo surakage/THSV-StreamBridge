@@ -18,6 +18,10 @@ Implemented in version `0.4.0` and review-hardened in `0.4.1`. Multi-Chat projec
 
 Implemented in version `0.5.0` and review-hardened in `0.5.1`. Multi-Commands provides deterministic command and alias parsing, bounded plain-string arguments, portable role and bot authorization, explicit public/private/operator boundaries, five-platform fixtures, and a compiled receiver-dependent Streamer.bot action. The bridge now centrally applies one creator-configured prefix and collision-validated command registry to raw public chat, preventing adapter-specific tokenization drift. Streamer.bot remains responsible for deciding what an authorized command does.
 
+## Milestone 5: Multi-Alerts
+
+Implemented in version `0.6.0`. Multi-Alerts projects normalized engagement events into one public, ordered, platform-neutral contract with exact monetary strings, safe quantities, actor identity, inert Unicode text, and explicit transport-verification status. Rendering and sound remain intentionally deferred.
+
 ## Carried requirements
 
 - Milestone 8 must contextually HTML-escape every chat field at its rendering sink and correlate moderation/deletion events by `multiChatEventId`.
@@ -33,7 +37,7 @@ Implemented in version `0.5.0` and review-hardened in `0.5.1`. Multi-Commands pr
 2. Streamer.bot Package Foundation — complete
 3. Multi-Chat — complete
 4. Multi-Commands — complete
-5. Multi-Alerts
+5. Multi-Alerts — complete
 6. Speaker.bot Orchestration
 7. Multi-Timed Actions
 8. Meld Overlay Hub

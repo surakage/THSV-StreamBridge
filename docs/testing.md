@@ -34,4 +34,17 @@ Each receiver action should run Multi-Commands immediately. The fixtures expose 
 
 To exercise the creator-facing prefix and alias configuration rather than a pre-structured event, run `npm run simulate -- tests/fixtures/twitch-command-chat.json`. The response includes a deterministic `derivedEventIds` entry; Streamer.bot receives the original chat followed by the correlated command in consecutive bridge-sequence order.
 
+For the Multi-Alerts live matrix, run:
+
+```powershell
+npm run simulate -- tests/fixtures/twitch-follow.json
+npm run simulate -- tests/fixtures/youtube-super-chat.json
+npm run simulate -- tests/fixtures/kick-follow.json
+npm run simulate -- tests/fixtures/tiktok-tikfinity-gift.json
+npm run simulate -- tests/fixtures/facebook-donation.json
+npm run simulate -- tests/fixtures/tiktok-tikfinity-like.json
+```
+
+The first five prove platform-neutral routing. The final actor-free milestone proves explicit unverified-field reporting. Monetary fixtures intentionally use decimal strings; numeric JSON amounts are rejected rather than converted through floating point.
+
 The unit suite also runs a 100-event delivery burst. It verifies FIFO start order and the configured concurrency ceiling. Since Streamer.bot's Default queue is non-blocking, downstream timeline consumers use the bridge-assigned sequence rather than action completion time.

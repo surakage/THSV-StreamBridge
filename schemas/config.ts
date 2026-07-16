@@ -9,6 +9,7 @@ export const CAPABILITY_VALUES = [
   'donations',
   'raids',
   'moderation',
+  'engagement',
   'channelUpdates',
 ] as const;
 

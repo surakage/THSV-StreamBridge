@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-twitch-follow-001",
+  "eventType": "channel.follow",
+  "platform": "twitch",
+  "source": { "adapter": "fixture", "eventId": "twitch-follow-source-001", "eventName": "Follow" },
+  "receivedAt": "2026-01-01T00:03:00.000Z",
+  "channel": { "id": "fixture-channel", "name": "ExampleChannel" },
+  "user": { "id": "fixture-follower", "name": "example_follower", "displayName": "Example Follower", "roles": ["viewer"] },
+  "payload": {},
+  "metadata": { "simulated": true }
+}

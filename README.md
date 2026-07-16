@@ -55,6 +55,17 @@ Multi-Commands adds:
 
 Import the package and follow the inline action-chain instructions in the [Multi-Commands package guide](packages/streamerbot/multi-commands/README.md). Command arguments remain inert data; Streamer.bot creator actions decide what authorized commands do.
 
+## Milestone 5
+
+Multi-Alerts adds:
+
+- One public alert contract for follows, subscriptions, memberships, gifted subscriptions, gifts, donations, cheers, Super Chats, raids, and milestones
+- Exact bounded decimal-string monetary values, ISO currency validation, and safe integer quantities
+- Normalized actor identity, event ordering, Unicode-safe inert text, and honest transport-verification metadata
+- A versioned `THSV StreamBridge - Multi-Alerts` Streamer.bot package with no rendering, sound, TTS, globals, or platform output
+
+Import the package and follow the inline action-chain instructions in the [Multi-Alerts package guide](packages/streamerbot/multi-alerts/README.md). Meld presentation remains Milestone 8 and Speaker.bot orchestration remains Milestone 6.
+
 ## Requirements
 
 - Windows 10 or later

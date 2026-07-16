@@ -43,6 +43,12 @@ Raw public command text follows the same adapter path as ordinary chat. After va
 
 This makes the shared parser mandatory for raw chat instead of an optional adapter utility. A transport may emit `command.received` directly only when the upstream integration already supplies a structured command name and string argument array. `command.private-received` and `operator.command-received` remain distinct and bypass the public Streamer.bot package.
 
+## Multi-Alerts
+
+Multi-Alerts consumes only normalized public engagement event types. Shared logic maps event types to portable alert categories without platform checks. Monetary amounts remain validated decimal strings with separate uppercase ISO currencies; quantities and milestone values remain safe integers. Optional text is normalized as inert plain text while Unicode survives.
+
+The package exposes transport uncertainty through `multiAlertVerifiedTransport` and `multiAlertUnverifiedFields`. It deliberately performs no visual rendering, audio, TTS, response routing, global persistence, or platform output. Those responsibilities remain in creator Streamer.bot actions and later Meld/Speaker.bot milestones.
+
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.

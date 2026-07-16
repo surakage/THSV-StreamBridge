@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-16
+
+### Added
+
+- Platform-neutral Multi-Alerts projection for follows, subscriptions, memberships, gifted subscriptions, gifts, donations, cheers, Super Chats, raids, and milestones.
+- Versioned Multi-Alerts Streamer.bot package with reviewed C# source and reproducible import.
+- Exact decimal-string money validation, ISO currency codes, safe quantities, inert Unicode text, actor identity, and transport-verification outputs.
+- Twitch follow fixture and comprehensive alert contract/package tests.
+
+### Changed
+
+- TikFinity like/share fixtures now use the standard `engagement.milestone` contract with explicitly unverified normalized fields.
+- Adapter capabilities now represent engagement milestones explicitly.
+
 ## [0.5.1] - 2026-07-16
 
 ### Added

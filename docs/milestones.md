@@ -65,7 +65,7 @@ Verification evidence:
 - [x] Milestone 2 — Streamer.bot Package Foundation
 - [x] Milestone 3 — Multi-Chat
 - [x] Milestone 4 — Multi-Commands
-- [ ] Milestone 5 — Multi-Alerts
+- [x] Milestone 5 — Multi-Alerts
 - [ ] Milestone 6 — Speaker.bot Orchestration
 - [ ] Milestone 7 — Multi-Timed Actions
 - [ ] Milestone 8 — Meld Overlay Hub
@@ -140,3 +140,32 @@ Verification evidence:
 - Delivery diagnostics: five events enqueued and delivered, zero failures, queue depth zero, and bridge sequence five.
 - Lifecycle check: bridge health/readiness remained healthy/ready during the matrix and port 8787 closed after shutdown.
 - Review hardening live output: raw `!so "Example Viewer 🦥"` chat produced two delivered events, consecutive bridge sequences `1` and `2`, one deduplication identity, no failures, and a deterministic derived event ID.
+
+## Milestone 5 — Multi-Alerts
+
+Status: **Complete** — verified on July 16, 2026 against bridge version `0.6.0`, core receiver `1.0.2`, Multi-Alerts package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+
+- [x] One versioned alert contract covers standard follow, subscription, membership, gifted subscription, gift, donation, cheer, Super Chat, raid, and milestone events.
+- [x] Shared alert logic contains no platform-specific branches.
+- [x] Event ID, receive timestamp, bridge sequence, public visibility, platform, and channel identity are exposed.
+- [x] Actor identity is required for actor-driven alerts while actor-free milestones remain valid.
+- [x] Monetary amounts use bounded decimal strings with separate uppercase ISO currency codes.
+- [x] Quantities and milestone values require bounded safe integers.
+- [x] Optional alert text is normalized as inert plain text while preserving Unicode and emoji.
+- [x] TikFinity uncertainty is exposed through verified-transport and unverified-field outputs.
+- [x] Chat, command, private, operator, and unsupported extension events bypass Multi-Alerts successfully.
+- [x] A portable Streamer.bot Multi-Alerts action, manifest, reviewed C# source, and reproducible import are tracked.
+- [x] The package creates no globals, files, triggers, response messages, sounds, TTS, shell execution, or platform output.
+- [x] Automated tests cover the five-platform matrix, every alert category, money, quantities, Unicode, hostile-looking text, missing fields, privacy boundaries, and package integrity.
+- [x] Streamer.bot compiles the imported C# action and a live alert matrix exposes verified `multiAlert*` values.
+
+Verification evidence:
+
+- `scripts\package-release.ps1`: clean build, lint, typecheck, configuration validation, 26 test files, and 110 tests passed.
+- Package import: Streamer.bot accepted `THSV StreamBridge - Multi-Alerts`, and its reviewed C# source compiled without errors.
+- Receiver chain: Multi-Chat, Multi-Commands, and Multi-Alerts run immediately after the successful core receiver action, and the saved configuration persists the chain.
+- Live matrix: Twitch follow, YouTube Super Chat, Kick follow, TikTok gift, Facebook donation, and TikTok milestone fixtures produced six completed receiver runs with 110 variables each.
+- Facebook donation output: `multiAlertHandled=True`, `multiAlertValid=True`, actor identity preserved, exact `multiAlertAmount=10.00`, `multiAlertCurrency=USD`, and verified transport with no unverified fields.
+- TikTok milestone output: `multiAlertMetric=likes`, `multiAlertValue=100`, no actor required, simulated provenance preserved, and TikFinity-specific uncertainty exposed through verified-transport and unverified-field outputs.
+- Delivery diagnostics: six events enqueued and delivered, zero failures, queue depth zero, and bridge sequence six.
+- Lifecycle check: bridge health/readiness remained healthy/ready during the matrix, shutdown succeeded, and port 8787 closed afterward.

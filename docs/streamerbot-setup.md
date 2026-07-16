@@ -13,15 +13,16 @@ The foundation sends a `DoAction` WebSocket request and waits for the correlated
 7. In the receiver action, add **Core > Actions > Run Action** after the enabled receiver C# sub-action. Select `THSV StreamBridge - Multi-Chat` and leave **Run Action Immediately** enabled so it receives the validated argument stack.
 8. Import `packages\streamerbot\multi-commands\THSV-StreamBridge-Multi-Commands-1.0.0.sb`.
 9. Add another immediate **Run Action** child in the receiver and select `THSV StreamBridge - Multi-Commands`. Multi-Chat and Multi-Commands safely ignore event types they do not own.
-10. For a network-free check, explicitly set `streamerbot.testMode` true and run the simulator. Diagnostics will report `liveDelivery: false`; no Streamer.bot action will execute.
-11. For a live check, set test mode false, start Streamer.bot, start the bridge, and run both fixture matrices listed in [Testing](testing.md).
-12. If authentication is enabled, set the environment variable named by `passwordEnv` before starting. Never store the password in JSON.
+10. Import `packages\streamerbot\multi-alerts\THSV-StreamBridge-Multi-Alerts-1.0.0.sb` and add it as another immediate receiver child action.
+11. For a network-free check, explicitly set `streamerbot.testMode` true and run the simulator. Diagnostics will report `liveDelivery: false`; no Streamer.bot action will execute.
+12. For a live check, set test mode false, start Streamer.bot, start the bridge, and run the fixture matrices listed in [Testing](testing.md).
+13. If authentication is enabled, set the environment variable named by `passwordEnv` before starting. Never store the password in JSON.
 
 `actionId` is optional. The human-readable alias is the portable default; an installation-specific GUID can be added later.
 
 The import file is Base64-encoded and contains an `SBAE` header followed by gzip-compressed export JSON. Its readable source, manifest, and automated reproducibility test are stored beside it under `packages\streamerbot\core-receiver`.
 
-Multi-Chat and Multi-Commands must not have direct triggers. Their trust boundary depends on running after a successful receiver invocation. See the [Multi-Chat guide](../packages/streamerbot/multi-chat/README.md) and [Multi-Commands guide](../packages/streamerbot/multi-commands/README.md) for their contracts and QA matrices.
+Multi-Chat, Multi-Commands, and Multi-Alerts must not have direct triggers. Their trust boundary depends on running after a successful receiver invocation. See the [Multi-Chat guide](../packages/streamerbot/multi-chat/README.md), [Multi-Commands guide](../packages/streamerbot/multi-commands/README.md), and [Multi-Alerts guide](../packages/streamerbot/multi-alerts/README.md) for their contracts and QA matrices.
 
 Official references:
 

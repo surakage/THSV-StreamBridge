@@ -54,6 +54,7 @@ function capabilityForEvent(eventType: EventType): Capability | undefined {
   if (['engagement.donation', 'engagement.cheer', 'engagement.super-chat'].includes(eventType)) return 'donations';
   if (eventType === 'channel.raid') return 'raids';
   if (eventType === 'moderation.action') return 'moderation';
+  if (eventType === 'engagement.milestone') return 'engagement';
   if (['stream.online', 'stream.offline'].includes(eventType)) return 'channelUpdates';
   return undefined;
 }

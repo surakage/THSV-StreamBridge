@@ -7,6 +7,6 @@
   "receivedAt": "2026-01-01T00:00:03.000Z",
   "channel": { "name": "ExampleChannel" },
   "user": { "name": "example_gifter", "roles": ["viewer"] },
-  "payload": { "giftName": "UNVERIFIED_EXAMPLE", "quantity": 1 },
-  "metadata": { "simulated": true, "unverifiedFields": ["payload.giftName", "payload.quantity", "source.eventName"] }
+  "payload": { "itemName": "UNVERIFIED_EXAMPLE", "quantity": 1 },
+  "metadata": { "simulated": true, "unverifiedFields": ["payload.itemName", "payload.quantity", "source.eventName"] }
 }
