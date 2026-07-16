@@ -45,4 +45,3 @@ Verification evidence:
 - [ ] Milestone 9 — Viewer Identity and Progression
 - [ ] Milestone 10 — Games and Companion Systems
 - [ ] Milestone 11 — Installer and Public Release
-
