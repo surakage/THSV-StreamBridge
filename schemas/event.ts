@@ -58,6 +58,13 @@ export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([jsonPrimitiveSchema, z.array(jsonValueSchema), z.record(z.string(), jsonValueSchema)]),
 );
 
+const httpsUrlSchema = z.url().max(2_048).refine((value) => new URL(value).protocol === 'https:', 'URL must use HTTPS');
+const presentationBadgeSchema = z.object({
+  id: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/),
+  label: z.string().min(1).max(64),
+  iconUrl: httpsUrlSchema.optional(),
+}).strict();
+
 export const normalizedEventSchema = z
   .object({
     schemaVersion: z.literal('1.0.0'),
@@ -85,6 +92,9 @@ export const normalizedEventSchema = z
         displayName: z.string().min(1).max(256).optional(),
         actorType: z.enum(['human', 'bot', 'system']).default('human'),
         roles: z.array(z.string().max(64)).max(32).default([]),
+        avatarUrl: httpsUrlSchema.optional(),
+        nameColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+        badges: z.array(presentationBadgeSchema).max(16).optional(),
       })
       .strict()
       .optional(),

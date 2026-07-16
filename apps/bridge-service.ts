@@ -6,6 +6,7 @@ import { loadConfig } from '../bridge/services/config-loader.js';
 import { StructuredLogger } from '../bridge/services/logger.js';
 import { FileDeduplicationStore, NoopDeduplicationStore } from '../bridge/services/deduplication-store.js';
 import { resolveControlToken } from '../bridge/services/control-token.js';
+import { MeldOverlayHub } from '../bridge/services/meld-overlay-hub.js';
 
 const configPath = process.env['THSV_STREAMBRIDGE_CONFIG'] ?? 'config/bridge.example.json';
 const config = await loadConfig(configPath);
@@ -20,6 +21,8 @@ const controlToken = await resolveControlToken(config.security.controlTokenEnv, 
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
 const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore });
+const overlayHub = new MeldOverlayHub(logger, config.meldOverlay);
+bridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;
 
 async function shutdown(signal: string): Promise<void> {
@@ -37,7 +40,7 @@ async function shutdown(signal: string): Promise<void> {
   }
 }
 
-const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, logger, controlToken, () => void shutdown('HTTP'));
+const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub);
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
 process.once('SIGTERM', () => void shutdown('SIGTERM'));

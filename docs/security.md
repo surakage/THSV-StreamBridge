@@ -14,4 +14,6 @@ Mutable `/simulate`, `/shutdown`, and `/timed-actions/start|stop|pause|resume` r
 
 The mock adapter overwrites caller-provided source and simulation metadata, so simulated input cannot masquerade downstream as a genuine platform adapter event. Keep `security.controlTokenFile` in ignored runtime storage and do not share it.
 
+The Meld overlay WebSocket accepts loopback clients only and broadcasts public projections rather than raw normalized events. Private, system, operator, and command traffic is excluded. Browser assets use a restrictive Content Security Policy, and reviewed JavaScript constructs DOM nodes with `textContent` instead of HTML parsing. Avatar and badge resources must use HTTPS; name colors must be validated six-digit hex values.
+
 Before committing, inspect `git diff --cached` and run a credential scanner suitable for your environment.

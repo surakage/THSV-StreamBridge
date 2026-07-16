@@ -66,3 +66,7 @@ npm run simulate -- tests/fixtures/system-timed.json
 This proves validation, delivery, and Streamer.bot projection only. To test the scheduler itself, copy the example configuration and add a harmless definition with `everyMinutes: 1`, `firstRunAfterMinutes: 0`, and either fixed or shuffle-container selection. The deterministic suite verifies independent intervals, container exhaustion before repetition, persisted bag state, catch-up, and skip behavior without waiting on wall-clock time.
 
 Runtime controls are available with `scripts\timed-actions.ps1 -Operation start|pause|resume|stop`. Tests verify that timers stay dormant before start, pause freezes the remaining interval, controls reject missing bearer tokens, and stopping reports an inactive session in diagnostics.
+
+For an offline Meld Overlay Hub check, open `http://127.0.0.1:8787/overlay/` in Chrome or Edge and simulate `twitch-chat.json`, `youtube-super-chat.json`, or another public fixture. The integration suite opens the actual loopback WebSocket, verifies fixed assets and CSP headers, and observes a projected public message. Source-integrity tests prohibit `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, and `eval` in the reviewed browser script.
+
+Live acceptance requires adding the URL as a Browser layer in Meld Studio and confirming transparent rendering at the target canvas size. This is a presentation check only; offline fixtures do not prove production platform transports.

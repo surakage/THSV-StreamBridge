@@ -11,11 +11,12 @@
 - Streamer.bot `Run Action Immediately` passes the receiver-populated argument stack into the Multi-Chat action in `1.0.5-alpha.31`.
 - Multi-Chat package `1.1.0` compiles and produces its declared output contract for live simulated Twitch, YouTube, Kick, TikTok, and Facebook chat events.
 - Live review probes verified public message identity/time/sequence, bot provenance, and private-message bypass through the inline receiver-to-Multi-Chat action chain.
+- Meld Studio's official documentation supports URL-based Chromium/CEF Browser layers; the local THSV overlay assets and loopback WebSocket are offline integration-tested in Chrome-compatible semantics.
 
 ## Explicitly unverified or deferred
 
 - TikFinity event names and payload fields. All TikFinity fixtures label unverified fields and do not claim production accuracy.
-- Meld Studio scene, layer, visual, audio-routing, or overlay-hosting control.
+- Live rendering, sizing, transparency, and reconnect behavior in the installed Meld Studio build. THSV does not yet control Meld scenes, layers, or audio through the separate WebChannel API.
 - Live Speaker.bot connection, installed voice aliases, speech playback, and queue-control delivery. Official request shapes and Streamer.bot integration methods are implemented, but live verification remains pending.
 - Production Twitch, YouTube, Kick, TikTok, and Facebook transports.
 - Crash-recoverable output delivery. The current delivery queue is memory-only; production financial adapters must not be enabled until a durable outbox and replay test exist.

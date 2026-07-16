@@ -82,6 +82,18 @@ Multi-Timed Actions adds:
 
 Configure schedules in `timedActions.definitions`, then import the package described in the [Multi-Timed Actions guide](packages/streamerbot/multi-timed-actions/README.md). The example starts with no scheduled definitions, so installing the bridge never creates surprise automation.
 
+## Milestone 8
+
+Meld Overlay Hub adds a local transparent Browser layer with:
+
+- Unified public chat with bounded in-memory retention and message-deletion correlation
+- Context-safe text rendering with no HTML injection sinks
+- Platform, role, bot, badge, avatar, and validated name-color presentation
+- Priority-aware public alerts with subscription lifecycle and gift provenance fields
+- Loopback-only live WebSocket delivery and creator controls for duration, retention, bots, and simulated events
+
+Add `http://127.0.0.1:8787/overlay/` as a Meld Browser layer and follow the [Meld Overlay Hub guide](docs/meld-overlay.md). The implementation is offline-verified; acceptance in the installed Meld build is still pending.
+
 ## Requirements
 
 - Windows 10 or later
@@ -105,7 +117,7 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), and [Streamer.bot setup](docs/streamerbot-setup.md).
+See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), and [Meld Overlay Hub](docs/meld-overlay.md).
 
 ## License
 

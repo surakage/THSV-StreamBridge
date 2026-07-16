@@ -236,3 +236,31 @@ Verification evidence:
 - Live compatibility hardening: the first execution exposed Json.NET ISO-string coercion; the package now parses payload JSON with `DateParseHandling.None`, recompiles cleanly, and preserves timestamp strings.
 - Live action-history output: 38 variables with `multiTimedHandled=True`, `multiTimedValid=True`, empty validation error, contract/package `1.0.0`, timer `community-reminders`, selection mode `shuffle-container`, selected creator message, and container cycle/position/size.
 - Focused-review hardening: offline-by-default arming closes post-stream firing; multi-platform live tracking prevents premature shutdown; token-protected operator controls provide immediate pause/resume/start/stop intervention.
+
+## Milestone 8 — Meld Overlay Hub
+
+Status: **Implementation complete; live Meld verification pending** — bridge candidate `0.9.0`.
+
+- [x] A transparent browser overlay is served locally without a cloud host or Meld credential.
+- [x] A loopback-only WebSocket broadcasts public presentation projections rather than raw events.
+- [x] Public multistream chat is ordered, bounded in memory, Unicode-safe, and rendered only through text DOM sinks.
+- [x] Private, system, operator, and command events are excluded from the overlay channel.
+- [x] Message-removal moderation events correlate to and remove a displayed chat event by stable event ID.
+- [x] Validated HTTPS avatars/badge icons, hex name colors, role badges, and bot provenance are represented explicitly.
+- [x] Public alerts use a deterministic visual priority queue without inferring or converting monetary value.
+- [x] Subscription new/renewal/upgrade, months, streak, gift, and gifter provenance fields are represented explicitly when supplied.
+- [x] Creator configuration controls enablement, chat retention, alert duration, bot visibility, and simulated-event visibility.
+- [x] Simulated alerts remain visibly labeled and cannot silently become production statistics.
+- [x] Browser assets use a restrictive CSP and reviewed JavaScript contains no HTML-injection or dynamic-code execution sink.
+- [x] Unit and integration tests exercise projection, privacy boundaries, deletion correlation, hostile markup, configuration, fixed assets, CSP, and the real loopback WebSocket.
+- [x] Caption synchronization and TTS/audio preemption are documented as unsupported because the adopted Speaker.bot transport provides no playback timing or completion acknowledgement.
+- [ ] Add the overlay URL to the installed Meld Studio Browser layer and verify transparency, sizing, live reconnect, public chat, deletion, and alert presentation.
+
+Current verification evidence:
+
+- `http://127.0.0.1:8787/overlay/` is the fixed local Browser-layer URL.
+- Automated browser-source review requires `textContent` and rejects `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, and `eval`.
+- Integration coverage opens `/overlay/events` through an actual loopback WebSocket and observes a projected public chat event.
+- Full validation: 31 test files and 140 tests passed; lint, typecheck, build, and configuration validation are clean.
+- Chromium acceptance: the live local page rendered Twitch chat and a YouTube Super Chat, labeled the simulated alert, reported `LIVE`, retained a transparent `rgba(0, 0, 0, 0)` body, removed the chat after a correlated moderation event, and logged no browser warnings or errors.
+- Official Meld documentation confirms URL Browser layers use a Chromium/CEF runtime and recommends Chrome or Edge for representative testing.

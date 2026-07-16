@@ -67,6 +67,12 @@ The Streamer.bot package is projection-only. It validates the receiver-derived p
 
 Timers are dormant until the first normalized `stream.online` event or an authenticated operator start. The bridge tracks every platform observed online and ends the session only after all of them emit `stream.offline`; this prevents one platform ending early from stopping a multistream session. Token-protected start/stop/pause/resume controls provide an immediate manual override. Pause shifts the persisted session anchor on resume, freezing remaining delays instead of treating paused time as missed runs.
 
+## Meld Overlay Hub
+
+The overlay hub subscribes to the accepted internal event stream and projects only public chat, public alerts, and correlated message-removal events. It never forwards normalized events wholesale. The browser channel is a loopback-only WebSocket on `/overlay/events`; the fixed browser assets and non-secret client configuration share the diagnostics HTTP origin.
+
+Chat and alert projections reuse the reviewed shared contracts, then add presentation-only metadata. The browser uses DOM node construction and `textContent`, has a restrictive Content Security Policy, bounds chat retention, and removes moderated messages by their stable event ID. Alert ordering is a visual type-priority queue; it does not infer financial importance and does not claim Speaker.bot playback control. Private, system, operator, and command event types are excluded before broadcast.
+
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.

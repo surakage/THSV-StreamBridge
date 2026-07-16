@@ -2,7 +2,7 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'coverage/**', 'data/**', 'packages/**', 'eslint.config.mjs', 'tools/clean.mjs'] },
+  { ignores: ['dist/**', 'coverage/**', 'data/**', 'packages/**', 'overlays/**/*.js', 'eslint.config.mjs', 'tools/clean.mjs'] },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {

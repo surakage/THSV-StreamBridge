@@ -40,4 +40,17 @@ describe('normalized event schema', () => {
 
     expect(normalizedEventSchema.safeParse({ ...chat, source }).success).toBe(true);
   });
+
+  it('accepts bounded HTTPS presentation metadata and rejects unsafe avatar schemes', async () => {
+    const chat = await fixture('twitch-chat.json');
+    const presentation = {
+      ...chat.user,
+      avatarUrl: 'https://example.com/avatar.png',
+      nameColor: '#72efc2',
+      badges: [{ id: 'subscriber', label: 'Subscriber', iconUrl: 'https://example.com/badge.png' }],
+    };
+    expect(normalizedEventSchema.safeParse({ ...chat, user: presentation }).success).toBe(true);
+    expect(normalizedEventSchema.safeParse({ ...chat, user: { ...presentation, avatarUrl: 'file:///C:/secret.txt' } }).success).toBe(false);
+    expect(normalizedEventSchema.safeParse({ ...chat, user: { ...presentation, nameColor: 'red; background:url(x)' } }).success).toBe(false);
+  });
 });

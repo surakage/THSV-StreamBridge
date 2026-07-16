@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-16
+
+### Added
+
+- Local Meld-compatible Browser layer and loopback-only public event WebSocket.
+- Context-safe unified chat with bounded retention and moderation/deletion correlation.
+- Priority-aware visual alert queue with explicit subscription lifecycle and gift provenance fields.
+- HTTPS avatar/badge metadata, validated name colors, role badges, bot and simulated-event controls.
+- Browser CSP, projection, injection-sink, fixed-asset, and live loopback WebSocket tests.
+
 ## [0.8.1] - 2026-07-16
 
 ### Added

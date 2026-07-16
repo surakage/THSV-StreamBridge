@@ -1,0 +1,65 @@
+import { readFile } from 'node:fs/promises';
+import { describe, expect, it } from 'vitest';
+import type { NormalizedEvent } from '../../schemas/event.js';
+import { projectMeldOverlayEvent } from '../../bridge/core/meld-overlay.js';
+import { fixture } from '../helpers.js';
+
+describe('Meld Overlay Hub contract', () => {
+  it('projects public chat and preserves hostile markup as inert text data', async () => {
+    const source = await fixture();
+    const event: NormalizedEvent = { ...source, payload: { message: '<img src=x onerror=alert(1)> 🦥' }, metadata: { ...source.metadata, bridgeSequence: 7 } };
+    expect(projectMeldOverlayEvent(event)).toMatchObject({
+      kind: 'chat.add',
+      payload: { eventId: event.eventId, sequence: 7, message: '<img src=x onerror=alert(1)> 🦥' },
+    });
+  });
+
+  it('projects reviewed presentation metadata and subscription lifecycle fields', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    if (source.user === undefined) throw new Error('Fixture requires an actor');
+    const event: NormalizedEvent = {
+      ...source,
+      eventType: 'channel.membership',
+      user: { ...source.user, avatarUrl: 'https://example.com/avatar.png', nameColor: '#72efc2', badges: [{ id: 'member', label: 'Member' }] },
+      payload: { tier: 'Village', subscriptionKind: 'renewal', months: 6, streakMonths: 4 },
+      metadata: { ...source.metadata, bridgeSequence: 12 },
+    };
+    expect(projectMeldOverlayEvent(event)).toMatchObject({
+      kind: 'alert.show',
+      payload: {
+        presentation: { avatarUrl: 'https://example.com/avatar.png', nameColor: '#72efc2', badges: [{ id: 'member', label: 'Member' }] },
+        subscription: { kind: 'renewal', months: 6, streakMonths: 4 },
+      },
+    });
+  });
+
+  it('correlates a message-removal moderation action by target event ID', async () => {
+    const source = await fixture();
+    const event: NormalizedEvent = {
+      ...source,
+      eventId: 'moderation-delete-001',
+      eventType: 'moderation.action',
+      source: { ...source.source, eventId: 'moderation-source-001' },
+      payload: { action: 'delete-message', targetEventId: 'sim-twitch-chat-001', reason: 'removed by moderator' },
+      metadata: { ...source.metadata, bridgeSequence: 8 },
+    };
+    expect(projectMeldOverlayEvent(event)).toMatchObject({
+      kind: 'chat.remove',
+      payload: { eventId: 'moderation-delete-001', targetEventId: 'sim-twitch-chat-001', reason: 'removed by moderator' },
+    });
+  });
+
+  it('does not broadcast private, operator, command, or unrelated events', async () => {
+    const source = await fixture();
+    for (const eventType of ['chat.private-message', 'operator.message', 'command.received', 'system.timed']) {
+      expect(projectMeldOverlayEvent({ ...source, eventType, metadata: { ...source.metadata, bridgeSequence: 9 } })).toBeUndefined();
+    }
+  });
+
+  it('uses text-only DOM sinks in the reviewed browser source', async () => {
+    const source = await readFile('overlays/meld/app.js', 'utf8');
+    expect(source).toContain('textContent');
+    expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write/u);
+    expect(source).not.toContain('eval(');
+  });
+});

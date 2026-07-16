@@ -16,6 +16,8 @@ try {
     commandDefinitions: config.commands.definitions.length,
     timedActionDefinitions: config.timedActions.definitions.length,
     enabledTimedActions: config.timedActions.definitions.filter((definition) => definition.enabled).length,
+    meldOverlayEnabled: config.meldOverlay.enabled,
+    meldOverlayMaxChatMessages: config.meldOverlay.maxChatMessages,
     streamerbotEnabled: config.streamerbot.enabled,
     streamerbotLiveDelivery: config.streamerbot.enabled && !config.streamerbot.testMode,
   })}\n`);

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import WebSocket, { type RawData } from 'ws';
 import { DiagnosticsServer } from '../../bridge/services/http-server.js';
+import { MeldOverlayHub } from '../../bridge/services/meld-overlay-hub.js';
 import { createTestBridge, fixture, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
 import type { StreamBridge } from '../../bridge/core/bridge.js';
 
@@ -94,6 +96,33 @@ describe('bridge HTTP integration', () => {
     expect(diagnostics.timedActions.active).toBe(false);
   });
 
+  it('serves the Meld browser layer and broadcasts projected public events over loopback WebSocket', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const hub = new MeldOverlayHub(silentLogger, config.meldOverlay);
+    bridge.subscribe((event) => hub.publish(event));
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, hub);
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const page = await fetch(`${baseUrl}/overlay/`);
+    expect(page.status).toBe(200);
+    expect(page.headers.get('content-type')).toContain('text/html');
+    expect(page.headers.get('content-security-policy')).toContain("default-src 'none'");
+    expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toMatchObject({ maxChatMessages: 40, alertDurationMs: 7000 });
+
+    const messages: Array<Record<string, unknown>> = [];
+    const socket = new WebSocket(`${baseUrl.replace('http:', 'ws:')}/overlay/events`);
+    socket.on('message', (data) => messages.push(JSON.parse(rawDataText(data)) as Record<string, unknown>));
+    await new Promise<void>((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject); });
+    await bridge.simulate(await fixture());
+    await expect.poll(() => messages.some((message) => message['kind'] === 'chat.add')).toBe(true);
+    expect(hub.status()).toMatchObject({ clients: 1, published: 1 });
+    socket.close();
+  });
+
   it('rate-limits mutable requests', async () => {
     const config = await testConfig();
     config.service.port = 0;
@@ -127,3 +156,9 @@ describe('bridge HTTP integration', () => {
     await expect(secondServer.start()).rejects.toThrow('Port conflict');
   });
 });
+
+function rawDataText(data: RawData): string {
+  if (Array.isArray(data)) return Buffer.concat(data).toString('utf8');
+  if (data instanceof ArrayBuffer) return Buffer.from(data).toString('utf8');
+  return data.toString('utf8');
+}

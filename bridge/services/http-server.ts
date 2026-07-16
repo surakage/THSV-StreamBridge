@@ -1,10 +1,13 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import type { BridgeConfig } from '../../schemas/config.js';
 import type { IngestResult } from '../core/bridge.js';
 import { InvalidEventError, PayloadTooLargeError } from '../core/bridge.js';
 import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-manager.js';
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
+import type { MeldOverlayHub } from './meld-overlay-hub.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -24,6 +27,7 @@ export class DiagnosticsServer {
     private readonly logger: Logger,
     controlToken: string,
     private readonly requestShutdown?: () => void,
+    private readonly overlayHub?: MeldOverlayHub,
   ) {
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
   }
@@ -32,6 +36,7 @@ export class DiagnosticsServer {
     if (this.server !== undefined) return;
     const server = createServer((request, response) => void this.route(request, response));
     this.server = server;
+    this.overlayHub?.attach(server);
     await new Promise<void>((resolve, reject) => {
       const onError = (error: NodeJS.ErrnoException): void => {
         server.off('listening', onListening);
@@ -50,6 +55,7 @@ export class DiagnosticsServer {
     const server = this.server;
     this.server = undefined;
     if (server === undefined) return;
+    this.overlayHub?.stop();
     await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
   }
 
@@ -67,7 +73,9 @@ export class DiagnosticsServer {
         const readiness = this.target.readiness();
         return this.reply(response, readiness['ready'] === true ? 200 : 503, readiness);
       }
-      if (request.method === 'GET' && request.url === '/diagnostics') return this.reply(response, 200, this.target.diagnostics());
+      if (request.method === 'GET' && request.url === '/diagnostics') return this.reply(response, 200, { ...this.target.diagnostics(), meldOverlay: this.overlayHub?.status() });
+      if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) return this.reply(response, 200, this.overlayHub.clientConfig());
+      if (request.method === 'GET' && request.url !== undefined && OVERLAY_ASSETS[request.url] !== undefined) return await this.overlayAsset(response, request.url);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
         release = this.guard.acquire(request, false);
         this.reply(response, 202, { accepted: true });
@@ -112,7 +120,24 @@ export class DiagnosticsServer {
     response.statusCode = status;
     response.end(`${JSON.stringify(body)}\n`);
   }
+
+  private async overlayAsset(response: ServerResponse, url: string): Promise<void> {
+    const asset = OVERLAY_ASSETS[url];
+    if (asset === undefined) return this.reply(response, 404, { error: 'Not found' });
+    const body = await readFile(resolve(process.cwd(), 'overlays', 'meld', asset.file));
+    response.statusCode = 200;
+    response.setHeader('content-type', asset.contentType);
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src https: data:");
+    response.end(body);
+  }
 }
+
+const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
+  '/overlay': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+};
 
 interface RequestBody { readonly text: string; readonly bytes: number; }
 

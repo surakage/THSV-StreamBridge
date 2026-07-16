@@ -81,6 +81,14 @@ const timedActionsSchema = z.object({
   }
 });
 
+const meldOverlaySchema = z.object({
+  enabled: z.boolean().default(true),
+  maxChatMessages: z.number().int().min(1).max(200).default(40),
+  alertDurationMs: z.number().int().min(1_000).max(60_000).default(7_000),
+  showBots: z.boolean().default(true),
+  showSimulated: z.boolean().default(true),
+}).strict();
+
 export const platformSchema = z
   .object({
     enabled: z.boolean(),
@@ -143,6 +151,7 @@ export const bridgeConfigSchema = z
       .strict(),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
+    meldOverlay: meldOverlaySchema.default({ enabled: true, maxChatMessages: 40, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
@@ -185,4 +194,5 @@ export type OutputConfig = z.infer<typeof outputSchema>;
 export type CommandsConfig = z.infer<typeof commandsSchema>;
 export type TimedActionsConfig = z.infer<typeof timedActionsSchema>;
 export type TimedActionDefinition = TimedActionsConfig['definitions'][number];
+export type MeldOverlayConfig = z.infer<typeof meldOverlaySchema>;
 export type Capability = (typeof CAPABILITY_VALUES)[number];

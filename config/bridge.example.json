@@ -40,6 +40,13 @@
     "stateFile": "data/state/timed-actions.json",
     "definitions": []
   },
+  "meldOverlay": {
+    "enabled": true,
+    "maxChatMessages": 40,
+    "alertDurationMs": 7000,
+    "showBots": true,
+    "showSimulated": true
+  },
   "streamerbot": {
     "enabled": true,
     "url": "ws://127.0.0.1:8080/",
