@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Core Receiver",
+  "version": "1.0.0",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Receive Event",
+    "group": "THSV StreamBridge",
+    "source": "src/ReceiveEvent.cs",
+    "importFile": "THSV-StreamBridge-Core-Receiver-1.0.0.sb"
+  },
+  "contract": {
+    "version": "1.0.0",
+    "normalizedEventSchemaVersion": "1.0.0",
+    "inputArgument": "streamBridgeEvent",
+    "requiredOutputArguments": [
+      "streamBridgeValid",
+      "streamBridgeValidationError",
+      "streamBridgeContractVersion",
+      "streamBridgePackageVersion",
+      "streamBridgeSchemaVersion",
+      "streamBridgeEventId",
+      "streamBridgeEventType",
+      "streamBridgePlatform",
+      "streamBridgeSourceAdapter",
+      "streamBridgeChannelId",
+      "streamBridgeChannelName",
+      "streamBridgeUserId",
+      "streamBridgeUserName",
+      "streamBridgeUserDisplayName",
+      "streamBridgeUserRoles",
+      "streamBridgePayload",
+      "streamBridgeMetadata",
+      "streamBridgeCorrelationId",
+      "streamBridgeSimulated"
+    ]
+  }
+}

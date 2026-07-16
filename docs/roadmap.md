@@ -6,10 +6,14 @@ Completion status is tracked in the [milestone checklist](milestones.md).
 
 Implemented in version `0.1.0` and live-validated against Streamer.bot Alpha. Version `0.2.0` adds the Milestone 1.1 security, reliability, truthfulness, extensibility, and test hardening pass before feature work.
 
+## Milestone 2: Streamer.bot Package Foundation
+
+Implemented in version `0.3.0`. The repository now includes a versioned receiver package, reviewed C# source, a portable Streamer.bot import, a stable platform-neutral argument contract, automated export-integrity checks, and live validation against Streamer.bot `1.0.5-alpha.31`.
+
 ## Planned milestones
 
 1. Bridge Core — complete
-2. Streamer.bot Package Foundation
+2. Streamer.bot Package Foundation — complete
 3. Multi-Chat
 4. Multi-Commands
 5. Multi-Alerts

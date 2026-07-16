@@ -3,6 +3,7 @@ import WebSocket from 'ws';
 import type { BridgeConfig } from '../../schemas/config.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { Logger } from '../services/logger.js';
+import { buildStreamerBotEventArguments } from './streamerbot-package.js';
 
 interface PendingRequest {
   readonly resolve: () => void;
@@ -88,7 +89,7 @@ export class StreamerBotAdapter {
       request: 'DoAction',
       id: requestId,
       action,
-      args: { streamBridgeEvent: JSON.stringify(event), streamBridgeEventId: event.eventId, streamBridgeEventType: event.eventType },
+      args: buildStreamerBotEventArguments(event),
     };
     await this.sendRequest(requestId, request);
     this.lastEventAt = new Date().toISOString();

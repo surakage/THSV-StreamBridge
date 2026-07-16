@@ -31,6 +31,7 @@ try {
     @('data\runtime','data\state','data\logs','data\backups','packages') | ForEach-Object {
         New-Item -ItemType Directory -Path (Join-Path $staging $_) -Force | Out-Null
     }
+    Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot') -Destination (Join-Path $staging 'packages\streamerbot') -Recurse
     Compress-Archive -Path "$staging\*" -DestinationPath $archive -CompressionLevel Optimal
     Write-Output "Release package created at $archive"
 } finally { Pop-Location }

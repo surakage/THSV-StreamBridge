@@ -19,6 +19,18 @@ Bridge Core includes:
 
 TikFinity, Meld Studio, and Speaker.bot production transports are deliberately deferred. TikFinity fixtures are marked unverified.
 
+## Milestone 2
+
+Streamer.bot Package Foundation adds:
+
+- A versioned, portable `THSV StreamBridge - Receive Event` action package
+- Reviewed C# receiver source with normalized-event validation
+- A stable platform-neutral action-argument contract for future packages
+- Automated checks that the exported package contains the reviewed source
+- Live validation against Streamer.bot `1.0.5-alpha.31`
+
+Import the package and follow the instructions in the [Streamer.bot receiver package](packages/streamerbot/core-receiver/README.md).
+
 ## Requirements
 
 - Windows 10 or later

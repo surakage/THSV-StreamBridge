@@ -30,16 +30,30 @@ describe('Streamer.bot adapter', () => {
     const adapter = new StreamerBotAdapter({ ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, acknowledgementTimeoutMs: 500, reconnect: { enabled: true, initialDelayMs: 100, maxDelayMs: 100, maxAttempts: 3 } }, silentLogger);
     await adapter.start();
     const server = new WebSocketServer({ host: '127.0.0.1', port });
+    let doAction: { readonly action?: { readonly name?: string }; readonly args?: Record<string, unknown> } | undefined;
     server.on('connection', (socket) => {
       socket.send(JSON.stringify({ request: 'Hello', info: {} }));
       socket.on('message', (data) => {
         const raw = Buffer.isBuffer(data) ? data.toString('utf8') : Buffer.from(data as ArrayBuffer).toString('utf8');
-        const request = JSON.parse(raw) as { id: string; request: string };
-        if (request.request === 'DoAction') socket.send(JSON.stringify({ id: request.id, status: 'ok' }));
+        const request = JSON.parse(raw) as { id: string; request: string; action?: { name?: string }; args?: Record<string, unknown> };
+        if (request.request === 'DoAction') {
+          doAction = request;
+          socket.send(JSON.stringify({ id: request.id, status: 'ok' }));
+        }
       });
     });
     await expect.poll(() => adapter.status()['state'], { timeout: 2_000 }).toBe('connected');
-    await expect(adapter.sendEvent(await fixture())).resolves.toBeUndefined();
+    const event = await fixture();
+    await expect(adapter.sendEvent(event)).resolves.toBeUndefined();
+    expect(doAction?.action?.name).toBe(config.streamerbot.actionAlias);
+    expect(doAction?.args).toMatchObject({
+      streamBridgeContractVersion: '1.0.0',
+      streamBridgeEventId: event.eventId,
+      streamBridgeEventType: event.eventType,
+      streamBridgePlatform: event.platform,
+      streamBridgeChannelName: event.channel.name,
+      streamBridgeSimulated: true,
+    });
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });

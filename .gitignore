@@ -38,8 +38,7 @@ Desktop.ini
 # Packages and release artifacts
 *.zip
 *.tgz
-packages/*
-!packages/.gitkeep
+packages/THSV-StreamBridge-*/
 
 # Local creator application installations (never package or commit)
 THSV Streamer Bot/

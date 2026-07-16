@@ -32,10 +32,35 @@ Verification evidence:
 - Lifecycle check: the bridge started with `scripts\start.ps1` and port 8787 closed after `scripts\stop.ps1`.
 - Offline testing instructions are in [Testing](testing.md) and the root README.
 
+## Milestone 2 — Streamer.bot Package Foundation
+
+Status: **Complete** — verified on July 15, 2026 against bridge version `0.3.0`, receiver package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+
+- [x] A versioned Streamer.bot receiver package, manifest, reviewed C# source, and import file are tracked in the repository.
+- [x] The portable package uses a stable action alias and group without relying on an installation-specific action GUID.
+- [x] The receiver accepts normalized event JSON and validates the required envelope before exposing it to later actions.
+- [x] The bridge and receiver share a stable, platform-neutral argument contract.
+- [x] Validation failures are readable, and the receiver does not write raw event payloads to logs.
+- [x] The receiver C# compiles in the target Streamer.bot Alpha release.
+- [x] The exported import package decodes to the reviewed source and is checked by automated tests.
+- [x] The Windows release package includes the Streamer.bot package and its installation guide.
+- [x] A live simulated event completes the receiver action and exposes validated package variables.
+- [x] Automated unit and integration tests cover the bridge contract, export contents, and live delivery request shape.
+
+Verification evidence:
+
+- `scripts\test.ps1`: lint, typecheck, 18 test files, and 50 tests passed.
+- Streamer.bot compile: the receiver's `Execute C# Code` sub-action compiled successfully.
+- Export integrity: the `.sb` import decodes with the `SBAE` header and contains the exact reviewed `ReceiveEvent.cs` source.
+- Live delivery: the action completed with 24 variables, including `streamBridgeValid=True`, contract/package/schema version `1.0.0`, platform `twitch`, and source adapter `mock`.
+- Delivery diagnostics: one event was enqueued and delivered with zero failures.
+- Lifecycle check: the bridge stopped successfully after live verification.
+- Installation and offline verification instructions are in [Streamer.bot setup](streamerbot-setup.md) and the package [README](../packages/streamerbot/core-receiver/README.md).
+
 ## Project Milestones
 
 - [x] Milestone 1 — Bridge Core
-- [ ] Milestone 2 — Streamer.bot Package Foundation
+- [x] Milestone 2 — Streamer.bot Package Foundation
 - [ ] Milestone 3 — Multi-Chat
 - [ ] Milestone 4 — Multi-Commands
 - [ ] Milestone 5 — Multi-Alerts
