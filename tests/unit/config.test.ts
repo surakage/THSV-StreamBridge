@@ -64,10 +64,7 @@ describe('bridge configuration', () => {
     const { timedActions: _timedActions, ...legacy } = config;
     void _timedActions;
     expect(bridgeConfigSchema.parse(legacy).timedActions).toEqual({ stateFile: 'data/state/timed-actions.json', definitions: [] });
-    const definition = {
-      id: 'duplicate', name: 'Duplicate', enabled: true, missedRunPolicy: 'skip' as const, payload: {},
-      schedule: { type: 'once' as const, at: '2026-07-16T16:00:00.000Z' },
-    };
+    const definition = { id: 'duplicate', name: 'Duplicate', enabled: true, everyMinutes: 15, missedRunPolicy: 'skip' as const, payload: {}, selection: { mode: 'fixed' as const } };
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [definition, definition] } }).success).toBe(false);
   });
 });

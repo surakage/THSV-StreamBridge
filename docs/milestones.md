@@ -210,8 +210,9 @@ Verification evidence:
 
 Status: **Implementation complete; live verification pending** — implemented in bridge `0.8.0` with Multi-Timed Actions package `1.0.0`.
 
-- [x] Creator configuration supports uniquely identified one-shot and anchored interval schedules.
-- [x] Schedule timestamps require explicit ISO 8601 offsets; intervals use exact milliseconds rather than ambiguous cron semantics.
+- [x] Creator configuration supports uniquely identified independent minute intervals measured from session start.
+- [x] Fixed actions and random message containers are selectable per definition.
+- [x] Every container message is used once before repetition, with persistent progress and cycle-boundary repeat avoidance.
 - [x] Every occurrence has a deterministic source identity and normalized `system.timed` event.
 - [x] `skip` and `fire-once` missed-run policies are explicit and test-covered.
 - [x] Completed scheduled occurrences persist atomically across restarts without retaining event or viewer content.
@@ -225,8 +226,8 @@ Status: **Implementation complete; live verification pending** — implemented i
 
 Verification evidence:
 
-- `npm test`: 30 test files and 130 tests passed.
+- `npm test`: 30 test files and 129 tests passed.
 - `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run config:validate` passed.
-- Deterministic scheduler tests verify single catch-up, skip-to-next behavior, atomic completed-occurrence persistence, and exact next interval without wall-clock waiting.
+- Deterministic scheduler tests verify independent intervals, no-repeat container exhaustion, persistent bag state, and exact session-relative timing without wall-clock waiting.
 - Package-integrity tests prove the portable export contains the reviewed C# source, remains concurrent and triggerless, and contains no action invocation, global writes, process execution, speech, or UDP dispatch.
 - Live Streamer.bot import and action-history verification remain the only acceptance items not yet completed.

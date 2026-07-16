@@ -28,7 +28,7 @@ Implemented and live-verified in version `0.7.0`, then review-hardened in `0.7.1
 
 ## Milestone 7: Multi-Timed Actions
 
-Implemented in version `0.8.0`; live Streamer.bot import verification is pending. The bridge now provides restart-aware one-shot and anchored interval schedules, explicit skip/single-catch-up policy, atomic completed-occurrence state, normalized timing diagnostics, and a projection-only Streamer.bot package. Streamer.bot remains the only layer that maps a timer ID to creator automation.
+Implemented in version `0.8.0`; live Streamer.bot import verification is pending. The bridge now provides restart-aware intervals measured from session start, independent fixed and random-container timers, no-repeat shuffle cycles, explicit skip/single-catch-up policy, normalized timing diagnostics, and a projection-only Streamer.bot package. Streamer.bot remains the only layer that maps a timer ID or selected creator message to platform output.
 
 ## Carried requirements
 

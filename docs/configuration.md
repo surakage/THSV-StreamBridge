@@ -32,9 +32,9 @@ Cooldowns and spam limits are deliberately absent until Milestone 9 provides cro
 
 ## Timed actions
 
-`timedActions.stateFile` stores only the last completed scheduled timestamp per timer. Definitions have a unique lowercase `id`, creator-facing `name`, `enabled` flag, schedule, missed-run policy, and bounded JSON payload. The payload is inert data; map timer IDs to trusted creator actions explicitly in Streamer.bot.
+`timedActions.stateFile` stores session timing and each container's remaining message indexes; it does not retain viewer data. Definitions have a unique lowercase `id`, creator-facing `name`, `enabled` flag, independent `everyMinutes`, optional `firstRunAfterMinutes`, missed-run policy, bounded JSON payload, and selection mode.
 
-Use `{ "type": "once", "at": "<ISO timestamp>" }` for a one-shot schedule. Use `{ "type": "interval", "anchorAt": "<ISO timestamp>", "everyMs": 60000 }` for an anchored interval. `skip` silently advances past occurrences missed while stopped. `fire-once` emits only the latest due occurrence and reports the number collapsed. Disable either the definition or the `timers` platform input to stop scheduling without deleting settings.
+Use `selection: { "mode": "fixed" }` for an ordinary timed payload. Use `selection: { "mode": "shuffle-container", "messages": ["...", "..."] }` to select one unused creator message per occurrence. The bag persists across sessions and restarts; it resets only after every message has been accepted once. `skip` advances past occurrences missed during a crash, while `fire-once` emits the latest due occurrence. Disable either the definition or the `timers` input without deleting settings.
 
 The example contains no definitions. This is intentional: installing or starting the bridge must not create surprise timed automation.
 

@@ -1,7 +1,7 @@
 import type { JsonValue, NormalizedEvent } from '../../schemas/event.js';
 
 export const MULTI_TIMED_ACTIONS_CONTRACT_VERSION = '1.0.0';
-export type TimedScheduleType = 'once' | 'interval';
+export type TimedScheduleType = 'session-interval';
 
 export interface MultiTimedAction {
   readonly contractVersion: typeof MULTI_TIMED_ACTIONS_CONTRACT_VERSION;
@@ -18,6 +18,11 @@ export interface MultiTimedAction {
   readonly occurrence: number;
   readonly missedRuns: number;
   readonly lateByMs: number;
+  readonly selectionMode: 'fixed' | 'shuffle-container';
+  readonly selectedMessage: string;
+  readonly containerCycle: number;
+  readonly containerPosition: number;
+  readonly containerSize: number;
   readonly simulated: boolean;
   readonly creatorPayload: Readonly<Record<string, JsonValue>>;
 }
@@ -29,7 +34,7 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
   const timerId = boundedIdentifier(event.payload['timerId'], 'timerId', 64);
   const timerName = boundedText(event.payload['timerName'], 'timerName', 100);
   const scheduleType = event.payload['scheduleType'];
-  if (scheduleType !== 'once' && scheduleType !== 'interval') throw new InvalidMultiTimedActionError('scheduleType must be once or interval.');
+  if (scheduleType !== 'session-interval') throw new InvalidMultiTimedActionError('scheduleType must be session-interval.');
   const scheduledAt = timestamp(event.payload['scheduledAt'], 'scheduledAt');
   const firedAt = timestamp(event.payload['firedAt'], 'firedAt');
   const occurrence = safeInteger(event.payload['occurrence'], 'occurrence', 1);
@@ -37,6 +42,12 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
   const creatorPayload = event.payload['creatorPayload'];
   if (!isRecord(creatorPayload)) throw new InvalidMultiTimedActionError('creatorPayload must be an object.');
   const lateByMs = Math.max(0, Date.parse(firedAt) - Date.parse(scheduledAt));
+  const selectionMode = event.payload['selectionMode'];
+  if (selectionMode !== 'fixed' && selectionMode !== 'shuffle-container') throw new InvalidMultiTimedActionError('selectionMode must be fixed or shuffle-container.');
+  const selectedMessage = selectionMode === 'shuffle-container' ? boundedText(event.payload['selectedMessage'], 'selectedMessage', 500) : '';
+  const containerCycle = safeInteger(event.payload['containerCycle'], 'containerCycle', 0);
+  const containerPosition = safeInteger(event.payload['containerPosition'], 'containerPosition', 0);
+  const containerSize = safeInteger(event.payload['containerSize'], 'containerSize', 0);
   return {
     contractVersion: MULTI_TIMED_ACTIONS_CONTRACT_VERSION,
     eventId: event.eventId,
@@ -52,6 +63,11 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
     occurrence,
     missedRuns,
     lateByMs,
+    selectionMode,
+    selectedMessage,
+    containerCycle,
+    containerPosition,
+    containerSize,
     simulated: event.metadata.simulated,
     creatorPayload,
   };

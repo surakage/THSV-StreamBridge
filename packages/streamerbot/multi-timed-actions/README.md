@@ -4,9 +4,9 @@ This package projects receiver-validated `system.timed` events into one stable S
 
 ## Scheduling model
 
-Schedules live in `timedActions.definitions` in the bridge configuration. `once` schedules use one ISO 8601 timestamp. `interval` schedules use an ISO anchor plus an exact millisecond interval, avoiding ambiguous cron and daylight-saving interpretation. Each definition chooses `missedRunPolicy=skip` or `fire-once`.
+Schedules live in `timedActions.definitions`. Each definition has its own `everyMinutes` interval measured from session start and optional `firstRunAfterMinutes`. Choose fixed selection for ordinary payloads or `shuffle-container` for a random creator-authored message with no repetition until all messages are used.
 
-The bridge persists the last completed scheduled occurrence. On restart, `skip` advances past missed occurrences without firing them; `fire-once` emits only the latest missed occurrence and reports how many earlier occurrences were collapsed in `multiTimedMissedRuns`. Stable source IDs and normal bridge deduplication prevent the same scheduled occurrence from being accepted twice.
+The bridge persists interval and shuffle-bag progress. Graceful stop ends the session so the next start resets interval clocks without resetting unused messages. Crash restart resumes the session. Pending random selection is persisted before delivery, so retry uses the same message. `skip` advances missed occurrences; `fire-once` collapses them.
 
 ## Safety and boundaries
 
@@ -14,4 +14,4 @@ The bridge persists the last completed scheduled occurrence. On restart, `skip` 
 
 ## Offline test
 
-Use a future `once` timestamp with a harmless creator payload, start the bridge, and inspect Streamer.bot Action History. For a no-wait package check, simulate `tests/fixtures/system-timed.json`. Simulation proves the projection contract; it does not exercise the local scheduler clock or persistence path.
+Use `everyMinutes: 1` and `firstRunAfterMinutes: 0` with harmless messages, start the bridge, and inspect Streamer.bot Action History. For a no-wait package check, simulate `tests/fixtures/system-timed.json`.

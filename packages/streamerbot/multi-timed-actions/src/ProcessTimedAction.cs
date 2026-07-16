@@ -31,7 +31,7 @@ public class CPHInline
         string timerName;
         if (!ReadText(payload, "timerName", 100, out timerName)) return Fail("payload.timerName must contain 1-100 plain-text characters.");
         string scheduleType = ReadString(payload, "scheduleType");
-        if (scheduleType != "once" && scheduleType != "interval") return Fail("payload.scheduleType must be once or interval.");
+        if (scheduleType != "session-interval") return Fail("payload.scheduleType must be session-interval.");
         string scheduledAt = ReadString(payload, "scheduledAt");
         string firedAt = ReadString(payload, "firedAt");
         if (!IsTimestamp(scheduledAt) || !IsTimestamp(firedAt)) return Fail("payload scheduledAt and firedAt must be ISO 8601 timestamps.");
@@ -41,6 +41,12 @@ public class CPHInline
         if (!ReadInteger(payload, "missedRuns", 0, out missedRuns)) return Fail("payload.missedRuns must be a non-negative safe integer.");
         JObject creatorPayload = payload["creatorPayload"] as JObject;
         if (creatorPayload == null) return Fail("payload.creatorPayload must be an object.");
+        string selectionMode = ReadString(payload, "selectionMode");
+        if (selectionMode != "fixed" && selectionMode != "shuffle-container") return Fail("payload.selectionMode must be fixed or shuffle-container.");
+        string selectedMessage = string.Empty;
+        if (selectionMode == "shuffle-container" && !ReadText(payload, "selectedMessage", 500, out selectedMessage)) return Fail("payload.selectedMessage must contain 1-500 creator-authored plain-text characters.");
+        long containerCycle, containerPosition, containerSize;
+        if (!ReadInteger(payload, "containerCycle", 0, out containerCycle) || !ReadInteger(payload, "containerPosition", 0, out containerPosition) || !ReadInteger(payload, "containerSize", 0, out containerSize)) return Fail("payload container counters must be non-negative safe integers.");
 
         DateTimeOffset scheduled = DateTimeOffset.Parse(scheduledAt);
         DateTimeOffset fired = DateTimeOffset.Parse(firedAt);
@@ -58,6 +64,11 @@ public class CPHInline
         CPH.SetArgument("multiTimedOccurrence", occurrence);
         CPH.SetArgument("multiTimedMissedRuns", missedRuns);
         CPH.SetArgument("multiTimedLateByMs", lateByMs);
+        CPH.SetArgument("multiTimedSelectionMode", selectionMode);
+        CPH.SetArgument("multiTimedSelectedMessage", selectedMessage);
+        CPH.SetArgument("multiTimedContainerCycle", containerCycle);
+        CPH.SetArgument("multiTimedContainerPosition", containerPosition);
+        CPH.SetArgument("multiTimedContainerSize", containerSize);
         CPH.SetArgument("multiTimedSimulated", ReadBoolean("streamBridgeSimulated"));
         CPH.SetArgument("multiTimedCreatorPayload", creatorPayload.ToString(Formatting.None));
         CPH.SetArgument("multiTimedValid", true);
@@ -73,6 +84,8 @@ public class CPHInline
         CPH.SetArgument("multiTimedTimerName", string.Empty); CPH.SetArgument("multiTimedScheduleType", string.Empty); CPH.SetArgument("multiTimedScheduledAt", string.Empty);
         CPH.SetArgument("multiTimedFiredAt", string.Empty); CPH.SetArgument("multiTimedOccurrence", 0L); CPH.SetArgument("multiTimedMissedRuns", 0L);
         CPH.SetArgument("multiTimedLateByMs", 0L); CPH.SetArgument("multiTimedSimulated", false); CPH.SetArgument("multiTimedCreatorPayload", "{}");
+        CPH.SetArgument("multiTimedSelectionMode", string.Empty); CPH.SetArgument("multiTimedSelectedMessage", string.Empty); CPH.SetArgument("multiTimedContainerCycle", 0L);
+        CPH.SetArgument("multiTimedContainerPosition", 0L); CPH.SetArgument("multiTimedContainerSize", 0L);
     }
 
     private bool Fail(string message) { CPH.SetArgument("multiTimedValidationError", message); CPH.LogError("THSV Multi-Timed Actions rejected an event: " + message); return false; }

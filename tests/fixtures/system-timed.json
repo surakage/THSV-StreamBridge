@@ -9,12 +9,17 @@
   "payload": {
     "timerId": "hydration-reminder",
     "timerName": "Hydration Reminder",
-    "scheduleType": "interval",
+    "scheduleType": "session-interval",
     "scheduledAt": "2026-07-16T16:00:00.000Z",
     "firedAt": "2026-07-16T16:00:00.250Z",
     "occurrence": 3,
     "missedRuns": 0,
     "lateByMs": 250,
+    "selectionMode": "shuffle-container",
+    "selectedMessage": "Remember to drink some water!",
+    "containerCycle": 1,
+    "containerPosition": 3,
+    "containerSize": 4,
     "creatorPayload": { "category": "wellness", "messageKey": "hydrate" }
   },
   "metadata": { "simulated": true }

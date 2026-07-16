@@ -22,12 +22,13 @@
     "version": "1.0.0",
     "acceptedEventTypes": ["system.timed"],
     "requiredInputArguments": ["streamBridgeValid", "streamBridgeEventType", "streamBridgeEventId", "streamBridgeReceivedAt", "streamBridgeSequence", "streamBridgePlatform", "streamBridgePayload"],
-    "outputArguments": ["multiTimedHandled", "multiTimedValid", "multiTimedValidationError", "multiTimedContractVersion", "multiTimedPackageVersion", "multiTimedEventId", "multiTimedCorrelationId", "multiTimedPlatform", "multiTimedReceivedAt", "multiTimedSequence", "multiTimedTimerId", "multiTimedTimerName", "multiTimedScheduleType", "multiTimedScheduledAt", "multiTimedFiredAt", "multiTimedOccurrence", "multiTimedMissedRuns", "multiTimedLateByMs", "multiTimedSimulated", "multiTimedCreatorPayload"],
+    "outputArguments": ["multiTimedHandled", "multiTimedValid", "multiTimedValidationError", "multiTimedContractVersion", "multiTimedPackageVersion", "multiTimedEventId", "multiTimedCorrelationId", "multiTimedPlatform", "multiTimedReceivedAt", "multiTimedSequence", "multiTimedTimerId", "multiTimedTimerName", "multiTimedScheduleType", "multiTimedScheduledAt", "multiTimedFiredAt", "multiTimedOccurrence", "multiTimedMissedRuns", "multiTimedLateByMs", "multiTimedSelectionMode", "multiTimedSelectedMessage", "multiTimedContainerCycle", "multiTimedContainerPosition", "multiTimedContainerSize", "multiTimedSimulated", "multiTimedCreatorPayload"],
     "executionSafety": {
       "runsCreatorActions": false,
       "writesGlobalVariables": false,
       "directTriggers": false,
-      "creatorPayload": "inert-json-data"
+      "creatorPayload": "inert-json-data",
+      "selectedMessage": "creator-authored-plain-text"
     }
   }
 }

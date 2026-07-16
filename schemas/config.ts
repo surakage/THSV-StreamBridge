@@ -53,12 +53,11 @@ const commandsSchema = z
   });
 
 const timedActionIdSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
-const timedActionScheduleSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('once'), at: z.iso.datetime({ offset: true }) }).strict(),
+const timedActionSelectionSchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('fixed') }).strict(),
   z.object({
-    type: z.literal('interval'),
-    anchorAt: z.iso.datetime({ offset: true }),
-    everyMs: z.number().int().min(1_000).max(2_592_000_000),
+    mode: z.literal('shuffle-container'),
+    messages: z.array(z.string().min(1).max(500)).min(2).max(200),
   }).strict(),
 ]);
 
@@ -68,9 +67,11 @@ const timedActionsSchema = z.object({
     id: timedActionIdSchema,
     name: z.string().min(1).max(100),
     enabled: z.boolean(),
-    schedule: timedActionScheduleSchema,
+    everyMinutes: z.number().int().min(1).max(1_440),
+    firstRunAfterMinutes: z.number().int().min(0).max(1_440).optional(),
     missedRunPolicy: z.enum(['skip', 'fire-once']).default('skip'),
     payload: z.record(z.string(), z.json()).default({}),
+    selection: timedActionSelectionSchema.default({ mode: 'fixed' }),
   }).strict()).max(200),
 }).strict().superRefine((timedActions, context) => {
   const seen = new Set<string>();

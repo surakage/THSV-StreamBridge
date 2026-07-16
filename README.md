@@ -73,7 +73,8 @@ Speaker.bot setup and safe dry-run testing are documented in [Speaker.bot setup]
 
 Multi-Timed Actions adds:
 
-- Creator-configured one-shot and exact anchored interval schedules
+- Creator-configured intervals measured from each stream-session start
+- Fixed timed actions or persistent random message containers with no repeats until every message is used
 - Explicit `skip` or single catch-up behavior for occurrences missed while the bridge is stopped
 - Atomic restart state and deterministic occurrence identities
 - Normalized `system.timed` events with scheduled time, actual fire time, lateness, occurrence, and missed-run counts
