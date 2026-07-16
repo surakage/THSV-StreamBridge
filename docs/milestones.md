@@ -257,7 +257,7 @@ Status: **Implementation complete; separate-source live verification pending** â
 - [x] Unit and integration tests exercise projection, privacy boundaries, deletion correlation, hostile markup, configuration, fixed assets, CSP, and the real loopback WebSocket.
 - [x] Caption synchronization and TTS/audio preemption are documented as unsupported because the adopted Speaker.bot transport provides no playback timing or completion acknowledgement.
 - [x] Add the combined overlay URL to Meld Studio and verify transparency, sizing, live reconnect, public chat, deletion, and alert presentation.
-- [ ] Add the separate Chat and Alerts URLs to Meld Studio and verify independent movement/sizing and shared connection behavior.
+- [x] Add the separate Chat and Alerts URLs to Meld Studio and verify independent movement/sizing and shared connection behavior.
 - [ ] Verify the adopted overlay URLs in installed OBS Studio and Streamlabs Desktop Browser Sources.
 
 Current verification evidence:
@@ -268,4 +268,5 @@ Current verification evidence:
 - Integration coverage opens `/overlay/events` through an actual loopback WebSocket and observes a projected public chat event.
 - Full validation: 31 test files and 142 tests passed; lint, typecheck, build, and configuration validation are clean.
 - Chromium acceptance: the live local page rendered Twitch chat and a YouTube Super Chat, labeled the simulated alert, reported `LIVE`, retained a transparent `rgba(0, 0, 0, 0)` body, removed the chat after a correlated moderation event, and logged no browser warnings or errors.
+- Meld acceptance: the separate Chat and Alerts Browser layers rendered independently; Chat is bottom-anchored, crop-safe, and uses a locked 16:9 browser surface without vertical scale compensation.
 - Official Meld, OBS Studio, and Streamlabs documentation confirms URL Browser layers/sources use browser-compatible rendering; OBS explicitly documents CEF and transparent browser-source defaults.

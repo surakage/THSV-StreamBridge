@@ -66,6 +66,7 @@ export class DiagnosticsServer {
 
   private async route(request: IncomingMessage, response: ServerResponse): Promise<void> {
     this.setSecurityHeaders(response);
+    const requestPath = request.url?.split('?', 1)[0];
     let release: (() => void) | undefined;
     try {
       if (request.method === 'GET' && request.url === '/health') return this.reply(response, 200, this.target.health());
@@ -75,7 +76,7 @@ export class DiagnosticsServer {
       }
       if (request.method === 'GET' && request.url === '/diagnostics') return this.reply(response, 200, { ...this.target.diagnostics(), browserOverlay: this.overlayHub?.status() });
       if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) return this.reply(response, 200, this.overlayHub.clientConfig());
-      if (request.method === 'GET' && request.url !== undefined && OVERLAY_ASSETS[request.url] !== undefined) return await this.overlayAsset(response, request.url);
+      if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
         release = this.guard.acquire(request, false);
         this.reply(response, 202, { accepted: true });
@@ -127,6 +128,7 @@ export class DiagnosticsServer {
     const body = await readFile(resolve(process.cwd(), 'overlays', 'browser', asset.file));
     response.statusCode = 200;
     response.setHeader('content-type', asset.contentType);
+    response.setHeader('cache-control', 'no-store');
     response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src https: data:");
     response.end(body);
   }
@@ -138,8 +140,10 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/chat': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/alerts': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/app-0.9.5.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/styles-0.9.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }

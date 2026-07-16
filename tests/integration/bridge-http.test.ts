@@ -117,6 +117,11 @@ describe('bridge HTTP integration', () => {
       expect(section.status).toBe(200);
       expect(section.headers.get('content-type')).toContain('text/html');
     }
+    const meldChat = await fetch(`${baseUrl}/overlay/chat?layout=meld&canvasWidth=1920&canvasHeight=1080&verticalScale=0.402`);
+    expect(meldChat.status).toBe(200);
+    expect(meldChat.headers.get('cache-control')).toBe('no-store');
+    expect(await meldChat.text()).toContain('/overlay/app-0.9.5.js');
+    expect((await fetch(`${baseUrl}/overlay/styles-0.9.5.css`)).status).toBe(200);
     const worker = await fetch(`${baseUrl}/overlay/worker.js`);
     expect(worker.status).toBe(200);
     expect(worker.headers.get('content-type')).toContain('text/javascript');

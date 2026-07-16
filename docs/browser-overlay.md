@@ -9,7 +9,7 @@ Milestone 8 serves transparent local browser overlays for combined, chat-only, a
 3. Choose one of these URLs:
    - Combined: `http://127.0.0.1:8787/overlay/` (normally 1920 by 1080)
    - Chat only: `http://127.0.0.1:8787/overlay/chat`
-   - Compact Chat for hosts with explicit browser viewport sizing: `http://127.0.0.1:8787/overlay/chat?layout=compact` (a useful starting size is 500 by 700)
+   - Compact Chat for hosts that intentionally want the cards to fill a narrow source: `http://127.0.0.1:8787/overlay/chat?layout=compact` (a useful starting size is 500 by 700)
    - Alerts only: `http://127.0.0.1:8787/overlay/alerts` (a useful starting size is 800 by 260)
 4. For independent placement, add Chat and Alerts as two separate browser sources. Move, crop, resize, hide, or assign each source to scenes normally in the broadcasting app.
 5. Run a harmless simulated chat or alert fixture and confirm it appears.
@@ -18,13 +18,15 @@ Chat and Alerts opened by the same browser-source host share a `SharedWorker`, w
 
 ### Meld Studio sizing
 
-Meld Studio `0.10.3.1` reports Browser Size from its editor canvas rather than reliably adopting a tall layer transform. Do not resize the Chat webpage directly to 500 by 700 in Meld; Fit mode will preserve the wide browser viewport and make chat tiny.
+The plain Chat URL is already configured for Meld's canvas behavior. It uses no scale compensation and needs no `layout`, `canvasWidth`, `canvasHeight`, or `verticalScale` query parameters.
 
 1. Keep the Chat URL at `/overlay/chat`.
-2. Set X to `0`, Y to `0`, width to the Main Canvas width, and height to the Main Canvas height (normally `1920` by `1080`).
-3. Use **Fit** mode and reload the Browser URL.
-4. Select the layer, choose **Crop**, and crop the transparent top and left area until only the bottom-right chat region remains.
-5. Move the resulting cropped layer normally. Cropping is non-destructive and does not rescale the webpage or create another WebSocket.
+2. Set **Browser Size** to the same aspect ratio as the Main Canvas (normally `1920` by `1080`) and enable **Lock Size**.
+3. Keep the layer transform proportional. For a `1280` by `720` canvas, `1280` by `720` is the matching full-canvas transform; for a `1920` by `1080` canvas, use `1920` by `1080`.
+4. Reload the Browser URL, then choose **Crop** and remove the transparent top and left area until only the bottom-right chat cards remain.
+5. Move the cropped layer normally. Resize it from a corner or keep the width/height link enabled so its aspect ratio stays intact. Cropping is non-destructive and does not create another WebSocket.
+
+Do not stretch the cropped layer by changing width and height independently. Meld controls the Browser layer transform outside the webpage, so the overlay cannot correct a non-proportional host transform without distorting text in the opposite direction.
 
 OBS Studio and Streamlabs Desktop expose explicit browser-source width and height controls, so they may use `?layout=compact` directly without the Meld crop workflow.
 

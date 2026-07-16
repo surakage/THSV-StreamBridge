@@ -73,7 +73,11 @@ describe('Browser Overlay Hub contract', () => {
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const styles = await readFile('overlays/browser/styles.css', 'utf8');
-    expect(source).toContain("get('layout') === 'compact' ? 'compact' : 'canvas'");
+    expect(source).toContain("requestedLayout === 'compact' ? 'compact' : 'canvas'");
+    expect(source).not.toContain('verticalScale');
+    expect(styles).not.toContain('scaleY');
+    expect(styles).toContain('width: clamp(420px, 28vw, 520px)');
+    expect(styles).toContain('font-size: clamp(17px, 1vw, 20px)');
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .overlay { display: flex; flex-direction: column; justify-content: flex-end; }');
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .chat-shell { position: relative; inset: auto;');
     expect(styles).toContain('background: transparent;');

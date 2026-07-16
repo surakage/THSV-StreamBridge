@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-07-16
+
+### Fixed
+
+- Made the plain `/overlay/chat` URL use the Meld-safe, full-canvas layout without query-string sizing parameters.
+- Removed vertical scale compensation so chat cards preserve their proportions at every browser-source size.
+- Increased standalone chat readability with responsive card widths, spacing, names, labels, and message text.
+- Disabled browser caching for overlay assets and added query-safe HTTP routing so broadcasting apps reliably receive overlay updates.
+
 ## [0.9.4] - 2026-07-16
 
 ### Fixed
