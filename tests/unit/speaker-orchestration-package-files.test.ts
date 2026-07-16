@@ -40,6 +40,8 @@ describe('Speaker Orchestration Streamer.bot package', () => {
     expect(reviewedSource).toContain('CPH.TtsSpeak(voiceAlias, message, true)');
     expect(reviewedSource).toContain('CPH.BroadcastUdp(SpeakerBotUdpPort');
     expect(reviewedSource).toContain('SpeakerBotUdpPort = 6669');
+    expect(reviewedSource).not.toContain('RegularExpressions');
+    expect(reviewedSource).not.toContain('Regex.');
     expect(reviewedSource).not.toContain('multiAlertMessage');
     expect(reviewedSource).not.toMatch(/CPH\.SetGlobalVar|Process\.Start|PowerShell|cmd\.exe|PlaySound|SendMessage/);
   });

@@ -5,12 +5,14 @@ Milestone 6 uses Streamer.bot as the decision engine and Speaker.bot as the loca
 ## Connect the applications
 
 1. In Speaker.bot, configure a speech engine and create at least one voice alias.
-2. In Speaker.bot **Settings > WebSocket Server**, bind to `127.0.0.1`, keep the chosen port aligned with Streamer.bot, and enable Auto Start if desired. Speaker.bot documents port `7680` as its WebSocket default.
+2. In Speaker.bot **Settings > WebSocket Server**, bind to `127.0.0.1`, keep the chosen port aligned with Streamer.bot, and enable Auto Start if desired. Current Speaker.bot documentation lists `7680` as the default; the verified installed `0.1.7` instance retained `7580`, so use the value shown in the running application rather than assuming either port.
 3. In Streamer.bot **Integrations > Speaker.bot**, use `127.0.0.1`, the matching WebSocket port, Auto Connect, and Auto Reconnect.
 4. Import `packages\streamerbot\speaker-orchestration\THSV-StreamBridge-Speaker-Orchestration-1.0.0.sb`.
 5. Leave the imported action triggerless.
 
-Official references: [Speaker.bot WebSocket API](https://speaker.bot/api), [Speaker.bot requests](https://speaker.bot/api/websocket/requests), and [Streamer.bot Speaker.bot integration](https://docs.streamer.bot/guide/integrations/speakerbot).
+Queue controls use Speaker.bot's always-on localhost UDP interface on fixed port `6669`; they do not depend on the configurable WebSocket port.
+
+Official references: [Speaker.bot WebSocket API](https://speaker.bot/api), [Speaker.bot WebSocket requests](https://speaker.bot/api/websocket/requests), [Speaker.bot UDP interface](https://speaker.bot/api/udp), [Speaker.bot UDP requests](https://speaker.bot/api/udp/requests), and [Streamer.bot Speaker.bot integration](https://docs.streamer.bot/guide/integrations/speakerbot).
 
 ## Safe offline test
 

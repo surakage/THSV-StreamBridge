@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
 public class CPHInline
@@ -25,7 +24,7 @@ public class CPHInline
 
         string requestId = ReadString("speakerRequestId");
         if (requestId.Length == 0) requestId = Guid.NewGuid().ToString("N");
-        if (!Regex.IsMatch(requestId, "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")) return Fail("speakerRequestId must be a bounded identifier.");
+        if (!IsRequestId(requestId)) return Fail("speakerRequestId must be a bounded identifier.");
 
         string voiceAlias = string.Empty;
         string message = string.Empty;
@@ -128,6 +127,37 @@ public class CPHInline
 
     private string NormalizePlainText(string input)
     {
-        return Regex.Replace(input ?? string.Empty, "[\\p{Cc}\\s]+", " ").Trim();
+        string value = input ?? string.Empty;
+        char[] normalized = new char[value.Length];
+        int length = 0;
+        bool pendingSpace = false;
+        foreach (char character in value)
+        {
+            if (char.IsControl(character) || char.IsWhiteSpace(character))
+            {
+                pendingSpace = length > 0;
+                continue;
+            }
+            if (pendingSpace) normalized[length++] = ' ';
+            normalized[length++] = character;
+            pendingSpace = false;
+        }
+        return new string(normalized, 0, length);
+    }
+
+    private bool IsRequestId(string value)
+    {
+        if (value.Length == 0 || value.Length > 128 || !IsAsciiAlphaNumeric(value[0])) return false;
+        for (int index = 1; index < value.Length; index++)
+        {
+            char character = value[index];
+            if (!IsAsciiAlphaNumeric(character) && character != '.' && character != '_' && character != ':' && character != '-') return false;
+        }
+        return true;
+    }
+
+    private bool IsAsciiAlphaNumeric(char value)
+    {
+        return value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z' || value >= '0' && value <= '9';
     }
 }
