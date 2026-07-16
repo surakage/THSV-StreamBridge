@@ -177,7 +177,7 @@ Verification evidence:
 
 ## Milestone 6 — Speaker.bot Orchestration
 
-Status: **Complete and review-hardened** — live-verified on July 16, 2026 against bridge `0.7.0`, Speaker Orchestration package `1.0.0`, Streamer.bot `1.0.5-alpha.31`, and Speaker.bot `0.1.7`; focused-review hardening is implemented and release-verified in bridge `0.7.1` / package `1.0.1`.
+Status: **Complete and review-hardened** — live-verified on July 16, 2026 against bridge `0.7.1`, Speaker Orchestration package `1.0.1`, Streamer.bot `1.0.5-alpha.31`, and Speaker.bot `0.1.7`.
 
 - [x] Streamer.bot remains the only decision engine that can approve speech or queue control.
 - [x] Speak, stop, pause, resume, and clear use one versioned platform-neutral request contract.
@@ -197,10 +197,11 @@ Verification evidence:
 - `npm test`, `npm run lint`, and `npm run typecheck`: 28 test files and 123 tests passed with no lint or type errors.
 - Compatibility hardening: live Alpha compilation exposed an undeclared `System.Text.RegularExpressions` dependency; the package now performs bounded identifier and plain-text normalization using only the declared runtime references, and the regenerated import compiles successfully.
 - Package import: Streamer.bot replaced the earlier action with the corrected triggerless concurrent export and compiled its reviewed C# source without errors.
-- Safe dry run: the completed action exposed 31 variables, including `speakerHandled=True`, `speakerValid=True`, empty validation error, contract/package `1.0.0`, transport `speakerbot-cph`, `speakerDispatched=False`, and `speakerDryRunResult=True`; no audio was produced.
+- Safe dry run: the completed action exposed 31 variables, including `speakerHandled=True`, `speakerValid=True`, empty validation error, contract `1.0.0`, package `1.0.1`, transport `speakerbot-cph`, `speakerDispatched=False`, and `speakerDryRunResult=True`; no audio was produced.
 - Local connection: Speaker.bot `0.1.7` ran its WebSocket server at `ws://127.0.0.1:7580` and its fixed UDP listener at localhost port `6669`.
 - Queue controls: stop, pause, resume, and clear each completed in Streamer.bot with 26 result variables and no dispatch exception. Speaker.bot's log independently recorded `UDP Pause`, `UDP Resume`, and `UDP Clear`; stop was dispatched while no speech was active, so it correctly had no current speech to terminate.
 - Safety evidence: the dry run used creator-authored text, explicit approval, explicit simulated-event permission, and forced bad-word filtering while remaining non-dispatching.
 - Focused-review hardening: the C# action now requires a positive `TtsSpeak`/`BroadcastUdp` result before setting `speakerDispatched=True`; zero or negative transport results fail with a readable error.
+- Hardened-package live check: Streamer.bot replaced package `1.0.0` with `1.0.1`, compiled the imported C# action on first execution, and completed the safety dry run in 116 ms with no C# error or dispatch.
 - Runtime truthfulness check: Streamer.bot returned `151` for a deliberately nonexistent voice alias, proving the integer represents local UDP dispatch rather than Speaker.bot voice acceptance. Documentation now explicitly reserves alias validation and playback acknowledgement instead of overstating success.
 - Carried policy: creator actions own speech cooldown, stable request-ID deduplication, URL/markup transformation, and speak serialization; Milestones 8 and 9 own the shared priority/caption/ducking and cross-platform identity decisions respectively.
