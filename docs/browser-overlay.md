@@ -8,12 +8,25 @@ Milestone 8 serves transparent local browser overlays for combined, chat-only, a
 2. In Meld Studio add a **Browser** layer, or in OBS Studio/Streamlabs Desktop add a **Browser Source**.
 3. Choose one of these URLs:
    - Combined: `http://127.0.0.1:8787/overlay/` (normally 1920 by 1080)
-   - Chat only: `http://127.0.0.1:8787/overlay/chat` (a useful starting size is 500 by 700)
+   - Chat only: `http://127.0.0.1:8787/overlay/chat`
+   - Compact Chat for hosts with explicit browser viewport sizing: `http://127.0.0.1:8787/overlay/chat?layout=compact` (a useful starting size is 500 by 700)
    - Alerts only: `http://127.0.0.1:8787/overlay/alerts` (a useful starting size is 800 by 260)
 4. For independent placement, add Chat and Alerts as two separate browser sources. Move, crop, resize, hide, or assign each source to scenes normally in the broadcasting app.
 5. Run a harmless simulated chat or alert fixture and confirm it appears.
 
 Chat and Alerts opened by the same browser-source host share a `SharedWorker`, which owns one event WebSocket and fans events out locally. This keeps the independently movable sources from doubling the normal WebSocket traffic. If a broadcasting app isolates browser sources or lacks `SharedWorker`, each source safely falls back to its own reconnecting WebSocket; presentation still works, but the host will show one connection per isolated source.
+
+### Meld Studio sizing
+
+Meld Studio `0.10.3.1` reports Browser Size from its editor canvas rather than reliably adopting a tall layer transform. Do not resize the Chat webpage directly to 500 by 700 in Meld; Fit mode will preserve the wide browser viewport and make chat tiny.
+
+1. Keep the Chat URL at `/overlay/chat`.
+2. Set X to `0`, Y to `0`, width to the Main Canvas width, and height to the Main Canvas height (normally `1920` by `1080`).
+3. Use **Fit** mode and reload the Browser URL.
+4. Select the layer, choose **Crop**, and crop the transparent top and left area until only the bottom-right chat region remains.
+5. Move the resulting cropped layer normally. Cropping is non-destructive and does not rescale the webpage or create another WebSocket.
+
+OBS Studio and Streamlabs Desktop expose explicit browser-source width and height controls, so they may use `?layout=compact` directly without the Meld crop workflow.
 
 Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser), OBS Studio's [Browser Source documentation](https://obsproject.com/kb/browser-source), and Streamlabs Desktop's [Browser Source instructions](https://streamlabs.com/content-hub/post/introducing-browser-source-interaction-for-streamlabs-desktop) all support a URL-based browser source. Meld's separate WebChannel API and OBS's separate WebSocket API are not required merely to render this overlay.
 

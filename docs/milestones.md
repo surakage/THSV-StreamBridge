@@ -239,7 +239,7 @@ Verification evidence:
 
 ## Milestone 8 — Browser Overlay Hub
 
-Status: **Implementation complete; separate-source live verification pending** — bridge candidate `0.9.3`.
+Status: **Implementation complete; separate-source live verification pending** — bridge candidate `0.9.4`.
 
 - [x] A transparent browser overlay is served locally without a cloud host or broadcasting-app credential.
 - [x] A loopback-only WebSocket broadcasts public presentation projections rather than raw events.

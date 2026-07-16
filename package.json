@@ -1,6 +1,6 @@
 {
   "name": "@thsv/streambridge",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "private": true,
   "description": "A modular, local-first cross-platform livestream automation framework",
   "type": "module",

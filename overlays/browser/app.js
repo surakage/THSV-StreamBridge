@@ -5,7 +5,9 @@
   const alerts = document.getElementById('alerts');
   const status = document.getElementById('status');
   const mode = location.pathname.endsWith('/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
+  const layout = new URLSearchParams(location.search).get('layout') === 'compact' ? 'compact' : 'canvas';
   document.body.dataset.mode = mode;
+  document.body.dataset.layout = layout;
   const alertQueue = [];
   const priorityRank = { low: 1, normal: 2, high: 3 };
   let activeAlert;
