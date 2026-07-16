@@ -174,3 +174,22 @@ Verification evidence:
 - Speech safety: the Multi-Alerts manifest identifies every untrusted text output and defaults speech to `deny-unless-creator-approved`; Milestone 6 must enforce that boundary.
 - Live concurrency burst: 25 unique simulated chat events were accepted and delivered with zero failures and queue depth returning to zero; Streamer.bot action-history entries started in the same second rather than waiting on one global serial slot.
 - Windows persistence hardening: the first burst exposed concurrent atomic status-file rename failures; sequence-aware serialized snapshots fixed the race, the repeated burst produced no `EPERM`, and the final persisted snapshot retained the highest sequence.
+
+## Milestone 6 — Speaker.bot Orchestration
+
+Status: **Implementation complete; live Speaker.bot verification pending** against bridge version `0.7.0`, Speaker Orchestration package `1.0.0`, Streamer.bot `1.0.5-alpha.31`, and the creator's installed Speaker.bot build.
+
+- [x] Streamer.bot remains the only decision engine that can approve speech or queue control.
+- [x] Speak, stop, pause, resume, and clear use one versioned platform-neutral request contract.
+- [x] The package has no direct triggers and requires explicit `speakerApproved=True`.
+- [x] Raw-event text provenance is rejected; only creator templates or explicitly creator-approved text may speak.
+- [x] Speaker.bot bad-word filtering is forced on for every dispatched speech request.
+- [x] Simulated requests are denied by default and require an explicit allow flag; dry run validates without audio.
+- [x] Voice aliases and messages are creator-supplied, bounded, normalized plain text with Unicode preserved.
+- [x] Queue controls reject speech text/voice arguments and remain documented as trusted operator actions.
+- [x] Dispatch does not claim playback completion, and unavailable generated-audio metadata is represented honestly.
+- [x] A portable concurrent Streamer.bot action, manifest, reviewed C# source, and reproducible import are tracked.
+- [x] Automated tests cover approval, provenance, simulation, dry run, limits, Unicode, all controls, safety invariants, and export integrity.
+- [ ] Streamer.bot compiles the imported action, connects to Speaker.bot, completes a no-audio dry run, and verifies stop/pause/resume/clear against the local queue.
+
+Milestone 6 remains unchecked in the project checklist until the final live criterion passes.

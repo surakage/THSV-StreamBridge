@@ -49,6 +49,12 @@ Multi-Alerts consumes only normalized public engagement event types. Shared logi
 
 The package exposes transport uncertainty through `multiAlertVerifiedTransport` and `multiAlertUnverifiedFields`. It deliberately performs no visual rendering, audio, TTS, response routing, global persistence, or platform output. Its manifest classifies actor names, item names, tiers, and messages as untrusted and denies them for speech unless a creator explicitly approves them. Those responsibilities remain in creator Streamer.bot actions and later Meld/Speaker.bot milestones.
 
+## Speaker.bot orchestration
+
+Streamer.bot remains the authorization and composition boundary. A trusted creator action constructs an explicit `speaker*` request and invokes the triggerless Speaker Orchestration package. The package rejects missing approval, raw-event provenance, and simulated events by default. Approved speech uses Streamer.bot's Speaker.bot `TtsSpeak` integration with bad-word filtering forced on; stop, pause, resume, and clear use Speaker.bot's documented localhost UDP interface. No platform event automatically becomes speech.
+
+The selected C# path is intentionally asynchronous and exposes no playback-completion or generated-file guarantee. It reports dispatch without claiming that audio finished. Generated duration/file metadata remain explicitly unavailable until a workflow adopts Streamer.bot's native delayed or silent Speaker.bot Speak sub-action.
+
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.

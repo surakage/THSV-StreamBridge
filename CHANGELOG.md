@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-16
+
+### Added
+
+- Platform-neutral Speaker.bot orchestration contract for speak, stop, pause, resume, and clear operations.
+- Triggerless, concurrent Streamer.bot package using the official `TtsSpeak` integration and Speaker.bot localhost UDP queue controls.
+- Default-deny speech safety: explicit creator approval, approved text provenance, forced bad-word filtering, simulated-event blocking, and no-audio dry runs.
+- Honest generated-audio metadata outputs that remain unavailable on the selected C# dispatch path.
+- Automated contract, safety, source-integrity, and reproducible-export tests.
+
 ## [0.6.1] - 2026-07-16
 
 ### Added

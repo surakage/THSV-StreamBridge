@@ -16,7 +16,7 @@
 
 - TikFinity event names and payload fields. All TikFinity fixtures label unverified fields and do not claim production accuracy.
 - Meld Studio scene, layer, visual, audio-routing, or overlay-hosting control.
-- Speaker.bot speech generation, voice aliases, queue controls, and generated-audio metadata.
+- Live Speaker.bot connection, installed voice aliases, speech playback, and queue-control delivery. Official request shapes and Streamer.bot integration methods are implemented, but live verification remains pending.
 - Production Twitch, YouTube, Kick, TikTok, and Facebook transports.
 - Crash-recoverable output delivery. The current delivery queue is memory-only; production financial adapters must not be enabled until a durable outbox and replay test exist.
 - Platform gift-spree aggregation. Adapters must preserve a platform-provided bundle quantity, but unbundled gift events are not coalesced yet.
@@ -25,7 +25,7 @@ Third-party platform and output providers must still be explicitly registered by
 
 Streamer.bot Alpha compatibility is verified one adopted release at a time. When the project adopts a newer Alpha, the receiver must be recompiled, its live QA matrix rerun, and `minimumStreamerBotVersion` updated if required.
 
-Future Speaker.bot integration will execute speech decisions made by Streamer.bot; it will not decide whether a message may speak. Raw actor names, item names, tiers, and alert messages are denied for speech by default. Milestone 6 must require a creator-authored template or explicit creator-side allowlist/filter before any untrusted field reaches TTS.
+Speaker.bot executes speech decisions made by Streamer.bot; it does not decide whether a message may speak. The Milestone 6 package denies raw actor names, item names, tiers, and alert messages by default and requires a creator-authored template or explicit creator-side approval before text reaches TTS.
 
 ## Production platform alert matrix
 
