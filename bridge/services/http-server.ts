@@ -7,7 +7,7 @@ import { InvalidEventError, PayloadTooLargeError } from '../core/bridge.js';
 import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-manager.js';
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
-import type { MeldOverlayHub } from './meld-overlay-hub.js';
+import type { BrowserOverlayHub } from './browser-overlay-hub.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -27,7 +27,7 @@ export class DiagnosticsServer {
     private readonly logger: Logger,
     controlToken: string,
     private readonly requestShutdown?: () => void,
-    private readonly overlayHub?: MeldOverlayHub,
+    private readonly overlayHub?: BrowserOverlayHub,
   ) {
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
   }
@@ -73,7 +73,7 @@ export class DiagnosticsServer {
         const readiness = this.target.readiness();
         return this.reply(response, readiness['ready'] === true ? 200 : 503, readiness);
       }
-      if (request.method === 'GET' && request.url === '/diagnostics') return this.reply(response, 200, { ...this.target.diagnostics(), meldOverlay: this.overlayHub?.status() });
+      if (request.method === 'GET' && request.url === '/diagnostics') return this.reply(response, 200, { ...this.target.diagnostics(), browserOverlay: this.overlayHub?.status() });
       if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) return this.reply(response, 200, this.overlayHub.clientConfig());
       if (request.method === 'GET' && request.url !== undefined && OVERLAY_ASSETS[request.url] !== undefined) return await this.overlayAsset(response, request.url);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
@@ -124,7 +124,7 @@ export class DiagnosticsServer {
   private async overlayAsset(response: ServerResponse, url: string): Promise<void> {
     const asset = OVERLAY_ASSETS[url];
     if (asset === undefined) return this.reply(response, 404, { error: 'Not found' });
-    const body = await readFile(resolve(process.cwd(), 'overlays', 'meld', asset.file));
+    const body = await readFile(resolve(process.cwd(), 'overlays', 'browser', asset.file));
     response.statusCode = 200;
     response.setHeader('content-type', asset.contentType);
     response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src https: data:");

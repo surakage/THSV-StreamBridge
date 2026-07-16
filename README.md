@@ -17,7 +17,7 @@ Bridge Core includes:
 - Token-protected loopback HTTP controls plus health, readiness, diagnostics, and simulation endpoints
 - Deterministic unit and integration tests that need no accounts or live stream
 
-TikFinity, Meld Studio, and Speaker.bot production transports are deliberately deferred. TikFinity fixtures are marked unverified.
+TikFinity production transport and direct broadcasting-app scene control are deliberately deferred. TikFinity fixtures are marked unverified.
 
 ## Milestone 2
 
@@ -65,7 +65,7 @@ Multi-Alerts adds:
 - A versioned `THSV StreamBridge - Multi-Alerts` Streamer.bot package with no rendering, sound, TTS, globals, or platform output
 - A triggerless `THSV StreamBridge - Speaker Orchestration` package for creator-approved speech and queue controls with default-deny raw text
 
-Import the package and follow the inline action-chain instructions in the [Multi-Alerts package guide](packages/streamerbot/multi-alerts/README.md). Meld presentation remains Milestone 8; Speaker.bot orchestration was live-verified in `0.7.0` and review-hardened in `0.7.1`.
+Import the package and follow the inline action-chain instructions in the [Multi-Alerts package guide](packages/streamerbot/multi-alerts/README.md). Browser-source presentation is Milestone 8; Speaker.bot orchestration was live-verified in `0.7.0` and review-hardened in `0.7.1`.
 
 Speaker.bot setup and safe dry-run testing are documented in [Speaker.bot setup](docs/speakerbot-setup.md). The orchestration package never speaks raw event fields automatically.
 
@@ -84,7 +84,7 @@ Configure schedules in `timedActions.definitions`, then import the package descr
 
 ## Milestone 8
 
-Meld Overlay Hub adds a local transparent Browser layer with:
+Browser Overlay Hub adds one local transparent browser source for Meld Studio, OBS Studio, Streamlabs Desktop, and compatible broadcast software, with:
 
 - Unified public chat with bounded in-memory retention and message-deletion correlation
 - Context-safe text rendering with no HTML injection sinks
@@ -92,7 +92,7 @@ Meld Overlay Hub adds a local transparent Browser layer with:
 - Priority-aware public alerts with subscription lifecycle and gift provenance fields
 - Loopback-only live WebSocket delivery and creator controls for duration, retention, bots, and simulated events
 
-Add `http://127.0.0.1:8787/overlay/` as a Meld Browser layer and follow the [Meld Overlay Hub guide](docs/meld-overlay.md). The implementation is offline-verified; acceptance in the installed Meld build is still pending.
+Add `http://127.0.0.1:8787/overlay/` as a Browser layer/source and follow the [Browser Overlay Hub guide](docs/browser-overlay.md). The implementation is Chromium-verified; acceptance in installed broadcast applications remains pending.
 
 ## Requirements
 
@@ -117,7 +117,7 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), and [Meld Overlay Hub](docs/meld-overlay.md).
+See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), and [Browser Overlay Hub](docs/browser-overlay.md).
 
 ## License
 

@@ -1,14 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import type { NormalizedEvent } from '../../schemas/event.js';
-import { projectMeldOverlayEvent } from '../../bridge/core/meld-overlay.js';
+import { projectBrowserOverlayEvent } from '../../bridge/core/browser-overlay.js';
 import { fixture } from '../helpers.js';
 
-describe('Meld Overlay Hub contract', () => {
+describe('Browser Overlay Hub contract', () => {
   it('projects public chat and preserves hostile markup as inert text data', async () => {
     const source = await fixture();
     const event: NormalizedEvent = { ...source, payload: { message: '<img src=x onerror=alert(1)> 🦥' }, metadata: { ...source.metadata, bridgeSequence: 7 } };
-    expect(projectMeldOverlayEvent(event)).toMatchObject({
+    expect(projectBrowserOverlayEvent(event)).toMatchObject({
       kind: 'chat.add',
       payload: { eventId: event.eventId, sequence: 7, message: '<img src=x onerror=alert(1)> 🦥' },
     });
@@ -24,7 +24,7 @@ describe('Meld Overlay Hub contract', () => {
       payload: { tier: 'Village', subscriptionKind: 'renewal', months: 6, streakMonths: 4 },
       metadata: { ...source.metadata, bridgeSequence: 12 },
     };
-    expect(projectMeldOverlayEvent(event)).toMatchObject({
+    expect(projectBrowserOverlayEvent(event)).toMatchObject({
       kind: 'alert.show',
       payload: {
         presentation: { avatarUrl: 'https://example.com/avatar.png', nameColor: '#72efc2', badges: [{ id: 'member', label: 'Member' }] },
@@ -43,7 +43,7 @@ describe('Meld Overlay Hub contract', () => {
       payload: { action: 'delete-message', targetEventId: 'sim-twitch-chat-001', reason: 'removed by moderator' },
       metadata: { ...source.metadata, bridgeSequence: 8 },
     };
-    expect(projectMeldOverlayEvent(event)).toMatchObject({
+    expect(projectBrowserOverlayEvent(event)).toMatchObject({
       kind: 'chat.remove',
       payload: { eventId: 'moderation-delete-001', targetEventId: 'sim-twitch-chat-001', reason: 'removed by moderator' },
     });
@@ -52,12 +52,12 @@ describe('Meld Overlay Hub contract', () => {
   it('does not broadcast private, operator, command, or unrelated events', async () => {
     const source = await fixture();
     for (const eventType of ['chat.private-message', 'operator.message', 'command.received', 'system.timed']) {
-      expect(projectMeldOverlayEvent({ ...source, eventType, metadata: { ...source.metadata, bridgeSequence: 9 } })).toBeUndefined();
+      expect(projectBrowserOverlayEvent({ ...source, eventType, metadata: { ...source.metadata, bridgeSequence: 9 } })).toBeUndefined();
     }
   });
 
   it('uses text-only DOM sinks in the reviewed browser source', async () => {
-    const source = await readFile('overlays/meld/app.js', 'utf8');
+    const source = await readFile('overlays/browser/app.js', 'utf8');
     expect(source).toContain('textContent');
     expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write/u);
     expect(source).not.toContain('eval(');

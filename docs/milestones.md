@@ -68,7 +68,7 @@ Verification evidence:
 - [x] Milestone 5 — Multi-Alerts
 - [x] Milestone 6 — Speaker.bot Orchestration
 - [x] Milestone 7 — Multi-Timed Actions
-- [ ] Milestone 8 — Meld Overlay Hub
+- [ ] Milestone 8 — Browser Overlay Hub (Meld/OBS/Streamlabs)
 - [ ] Milestone 9 — Viewer Identity and Progression
 - [ ] Milestone 10 — Games and Companion Systems
 - [ ] Milestone 11 — Installer and Public Release
@@ -237,11 +237,11 @@ Verification evidence:
 - Live action-history output: 38 variables with `multiTimedHandled=True`, `multiTimedValid=True`, empty validation error, contract/package `1.0.0`, timer `community-reminders`, selection mode `shuffle-container`, selected creator message, and container cycle/position/size.
 - Focused-review hardening: offline-by-default arming closes post-stream firing; multi-platform live tracking prevents premature shutdown; token-protected operator controls provide immediate pause/resume/start/stop intervention.
 
-## Milestone 8 — Meld Overlay Hub
+## Milestone 8 — Browser Overlay Hub
 
-Status: **Implementation complete; live Meld verification pending** — bridge candidate `0.9.0`.
+Status: **Implementation complete; live broadcasting-app verification pending** — bridge candidate `0.9.1`.
 
-- [x] A transparent browser overlay is served locally without a cloud host or Meld credential.
+- [x] A transparent browser overlay is served locally without a cloud host or broadcasting-app credential.
 - [x] A loopback-only WebSocket broadcasts public presentation projections rather than raw events.
 - [x] Public multistream chat is ordered, bounded in memory, Unicode-safe, and rendered only through text DOM sinks.
 - [x] Private, system, operator, and command events are excluded from the overlay channel.
@@ -254,13 +254,13 @@ Status: **Implementation complete; live Meld verification pending** — bridge c
 - [x] Browser assets use a restrictive CSP and reviewed JavaScript contains no HTML-injection or dynamic-code execution sink.
 - [x] Unit and integration tests exercise projection, privacy boundaries, deletion correlation, hostile markup, configuration, fixed assets, CSP, and the real loopback WebSocket.
 - [x] Caption synchronization and TTS/audio preemption are documented as unsupported because the adopted Speaker.bot transport provides no playback timing or completion acknowledgement.
-- [ ] Add the overlay URL to the installed Meld Studio Browser layer and verify transparency, sizing, live reconnect, public chat, deletion, and alert presentation.
+- [ ] Add the overlay URL to installed Meld Studio, OBS Studio, and Streamlabs Desktop Browser layers/sources and verify transparency, sizing, live reconnect, public chat, deletion, and alert presentation.
 
 Current verification evidence:
 
 - `http://127.0.0.1:8787/overlay/` is the fixed local Browser-layer URL.
 - Automated browser-source review requires `textContent` and rejects `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, and `eval`.
 - Integration coverage opens `/overlay/events` through an actual loopback WebSocket and observes a projected public chat event.
-- Full validation: 31 test files and 140 tests passed; lint, typecheck, build, and configuration validation are clean.
+- Full validation: 31 test files and 141 tests passed; lint, typecheck, build, and configuration validation are clean.
 - Chromium acceptance: the live local page rendered Twitch chat and a YouTube Super Chat, labeled the simulated alert, reported `LIVE`, retained a transparent `rgba(0, 0, 0, 0)` body, removed the chat after a correlated moderation event, and logged no browser warnings or errors.
-- Official Meld documentation confirms URL Browser layers use a Chromium/CEF runtime and recommends Chrome or Edge for representative testing.
+- Official Meld, OBS Studio, and Streamlabs documentation confirms URL Browser layers/sources use browser-compatible rendering; OBS explicitly documents CEF and transparent browser-source defaults.

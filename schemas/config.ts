@@ -81,7 +81,7 @@ const timedActionsSchema = z.object({
   }
 });
 
-const meldOverlaySchema = z.object({
+const browserOverlaySchema = z.object({
   enabled: z.boolean().default(true),
   maxChatMessages: z.number().int().min(1).max(200).default(40),
   alertDurationMs: z.number().int().min(1_000).max(60_000).default(7_000),
@@ -106,7 +106,7 @@ export const outputSchema = z.object({
   settings: z.record(z.string(), z.json()).default({}),
 }).strict();
 
-export const bridgeConfigSchema = z
+const bridgeConfigObjectSchema = z
   .object({
     configVersion: z.literal('1.0.0'),
     service: z
@@ -151,7 +151,7 @@ export const bridgeConfigSchema = z
       .strict(),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
-    meldOverlay: meldOverlaySchema.default({ enabled: true, maxChatMessages: 40, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
+    browserOverlay: browserOverlaySchema.default({ enabled: true, maxChatMessages: 40, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
@@ -188,11 +188,19 @@ export const bridgeConfigSchema = z
     path: ['platforms'],
   });
 
+export const bridgeConfigSchema = z.preprocess((input) => {
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) return input;
+  const migrated = { ...(input as Record<string, unknown>) };
+  if (migrated['browserOverlay'] === undefined && migrated['meldOverlay'] !== undefined) migrated['browserOverlay'] = migrated['meldOverlay'];
+  delete migrated['meldOverlay'];
+  return migrated;
+}, bridgeConfigObjectSchema);
+
 export type BridgeConfig = z.infer<typeof bridgeConfigSchema>;
 export type PlatformConfig = z.infer<typeof platformSchema>;
 export type OutputConfig = z.infer<typeof outputSchema>;
 export type CommandsConfig = z.infer<typeof commandsSchema>;
 export type TimedActionsConfig = z.infer<typeof timedActionsSchema>;
 export type TimedActionDefinition = TimedActionsConfig['definitions'][number];
-export type MeldOverlayConfig = z.infer<typeof meldOverlaySchema>;
+export type BrowserOverlayConfig = z.infer<typeof browserOverlaySchema>;
 export type Capability = (typeof CAPABILITY_VALUES)[number];

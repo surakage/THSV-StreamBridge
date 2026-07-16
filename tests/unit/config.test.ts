@@ -4,6 +4,14 @@ import { bridgeConfigSchema } from '../../schemas/config.js';
 import { testConfig } from '../helpers.js';
 
 describe('bridge configuration', () => {
+  it('migrates the deprecated meldOverlay alias to browserOverlay', async () => {
+    const config = await testConfig();
+    const input: Record<string, unknown> = { ...config, meldOverlay: { ...config.browserOverlay } };
+    delete input['browserOverlay'];
+    const parsed = bridgeConfigSchema.parse(input);
+    expect(parsed.browserOverlay).toEqual(config.browserOverlay);
+  });
+
   it('accepts the example configuration', async () => {
     const config = await testConfig();
     expect(bridgeConfigSchema.safeParse(config).success).toBe(true);

@@ -30,9 +30,9 @@ Implemented and live-verified in version `0.7.0`, then review-hardened in `0.7.1
 
 Implemented and live-verified in `0.8.0`, then review-hardened in `0.8.1`. Timers are offline-by-default, follow normalized multi-platform live state, and expose authenticated runtime start/stop/pause/resume controls. Session-relative intervals, independent fixed/random-container timers, no-repeat shuffle cycles, and normalized timing diagnostics remain platform-neutral.
 
-## Milestone 8: Meld Overlay Hub
+## Milestone 8: Browser Overlay Hub
 
-Implemented for offline acceptance in `0.9.0`; live Meld Studio verification remains pending. A local browser layer receives public-only chat, moderation removal, and alert projections over a loopback WebSocket. Rendering is context-safe, retention is bounded, visual alerts are priority-aware, and presentation metadata includes validated badges, avatars, colors, and subscription lifecycle fields. Captions and TTS/audio preemption are explicitly not claimed because the adopted Speaker.bot transport exposes no playback timing or completion acknowledgement.
+Implemented for offline acceptance in `0.9.0` and generalized across browser-source hosts in `0.9.1`; live Meld Studio, OBS Studio, and Streamlabs Desktop verification remains pending. One local browser source receives public-only chat, moderation removal, and alert projections over a loopback WebSocket. Rendering is context-safe, retention is bounded, visual alerts are priority-aware, and presentation metadata includes validated badges, avatars, colors, and subscription lifecycle fields. Captions and TTS/audio preemption are explicitly not claimed because the adopted Speaker.bot transport exposes no playback timing or completion acknowledgement.
 
 ## Carried requirements
 
@@ -60,7 +60,7 @@ Implemented for offline acceptance in `0.9.0`; live Meld Studio verification rem
 5. Multi-Alerts — complete
 6. Speaker.bot Orchestration — complete and review-hardened
 7. Multi-Timed Actions — complete and review-hardened
-8. Meld Overlay Hub
+8. Browser Overlay Hub (Meld/OBS/Streamlabs)
 9. Viewer Identity and Progression
 10. Games and Companion Systems
 11. Installer and Public Release

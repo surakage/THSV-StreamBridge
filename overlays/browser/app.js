@@ -1,3 +1,4 @@
+// Compatible with standard Chromium/CEF browser sources.
 (() => {
   'use strict';
   const chat = document.getElementById('chat');

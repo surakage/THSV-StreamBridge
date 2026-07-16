@@ -40,9 +40,9 @@ The example contains no definitions. This is intentional: installing or starting
 
 Timers do not arm merely because the bridge process is running. A normalized `stream.online` event starts the session; the session stops only after every observed live platform reports `stream.offline`. Until production adapters supply those events, call `scripts\timed-actions.ps1 -Operation start` from the trusted Streamer.bot Stream Online action and `-Operation stop` from Stream Offline. Operators can use `pause` and `resume` at any time without restarting the service. All four HTTP controls require the local bearer token.
 
-## Meld overlay
+## Browser overlay
 
-`meldOverlay.enabled` controls public browser-event broadcasting. `maxChatMessages` bounds browser-only chat retention, `alertDurationMs` controls visual display time, and `showBots`/`showSimulated` provide explicit presentation filters. These settings are non-secret and available to the local browser layer through `/overlay/config`.
+`browserOverlay.enabled` controls public browser-event broadcasting. `maxChatMessages` bounds browser-only chat retention, `alertDurationMs` controls visual display time, and `showBots`/`showSimulated` provide explicit presentation filters. These settings are non-secret and available to the local browser layer through `/overlay/config`. The deprecated `meldOverlay` key is automatically migrated for `0.9.0` configuration compatibility.
 
 User presentation metadata accepts HTTPS-only avatar and badge icon URLs, six-digit hex name colors, and at most 16 bounded badges. Subscription presentation accepts explicit new/renewal/upgrade, month, streak, gift, and gifter fields; values are never inferred from unrelated platform data.
 

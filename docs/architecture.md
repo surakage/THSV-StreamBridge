@@ -47,7 +47,7 @@ This makes the shared parser mandatory for raw chat instead of an optional adapt
 
 Multi-Alerts consumes only normalized public engagement event types. Shared logic maps event types to portable alert categories without platform checks. Every public alert requires a stable upstream source event ID before deduplication, so two legitimate identical donations or gifts cannot collide through the payload-fingerprint fallback. Monetary amounts remain validated decimal strings with separate uppercase ISO currencies; quantities and milestone values remain safe integers. Optional text is normalized as inert plain text while Unicode survives.
 
-The package exposes transport uncertainty through `multiAlertVerifiedTransport` and `multiAlertUnverifiedFields`. It deliberately performs no visual rendering, audio, TTS, response routing, global persistence, or platform output. Its manifest classifies actor names, item names, tiers, and messages as untrusted and denies them for speech unless a creator explicitly approves them. Those responsibilities remain in creator Streamer.bot actions and later Meld/Speaker.bot milestones.
+The package exposes transport uncertainty through `multiAlertVerifiedTransport` and `multiAlertUnverifiedFields`. It deliberately performs no visual rendering, audio, TTS, response routing, global persistence, or platform output. Its manifest classifies actor names, item names, tiers, and messages as untrusted and denies them for speech unless a creator explicitly approves them. Those responsibilities remain in creator Streamer.bot actions and the Browser Overlay Hub/Speaker.bot milestones.
 
 ## Speaker.bot orchestration
 
@@ -67,7 +67,7 @@ The Streamer.bot package is projection-only. It validates the receiver-derived p
 
 Timers are dormant until the first normalized `stream.online` event or an authenticated operator start. The bridge tracks every platform observed online and ends the session only after all of them emit `stream.offline`; this prevents one platform ending early from stopping a multistream session. Token-protected start/stop/pause/resume controls provide an immediate manual override. Pause shifts the persisted session anchor on resume, freezing remaining delays instead of treating paused time as missed runs.
 
-## Meld Overlay Hub
+## Browser Overlay Hub
 
 The overlay hub subscribes to the accepted internal event stream and projects only public chat, public alerts, and correlated message-removal events. It never forwards normalized events wholesale. The browser channel is a loopback-only WebSocket on `/overlay/events`; the fixed browser assets and non-secret client configuration share the diagnostics HTTP origin.
 

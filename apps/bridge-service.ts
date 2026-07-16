@@ -6,7 +6,7 @@ import { loadConfig } from '../bridge/services/config-loader.js';
 import { StructuredLogger } from '../bridge/services/logger.js';
 import { FileDeduplicationStore, NoopDeduplicationStore } from '../bridge/services/deduplication-store.js';
 import { resolveControlToken } from '../bridge/services/control-token.js';
-import { MeldOverlayHub } from '../bridge/services/meld-overlay-hub.js';
+import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
 
 const configPath = process.env['THSV_STREAMBRIDGE_CONFIG'] ?? 'config/bridge.example.json';
 const config = await loadConfig(configPath);
@@ -21,7 +21,7 @@ const controlToken = await resolveControlToken(config.security.controlTokenEnv, 
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
 const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore });
-const overlayHub = new MeldOverlayHub(logger, config.meldOverlay);
+const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
 bridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;
 

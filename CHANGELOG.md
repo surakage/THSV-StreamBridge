@@ -6,11 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-07-16
+
+### Changed
+
+- Generalized Meld-specific naming into the Browser Overlay Hub for Meld Studio, OBS Studio, Streamlabs Desktop, and compatible Chromium/CEF browser sources.
+- Renamed creator configuration to `browserOverlay` while automatically migrating the deprecated `meldOverlay` key.
+- Preserved the existing `http://127.0.0.1:8787/overlay/` URL and event contract.
+
 ## [0.9.0] - 2026-07-16
 
 ### Added
 
-- Local Meld-compatible Browser layer and loopback-only public event WebSocket.
+- Local cross-compatible Browser layer/source and loopback-only public event WebSocket.
 - Context-safe unified chat with bounded retention and moderation/deletion correlation.
 - Priority-aware visual alert queue with explicit subscription lifecycle and gift provenance fields.
 - HTTPS avatar/badge metadata, validated name colors, role badges, bot and simulated-event controls.

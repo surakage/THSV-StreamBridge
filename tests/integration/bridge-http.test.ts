@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket, { type RawData } from 'ws';
 import { DiagnosticsServer } from '../../bridge/services/http-server.js';
-import { MeldOverlayHub } from '../../bridge/services/meld-overlay-hub.js';
+import { BrowserOverlayHub } from '../../bridge/services/browser-overlay-hub.js';
 import { createTestBridge, fixture, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
 import type { StreamBridge } from '../../bridge/core/bridge.js';
 
@@ -96,11 +96,11 @@ describe('bridge HTTP integration', () => {
     expect(diagnostics.timedActions.active).toBe(false);
   });
 
-  it('serves the Meld browser layer and broadcasts projected public events over loopback WebSocket', async () => {
+  it('serves a generic browser-source overlay and broadcasts projected public events over loopback WebSocket', async () => {
     const config = await testConfig();
     config.service.port = 0;
     const bridge = createTestBridge(config);
-    const hub = new MeldOverlayHub(silentLogger, config.meldOverlay);
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
     bridge.subscribe((event) => hub.publish(event));
     const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, hub);
     await bridge.start();

@@ -40,7 +40,7 @@
     "stateFile": "data/state/timed-actions.json",
     "definitions": []
   },
-  "meldOverlay": {
+  "browserOverlay": {
     "enabled": true,
     "maxChatMessages": 40,
     "alertDurationMs": 7000,
