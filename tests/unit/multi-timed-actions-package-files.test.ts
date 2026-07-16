@@ -23,5 +23,6 @@ describe('Multi-Timed Actions Streamer.bot package', () => {
     for (const argument of [...manifest.contract.requiredInputArguments, ...manifest.contract.outputArguments]) expect(source).toContain(`"${argument}"`);
     expect(manifest.contract.executionSafety).toMatchObject({ runsCreatorActions: false, writesGlobalVariables: false, directTriggers: false });
     expect(source).not.toMatch(/CPH\.RunAction|CPH\.SetGlobalVar|Process\.Start|PowerShell|cmd\.exe|TtsSpeak|BroadcastUdp/);
+    expect(source).toContain('reader.DateParseHandling = DateParseHandling.None');
   });
 });
