@@ -15,6 +15,18 @@ describe('StreamBridge hardening', () => {
     await bridge.stop();
   });
 
+  it('rejects malformed configured commands readably without poisoning deduplication', async () => {
+    const bridge = createTestBridge(await testConfig());
+    await bridge.start();
+    const event = await fixture();
+    await expect(bridge.simulate({ ...event, payload: { message: '!ping "open' } })).rejects.toThrow('Event validation failed');
+    await expect(bridge.simulate({ ...event, payload: { message: '!ping fixed' } })).resolves.toMatchObject({
+      duplicate: false,
+      derivedEventIds: [expect.stringMatching(/^command-/)],
+    });
+    await bridge.stop();
+  });
+
   it('marks readiness false for an enabled placeholder adapter', async () => {
     const config = await testConfig();
     const twitch = config.platforms['twitch'];

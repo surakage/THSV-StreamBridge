@@ -37,6 +37,12 @@ The bridge assigns `metadata.bridgeSequence` only after validation and deduplica
 
 Privacy is separated by event type before any public presentation exists. `chat.message` is public. `chat.private-message`, `chat.system-message`, and `operator.message` bypass Multi-Chat. Adapters must never normalize whispers, direct messages, moderator notes, or operator traffic as `chat.message`.
 
+## Multi-Commands
+
+Raw public command text follows the same adapter path as ordinary chat. After validation and deduplication, the bridge applies the single creator-configured prefix, command registry, alias map, quote/escape tokenizer, and role policy. A match produces a correlated `command.received` event immediately after its source `chat.message`; the delivery manager reserves capacity for both events atomically and preserves their sequence order.
+
+This makes the shared parser mandatory for raw chat instead of an optional adapter utility. A transport may emit `command.received` directly only when the upstream integration already supplies a structured command name and string argument array. `command.private-received` and `operator.command-received` remain distinct and bypass the public Streamer.bot package.
+
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.

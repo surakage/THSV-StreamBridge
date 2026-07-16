@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import type { CommandsConfig } from '../../schemas/config.js';
 import type { JsonValue, NormalizedEvent } from '../../schemas/event.js';
 
 export const MULTI_COMMANDS_CONTRACT_VERSION = '1.0.0';
@@ -126,6 +128,43 @@ export function projectMultiCommand(event: NormalizedEvent): MultiCommandInvocat
   };
 }
 
+export function deriveCommandEvent(event: NormalizedEvent, config: CommandsConfig): NormalizedEvent | undefined {
+  if (!config.enabled || event.eventType !== 'chat.message' || event.user === undefined) return undefined;
+  const message = event.payload['message'];
+  if (typeof message !== 'string') return undefined;
+  const parsed = parseCommandInput(message, config.definitions, config.prefix);
+  if (parsed === undefined) return undefined;
+  const identity = createHash('sha256').update(`${event.platform}\u0000${event.eventId}\u0000${parsed.command}`).digest('hex').slice(0, 40);
+  return {
+    schemaVersion: '1.0.0',
+    eventId: `command-${identity}`,
+    eventType: 'command.received',
+    platform: event.platform,
+    source: {
+      adapter: event.source.adapter,
+      eventId: `command-${identity}`,
+      eventName: 'NormalizedCommand',
+    },
+    receivedAt: event.receivedAt,
+    channel: event.channel,
+    user: event.user,
+    payload: {
+      command: parsed.command,
+      invokedAs: parsed.invokedAs,
+      arguments: [...parsed.arguments],
+      rawInput: parsed.rawInput,
+      prefix: parsed.prefix,
+      minimumRole: parsed.minimumRole,
+      allowBots: parsed.allowBots,
+    },
+    metadata: {
+      correlationId: event.metadata.correlationId ?? event.eventId,
+      simulated: event.metadata.simulated,
+      ...(event.metadata.unverifiedFields === undefined ? {} : { unverifiedFields: event.metadata.unverifiedFields }),
+    },
+  };
+}
+
 export function authorizeCommand(
   roles: readonly string[],
   actorType: 'human' | 'bot' | 'system',
@@ -178,7 +217,7 @@ function tokenizeCommand(input: string): string[] {
 }
 
 function normalizeCommandInput(input: string): string {
-  return input.replace(/[\p{Cc}]+/gu, '').trim();
+  return input.replace(/[\p{Cc}]+/gu, ' ').trim();
 }
 
 function normalizeCommandName(value: string): string {

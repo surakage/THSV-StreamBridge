@@ -30,6 +30,18 @@ describe('OutputDeliveryManager', () => {
     await manager.stop();
   });
 
+  it('reserves batch capacity atomically before starting any delivery', async () => {
+    const output = new FakeOutput();
+    const started: string[] = [];
+    output.deliverImpl = (event) => { started.push(event.eventId); return Promise.resolve(); };
+    const manager = new OutputDeliveryManager([output], 1, 1, 3, silentLogger);
+    await manager.start();
+    await expect(async () => manager.enqueueBatch([await fixture(), await fixture('kick-follow.json')])).rejects.toThrow(OutputCapacityError);
+    expect(started).toEqual([]);
+    expect((manager.statuses()[0]?.['delivery'] as Record<string, unknown>)['enqueued']).toBe(0);
+    await manager.stop();
+  });
+
   it('degrades readiness after repeated delivery failures and recovers on success', async () => {
     const output = new FakeOutput();
     output.deliverImpl = () => Promise.reject(new Error('delivery failed'));

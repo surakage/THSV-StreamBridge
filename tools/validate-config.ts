@@ -11,6 +11,9 @@ try {
     path: resolve(path),
     enabledPlatforms: enabled,
     enabledOutputs: outputs,
+    commandsEnabled: config.commands.enabled,
+    commandPrefix: config.commands.prefix,
+    commandDefinitions: config.commands.definitions.length,
     streamerbotEnabled: config.streamerbot.enabled,
     streamerbotLiveDelivery: config.streamerbot.enabled && !config.streamerbot.testMode,
   })}\n`);

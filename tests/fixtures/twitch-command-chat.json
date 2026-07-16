@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-twitch-command-chat-001",
+  "eventType": "chat.message",
+  "platform": "twitch",
+  "source": { "adapter": "fixture", "eventId": "twitch-command-chat-source-001", "eventName": "ChatMessage" },
+  "receivedAt": "2026-01-01T00:02:00.000Z",
+  "channel": { "id": "fixture-channel", "name": "ExampleChannel" },
+  "user": { "id": "fixture-mod", "name": "example_mod", "displayName": "Example Mod", "roles": ["moderator"] },
+  "payload": { "message": "!so \"Example Viewer 🦥\"" },
+  "metadata": { "simulated": true }
+}

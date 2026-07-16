@@ -47,6 +47,7 @@ Import the package and follow the inline action-chain instructions in the [Multi
 Multi-Commands adds:
 
 - Deterministic command parsing with case-insensitive canonical names, aliases, quoted arguments, and explicit limits
+- One creator-facing command prefix and definition registry applied centrally to raw chat from every adapter
 - Portable viewer, subscriber/member, moderator, broadcaster, and bot authorization policy
 - A public command boundary that excludes private and operator commands
 - A versioned `THSV StreamBridge - Multi-Commands` Streamer.bot package

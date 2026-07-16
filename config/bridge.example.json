@@ -28,6 +28,14 @@
     "persistAcrossRestarts": true,
     "stateFile": "data/state/deduplication.json"
   },
+  "commands": {
+    "enabled": true,
+    "prefix": "!",
+    "definitions": [
+      { "name": "ping", "aliases": ["p"], "minimumRole": "viewer", "allowBots": false },
+      { "name": "shoutout", "aliases": ["so"], "minimumRole": "moderator", "allowBots": false }
+    ]
+  },
   "streamerbot": {
     "enabled": true,
     "url": "ws://127.0.0.1:8080/",

@@ -109,7 +109,7 @@ Verification evidence:
 
 ## Milestone 4 — Multi-Commands
 
-Status: **Complete** — verified on July 16, 2026 against bridge version `0.5.0`, core receiver `1.0.2`, Multi-Commands package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+Status: **Complete and review-hardened** — verified on July 16, 2026 against bridge version `0.5.1`, core receiver `1.0.2`, Multi-Commands package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] One versioned command contract represents commands from every registered platform without platform checks in shared logic.
 - [x] Canonical command names and case-insensitive aliases resolve deterministically.
@@ -123,10 +123,14 @@ Status: **Complete** — verified on July 16, 2026 against bridge version `0.5.0
 - [x] Twitch, YouTube, Kick, TikTok, and Facebook fixtures produce the same normalized command contract.
 - [x] Automated tests cover aliases, quoting, limits, permissions, bot provenance, privacy, hostile-looking input, and export integrity.
 - [x] Streamer.bot compiles the imported C# action and a live five-platform matrix exposes verified `multiCommand*` values.
+- [x] One creator-facing prefix and collision-validated definition registry controls raw public command chat across every adapter.
+- [x] Raw command chat is tokenized centrally and produces an ordered, correlated `command.received` event without adapter-specific parsing.
+- [x] Unicode arguments are preserved and control characters cannot merge separate tokens.
+- [x] Source chat and its derived command reserve output capacity atomically.
 
 Verification evidence:
 
-- `scripts\package-release.ps1`: clean build, lint, typecheck, configuration validation, 24 test files, and 81 tests passed.
+- `scripts\package-release.ps1`: clean build, lint, typecheck, configuration validation, 24 test files, and 93 tests passed.
 - Package import: Streamer.bot accepted `THSV StreamBridge - Multi-Commands`, and its reviewed C# source compiled without errors.
 - Receiver chain: Multi-Chat and Multi-Commands run immediately after the successful core receiver action, and the saved configuration persists the chain.
 - Five-platform matrix: Twitch, YouTube, Kick, TikTok, and Facebook command fixtures produced five completed receiver runs with 80 variables each.
@@ -135,3 +139,4 @@ Verification evidence:
 - Multi-Chat correctly bypassed command events with `multiChatHandled=False`, proving the package chain remains event-specific.
 - Delivery diagnostics: five events enqueued and delivered, zero failures, queue depth zero, and bridge sequence five.
 - Lifecycle check: bridge health/readiness remained healthy/ready during the matrix and port 8787 closed after shutdown.
+- Review hardening live output: raw `!so "Example Viewer 🦥"` chat produced two delivered events, consecutive bridge sequences `1` and `2`, one deduplication identity, no failures, and a deterministic derived event ID.

@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-16
+
+### Added
+
+- Creator-facing command prefix and definition configuration with startup-time alias collision validation.
+- Central derivation of structured command events from raw public chat, with deterministic correlation and consecutive bridge sequences.
+- Atomic output-capacity reservation for source chat and its derived command.
+- Unicode argument, cross-platform derivation, collision, malformed-input deduplication, and batch-capacity tests.
+
+### Changed
+
+- Production adapters must emit raw public command text as `chat.message`; the bridge now owns tokenization for every platform.
+- Cooldowns and spam throttles are explicitly blocked on Milestone 9 cross-platform identity rather than being added with bypassable platform-scoped IDs.
+
 ## [0.5.0] - 2026-07-16
 
 ### Added

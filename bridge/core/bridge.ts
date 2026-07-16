@@ -9,6 +9,7 @@ import type { DeduplicationStore } from '../services/deduplication-store.js';
 import { EventDeduplicator } from './deduplicator.js';
 import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
+import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -16,6 +17,7 @@ export type IngestResult = {
   readonly eventId: string;
   readonly delivery: 'queued' | 'none';
   readonly outputs: readonly string[];
+  readonly derivedEventIds?: readonly string[];
 };
 
 export type StateWriter = (path: string, value: unknown) => Promise<void>;
@@ -119,18 +121,35 @@ export class StreamBridge {
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', outputs: [] };
     }
 
-    const event = withBridgeSequence(validatedEvent, ++this.nextSequence);
+    let derivedCommand: NormalizedEvent | undefined;
+    try { derivedCommand = deriveCommandEvent(validatedEvent, this.config.commands); }
+    catch (error) {
+      this.deduplicator.forget(validatedEvent);
+      if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
+      throw error;
+    }
+    const events = [withBridgeSequence(validatedEvent, ++this.nextSequence)];
+    if (derivedCommand !== undefined) events.push(withBridgeSequence(derivedCommand, ++this.nextSequence));
 
     try {
-      await this.bus.publish(event);
-      const outputs = this.delivery.enqueue(event);
+      for (const event of events) await this.bus.publish(event);
+      const outputs = this.delivery.enqueueBatch(events);
       this.lastAcceptedEventAt = new Date().toISOString();
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
-      await this.persistAcceptedState(event);
-      this.logger.info('Event accepted for delivery', { eventId: event.eventId, eventType: event.eventType, platform: event.platform, outputs });
-      return { accepted: true, duplicate: false, eventId: event.eventId, delivery: outputs.length === 0 ? 'none' : 'queued', outputs };
+      const lastEvent = events.at(-1);
+      if (lastEvent === undefined) throw new Error('No accepted event was produced');
+      await this.persistAcceptedState(lastEvent);
+      for (const event of events) this.logger.info('Event accepted for delivery', { eventId: event.eventId, eventType: event.eventType, platform: event.platform, outputs });
+      return {
+        accepted: true,
+        duplicate: false,
+        eventId: validatedEvent.eventId,
+        delivery: outputs.length === 0 ? 'none' : 'queued',
+        outputs,
+        ...(derivedCommand === undefined ? {} : { derivedEventIds: [events[1]?.eventId ?? derivedCommand.eventId] }),
+      };
     } catch (error) {
-      this.deduplicator.forget(event);
+      this.deduplicator.forget(validatedEvent);
       throw error;
     }
   }

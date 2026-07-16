@@ -4,14 +4,15 @@ import {
   InvalidMultiCommandError,
   MULTI_COMMANDS_MAX_ARGUMENTS,
   authorizeCommand,
+  deriveCommandEvent,
   parseCommandInput,
   projectMultiCommand,
 } from '../../bridge/core/multi-commands.js';
 import { fixture } from '../helpers.js';
 
 const definitions = [
-  { name: 'shoutout', aliases: ['so'], minimumRole: 'moderator' as const },
-  { name: 'ping', aliases: ['p'] },
+  { name: 'shoutout', aliases: ['so'], minimumRole: 'moderator' as const, allowBots: false },
+  { name: 'ping', aliases: ['p'], minimumRole: 'viewer' as const, allowBots: false },
 ];
 
 describe('Multi-Commands contract', () => {
@@ -34,6 +35,40 @@ describe('Multi-Commands contract', () => {
     });
     expect(parseCommandInput('ordinary chat', definitions)).toBeUndefined();
     expect(parseCommandInput('!unknown value', definitions)).toBeUndefined();
+  });
+
+  it('preserves Unicode arguments and prevents control characters from merging tokens', () => {
+    expect(parseCommandInput('!ping "hello 🦥 世界"', definitions)?.arguments).toEqual(['hello 🦥 世界']);
+    expect(parseCommandInput('!ping first\nsecond', definitions)?.arguments).toEqual(['first', 'second']);
+  });
+
+  it('derives a structured command from public chat using the central configuration', async () => {
+    const chat = normalizedEventSchema.parse(await fixture('twitch-chat.json'));
+    const derived = deriveCommandEvent(
+      { ...chat, payload: { message: '!SO "Example Viewer 🦥"' } },
+      { enabled: true, prefix: '!', definitions },
+    );
+    expect(derived).toMatchObject({
+      eventType: 'command.received', platform: 'twitch', payload: {
+        command: 'shoutout', invokedAs: 'so', arguments: ['Example Viewer 🦥'], minimumRole: 'moderator', allowBots: false,
+      }, metadata: { correlationId: chat.eventId },
+    });
+    expect(deriveCommandEvent(chat, { enabled: false, prefix: '!', definitions })).toBeUndefined();
+  });
+
+  it.each([
+    ['twitch-chat.json', 'twitch'],
+    ['youtube-chat.json', 'youtube'],
+    ['kick-chat.json', 'kick'],
+    ['tiktok-tikfinity-chat.json', 'tiktok'],
+    ['facebook-chat.json', 'facebook'],
+  ])('uses the same central tokenizer for raw %s command chat', async (fixtureName, platform) => {
+    const chat = normalizedEventSchema.parse(await fixture(fixtureName));
+    const derived = deriveCommandEvent(
+      { ...chat, payload: { message: '!so "Cross Platform 🦥"' } },
+      { enabled: true, prefix: '!', definitions },
+    );
+    expect(derived).toMatchObject({ platform, eventType: 'command.received', payload: { command: 'shoutout', arguments: ['Cross Platform 🦥'] } });
   });
 
   it('rejects malformed syntax, collisions, and bounded-input violations readably', () => {

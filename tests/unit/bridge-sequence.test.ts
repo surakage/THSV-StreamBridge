@@ -24,4 +24,23 @@ describe('bridge arrival sequence', () => {
     expect(bridge.diagnostics()['lastBridgeSequence']).toBe(2);
     await bridge.stop();
   });
+
+  it('derives configured commands centrally after public chat in consecutive sequence order', async () => {
+    const bridge = createTestBridge(await testConfig());
+    const published: NormalizedEvent[] = [];
+    bridge.subscribe((event) => { published.push(event); });
+    await bridge.start();
+    const template = await fixture();
+    const commandChat = { ...template, payload: { message: '!SO "Example Viewer 🦥"' } };
+    const first = await bridge.simulate(commandChat);
+    const duplicate = await bridge.simulate(commandChat);
+
+    expect(first).toMatchObject({ duplicate: false, derivedEventIds: [expect.stringMatching(/^command-/)] });
+    expect(duplicate).toMatchObject({ duplicate: true, delivery: 'none' });
+    expect(published.map((event) => [event.eventType, event.metadata.bridgeSequence])).toEqual([
+      ['chat.message', 1], ['command.received', 2],
+    ]);
+    expect(published[1]?.payload).toMatchObject({ command: 'shoutout', invokedAs: 'so', arguments: ['Example Viewer 🦥'] });
+    await bridge.stop();
+  });
 });

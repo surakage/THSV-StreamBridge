@@ -2,6 +2,8 @@
 
 This package turns a receiver-validated public `command.received` event into stable `multiCommand*` arguments. Streamer.bot remains the automation engine: add your command actions after this package and branch on `multiCommandValid`, `multiCommandAuthorized`, and `multiCommandName`.
 
+Configure the shared prefix, aliases, and role policy in the bridge `commands` section. Raw public `chat.message` events are parsed centrally and generate a correlated `command.received` event; platform adapters do not implement their own tokenizer. Direct command events are only for integrations that already supply structured command fields.
+
 ## Install
 
 1. Import core receiver `1.0.2` or later and `THSV-StreamBridge-Multi-Commands-1.0.0.sb`.
@@ -22,6 +24,7 @@ Core receiver upgrades overwrite manually-added child actions. Re-add both packa
 - `multiCommandAuthorized` reports the portable role/bot policy result. A creator action still decides what authorized commands do.
 - Public `command.received` is isolated from `command.private-received` and `operator.command-received`.
 - No argument is evaluated as code or passed to a shell. The action stores no globals, files, or history.
+- Cooldowns are intentionally deferred until cross-platform viewer identity exists; do not implement per-platform cooldown state that can be bypassed from another service.
 
 ## Manual QA
 

@@ -24,6 +24,32 @@ const reconnectSchema = z
     message: 'maxDelayMs must be greater than or equal to initialDelayMs',
   });
 
+const commandNameSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
+
+const commandsSchema = z
+  .object({
+    enabled: z.boolean(),
+    prefix: z.string().refine((value) => value.length === 1 && !/\s/u.test(value), 'prefix must be one non-whitespace character'),
+    definitions: z.array(z.object({
+      name: commandNameSchema,
+      aliases: z.array(commandNameSchema).max(20).default([]),
+      minimumRole: z.enum(['viewer', 'subscriber', 'moderator', 'broadcaster']).default('viewer'),
+      allowBots: z.boolean().default(false),
+    }).strict()).max(200),
+  })
+  .strict()
+  .superRefine((commands, context) => {
+    const seen = new Map<string, number>();
+    for (const [index, definition] of commands.definitions.entries()) {
+      for (const name of [definition.name, ...definition.aliases]) {
+        const previous = seen.get(name);
+        if (previous !== undefined) {
+          context.addIssue({ code: 'custom', path: ['definitions', index, 'aliases'], message: `Command name or alias ${name} is already used by definition ${String(previous)}.` });
+        } else seen.set(name, index);
+      }
+    }
+  });
+
 export const platformSchema = z
   .object({
     enabled: z.boolean(),
@@ -84,6 +110,7 @@ export const bridgeConfigSchema = z
         stateFile: z.string().min(1).default('data/state/deduplication.json'),
       })
       .strict(),
+    commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
@@ -123,4 +150,5 @@ export const bridgeConfigSchema = z
 export type BridgeConfig = z.infer<typeof bridgeConfigSchema>;
 export type PlatformConfig = z.infer<typeof platformSchema>;
 export type OutputConfig = z.infer<typeof outputSchema>;
+export type CommandsConfig = z.infer<typeof commandsSchema>;
 export type Capability = (typeof CAPABILITY_VALUES)[number];

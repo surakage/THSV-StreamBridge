@@ -32,4 +32,6 @@ npm run simulate -- tests/fixtures/facebook-command.json
 
 Each receiver action should run Multi-Commands immediately. The fixtures expose canonical command `shoutout`, invoked alias `so`, one plain-string argument, moderator minimum role, and an authorized result. Private and operator command types deliberately bypass this public package.
 
+To exercise the creator-facing prefix and alias configuration rather than a pre-structured event, run `npm run simulate -- tests/fixtures/twitch-command-chat.json`. The response includes a deterministic `derivedEventIds` entry; Streamer.bot receives the original chat followed by the correlated command in consecutive bridge-sequence order.
+
 The unit suite also runs a 100-event delivery burst. It verifies FIFO start order and the configured concurrency ceiling. Since Streamer.bot's Default queue is non-blocking, downstream timeline consumers use the bridge-assigned sequence rather than action completion time.

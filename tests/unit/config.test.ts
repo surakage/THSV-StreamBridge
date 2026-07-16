@@ -36,4 +36,26 @@ describe('bridge configuration', () => {
     expect(embeddedSecret.success).toBe(false);
     expect(explicit.success).toBe(true);
   });
+
+  it('validates one central prefix and rejects command or alias collisions', async () => {
+    const config = await testConfig();
+    expect(config.commands).toMatchObject({ enabled: true, prefix: '!' });
+    const collision = bridgeConfigSchema.safeParse({
+      ...config,
+      commands: { ...config.commands, definitions: [
+        { name: 'first', aliases: ['shared'], minimumRole: 'viewer', allowBots: false },
+        { name: 'second', aliases: ['shared'], minimumRole: 'viewer', allowBots: false },
+      ] },
+    });
+    const invalidPrefix = bridgeConfigSchema.safeParse({ ...config, commands: { ...config.commands, prefix: '??' } });
+    expect(collision.success).toBe(false);
+    expect(invalidPrefix.success).toBe(false);
+  });
+
+  it('keeps pre-0.5.1 configuration compatible with commands safely disabled', async () => {
+    const config = await testConfig();
+    const { commands: _commands, ...legacy } = config;
+    void _commands;
+    expect(bridgeConfigSchema.parse(legacy).commands).toEqual({ enabled: false, prefix: '!', definitions: [] });
+  });
 });

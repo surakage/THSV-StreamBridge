@@ -20,6 +20,14 @@ Configuration stores only environment-variable names. Put the Streamer.bot passw
 
 `streamerbot.testMode=true` is non-live: it performs no WebSocket connection and no action execution. Remote Streamer.bot URLs require `allowRemote=true`, and remote connections must use `wss://`. URLs containing credentials or query parameters are rejected; secrets belong in environment variables.
 
+## Commands
+
+`commands` is the creator-facing source of truth for public chat commands. It defines one prefix and a bounded list of canonical names, aliases, minimum roles, and bot policy. Startup validation rejects invalid prefixes and every name/alias collision before an adapter starts.
+
+Production chat adapters emit raw public messages as `chat.message`. The bridge centrally applies this configuration and the shared tokenizer, then emits an ordered, correlated `command.received` event when the message matches a configured command. Adapters must not independently split raw chat text. A direct `command.received` event is reserved for integrations that already provide a structured command name and string argument array rather than raw chat.
+
+Cooldowns and spam limits are deliberately absent until Milestone 9 provides cross-platform viewer identity. Adding a per-platform cooldown earlier would allow the same person to bypass it through another platform account.
+
 ## Ports
 
 | Component | Default | Bind | Purpose |

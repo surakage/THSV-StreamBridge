@@ -16,7 +16,7 @@ Implemented in version `0.4.0` and review-hardened in `0.4.1`. Multi-Chat projec
 
 ## Milestone 4: Multi-Commands
 
-Implemented in version `0.5.0`. Multi-Commands provides deterministic command and alias parsing, bounded plain-string arguments, portable role and bot authorization, explicit public/private/operator boundaries, five-platform fixtures, and a compiled receiver-dependent Streamer.bot action. Streamer.bot remains responsible for deciding what an authorized command does.
+Implemented in version `0.5.0` and review-hardened in `0.5.1`. Multi-Commands provides deterministic command and alias parsing, bounded plain-string arguments, portable role and bot authorization, explicit public/private/operator boundaries, five-platform fixtures, and a compiled receiver-dependent Streamer.bot action. The bridge now centrally applies one creator-configured prefix and collision-validated command registry to raw public chat, preventing adapter-specific tokenization drift. Streamer.bot remains responsible for deciding what an authorized command does.
 
 ## Carried requirements
 
@@ -24,6 +24,8 @@ Implemented in version `0.5.0`. Multi-Commands provides deterministic command an
 - Badge icons, name colors, subscription tiers, and other visual presentation metadata are intentionally deferred to the Milestone 8 schema/design pass; adapters must not hide them in unreviewed platform-specific shared fields.
 - Production adapter milestones must test reconnect replay against persisted deduplication and must classify human, bot, system, public, private, and operator events explicitly.
 - Creator-configurable bot suppression remains deferred until real adapters can supply verified bot provenance; contract `1.1.0` exposes `multiChatIsBot` so consumers can make an explicit policy decision now.
+- Command cooldowns and spam throttles must not ship before Milestone 9 establishes cross-platform viewer identity; platform-scoped user IDs would make such limits trivially bypassable.
+- Operator/debug commands remain a separate `operator.command-received` pathway and require an explicit future package; the public Multi-Commands package must continue to bypass them.
 
 ## Planned milestones
 

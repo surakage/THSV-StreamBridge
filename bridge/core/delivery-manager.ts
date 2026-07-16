@@ -50,16 +50,20 @@ export class OutputDeliveryManager {
   }
 
   public enqueue(event: NormalizedEvent): readonly string[] {
+    return this.enqueueBatch([event]);
+  }
+
+  public enqueueBatch(events: readonly NormalizedEvent[]): readonly string[] {
     if (this.stopping) throw new OutputUnavailableError('Output delivery is stopping');
     const enabled = this.runtimes.filter((runtime) => runtime.adapter.enabled);
     for (const runtime of enabled) {
       const state = runtime.adapter.status()['state'];
       if (state !== 'connected') throw new OutputUnavailableError(`Output ${runtime.adapter.name} is not connected`);
-      if (runtime.queue.length + runtime.metrics.active >= this.queueCapacity) throw new OutputCapacityError(`Output ${runtime.adapter.name} queue is full`);
+      if (runtime.queue.length + runtime.metrics.active + events.length > this.queueCapacity) throw new OutputCapacityError(`Output ${runtime.adapter.name} queue is full`);
     }
     for (const runtime of enabled) {
-      runtime.queue.push(event);
-      runtime.metrics.enqueued += 1;
+      runtime.queue.push(...events);
+      runtime.metrics.enqueued += events.length;
       this.pump(runtime);
     }
     return enabled.map((runtime) => runtime.adapter.name);
