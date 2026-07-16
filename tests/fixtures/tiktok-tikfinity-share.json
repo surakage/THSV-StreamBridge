@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-tiktok-share-001",
+  "eventType": "system.custom",
+  "platform": "tiktok",
+  "source": { "adapter": "tikfinity-fixture-unverified", "eventId": "tikfinity-source-005", "eventName": "Share" },
+  "receivedAt": "2026-01-01T00:00:07.000Z",
+  "channel": { "name": "ExampleChannel" },
+  "user": { "name": "example_sharer", "roles": ["viewer"] },
+  "payload": { "kind": "share" },
+  "metadata": { "simulated": true, "unverifiedFields": ["source.eventName"] }
+}

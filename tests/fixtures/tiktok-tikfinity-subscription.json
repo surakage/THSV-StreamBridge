@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-tiktok-subscription-001",
+  "eventType": "channel.subscription",
+  "platform": "tiktok",
+  "source": { "adapter": "tikfinity-fixture-unverified", "eventId": "tikfinity-source-003", "eventName": "Subscription" },
+  "receivedAt": "2026-01-01T00:00:05.000Z",
+  "channel": { "name": "ExampleChannel" },
+  "user": { "name": "example_subscriber", "roles": ["subscriber"] },
+  "payload": { "tier": "UNVERIFIED_EXAMPLE" },
+  "metadata": { "simulated": true, "unverifiedFields": ["payload.tier", "source.eventName"] }
+}

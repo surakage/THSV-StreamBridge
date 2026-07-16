@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:thsv:streambridge:schema:normalized-event:1.0.0",
+  "title": "THSV StreamBridge Normalized Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "eventId", "eventType", "platform", "source", "receivedAt", "channel", "payload", "metadata"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "eventId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "eventType": { "type": "string", "enum": ["chat.message", "command.received", "channel.follow", "channel.subscription", "channel.membership", "channel.gift-subscription", "engagement.gift", "engagement.donation", "engagement.cheer", "engagement.super-chat", "channel.raid", "engagement.milestone", "moderation.action", "stream.online", "stream.offline", "system.custom", "system.timed"] },
+    "platform": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook", "streamerbot", "system"] },
+    "source": { "type": "object", "additionalProperties": false, "required": ["adapter", "eventName"], "properties": { "adapter": { "type": "string" }, "eventId": { "type": "string" }, "eventName": { "type": "string" } } },
+    "receivedAt": { "type": "string", "format": "date-time" },
+    "channel": { "type": "object", "additionalProperties": false, "required": ["name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" } } },
+    "user": { "type": "object", "additionalProperties": false, "required": ["name", "roles"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "displayName": { "type": "string" }, "roles": { "type": "array", "items": { "type": "string" } } } },
+    "payload": { "type": "object" },
+    "metadata": { "type": "object", "additionalProperties": false, "required": ["simulated"], "properties": { "correlationId": { "type": "string" }, "simulated": { "type": "boolean" }, "unverifiedFields": { "type": "array", "items": { "type": "string" } }, "rawPayload": {} } }
+  }
+}

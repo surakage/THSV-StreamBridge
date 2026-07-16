@@ -2,12 +2,15 @@
 
 ## Milestone 1: Bridge Core
 
-Planned foundation work includes configuration validation, adapter contracts, normalized events, deduplication, an internal event bus, structured logging, health diagnostics, simulation, tests, and a Streamer.bot adapter foundation.
+Implemented in version `0.1.0`. Production validation against a user-configured Streamer.bot instance remains a manual installation check.
 
-## Deferred
+## Deferred milestones
 
 - Multi-Chat
 - Multi-Alerts
 - Multi-Timed Actions
 - Multi-Commands
-- Production TikFinity, Meld Studio, and Speaker.bot control
+- Verified TikFinity transport after its real local behavior and payloads are confirmed
+- Meld Studio and Speaker.bot production adapters
+- Generic installable Streamer.bot export packages
+- THSV-specific themes as separate optional assets/defaults

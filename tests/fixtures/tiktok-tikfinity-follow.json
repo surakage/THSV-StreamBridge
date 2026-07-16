@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-tiktok-follow-001",
+  "eventType": "channel.follow",
+  "platform": "tiktok",
+  "source": { "adapter": "tikfinity-fixture-unverified", "eventId": "tikfinity-source-006", "eventName": "Follow" },
+  "receivedAt": "2026-01-01T00:00:09.000Z",
+  "channel": { "name": "ExampleChannel" },
+  "user": { "name": "example_follower", "roles": ["viewer"] },
+  "payload": {},
+  "metadata": { "simulated": true, "unverifiedFields": ["source.eventName"] }
+}

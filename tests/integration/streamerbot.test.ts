@@ -1,0 +1,46 @@
+import { createServer } from 'node:net';
+import { WebSocketServer } from 'ws';
+import { describe, expect, it } from 'vitest';
+import { StreamerBotAdapter } from '../../bridge/adapters/streamerbot-adapter.js';
+import { fixture, silentLogger, testConfig } from '../helpers.js';
+
+async function unusedPort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  const port = typeof address === 'object' && address !== null ? address.port : 0;
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  return port;
+}
+
+describe('Streamer.bot adapter', () => {
+  it('fails safely when Streamer.bot is unavailable', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const adapter = new StreamerBotAdapter({ ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 } }, silentLogger);
+    await adapter.start();
+    expect(['error', 'connecting']).toContain(adapter.status()['state']);
+    await expect(adapter.sendEvent(await fixture())).rejects.toThrow('unavailable');
+    await adapter.stop();
+  });
+
+  it('reconnects and receives a DoAction acknowledgement', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const adapter = new StreamerBotAdapter({ ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, acknowledgementTimeoutMs: 500, reconnect: { enabled: true, initialDelayMs: 100, maxDelayMs: 100, maxAttempts: 3 } }, silentLogger);
+    await adapter.start();
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => {
+        const raw = Buffer.isBuffer(data) ? data.toString('utf8') : Buffer.from(data as ArrayBuffer).toString('utf8');
+        const request = JSON.parse(raw) as { id: string; request: string };
+        if (request.request === 'DoAction') socket.send(JSON.stringify({ id: request.id, status: 'ok' }));
+      });
+    });
+    await expect.poll(() => adapter.status()['state'], { timeout: 2_000 }).toBe('connected');
+    await expect(adapter.sendEvent(await fixture())).resolves.toBeUndefined();
+    await adapter.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+});

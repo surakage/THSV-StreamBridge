@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-kick-follow-001",
+  "eventType": "channel.follow",
+  "platform": "kick",
+  "source": { "adapter": "fixture", "eventId": "kick-source-001", "eventName": "Follow" },
+  "receivedAt": "2026-01-01T00:00:02.000Z",
+  "channel": { "name": "ExampleChannel" },
+  "user": { "name": "example_follower", "roles": ["viewer"] },
+  "payload": {},
+  "metadata": { "simulated": true }
+}

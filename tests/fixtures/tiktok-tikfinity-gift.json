@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-tiktok-gift-001",
+  "eventType": "engagement.gift",
+  "platform": "tiktok",
+  "source": { "adapter": "tikfinity-fixture-unverified", "eventId": "tikfinity-source-001", "eventName": "Gift" },
+  "receivedAt": "2026-01-01T00:00:03.000Z",
+  "channel": { "name": "ExampleChannel" },
+  "user": { "name": "example_gifter", "roles": ["viewer"] },
+  "payload": { "giftName": "UNVERIFIED_EXAMPLE", "quantity": 1 },
+  "metadata": { "simulated": true, "unverifiedFields": ["payload.giftName", "payload.quantity", "source.eventName"] }
+}

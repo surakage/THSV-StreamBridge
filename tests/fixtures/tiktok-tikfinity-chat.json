@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-tiktok-chat-001",
+  "eventType": "chat.message",
+  "platform": "tiktok",
+  "source": { "adapter": "tikfinity-fixture-unverified", "eventId": "tikfinity-source-002", "eventName": "Chat" },
+  "receivedAt": "2026-01-01T00:00:04.000Z",
+  "channel": { "name": "ExampleChannel" },
+  "user": { "name": "example_viewer", "roles": ["viewer"] },
+  "payload": { "message": "Simulated TikTok chat" },
+  "metadata": { "simulated": true, "unverifiedFields": ["source.eventName"] }
+}

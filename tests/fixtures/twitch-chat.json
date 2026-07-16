@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-twitch-chat-001",
+  "eventType": "chat.message",
+  "platform": "twitch",
+  "source": { "adapter": "fixture", "eventId": "twitch-source-001", "eventName": "ChatMessage" },
+  "receivedAt": "2026-01-01T00:00:00.000Z",
+  "channel": { "id": "fixture-channel", "name": "ExampleChannel" },
+  "user": { "id": "fixture-user", "name": "example_viewer", "displayName": "Example Viewer", "roles": ["viewer"] },
+  "payload": { "message": "Hello from a simulated Twitch fixture" },
+  "metadata": { "simulated": true }
+}

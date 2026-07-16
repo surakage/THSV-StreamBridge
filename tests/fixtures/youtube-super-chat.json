@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-youtube-superchat-001",
+  "eventType": "engagement.super-chat",
+  "platform": "youtube",
+  "source": { "adapter": "fixture", "eventId": "youtube-source-001", "eventName": "SuperChat" },
+  "receivedAt": "2026-01-01T00:00:01.000Z",
+  "channel": { "name": "ExampleChannel" },
+  "user": { "name": "example_member", "roles": ["member"] },
+  "payload": { "amount": 5, "currency": "USD", "message": "Simulated support" },
+  "metadata": { "simulated": true }
+}
