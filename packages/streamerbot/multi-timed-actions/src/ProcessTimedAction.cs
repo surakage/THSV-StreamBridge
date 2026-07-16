@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -23,7 +24,14 @@ public class CPHInline
         if (!CPH.TryGetArg("streamBridgePayload", out string payloadJson) || string.IsNullOrWhiteSpace(payloadJson)) return Fail("Missing validated streamBridgePayload.");
 
         JObject payload;
-        try { payload = JObject.Parse(payloadJson); }
+        try
+        {
+            using (JsonTextReader reader = new JsonTextReader(new StringReader(payloadJson)))
+            {
+                reader.DateParseHandling = DateParseHandling.None;
+                payload = JObject.Load(reader);
+            }
+        }
         catch (JsonException) { return Fail("streamBridgePayload is not valid JSON."); }
 
         string timerId;

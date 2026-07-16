@@ -67,7 +67,7 @@ Verification evidence:
 - [x] Milestone 4 — Multi-Commands
 - [x] Milestone 5 — Multi-Alerts
 - [x] Milestone 6 — Speaker.bot Orchestration
-- [ ] Milestone 7 — Multi-Timed Actions (implementation complete; live verification pending)
+- [x] Milestone 7 — Multi-Timed Actions
 - [ ] Milestone 8 — Meld Overlay Hub
 - [ ] Milestone 9 — Viewer Identity and Progression
 - [ ] Milestone 10 — Games and Companion Systems
@@ -208,7 +208,7 @@ Verification evidence:
 
 ## Milestone 7 — Multi-Timed Actions
 
-Status: **Implementation complete; live verification pending** — implemented in bridge `0.8.0` with Multi-Timed Actions package `1.0.0`.
+Status: **Complete** — implemented and live-verified on July 16, 2026 against bridge `0.8.0`, Multi-Timed Actions package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] Creator configuration supports uniquely identified independent minute intervals measured from session start.
 - [x] Fixed actions and random message containers are selectable per definition.
@@ -221,8 +221,8 @@ Status: **Implementation complete; live verification pending** — implemented i
 - [x] The Streamer.bot action is triggerless, concurrent, receiver-dependent, and has no action-execution or global-state side effects.
 - [x] Disabled definitions and the disabled timers input remain inactive without deleting configuration.
 - [x] Offline simulation and deterministic clock/persistence tests require no live stream or platform credentials.
-- [ ] Import package `1.0.0` into Streamer.bot Alpha and confirm the C# action compiles.
-- [ ] Deliver the timed fixture live and verify the complete `multiTimed*` output contract in Action History.
+- [x] Import package `1.0.0` into Streamer.bot Alpha and confirm the C# action compiles.
+- [x] Deliver a safe timed event live and verify the complete `multiTimed*` output contract in Action History.
 
 Verification evidence:
 
@@ -230,4 +230,5 @@ Verification evidence:
 - `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run config:validate` passed.
 - Deterministic scheduler tests verify independent intervals, no-repeat container exhaustion, persistent bag state, and exact session-relative timing without wall-clock waiting.
 - Package-integrity tests prove the portable export contains the reviewed C# source, remains concurrent and triggerless, and contains no action invocation, global writes, process execution, speech, or UDP dispatch.
-- Live Streamer.bot import and action-history verification remain the only acceptance items not yet completed.
+- Live compatibility hardening: the first execution exposed Json.NET ISO-string coercion; the package now parses payload JSON with `DateParseHandling.None`, recompiles cleanly, and preserves timestamp strings.
+- Live action-history output: 38 variables with `multiTimedHandled=True`, `multiTimedValid=True`, empty validation error, contract/package `1.0.0`, timer `community-reminders`, selection mode `shuffle-container`, selected creator message, and container cycle/position/size.

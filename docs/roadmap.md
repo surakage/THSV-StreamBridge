@@ -28,7 +28,7 @@ Implemented and live-verified in version `0.7.0`, then review-hardened in `0.7.1
 
 ## Milestone 7: Multi-Timed Actions
 
-Implemented in version `0.8.0`; live Streamer.bot import verification is pending. The bridge now provides restart-aware intervals measured from session start, independent fixed and random-container timers, no-repeat shuffle cycles, explicit skip/single-catch-up policy, normalized timing diagnostics, and a projection-only Streamer.bot package. Streamer.bot remains the only layer that maps a timer ID or selected creator message to platform output.
+Implemented and live-verified in version `0.8.0`. The bridge provides restart-aware intervals measured from session start, independent fixed and random-container timers, no-repeat shuffle cycles, explicit skip/single-catch-up policy, normalized timing diagnostics, and a projection-only Streamer.bot package. Streamer.bot remains the only layer that maps a timer ID or selected creator message to platform output.
 
 ## Carried requirements
 
@@ -55,7 +55,7 @@ Implemented in version `0.8.0`; live Streamer.bot import verification is pending
 4. Multi-Commands — complete
 5. Multi-Alerts — complete
 6. Speaker.bot Orchestration — complete and review-hardened
-7. Multi-Timed Actions — implementation complete; live verification pending
+7. Multi-Timed Actions — complete
 8. Meld Overlay Hub
 9. Viewer Identity and Progression
 10. Games and Companion Systems

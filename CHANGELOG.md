@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Session-relative local scheduling with independent creator-configured minute intervals.
 - Persistent shuffle-container message selection with no repeats until every configured message is used.
+- Streamer.bot timestamp parsing preserves ISO strings instead of allowing Json.NET date coercion.
 - Explicit skip or single-catch-up behavior with occurrence, missed-run, and lateness diagnostics.
 - Atomic completed-occurrence state and deterministic scheduled-event identities.
 - Platform-neutral `system.timed` projection and a triggerless concurrent Multi-Timed Actions Streamer.bot package.
