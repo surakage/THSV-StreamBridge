@@ -42,7 +42,7 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), and [Streamer.bot setup](docs/streamerbot-setup.md).
+See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), and [Streamer.bot setup](docs/streamerbot-setup.md).
 
 ## License
 
