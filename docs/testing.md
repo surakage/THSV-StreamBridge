@@ -64,3 +64,5 @@ npm run simulate -- tests/fixtures/system-timed.json
 ```
 
 This proves validation, delivery, and Streamer.bot projection only. To test the scheduler itself, copy the example configuration and add a harmless definition with `everyMinutes: 1`, `firstRunAfterMinutes: 0`, and either fixed or shuffle-container selection. The deterministic suite verifies independent intervals, container exhaustion before repetition, persisted bag state, catch-up, and skip behavior without waiting on wall-clock time.
+
+Runtime controls are available with `scripts\timed-actions.ps1 -Operation start|pause|resume|stop`. Tests verify that timers stay dormant before start, pause freezes the remaining interval, controls reject missing bearer tokens, and stopping reports an inactive session in diagnostics.

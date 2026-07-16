@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-07-16
+
+### Added
+
+- Timed actions remain dormant until an explicit session start or normalized `stream.online` event.
+- Multi-platform live tracking stops timers only after every observed live platform goes offline.
+- Token-protected runtime start, stop, pause, and resume endpoints plus a PowerShell operator script.
+- Pause freezes the remaining interval instead of creating catch-up promotional messages.
+
 ## [0.8.0] - 2026-07-16
 
 ### Added

@@ -10,6 +10,7 @@ import { EventDeduplicator } from './deduplicator.js';
 import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
+import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/timed-actions-adapter.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -41,6 +42,8 @@ export class StreamBridge {
   private readonly simulationAdapter: SimulationAdapter;
   private readonly delivery: OutputDeliveryManager;
   private readonly stateWriter: StateWriter;
+  private readonly timedActions: TimedActionsAdapter | undefined;
+  private readonly livePlatforms = new Set<string>();
   private running = false;
   private startedAt: string | undefined;
   private lastAcceptedEventAt: string | undefined;
@@ -57,6 +60,7 @@ export class StreamBridge {
   ) {
     this.deduplicator = new EventDeduplicator(config.deduplication.ttlMs, config.deduplication.maxEntries);
     this.inputs = dependencies.inputs;
+    this.timedActions = this.inputs.find(isTimedActionsController);
     const simulationAdapter = this.inputs.find(isSimulationAdapter);
     if (simulationAdapter === undefined) throw new Error('No simulation-capable input adapter is registered');
     this.simulationAdapter = simulationAdapter;
@@ -113,6 +117,12 @@ export class StreamBridge {
     return result;
   }
 
+  public async controlTimedActions(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>> {
+    if (this.timedActions === undefined) throw new Error('Timed actions adapter is not configured');
+    if (operation === 'stop') this.livePlatforms.clear();
+    return this.timedActions.control(operation);
+  }
+
   public async ingest(input: unknown, byteLength?: number): Promise<IngestResult> {
     const size = byteLength ?? Buffer.byteLength(JSON.stringify(input));
     if (size > this.config.security.maxPayloadBytes) throw new PayloadTooLargeError(`Payload is ${String(size)} bytes; maximum is ${String(this.config.security.maxPayloadBytes)}`);
@@ -122,6 +132,14 @@ export class StreamBridge {
     if (this.deduplicator.isDuplicate(validatedEvent)) {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', outputs: [] };
+    }
+    if (validatedEvent.eventType === 'stream.online') {
+      const wasOffline = this.livePlatforms.size === 0;
+      this.livePlatforms.add(validatedEvent.platform);
+      if (wasOffline && this.timedActions?.controlStatus()['active'] !== true) await this.timedActions?.control('start');
+    } else if (validatedEvent.eventType === 'stream.offline') {
+      this.livePlatforms.delete(validatedEvent.platform);
+      if (this.livePlatforms.size === 0) await this.timedActions?.control('stop');
     }
 
     let derivedCommand: NormalizedEvent | undefined;
@@ -186,6 +204,7 @@ export class StreamBridge {
       deduplicationEntries: this.deduplicator.size,
       lastBridgeSequence: this.nextSequence,
       deduplicationPersistence: this.dependencies.deduplicationStore.status(),
+      timedActions: this.timedActions?.controlStatus(),
     };
   }
 

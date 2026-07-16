@@ -13,7 +13,7 @@ interface TimerState {
   pending?: { scheduledAt: string; index: number };
 }
 interface TimedActionState {
-  session: { active: boolean; startedAt: string };
+  session: { active: boolean; paused: boolean; startedAt: string; pausedAt?: string };
   timers: Record<string, TimerState>;
 }
 interface Selection { mode: 'fixed' | 'shuffle-container'; message: string; index?: number; cycle: number; position: number; size: number }
@@ -22,7 +22,7 @@ const MAX_TIMEOUT_MS = 2_147_000_000;
 export class TimedActionsAdapter extends ManagedAdapter {
   private context: AdapterContext | undefined;
   private readonly timers = new Map<string, NodeJS.Timeout>();
-  private stateData: TimedActionState = { session: { active: false, startedAt: '' }, timers: {} };
+  private stateData: TimedActionState = { session: { active: false, paused: false, startedAt: '' }, timers: {} };
   private writeChain: Promise<void> = Promise.resolve();
   private stopping = false;
 
@@ -32,13 +32,8 @@ export class TimedActionsAdapter extends ManagedAdapter {
     if (!this.config.enabled || !this.config.inputEnabled) { this.state = 'disabled'; return; }
     this.context = context; this.stopping = false;
     this.stateData = await loadState(this.timedActions.stateFile);
-    if (!this.stateData.session.active) {
-      this.stateData.session = { active: true, startedAt: new Date().toISOString() };
-      for (const timer of Object.values(this.stateData.timers)) delete timer.lastScheduledAt;
-      await this.persist();
-    }
     this.state = 'connected'; this.lastError = undefined;
-    for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
+    if (this.stateData.session.active && !this.stateData.session.paused) for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
     context.logger.info('Timed actions adapter started', { adapter: this.name, sessionStartedAt: this.stateData.session.startedAt, enabledDefinitions: this.timedActions.definitions.filter((item) => item.enabled).length });
   }
 
@@ -46,10 +41,33 @@ export class TimedActionsAdapter extends ManagedAdapter {
     this.stopping = true;
     for (const timer of this.timers.values()) clearTimeout(timer);
     this.timers.clear();
-    this.stateData.session.active = false;
     await this.persist();
     this.context = undefined; this.state = 'stopped';
   }
+
+  public async control(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>> {
+    if (operation === 'start') {
+      this.clearTimers();
+      this.stateData.session = { active: true, paused: false, startedAt: new Date().toISOString() };
+      for (const timer of Object.values(this.stateData.timers)) { delete timer.lastScheduledAt; delete timer.pending; }
+      await this.persist();
+      for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
+    } else if (operation === 'stop') {
+      this.clearTimers(); this.stateData.session = { active: false, paused: false, startedAt: '' }; await this.persist();
+    } else if (operation === 'pause' && this.stateData.session.active && !this.stateData.session.paused) {
+      this.clearTimers(); this.stateData.session.paused = true; this.stateData.session.pausedAt = new Date().toISOString(); await this.persist();
+    } else if (operation === 'resume' && this.stateData.session.active && this.stateData.session.paused) {
+      const shift = Date.now() - Date.parse(this.stateData.session.pausedAt ?? new Date().toISOString());
+      this.stateData.session.startedAt = new Date(Date.parse(this.stateData.session.startedAt) + shift).toISOString();
+      for (const timer of Object.values(this.stateData.timers)) if (timer.lastScheduledAt !== undefined) timer.lastScheduledAt = new Date(Date.parse(timer.lastScheduledAt) + shift).toISOString();
+      this.stateData.session.paused = false; delete this.stateData.session.pausedAt; await this.persist();
+      for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
+    }
+    return this.controlStatus();
+  }
+
+  public controlStatus(): Readonly<Record<string, unknown>> { return { ...this.stateData.session, armedTimers: this.timers.size }; }
+  private clearTimers(): void { for (const timer of this.timers.values()) clearTimeout(timer); this.timers.clear(); }
 
   private async plan(definition: TimedActionDefinition): Promise<void> {
     if (this.stopping) return;
@@ -129,8 +147,11 @@ export class TimedActionsAdapter extends ManagedAdapter {
 
 async function loadState(path: string): Promise<TimedActionState> {
   try {
-    const value = JSON.parse(await readFile(path, 'utf8')) as Partial<TimedActionState>;
+    const value = JSON.parse(await readFile(path, 'utf8')) as Omit<Partial<TimedActionState>, 'session'> & { session?: Partial<TimedActionState['session']> };
+    if (value.session !== undefined && value.session.paused === undefined) value.session.paused = false;
     if (value.session !== undefined && value.timers !== undefined) return value as TimedActionState;
-    return { session: { active: false, startedAt: '' }, timers: {} };
-  } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { session: { active: false, startedAt: '' }, timers: {} }; throw error; }
+    return { session: { active: false, paused: false, startedAt: '' }, timers: {} };
+  } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { session: { active: false, paused: false, startedAt: '' }, timers: {} }; throw error; }
 }
+
+export function isTimedActionsController(value: unknown): value is TimedActionsAdapter { return value instanceof TimedActionsAdapter; }

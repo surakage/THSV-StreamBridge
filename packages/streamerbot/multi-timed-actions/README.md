@@ -6,7 +6,7 @@ This package projects receiver-validated `system.timed` events into one stable S
 
 Schedules live in `timedActions.definitions`. Each definition has its own `everyMinutes` interval measured from session start and optional `firstRunAfterMinutes`. Choose fixed selection for ordinary payloads or `shuffle-container` for a random creator-authored message with no repetition until all messages are used.
 
-The bridge persists interval and shuffle-bag progress. Graceful stop ends the session so the next start resets interval clocks without resetting unused messages. Crash restart resumes the session. Pending random selection is persisted before delivery, so retry uses the same message. `skip` advances missed occurrences; `fire-once` collapses them.
+The bridge persists interval and shuffle-bag progress. A normalized `stream.online` event or authenticated operator start opens a fresh session; the session ends after every observed live platform is offline or an operator stops it. Restarting the bridge process resumes an active session. Pause/resume freezes the remaining delay. Pending random selection is persisted before delivery, so retry uses the same message. `skip` advances missed occurrences; `fire-once` collapses them.
 
 ## Safety and boundaries
 
@@ -14,4 +14,4 @@ The bridge persists interval and shuffle-bag progress. Graceful stop ends the se
 
 ## Offline test
 
-Use `everyMinutes: 1` and `firstRunAfterMinutes: 0` with harmless messages, start the bridge, and inspect Streamer.bot Action History. For a no-wait package check, simulate `tests/fixtures/system-timed.json`.
+Use `everyMinutes: 1` and `firstRunAfterMinutes: 0` with harmless messages, start the bridge, run `scripts\\timed-actions.ps1 -Operation start`, and inspect Streamer.bot Action History. Run the same script with `-Operation stop` when finished. For a no-wait package check, simulate `tests/fixtures/system-timed.json`.

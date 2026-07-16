@@ -208,7 +208,7 @@ Verification evidence:
 
 ## Milestone 7 — Multi-Timed Actions
 
-Status: **Complete** — implemented and live-verified on July 16, 2026 against bridge `0.8.0`, Multi-Timed Actions package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+Status: **Complete and review-hardened** — implemented and live-verified in bridge `0.8.0`, then stream-session and runtime-control hardened in `0.8.1`; package `1.0.0`, Streamer.bot `1.0.5-alpha.31`.
 
 - [x] Creator configuration supports uniquely identified independent minute intervals measured from session start.
 - [x] Fixed actions and random message containers are selectable per definition.
@@ -221,14 +221,18 @@ Status: **Complete** — implemented and live-verified on July 16, 2026 against 
 - [x] The Streamer.bot action is triggerless, concurrent, receiver-dependent, and has no action-execution or global-state side effects.
 - [x] Disabled definitions and the disabled timers input remain inactive without deleting configuration.
 - [x] Offline simulation and deterministic clock/persistence tests require no live stream or platform credentials.
+- [x] Timers remain dormant while offline and follow normalized multi-platform stream online/offline state.
+- [x] Authenticated runtime start, stop, pause, and resume controls require no service restart.
+- [x] Pause freezes remaining delays and never generates catch-up promotions.
 - [x] Import package `1.0.0` into Streamer.bot Alpha and confirm the C# action compiles.
 - [x] Deliver a safe timed event live and verify the complete `multiTimed*` output contract in Action History.
 
 Verification evidence:
 
-- `npm test`: 30 test files and 129 tests passed.
+- `npm test`: 30 test files and 133 tests passed.
 - `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run config:validate` passed.
 - Deterministic scheduler tests verify independent intervals, no-repeat container exhaustion, persistent bag state, and exact session-relative timing without wall-clock waiting.
 - Package-integrity tests prove the portable export contains the reviewed C# source, remains concurrent and triggerless, and contains no action invocation, global writes, process execution, speech, or UDP dispatch.
 - Live compatibility hardening: the first execution exposed Json.NET ISO-string coercion; the package now parses payload JSON with `DateParseHandling.None`, recompiles cleanly, and preserves timestamp strings.
 - Live action-history output: 38 variables with `multiTimedHandled=True`, `multiTimedValid=True`, empty validation error, contract/package `1.0.0`, timer `community-reminders`, selection mode `shuffle-container`, selected creator message, and container cycle/position/size.
+- Focused-review hardening: offline-by-default arming closes post-stream firing; multi-platform live tracking prevents premature shutdown; token-protected operator controls provide immediate pause/resume/start/stop intervention.

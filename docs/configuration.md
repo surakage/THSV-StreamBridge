@@ -38,6 +38,8 @@ Use `selection: { "mode": "fixed" }` for an ordinary timed payload. Use `selecti
 
 The example contains no definitions. This is intentional: installing or starting the bridge must not create surprise timed automation.
 
+Timers do not arm merely because the bridge process is running. A normalized `stream.online` event starts the session; the session stops only after every observed live platform reports `stream.offline`. Until production adapters supply those events, call `scripts\timed-actions.ps1 -Operation start` from the trusted Streamer.bot Stream Online action and `-Operation stop` from Stream Offline. Operators can use `pause` and `resume` at any time without restarting the service. All four HTTP controls require the local bearer token.
+
 ## Ports
 
 | Component | Default | Bind | Purpose |

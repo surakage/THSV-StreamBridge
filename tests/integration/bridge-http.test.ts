@@ -83,6 +83,17 @@ describe('bridge HTTP integration', () => {
     await expect.poll(() => shutdown).toHaveBeenCalledOnce();
   });
 
+  it('protects runtime timed-action start, pause, resume, and stop controls', async () => {
+    const { baseUrl } = await runningService();
+    expect((await fetch(`${baseUrl}/timed-actions/start`, { method: 'POST' })).status).toBe(401);
+    for (const operation of ['start', 'pause', 'resume', 'stop']) {
+      const response = await fetch(`${baseUrl}/timed-actions/${operation}`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+      expect(response.status).toBe(200);
+    }
+    const diagnostics = await fetch(`${baseUrl}/diagnostics`).then((response) => response.json()) as { timedActions: { active: boolean } };
+    expect(diagnostics.timedActions.active).toBe(false);
+  });
+
   it('rate-limits mutable requests', async () => {
     const config = await testConfig();
     config.service.port = 0;

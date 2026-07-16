@@ -10,7 +10,7 @@
 - HTTP routes are fixed and do not accept file paths.
 - Credentials and runtime data are ignored by Git.
 
-Mutable `/simulate` and `/shutdown` requests are loopback-only and require a constant-time-checked bearer control token. Browser Origins are denied unless explicitly allowlisted; simulation additionally requires `application/json`. Rate and concurrency limits protect the local control surface and output queues/pending acknowledgements are separately bounded.
+Mutable `/simulate`, `/shutdown`, and `/timed-actions/start|stop|pause|resume` requests are loopback-only and require a constant-time-checked bearer control token. Browser Origins are denied unless explicitly allowlisted; simulation additionally requires `application/json`. Rate and concurrency limits protect the local control surface and output queues/pending acknowledgements are separately bounded.
 
 The mock adapter overwrites caller-provided source and simulation metadata, so simulated input cannot masquerade downstream as a genuine platform adapter event. Keep `security.controlTokenFile` in ignored runtime storage and do not share it.
 

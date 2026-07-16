@@ -59,11 +59,13 @@ The selected C# path is intentionally asynchronous and exposes no playback-compl
 
 ## Multi-Timed Actions
 
-The local `timed-actions` input adapter owns clock evaluation and emits only normalized `system.timed` events. Every definition uses an independent whole-minute interval measured from the current session start, with an optional first-run delay. A graceful bridge stop closes the session; the next start resets interval clocks. An unexpected restart resumes the active session from persisted state.
+The local `timed-actions` input adapter owns clock evaluation and emits only normalized `system.timed` events. Every definition uses an independent whole-minute interval measured from the current stream session start, with an optional first-run delay. Stream lifecycle events or authenticated runtime controls open and close that session. Bridge process restarts preserve an active session from persisted state instead of silently resetting its clocks.
 
 Each occurrence has a deterministic source identity derived from timer ID and scheduled timestamp. Fixed definitions carry inert creator payload. Shuffle-container definitions randomly select from the remaining creator-authored messages, persist that pending choice before ingestion, and remove it only after acceptance. No message repeats until the container is exhausted; the next cycle avoids an immediate boundary repeat. `skip` advances past missed occurrences while `fire-once` collapses them into the latest due occurrence.
 
 The Streamer.bot package is projection-only. It validates the receiver-derived payload and exposes timing diagnostics plus inert creator JSON. It has no direct triggers and never chooses or invokes a creator action, writes globals, executes a process, speaks, renders, or sends platform output. Streamer.bot remains the automation decision engine.
+
+Timers are dormant until the first normalized `stream.online` event or an authenticated operator start. The bridge tracks every platform observed online and ends the session only after all of them emit `stream.offline`; this prevents one platform ending early from stopping a multistream session. Token-protected start/stop/pause/resume controls provide an immediate manual override. Pause shifts the persisted session anchor on resume, freezing remaining delays instead of treating paused time as missed runs.
 
 ## Deduplication
 

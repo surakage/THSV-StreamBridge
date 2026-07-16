@@ -11,6 +11,7 @@ export interface DiagnosticsTarget {
   readiness(): Readonly<Record<string, unknown>>;
   diagnostics(): Readonly<Record<string, unknown>>;
   simulate(input: unknown, byteLength?: number): Promise<IngestResult>;
+  controlTimedActions(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>>;
 }
 
 export class DiagnosticsServer {
@@ -79,6 +80,12 @@ export class DiagnosticsServer {
         const input = JSON.parse(body.text) as unknown;
         const result = await this.target.simulate(input, body.bytes);
         return this.reply(response, 202, result);
+      }
+      const timedMatch = request.method === 'POST' ? /^\/timed-actions\/(start|stop|pause|resume)$/u.exec(request.url ?? '') : null;
+      if (timedMatch !== null) {
+        release = this.guard.acquire(request, false);
+        const operation = timedMatch[1] as 'start' | 'stop' | 'pause' | 'resume';
+        return this.reply(response, 200, { accepted: true, operation, status: await this.target.controlTimedActions(operation) });
       }
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {
