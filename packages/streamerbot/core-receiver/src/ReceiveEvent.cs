@@ -1,19 +1,18 @@
 using System;
+using System.Globalization;
+using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
     private const string ContractVersion = "1.0.0";
-    private const string PackageVersion = "1.0.0";
+    private const string PackageVersion = "1.0.1";
     private const string SupportedSchemaVersion = "1.0.0";
 
     public bool Execute()
     {
-        CPH.SetArgument("streamBridgeValid", false);
-        CPH.SetArgument("streamBridgeValidationError", string.Empty);
-        CPH.SetArgument("streamBridgeContractVersion", ContractVersion);
-        CPH.SetArgument("streamBridgePackageVersion", PackageVersion);
+        InitializeOutputs();
 
         if (!CPH.TryGetArg("streamBridgeEvent", out string eventJson) || string.IsNullOrWhiteSpace(eventJson))
             return Fail("Missing required streamBridgeEvent JSON argument.");
@@ -21,18 +20,23 @@ public class CPHInline
         JObject envelope;
         try
         {
-            envelope = JObject.Parse(eventJson);
+            using (StringReader stringReader = new StringReader(eventJson))
+            using (JsonTextReader jsonReader = new JsonTextReader(stringReader))
+            {
+                jsonReader.DateParseHandling = DateParseHandling.None;
+                envelope = JObject.Load(jsonReader);
+            }
         }
         catch (JsonException)
         {
             return Fail("streamBridgeEvent is not valid JSON.");
         }
 
-        string schemaVersion = ReadRequiredString(envelope, "schemaVersion");
-        string eventId = ReadRequiredString(envelope, "eventId");
-        string eventType = ReadRequiredString(envelope, "eventType");
-        string platform = ReadRequiredString(envelope, "platform");
-        string receivedAt = ReadRequiredString(envelope, "receivedAt");
+        string schemaVersion = ReadRequiredString(envelope, "schemaVersion", 16);
+        string eventId = ReadRequiredString(envelope, "eventId", 256);
+        string eventType = ReadRequiredString(envelope, "eventType", 128);
+        string platform = ReadRequiredString(envelope, "platform", 64);
+        string receivedAt = ReadRequiredString(envelope, "receivedAt", 64);
         JObject source = envelope["source"] as JObject;
         JObject channel = envelope["channel"] as JObject;
         JObject payload = envelope["payload"] as JObject;
@@ -40,29 +44,33 @@ public class CPHInline
 
         if (schemaVersion != SupportedSchemaVersion)
             return Fail("Unsupported normalized event schemaVersion: " + (schemaVersion ?? "<missing>"));
-        if (eventId == null) return Fail("Missing required eventId.");
-        if (eventType == null) return Fail("Missing required eventType.");
-        if (platform == null) return Fail("Missing required platform.");
-        if (receivedAt == null || !DateTimeOffset.TryParse(receivedAt, out _))
+        if (eventId == null) return Fail("Missing or invalid eventId.");
+        if (!IsEventType(eventType)) return Fail("Missing or invalid eventType.");
+        if (!IsPlatform(platform)) return Fail("Missing or invalid platform.");
+        if (!IsTimestamp(receivedAt))
             return Fail("Missing or invalid receivedAt timestamp.");
-        if (source == null || ReadRequiredString(source, "adapter") == null)
-            return Fail("Missing required source.adapter.");
-        if (channel == null || ReadRequiredString(channel, "name") == null)
-            return Fail("Missing required channel.name.");
+        if (source == null || ReadRequiredString(source, "adapter", 100) == null || ReadRequiredString(source, "eventName", 100) == null)
+            return Fail("Missing or invalid source.adapter/source.eventName.");
+        if (channel == null || ReadRequiredString(channel, "name", 256) == null || !IsOptionalString(channel, "id", 256))
+            return Fail("Missing or invalid channel data.");
         if (payload == null) return Fail("Missing required payload object.");
-        if (metadata == null) return Fail("Missing required metadata object.");
+        if (metadata == null || metadata["simulated"] == null || metadata["simulated"].Type != JTokenType.Boolean)
+            return Fail("Missing or invalid metadata.simulated boolean.");
+        if (!IsOptionalString(metadata, "correlationId", 256))
+            return Fail("Invalid metadata.correlationId.");
 
         JObject user = envelope["user"] as JObject;
-        string userName = user == null ? string.Empty : ReadRequiredString(user, "name");
-        if (user != null && userName == null) return Fail("user.name is required when user is present.");
+        string userName = user == null ? string.Empty : ReadRequiredString(user, "name", 256);
+        if (user != null && (userName == null || !IsOptionalString(user, "id", 256) || !IsOptionalString(user, "displayName", 256) || !IsRoles(user["roles"])))
+            return Fail("Invalid user data.");
 
         CPH.SetArgument("streamBridgeSchemaVersion", schemaVersion);
         CPH.SetArgument("streamBridgeEventId", eventId);
         CPH.SetArgument("streamBridgeEventType", eventType);
         CPH.SetArgument("streamBridgePlatform", platform);
-        CPH.SetArgument("streamBridgeSourceAdapter", ReadRequiredString(source, "adapter"));
+        CPH.SetArgument("streamBridgeSourceAdapter", ReadRequiredString(source, "adapter", 100));
         CPH.SetArgument("streamBridgeChannelId", ReadOptionalString(channel, "id"));
-        CPH.SetArgument("streamBridgeChannelName", ReadRequiredString(channel, "name"));
+        CPH.SetArgument("streamBridgeChannelName", ReadRequiredString(channel, "name", 256));
         CPH.SetArgument("streamBridgeUserId", user == null ? string.Empty : ReadOptionalString(user, "id"));
         CPH.SetArgument("streamBridgeUserName", userName ?? string.Empty);
         CPH.SetArgument("streamBridgeUserDisplayName", user == null ? string.Empty : ReadOptionalString(user, "displayName", userName));
@@ -70,10 +78,33 @@ public class CPHInline
         CPH.SetArgument("streamBridgePayload", payload.ToString(Formatting.None));
         CPH.SetArgument("streamBridgeMetadata", metadata.ToString(Formatting.None));
         CPH.SetArgument("streamBridgeCorrelationId", ReadOptionalString(metadata, "correlationId"));
-        CPH.SetArgument("streamBridgeSimulated", metadata.Value<bool?>("simulated") ?? false);
+        CPH.SetArgument("streamBridgeSimulated", metadata.Value<bool>("simulated"));
         CPH.SetArgument("streamBridgeValid", true);
         CPH.LogDebug("THSV StreamBridge accepted " + eventType + " event " + eventId + " from " + platform + ".");
         return true;
+    }
+
+    private void InitializeOutputs()
+    {
+        CPH.SetArgument("streamBridgeValid", false);
+        CPH.SetArgument("streamBridgeValidationError", string.Empty);
+        CPH.SetArgument("streamBridgeContractVersion", ContractVersion);
+        CPH.SetArgument("streamBridgePackageVersion", PackageVersion);
+        CPH.SetArgument("streamBridgeSchemaVersion", string.Empty);
+        CPH.SetArgument("streamBridgeEventId", string.Empty);
+        CPH.SetArgument("streamBridgeEventType", string.Empty);
+        CPH.SetArgument("streamBridgePlatform", string.Empty);
+        CPH.SetArgument("streamBridgeSourceAdapter", string.Empty);
+        CPH.SetArgument("streamBridgeChannelId", string.Empty);
+        CPH.SetArgument("streamBridgeChannelName", string.Empty);
+        CPH.SetArgument("streamBridgeUserId", string.Empty);
+        CPH.SetArgument("streamBridgeUserName", string.Empty);
+        CPH.SetArgument("streamBridgeUserDisplayName", string.Empty);
+        CPH.SetArgument("streamBridgeUserRoles", "[]");
+        CPH.SetArgument("streamBridgePayload", "{}");
+        CPH.SetArgument("streamBridgeMetadata", "{}");
+        CPH.SetArgument("streamBridgeCorrelationId", string.Empty);
+        CPH.SetArgument("streamBridgeSimulated", false);
     }
 
     private bool Fail(string message)
@@ -83,10 +114,80 @@ public class CPHInline
         return false;
     }
 
-    private static string ReadRequiredString(JObject value, string property)
+    private static bool IsEventType(string value)
     {
-        string result = value.Value<string>(property);
-        return string.IsNullOrWhiteSpace(result) ? null : result;
+        if (value == null || value.Length < 3 || value.Length > 128) return false;
+        bool segmentStart = true;
+        bool sawNamespace = false;
+        foreach (char character in value)
+        {
+            if (character == '.')
+            {
+                if (segmentStart) return false;
+                segmentStart = true;
+                sawNamespace = true;
+                continue;
+            }
+            if (segmentStart)
+            {
+                if (character < 'a' || character > 'z') return false;
+                segmentStart = false;
+            }
+            else if (!IsIdentifierCharacter(character)) return false;
+        }
+        return sawNamespace && !segmentStart;
+    }
+
+    private static bool IsPlatform(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length > 64 || value[0] < 'a' || value[0] > 'z') return false;
+        for (int index = 1; index < value.Length; index++)
+        {
+            if (!IsIdentifierCharacter(value[index])) return false;
+        }
+        return true;
+    }
+
+    private static bool IsIdentifierCharacter(char character)
+    {
+        return (character >= 'a' && character <= 'z') ||
+            (character >= '0' && character <= '9') || character == '-';
+    }
+
+    private static bool IsTimestamp(string value)
+    {
+        if (value == null) return false;
+        DateTimeOffset parsed;
+        return DateTimeOffset.TryParse(
+            value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind,
+            out parsed);
+    }
+
+    private static bool IsOptionalString(JObject value, string property, int maxLength)
+    {
+        JToken token = value[property];
+        return token == null || (token.Type == JTokenType.String && token.ToString().Length <= maxLength);
+    }
+
+    private static bool IsRoles(JToken token)
+    {
+        JArray roles = token as JArray;
+        if (roles == null || roles.Count > 32) return false;
+        foreach (JToken role in roles)
+        {
+            if (role.Type != JTokenType.String || role.ToString().Length > 64) return false;
+        }
+        return true;
+    }
+
+    private static string ReadRequiredString(JObject value, string property, int maxLength)
+    {
+        JToken token = value[property];
+        if (token == null || token.Type != JTokenType.String) return null;
+        string result = token.ToString();
+        return string.IsNullOrWhiteSpace(result) || result.Length > maxLength ? null : result;
     }
 
     private static string ReadOptionalString(JObject value, string property, string fallback = "")

@@ -34,7 +34,7 @@ Verification evidence:
 
 ## Milestone 2 — Streamer.bot Package Foundation
 
-Status: **Complete** — verified on July 15, 2026 against bridge version `0.3.0`, receiver package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+Status: **Complete** — verified on July 16, 2026 against bridge version `0.3.1`, receiver package `1.0.1`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] A versioned Streamer.bot receiver package, manifest, reviewed C# source, and import file are tracked in the repository.
 - [x] The portable package uses a stable action alias and group without relying on an installation-specific action GUID.
@@ -49,10 +49,12 @@ Status: **Complete** — verified on July 15, 2026 against bridge version `0.3.0
 
 Verification evidence:
 
-- `scripts\test.ps1`: lint, typecheck, 18 test files, and 50 tests passed.
+- `scripts\test.ps1`: lint, typecheck, 19 test files, and 51 tests passed.
 - Streamer.bot compile: the receiver's `Execute C# Code` sub-action compiled successfully.
 - Export integrity: the `.sb` import decodes with the `SBAE` header and contains the exact reviewed `ReceiveEvent.cs` source.
-- Live delivery: the action completed with 24 variables, including `streamBridgeValid=True`, contract/package/schema version `1.0.0`, platform `twitch`, and source adapter `mock`.
+- Live delivery: the action completed with 24 variables, including `streamBridgeValid=True`, contract/schema version `1.0.0`, receiver package version `1.0.1`, platform `twitch`, and source adapter `mock`.
+- Review hardening: the wire request contains only `streamBridgeEvent`; a spoofed invalid request was rejected with `streamBridgeValid=False`, a readable error, empty platform/user outputs, and `{}` payload.
+- Runtime compatibility: ISO 8601 timestamps are preserved as strings during Json.NET parsing, and a `2026-07-16T05:15:00.000Z` event validated successfully.
 - Delivery diagnostics: one event was enqueued and delivered with zero failures.
 - Lifecycle check: the bridge stopped successfully after live verification.
 - Installation and offline verification instructions are in [Streamer.bot setup](streamerbot-setup.md) and the package [README](../packages/streamerbot/core-receiver/README.md).

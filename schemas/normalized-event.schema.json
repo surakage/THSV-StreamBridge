@@ -8,8 +8,8 @@
   "properties": {
     "schemaVersion": { "const": "1.0.0" },
     "eventId": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "eventType": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$" },
-    "platform": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z][a-z0-9-]*$" },
+    "eventType": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$", "description": "A standard or extension event type. All standard types use this same lowercase namespaced syntax." },
+    "platform": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z][a-z0-9-]*$", "description": "An open lowercase platform identifier; third-party platform names do not require a shared-schema change." },
     "source": { "type": "object", "additionalProperties": false, "required": ["adapter", "eventName"], "properties": { "adapter": { "type": "string" }, "eventId": { "type": "string" }, "eventName": { "type": "string" } } },
     "receivedAt": { "type": "string", "format": "date-time" },
     "channel": { "type": "object", "additionalProperties": false, "required": ["name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" } } },

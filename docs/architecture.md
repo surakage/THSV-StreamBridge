@@ -19,6 +19,8 @@ Core receives adapters from `AdapterRegistry`; it does not construct platform im
 
 One adapter failure is logged and isolated. Disabled adapters are not started and do not create warnings. Readiness requires every enabled input/output adapter to be connected and degrades after the configured consecutive delivery-failure threshold. Liveness remains healthy while the process can serve diagnostics.
 
+Input adapters that emit from a WebSocket, IRC, timer, SDK, or other background callback must await `AdapterContext.emit()` or attach an explicit rejection handler. An individual emission failure is adapter-local state and must never become an unhandled promise rejection. The mock adapter is HTTP-driven; this rule becomes mandatory when the first real-time input adapter is added.
+
 ## Normalized event
 
 Schema version `1.0.0` requires identity, type, platform, source, receive time, channel, payload, and metadata. User data is conditional. Standard event names remain documented, while lowercase namespaced event types and new platform identifiers provide an extension point. Adapter authors can use `buildNormalizedEvent` for consistent boilerplate.

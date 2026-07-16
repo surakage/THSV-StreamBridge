@@ -46,14 +46,8 @@ describe('Streamer.bot adapter', () => {
     const event = await fixture();
     await expect(adapter.sendEvent(event)).resolves.toBeUndefined();
     expect(doAction?.action?.name).toBe(config.streamerbot.actionAlias);
-    expect(doAction?.args).toMatchObject({
-      streamBridgeContractVersion: '1.0.0',
-      streamBridgeEventId: event.eventId,
-      streamBridgeEventType: event.eventType,
-      streamBridgePlatform: event.platform,
-      streamBridgeChannelName: event.channel.name,
-      streamBridgeSimulated: true,
-    });
+    expect(Object.keys(doAction?.args ?? {})).toEqual(['streamBridgeEvent']);
+    expect(JSON.parse(String(doAction?.args?.['streamBridgeEvent']))).toEqual(event);
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });

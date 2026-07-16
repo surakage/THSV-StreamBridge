@@ -22,6 +22,8 @@ interface StreamerBotExport {
       readonly name: string;
       readonly group: string;
       readonly enabled: boolean;
+      readonly queue: string;
+      readonly concurrent: boolean;
       readonly subActions: readonly ExportSubAction[];
     }];
   };
@@ -40,7 +42,13 @@ describe('Streamer.bot package files', () => {
     expect(exported.data.actions).toHaveLength(1);
 
     const action = exported.data.actions[0];
-    expect(action).toMatchObject({ name: manifest.action.name, group: manifest.action.group, enabled: true });
+    expect(action).toMatchObject({
+      name: manifest.action.name,
+      group: manifest.action.group,
+      enabled: true,
+      queue: '00000000-0000-0000-0000-000000000000',
+      concurrent: false,
+    });
     const codeActions = action.subActions.filter((subAction) => subAction.type === 99_999 && subAction.enabled && subAction.byteCode !== undefined);
     expect(codeActions).toHaveLength(1);
 
@@ -51,5 +59,8 @@ describe('Streamer.bot package files', () => {
     for (const argument of manifest.contract.requiredOutputArguments) {
       expect(reviewedSource).toContain(`"${argument}"`);
     }
+    expect(reviewedSource).toContain('InitializeOutputs();');
+    expect(reviewedSource).toContain('IsEventType(eventType)');
+    expect(reviewedSource).toContain('IsPlatform(platform)');
   });
 });

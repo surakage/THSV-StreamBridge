@@ -20,6 +20,12 @@ interface StreamerBotMessage {
 
 export type StreamerBotState = 'disabled' | 'stopped' | 'connecting' | 'connected' | 'reconnecting' | 'error';
 
+export function calculateReconnectDelay(initialDelayMs: number, maxDelayMs: number, attempt: number, random = Math.random): number {
+  const cappedDelay = Math.min(initialDelayMs * 2 ** attempt, maxDelayMs);
+  const boundedRandom = Math.min(1, Math.max(0, random()));
+  return Math.max(1, Math.floor(cappedDelay * (0.5 + boundedRandom * 0.5)));
+}
+
 export class StreamerBotAdapter {
   private socket: WebSocket | undefined;
   private state: StreamerBotState = 'stopped';
@@ -208,7 +214,7 @@ export class StreamerBotAdapter {
       this.lastError ??= 'Streamer.bot reconnect limit reached';
       return;
     }
-    const delay = Math.min(this.config.reconnect.initialDelayMs * 2 ** this.reconnectAttempts, this.config.reconnect.maxDelayMs);
+    const delay = calculateReconnectDelay(this.config.reconnect.initialDelayMs, this.config.reconnect.maxDelayMs, this.reconnectAttempts);
     this.reconnectAttempts += 1;
     this.state = 'reconnecting';
     this.reconnectTimer = setTimeout(() => void this.connect().catch((error: unknown) => {

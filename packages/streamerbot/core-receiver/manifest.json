@@ -1,13 +1,18 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Core Receiver",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
   "action": {
     "name": "THSV StreamBridge - Receive Event",
     "group": "THSV StreamBridge",
     "source": "src/ReceiveEvent.cs",
-    "importFile": "THSV-StreamBridge-Core-Receiver-1.0.0.sb"
+    "importFile": "THSV-StreamBridge-Core-Receiver-1.0.1.sb"
+  },
+  "runtime": {
+    "queue": "Default",
+    "concurrent": false,
+    "dependencies": ["Streamer.bot CPH API", "Newtonsoft.Json/JObject default C# reference"]
   },
   "contract": {
     "version": "1.0.0",

@@ -8,7 +8,7 @@ Implemented in version `0.1.0` and live-validated against Streamer.bot Alpha. Ve
 
 ## Milestone 2: Streamer.bot Package Foundation
 
-Implemented in version `0.3.0`. The repository now includes a versioned receiver package, reviewed C# source, a portable Streamer.bot import, a stable platform-neutral argument contract, automated export-integrity checks, and live validation against Streamer.bot `1.0.5-alpha.31`.
+Implemented in version `0.3.0` and review-hardened in `0.3.1`. The repository now includes a versioned receiver package, reviewed C# source, a portable Streamer.bot import, a single-source platform-neutral argument contract, automated export-integrity checks, and live validation against Streamer.bot `1.0.5-alpha.31`.
 
 ## Planned milestones
 
