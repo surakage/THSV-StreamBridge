@@ -47,4 +47,12 @@ npm run simulate -- tests/fixtures/tiktok-tikfinity-like.json
 
 The first five prove platform-neutral routing. The final actor-free milestone proves explicit unverified-field reporting. Monetary fixtures intentionally use decimal strings; numeric JSON amounts are rejected rather than converted through floating point.
 
-The unit suite also runs a 100-event delivery burst. It verifies FIFO start order and the configured concurrency ceiling. Since Streamer.bot's Default queue is non-blocking, downstream timeline consumers use the bridge-assigned sequence rather than action completion time.
+The unit suite also runs a 100-event delivery burst. It verifies FIFO start order and the configured concurrency ceiling, plus a stalled-first-event case proving a later event can complete through the second delivery slot. Streamer.bot package-integrity tests verify that the receiver and all feature actions export with **Concurrent** enabled. After installing a package patch, repeat a live Alpha burst and confirm later action-history entries complete even if an earlier test action is deliberately delayed. Downstream timeline consumers always use the bridge-assigned sequence rather than action completion time.
+
+Run a bounded live burst without editing fixtures:
+
+```powershell
+npm run simulate:burst -- tests/fixtures/twitch-chat.json 25
+```
+
+The tool creates unique local and source event IDs for 2–100 simulated copies, submits them through a worker pool capped by `security.maxConcurrentRequests`, and reports accepted/failed totals. Keep the count within `security.maxRequestsPerMinute` or intentionally raise that local test limit. It is offline test traffic and cannot be presented as production platform verification.

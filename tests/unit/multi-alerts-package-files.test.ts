@@ -6,7 +6,12 @@ interface Manifest {
   readonly name: string;
   readonly version: string;
   readonly action: { readonly name: string; readonly group: string; readonly source: string; readonly importFile: string };
-  readonly contract: { readonly requiredInputArguments: readonly string[]; readonly outputArguments: readonly string[]; readonly acceptedEventTypes: readonly string[] };
+  readonly contract: {
+    readonly requiredInputArguments: readonly string[];
+    readonly outputArguments: readonly string[];
+    readonly acceptedEventTypes: readonly string[];
+    readonly contentSafety: { readonly untrustedTextArguments: readonly string[]; readonly speechDefault: string; readonly browserRendering: string };
+  };
 }
 
 describe('Multi-Alerts Streamer.bot package', () => {
@@ -21,7 +26,7 @@ describe('Multi-Alerts Streamer.bot package', () => {
     };
     expect(exported.meta).toMatchObject({ name: manifest.name, version: manifest.version });
     const action = exported.data.actions[0];
-    expect(action).toMatchObject({ name: manifest.action.name, group: manifest.action.group, concurrent: false });
+    expect(action).toMatchObject({ name: manifest.action.name, group: manifest.action.group, concurrent: true });
     const codeActions = action?.subActions.filter((item) => item.type === 99_999 && item.enabled) ?? [];
     expect(codeActions).toHaveLength(1);
     const exportedSource = Buffer.from(codeActions[0]?.byteCode ?? '', 'base64').toString('utf8').replaceAll('\r\n', '\n').trimEnd();
@@ -29,6 +34,11 @@ describe('Multi-Alerts Streamer.bot package', () => {
     expect(exportedSource).toBe(reviewedSource);
     for (const argument of [...manifest.contract.requiredInputArguments, ...manifest.contract.outputArguments]) expect(reviewedSource).toContain(`"${argument}"`);
     for (const eventType of manifest.contract.acceptedEventTypes) expect(reviewedSource).toContain(`"${eventType}"`);
+    expect(manifest.contract.contentSafety).toMatchObject({
+      speechDefault: 'deny-unless-creator-approved',
+      browserRendering: 'contextual-escape-required',
+    });
+    expect(manifest.contract.contentSafety.untrustedTextArguments).toContain('multiAlertMessage');
     expect(reviewedSource).not.toContain('CPH.SetGlobalVar');
     expect(reviewedSource).not.toContain('CPH.RunAction');
     expect(reviewedSource).not.toMatch(/Process\.Start|PowerShell|cmd\.exe|PlaySound|SendMessage/);

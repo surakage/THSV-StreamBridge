@@ -143,7 +143,7 @@ Verification evidence:
 
 ## Milestone 5 — Multi-Alerts
 
-Status: **Complete** — verified on July 16, 2026 against bridge version `0.6.0`, core receiver `1.0.2`, Multi-Alerts package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+Status: **Complete and review-hardened** — live behavior was verified on July 16, 2026 against bridge versions `0.6.0` and `0.6.1`, package exports Core Receiver `1.0.3`, Multi-Chat `1.1.1`, Multi-Commands `1.0.1`, Multi-Alerts `1.0.1`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] One versioned alert contract covers standard follow, subscription, membership, gifted subscription, gift, donation, cheer, Super Chat, raid, and milestone events.
 - [x] Shared alert logic contains no platform-specific branches.
@@ -169,3 +169,8 @@ Verification evidence:
 - TikTok milestone output: `multiAlertMetric=likes`, `multiAlertValue=100`, no actor required, simulated provenance preserved, and TikFinity-specific uncertainty exposed through verified-transport and unverified-field outputs.
 - Delivery diagnostics: six events enqueued and delivered, zero failures, queue depth zero, and bridge sequence six.
 - Lifecycle check: bridge health/readiness remained healthy/ready during the matrix, shutdown succeeded, and port 8787 closed afterward.
+- Review hardening: every public alert now requires a stable upstream source event ID before deduplication, preventing identical legitimate financial events from colliding through the fallback payload fingerprint.
+- Queue hardening: all four stateless Streamer.bot actions export with concurrent execution enabled, and regression tests prove a later delivery can complete while an earlier one is stalled.
+- Speech safety: the Multi-Alerts manifest identifies every untrusted text output and defaults speech to `deny-unless-creator-approved`; Milestone 6 must enforce that boundary.
+- Live concurrency burst: 25 unique simulated chat events were accepted and delivered with zero failures and queue depth returning to zero; Streamer.bot action-history entries started in the same second rather than waiting on one global serial slot.
+- Windows persistence hardening: the first burst exposed concurrent atomic status-file rename failures; sequence-aware serialized snapshots fixed the race, the repeated burst produced no `EPERM`, and the final persisted snapshot retained the highest sequence.

@@ -44,8 +44,11 @@ export class StreamBridge {
   private running = false;
   private startedAt: string | undefined;
   private lastAcceptedEventAt: string | undefined;
+  private lastAcceptedSequence = 0;
   private statePersistenceError: string | undefined;
   private nextSequence = 0;
+  private lastPersistedSequence = 0;
+  private stateWriteChain: Promise<void> = Promise.resolve();
 
   public constructor(
     private readonly config: BridgeConfig,
@@ -134,11 +137,16 @@ export class StreamBridge {
     try {
       for (const event of events) await this.bus.publish(event);
       const outputs = this.delivery.enqueueBatch(events);
-      this.lastAcceptedEventAt = new Date().toISOString();
-      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
       const lastEvent = events.at(-1);
       if (lastEvent === undefined) throw new Error('No accepted event was produced');
-      await this.persistAcceptedState(lastEvent);
+      const acceptedAt = new Date().toISOString();
+      const acceptedSequence = lastEvent.metadata.bridgeSequence ?? 0;
+      if (acceptedSequence > this.lastAcceptedSequence) {
+        this.lastAcceptedSequence = acceptedSequence;
+        this.lastAcceptedEventAt = acceptedAt;
+      }
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      await this.persistAcceptedState(lastEvent, acceptedAt);
       for (const event of events) this.logger.info('Event accepted for delivery', { eventId: event.eventId, eventType: event.eventType, platform: event.platform, outputs });
       return {
         accepted: true,
@@ -183,9 +191,17 @@ export class StreamBridge {
 
   private adapterStatuses(): AdapterStatus[] { return this.inputs.map((adapter) => adapter.status()); }
 
-  private async persistAcceptedState(event: NormalizedEvent): Promise<void> {
+  private async persistAcceptedState(event: NormalizedEvent, acceptedAt: string): Promise<void> {
+    const bridgeSequence = event.metadata.bridgeSequence ?? 0;
+    const value = { lastAcceptedEventAt: acceptedAt, lastEventId: event.eventId, bridgeSequence };
+    const write = this.stateWriteChain.then(async () => {
+      if (bridgeSequence <= this.lastPersistedSequence) return;
+      await this.stateWriter('data/state/bridge-status.json', value);
+      this.lastPersistedSequence = bridgeSequence;
+    });
+    this.stateWriteChain = write.catch(() => undefined);
     try {
-      await this.stateWriter('data/state/bridge-status.json', { lastAcceptedEventAt: this.lastAcceptedEventAt, lastEventId: event.eventId });
+      await write;
       this.statePersistenceError = undefined;
     } catch (error) {
       this.statePersistenceError = error instanceof Error ? error.message : String(error);

@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 public class CPHInline
 {
     private const string ContractVersion = "1.1.0";
-    private const string PackageVersion = "1.0.2";
+    private const string PackageVersion = "1.0.3";
     private const string SupportedSchemaVersion = "1.0.0";
 
     public bool Execute()

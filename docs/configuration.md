@@ -18,6 +18,8 @@ Configuration stores only environment-variable names. Put the Streamer.bot passw
 
 `outputs` is an open registry-backed record. Streamer.bot's queue capacity, delivery concurrency, pending acknowledgements, acknowledgement timeout, and failure threshold are bounded in configuration. Accepted HTTP simulation means the event was validated and queued; delivery completion or failure appears in diagnostics.
 
+The current output queue is memory-only. A process crash after acceptance but before delivery can lose an in-flight event; production financial adapters remain blocked until a durable outbox is implemented and restart replay is tested. Input adapters must retry bounded capacity responses with backoff rather than silently discarding them.
+
 `streamerbot.testMode=true` is non-live: it performs no WebSocket connection and no action execution. Remote Streamer.bot URLs require `allowRemote=true`, and remote connections must use `wss://`. URLs containing credentials or query parameters are rejected; secrets belong in environment variables.
 
 ## Commands

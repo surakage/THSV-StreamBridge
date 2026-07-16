@@ -21,7 +21,7 @@ describe('Multi-Commands Streamer.bot package', () => {
     };
     expect(exported.meta).toMatchObject({ name: manifest.name, version: manifest.version });
     const action = exported.data.actions[0];
-    expect(action).toMatchObject({ name: manifest.action.name, group: manifest.action.group, concurrent: false });
+    expect(action).toMatchObject({ name: manifest.action.name, group: manifest.action.group, concurrent: true });
     const codeActions = action?.subActions.filter((item) => item.type === 99_999 && item.enabled) ?? [];
     expect(codeActions).toHaveLength(1);
     const exportedSource = Buffer.from(codeActions[0]?.byteCode ?? '', 'base64').toString('utf8').replaceAll('\r\n', '\n').trimEnd();

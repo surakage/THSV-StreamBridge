@@ -7,7 +7,7 @@ The action validates the normalized event envelope supplied in `streamBridgeEven
 ## Install
 
 1. Open Streamer.bot and select **Import**.
-2. Drag `THSV-StreamBridge-Core-Receiver-1.0.2.sb` into the import field, or paste the file contents.
+2. Drag `THSV-StreamBridge-Core-Receiver-1.0.3.sb` into the import field, or paste the file contents.
 3. Confirm the package metadata and import the `THSV StreamBridge - Receive Event` action.
 4. Keep the bridge configuration `streamerbot.actionAlias` set to that exact action name.
 5. Enable the Streamer.bot WebSocket server, start the bridge, and run `npm run simulate`.
@@ -22,7 +22,7 @@ Future feature sub-actions must run only after `streamBridgeValid` is true. They
 
 ## Execution and dependencies
 
-The exported action uses Streamer.bot's non-blocking **Default** queue, while its **Concurrent** action option is disabled so sub-actions within one invocation run in order. The bridge controls ingress concurrency and queue capacity; the receiver remains stateless per invocation. The C# source depends on the bundled CPH API and Streamer.bot's default Newtonsoft.Json/JObject reference. Package `1.0.2` was compiled successfully in Streamer.bot `1.0.5-alpha.31` without adding references manually.
+The exported action uses Streamer.bot's non-blocking **Default** queue with **Concurrent** enabled. Each invocation remains stateless, and its immediate child chain still runs in declared order; separate events no longer share one global serial execution slot. The bridge controls bounded ingress and delivery concurrency. The C# source depends on the bundled CPH API and Streamer.bot's default Newtonsoft.Json/JObject reference. Package `1.0.2` was compiled successfully in Streamer.bot `1.0.5-alpha.31`; package `1.0.3` changes only the reviewed package version and action concurrency setting.
 
 Contract `1.1.0` adds the validated receive timestamp, bridge arrival sequence, and user actor type. The bridge overwrites caller-supplied sequence values after deduplication; sequence numbers are process-local and may contain gaps after rejected delivery attempts.
 

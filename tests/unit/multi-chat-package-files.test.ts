@@ -22,7 +22,7 @@ describe('Multi-Chat Streamer.bot package', () => {
     };
     expect(exported.meta).toMatchObject({ name: manifest.name, version: manifest.version });
     expect(exported.data.actions).toHaveLength(1);
-    expect(exported.data.actions[0]).toMatchObject({ name: manifest.action.name, group: manifest.action.group, concurrent: false });
+    expect(exported.data.actions[0]).toMatchObject({ name: manifest.action.name, group: manifest.action.group, concurrent: true });
 
     const codeActions = exported.data.actions[0]?.subActions.filter((action) => action.type === 99_999 && action.enabled) ?? [];
     expect(codeActions).toHaveLength(1);

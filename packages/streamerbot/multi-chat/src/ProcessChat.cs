@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 public class CPHInline
 {
     private const string ContractVersion = "1.1.0";
-    private const string PackageVersion = "1.1.0";
+    private const string PackageVersion = "1.1.1";
     private const int MaximumMessageLength = 2000;
 
     public bool Execute()

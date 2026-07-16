@@ -33,7 +33,7 @@ The core receiver remains the only Streamer.bot action that parses the normalize
 
 `bridge/core/multi-chat.ts` is the TypeScript reference contract for adapter and test authors. The versioned Streamer.bot package implements the same projection at the automation boundary: event identity, validated timestamp, process-local arrival sequence, explicit public visibility, normalized platform/channel/user identity, actor provenance, plain-text message, role flags, and simulated status. Non-chat events are successful no-ops, while invalid chat semantics fail with a readable feature-level error.
 
-The bridge assigns `metadata.bridgeSequence` only after validation and deduplication, overwriting any caller value. Multiple delivery requests may complete out of order because the Default Streamer.bot queue is non-blocking; consumers reconstruct accepted arrival order with `multiChatSequence`, using `multiChatReceivedAt` and `multiChatEventId` as durable context. Sequence numbers reset when the bridge restarts and may contain gaps after later delivery rejection.
+The bridge assigns `metadata.bridgeSequence` only after validation and deduplication, overwriting any caller value. The receiver and feature actions are stateless and export with concurrent execution enabled, so one slow invocation cannot hold the global event pipeline. Multiple delivery requests may therefore complete out of order; consumers reconstruct accepted arrival order with the feature sequence, receive timestamp, and event ID. Sequence numbers reset when the bridge restarts and may contain gaps after later delivery rejection.
 
 Privacy is separated by event type before any public presentation exists. `chat.message` is public. `chat.private-message`, `chat.system-message`, and `operator.message` bypass Multi-Chat. Adapters must never normalize whispers, direct messages, moderator notes, or operator traffic as `chat.message`.
 
@@ -45,12 +45,12 @@ This makes the shared parser mandatory for raw chat instead of an optional adapt
 
 ## Multi-Alerts
 
-Multi-Alerts consumes only normalized public engagement event types. Shared logic maps event types to portable alert categories without platform checks. Monetary amounts remain validated decimal strings with separate uppercase ISO currencies; quantities and milestone values remain safe integers. Optional text is normalized as inert plain text while Unicode survives.
+Multi-Alerts consumes only normalized public engagement event types. Shared logic maps event types to portable alert categories without platform checks. Every public alert requires a stable upstream source event ID before deduplication, so two legitimate identical donations or gifts cannot collide through the payload-fingerprint fallback. Monetary amounts remain validated decimal strings with separate uppercase ISO currencies; quantities and milestone values remain safe integers. Optional text is normalized as inert plain text while Unicode survives.
 
-The package exposes transport uncertainty through `multiAlertVerifiedTransport` and `multiAlertUnverifiedFields`. It deliberately performs no visual rendering, audio, TTS, response routing, global persistence, or platform output. Those responsibilities remain in creator Streamer.bot actions and later Meld/Speaker.bot milestones.
+The package exposes transport uncertainty through `multiAlertVerifiedTransport` and `multiAlertUnverifiedFields`. It deliberately performs no visual rendering, audio, TTS, response routing, global persistence, or platform output. Its manifest classifies actor names, item names, tiers, and messages as untrusted and denies them for speech unless a creator explicitly approves them. Those responsibilities remain in creator Streamer.bot actions and later Meld/Speaker.bot milestones.
 
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.
 
-The fallback can collapse two genuinely separate events with identical normalized content inside the TTL. It can also miss duplicates whose normalized content changes. It is intentionally bounded and is not permanent event storage.
+The fallback can collapse two genuinely separate non-alert events with identical normalized content inside the TTL. It can also miss duplicates whose normalized content changes. Public alerts cannot use this fallback: schema validation requires `source.eventId`. The cache is intentionally bounded and is not permanent event storage.

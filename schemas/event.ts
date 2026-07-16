@@ -35,6 +35,19 @@ export const EVENT_TYPE_VALUES = [
   'system.timed',
 ] as const;
 
+export const PUBLIC_ALERT_EVENT_TYPE_VALUES = [
+  'channel.follow',
+  'channel.subscription',
+  'channel.membership',
+  'channel.gift-subscription',
+  'engagement.gift',
+  'engagement.donation',
+  'engagement.cheer',
+  'engagement.super-chat',
+  'channel.raid',
+  'engagement.milestone',
+] as const;
+
 const namespacedIdentifierSchema = z.string().min(3).max(128).regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/);
 export const platformSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
 export const eventTypeSchema = z.union([z.enum(EVENT_TYPE_VALUES), namespacedIdentifierSchema]);
@@ -86,7 +99,16 @@ export const normalizedEventSchema = z
       })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((event, context) => {
+    if ((PUBLIC_ALERT_EVENT_TYPE_VALUES as readonly string[]).includes(event.eventType) && event.source.eventId === undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['source', 'eventId'],
+        message: 'Public alert events require a stable source event ID so legitimate repeated alerts are not deduplicated by payload fingerprint.',
+      });
+    }
+  });
 
 export type NormalizedEvent = z.infer<typeof normalizedEventSchema>;
 export type Platform = string;

@@ -17,6 +17,9 @@ interface ExportManifest {
     readonly source: string;
     readonly importFile: string;
   };
+  readonly runtime: {
+    readonly concurrent: boolean;
+  };
 }
 
 const packageArgument = process.argv[2];
@@ -47,7 +50,7 @@ const exported = {
       group: manifest.action.group,
       alwaysRun: false,
       randomAction: false,
-      concurrent: false,
+      concurrent: manifest.runtime.concurrent,
       triggers: [],
       subActions: [{
         name: null,

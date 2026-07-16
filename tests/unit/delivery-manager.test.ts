@@ -79,4 +79,27 @@ describe('OutputDeliveryManager', () => {
     expect(maximumActive).toBe(2);
     await manager.stop();
   });
+
+  it('allows a later delivery to finish while an earlier delivery is stalled', async () => {
+    const output = new FakeOutput();
+    let releaseFirst: (() => void) | undefined;
+    const completed: string[] = [];
+    output.deliverImpl = (event) => {
+      if (event.eventId === 'stalled-first') return new Promise<void>((resolve) => { releaseFirst = resolve; });
+      completed.push(event.eventId);
+      return Promise.resolve();
+    };
+    const manager = new OutputDeliveryManager([output], 10, 2, 3, silentLogger);
+    await manager.start();
+    const template = await fixture();
+
+    manager.enqueue({ ...template, eventId: 'stalled-first' });
+    manager.enqueue({ ...template, eventId: 'completed-second' });
+
+    await expect.poll(() => completed).toEqual(['completed-second']);
+    expect((manager.statuses()[0]?.['delivery'] as Record<string, unknown>)['delivered']).toBe(1);
+    releaseFirst?.();
+    await expect.poll(() => (manager.statuses()[0]?.['delivery'] as Record<string, unknown>)['delivered']).toBe(2);
+    await manager.stop();
+  });
 });

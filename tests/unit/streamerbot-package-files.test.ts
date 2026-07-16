@@ -47,7 +47,7 @@ describe('Streamer.bot package files', () => {
       group: manifest.action.group,
       enabled: true,
       queue: '00000000-0000-0000-0000-000000000000',
-      concurrent: false,
+      concurrent: true,
     });
     const codeActions = action.subActions.filter((subAction) => subAction.type === 99_999 && subAction.enabled && subAction.byteCode !== undefined);
     expect(codeActions).toHaveLength(1);

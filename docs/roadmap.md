@@ -20,7 +20,7 @@ Implemented in version `0.5.0` and review-hardened in `0.5.1`. Multi-Commands pr
 
 ## Milestone 5: Multi-Alerts
 
-Implemented in version `0.6.0`. Multi-Alerts projects normalized engagement events into one public, ordered, platform-neutral contract with exact monetary strings, safe quantities, actor identity, inert Unicode text, and explicit transport-verification status. Rendering and sound remain intentionally deferred.
+Implemented in version `0.6.0` and review-hardened in `0.6.1`. Multi-Alerts projects normalized engagement events into one public, ordered, platform-neutral contract with exact monetary strings, safe quantities, actor identity, inert Unicode text, and explicit transport-verification status. Alert events now require stable upstream identities before deduplication, package invocations no longer share a global serial execution slot, and raw user-controlled alert text is denied for speech by default. Rendering and sound remain intentionally deferred.
 
 ## Carried requirements
 
@@ -30,6 +30,10 @@ Implemented in version `0.6.0`. Multi-Alerts projects normalized engagement even
 - Creator-configurable bot suppression remains deferred until real adapters can supply verified bot provenance; contract `1.1.0` exposes `multiChatIsBot` so consumers can make an explicit policy decision now.
 - Command cooldowns and spam throttles must not ship before Milestone 9 establishes cross-platform viewer identity; platform-scoped user IDs would make such limits trivially bypassable.
 - Operator/debug commands remain a separate `operator.command-received` pathway and require an explicit future package; the public Multi-Commands package must continue to bypass them.
+- Milestone 6 must default-deny raw actor names, item names, tiers, and messages for TTS. Only creator-authored templates or explicitly allowlisted/filtered fields may be spoken, and simulated alerts must never update production statistics.
+- Before the first live financial adapter ships, output delivery requires a crash-recoverable durable outbox and replay test; an accepted-but-not-yet-delivered donation must survive process failure.
+- Before the first high-volume gift adapter ships, define platform-specific bundle/coalescing behavior and a retry/backpressure policy for capacity rejection.
+- Milestone 8 owns alert priority/preemption, subscription lifecycle fields (new/renewal/upgrade, months, streak, gift provenance), avatars, and contextual HTML escaping.
 
 ## Planned milestones
 

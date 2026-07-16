@@ -15,6 +15,31 @@ describe('StreamBridge hardening', () => {
     await bridge.stop();
   });
 
+  it('serializes concurrent status snapshots and leaves the highest bridge sequence persisted', async () => {
+    const config = await testConfig();
+    let activeWrites = 0;
+    let maximumActiveWrites = 0;
+    const snapshots: Array<Record<string, unknown>> = [];
+    const bridge = createTestBridge(config, async (_path, value) => {
+      activeWrites += 1;
+      maximumActiveWrites = Math.max(maximumActiveWrites, activeWrites);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      snapshots.push(value as Record<string, unknown>);
+      activeWrites -= 1;
+    });
+    await bridge.start();
+    const template = await fixture();
+    await Promise.all(Array.from({ length: 10 }, (_, index) => bridge.ingest({
+      ...template,
+      eventId: `concurrent-${String(index)}`,
+      source: { ...template.source, eventId: `concurrent-source-${String(index)}` },
+    })));
+
+    expect(maximumActiveWrites).toBe(1);
+    expect(snapshots.at(-1)?.['bridgeSequence']).toBe(10);
+    await bridge.stop();
+  });
+
   it('rejects malformed configured commands readably without poisoning deduplication', async () => {
     const bridge = createTestBridge(await testConfig());
     await bridge.start();

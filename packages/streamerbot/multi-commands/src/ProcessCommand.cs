@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 public class CPHInline
 {
     private const string ContractVersion = "1.0.0";
-    private const string PackageVersion = "1.0.0";
+    private const string PackageVersion = "1.0.1";
     private const int MaximumInputLength = 500;
     private const int MaximumArguments = 32;
     private const int MaximumArgumentLength = 256;
