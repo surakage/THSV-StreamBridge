@@ -20,4 +20,16 @@ npm run simulate -- tests/fixtures/facebook-chat.json
 
 With live Streamer.bot delivery configured, each receiver action must run Multi-Chat immediately and expose the same `multiChat*` output contract. Fixture fields prove framework routing only; they are not claims about production platform transports.
 
+For the Multi-Commands offline matrix, run:
+
+```powershell
+npm run simulate -- tests/fixtures/twitch-command.json
+npm run simulate -- tests/fixtures/youtube-command.json
+npm run simulate -- tests/fixtures/kick-command.json
+npm run simulate -- tests/fixtures/tiktok-tikfinity-command.json
+npm run simulate -- tests/fixtures/facebook-command.json
+```
+
+Each receiver action should run Multi-Commands immediately. The fixtures expose canonical command `shoutout`, invoked alias `so`, one plain-string argument, moderator minimum role, and an authorized result. Private and operator command types deliberately bypass this public package.
+
 The unit suite also runs a 100-event delivery burst. It verifies FIFO start order and the configured concurrency ceiling. Since Streamer.bot's Default queue is non-blocking, downstream timeline consumers use the bridge-assigned sequence rather than action completion time.

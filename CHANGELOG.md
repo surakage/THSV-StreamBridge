@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-16
+
+### Added
+
+- Platform-neutral Multi-Commands parsing and projection contract with canonical names, aliases, quoted arguments, and explicit input limits.
+- Portable role and bot authorization results while leaving final command behavior in Streamer.bot.
+- Public, private, and operator command event boundaries.
+- Versioned Multi-Commands Streamer.bot package with reviewed C# source and reproducible import.
+- Five-platform simulated command fixtures plus parser, permission, privacy, inert-input, and package-integrity tests.
+
 ## [0.4.1] - 2026-07-16
 
 ### Added

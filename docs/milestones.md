@@ -64,7 +64,7 @@ Verification evidence:
 - [x] Milestone 1 — Bridge Core
 - [x] Milestone 2 — Streamer.bot Package Foundation
 - [x] Milestone 3 — Multi-Chat
-- [ ] Milestone 4 — Multi-Commands
+- [x] Milestone 4 — Multi-Commands
 - [ ] Milestone 5 — Multi-Alerts
 - [ ] Milestone 6 — Speaker.bot Orchestration
 - [ ] Milestone 7 — Multi-Timed Actions
@@ -106,3 +106,32 @@ Verification evidence:
 - Bot live output: `review-bot-chat-001` exposed sequence `3`, `multiChatActorType=bot`, and `multiChatIsBot=True`.
 - Privacy live output: `review-private-chat-001` was receiver-valid with sequence `4`, while Multi-Chat returned `multiChatHandled=False`, empty public fields, and no validation error.
 - Delivery diagnostics: four review events were delivered with zero failures; readiness remained healthy and the bridge stopped with port 8787 closed.
+
+## Milestone 4 — Multi-Commands
+
+Status: **Complete** — verified on July 16, 2026 against bridge version `0.5.0`, core receiver `1.0.2`, Multi-Commands package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+
+- [x] One versioned command contract represents commands from every registered platform without platform checks in shared logic.
+- [x] Canonical command names and case-insensitive aliases resolve deterministically.
+- [x] Quoted and escaped arguments are parsed as plain strings with readable malformed-input errors.
+- [x] Input, argument-count, argument-length, and command-name limits are enforced.
+- [x] Viewer, subscriber/member, moderator, and broadcaster roles map to one permission hierarchy.
+- [x] Bot command permission is explicit and defaults to denied.
+- [x] Public commands exclude private and operator command types.
+- [x] Command arguments remain inert data and are never evaluated or passed to a shell.
+- [x] A portable Streamer.bot Multi-Commands action, manifest, reviewed C# source, and reproducible import are tracked.
+- [x] Twitch, YouTube, Kick, TikTok, and Facebook fixtures produce the same normalized command contract.
+- [x] Automated tests cover aliases, quoting, limits, permissions, bot provenance, privacy, hostile-looking input, and export integrity.
+- [x] Streamer.bot compiles the imported C# action and a live five-platform matrix exposes verified `multiCommand*` values.
+
+Verification evidence:
+
+- `scripts\package-release.ps1`: clean build, lint, typecheck, configuration validation, 24 test files, and 81 tests passed.
+- Package import: Streamer.bot accepted `THSV StreamBridge - Multi-Commands`, and its reviewed C# source compiled without errors.
+- Receiver chain: Multi-Chat and Multi-Commands run immediately after the successful core receiver action, and the saved configuration persists the chain.
+- Five-platform matrix: Twitch, YouTube, Kick, TikTok, and Facebook command fixtures produced five completed receiver runs with 80 variables each.
+- Facebook live output: `multiCommandHandled=True`, `multiCommandValid=True`, contract/package `1.0.0`, public visibility, platform `facebook`, canonical command `shoutout`, invoked alias `so`, and argument `["ExampleViewer"]`.
+- Authorization live output: moderator role, minimum role `moderator`, bots disabled, `multiCommandAuthorized=True`, and reason `authorized`.
+- Multi-Chat correctly bypassed command events with `multiChatHandled=False`, proving the package chain remains event-specific.
+- Delivery diagnostics: five events enqueued and delivered, zero failures, queue depth zero, and bridge sequence five.
+- Lifecycle check: bridge health/readiness remained healthy/ready during the matrix and port 8787 closed after shutdown.

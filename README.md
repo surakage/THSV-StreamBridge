@@ -42,6 +42,18 @@ Multi-Chat adds:
 
 Import the package and follow the inline action-chain instructions in the [Multi-Chat package guide](packages/streamerbot/multi-chat/README.md). Production platform transports remain deferred; these fixtures prove the shared contract without claiming live platform API support.
 
+## Milestone 4
+
+Multi-Commands adds:
+
+- Deterministic command parsing with case-insensitive canonical names, aliases, quoted arguments, and explicit limits
+- Portable viewer, subscriber/member, moderator, broadcaster, and bot authorization policy
+- A public command boundary that excludes private and operator commands
+- A versioned `THSV StreamBridge - Multi-Commands` Streamer.bot package
+- Offline command fixtures for Twitch, YouTube, Kick, TikTok, and Facebook
+
+Import the package and follow the inline action-chain instructions in the [Multi-Commands package guide](packages/streamerbot/multi-commands/README.md). Command arguments remain inert data; Streamer.bot creator actions decide what authorized commands do.
+
 ## Requirements
 
 - Windows 10 or later

@@ -14,6 +14,10 @@ Implemented in version `0.3.0` and review-hardened in `0.3.1`. The repository no
 
 Implemented in version `0.4.0` and review-hardened in `0.4.1`. Multi-Chat projects normalized chat events into one versioned platform-neutral contract, ships as a portable receiver-dependent Streamer.bot action, normalizes unsafe control/whitespace characters without damaging Unicode, derives common role flags, exposes identity/timestamp/order/provenance fields, and keeps private, system, and operator messages outside the public path. Production platform transports remain later adapter work.
 
+## Milestone 4: Multi-Commands
+
+Implemented in version `0.5.0`. Multi-Commands provides deterministic command and alias parsing, bounded plain-string arguments, portable role and bot authorization, explicit public/private/operator boundaries, five-platform fixtures, and a compiled receiver-dependent Streamer.bot action. Streamer.bot remains responsible for deciding what an authorized command does.
+
 ## Carried requirements
 
 - Milestone 8 must contextually HTML-escape every chat field at its rendering sink and correlate moderation/deletion events by `multiChatEventId`.
@@ -26,7 +30,7 @@ Implemented in version `0.4.0` and review-hardened in `0.4.1`. Multi-Chat projec
 1. Bridge Core — complete
 2. Streamer.bot Package Foundation — complete
 3. Multi-Chat — complete
-4. Multi-Commands
+4. Multi-Commands — complete
 5. Multi-Alerts
 6. Speaker.bot Orchestration
 7. Multi-Timed Actions

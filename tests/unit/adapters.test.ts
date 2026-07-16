@@ -35,7 +35,7 @@ describe('adapter lifecycle', () => {
     await expect(adapter.simulate(follow)).rejects.toThrow('required capability follows');
   });
 
-  it.each(['chat.private-message', 'chat.system-message'])('requires chatInput for %s', (eventType) => {
+  it.each(['chat.private-message', 'chat.system-message', 'command.private-received', 'operator.command-received'])('requires chatInput for %s', (eventType) => {
     expect(() => assertAdapterCapability(eventType, [])).toThrow('chatInput');
   });
 });

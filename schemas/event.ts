@@ -16,6 +16,8 @@ export const EVENT_TYPE_VALUES = [
   'chat.system-message',
   'operator.message',
   'command.received',
+  'command.private-received',
+  'operator.command-received',
   'channel.follow',
   'channel.subscription',
   'channel.membership',

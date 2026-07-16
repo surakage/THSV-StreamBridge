@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Multi-Commands",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Platform-neutral command projection and authorization for receiver-validated THSV StreamBridge events.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Multi-Commands",
+    "group": "THSV StreamBridge",
+    "id": "9481fb18-98a4-5db2-b826-d89db463f490",
+    "sourceSubActionId": "d2778577-d2a1-5771-b9ad-55f144b029e2",
+    "source": "src/ProcessCommand.cs",
+    "importFile": "THSV-StreamBridge-Multi-Commands-1.0.0.sb"
+  },
+  "runtime": {
+    "queue": "Default",
+    "concurrent": false,
+    "dependencies": ["THSV StreamBridge - Core Receiver 1.0.2 or later", "Streamer.bot CPH API", "Newtonsoft.Json/JObject default C# reference"]
+  },
+  "contract": {
+    "version": "1.0.0",
+    "acceptedEventType": "command.received",
+    "excludedEventTypes": ["command.private-received", "operator.command-received"],
+    "maximumInputCharacters": 500,
+    "maximumArguments": 32,
+    "maximumArgumentCharacters": 256,
+    "requiredInputArguments": ["streamBridgeValid", "streamBridgeEventType", "streamBridgeEventId", "streamBridgeReceivedAt", "streamBridgeSequence", "streamBridgePlatform", "streamBridgeChannelName", "streamBridgeUserName", "streamBridgeUserActorType", "streamBridgePayload"],
+    "outputArguments": ["multiCommandHandled", "multiCommandValid", "multiCommandValidationError", "multiCommandContractVersion", "multiCommandPackageVersion", "multiCommandEventId", "multiCommandReceivedAt", "multiCommandSequence", "multiCommandVisibility", "multiCommandPlatform", "multiCommandChannelId", "multiCommandChannelName", "multiCommandUserId", "multiCommandUserName", "multiCommandUserDisplayName", "multiCommandActorType", "multiCommandUserRoles", "multiCommandName", "multiCommandInvokedAs", "multiCommandIsAlias", "multiCommandArguments", "multiCommandArgumentCount", "multiCommandRawInput", "multiCommandPrefix", "multiCommandMinimumRole", "multiCommandAllowBots", "multiCommandAuthorized", "multiCommandAuthorizationReason", "multiCommandSimulated"]
+  }
+}
