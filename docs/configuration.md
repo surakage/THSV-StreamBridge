@@ -30,6 +30,14 @@ Production chat adapters emit raw public messages as `chat.message`. The bridge 
 
 Cooldowns and spam limits are deliberately absent until Milestone 9 provides cross-platform viewer identity. Adding a per-platform cooldown earlier would allow the same person to bypass it through another platform account.
 
+## Timed actions
+
+`timedActions.stateFile` stores only the last completed scheduled timestamp per timer. Definitions have a unique lowercase `id`, creator-facing `name`, `enabled` flag, schedule, missed-run policy, and bounded JSON payload. The payload is inert data; map timer IDs to trusted creator actions explicitly in Streamer.bot.
+
+Use `{ "type": "once", "at": "<ISO timestamp>" }` for a one-shot schedule. Use `{ "type": "interval", "anchorAt": "<ISO timestamp>", "everyMs": 60000 }` for an anchored interval. `skip` silently advances past occurrences missed while stopped. `fire-once` emits only the latest due occurrence and reports the number collapsed. Disable either the definition or the `timers` platform input to stop scheduling without deleting settings.
+
+The example contains no definitions. This is intentional: installing or starting the bridge must not create surprise timed automation.
+
 ## Ports
 
 | Component | Default | Bind | Purpose |

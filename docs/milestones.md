@@ -67,7 +67,7 @@ Verification evidence:
 - [x] Milestone 4 — Multi-Commands
 - [x] Milestone 5 — Multi-Alerts
 - [x] Milestone 6 — Speaker.bot Orchestration
-- [ ] Milestone 7 — Multi-Timed Actions
+- [ ] Milestone 7 — Multi-Timed Actions (implementation complete; live verification pending)
 - [ ] Milestone 8 — Meld Overlay Hub
 - [ ] Milestone 9 — Viewer Identity and Progression
 - [ ] Milestone 10 — Games and Companion Systems
@@ -205,3 +205,28 @@ Verification evidence:
 - Hardened-package live check: Streamer.bot replaced package `1.0.0` with `1.0.1`, compiled the imported C# action on first execution, and completed the safety dry run in 116 ms with no C# error or dispatch.
 - Runtime truthfulness check: Streamer.bot returned `151` for a deliberately nonexistent voice alias, proving the integer represents local UDP dispatch rather than Speaker.bot voice acceptance. Documentation now explicitly reserves alias validation and playback acknowledgement instead of overstating success.
 - Carried policy: creator actions own speech cooldown, stable request-ID deduplication, URL/markup transformation, and speak serialization; Milestones 8 and 9 own the shared priority/caption/ducking and cross-platform identity decisions respectively.
+
+## Milestone 7 — Multi-Timed Actions
+
+Status: **Implementation complete; live verification pending** — implemented in bridge `0.8.0` with Multi-Timed Actions package `1.0.0`.
+
+- [x] Creator configuration supports uniquely identified one-shot and anchored interval schedules.
+- [x] Schedule timestamps require explicit ISO 8601 offsets; intervals use exact milliseconds rather than ambiguous cron semantics.
+- [x] Every occurrence has a deterministic source identity and normalized `system.timed` event.
+- [x] `skip` and `fire-once` missed-run policies are explicit and test-covered.
+- [x] Completed scheduled occurrences persist atomically across restarts without retaining event or viewer content.
+- [x] State advances only after bridge ingestion accepts the timed event; failed ingestion is retried.
+- [x] The normalized projection exposes scheduled/actual timestamps, lateness, occurrence, collapsed missed runs, sequence, simulation, and inert creator payload.
+- [x] The Streamer.bot action is triggerless, concurrent, receiver-dependent, and has no action-execution or global-state side effects.
+- [x] Disabled definitions and the disabled timers input remain inactive without deleting configuration.
+- [x] Offline simulation and deterministic clock/persistence tests require no live stream or platform credentials.
+- [ ] Import package `1.0.0` into Streamer.bot Alpha and confirm the C# action compiles.
+- [ ] Deliver the timed fixture live and verify the complete `multiTimed*` output contract in Action History.
+
+Verification evidence:
+
+- `npm test`: 30 test files and 130 tests passed.
+- `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run config:validate` passed.
+- Deterministic scheduler tests verify single catch-up, skip-to-next behavior, atomic completed-occurrence persistence, and exact next interval without wall-clock waiting.
+- Package-integrity tests prove the portable export contains the reviewed C# source, remains concurrent and triggerless, and contains no action invocation, global writes, process execution, speech, or UDP dispatch.
+- Live Streamer.bot import and action-history verification remain the only acceptance items not yet completed.

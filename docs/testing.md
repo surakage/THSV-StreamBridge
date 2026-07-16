@@ -56,3 +56,11 @@ npm run simulate:burst -- tests/fixtures/twitch-chat.json 25
 ```
 
 The tool creates unique local and source event IDs for 2–100 simulated copies, submits them through a worker pool capped by `security.maxConcurrentRequests`, and reports accepted/failed totals. Keep the count within `security.maxRequestsPerMinute` or intentionally raise that local test limit. It is offline test traffic and cannot be presented as production platform verification.
+
+For a no-wait Multi-Timed Actions contract check, run:
+
+```powershell
+npm run simulate -- tests/fixtures/system-timed.json
+```
+
+This proves validation, delivery, and Streamer.bot projection only. To test the scheduler itself, copy the example configuration, add a harmless enabled `once` definition a minute in the future, start the bridge, and verify exactly one `system.timed` action-history entry. Restart after it fires and confirm it does not fire again. The deterministic unit suite separately verifies interval catch-up, skip, persistence, and exact next-occurrence behavior without waiting on wall-clock time.

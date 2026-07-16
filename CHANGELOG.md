@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-16
+
+### Added
+
+- Restart-aware local scheduling for one-shot and exact anchored interval timed actions.
+- Explicit skip or single-catch-up behavior with occurrence, missed-run, and lateness diagnostics.
+- Atomic completed-occurrence state and deterministic scheduled-event identities.
+- Platform-neutral `system.timed` projection and a triggerless concurrent Multi-Timed Actions Streamer.bot package.
+- Deterministic scheduler, persistence, contract, safety, fixture, and export-integrity tests.
+
 ## [0.7.1] - 2026-07-16
 
 ### Changed

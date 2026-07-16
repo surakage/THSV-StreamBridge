@@ -57,6 +57,14 @@ The package treats only a positive CPH transport result as dispatched. That valu
 
 The selected C# path is intentionally asynchronous and exposes no playback-completion or generated-file guarantee. It reports dispatch without claiming that audio finished. Generated duration/file metadata remain explicitly unavailable until a workflow adopts Streamer.bot's native delayed or silent Speaker.bot Speak sub-action.
 
+## Multi-Timed Actions
+
+The local `timed-actions` input adapter owns clock evaluation and emits only normalized `system.timed` events. Definitions support one ISO one-shot timestamp or an exact millisecond interval anchored to an ISO timestamp. This deliberately avoids pretending that ambiguous cron expressions have portable daylight-saving semantics.
+
+Each occurrence has a deterministic source identity derived from timer ID and scheduled timestamp. The adapter atomically persists the last completed scheduled timestamp. After restart, `skip` advances past missed occurrences without emitting them; `fire-once` emits only the latest due occurrence and reports how many earlier runs were collapsed. State is written only after bridge ingestion accepts the event. Failed ingestion is retried without advancing state.
+
+The Streamer.bot package is projection-only. It validates the receiver-derived payload and exposes timing diagnostics plus inert creator JSON. It has no direct triggers and never chooses or invokes a creator action, writes globals, executes a process, speaks, renders, or sends platform output. Streamer.bot remains the automation decision engine.
+
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.

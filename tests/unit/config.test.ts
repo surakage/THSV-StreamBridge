@@ -58,4 +58,16 @@ describe('bridge configuration', () => {
     void _commands;
     expect(bridgeConfigSchema.parse(legacy).commands).toEqual({ enabled: false, prefix: '!', definitions: [] });
   });
+
+  it('defaults timed actions to empty and rejects duplicate timer IDs', async () => {
+    const config = await testConfig();
+    const { timedActions: _timedActions, ...legacy } = config;
+    void _timedActions;
+    expect(bridgeConfigSchema.parse(legacy).timedActions).toEqual({ stateFile: 'data/state/timed-actions.json', definitions: [] });
+    const definition = {
+      id: 'duplicate', name: 'Duplicate', enabled: true, missedRunPolicy: 'skip' as const, payload: {},
+      schedule: { type: 'once' as const, at: '2026-07-16T16:00:00.000Z' },
+    };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [definition, definition] } }).success).toBe(false);
+  });
 });

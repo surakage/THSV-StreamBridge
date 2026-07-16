@@ -69,6 +69,18 @@ Import the package and follow the inline action-chain instructions in the [Multi
 
 Speaker.bot setup and safe dry-run testing are documented in [Speaker.bot setup](docs/speakerbot-setup.md). The orchestration package never speaks raw event fields automatically.
 
+## Milestone 7
+
+Multi-Timed Actions adds:
+
+- Creator-configured one-shot and exact anchored interval schedules
+- Explicit `skip` or single catch-up behavior for occurrences missed while the bridge is stopped
+- Atomic restart state and deterministic occurrence identities
+- Normalized `system.timed` events with scheduled time, actual fire time, lateness, occurrence, and missed-run counts
+- A triggerless concurrent `THSV StreamBridge - Multi-Timed Actions` package that exposes inert data while leaving action selection to Streamer.bot
+
+Configure schedules in `timedActions.definitions`, then import the package described in the [Multi-Timed Actions guide](packages/streamerbot/multi-timed-actions/README.md). The example starts with no scheduled definitions, so installing the bridge never creates surprise automation.
+
 ## Requirements
 
 - Windows 10 or later

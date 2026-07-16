@@ -14,6 +14,8 @@ try {
     commandsEnabled: config.commands.enabled,
     commandPrefix: config.commands.prefix,
     commandDefinitions: config.commands.definitions.length,
+    timedActionDefinitions: config.timedActions.definitions.length,
+    enabledTimedActions: config.timedActions.definitions.filter((definition) => definition.enabled).length,
     streamerbotEnabled: config.streamerbot.enabled,
     streamerbotLiveDelivery: config.streamerbot.enabled && !config.streamerbot.testMode,
   })}\n`);

@@ -56,6 +56,7 @@ function capabilityForEvent(eventType: EventType): Capability | undefined {
   if (eventType === 'moderation.action') return 'moderation';
   if (eventType === 'engagement.milestone') return 'engagement';
   if (['stream.online', 'stream.offline'].includes(eventType)) return 'channelUpdates';
+  if (eventType === 'system.timed') return 'timedActions';
   return undefined;
 }
 

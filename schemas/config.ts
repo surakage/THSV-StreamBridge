@@ -11,6 +11,7 @@ export const CAPABILITY_VALUES = [
   'moderation',
   'engagement',
   'channelUpdates',
+  'timedActions',
 ] as const;
 
 const reconnectSchema = z
@@ -50,6 +51,34 @@ const commandsSchema = z
       }
     }
   });
+
+const timedActionIdSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
+const timedActionScheduleSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('once'), at: z.iso.datetime({ offset: true }) }).strict(),
+  z.object({
+    type: z.literal('interval'),
+    anchorAt: z.iso.datetime({ offset: true }),
+    everyMs: z.number().int().min(1_000).max(2_592_000_000),
+  }).strict(),
+]);
+
+const timedActionsSchema = z.object({
+  stateFile: z.string().min(1).default('data/state/timed-actions.json'),
+  definitions: z.array(z.object({
+    id: timedActionIdSchema,
+    name: z.string().min(1).max(100),
+    enabled: z.boolean(),
+    schedule: timedActionScheduleSchema,
+    missedRunPolicy: z.enum(['skip', 'fire-once']).default('skip'),
+    payload: z.record(z.string(), z.json()).default({}),
+  }).strict()).max(200),
+}).strict().superRefine((timedActions, context) => {
+  const seen = new Set<string>();
+  for (const [index, definition] of timedActions.definitions.entries()) {
+    if (seen.has(definition.id)) context.addIssue({ code: 'custom', path: ['definitions', index, 'id'], message: `Timed action ID ${definition.id} is duplicated.` });
+    seen.add(definition.id);
+  }
+});
 
 export const platformSchema = z
   .object({
@@ -112,6 +141,7 @@ export const bridgeConfigSchema = z
       })
       .strict(),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
+    timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
@@ -152,4 +182,6 @@ export type BridgeConfig = z.infer<typeof bridgeConfigSchema>;
 export type PlatformConfig = z.infer<typeof platformSchema>;
 export type OutputConfig = z.infer<typeof outputSchema>;
 export type CommandsConfig = z.infer<typeof commandsSchema>;
+export type TimedActionsConfig = z.infer<typeof timedActionsSchema>;
+export type TimedActionDefinition = TimedActionsConfig['definitions'][number];
 export type Capability = (typeof CAPABILITY_VALUES)[number];
