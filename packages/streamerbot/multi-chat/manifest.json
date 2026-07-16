@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Multi-Chat",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Platform-neutral chat projection for receiver-validated THSV StreamBridge events.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Multi-Chat",
+    "group": "THSV StreamBridge",
+    "source": "src/ProcessChat.cs",
+    "importFile": "THSV-StreamBridge-Multi-Chat-1.0.0.sb"
+  },
+  "runtime": {
+    "queue": "Default",
+    "concurrent": false,
+    "dependencies": [
+      "THSV StreamBridge - Core Receiver 1.0.1 or later",
+      "Streamer.bot CPH API",
+      "Newtonsoft.Json/JObject default C# reference"
+    ]
+  },
+  "contract": {
+    "version": "1.0.0",
+    "acceptedEventType": "chat.message",
+    "maximumMessageCharacters": 2000,
+    "requiredInputArguments": [
+      "streamBridgeValid",
+      "streamBridgeEventType",
+      "streamBridgePlatform",
+      "streamBridgeChannelName",
+      "streamBridgeUserName",
+      "streamBridgePayload"
+    ],
+    "outputArguments": [
+      "multiChatHandled",
+      "multiChatValid",
+      "multiChatValidationError",
+      "multiChatContractVersion",
+      "multiChatPackageVersion",
+      "multiChatPlatform",
+      "multiChatChannelId",
+      "multiChatChannelName",
+      "multiChatUserId",
+      "multiChatUserName",
+      "multiChatUserDisplayName",
+      "multiChatUserRoles",
+      "multiChatMessage",
+      "multiChatMessageLength",
+      "multiChatIsBroadcaster",
+      "multiChatIsModerator",
+      "multiChatIsSubscriber",
+      "multiChatSimulated"
+    ]
+  }
+}

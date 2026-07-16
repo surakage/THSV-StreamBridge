@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-kick-chat-001",
+  "eventType": "chat.message",
+  "platform": "kick",
+  "source": { "adapter": "fixture", "eventId": "kick-chat-source-001", "eventName": "ChatMessage" },
+  "receivedAt": "2026-01-01T00:00:02.000Z",
+  "channel": { "id": "fixture-channel", "name": "ExampleChannel" },
+  "user": { "id": "kick-fixture-user", "name": "example_mod", "displayName": "Example Mod", "roles": ["moderator"] },
+  "payload": { "message": "Hello from a simulated Kick fixture" },
+  "metadata": { "simulated": true }
+}

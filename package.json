@@ -1,6 +1,6 @@
 {
   "name": "@thsv/streambridge",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "description": "A modular, local-first cross-platform livestream automation framework",
   "type": "module",
@@ -13,6 +13,7 @@
     "config:validate": "tsx tools/validate-config.ts",
     "dev": "tsx watch apps/bridge-service.ts",
     "lint": "eslint .",
+    "package:streamerbot": "tsx tools/build-streamerbot-export.ts",
     "simulate": "tsx tools/simulate-event.ts",
     "start": "node dist/apps/bridge-service.js",
     "test": "vitest run",

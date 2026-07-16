@@ -31,6 +31,17 @@ Streamer.bot Package Foundation adds:
 
 Import the package and follow the instructions in the [Streamer.bot receiver package](packages/streamerbot/core-receiver/README.md).
 
+## Milestone 3
+
+Multi-Chat adds:
+
+- One platform-neutral chat projection for every supported normalized `chat.message` event
+- A portable `THSV StreamBridge - Multi-Chat` Streamer.bot action package
+- Validated plain-text messages, consistent user identity and role flags, and safe non-chat handling
+- Deterministic offline fixtures for Twitch, YouTube, Kick, TikTok, and Facebook
+
+Import the package and follow the inline action-chain instructions in the [Multi-Chat package guide](packages/streamerbot/multi-chat/README.md). Production platform transports remain deferred; these fixtures prove the shared contract without claiming live platform API support.
+
 ## Requirements
 
 - Windows 10 or later

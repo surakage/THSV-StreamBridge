@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-16
+
+### Added
+
+- Platform-neutral Multi-Chat projection contract for Twitch, YouTube, Kick, TikTok, Facebook, and future registered platforms.
+- Versioned `THSV StreamBridge - Multi-Chat` Streamer.bot package with reviewed C# source and reproducible import generation.
+- Plain-text normalization, message-length validation, user-role flags, defensive argument initialization, and readable feature-level errors.
+- Offline chat fixtures for all five planned platforms plus unit and package-integrity coverage.
+- Deterministic `package:streamerbot` export builder for reviewed Streamer.bot C# packages.
+
 ## [0.3.1] - 2026-07-16
 
 ### Fixed

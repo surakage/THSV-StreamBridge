@@ -27,6 +27,12 @@ Schema version `1.0.0` requires identity, type, platform, source, receive time, 
 
 Raw payloads are discarded unless `security.preserveRawPayloads` is explicitly enabled. Log redaction always removes fields named like credentials or raw payloads.
 
+## Multi-Chat
+
+The core receiver remains the only Streamer.bot action that parses the normalized envelope. Multi-Chat runs inline after that receiver and consumes only its validated `streamBridge*` argument stack. It does not read Twitch, YouTube, Kick, TikTok, Facebook, or TikFinity payload shapes.
+
+`bridge/core/multi-chat.ts` is the TypeScript reference contract for adapter and test authors. The versioned Streamer.bot package implements the same projection at the automation boundary: normalized platform/channel/user identity, plain-text message, role flags, and simulated status. Non-chat events are successful no-ops, while invalid chat semantics fail with a readable feature-level error.
+
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.

@@ -8,6 +8,8 @@
 - The documented default WebSocket bind is `127.0.0.1:8080` with endpoint `/`.
 - The receiver package compiles with Streamer.bot's bundled CPH API and default Newtonsoft.Json/JObject C# reference in `1.0.5-alpha.31`.
 - The exported receiver action uses Streamer.bot's Default queue and has concurrent execution disabled.
+- Streamer.bot `Run Action Immediately` passes the receiver-populated argument stack into the Multi-Chat action in `1.0.5-alpha.31`.
+- Multi-Chat package `1.0.0` compiles and produces its declared output contract for live simulated Twitch, YouTube, Kick, TikTok, and Facebook chat events.
 
 ## Explicitly unverified or deferred
 

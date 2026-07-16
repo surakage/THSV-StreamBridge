@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-youtube-chat-001",
+  "eventType": "chat.message",
+  "platform": "youtube",
+  "source": { "adapter": "fixture", "eventId": "youtube-chat-source-001", "eventName": "ChatMessage" },
+  "receivedAt": "2026-01-01T00:00:01.000Z",
+  "channel": { "id": "fixture-channel", "name": "ExampleChannel" },
+  "user": { "id": "youtube-fixture-user", "name": "example_member", "displayName": "Example Member", "roles": ["member"] },
+  "payload": { "message": "Hello from a simulated YouTube fixture" },
+  "metadata": { "simulated": true }
+}

@@ -1,0 +1,68 @@
+import type { NormalizedEvent } from '../../schemas/event.js';
+
+export const MULTI_CHAT_CONTRACT_VERSION = '1.0.0';
+export const MULTI_CHAT_MAX_MESSAGE_LENGTH = 2_000;
+
+export interface MultiChatMessage {
+  readonly contractVersion: typeof MULTI_CHAT_CONTRACT_VERSION;
+  readonly eventId: string;
+  readonly receivedAt: string;
+  readonly platform: string;
+  readonly channel: { readonly id?: string; readonly name: string };
+  readonly user: {
+    readonly id?: string;
+    readonly name: string;
+    readonly displayName: string;
+    readonly roles: readonly string[];
+    readonly isBroadcaster: boolean;
+    readonly isModerator: boolean;
+    readonly isSubscriber: boolean;
+  };
+  readonly message: string;
+  readonly messageLength: number;
+  readonly simulated: boolean;
+}
+
+export class InvalidMultiChatEventError extends Error {}
+
+export function projectMultiChatMessage(event: NormalizedEvent): MultiChatMessage | undefined {
+  if (event.eventType !== 'chat.message') return undefined;
+  if (event.user === undefined) throw new InvalidMultiChatEventError('A chat.message event requires user data.');
+
+  const rawMessage = event.payload['message'];
+  if (typeof rawMessage !== 'string') throw new InvalidMultiChatEventError('chat.message payload.message must be a string.');
+
+  const message = normalizeChatPlainText(rawMessage);
+  if (message.length === 0) throw new InvalidMultiChatEventError('chat.message payload.message is empty after normalization.');
+  if (message.length > MULTI_CHAT_MAX_MESSAGE_LENGTH) {
+    throw new InvalidMultiChatEventError(`chat.message payload.message exceeds ${String(MULTI_CHAT_MAX_MESSAGE_LENGTH)} characters.`);
+  }
+
+  const normalizedRoles = new Set(event.user.roles.map((role) => role.toLowerCase()));
+  return {
+    contractVersion: MULTI_CHAT_CONTRACT_VERSION,
+    eventId: event.eventId,
+    receivedAt: event.receivedAt,
+    platform: event.platform,
+    channel: {
+      ...(event.channel.id === undefined ? {} : { id: event.channel.id }),
+      name: event.channel.name,
+    },
+    user: {
+      ...(event.user.id === undefined ? {} : { id: event.user.id }),
+      name: event.user.name,
+      displayName: event.user.displayName ?? event.user.name,
+      roles: event.user.roles,
+      isBroadcaster: normalizedRoles.has('broadcaster'),
+      isModerator: normalizedRoles.has('moderator') || normalizedRoles.has('mod'),
+      isSubscriber: normalizedRoles.has('subscriber') || normalizedRoles.has('member'),
+    },
+    message,
+    messageLength: message.length,
+    simulated: event.metadata.simulated,
+  };
+}
+
+export function normalizeChatPlainText(input: string): string {
+  return input.replace(/[\p{Cc}\s]+/gu, ' ').trim();
+}

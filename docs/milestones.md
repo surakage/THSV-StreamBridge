@@ -63,7 +63,7 @@ Verification evidence:
 
 - [x] Milestone 1 — Bridge Core
 - [x] Milestone 2 — Streamer.bot Package Foundation
-- [ ] Milestone 3 — Multi-Chat
+- [x] Milestone 3 — Multi-Chat
 - [ ] Milestone 4 — Multi-Commands
 - [ ] Milestone 5 — Multi-Alerts
 - [ ] Milestone 6 — Speaker.bot Orchestration
@@ -72,3 +72,28 @@ Verification evidence:
 - [ ] Milestone 9 — Viewer Identity and Progression
 - [ ] Milestone 10 — Games and Companion Systems
 - [ ] Milestone 11 — Installer and Public Release
+
+## Milestone 3 — Multi-Chat
+
+Status: **Complete** — verified on July 16, 2026 against bridge version `0.4.0`, Multi-Chat package `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+
+- [x] One versioned chat contract represents messages from every registered platform without platform checks in shared logic.
+- [x] Chat messages require normalized user identity and string `payload.message` data.
+- [x] Control characters and whitespace are normalized while Unicode and emoji remain intact.
+- [x] Empty and over-2,000-character messages fail with readable errors.
+- [x] Common broadcaster, moderator, subscriber, and member roles produce platform-neutral flags.
+- [x] Non-chat events bypass Multi-Chat without failing the receiver.
+- [x] A portable Streamer.bot Multi-Chat action, manifest, reviewed C# source, and reproducible import are tracked.
+- [x] The package consumes only receiver-validated arguments and creates no globals, files, triggers, or platform output.
+- [x] Twitch, YouTube, Kick, TikTok, and Facebook offline chat fixtures produce the same contract.
+- [x] Unit and package-integrity tests cover valid, invalid, non-chat, Unicode, role, and export cases.
+- [x] Streamer.bot compiles the imported C# action and an inline receiver invocation exposes verified `multiChat*` values.
+
+Verification evidence:
+
+- `scripts\package-release.ps1`: clean build, lint, typecheck, configuration validation, 21 test files, and 61 tests passed.
+- Package import: Streamer.bot accepted `THSV StreamBridge - Multi-Chat` and the receiver runs it immediately after successful envelope validation.
+- Five-platform matrix: Twitch, YouTube, Kick, TikTok, and Facebook fixtures were accepted as new events and delivered to five completed receiver runs with 42 variables each.
+- Facebook live output: `multiChatHandled=True`, `multiChatValid=True`, contract/package `1.0.0`, platform `facebook`, the expected viewer identity, and the expected normalized message.
+- Kick live output: platform `kick`, role array `["moderator"]`, expected normalized message, and `multiChatIsModerator=True`.
+- Lifecycle check: the bridge reported `healthy`/`ready` during the matrix and stopped successfully afterward.
