@@ -7,7 +7,7 @@ import { buildStreamerBotEventArguments } from './streamerbot-package.js';
 import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 
 interface PendingRequest {
-  readonly resolve: () => void;
+  readonly resolve: (data: unknown) => void;
   readonly reject: (error: Error) => void;
   readonly timer: NodeJS.Timeout;
 }
@@ -22,6 +22,24 @@ interface StreamerBotMessage {
 }
 
 export type StreamerBotState = 'disabled' | 'stopped' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+
+export interface StreamerBotActionSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly group: string;
+  readonly enabled: boolean;
+}
+
+export interface StreamerBotCommandSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly enabled: boolean;
+}
+
+export interface StreamerBotInspectionAuditEntry {
+  readonly request: 'GetActions' | 'GetCommands';
+  readonly requestedAt: string;
+}
 
 export function calculateReconnectDelay(initialDelayMs: number, maxDelayMs: number, attempt: number, random = Math.random): number {
   const cappedDelay = Math.min(initialDelayMs * 2 ** attempt, maxDelayMs);
@@ -39,6 +57,7 @@ export class StreamerBotAdapter {
   private stopping = false;
   private authenticated = false;
   private readonly pending = new Map<string, PendingRequest>();
+  private readonly inspectionAudit: StreamerBotInspectionAuditEntry[] = [];
 
   public constructor(private readonly config: BridgeConfig['streamerbot'], private readonly logger: Logger, public readonly name = 'streamerbot', private readonly eventRelay?: StreamerBotEventRelay) {}
 
@@ -103,6 +122,18 @@ export class StreamerBotAdapter {
     await this.sendRequest(requestId, request);
     this.lastEventAt = new Date().toISOString();
   }
+
+  public async inspectActions(): Promise<readonly StreamerBotActionSummary[]> {
+    const data = await this.sendInspectionRequest('GetActions');
+    return readActions(data);
+  }
+
+  public async inspectCommands(): Promise<readonly StreamerBotCommandSummary[]> {
+    const data = await this.sendInspectionRequest('GetCommands');
+    return readCommands(data);
+  }
+
+  public inspectionRequests(): readonly StreamerBotInspectionAuditEntry[] { return [...this.inspectionAudit]; }
 
   public async deliver(event: NormalizedEvent): Promise<void> { await this.sendEvent(event); }
 
@@ -183,7 +214,7 @@ export class StreamerBotAdapter {
       if (pending !== undefined) {
         clearTimeout(pending.timer);
         this.pending.delete(message.id);
-        if (message.status === 'ok') pending.resolve();
+        if (message.status === 'ok') pending.resolve(message);
         else pending.reject(new Error(`Streamer.bot request ${message.id} failed`));
       }
     }
@@ -206,10 +237,10 @@ export class StreamerBotAdapter {
     this.lastError = undefined;
   }
 
-  private sendRequest(id: string, value: unknown): Promise<void> {
+  private sendRequest(id: string, value: unknown): Promise<unknown> {
     if (this.socket?.readyState !== WebSocket.OPEN) return Promise.reject(new Error('Streamer.bot socket is not open'));
     if (this.pending.size >= this.config.maxPendingRequests) return Promise.reject(new Error('Streamer.bot pending request capacity reached'));
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         reject(new Error(`Streamer.bot acknowledgement timed out for request ${id}`));
@@ -222,6 +253,15 @@ export class StreamerBotAdapter {
         reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
+  }
+
+  private async sendInspectionRequest(request: 'GetActions' | 'GetCommands'): Promise<unknown> {
+    if (!this.config.enabled || this.config.testMode) return request === 'GetActions' ? { actions: [] } : { commands: [] };
+    if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) throw new Error('Streamer.bot is unavailable');
+    const id = randomUUID();
+    this.inspectionAudit.push({ request, requestedAt: new Date().toISOString() });
+    if (this.inspectionAudit.length > 100) this.inspectionAudit.shift();
+    return this.sendRequest(id, { request, id });
   }
 
   private scheduleReconnect(): void {
@@ -257,4 +297,27 @@ function isSupportedRelay(value: Readonly<Record<string, unknown>>): boolean { r
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readActions(data: unknown): readonly StreamerBotActionSummary[] {
+  const payload = responsePayload(data);
+  if (!Array.isArray(payload['actions'])) throw new Error('Streamer.bot GetActions response did not contain an actions array');
+  return payload['actions'].flatMap((value): StreamerBotActionSummary[] => {
+    if (!isRecord(value) || typeof value['id'] !== 'string' || typeof value['name'] !== 'string') return [];
+    return [{ id: value['id'], name: value['name'], group: typeof value['group'] === 'string' ? value['group'] : '', enabled: value['enabled'] !== false }];
+  });
+}
+
+function readCommands(data: unknown): readonly StreamerBotCommandSummary[] {
+  const payload = responsePayload(data);
+  if (!Array.isArray(payload['commands'])) throw new Error('Streamer.bot GetCommands response did not contain a commands array');
+  return payload['commands'].flatMap((value): StreamerBotCommandSummary[] => {
+    if (!isRecord(value) || typeof value['id'] !== 'string' || typeof value['name'] !== 'string') return [];
+    return [{ id: value['id'], name: value['name'], enabled: value['enabled'] !== false }];
+  });
+}
+
+function responsePayload(value: unknown): Readonly<Record<string, unknown>> {
+  if (!isRecord(value)) return {};
+  return isRecord(value['data']) ? value['data'] : value;
 }

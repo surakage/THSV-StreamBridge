@@ -8,6 +8,8 @@ import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-ma
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
+import { WizardTransactionError } from './wizard-service.js';
+import type { WizardService } from './wizard-service.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -28,6 +30,7 @@ export class DiagnosticsServer {
     controlToken: string,
     private readonly requestShutdown?: () => void,
     private readonly overlayHub?: BrowserOverlayHub,
+    private readonly wizard?: WizardService,
   ) {
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
   }
@@ -78,6 +81,28 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) {
         return this.reply(response, 200, this.overlayHub.clientConfig());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/overview' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.overview());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/inspect' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.inspect());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/transactions' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 201, this.wizard.beginTransaction());
+      }
+      const cancelMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/cancel$/u.exec(request.url ?? '') : null;
+      if (cancelMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.cancelTransaction(cancelMatch[1]));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/diagnostics' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.diagnostics());
+      }
+      if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
         release = this.guard.acquire(request, false);
@@ -101,6 +126,7 @@ export class DiagnosticsServer {
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
       if (error instanceof OutputCapacityError) return this.reply(response, 429, { error: error.message });
@@ -134,7 +160,25 @@ export class DiagnosticsServer {
     response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:");
     response.end(body);
   }
+
+  private async wizardAsset(response: ServerResponse, url: string): Promise<void> {
+    const asset = WIZARD_ASSETS[url];
+    if (asset === undefined) return this.reply(response, 404, { error: 'Not found' });
+    const body = await readFile(resolve(process.cwd(), 'wizard', 'browser', asset.file));
+    response.statusCode = 200;
+    response.setHeader('content-type', asset.contentType);
+    response.setHeader('cache-control', 'no-store');
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    response.end(body);
+  }
 }
+
+const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
+  '/wizard': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/wizard/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/wizard/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+};
 
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
   '/overlay': { file: 'index.html', contentType: 'text/html; charset=utf-8' },

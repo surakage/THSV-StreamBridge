@@ -8,6 +8,8 @@ import { FileDeduplicationStore, NoopDeduplicationStore } from '../bridge/servic
 import { resolveControlToken } from '../bridge/services/control-token.js';
 import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
 import { createBuiltinModuleRegistry } from '../bridge/core/builtin-modules.js';
+import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
+import { WizardService } from '../bridge/services/wizard-service.js';
 
 const configPath = process.env['THSV_STREAMBRIDGE_CONFIG'] ?? 'config/bridge.example.json';
 const loadedConfig = await loadConfigWithNotices(configPath);
@@ -17,6 +19,7 @@ for (const notice of loadedConfig.notices) logger.warn(notice.message, { code: n
 const registry = createDefaultAdapterRegistry(config, logger);
 const inputs = registry.createInputs(config.platforms);
 const outputs = registry.createOutputs(config.outputs);
+const streamerBotInspector = outputs.find((output): output is StreamerBotAdapter => output instanceof StreamerBotAdapter);
 const deduplicationStore = config.deduplication.persistAcrossRestarts
   ? new FileDeduplicationStore(config.deduplication.stateFile, logger)
   : new NoopDeduplicationStore();
@@ -26,6 +29,7 @@ logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
 const modules = createBuiltinModuleRegistry(logger);
 const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, modules });
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
+const wizard = new WizardService(streamerBotInspector);
 bridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;
 
@@ -44,7 +48,7 @@ async function shutdown(signal: string): Promise<void> {
   }
 }
 
-const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub);
+const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub, wizard);
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
 process.once('SIGTERM', () => void shutdown('SIGTERM'));

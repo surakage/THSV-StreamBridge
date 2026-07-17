@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>THSV StreamBridge Setup</title>
+  <link rel="stylesheet" href="/wizard/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header><div><p class="eyebrow">THSV StreamBridge</p><h1>Setup &amp; management</h1></div><span id="mode" class="badge">Locked</span></header>
+    <section id="login" class="card login">
+      <h2>Unlock this local wizard</h2>
+      <p>Paste the control token from <code>data/runtime/control-token</code>. It stays in this browser tab and is sent only to this local bridge.</p>
+      <form id="login-form"><label>Control token<input id="token" type="password" autocomplete="off" required></label><button>Unlock</button></form>
+      <p id="login-error" class="error" role="alert"></p>
+    </section>
+    <section id="workspace" class="workspace hidden">
+      <nav aria-label="Wizard sections">
+        <button class="nav active" data-view="overview">Overview</button>
+        <button class="nav" data-view="streamerbot">Streamer.bot</button>
+        <button class="nav" data-view="ownership">Ownership</button>
+        <button class="nav" data-view="diagnostics">Diagnostics</button>
+        <button id="lock" class="nav lock">Lock</button>
+      </nav>
+      <div class="content">
+        <section class="view" data-panel="overview"><h2>Ready to inspect</h2><p>This Stage 3 preview is read-only. It cannot create, edit, delete, enable, disable, or run Streamer.bot objects.</p><div id="overview-cards" class="grid"></div></section>
+        <section class="view hidden" data-panel="streamerbot"><div class="title-row"><div><h2>Streamer.bot inventory</h2><p>Uses only the documented <code>GetActions</code> and <code>GetCommands</code> requests.</p></div><button id="inspect">Inspect now</button></div><p id="inspection-state" class="notice">No inspection has run in this tab.</p><div class="split"><div><h3>Actions</h3><div id="actions"></div></div><div><h3>Commands</h3><div id="commands"></div></div></section>
+        <section class="view hidden" data-panel="ownership"><h2>Ownership registry</h2><p>Only exact IDs and names from reviewed THSV packages are treated as owned. Similar creator objects remain untouched.</p><div id="ownership"></div><div class="transaction"><h3>Safe transaction preview</h3><p>Stage 3 drafts contain no mutations. Cancel demonstrates rollback by discarding the draft.</p><button id="begin">Begin empty draft</button><div id="transaction"></div></div></section>
+        <section class="view hidden" data-panel="diagnostics"><div class="title-row"><div><h2>Wizard diagnostics</h2><p>The audit must always report zero mutation requests.</p></div><button id="refresh-diagnostics">Refresh</button></div><pre id="diagnostics"></pre></section>
+      </div>
+    </section>
+  </main>
+  <script src="/wizard/app.js"></script>
+</body>
+</html>

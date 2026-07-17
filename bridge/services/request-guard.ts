@@ -21,7 +21,7 @@ export class MutableRequestGuard {
   public acquire(request: IncomingMessage, requireJson: boolean): () => void {
     if (!isLoopback(request.socket.remoteAddress)) throw new RequestGuardError(403, 'Mutable endpoints are loopback-only');
     const origin = request.headers.origin;
-    if (origin !== undefined && !this.allowedOrigins.includes(origin)) throw new RequestGuardError(403, 'Browser origin is not allowed');
+    if (origin !== undefined && !this.allowedOrigins.includes(origin) && !isSameOrigin(origin, request.headers.host)) throw new RequestGuardError(403, 'Browser origin is not allowed');
     if (requireJson && !isJsonContentType(request.headers['content-type'])) throw new RequestGuardError(415, 'Content-Type must be application/json');
     if (!this.authorized(request.headers.authorization)) throw new RequestGuardError(401, 'Missing or invalid control token');
 
@@ -48,6 +48,14 @@ export class MutableRequestGuard {
     const expected = Buffer.from(this.token, 'utf8');
     return provided.length === expected.length && timingSafeEqual(provided, expected);
   }
+}
+
+function isSameOrigin(origin: string, host: string | undefined): boolean {
+  if (host === undefined) return false;
+  try {
+    const url = new URL(origin);
+    return ['http:', 'https:'].includes(url.protocol) && url.host === host && url.username.length === 0 && url.password.length === 0;
+  } catch { return false; }
 }
 
 export function isLoopback(address: string | undefined): boolean {

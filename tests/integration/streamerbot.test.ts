@@ -110,4 +110,31 @@ describe('Streamer.bot adapter', () => {
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
+
+  it('uses only documented read requests for wizard inspection and returns response data', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const adapter = new StreamerBotAdapter({
+      ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`,
+      reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+    }, silentLogger);
+    const observed: string[] = [];
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => {
+        const request = JSON.parse(Buffer.from(data as Buffer).toString('utf8')) as { id: string; request: string };
+        observed.push(request.request);
+        if (request.request === 'GetActions') socket.send(JSON.stringify({ id: request.id, status: 'ok', actions: [{ id: 'action-1', name: 'Action', group: 'Group', enabled: true }] }));
+        if (request.request === 'GetCommands') socket.send(JSON.stringify({ id: request.id, status: 'ok', commands: [{ id: 'command-1', name: '!test', enabled: false }] }));
+      });
+    });
+    await adapter.start();
+    expect(await adapter.inspectActions()).toEqual([{ id: 'action-1', name: 'Action', group: 'Group', enabled: true }]);
+    expect(await adapter.inspectCommands()).toEqual([{ id: 'command-1', name: '!test', enabled: false }]);
+    expect(observed).toEqual(['GetActions', 'GetCommands']);
+    expect(adapter.inspectionRequests().map((entry) => entry.request)).toEqual(observed);
+    await adapter.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
 });

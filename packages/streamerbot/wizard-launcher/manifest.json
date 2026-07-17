@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Setup Wizard Launcher",
+  "version": "2.0.0-preview.1",
+  "author": "surakage",
+  "description": "Opens the authenticated local THSV StreamBridge setup and management wizard.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Open Setup Wizard",
+    "group": "THSV StreamBridge",
+    "id": "4e9f0946-f33d-5309-b376-a16df5612b32",
+    "source": "src/OpenWizard.cs",
+    "importFile": "THSV-StreamBridge-Setup-Wizard-Launcher-2.0.0-preview.1.sb"
+  },
+  "runtime": { "queue": "Default", "concurrent": true }
+}

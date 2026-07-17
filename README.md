@@ -2,7 +2,7 @@
 
 THSV StreamBridge is a modular, local-first livestream automation foundation. It validates and normalizes events before routing them to Streamer.bot or future adapters without exposing downstream code to platform-specific payloads.
 
-The `overhaul/v2-preview` branch is the isolated `2.0.0-preview.1` development line for the approved revised core scope. Stable `1.x` remains on `main`. Stage 2 is complete: v2 contracts, compatibility migration preview, excluded-feature extraction, and the module host are implemented. See [Stage 2 completion](docs/stage-2-completion.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
+The `overhaul/v2-preview` branch is the isolated `2.0.0-preview.1` development line for the approved revised core scope. Stable `1.x` remains on `main`. Stages 2 and 3 are complete: v2 contracts, compatibility migration preview, excluded-feature extraction, the module host, and the authenticated read-only setup wizard are implemented. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
 
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
@@ -98,6 +98,12 @@ Use `http://127.0.0.1:8787/overlay/` for the combined canvas, or add `http://127
 
 The former Viewer Identity and Progression, Bloom Companion, and Speaker.bot Orchestration implementations are no longer core features. Their source, packages, tests, documentation, and assets are preserved under `archive/future-add-ons/` until they can be rebuilt against the public module API. Core does not load their state, expose their endpoints, emit their legacy events, or serve their browser surfaces. See [Future add-ons](docs/future-add-ons.md).
 
+## V2 preview setup wizard
+
+Stage 3 adds an authenticated loopback wizard at `http://127.0.0.1:8787/wizard/`. Unlock it with the installation token in `data/runtime/control-token`, or import and run the reviewed [Streamer.bot wizard launcher](packages/streamerbot/wizard-launcher/README.md).
+
+The Stage 3 inspection pass sends only documented `GetActions` and `GetCommands` requests. It identifies THSV-owned actions only when both the stable package ID and package name match. Creator-owned objects are never inferred from naming, and the preview exposes no Streamer.bot mutation operation. Its transaction model supports empty drafts and cancellation/rollback in preparation for later approved workflows.
+
 ## TikFinity intake
 
 Bridge `0.10.2` adds a reviewed TikFinity-to-Streamer.bot intake for TikTok chat, follows, gifts, and likes. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.0.0.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
@@ -131,7 +137,7 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See the [Stage 2 completion record](docs/stage-2-completion.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and [Future add-ons](docs/future-add-ons.md).
+See the [Stage 2 completion record](docs/stage-2-completion.md), [Stage 3 completion record](docs/stage-3-completion.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and [Future add-ons](docs/future-add-ons.md).
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 
