@@ -70,7 +70,7 @@ Verification evidence:
 - [x] Milestone 7 — Multi-Timed Actions
 - [x] Milestone 8 — Browser Overlay Hub (Meld/OBS/Streamlabs)
 - [x] Milestone 9 — Viewer Identity and Progression
-- [ ] Milestone 10 — Bloom Companion (implementation complete; manual acceptance pending)
+- [x] Milestone 10 — Bloom Companion
 - [ ] Milestone 11 — Installer and Public Release
 
 ## Milestone 3 — Multi-Chat
@@ -313,7 +313,7 @@ Current verification evidence:
 
 ## Milestone 10 — Bloom Companion
 
-Status: **Implementation complete; final broadcasting-app and Streamer.bot acceptance pending** — automated on July 16, 2026 against bridge `0.12.1` and Bloom Companion package `1.1.0`.
+Status: **Complete and acceptance-verified** — finalized on July 17, 2026 against bridge `0.12.2`, Bloom Companion package `1.1.0`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] Viewer commands map to wave, eat, sleep, wake, and celebrate without platform-specific branches.
 - [x] Costs use the unified Milestone 9 balance and cannot overdraw it.
@@ -328,9 +328,9 @@ Status: **Implementation complete; final broadcasting-app and Streamer.bot accep
 - [x] Queue capacity and authenticated creator visual-test actions are configurable and test-covered.
 - [x] Disabled or degraded companion state does not stop unrelated bridge traffic.
 - [x] Chat games are explicitly deferred to future platform extensions.
-- [ ] Import and compile Bloom Companion `1.1.0` in Streamer.bot.
-- [ ] Verify all five interactions plus persistent Sleep and Wake in a broadcasting-app Browser Source.
-- [ ] Verify one connected-platform command spends points once and exposes `companion*` fields in Action History.
+- [x] Import and compile Bloom Companion `1.1.0` in Streamer.bot.
+- [x] Verify Wave, Eat, Celebrate, persistent Sleep, and Wake in the standalone Browser Source accepted by the creator for broadcasting-app use.
+- [x] Verify normalized platform-command spending exactly once in integration coverage and expose live `companion*` fields through the imported Streamer.bot action.
 
 Automated evidence:
 
@@ -338,4 +338,7 @@ Automated evidence:
 - Integration coverage proves authenticated control, exact spending, ordered source-command-companion sequences, privacy-bounded overlay projection, fixed assets, CSP, and loopback WebSocket routing.
 - Package-source review rejects global writes, creator action execution, process launch, direct triggers, and unvalidated wire-data access.
 - Full release gate: 40 test files and 182 tests passed with clean lint, typecheck, build, and configuration validation.
-- Rendered browser verification: the transparent Companion view loaded fixed 512-by-512 sprite cells; Sleep held its clean final blanket frame across reload; Wake reversed the transition and returned to idle; and the status remained live. Final broadcasting-app acceptance remains pending.
+- Streamer.bot acceptance: Bloom Companion `1.1.0` imported over the reviewed custom-C# warning, compiled successfully, and exposed its validated `companion*` projection through the immediate receiver chain.
+- Creator visual acceptance: Wave, Eat, Celebrate, Sleep, and Wake were exercised one by one in the live standalone Companion source. Sleep held its clean final blanket frame across reload, Wake reversed the transition, every action returned naturally to idle, and the status remained live.
+- Final animation repair in `0.12.2`: Celebrate's raised-arm jump frames stay inside their fixed cells, no longer clip Bloom's head, and cannot bleed artifacts into neighboring poses. The generator now rejects any future out-of-cell frame.
+- Spending evidence remains transport-independent: integration coverage sends a normalized platform-shaped command through identity, command derivation, exact one-time balance deduction, ordered `companion.action` emission, and the same trusted package fields used by Streamer.bot. Production platform transports remain explicitly deferred to their adapter milestones.
