@@ -4,6 +4,7 @@ import { DiagnosticsServer } from '../../bridge/services/http-server.js';
 import { BrowserOverlayHub } from '../../bridge/services/browser-overlay-hub.js';
 import { createTestBridge, fixture, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
 import type { StreamBridge } from '../../bridge/core/bridge.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
@@ -68,6 +69,39 @@ describe('bridge HTTP integration', () => {
     expect(response.status).toBe(202);
     expect(observed?.metadata.simulated).toBe(true);
     expect(observed?.source.adapter).toBe('mock');
+  });
+
+  it('replaces caller-supplied viewer identity with the bridge-resolved identity', async () => {
+    const config = await testConfig();
+    config.viewerIdentity.enabled = true;
+    config.viewerIdentity.links = [{ viewerId: 'trusted-viewer', accounts: [{ platform: 'twitch', userId: 'fixture-user' }] }];
+    const bridge = createTestBridge(config);
+    await bridge.start();
+    stops.push(() => bridge.stop());
+    const observed: NormalizedEvent[] = [];
+    bridge.subscribe((event) => { observed.push(event); });
+    const input = await fixture();
+    await bridge.simulate({ ...input, metadata: { ...input.metadata, viewerId: 'spoofed-viewer' } });
+    expect(observed[0]?.metadata.viewerId).toBe('trusted-viewer');
+    expect(observed.some((event) => event.eventType === 'viewer.progression')).toBe(false);
+  });
+
+  it('emits an ordered derived progression event when simulated awards are explicitly enabled', async () => {
+    const config = await testConfig();
+    config.viewerIdentity.enabled = true;
+    config.viewerIdentity.includeSimulated = true;
+    config.viewerIdentity.progression.points = { 'chat.message': 1 };
+    config.viewerIdentity.progression.cooldownsMs = {};
+    const bridge = createTestBridge(config);
+    await bridge.start();
+    stops.push(() => bridge.stop());
+    const observed: NormalizedEvent[] = [];
+    bridge.subscribe((event) => { observed.push(event); });
+    const result = await bridge.simulate(await fixture());
+    expect(result.derivedEventIds).toHaveLength(1);
+    expect(observed.map((event) => event.eventType)).toEqual(['chat.message', 'viewer.progression']);
+    expect(observed.map((event) => event.metadata.bridgeSequence)).toEqual([1, 2]);
+    expect(observed[1]?.metadata.viewerId).toBe(observed[0]?.metadata.viewerId);
   });
 
   it('protects shutdown with the control token', async () => {

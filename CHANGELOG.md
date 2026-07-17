@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-16
+
+### Added
+
+- Explicit creator-configured cross-platform account links with stable platform-scoped pseudonyms for unlinked viewers.
+- Atomic, duplicate-bounded local progression state with fixed event points, cross-platform cooldowns, configurable levels, and default exclusion of simulated/bot/system activity.
+- Derived `viewer.progression` events plus Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` Streamer.bot packages.
+- Privacy and recovery documentation for viewer identity state, link configuration, testing, and backups.
+
+## [0.9.9] - 2026-07-16
+
+### Fixed
+
+- Bounded waiting alerts, skipped malformed alert cards without freezing the queue, made combined branding configurable, and exposed standalone reconnect status.
+- Hid broken avatars and documented Browser Source refresh and scene-lifecycle behavior.
+
 ## [0.9.8] - 2026-07-16
 
 ### Fixed

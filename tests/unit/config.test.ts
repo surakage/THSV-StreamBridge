@@ -75,4 +75,13 @@ describe('bridge configuration', () => {
     const definition = { id: 'duplicate', name: 'Duplicate', enabled: true, everyMinutes: 15, missedRunPolicy: 'skip' as const, payload: {}, selection: { mode: 'fixed' as const } };
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [definition, definition] } }).success).toBe(false);
   });
+
+  it('keeps earlier configuration compatible with viewer identity safely disabled', async () => {
+    const config = await testConfig();
+    const { viewerIdentity: _viewerIdentity, ...legacy } = config;
+    void _viewerIdentity;
+    const parsed = bridgeConfigSchema.parse(legacy).viewerIdentity;
+    expect(parsed).toMatchObject({ enabled: false, includeSimulated: false, links: [], progression: { enabled: true, cooldownsMs: { 'chat.message': 60_000 } } });
+    expect(parsed.progression.points['chat.message']).toBe(1);
+  });
 });

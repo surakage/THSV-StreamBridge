@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Core Receiver",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
   "action": {
     "name": "THSV StreamBridge - Receive Event",
@@ -9,7 +9,7 @@
     "id": "143fce1d-c5b0-4108-b766-ee2d0249e2d4",
     "sourceSubActionId": "87ea2b39-5ed1-4667-a3ee-f82d493a8283",
     "source": "src/ReceiveEvent.cs",
-    "importFile": "THSV-StreamBridge-Core-Receiver-1.0.3.sb"
+    "importFile": "THSV-StreamBridge-Core-Receiver-1.0.4.sb"
   },
   "runtime": {
     "queue": "Default",
@@ -17,7 +17,7 @@
     "dependencies": ["Streamer.bot CPH API", "Newtonsoft.Json/JObject default C# reference"]
   },
   "contract": {
-    "version": "1.1.0",
+    "version": "1.2.0",
     "normalizedEventSchemaVersion": "1.0.0",
     "inputArgument": "streamBridgeEvent",
     "requiredOutputArguments": [
@@ -42,7 +42,8 @@
       "streamBridgePayload",
       "streamBridgeMetadata",
       "streamBridgeCorrelationId",
-      "streamBridgeSimulated"
+      "streamBridgeSimulated",
+      "streamBridgeViewerId"
     ]
   }
 }

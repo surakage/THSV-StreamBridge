@@ -46,6 +46,12 @@ Timers do not arm merely because the bridge process is running. A normalized `st
 
 User presentation metadata accepts HTTPS-only avatar and badge icon URLs, six-digit hex name colors, and at most 16 bounded badges. Subscription presentation accepts explicit new/renewal/upgrade, month, streak, gift, and gifter fields; values are never inferred from unrelated platform data.
 
+## Viewer identity and progression
+
+`viewerIdentity` is disabled by default. `links` explicitly map verified platform user IDs to creator-selected lowercase viewer IDs; validation rejects duplicate viewer IDs and any account assigned more than once. Unlinked stable IDs become platform-scoped SHA-256 pseudonyms. The state path, processed-event TTL/count, simulated-event policy, fixed points, per-event cooldowns, and strictly increasing level thresholds are bounded and runtime-validated.
+
+Names, display names, avatars, messages, raw payloads, and raw account IDs are never written to progression state. Default chat points have a 60-second cooldown keyed by the unified identity. Monetary values never determine progression points.
+
 ## Ports
 
 | Component | Default | Bind | Purpose |

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Viewer Progression",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Privacy-bounded cross-platform viewer identity and progression projection for THSV StreamBridge.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Viewer Progression",
+    "group": "THSV StreamBridge",
+    "id": "ab663af0-98e2-5d77-a874-1f56f2333432",
+    "sourceSubActionId": "5f30ccdf-8cf7-5d9e-9ee7-68613a1f30d6",
+    "source": "src/ProcessViewerProgression.cs",
+    "importFile": "THSV-StreamBridge-Viewer-Progression-1.0.0.sb"
+  },
+  "runtime": {
+    "queue": "Default",
+    "concurrent": true,
+    "dependencies": ["THSV StreamBridge - Core Receiver 1.0.4 or later", "Streamer.bot CPH API", "Newtonsoft.Json/JObject default C# reference"]
+  },
+  "contract": {
+    "version": "1.0.0",
+    "acceptedEventTypes": ["viewer.progression"],
+    "requiredInputArguments": ["streamBridgeValid", "streamBridgeEventType", "streamBridgeEventId", "streamBridgeReceivedAt", "streamBridgeSequence", "streamBridgePlatform", "streamBridgePayload", "streamBridgeViewerId"],
+    "outputArguments": ["viewerProgressionHandled", "viewerProgressionValid", "viewerProgressionValidationError", "viewerProgressionContractVersion", "viewerProgressionPackageVersion", "viewerProgressionEventId", "viewerProgressionReceivedAt", "viewerProgressionSequence", "viewerProgressionPlatform", "viewerProgressionViewerId", "viewerProgressionLinked", "viewerProgressionSourceEventId", "viewerProgressionSourceEventType", "viewerProgressionPointsAwarded", "viewerProgressionTotalPoints", "viewerProgressionPreviousLevel", "viewerProgressionLevel", "viewerProgressionLeveledUp", "viewerProgressionHasNextLevel", "viewerProgressionNextLevelAt", "viewerProgressionSimulated"],
+    "executionSafety": { "runsCreatorActions": false, "writesGlobalVariables": false, "directTriggers": false, "storesNamesOrMessages": false }
+  }
+}

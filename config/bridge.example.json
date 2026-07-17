@@ -49,6 +49,32 @@
     "showBots": true,
     "showSimulated": true
   },
+  "viewerIdentity": {
+    "enabled": false,
+    "stateFile": "data/state/viewer-progression.json",
+    "includeSimulated": false,
+    "processedEventTtlMs": 86400000,
+    "maxProcessedEvents": 10000,
+    "links": [],
+    "progression": {
+      "enabled": true,
+      "points": {
+        "chat.message": 1,
+        "channel.follow": 10,
+        "channel.subscription": 25,
+        "channel.membership": 25,
+        "channel.gift-subscription": 25,
+        "engagement.gift": 5,
+        "engagement.donation": 20,
+        "engagement.cheer": 10,
+        "engagement.super-chat": 20,
+        "channel.raid": 25,
+        "engagement.milestone": 5
+      },
+      "cooldownsMs": { "chat.message": 60000 },
+      "levelThresholds": [0, 100, 250, 500, 1000]
+    }
+  },
   "streamerbot": {
     "enabled": true,
     "url": "ws://127.0.0.1:8080/",

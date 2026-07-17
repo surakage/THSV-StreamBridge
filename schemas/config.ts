@@ -91,6 +91,71 @@ const browserOverlaySchema = z.object({
   showSimulated: z.boolean().default(true),
 }).strict();
 
+const viewerIdSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
+const viewerAccountSchema = z.object({
+  platform: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/),
+  userId: z.string().min(1).max(256),
+}).strict();
+const progressionEventTypeSchema = z.enum([
+  'chat.message',
+  'channel.follow',
+  'channel.subscription',
+  'channel.membership',
+  'channel.gift-subscription',
+  'engagement.gift',
+  'engagement.donation',
+  'engagement.cheer',
+  'engagement.super-chat',
+  'channel.raid',
+  'engagement.milestone',
+]);
+const viewerIdentitySchema = z.object({
+  enabled: z.boolean().default(false),
+  stateFile: z.string().min(1).default('data/state/viewer-progression.json'),
+  includeSimulated: z.boolean().default(false),
+  processedEventTtlMs: z.number().int().min(60_000).max(2_592_000_000).default(86_400_000),
+  maxProcessedEvents: z.number().int().min(100).max(100_000).default(10_000),
+  links: z.array(z.object({
+    viewerId: viewerIdSchema,
+    accounts: z.array(viewerAccountSchema).min(1).max(20),
+  }).strict()).max(5_000).default([]),
+  progression: z.object({
+    enabled: z.boolean().default(true),
+    points: z.partialRecord(progressionEventTypeSchema, z.number().int().min(0).max(100_000)).default({
+      'chat.message': 1,
+      'channel.follow': 10,
+      'channel.subscription': 25,
+      'channel.membership': 25,
+      'channel.gift-subscription': 25,
+      'engagement.gift': 5,
+      'engagement.donation': 20,
+      'engagement.cheer': 10,
+      'engagement.super-chat': 20,
+      'channel.raid': 25,
+      'engagement.milestone': 5,
+    }),
+    cooldownsMs: z.partialRecord(progressionEventTypeSchema, z.number().int().min(0).max(86_400_000)).default({ 'chat.message': 60_000 }),
+    levelThresholds: z.array(z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)).min(1).max(200).default([0, 100, 250, 500, 1_000]),
+  }).strict().default({ enabled: true, points: {}, cooldownsMs: {}, levelThresholds: [0, 100, 250, 500, 1_000] }),
+}).strict().superRefine((value, context) => {
+  const viewerIds = new Set<string>();
+  const accounts = new Set<string>();
+  for (const [linkIndex, link] of value.links.entries()) {
+    if (viewerIds.has(link.viewerId)) context.addIssue({ code: 'custom', path: ['links', linkIndex, 'viewerId'], message: `Viewer ID ${link.viewerId} is duplicated.` });
+    viewerIds.add(link.viewerId);
+    for (const [accountIndex, account] of link.accounts.entries()) {
+      const key = `${account.platform}\u0000${account.userId}`;
+      if (accounts.has(key)) context.addIssue({ code: 'custom', path: ['links', linkIndex, 'accounts', accountIndex], message: 'A platform account may belong to only one viewer.' });
+      accounts.add(key);
+    }
+  }
+  for (let index = 0; index < value.progression.levelThresholds.length; index += 1) {
+    const current = value.progression.levelThresholds[index] ?? 0;
+    if (index === 0 && current !== 0) context.addIssue({ code: 'custom', path: ['progression', 'levelThresholds', index], message: 'The first level threshold must be 0.' });
+    if (index > 0 && current <= (value.progression.levelThresholds[index - 1] ?? 0)) context.addIssue({ code: 'custom', path: ['progression', 'levelThresholds', index], message: 'Level thresholds must be strictly increasing.' });
+  }
+});
+
 export const platformSchema = z
   .object({
     enabled: z.boolean(),
@@ -154,6 +219,7 @@ const bridgeConfigObjectSchema = z
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({ enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
+    viewerIdentity: viewerIdentitySchema.default({ enabled: false, stateFile: 'data/state/viewer-progression.json', includeSimulated: false, processedEventTtlMs: 86_400_000, maxProcessedEvents: 10_000, links: [], progression: { enabled: true, points: { 'chat.message': 1, 'channel.follow': 10, 'channel.subscription': 25, 'channel.membership': 25, 'channel.gift-subscription': 25, 'engagement.gift': 5, 'engagement.donation': 20, 'engagement.cheer': 10, 'engagement.super-chat': 20, 'channel.raid': 25, 'engagement.milestone': 5 }, cooldownsMs: { 'chat.message': 60_000 }, levelThresholds: [0, 100, 250, 500, 1_000] } }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
@@ -205,4 +271,5 @@ export type CommandsConfig = z.infer<typeof commandsSchema>;
 export type TimedActionsConfig = z.infer<typeof timedActionsSchema>;
 export type TimedActionDefinition = TimedActionsConfig['definitions'][number];
 export type BrowserOverlayConfig = z.infer<typeof browserOverlaySchema>;
+export type ViewerIdentityConfig = z.infer<typeof viewerIdentitySchema>;
 export type Capability = (typeof CAPABILITY_VALUES)[number];

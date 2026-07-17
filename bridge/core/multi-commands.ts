@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { CommandsConfig } from '../../schemas/config.js';
 import type { JsonValue, NormalizedEvent } from '../../schemas/event.js';
 
-export const MULTI_COMMANDS_CONTRACT_VERSION = '1.0.0';
+export const MULTI_COMMANDS_CONTRACT_VERSION = '1.1.0';
 export const MULTI_COMMANDS_MAX_INPUT_LENGTH = 500;
 export const MULTI_COMMANDS_MAX_ARGUMENTS = 32;
 export const MULTI_COMMANDS_MAX_ARGUMENT_LENGTH = 256;
@@ -45,6 +45,7 @@ export interface MultiCommandInvocation extends ParsedCommand {
   readonly authorized: boolean;
   readonly authorizationReason: string;
   readonly simulated: boolean;
+  readonly viewerId?: string;
 }
 
 export class InvalidMultiCommandError extends Error {}
@@ -125,6 +126,7 @@ export function projectMultiCommand(event: NormalizedEvent): MultiCommandInvocat
     authorized: authorization.authorized,
     authorizationReason: authorization.reason,
     simulated: event.metadata.simulated,
+    ...(event.metadata.viewerId === undefined ? {} : { viewerId: event.metadata.viewerId }),
   };
 }
 
@@ -161,6 +163,7 @@ export function deriveCommandEvent(event: NormalizedEvent, config: CommandsConfi
       correlationId: event.metadata.correlationId ?? event.eventId,
       simulated: event.metadata.simulated,
       ...(event.metadata.unverifiedFields === undefined ? {} : { unverifiedFields: event.metadata.unverifiedFields }),
+      ...(event.metadata.viewerId === undefined ? {} : { viewerId: event.metadata.viewerId }),
     },
   };
 }

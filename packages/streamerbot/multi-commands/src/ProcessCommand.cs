@@ -4,8 +4,8 @@ using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
-    private const string ContractVersion = "1.0.0";
-    private const string PackageVersion = "1.0.1";
+    private const string ContractVersion = "1.1.0";
+    private const string PackageVersion = "1.1.0";
     private const int MaximumInputLength = 500;
     private const int MaximumArguments = 32;
     private const int MaximumArgumentLength = 256;
@@ -70,6 +70,7 @@ public class CPHInline
         CPH.SetArgument("multiCommandChannelId", ReadOptionalArgument("streamBridgeChannelId"));
         CPH.SetArgument("multiCommandChannelName", channelName);
         CPH.SetArgument("multiCommandUserId", ReadOptionalArgument("streamBridgeUserId"));
+        CPH.SetArgument("multiCommandViewerId", ReadOptionalArgument("streamBridgeViewerId"));
         CPH.SetArgument("multiCommandUserName", userName);
         CPH.SetArgument("multiCommandUserDisplayName", ReadOptionalArgument("streamBridgeUserDisplayName", userName));
         CPH.SetArgument("multiCommandActorType", actorType);
@@ -105,6 +106,7 @@ public class CPHInline
         CPH.SetArgument("multiCommandChannelId", string.Empty);
         CPH.SetArgument("multiCommandChannelName", string.Empty);
         CPH.SetArgument("multiCommandUserId", string.Empty);
+        CPH.SetArgument("multiCommandViewerId", string.Empty);
         CPH.SetArgument("multiCommandUserName", string.Empty);
         CPH.SetArgument("multiCommandUserDisplayName", string.Empty);
         CPH.SetArgument("multiCommandActorType", string.Empty);

@@ -34,6 +34,10 @@ Implemented and live-verified in `0.8.0`, then review-hardened in `0.8.1`. Timer
 
 Implemented for offline acceptance in `0.9.0`, generalized across browser-source hosts in `0.9.1`, split into independently movable, connection-sharing sources in `0.9.2`, corrected to transparent bottom-anchored standalone chat in `0.9.3`, given canvas-native Meld sizing in `0.9.4`, and review-hardened in `0.9.9`. Combined rendering, reconnect, chat, moderation removal, and alerts are live-verified in Meld Studio and OBS Studio; OBS Browser Source verification is the accepted Streamlabs Desktop compatibility gate. Rendering is context-safe, chat and alert retention are bounded, renderer failures do not freeze later alerts, standalone disconnects are visible, branding is configurable, visual alerts are priority-aware, and presentation metadata includes validated badges, avatars, colors, and subscription lifecycle fields. Captions and TTS/audio preemption are explicitly not claimed because the adopted Speaker.bot transport exposes no playback timing or completion acknowledgement.
 
+## Milestone 9: Viewer Identity and Progression
+
+Implemented for offline acceptance in `0.10.0`. Creator-approved links unify verified accounts without name-based guessing; unlinked users receive platform-scoped pseudonyms. Atomic privacy-bounded progression applies fixed points, unified cooldowns, bounded replay suppression, levels, and derived events. Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` expose trusted IDs to Streamer.bot. Live package import and action-history verification remain pending.
+
 ## Carried requirements
 
 - Milestone 8 must contextually HTML-escape every chat field at its rendering sink and correlate moderation/deletion events by `multiChatEventId`.
@@ -60,7 +64,7 @@ Implemented for offline acceptance in `0.9.0`, generalized across browser-source
 5. Multi-Alerts — complete
 6. Speaker.bot Orchestration — complete and review-hardened
 7. Multi-Timed Actions — complete and review-hardened
-8. Browser Overlay Hub (Meld/OBS/Streamlabs)
-9. Viewer Identity and Progression
+8. Browser Overlay Hub (Meld/OBS/Streamlabs) — complete and review-hardened
+9. Viewer Identity and Progression — implementation complete; live verification pending
 10. Games and Companion Systems
 11. Installer and Public Release

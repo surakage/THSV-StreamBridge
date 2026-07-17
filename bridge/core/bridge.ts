@@ -11,6 +11,8 @@ import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
 import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/timed-actions-adapter.js';
+import { ViewerProgressionEngine } from './viewer-progression.js';
+import { NoopViewerProgressionStore } from '../services/viewer-progression-store.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -33,6 +35,7 @@ export interface StreamBridgeDependencies {
   readonly outputs: readonly OutputAdapter[];
   readonly deduplicationStore: DeduplicationStore;
   readonly stateWriter?: StateWriter;
+  readonly viewerProgression?: ViewerProgressionEngine;
 }
 
 export class StreamBridge {
@@ -43,6 +46,7 @@ export class StreamBridge {
   private readonly delivery: OutputDeliveryManager;
   private readonly stateWriter: StateWriter;
   private readonly timedActions: TimedActionsAdapter | undefined;
+  private readonly viewerProgression: ViewerProgressionEngine;
   private readonly livePlatforms = new Set<string>();
   private running = false;
   private startedAt: string | undefined;
@@ -72,6 +76,7 @@ export class StreamBridge {
       logger,
     );
     this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
+    this.viewerProgression = dependencies.viewerProgression ?? new ViewerProgressionEngine(config.viewerIdentity, new NoopViewerProgressionStore());
   }
 
   public subscribe(handler: Parameters<InternalEventBus['subscribe']>[0]): () => void { return this.bus.subscribe(handler); }
@@ -79,6 +84,7 @@ export class StreamBridge {
   public async start(): Promise<void> {
     if (this.running) return;
     this.deduplicator.restore(await this.dependencies.deduplicationStore.load());
+    await this.viewerProgression.start();
     this.startedAt = new Date().toISOString();
     this.running = true;
     await this.delivery.start();
@@ -98,6 +104,7 @@ export class StreamBridge {
       ...this.inputs.map((adapter) => adapter.stop(controller.signal)),
       this.delivery.stop(controller.signal),
       this.dependencies.deduplicationStore.flush(),
+      this.viewerProgression.stop(),
     ];
     const completion = Promise.allSettled(operations).then(() => 'complete' as const);
     let timer: NodeJS.Timeout | undefined;
@@ -128,7 +135,7 @@ export class StreamBridge {
     if (size > this.config.security.maxPayloadBytes) throw new PayloadTooLargeError(`Payload is ${String(size)} bytes; maximum is ${String(this.config.security.maxPayloadBytes)}`);
     const parsed = normalizedEventSchema.safeParse(input);
     if (!parsed.success) throw new InvalidEventError(parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`));
-    const validatedEvent = this.config.security.preserveRawPayloads ? parsed.data : withoutRawPayload(parsed.data);
+    const validatedEvent = withoutCallerControlledMetadata(parsed.data, this.config.security.preserveRawPayloads);
     if (this.deduplicator.isDuplicate(validatedEvent)) {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', outputs: [] };
@@ -143,14 +150,20 @@ export class StreamBridge {
     }
 
     let derivedCommand: NormalizedEvent | undefined;
+    let progression: Awaited<ReturnType<ViewerProgressionEngine['process']>>;
     try { derivedCommand = deriveCommandEvent(validatedEvent, this.config.commands); }
     catch (error) {
       this.deduplicator.forget(validatedEvent);
       if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
       throw error;
     }
-    const events = [withBridgeSequence(validatedEvent, ++this.nextSequence)];
+    try { progression = await this.viewerProgression.process(validatedEvent); }
+    catch (error) { this.deduplicator.forget(validatedEvent); throw error; }
+    const attributedEvent = progression === undefined ? validatedEvent : withViewerId(validatedEvent, progression.viewerId);
+    if (derivedCommand !== undefined && progression !== undefined) derivedCommand = withViewerId(derivedCommand, progression.viewerId);
+    const events = [withBridgeSequence(attributedEvent, ++this.nextSequence)];
     if (derivedCommand !== undefined) events.push(withBridgeSequence(derivedCommand, ++this.nextSequence));
+    if (progression?.progressionEvent !== undefined) events.push(withBridgeSequence(progression.progressionEvent, ++this.nextSequence));
 
     try {
       for (const event of events) await this.bus.publish(event);
@@ -172,7 +185,7 @@ export class StreamBridge {
         eventId: validatedEvent.eventId,
         delivery: outputs.length === 0 ? 'none' : 'queued',
         outputs,
-        ...(derivedCommand === undefined ? {} : { derivedEventIds: [events[1]?.eventId ?? derivedCommand.eventId] }),
+        ...(events.length <= 1 ? {} : { derivedEventIds: events.slice(1).map((event) => event.eventId) }),
       };
     } catch (error) {
       this.deduplicator.forget(validatedEvent);
@@ -205,6 +218,7 @@ export class StreamBridge {
       lastBridgeSequence: this.nextSequence,
       deduplicationPersistence: this.dependencies.deduplicationStore.status(),
       timedActions: this.timedActions?.controlStatus(),
+      viewerIdentity: this.viewerProgression.status(),
     };
   }
 
@@ -233,13 +247,16 @@ function isIngestResult(value: unknown): value is IngestResult {
   return value !== null && typeof value === 'object' && (value as Record<string, unknown>)['accepted'] === true && typeof (value as Record<string, unknown>)['eventId'] === 'string';
 }
 
-function withoutRawPayload(event: NormalizedEvent): NormalizedEvent {
-  if (event.metadata.rawPayload === undefined) return event;
-  const { rawPayload: _ignored, ...metadata } = event.metadata;
-  void _ignored;
-  return { ...event, metadata };
+function withoutCallerControlledMetadata(event: NormalizedEvent, preserveRawPayload: boolean): NormalizedEvent {
+  const { bridgeSequence: _sequence, viewerId: _viewerId, rawPayload, ...metadata } = event.metadata;
+  void _sequence; void _viewerId;
+  return { ...event, metadata: { ...metadata, ...(preserveRawPayload && rawPayload !== undefined ? { rawPayload } : {}) } };
 }
 
 function withBridgeSequence(event: NormalizedEvent, bridgeSequence: number): NormalizedEvent {
   return { ...event, metadata: { ...event.metadata, bridgeSequence } };
+}
+
+function withViewerId(event: NormalizedEvent, viewerId: string): NormalizedEvent {
+  return { ...event, metadata: { ...event.metadata, viewerId } };
 }

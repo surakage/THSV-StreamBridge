@@ -18,6 +18,8 @@ try {
     enabledTimedActions: config.timedActions.definitions.filter((definition) => definition.enabled).length,
     browserOverlayEnabled: config.browserOverlay.enabled,
     browserOverlayMaxChatMessages: config.browserOverlay.maxChatMessages,
+    viewerIdentityEnabled: config.viewerIdentity.enabled,
+    viewerIdentityLinks: config.viewerIdentity.links.length,
     streamerbotEnabled: config.streamerbot.enabled,
     streamerbotLiveDelivery: config.streamerbot.enabled && !config.streamerbot.testMode,
   })}\n`);

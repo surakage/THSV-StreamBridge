@@ -93,7 +93,20 @@ Browser Overlay Hub adds one local transparent browser source for Meld Studio, O
 - Loopback-only live WebSocket delivery and creator controls for duration, retention, bots, and simulated events
 - Independently movable Chat and Alerts browser sources that share one WebSocket when the host supports `SharedWorker`
 
-Use `http://127.0.0.1:8787/overlay/` for the combined canvas, or add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). Combined rendering is live-verified in Meld Studio; separate-source acceptance in installed broadcasting applications remains pending.
+Use `http://127.0.0.1:8787/overlay/` for the combined canvas, or add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). Combined and separate-source rendering are live-verified in Meld Studio and OBS Studio; OBS is the accepted Streamlabs Browser Source compatibility gate.
+
+## Milestone 9
+
+Viewer Identity and Progression adds:
+
+- Explicit creator-approved account links with no automatic name-based identity guessing
+- Stable platform-scoped pseudonyms for unlinked human viewers
+- Fixed, creator-configured points and level thresholds with a unified cross-platform chat cooldown
+- Atomic local state containing points, timestamps, and event fingerprints but no display names, chat text, or raw platform IDs
+- A derived `viewer.progression` contract and projection-only Streamer.bot package
+- `multiCommandViewerId` for cooldowns and spam policies that cannot be bypassed merely by switching linked platforms
+
+Identity and progression are disabled by default. Configure them using the [Viewer Identity and Progression guide](docs/viewer-identity.md), then import the updated Core Receiver, Multi-Commands, and Viewer Progression packages.
 
 ## Requirements
 

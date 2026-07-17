@@ -16,4 +16,6 @@ The mock adapter overwrites caller-provided source and simulation metadata, so s
 
 The Browser Overlay Hub WebSocket accepts loopback clients only and broadcasts public projections rather than raw normalized events. Private, system, operator, and command traffic is excluded. Browser assets and the same-origin shared connection worker use a restrictive Content Security Policy, and reviewed JavaScript constructs DOM nodes with `textContent` instead of HTML parsing. The worker reduces duplicate local connections but grants no new network or data access. Avatar and badge resources must use HTTPS; name colors must be validated six-digit hex values.
 
+Viewer identity is opt-in. The bridge strips untrusted viewer IDs and creates them only after validated human identity resolution. Account links are explicit local configuration and are never inferred. Progression state contains pseudonyms, counters, timestamps, and bounded event fingerprints only; it excludes raw account IDs, names, chat text, avatars, and payloads. Simulated events cannot affect production points by default, and money is never converted into points.
+
 Before committing, inspect `git diff --cached` and run a credential scanner suitable for your environment.

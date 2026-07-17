@@ -272,3 +272,32 @@ Current verification evidence:
 - OBS acceptance: three unique Twitch chat events and a YouTube Super Chat rendered successfully in the installed OBS Studio Browser Sources with correct transparency, proportions, text clarity, chat placement, and alert lifecycle.
 - Streamlabs acceptance decision: the project owner waived a duplicate installed-app spot check after OBS passed because both consume the same fixed local URLs and standards-based browser assets; this is compatibility acceptance, not a claim of separate live Streamlabs execution.
 - Official Meld, OBS Studio, and Streamlabs documentation confirms URL Browser layers/sources use browser-compatible rendering; OBS explicitly documents CEF and transparent browser-source defaults.
+
+## Milestone 9 — Viewer Identity and Progression
+
+Status: **Implementation complete; live Streamer.bot verification pending** — implemented in bridge `0.10.0`, Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression package `1.0.0`.
+
+- [x] Cross-platform links are explicit creator-approved configuration; names and behavior are never used to guess identity.
+- [x] Duplicate viewer IDs, duplicate account assignments, invalid IDs, and invalid level thresholds fail configuration validation.
+- [x] Unlinked human accounts receive deterministic platform-scoped pseudonyms without persisting raw platform user IDs.
+- [x] Caller-supplied viewer IDs are stripped and replaced only by bridge-resolved identity.
+- [x] Bots, system actors, missing stable IDs, and simulated production awards are excluded by default.
+- [x] Fixed per-event points never infer value from money, gift prices, message length, or exchange rates.
+- [x] Per-event cooldowns key on unified identity, preventing linked users from bypassing chat limits by switching platforms.
+- [x] Levels use creator-configured strictly increasing safe-integer thresholds.
+- [x] Progression state is atomic, local, replay-bounded, and contains no names, display names, messages, avatars, payloads, or raw account IDs.
+- [x] Corrupted state refuses startup instead of silently resetting viewer totals.
+- [x] Successful awards emit ordered `viewer.progression` events with viewer ID, award, total, level change, next threshold, correlation, and simulation provenance.
+- [x] Multi-Commands exposes the trusted viewer ID for downstream cooldown and spam policies.
+- [x] A projection-only Streamer.bot package exposes progression arguments without running actions or writing globals.
+- [x] Unit and integration tests cover cross-platform linking, cooldowns, replay, privacy, spoof replacement, invalid state/configuration, and export integrity.
+- [ ] Import the three updated packages into Streamer.bot, rebuild the receiver child chain, and verify one simulated linked award in Action History.
+
+Current verification evidence:
+
+- Full Windows release validation passed: clean build, lint, typecheck, configuration validation, 33 test files, and 153 tests.
+- `packages\THSV-StreamBridge-0.10.0.zip` was produced by the repository-relative PowerShell release workflow.
+- Export-integrity tests decoded all three new `.sb` files and matched their embedded C# bytecode to the reviewed sources.
+- Cross-platform unit evidence links Twitch and YouTube accounts to one viewer and suppresses the second chat award through one shared cooldown.
+- Integration evidence replaces a spoofed caller viewer ID, emits chat then progression in bridge-sequence order, and returns the progression event ID in `derivedEventIds` only when simulated awards are explicitly enabled.
+- Live package import, C# compilation, receiver-chain persistence, and Action History output remain the only pending acceptance gate.

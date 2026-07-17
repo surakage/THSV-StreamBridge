@@ -33,6 +33,7 @@ export const EVENT_TYPE_VALUES = [
   'stream.offline',
   'system.custom',
   'system.timed',
+  'viewer.progression',
 ] as const;
 
 export const PUBLIC_ALERT_EVENT_TYPE_VALUES = [
@@ -81,13 +82,13 @@ export const normalizedEventSchema = z
     receivedAt: z.iso.datetime({ offset: true }),
     channel: z
       .object({
-        id: z.string().max(256).optional(),
+        id: z.string().min(1).max(256).optional(),
         name: z.string().min(1).max(256),
       })
       .strict(),
     user: z
       .object({
-        id: z.string().max(256).optional(),
+        id: z.string().min(1).max(256).optional(),
         name: z.string().min(1).max(256),
         displayName: z.string().min(1).max(256).optional(),
         actorType: z.enum(['human', 'bot', 'system']).default('human'),
@@ -103,6 +104,7 @@ export const normalizedEventSchema = z
       .object({
         correlationId: z.string().max(256).optional(),
         bridgeSequence: z.number().int().positive().optional(),
+        viewerId: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/).optional(),
         simulated: z.boolean().default(false),
         unverifiedFields: z.array(z.string().max(256)).max(100).optional(),
         rawPayload: jsonValueSchema.optional(),

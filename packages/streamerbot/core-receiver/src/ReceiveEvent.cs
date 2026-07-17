@@ -6,8 +6,8 @@ using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
-    private const string ContractVersion = "1.1.0";
-    private const string PackageVersion = "1.0.3";
+    private const string ContractVersion = "1.2.0";
+    private const string PackageVersion = "1.0.4";
     private const string SupportedSchemaVersion = "1.0.0";
 
     public bool Execute()
@@ -60,6 +60,8 @@ public class CPHInline
             return Fail("Invalid metadata.correlationId.");
         if (!IsOptionalPositiveInteger(metadata, "bridgeSequence"))
             return Fail("Invalid metadata.bridgeSequence.");
+        if (!IsOptionalViewerId(metadata, "viewerId"))
+            return Fail("Invalid metadata.viewerId.");
 
         JObject user = envelope["user"] as JObject;
         string userName = user == null ? string.Empty : ReadRequiredString(user, "name", 256);
@@ -85,6 +87,7 @@ public class CPHInline
         CPH.SetArgument("streamBridgeMetadata", metadata.ToString(Formatting.None));
         CPH.SetArgument("streamBridgeCorrelationId", ReadOptionalString(metadata, "correlationId"));
         CPH.SetArgument("streamBridgeSimulated", metadata.Value<bool>("simulated"));
+        CPH.SetArgument("streamBridgeViewerId", ReadOptionalString(metadata, "viewerId"));
         CPH.SetArgument("streamBridgeValid", true);
         CPH.LogDebug("THSV StreamBridge accepted " + eventType + " event " + eventId + " from " + platform + ".");
         return true;
@@ -114,6 +117,7 @@ public class CPHInline
         CPH.SetArgument("streamBridgeMetadata", "{}");
         CPH.SetArgument("streamBridgeCorrelationId", string.Empty);
         CPH.SetArgument("streamBridgeSimulated", false);
+        CPH.SetArgument("streamBridgeViewerId", string.Empty);
     }
 
     private bool Fail(string message)
@@ -155,6 +159,15 @@ public class CPHInline
             if (!IsIdentifierCharacter(value[index])) return false;
         }
         return true;
+    }
+
+    private static bool IsOptionalViewerId(JObject value, string property)
+    {
+        JToken token = value[property];
+        if (token == null) return true;
+        if (token.Type != JTokenType.String) return false;
+        string viewerId = token.ToString();
+        return IsPlatform(viewerId);
     }
 
     private static bool IsIdentifierCharacter(char character)

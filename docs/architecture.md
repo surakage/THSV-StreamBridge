@@ -67,6 +67,12 @@ The Streamer.bot package is projection-only. It validates the receiver-derived p
 
 Timers are dormant until the first normalized `stream.online` event or an authenticated operator start. The bridge tracks every platform observed online and ends the session only after all of them emit `stream.offline`; this prevents one platform ending early from stopping a multistream session. Token-protected start/stop/pause/resume controls provide an immediate manual override. Pause shifts the persisted session anchor on resume, freezing remaining delays instead of treating paused time as missed runs.
 
+## Viewer identity and progression
+
+Identity resolution runs after normalized validation and global event deduplication. Caller-supplied `metadata.viewerId` and `metadata.bridgeSequence` are removed; the bridge alone may attach them. Human actors with stable user IDs resolve through creator-approved account links or a deterministic platform-scoped SHA-256 pseudonym. No fuzzy or name-based matching exists.
+
+Progression processing is serialized so concurrent platform inputs cannot race one viewer's points. Awards use fixed configured values, unified-identity cooldowns, safe integers, bounded replay fingerprints, and atomic state replacement. The bridge persists the new total before emitting the derived `viewer.progression` event. Streamer.bot receives a projection-only package and remains responsible for rewards, games, overlays, moderation, and command outcomes.
+
 ## Browser Overlay Hub
 
 The overlay hub subscribes to the accepted internal event stream and projects only public chat, public alerts, and correlated message-removal events. It never forwards normalized events wholesale. The browser channel is a loopback-only WebSocket on `/overlay/events`; the fixed browser assets and non-secret client configuration share the diagnostics HTTP origin.

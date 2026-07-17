@@ -24,7 +24,7 @@ describe('Multi-Commands contract', () => {
     ['facebook-command.json', 'facebook'],
   ])('projects %s into one platform-neutral contract', async (fixtureName, platform) => {
     const command = projectMultiCommand(await commandFixture(fixtureName));
-    expect(command).toMatchObject({ contractVersion: '1.0.0', platform, visibility: 'public', command: 'shoutout', invokedAs: 'so', isAlias: true });
+    expect(command).toMatchObject({ contractVersion: '1.1.0', platform, visibility: 'public', command: 'shoutout', invokedAs: 'so', isAlias: true });
     expect(command?.arguments).toEqual(['ExampleViewer']);
   });
 
