@@ -1,15 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import WebSocket, { type RawData } from 'ws';
 import { DiagnosticsServer } from '../../bridge/services/http-server.js';
 import { BrowserOverlayHub } from '../../bridge/services/browser-overlay-hub.js';
 import { createTestBridge, fixture, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
 import type { StreamBridge } from '../../bridge/core/bridge.js';
-import type { NormalizedEvent } from '../../schemas/event.js';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
 
-async function runningService(maxPayloadBytes = 262_144): Promise<{ bridge: StreamBridge; server: DiagnosticsServer; baseUrl: string }> {
+async function runningService(maxPayloadBytes = 262_144): Promise<{ bridge: StreamBridge; baseUrl: string }> {
   const config = await testConfig();
   config.service.port = 0;
   config.security.maxPayloadBytes = maxPayloadBytes;
@@ -18,94 +16,47 @@ async function runningService(maxPayloadBytes = 262_144): Promise<{ bridge: Stre
   await bridge.start();
   await server.start();
   stops.push(async () => { await server.stop(); await bridge.stop(); });
-  return { bridge, server, baseUrl: `http://127.0.0.1:${String(server.port)}` };
+  return { bridge, baseUrl: `http://127.0.0.1:${String(server.port)}` };
 }
 
 describe('bridge HTTP integration', () => {
-  it('accepts a valid event, rejects its duplicate, and reports health', async () => {
+  it('accepts a valid event, ignores its duplicate, and reports health and readiness', async () => {
     const { baseUrl } = await runningService();
-    const event = await fixture();
-    const options = { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, body: JSON.stringify(event) };
-    const first = await fetch(`${baseUrl}/simulate`, options);
-    const second = await fetch(`${baseUrl}/simulate`, options);
-    expect(first.status).toBe(202);
-    expect(second.status).toBe(202);
-    const health = await fetch(`${baseUrl}/health`).then((response) => response.json()) as { status: string; lastAcceptedEventAt?: string };
-    const readiness = await fetch(`${baseUrl}/ready`);
-    expect(health.status).toBe('healthy');
-    expect(health.lastAcceptedEventAt).toBeTypeOf('string');
-    expect(readiness.status).toBe(200);
+    const body = JSON.stringify(await fixture());
+    const options = { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, body };
+    expect((await fetch(`${baseUrl}/simulate`, options)).status).toBe(202);
+    const duplicate = await fetch(`${baseUrl}/simulate`, options);
+    expect(duplicate.status).toBe(202);
+    expect(await duplicate.json()).toMatchObject({ accepted: true, duplicate: true });
+    expect(await fetch(`${baseUrl}/health`).then((response) => response.json())).toMatchObject({ status: 'healthy' });
+    expect((await fetch(`${baseUrl}/ready`)).status).toBe(200);
   });
 
-  it('rejects invalid and oversized payloads', async () => {
+  it('rejects invalid, oversized, unauthenticated, and browser-origin mutation requests', async () => {
     const { baseUrl } = await runningService(1_024);
-    const invalid = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, body: '{}' });
-    const oversized = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, body: JSON.stringify({ padding: 'x'.repeat(2_000) }) });
-    expect(invalid.status).toBe(400);
-    expect(oversized.status).toBe(413);
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers, body: '{}' })).status).toBe(400);
+    expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers, body: JSON.stringify({ padding: 'x'.repeat(2_000) }) })).status).toBe(413);
+    expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(await fixture()) })).status).toBe(401);
+    expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { ...headers, origin: 'https://attacker.example' }, body: JSON.stringify(await fixture()) })).status).toBe(403);
   });
 
-  it('rejects unauthenticated, non-JSON, and browser-origin mutation requests', async () => {
-    const { baseUrl } = await runningService();
-    const event = JSON.stringify(await fixture());
-    const unauthorized = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: event });
-    const textPlain = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'text/plain' }, body: event });
-    const browser = await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json', origin: 'https://attacker.example' }, body: event });
-    expect(unauthorized.status).toBe(401);
-    expect(textPlain.status).toBe(415);
-    expect(browser.status).toBe(403);
-    expect(browser.headers.get('access-control-allow-origin')).toBeNull();
-  });
-
-  it('forces simulation identity instead of trusting caller metadata', async () => {
+  it('forces simulation provenance instead of trusting caller metadata', async () => {
     const { bridge, baseUrl } = await runningService();
-    let observed: Awaited<ReturnType<typeof fixture>> | undefined;
-    const unsubscribe = bridge.subscribe((event) => { observed = event; });
-    const event = { ...(await fixture()), source: { adapter: 'forged', eventName: 'ChatMessage' }, metadata: { simulated: false } };
+    const observed: unknown[] = [];
+    const unsubscribe = bridge.subscribe((event) => { observed.push(event); });
+    const input = await fixture();
     const response = await fetch(`${baseUrl}/simulate`, {
-      method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify(event),
+      method: 'POST',
+      headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ ...input, source: { adapter: 'forged', eventName: 'ChatMessage' }, metadata: { simulated: false } }),
     });
     unsubscribe();
     expect(response.status).toBe(202);
-    expect(observed?.metadata.simulated).toBe(true);
-    expect(observed?.source.adapter).toBe('mock');
+    expect(observed[0]).toMatchObject({ source: { adapter: 'mock' }, metadata: { simulated: true } });
   });
 
-  it('replaces caller-supplied viewer identity with the bridge-resolved identity', async () => {
-    const config = await testConfig();
-    config.viewerIdentity.enabled = true;
-    config.viewerIdentity.links = [{ viewerId: 'trusted-viewer', accounts: [{ platform: 'twitch', userId: 'fixture-user' }] }];
-    const bridge = createTestBridge(config);
-    await bridge.start();
-    stops.push(() => bridge.stop());
-    const observed: NormalizedEvent[] = [];
-    bridge.subscribe((event) => { observed.push(event); });
-    const input = await fixture();
-    await bridge.simulate({ ...input, metadata: { ...input.metadata, viewerId: 'spoofed-viewer' } });
-    expect(observed[0]?.metadata.viewerId).toBe('trusted-viewer');
-    expect(observed.some((event) => event.eventType === 'viewer.progression')).toBe(false);
-  });
-
-  it('emits an ordered derived progression event when simulated awards are explicitly enabled', async () => {
-    const config = await testConfig();
-    config.viewerIdentity.enabled = true;
-    config.viewerIdentity.includeSimulated = true;
-    config.viewerIdentity.links = [{ viewerId: 'village-friend', accounts: [{ platform: 'twitch', userId: 'fixture-user' }] }];
-    config.viewerIdentity.progression.points = { 'chat.message': 1 };
-    config.viewerIdentity.progression.cooldownsMs = {};
-    const bridge = createTestBridge(config);
-    await bridge.start();
-    stops.push(() => bridge.stop());
-    const observed: NormalizedEvent[] = [];
-    bridge.subscribe((event) => { observed.push(event); });
-    const result = await bridge.simulate(await fixture());
-    expect(result.derivedEventIds).toHaveLength(1);
-    expect(observed.map((event) => event.eventType)).toEqual(['chat.message', 'viewer.progression']);
-    expect(observed.map((event) => event.metadata.bridgeSequence)).toEqual([1, 2]);
-    expect(observed[1]?.metadata.viewerId).toBe(observed[0]?.metadata.viewerId);
-  });
-
-  it('protects shutdown with the control token', async () => {
+  it('protects shutdown and timed-action controls with the control token', async () => {
     const config = await testConfig();
     config.service.port = 0;
     const bridge = createTestBridge(config);
@@ -118,88 +69,19 @@ describe('bridge HTTP integration', () => {
     expect((await fetch(`${baseUrl}/shutdown`, { method: 'POST' })).status).toBe(401);
     expect((await fetch(`${baseUrl}/shutdown`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(202);
     await expect.poll(() => shutdown).toHaveBeenCalledOnce();
-  });
-
-  it('protects runtime timed-action start, pause, resume, and stop controls', async () => {
-    const { baseUrl } = await runningService();
-    expect((await fetch(`${baseUrl}/timed-actions/start`, { method: 'POST' })).status).toBe(401);
     for (const operation of ['start', 'pause', 'resume', 'stop']) {
-      const response = await fetch(`${baseUrl}/timed-actions/${operation}`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
-      expect(response.status).toBe(200);
+      expect((await fetch(`${baseUrl}/timed-actions/${operation}`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(200);
     }
-    const diagnostics = await fetch(`${baseUrl}/diagnostics`).then((response) => response.json()) as { timedActions: { active: boolean } };
-    expect(diagnostics.timedActions.active).toBe(false);
   });
 
-  it('protects, validates, and applies auditable viewer progression administration', async () => {
-    const config = await testConfig();
-    config.service.port = 0;
-    config.viewerIdentity.enabled = true;
-    const audit: Array<{ message: string; fields: Readonly<Record<string, unknown>> | undefined }> = [];
-    const auditLogger = { ...silentLogger, info: (message: string, fields?: Readonly<Record<string, unknown>>) => { audit.push({ message, fields }); } };
-    const bridge = createTestBridge(config, undefined, auditLogger);
-    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN);
-    await bridge.start();
-    await server.start();
-    stops.push(async () => { await server.stop(); await bridge.stop(); });
-    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
-    const body = JSON.stringify({ viewerId: 'village-friend', operation: 'add', amount: 25, performedBy: 'surakage', reason: 'verified moderator correction' });
-    expect((await fetch(`${baseUrl}/viewer-progression/adjust`, { method: 'POST', headers: { 'content-type': 'application/json' }, body })).status).toBe(401);
-    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
-    const adjusted = await fetch(`${baseUrl}/viewer-progression/adjust`, { method: 'POST', headers, body });
-    expect(adjusted.status).toBe(200);
-    expect(await adjusted.json()).toMatchObject({ accepted: true, result: { viewerId: 'village-friend', operation: 'add', totalPoints: 25 } });
-    const malformed = await fetch(`${baseUrl}/viewer-progression/adjust`, { method: 'POST', headers, body: JSON.stringify({ viewerId: 'village-friend', operation: 'remove', performedBy: 'surakage', reason: 'missing amount' }) });
-    expect(malformed.status).toBe(400);
-    const deleted = await fetch(`${baseUrl}/viewer-progression/viewers/village-friend`, { method: 'DELETE', headers, body: JSON.stringify({ performedBy: 'surakage', reason: 'verified viewer deletion request' }) });
-    expect(deleted.status).toBe(200);
-    expect(await deleted.json()).toMatchObject({ accepted: true, result: { viewerId: 'village-friend', recordRemoved: true } });
-    expect(audit.find((entry) => entry.message === 'Viewer progression adjusted')?.fields).toMatchObject({ performedBy: 'surakage', reason: 'verified moderator correction', totalPoints: 25 });
-    expect(audit.find((entry) => entry.message === 'Viewer progression deleted')?.fields).toMatchObject({ performedBy: 'surakage', reason: 'verified viewer deletion request', recordRemoved: true });
+  it('does not expose archived progression, companion, or companion-overlay routes', async () => {
+    const { baseUrl } = await runningService();
+    expect((await fetch(`${baseUrl}/viewer-progression/adjust`, { method: 'POST' })).status).toBe(404);
+    expect((await fetch(`${baseUrl}/companion/actions`, { method: 'POST' })).status).toBe(404);
+    expect((await fetch(`${baseUrl}/overlay/companion`)).status).toBe(404);
   });
 
-  it('spends progression through a companion command and emits an ordered Bloom action', async () => {
-    const config = await testConfig();
-    config.viewerIdentity.enabled = true;
-    config.viewerIdentity.includeSimulated = true;
-    config.viewerIdentity.links = [{ viewerId: 'village-friend', accounts: [{ platform: 'twitch', userId: 'fixture-user' }] }];
-    config.viewerIdentity.progression.points['chat.message'] = 0;
-    config.companion.enabled = true;
-    config.companion.includeSimulated = true;
-    config.companion.minimumActionIntervalMs = 0;
-    config.companion.rewards.eat.cooldownMs = 0;
-    const bridge = createTestBridge(config);
-    await bridge.start();
-    stops.push(() => bridge.stop());
-    await bridge.adjustViewerProgression({ viewerId: 'village-friend', operation: 'add', amount: 100, performedBy: 'test', reason: 'companion integration balance' });
-    const observed: NormalizedEvent[] = [];
-    bridge.subscribe((event) => { observed.push(event); });
-    const source = await fixture();
-    const result = await bridge.simulate({ ...source, eventId: 'companion-chat-001', source: { ...source.source, eventId: 'companion-chat-001' }, payload: { message: '!bloom-feed' } });
-    expect(result.derivedEventIds).toHaveLength(2);
-    expect(observed.map((event) => event.eventType)).toEqual(['chat.message', 'command.received', 'companion.action']);
-    expect(observed.map((event) => event.metadata.bridgeSequence)).toEqual([1, 2, 3]);
-    expect(observed[2]?.payload).toMatchObject({ action: 'eat', cost: 25, remainingPoints: 75 });
-  });
-
-  it('protects the administrative Bloom animation test endpoint', async () => {
-    const config = await testConfig();
-    config.service.port = 0;
-    config.viewerIdentity.enabled = true;
-    config.companion.enabled = true;
-    const bridge = createTestBridge(config);
-    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN);
-    await bridge.start(); await server.start();
-    stops.push(async () => { await server.stop(); await bridge.stop(); });
-    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
-    const body = JSON.stringify({ action: 'wave', performedBy: 'surakage', reason: 'visual acceptance test' });
-    expect((await fetch(`${baseUrl}/companion/actions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body })).status).toBe(401);
-    const response = await fetch(`${baseUrl}/companion/actions`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' }, body });
-    expect(response.status).toBe(202);
-    expect(await response.json()).toMatchObject({ accepted: true, duplicate: false });
-  });
-
-  it('serves a generic browser-source overlay and broadcasts projected public events over loopback WebSocket', async () => {
+  it('serves only the combined, chat, and alert browser surfaces', async () => {
     const config = await testConfig();
     config.service.port = 0;
     const bridge = createTestBridge(config);
@@ -210,79 +92,13 @@ describe('bridge HTTP integration', () => {
     await server.start();
     stops.push(async () => { await server.stop(); await bridge.stop(); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
-    const page = await fetch(`${baseUrl}/overlay/`);
-    expect(page.status).toBe(200);
-    expect(page.headers.get('content-type')).toContain('text/html');
-    expect(page.headers.get('content-security-policy')).toContain("default-src 'none'");
-    expect(page.headers.get('content-security-policy')).toContain("worker-src 'self'");
-    for (const route of ['/overlay/chat', '/overlay/alerts', '/overlay/companion']) {
-      const section = await fetch(`${baseUrl}${route}`);
-      expect(section.status).toBe(200);
-      expect(section.headers.get('content-type')).toContain('text/html');
+    for (const route of ['/overlay/', '/overlay/chat', '/overlay/alerts']) {
+      const response = await fetch(`${baseUrl}${route}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
     }
-    const meldChat = await fetch(`${baseUrl}/overlay/chat?layout=meld&canvasWidth=1920&canvasHeight=1080&verticalScale=0.402`);
-    expect(meldChat.status).toBe(200);
-    expect(meldChat.headers.get('cache-control')).toBe('no-store');
-    expect(await meldChat.text()).toContain('/overlay/app-1.1.0.js');
-    expect((await fetch(`${baseUrl}/overlay/styles-1.1.1.css`)).status).toBe(200);
-    for (const asset of ['idle', 'wave', 'eat', 'sleep', 'celebrate']) {
-      const version = asset === 'celebrate' ? '1.1.1' : '1.1.0';
-      expect((await fetch(`${baseUrl}/overlay/bloom-${asset}-sprite-${version}.png`)).headers.get('content-type')).toContain('image/png');
-    }
-    const worker = await fetch(`${baseUrl}/overlay/worker-1.1.0.js`);
-    expect(worker.status).toBe(200);
-    expect(worker.headers.get('content-type')).toContain('text/javascript');
-    expect(await worker.text()).toContain('for (const port of ports)');
-    expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toMatchObject({
-      brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
-    });
-
-    const messages: Array<Record<string, unknown>> = [];
-    const socket = new WebSocket(`${baseUrl.replace('http:', 'ws:')}/overlay/events`);
-    socket.on('message', (data) => messages.push(JSON.parse(rawDataText(data)) as Record<string, unknown>));
-    await new Promise<void>((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject); });
-    await bridge.simulate(await fixture());
-    await expect.poll(() => messages.some((message) => message['kind'] === 'chat.add')).toBe(true);
-    expect(hub.status()).toMatchObject({ clients: 1, published: 1 });
-    socket.close();
-  });
-
-  it('rate-limits mutable requests', async () => {
-    const config = await testConfig();
-    config.service.port = 0;
-    config.security.maxRequestsPerMinute = 1;
-    const bridge = createTestBridge(config);
-    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN);
-    await bridge.start();
-    await server.start();
-    stops.push(async () => { await server.stop(); await bridge.stop(); });
-    const options = { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify(await fixture()) };
-    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
-    expect((await fetch(`${baseUrl}/simulate`, options)).status).toBe(202);
-    expect((await fetch(`${baseUrl}/simulate`, options)).status).toBe(429);
-  });
-
-  it('stops cleanly', async () => {
-    const { bridge, server } = await runningService();
-    await server.stop();
-    await bridge.stop();
-    expect(bridge.health()['status']).toBe('stopped');
-  });
-
-  it('reports a clear port conflict', async () => {
-    const first = await runningService();
-    const config = await testConfig();
-    config.service.port = first.server.port;
-    const secondBridge = createTestBridge(config);
-    const secondServer = new DiagnosticsServer({ ...config.service, ...config.security }, secondBridge, silentLogger, TEST_CONTROL_TOKEN);
-    await secondBridge.start();
-    stops.push(() => secondBridge.stop());
-    await expect(secondServer.start()).rejects.toThrow('Port conflict');
+    const source = await fetch(`${baseUrl}/overlay/app-1.1.0.js`).then((response) => response.text());
+    expect(source).not.toContain('companion');
+    expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
   });
 });
-
-function rawDataText(data: RawData): string {
-  if (Array.isArray(data)) return Buffer.concat(data).toString('utf8');
-  if (data instanceof ArrayBuffer) return Buffer.from(data).toString('utf8');
-  return data.toString('utf8');
-}

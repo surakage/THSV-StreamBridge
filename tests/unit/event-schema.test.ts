@@ -17,6 +17,14 @@ describe('normalized event schema', () => {
     expect(normalizedEventSchema.safeParse(event).success).toBe(true);
   });
 
+  it('rejects archived add-on event types and viewer identity metadata from core', async () => {
+    const event = await fixture();
+    for (const eventType of ['viewer.progression', 'companion.action']) {
+      expect(normalizedEventSchema.safeParse({ ...event, eventType }).success).toBe(false);
+    }
+    expect(normalizedEventSchema.safeParse({ ...event, metadata: { ...event.metadata, viewerId: 'legacy-viewer' } }).success).toBe(false);
+  });
+
   it('rejects a missing required field', async () => {
     const event = { ...(await fixture()) } as Partial<Record<keyof Awaited<ReturnType<typeof fixture>>, unknown>>;
     delete event.eventId;

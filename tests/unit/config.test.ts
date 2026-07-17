@@ -76,23 +76,17 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [definition, definition] } }).success).toBe(false);
   });
 
-  it('keeps earlier configuration compatible with viewer identity safely disabled', async () => {
+  it('loads legacy viewer and companion configuration without reactivating archived add-ons', async () => {
     const config = await testConfig();
-    const { viewerIdentity: _viewerIdentity, ...legacy } = config;
-    void _viewerIdentity;
-    const parsed = bridgeConfigSchema.parse(legacy).viewerIdentity;
-    expect(parsed).toMatchObject({ enabled: false, includeSimulated: false, links: [], progression: { enabled: true, cooldownsMs: { 'chat.message': 60_000 } } });
-    expect(parsed.progression.points['chat.message']).toBe(1);
-  });
-
-  it('requires viewer identity and unique registered commands when the companion is enabled', async () => {
-    const config = await testConfig();
-    expect(config.companion).toMatchObject({ enabled: false, includeSimulated: false, initialState: { happiness: 75, fullness: 75, energy: 75 } });
-    const missingIdentity = bridgeConfigSchema.safeParse({ ...config, companion: { ...config.companion, enabled: true } });
-    expect(missingIdentity.success).toBe(false);
-    const missingCommand = bridgeConfigSchema.safeParse({ ...config, viewerIdentity: { ...config.viewerIdentity, enabled: true }, commands: { ...config.commands, definitions: config.commands.definitions.filter((definition) => definition.name !== 'bloom-feed') }, companion: { ...config.companion, enabled: true } });
-    expect(missingCommand.success).toBe(false);
-    const enabled = bridgeConfigSchema.safeParse({ ...config, viewerIdentity: { ...config.viewerIdentity, enabled: true }, companion: { ...config.companion, enabled: true } });
-    expect(enabled.success).toBe(true);
+    const legacy = {
+      ...config,
+      browserOverlay: { ...config.browserOverlay, maxCompanionQueue: 20 },
+      viewerIdentity: { enabled: true, stateFile: 'data/state/viewer-progression.json' },
+      companion: { enabled: true, stateFile: 'data/state/companion.json' },
+    };
+    const parsed = bridgeConfigSchema.parse(legacy);
+    expect(parsed).not.toHaveProperty('viewerIdentity');
+    expect(parsed).not.toHaveProperty('companion');
+    expect(parsed.browserOverlay).not.toHaveProperty('maxCompanionQueue');
   });
 });

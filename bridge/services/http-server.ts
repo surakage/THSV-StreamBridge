@@ -8,9 +8,6 @@ import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-ma
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
-import { z } from 'zod';
-import { MAX_PROGRESSION_ADJUSTMENT, VIEWER_ID_PATTERN, ViewerProgressionUnavailableError, type ViewerProgressionAdjustment, type ViewerProgressionAdjustmentResult, type ViewerDeletionResult } from '../core/viewer-progression.js';
-import { CompanionUnavailableError, type CompanionAdministrativeAction } from '../core/companion.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -18,12 +15,7 @@ export interface DiagnosticsTarget {
   diagnostics(): Readonly<Record<string, unknown>>;
   simulate(input: unknown, byteLength?: number): Promise<IngestResult>;
   controlTimedActions(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>>;
-  adjustViewerProgression(input: ViewerProgressionAdjustment): Promise<ViewerProgressionAdjustmentResult>;
-  deleteViewerProgression(viewerId: string, performedBy: string, reason: string): Promise<ViewerDeletionResult>;
-  controlCompanion(input: CompanionAdministrativeAction): Promise<IngestResult>;
 }
-
-class AdministrativeRequestError extends Error {}
 
 export class DiagnosticsServer {
   private server: Server | undefined;
@@ -84,9 +76,7 @@ export class DiagnosticsServer {
       }
       if (request.method === 'GET' && request.url === '/diagnostics') return this.reply(response, 200, { ...this.target.diagnostics(), browserOverlay: this.overlayHub?.status() });
       if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) {
-        const companion = this.target.diagnostics()['companion'];
-        const companionSleeping = companion !== null && typeof companion === 'object' && (companion as Record<string, unknown>)['sleeping'] === true;
-        return this.reply(response, 200, { ...this.overlayHub.clientConfig(), companionSleeping });
+        return this.reply(response, 200, this.overlayHub.clientConfig());
       }
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
@@ -108,31 +98,9 @@ export class DiagnosticsServer {
         const operation = timedMatch[1] as 'start' | 'stop' | 'pause' | 'resume';
         return this.reply(response, 200, { accepted: true, operation, status: await this.target.controlTimedActions(operation) });
       }
-      if (request.method === 'POST' && request.url === '/viewer-progression/adjust') {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        const input = parseAdministrativeBody(viewerAdjustmentSchema, body.text);
-        return this.reply(response, 200, { accepted: true, result: await this.target.adjustViewerProgression(input) });
-      }
-      if (request.method === 'POST' && request.url === '/companion/actions') {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        const input = parseAdministrativeBody(companionActionSchema, body.text);
-        return this.reply(response, 202, await this.target.controlCompanion(input));
-      }
-      const deletionMatch = request.method === 'DELETE' ? /^\/viewer-progression\/viewers\/([a-z][a-z0-9-]{0,63})$/u.exec(request.url ?? '') : null;
-      if (deletionMatch !== null) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        const input = parseAdministrativeBody(viewerDeletionSchema, body.text);
-        return this.reply(response, 200, { accepted: true, result: await this.target.deleteViewerProgression(deletionMatch[1] ?? '', input.performedBy, input.reason) });
-      }
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
-      if (error instanceof AdministrativeRequestError) return this.reply(response, 400, { error: error.message });
-      if (error instanceof ViewerProgressionUnavailableError) return this.reply(response, 409, { error: error.message });
-      if (error instanceof CompanionUnavailableError) return this.reply(response, 409, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
       if (error instanceof OutputCapacityError) return this.reply(response, 429, { error: error.message });
@@ -168,36 +136,11 @@ export class DiagnosticsServer {
   }
 }
 
-const operatorIdentifierSchema = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9][A-Za-z0-9 ._@-]*$/u, 'performedBy contains unsupported characters');
-const reasonSchema = z.string().trim().min(3).max(500);
-const viewerAdjustmentSchema = z.object({
-  viewerId: z.string().regex(VIEWER_ID_PATTERN),
-  operation: z.enum(['add', 'remove', 'reset']),
-  amount: z.number().int().min(1).max(MAX_PROGRESSION_ADJUSTMENT).optional(),
-  performedBy: operatorIdentifierSchema,
-  reason: reasonSchema,
-}).strict().superRefine((value, context) => {
-  if (value.operation === 'reset' && value.amount !== undefined) context.addIssue({ code: 'custom', path: ['amount'], message: 'reset must not include amount' });
-  if (value.operation !== 'reset' && value.amount === undefined) context.addIssue({ code: 'custom', path: ['amount'], message: 'add and remove require amount' });
-});
-const viewerDeletionSchema = z.object({ performedBy: operatorIdentifierSchema, reason: reasonSchema }).strict();
-const companionActionSchema = z.object({ action: z.enum(['wave', 'eat', 'sleep', 'wake', 'celebrate']), performedBy: operatorIdentifierSchema, reason: reasonSchema }).strict();
-
-function parseAdministrativeBody<T>(schema: z.ZodType<T>, body: string): T {
-  let input: unknown;
-  try { input = JSON.parse(body) as unknown; }
-  catch { throw new AdministrativeRequestError('Request body must be valid JSON.'); }
-  const parsed = schema.safeParse(input);
-  if (!parsed.success) throw new AdministrativeRequestError(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`).join('; '));
-  return parsed.data;
-}
-
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
   '/overlay': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/chat': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/alerts': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
-  '/overlay/companion': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-0.9.5.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-0.9.6.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
@@ -218,13 +161,6 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/styles-1.0.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.1.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.1.1.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
-  '/overlay/bloom-sprite-1.0.0.png': { file: 'bloom-wave-sprite.png', contentType: 'image/png' },
-  '/overlay/bloom-idle-sprite-1.1.0.png': { file: 'bloom-idle-sprite.png', contentType: 'image/png' },
-  '/overlay/bloom-wave-sprite-1.1.0.png': { file: 'bloom-wave-v2-sprite.png', contentType: 'image/png' },
-  '/overlay/bloom-eat-sprite-1.1.0.png': { file: 'bloom-eat-sprite.png', contentType: 'image/png' },
-  '/overlay/bloom-sleep-sprite-1.1.0.png': { file: 'bloom-sleep-sprite.png', contentType: 'image/png' },
-  '/overlay/bloom-celebrate-sprite-1.1.0.png': { file: 'bloom-celebrate-sprite.png', contentType: 'image/png' },
-  '/overlay/bloom-celebrate-sprite-1.1.1.png': { file: 'bloom-celebrate-sprite.png', contentType: 'image/png' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }

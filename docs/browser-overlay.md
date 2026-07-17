@@ -11,8 +11,7 @@ Milestone 8 serves transparent local browser overlays for combined, chat-only, a
    - Chat only: `http://127.0.0.1:8787/overlay/chat`
    - Compact Chat for hosts that intentionally want the cards to fill a narrow source: `http://127.0.0.1:8787/overlay/chat?layout=compact` (a useful starting size is 500 by 700)
    - Alerts only: `http://127.0.0.1:8787/overlay/alerts` (use a 1920 by 1080 source in Meld, then crop the transparent area)
-   - Bloom Companion: `http://127.0.0.1:8787/overlay/companion` (use a 1920 by 1080 source, then crop transparent space)
-4. For independent placement, add Chat, Alerts, and Companion as separate browser sources. Move, crop, resize, hide, or assign each source to scenes normally in the broadcasting app.
+4. For independent placement, add Chat and Alerts as separate browser sources. Move, crop, resize, hide, or assign each source to scenes normally in the broadcasting app.
 5. Run a harmless simulated chat or alert fixture and confirm it appears.
 
 Chat and Alerts opened by the same browser-source host share a `SharedWorker`, which owns one event WebSocket and fans events out locally. This keeps the independently movable sources from doubling the normal WebSocket traffic. If a broadcasting app isolates browser sources or lacks `SharedWorker`, each source safely falls back to its own reconnecting WebSocket; presentation still works, but the host will show one connection per isolated source.
@@ -73,4 +72,4 @@ The deprecated `meldOverlay` configuration key from bridge `0.9.0` is migrated a
 
 ## Current boundary
 
-The browser hub is implemented, offline-testable, and live-verified in Meld Studio and OBS Studio. The project owner accepts that OBS verification as the Streamlabs Desktop compatibility gate because all three integrations consume the same standards-based fixed URLs; a separate Streamlabs execution is not claimed. TTS-synchronized captions are explicitly excluded: the adopted Speaker.bot transport acknowledges local dispatch but does not report playback start, duration, completion, or generated media. Visual alert priority therefore does not claim to preempt or synchronize Speaker.bot audio.
+The browser hub is implemented, offline-testable, and live-verified in Meld Studio and OBS Studio. The project owner accepts that OBS verification as the Streamlabs Desktop compatibility gate because all three integrations consume the same standards-based fixed URLs; a separate Streamlabs execution is not claimed. Stage 2 core serves Combined, Chat, and Alerts only. Bloom Companion and Speaker.bot orchestration are archived optional add-on candidates and are not loaded or exposed by core.

@@ -14,14 +14,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - A strict core-only v2 configuration schema and non-writing v1-to-v2 migration preview that enumerates excluded configuration/state before extraction.
 - Revised product-scope, contract-boundary, and module-system documentation.
 - Stage 2/3 migration acceptance criteria from the independent Stage 1 review.
+- A manifest-validated module registry with dependency ordering, event subscriptions, isolated lifecycle failures, and per-module health.
+- Built-in Chat, Commands, Alerts, and Timed Actions module registrations plus registry acceptance tests.
 
 ### Changed
 
 - Completed the Stage 1 adapter inventory with the Streamer.bot relay and package-envelope helpers and explicitly retained the timed-actions control script.
+- Archived Viewer Progression, Bloom Companion, and Speaker.bot implementations under `archive/future-add-ons` and removed their runtime, HTTP, configuration, event, overlay, and Streamer.bot argument dependencies from core.
+- Rebuilt the Core Receiver and Multi-Commands imports as `2.0.0-preview.1` without viewer-progression identity arguments.
 
 ### Safety
 
-- Stable v1 runtime composition is unchanged in Stage 2A. No companion/progression source, state, package, endpoint, or asset has been moved or deleted.
+- Stable `main` remains unchanged. Legacy config keys load without reactivation, migration preview is non-writing, and upgrade/uninstall flows preserve excluded state until explicit creator deletion.
 
 ## [1.0.1] - 2026-07-17
 

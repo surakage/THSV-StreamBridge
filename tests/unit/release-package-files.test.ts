@@ -19,6 +19,8 @@ describe('public release scripts', () => {
     expect(source).toContain('release-manifest.json');
     expect(source).toContain('.sha256');
     for (const forbidden of ['bridge.local.json', 'control-token', 'streambridge.pid', 'state|logs|backups']) expect(source).toContain(forbidden);
+    for (const archived of ['viewer-progression', 'companion-actions', 'speaker-orchestration', 'bloom-idle-sprite.png']) expect(source).toContain(archived);
+    expect(source).not.toContain("Copy-Item -LiteralPath (Join-Path $repo 'archive')");
   });
 
   it('verifies before staging and preserves creator data during upgrades', async () => {

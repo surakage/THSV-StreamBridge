@@ -45,7 +45,6 @@ export interface MultiCommandInvocation extends ParsedCommand {
   readonly authorized: boolean;
   readonly authorizationReason: string;
   readonly simulated: boolean;
-  readonly viewerId?: string;
 }
 
 export class InvalidMultiCommandError extends Error {}
@@ -126,7 +125,6 @@ export function projectMultiCommand(event: NormalizedEvent): MultiCommandInvocat
     authorized: authorization.authorized,
     authorizationReason: authorization.reason,
     simulated: event.metadata.simulated,
-    ...(event.metadata.viewerId === undefined ? {} : { viewerId: event.metadata.viewerId }),
   };
 }
 
@@ -163,7 +161,6 @@ export function deriveCommandEvent(event: NormalizedEvent, config: CommandsConfi
       correlationId: event.metadata.correlationId ?? event.eventId,
       simulated: event.metadata.simulated,
       ...(event.metadata.unverifiedFields === undefined ? {} : { unverifiedFields: event.metadata.unverifiedFields }),
-      ...(event.metadata.viewerId === undefined ? {} : { viewerId: event.metadata.viewerId }),
     },
   };
 }

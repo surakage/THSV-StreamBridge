@@ -20,8 +20,7 @@ export interface OverlaySubscriptionLifecycle {
 export type BrowserOverlayEvent =
   | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'chat.add'; readonly emittedAt: string; readonly payload: MultiChatMessage & { readonly presentation: OverlayActorPresentation } }
   | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'chat.remove'; readonly emittedAt: string; readonly payload: { readonly eventId: string; readonly targetEventId: string; readonly reason?: string } }
-  | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'alert.show'; readonly emittedAt: string; readonly payload: MultiAlert & { readonly priority: OverlayAlertPriority; readonly presentation?: OverlayActorPresentation; readonly subscription?: OverlaySubscriptionLifecycle } }
-  | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'companion.action'; readonly emittedAt: string; readonly payload: { readonly eventId: string; readonly sequence: number; readonly action: 'wave' | 'eat' | 'sleep' | 'wake' | 'celebrate'; readonly actorName: string; readonly cost: number; readonly remainingPoints: number; readonly happiness: number; readonly fullness: number; readonly energy: number; readonly sleeping: boolean; readonly simulated: boolean } };
+  | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'alert.show'; readonly emittedAt: string; readonly payload: MultiAlert & { readonly priority: OverlayAlertPriority; readonly presentation?: OverlayActorPresentation; readonly subscription?: OverlaySubscriptionLifecycle } };
 
 export class InvalidBrowserOverlayEventError extends Error {}
 
@@ -47,8 +46,6 @@ export function projectBrowserOverlayEvent(event: NormalizedEvent): BrowserOverl
     },
   };
 
-  if (event.eventType === 'companion.action') return projectCompanionAction(event, emittedAt);
-
   if (event.eventType !== 'moderation.action') return undefined;
   const action = event.payload['action'];
   const targetEventId = event.payload['targetEventId'] ?? event.metadata.correlationId;
@@ -64,23 +61,6 @@ export function projectBrowserOverlayEvent(event: NormalizedEvent): BrowserOverl
       ...(typeof reason === 'string' && reason.length > 0 ? { reason } : {}),
     },
   };
-}
-
-function projectCompanionAction(event: NormalizedEvent, emittedAt: string): BrowserOverlayEvent {
-  const sequence = event.metadata.bridgeSequence;
-  if (sequence === undefined) throw new InvalidBrowserOverlayEventError('companion.action requires a bridge-assigned sequence.');
-  const action = event.payload['action'];
-  if (action !== 'wave' && action !== 'eat' && action !== 'sleep' && action !== 'wake' && action !== 'celebrate') throw new InvalidBrowserOverlayEventError('companion.action payload.action is invalid.');
-  const actorName = event.payload['actorName'];
-  if (typeof actorName !== 'string' || actorName.length === 0 || actorName.length > 256) throw new InvalidBrowserOverlayEventError('companion.action payload.actorName must be a non-empty string of at most 256 characters.');
-  if (typeof event.payload['sleeping'] !== 'boolean') throw new InvalidBrowserOverlayEventError('companion.action payload.sleeping must be a boolean.');
-  return { contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'companion.action', emittedAt, payload: { eventId: event.eventId, sequence, action, actorName, cost: boundedInteger(event, 'cost', 0, 1_000_000), remainingPoints: boundedInteger(event, 'remainingPoints', 0, Number.MAX_SAFE_INTEGER), happiness: boundedInteger(event, 'happiness', 0, 100), fullness: boundedInteger(event, 'fullness', 0, 100), energy: boundedInteger(event, 'energy', 0, 100), sleeping: event.payload['sleeping'], simulated: event.metadata.simulated } };
-}
-
-function boundedInteger(event: NormalizedEvent, key: string, minimum: number, maximum: number): number {
-  const value = event.payload[key];
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum || value > maximum) throw new InvalidBrowserOverlayEventError(`companion.action payload.${key} must be a safe integer from ${String(minimum)} to ${String(maximum)}.`);
-  return value;
 }
 
 function actorPresentation(event: NormalizedEvent): OverlayActorPresentation {

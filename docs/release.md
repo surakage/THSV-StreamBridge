@@ -34,7 +34,7 @@ After configuring Streamer.bot or explicitly enabling its reported test mode in 
 
 ## Upgrade and rollback safety
 
-Run the newer extracted release's `install-release.ps1` against the existing installation directory. Before the swap, the installer stops the managed bridge, runs the existing backup script, and carries the complete `data` directory into the new installation. That preserves creator configuration, the private control token, viewer progression, companion state, timer state, logs, and backups. Release-file hashes and production dependencies are validated in a staging directory before the existing installation is moved.
+Run the newer extracted release's `install-release.ps1` against the existing installation directory. Before the swap, the installer stops the managed bridge, runs the existing backup script, and carries the complete `data` directory into the new installation. That preserves creator configuration, the private control token, archived viewer-progression and companion state, timer state, logs, and backups. Preserved add-on state is not loaded by core and remains until the creator explicitly removes user data. Release-file hashes and production dependencies are validated in a staging directory before the existing installation is moved.
 
 If the final directory swap fails, the installer restores the previous installation. A release never imports `.env`, runtime data, credentials, or state from its archive.
 
@@ -50,7 +50,7 @@ Run the installed script:
 & "$env:LOCALAPPDATA\THSV StreamBridge\scripts\uninstall-release.ps1"
 ```
 
-Uninstall preserves the complete `data` directory by default. Use `-RemoveUserData` only when creator configuration, private tokens, logs, progression, companion state, timers, and backups should also be permanently removed.
+Uninstall preserves the complete `data` directory by default. Use `-RemoveUserData` only when creator configuration, private tokens, logs, archived add-on state, timers, and backups should also be permanently removed.
 
 ## Public-release boundary
 
@@ -58,4 +58,4 @@ The archive is not a claim that every platform transport is production-complete.
 
 THSV StreamBridge is distributed under the permissive MIT License. Every public archive includes the license text. The final release candidate must still pass installation, upgrade, uninstall, checksum, secret-scan, and live-service acceptance before publication.
 
-See [Asset and third-party notices](../THIRD-PARTY-NOTICES.md) for Bloom image-generation provenance, the scope of the project's asset license, and direct production dependency licenses.
+Archived Bloom asset provenance and direct production dependency licenses remain documented in [Asset and third-party notices](../THIRD-PARTY-NOTICES.md).

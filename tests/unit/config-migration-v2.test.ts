@@ -21,6 +21,10 @@ describe('v2 configuration migration preview', () => {
 
   it('retains legacy Bloom commands for explicit review instead of deleting them silently', async () => {
     const source = JSON.parse(await readFile('config/bridge.example.json', 'utf8')) as Record<string, unknown>;
+    const commands = source['commands'] as { definitions: Array<Record<string, unknown>> };
+    commands.definitions.push(
+      ...['bloom-wave', 'bloom-feed', 'bloom-rest', 'bloom-wake', 'bloom-celebrate'].map((name) => ({ name, aliases: [], minimumRole: 'viewer', allowBots: false })),
+    );
     const result = previewV2ConfigMigration(source);
     expect(result.legacyCommandCandidates).toEqual(['bloom-wave', 'bloom-feed', 'bloom-rest', 'bloom-wake', 'bloom-celebrate']);
     expect(JSON.stringify(result.candidate.modules['core.commands'])).toContain('bloom-feed');
@@ -41,4 +45,3 @@ describe('v2 configuration migration preview', () => {
     expect(coreConfigV2Schema.safeParse({ ...candidate, modules: {} }).success).toBe(true);
   });
 });
-

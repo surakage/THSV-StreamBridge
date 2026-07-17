@@ -43,13 +43,15 @@ describe('Windows release installer', () => {
       expect(await readFile(join(install, 'dist', 'app.js'), 'utf8')).toBe('first release\n');
       expect(JSON.parse(await readFile(join(install, 'data', 'runtime', 'install-manifest.json'), 'utf8'))).toMatchObject({ product: 'THSV StreamBridge', version: '0.13.0-test.1' });
       await writeFile(join(install, 'data', 'runtime', 'bridge.local.json'), '{"creator":"preserved"}\n');
-      await writeFile(join(install, 'data', 'state', 'viewer.json'), '{"points":42}\n');
+      await writeFile(join(install, 'data', 'state', 'viewer-progression.json'), '{"points":42}\n');
+      await writeFile(join(install, 'data', 'state', 'companion.json'), '{"sleeping":true}\n');
 
       await writeRelease(source, '0.13.0-test.2', 'second release\n');
       runPowerShell(join(source, 'scripts', 'install-release.ps1'), ['-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall']);
       expect(await readFile(join(install, 'dist', 'app.js'), 'utf8')).toBe('second release\n');
       expect(await readFile(join(install, 'data', 'runtime', 'bridge.local.json'), 'utf8')).toContain('preserved');
-      expect(await readFile(join(install, 'data', 'state', 'viewer.json'), 'utf8')).toContain('42');
+      expect(await readFile(join(install, 'data', 'state', 'viewer-progression.json'), 'utf8')).toContain('42');
+      expect(await readFile(join(install, 'data', 'state', 'companion.json'), 'utf8')).toContain('true');
 
       await writeRelease(source, '0.13.0-test.1', 'downgraded release\n');
       const downgrade = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(source, 'scripts', 'install-release.ps1'), '-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall'], { encoding: 'utf8', timeout: 20_000 });
@@ -58,10 +60,10 @@ describe('Windows release installer', () => {
       expect(await readFile(join(install, 'dist', 'app.js'), 'utf8')).toBe('second release\n');
       runPowerShell(join(source, 'scripts', 'install-release.ps1'), ['-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall', '-AllowDowngrade']);
       expect(await readFile(join(install, 'dist', 'app.js'), 'utf8')).toBe('downgraded release\n');
-      expect(await readFile(join(install, 'data', 'state', 'viewer.json'), 'utf8')).toContain('42');
+      expect(await readFile(join(install, 'data', 'state', 'viewer-progression.json'), 'utf8')).toContain('42');
 
       runPowerShell(join(install, 'scripts', 'uninstall-release.ps1'), ['-InstallRoot', install]);
-      expect(await readFile(join(install, 'data', 'state', 'viewer.json'), 'utf8')).toContain('42');
+      expect(await readFile(join(install, 'data', 'state', 'viewer-progression.json'), 'utf8')).toContain('42');
       await expect(stat(join(install, 'dist'))).rejects.toThrow();
 
       runPowerShell(join(source, 'scripts', 'install-release.ps1'), ['-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall']);

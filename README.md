@@ -2,7 +2,7 @@
 
 THSV StreamBridge is a modular, local-first livestream automation foundation. It validates and normalizes events before routing them to Streamer.bot or future adapters without exposing downstream code to platform-specific payloads.
 
-The `overhaul/v2-preview` branch is the isolated `2.0.0-preview.1` development line for the approved revised core scope. Stable `1.x` remains on `main`. Stage 2A adds parallel contracts and a non-writing configuration migration preview only; see [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
+The `overhaul/v2-preview` branch is the isolated `2.0.0-preview.1` development line for the approved revised core scope. Stable `1.x` remains on `main`. Stage 2 is complete: v2 contracts, compatibility migration preview, excluded-feature extraction, and the module host are implemented. See [Stage 2 completion](docs/stage-2-completion.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
 
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
@@ -65,11 +65,8 @@ Multi-Alerts adds:
 - Exact bounded decimal-string monetary values, ISO currency validation, and safe integer quantities
 - Normalized actor identity, event ordering, Unicode-safe inert text, and honest transport-verification metadata
 - A versioned `THSV StreamBridge - Multi-Alerts` Streamer.bot package with no rendering, sound, TTS, globals, or platform output
-- A triggerless `THSV StreamBridge - Speaker Orchestration` package for creator-approved speech and queue controls with default-deny raw text
 
-Import the package and follow the inline action-chain instructions in the [Multi-Alerts package guide](packages/streamerbot/multi-alerts/README.md). Browser-source presentation is Milestone 8; Speaker.bot orchestration was live-verified in `0.7.0` and review-hardened in `0.7.1`.
-
-Speaker.bot setup and safe dry-run testing are documented in [Speaker.bot setup](docs/speakerbot-setup.md). The orchestration package never speaks raw event fields automatically.
+Import the package and follow the inline action-chain instructions in the [Multi-Alerts package guide](packages/streamerbot/multi-alerts/README.md). Browser-source presentation is Milestone 8. Speaker.bot orchestration is outside Stage 2 core and is preserved in the future-add-on archive.
 
 ## Milestone 7
 
@@ -97,32 +94,9 @@ Browser Overlay Hub adds one local transparent browser source for Meld Studio, O
 
 Use `http://127.0.0.1:8787/overlay/` for the combined canvas, or add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). Combined and separate-source rendering are live-verified in Meld Studio and OBS Studio; OBS is the accepted Streamlabs Browser Source compatibility gate.
 
-## Milestone 9
+## Archived future add-ons
 
-Viewer Identity and Progression adds:
-
-- Explicit creator-approved account links with no automatic name-based identity guessing
-- Stable platform-scoped pseudonyms for unlinked human viewers
-- Fixed, creator-configured points and level thresholds with a unified cross-platform chat cooldown
-- Atomic local state containing points, timestamps, and event fingerprints but no display names, chat text, or raw platform IDs
-- A derived `viewer.progression` contract and projection-only Streamer.bot package
-- `multiCommandViewerId` for cooldowns and spam policies that cannot be bypassed merely by switching linked platforms
-
-Identity and progression are disabled by default. Configure them using the [Viewer Identity and Progression guide](docs/viewer-identity.md), then import the updated Core Receiver, Multi-Commands, and Viewer Progression packages.
-
-Authenticated creator/moderator add, remove, reset, and verified viewer-deletion workflows are available through `scripts\viewer-progression.ps1`. They are loopback-only, bounded, serialized with awards, and written to structured audit logs.
-
-## Milestone 10
-
-Bloom Companion adds a shared animated companion funded by the unified progression balance:
-
-- Wave, feed, rest, and celebrate commands with creator-configured costs, cooldowns, and bounded stat effects
-- Atomic companion state, exact point spending, and automatic refunds if persistence fails
-- A bounded sequential browser animation queue at `http://127.0.0.1:8787/overlay/companion`
-- A projection-only `THSV StreamBridge - Bloom Companion` Streamer.bot package
-- Token-protected visual test actions that do not require a live viewer or point balance
-
-Follow the [Bloom Companion guide](docs/companion.md). Chat games are deliberately deferred for later platform extensions.
+The former Viewer Identity and Progression, Bloom Companion, and Speaker.bot Orchestration implementations are no longer core features. Their source, packages, tests, documentation, and assets are preserved under `archive/future-add-ons/` until they can be rebuilt against the public module API. Core does not load their state, expose their endpoints, emit their legacy events, or serve their browser surfaces. See [Future add-ons](docs/future-add-ons.md).
 
 ## TikFinity intake
 
@@ -157,7 +131,7 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and [Bloom Companion](docs/companion.md).
+See the [Stage 2 completion record](docs/stage-2-completion.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and [Future add-ons](docs/future-add-ons.md).
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 
@@ -167,4 +141,4 @@ Latest stable release: [THSV StreamBridge v1.0.1](https://github.com/surakage/TH
 
 THSV StreamBridge is open-source software licensed under the [MIT License](LICENSE).
 
-Bloom asset provenance and production dependency licenses are documented in [Asset and third-party notices](THIRD-PARTY-NOTICES.md).
+Archived Bloom asset provenance and production dependency licenses are documented in [Asset and third-party notices](THIRD-PARTY-NOTICES.md).

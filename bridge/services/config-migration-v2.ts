@@ -22,6 +22,7 @@ export interface ConfigMigrationPreviewV2 {
 }
 
 export function previewV2ConfigMigration(input: unknown): ConfigMigrationPreviewV2 {
+  const legacyStateFiles = readLegacyStateFiles(input);
   const legacy = bridgeConfigSchema.parse(input);
   const platforms = Object.fromEntries(Object.entries(legacy.platforms).map(([id, platform]) => [id, {
     enabled: platform.enabled,
@@ -35,8 +36,7 @@ export function previewV2ConfigMigration(input: unknown): ConfigMigrationPreview
   const outputs = Object.fromEntries(Object.entries(legacy.outputs).map(([id, output]) => [id, {
     enabled: output.enabled, adapter: output.adapter, settings: output.settings,
   }]));
-  const { maxCompanionQueue: _maxCompanionQueue, ...publicOverlayConfig } = legacy.browserOverlay;
-  void _maxCompanionQueue;
+  const publicOverlayConfig = legacy.browserOverlay;
 
   const modules: Record<string, { enabled: boolean; schemaVersion: string; config: Record<string, JsonValueV2> }> = {
     'core.chat': { enabled: true, schemaVersion: '1.0.0', config: publicOverlayConfig },
@@ -60,14 +60,28 @@ export function previewV2ConfigMigration(input: unknown): ConfigMigrationPreview
     targetVersion: '2.0.0-preview.1',
     mutatesSource: false,
     archivedConfigKeys: ['viewerIdentity', 'companion'],
-    preservedStateFiles: [legacy.viewerIdentity.stateFile, legacy.companion.stateFile],
+    preservedStateFiles: legacyStateFiles,
     legacyCommandCandidates,
     warnings: [
       'This is a preview only; it does not write configuration or state.',
-      'viewerIdentity and companion configuration must be archived before Stage 2B removes them from core.',
+      'viewerIdentity and companion configuration are archived from core; the listed state files remain preserved creator data.',
       'Legacy creator-declared capabilities are migration requirements only; adapters remain authoritative for actual support.',
       'Streamer.bot command authority transition is deferred; no command is created, edited, or deleted by this preview.',
       ...(legacyCommandCandidates.length === 0 ? [] : ['Bloom-named commands were retained for review and were not silently deleted.']),
     ],
   };
+}
+
+function readLegacyStateFiles(input: unknown): readonly string[] {
+  const root = input !== null && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
+  return [
+    nestedStateFile(root['viewerIdentity'], 'data/state/viewer-progression.json'),
+    nestedStateFile(root['companion'], 'data/state/companion.json'),
+  ];
+}
+
+function nestedStateFile(value: unknown, fallback: string): string {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return fallback;
+  const stateFile = (value as Record<string, unknown>)['stateFile'];
+  return typeof stateFile === 'string' && stateFile.length > 0 ? stateFile : fallback;
 }

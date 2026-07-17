@@ -34,6 +34,9 @@ try {
         New-Item -ItemType Directory -Path (Join-Path $staging $_) -Force | Out-Null
     }
     Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot') -Destination (Join-Path $staging 'packages\streamerbot') -Recurse
+    @('archive','packages\streamerbot\viewer-progression','packages\streamerbot\companion-actions','packages\streamerbot\speaker-orchestration','overlays\browser\bloom-idle-sprite.png') | ForEach-Object {
+        if (Test-Path -LiteralPath (Join-Path $staging $_)) { throw "Release staging contains archived add-on content: $_" }
+    }
     Get-ChildItem -LiteralPath $staging -Directory -Recurse -Force |
         Where-Object Name -eq '__pycache__' |
         Remove-Item -Recurse -Force

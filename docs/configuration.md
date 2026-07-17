@@ -46,17 +46,9 @@ Timers do not arm merely because the bridge process is running. A normalized `st
 
 User presentation metadata accepts HTTPS-only avatar and badge icon URLs, six-digit hex name colors, and at most 16 bounded badges. Subscription presentation accepts explicit new/renewal/upgrade, month, streak, gift, and gifter fields; values are never inferred from unrelated platform data.
 
-## Viewer identity and progression
+## Archived add-on configuration
 
-`viewerIdentity` is disabled by default. `links` explicitly map verified platform user IDs to creator-selected lowercase viewer IDs; validation rejects duplicate viewer IDs and any account assigned more than once. Unlinked stable IDs become platform-scoped SHA-256 pseudonyms. The state path, processed-event TTL/count, simulated-event policy, fixed points, per-event cooldowns, and strictly increasing level thresholds are bounded and runtime-validated.
-
-Names, display names, avatars, messages, raw payloads, and raw account IDs are never written to progression state. Default chat points have a 60-second cooldown keyed by the unified identity. Monetary values never determine progression points.
-
-## Bloom companion
-
-`companion` is disabled by default and requires `viewerIdentity.enabled`. Each enabled reward maps one unique configured public command to a point cost, per-viewer cooldown, and bounded happiness/fullness/energy changes. `minimumActionIntervalMs` adds a cross-action viewer cooldown, while `maxTrackedCooldowns` bounds persisted cooldown state. Keep `includeSimulated` false for production.
-
-`browserOverlay.maxCompanionQueue` bounds waiting Bloom animations. Companion state uses its own atomic file and can degrade independently without stopping ordinary bridge traffic. See [Bloom Companion](companion.md).
+Stage 2 core has no `viewerIdentity`, `companion`, or `browserOverlay.maxCompanionQueue` settings. Legacy files containing those keys still load so an upgrade does not fail, but the keys are ignored and never reactivate archived features. The v2 migration preview reports preserved progression and companion state paths and flags Bloom-named commands for explicit creator review. See [Future add-ons](future-add-ons.md).
 
 ## Ports
 

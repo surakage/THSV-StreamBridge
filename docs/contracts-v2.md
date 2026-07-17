@@ -1,6 +1,6 @@
 # Core contracts v2 preview
 
-Stage 2A introduces `2.0.0-preview.1` contracts alongside the stable v1 runtime. Nothing imports these contracts from `apps/bridge-service.ts` yet; that separation is deliberate so contract review does not change a running installation.
+Stage 2 introduces `2.0.0-preview.1` contracts on the preview branch while stable `1.x` remains on `main`. The service now starts its built-in projections through the module registry, and the Streamer.bot Core Receiver/Multi-Commands preview packages no longer expose progression identity.
 
 ## Published preview contracts
 
@@ -26,5 +26,4 @@ Alerts and reward redemptions require stable source event IDs. Capability report
 
 Stable `1.x` contracts remain unchanged during Stage 2A. `previewV2ConfigMigration()` parses a v1 configuration, returns a separately validated v2 candidate, lists excluded configuration and state paths, and never writes the source. It retains Bloom-named commands for explicit creator review instead of silently deleting them.
 
-Stage 2B must archive excluded configuration and state before runtime wiring changes. Stage 2C will connect these contracts to the module registry. No preview contract should be advertised as runtime-active before those gates pass.
-
+Stage 2B archived excluded source, packages, tests, scripts, documentation, and Bloom assets. Legacy configuration keys load safely but are not reactivated; the migration preview enumerates their preserved state paths and retains creator Bloom commands for review. Stage 2C connected the built-in projections to the registry with dependency ordering, health reporting, and failure isolation. See [Stage 2 completion](stage-2-completion.md).

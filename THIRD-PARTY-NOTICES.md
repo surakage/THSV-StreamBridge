@@ -2,7 +2,7 @@
 
 ## Bloom companion artwork
 
-The Bloom companion sprite source images were generated with OpenAI's built-in image-generation service and then materially edited, chroma-keyed, cleaned, registered, composited, and normalized for THSV StreamBridge. The generated and edited Bloom assets are identified in `prototypes/bloom-animation-preview/ASSET-PROMPTS.md`, `prototypes/bloom-animation-preview/assets/`, and `overlays/browser/bloom-*.png`.
+The archived Bloom companion sprite source images were generated with OpenAI's built-in image-generation service and then materially edited, chroma-keyed, cleaned, registered, composited, and normalized for THSV StreamBridge. The generated and edited assets are preserved under `archive/future-add-ons/bloom-companion/` and are not shipped by the Stage 2 core release.
 
 OpenAI's applicable terms state that, as between the user and OpenAI and to the extent permitted by applicable law, the user owns Output, while also warning that Output may not be unique. See [OpenAI Terms of Use](https://openai.com/policies/terms-of-use/) and [OpenAI Service Terms](https://openai.com/policies/service-terms/).
 

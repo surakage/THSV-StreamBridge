@@ -29,4 +29,4 @@ Do not infer a version range from a single verified Alpha/build. When adopting a
 
 ## Optional modules
 
-The Node bridge is distributed as one service: all feature code is installed, while configuration controls which subsystems are active. Streamer.bot integration is modular. Core Receiver is required for bridge delivery; Multi-Chat, Multi-Commands, Multi-Alerts, Speaker Orchestration, Multi-Timed Actions, Viewer Progression, Bloom Companion, native platform intake, and TikFinity intake are separate packages that creators import only when needed.
+The Node bridge is distributed as one modular service. Streamer.bot integration is also modular: Core Receiver is required for bridge delivery; Multi-Chat, Multi-Commands, Multi-Alerts, Multi-Timed Actions, native platform intake, and TikFinity intake are separate packages creators import only when needed. Speaker Orchestration, Viewer Progression, and Bloom Companion are archived future add-on candidates and are not shipped or loaded by Stage 2 core.

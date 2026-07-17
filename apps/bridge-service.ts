@@ -7,11 +7,7 @@ import { StructuredLogger } from '../bridge/services/logger.js';
 import { FileDeduplicationStore, NoopDeduplicationStore } from '../bridge/services/deduplication-store.js';
 import { resolveControlToken } from '../bridge/services/control-token.js';
 import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
-import { ViewerProgressionEngine } from '../bridge/core/viewer-progression.js';
-import { FileViewerProgressionStore } from '../bridge/services/viewer-progression-store.js';
-import { FileViewerLinkStore } from '../bridge/services/viewer-link-store.js';
-import { CompanionEngine } from '../bridge/core/companion.js';
-import { FileCompanionStore } from '../bridge/services/companion-store.js';
+import { createBuiltinModuleRegistry } from '../bridge/core/builtin-modules.js';
 
 const configPath = process.env['THSV_STREAMBRIDGE_CONFIG'] ?? 'config/bridge.example.json';
 const config = await loadConfig(configPath);
@@ -25,9 +21,8 @@ const deduplicationStore = config.deduplication.persistAcrossRestarts
 const controlToken = await resolveControlToken(config.security.controlTokenEnv, config.security.controlTokenFile);
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
-const viewerProgression = new ViewerProgressionEngine(config.viewerIdentity, new FileViewerProgressionStore(config.viewerIdentity.stateFile));
-const companion = new CompanionEngine(config.companion, new FileCompanionStore(config.companion.stateFile), viewerProgression);
-const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, viewerProgression, viewerLinkStore: new FileViewerLinkStore(configPath), companion });
+const modules = createBuiltinModuleRegistry(logger);
+const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, modules });
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
 bridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;

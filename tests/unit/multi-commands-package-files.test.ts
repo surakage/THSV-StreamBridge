@@ -29,6 +29,9 @@ describe('Multi-Commands Streamer.bot package', () => {
     expect(exportedSource).toBe(reviewedSource);
     for (const argument of [...manifest.contract.requiredInputArguments, ...manifest.contract.outputArguments]) expect(reviewedSource).toContain(`"${argument}"`);
     expect(reviewedSource).toContain('eventType != "command.received"');
+    expect(manifest.version).toBe('2.0.0-preview.1');
+    expect(reviewedSource).not.toContain('ViewerId');
+    expect(manifest.contract.outputArguments).not.toContain('multiCommandViewerId');
     expect(reviewedSource).not.toContain('CPH.SetGlobalVar');
     expect(reviewedSource).not.toContain('CPH.RunAction');
     expect(reviewedSource).not.toMatch(/Process\.Start|PowerShell|cmd\.exe/);
