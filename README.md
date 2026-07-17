@@ -159,8 +159,10 @@ See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [arch
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 
-Latest stable release: [THSV StreamBridge v1.0.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v1.0.0).
+Latest stable release: [THSV StreamBridge v1.0.1](https://github.com/surakage/THSV-StreamBridge/releases/tag/v1.0.1).
 
 ## License
 
 THSV StreamBridge is open-source software licensed under the [MIT License](LICENSE).
+
+Bloom asset provenance and production dependency licenses are documented in [Asset and third-party notices](THIRD-PARTY-NOTICES.md).

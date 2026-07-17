@@ -38,6 +38,10 @@ Run the newer extracted release's `install-release.ps1` against the existing ins
 
 If the final directory swap fails, the installer restores the previous installation. A release never imports `.env`, runtime data, credentials, or state from its archive.
 
+### Downgrades
+
+The installer refuses to replace a newer installed SemVer with an older release because older code may not understand newer state schemas. If a downgrade is deliberately required, first make and retain an external copy of the entire `data` directory, review the target release's state compatibility, and then pass `-AllowDowngrade`. This explicit switch removes the version guard; it does not migrate newer state backward.
+
 ## Uninstall
 
 Run the installed script:
@@ -53,3 +57,5 @@ Uninstall preserves the complete `data` directory by default. Use `-RemoveUserDa
 The archive is not a claim that every platform transport is production-complete. Twitch, YouTube, and Kick intake currently depends on the verified Streamer.bot relay package; TikTok/TikFinity provenance limitations remain documented. Facebook is not supported. Review [integration assumptions](integration-assumptions.md) before enabling progression, financial alerts, or speech.
 
 THSV StreamBridge is distributed under the permissive MIT License. Every public archive includes the license text. The final release candidate must still pass installation, upgrade, uninstall, checksum, secret-scan, and live-service acceptance before publication.
+
+See [Asset and third-party notices](../THIRD-PARTY-NOTICES.md) for Bloom image-generation provenance, the scope of the project's asset license, and direct production dependency licenses.

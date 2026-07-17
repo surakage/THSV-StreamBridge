@@ -28,6 +28,9 @@ describe('public release scripts', () => {
     expect(source).toContain("Copy-Item -LiteralPath $existingData -Destination $stage -Recurse -Force");
     expect(source).toContain("Move-Item -LiteralPath $destination -Destination $rollback");
     expect(source).toContain("Move-Item -LiteralPath $rollback -Destination $destination");
+    expect(source).toContain('[switch]$AllowDowngrade');
+    expect(source).toContain('Compare-SemVer');
+    expect(source).toContain('Refusing to downgrade THSV StreamBridge');
     expect(source).not.toMatch(/Invoke-Expression|Start-Process|DownloadString|WebClient/u);
   });
 
@@ -45,5 +48,17 @@ describe('public release scripts', () => {
     expect(source).toContain('ContentType \'application/json\'');
     expect(source).toContain('$BaseUrl/simulate');
     expect(source).not.toMatch(/tsx|node_modules|npm /u);
+  });
+
+  it('packages asset provenance and direct dependency notices', async () => {
+    const packageSource = await readFile('scripts/package-release.ps1', 'utf8');
+    const notices = await readFile('THIRD-PARTY-NOTICES.md', 'utf8');
+    expect(packageSource).toContain("'THIRD-PARTY-NOTICES.md'");
+    expect(packageSource).toContain("Where-Object Name -eq '__pycache__'");
+    expect(packageSource).toContain("Where-Object Extension -in @('.pyc', '.pyo')");
+    expect(notices).toContain("OpenAI's built-in image-generation service");
+    expect(notices).toContain('To the extent the THSV StreamBridge owner holds copyright or other licensable rights');
+    expect(notices).toContain('| `ws` | `8.21.1` | MIT |');
+    expect(notices).toContain('| `zod` | `4.4.3` | MIT |');
   });
 });

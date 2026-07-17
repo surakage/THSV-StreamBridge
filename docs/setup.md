@@ -13,6 +13,12 @@ These steps are for a source checkout. Public release users should follow the [I
 
 All scripts resolve the repository from `$PSScriptRoot`, so drive letters and spaces are supported.
 
+## Platform support
+
+Twitch, YouTube, and Kick use the included Streamer.bot native relay package; they are not direct platform API adapters. TikTok uses the TikFinity relay with conservative simulated/unverified provenance until live identity behavior is verified. Facebook is not supported. Review the consolidated [compatibility and platform matrix](compatibility.md) before importing packages or enabling progression, financial alerts, or speech.
+
+The bridge installs as one service and unused features remain inert through configuration. Streamer.bot feature packages are separate and may be imported only when needed.
+
 ## Local files
 
 - Runtime PID: `data/runtime/streambridge.pid`

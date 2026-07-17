@@ -1,6 +1,6 @@
 {
   "name": "@thsv/streambridge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "license": "MIT",
   "description": "A modular, local-first cross-platform livestream automation framework",

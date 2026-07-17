@@ -44,7 +44,7 @@ Completed in `0.12.0`, animation-hardened in `0.12.1`, and acceptance-finalized 
 
 ## Milestone 11: Installer and Public Release
 
-Completed in `1.0.0`. Versioned archives carry a per-file SHA-256 manifest and an adjacent archive checksum. The Windows installer verifies the release before staging production dependencies, preserves all creator data during upgrades, rolls back a failed final swap, and supports paths containing spaces. Uninstall preserves creator data unless full removal is explicitly requested. The project is open source under the MIT License, and the first stable GitHub release uses the owner-approved `v1.0.0` version.
+Completed in `1.0.0` and focused-review hardened in `1.0.1`. Versioned archives carry a per-file SHA-256 manifest and an adjacent archive checksum. The Windows installer verifies the release before staging production dependencies, preserves all creator data during upgrades, refuses older versions unless the creator explicitly allows a downgrade, rolls back a failed final swap, and supports paths containing spaces. Uninstall preserves creator data unless full removal is explicitly requested. The project is open source under the MIT License; asset and direct-production-dependency notices are published with the archive, and the compatibility matrix separates verified hosts, relay-based integrations, and unsupported platforms.
 
 ## Carried requirements
 

@@ -3,6 +3,7 @@ param(
     [string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'THSV StreamBridge'),
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
     [switch]$SkipDependencyInstall,
+    [switch]$AllowDowngrade,
     [switch]$StartBridge
 )
 
@@ -41,6 +42,51 @@ function Remove-SafeTree([string]$Path, [string]$ParentRoot) {
     Remove-Item -LiteralPath $resolved -Recurse -Force
 }
 
+function Convert-SemVer([string]$Value) {
+    $match = [regex]::Match($Value, '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$')
+    if (-not $match.Success) { throw "Release version is not valid SemVer: $Value" }
+    return [pscustomobject]@{
+        Major = [long]$match.Groups[1].Value
+        Minor = [long]$match.Groups[2].Value
+        Patch = [long]$match.Groups[3].Value
+        Prerelease = $match.Groups[4].Value
+    }
+}
+
+function Compare-SemVer([string]$Left, [string]$Right) {
+    $leftVersion = Convert-SemVer $Left
+    $rightVersion = Convert-SemVer $Right
+    foreach ($part in @('Major', 'Minor', 'Patch')) {
+        if ($leftVersion.$part -lt $rightVersion.$part) { return -1 }
+        if ($leftVersion.$part -gt $rightVersion.$part) { return 1 }
+    }
+    if ($leftVersion.Prerelease -eq $rightVersion.Prerelease) { return 0 }
+    if ([string]::IsNullOrEmpty($leftVersion.Prerelease)) { return 1 }
+    if ([string]::IsNullOrEmpty($rightVersion.Prerelease)) { return -1 }
+    $leftParts = $leftVersion.Prerelease.Split('.')
+    $rightParts = $rightVersion.Prerelease.Split('.')
+    $count = [Math]::Max($leftParts.Count, $rightParts.Count)
+    for ($index = 0; $index -lt $count; $index++) {
+        if ($index -ge $leftParts.Count) { return -1 }
+        if ($index -ge $rightParts.Count) { return 1 }
+        $leftNumeric = $leftParts[$index] -match '^\d+$'
+        $rightNumeric = $rightParts[$index] -match '^\d+$'
+        if ($leftNumeric -and $rightNumeric) {
+            $leftNumber = [long]$leftParts[$index]
+            $rightNumber = [long]$rightParts[$index]
+            if ($leftNumber -lt $rightNumber) { return -1 }
+            if ($leftNumber -gt $rightNumber) { return 1 }
+        } elseif ($leftNumeric) { return -1 }
+        elseif ($rightNumeric) { return 1 }
+        else {
+            $comparison = [string]::CompareOrdinal($leftParts[$index], $rightParts[$index])
+            if ($comparison -lt 0) { return -1 }
+            if ($comparison -gt 0) { return 1 }
+        }
+    }
+    return 0
+}
+
 $source = Resolve-SafeRoot $SourceRoot 'source'
 $destination = Resolve-SafeRoot $InstallRoot 'installation'
 if ($source -eq $destination) { throw 'Install from an extracted release directory into a different installation directory.' }
@@ -52,6 +98,17 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 if ($manifest.product -ne 'THSV StreamBridge' -or [string]::IsNullOrWhiteSpace($manifest.version) -or $null -eq $manifest.files) {
     throw 'The release manifest is invalid or belongs to another product.'
+}
+
+$existingRecordPath = Join-Path $destination 'data\runtime\install-manifest.json'
+if (Test-Path -LiteralPath $existingRecordPath -PathType Leaf) {
+    $existingRecord = Get-Content -Raw -LiteralPath $existingRecordPath | ConvertFrom-Json
+    if ($existingRecord.product -ne 'THSV StreamBridge' -or [string]::IsNullOrWhiteSpace($existingRecord.version)) {
+        throw "The existing installation record is invalid: $existingRecordPath"
+    }
+    if ((Compare-SemVer ([string]$manifest.version) ([string]$existingRecord.version)) -lt 0 -and -not $AllowDowngrade) {
+        throw "Refusing to downgrade THSV StreamBridge from $($existingRecord.version) to $($manifest.version). Older code may not understand newer state. Back up the installation and pass -AllowDowngrade only when this is intentional."
+    }
 }
 
 foreach ($file in $manifest.files) {

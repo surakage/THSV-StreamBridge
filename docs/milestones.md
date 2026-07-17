@@ -347,13 +347,14 @@ Automated evidence:
 
 ## Milestone 11 — Installer and Public Release
 
-Status: **Complete** — accepted for stable open-source publication as bridge `1.0.0` on July 17, 2026 under the MIT License.
+Status: **Complete and review-hardened** — accepted for stable open-source publication as bridge `1.0.0` on July 17, 2026 under the MIT License, then hardened for the `1.0.1` maintenance release.
 
 - [x] A versioned Windows archive contains compiled runtime files, documentation, and every current Streamer.bot package.
 - [x] Every release file is listed with its size and SHA-256 hash in `release-manifest.json`.
 - [x] An adjacent `.sha256` file authenticates the complete release archive.
 - [x] Release packaging rejects local configuration, control tokens, PID files, state, logs, and backups.
 - [x] The installer validates every packaged file before changing an installation.
+- [x] The installer refuses SemVer downgrades before staging or changing an installation unless `-AllowDowngrade` is supplied explicitly.
 - [x] The installer supports safe custom paths containing spaces and checks for Node.js 22 or later.
 - [x] Production dependencies install in a staging directory before the final installation swap.
 - [x] First install creates a creator-local configuration without overwriting the example.
@@ -362,6 +363,8 @@ Status: **Complete** — accepted for stable open-source publication as bridge `
 - [x] Uninstall preserves creator data by default and removes it only with an explicit destructive switch.
 - [x] Automated Windows tests cover install, upgrade, tamper rejection, data preservation, uninstall, and full removal.
 - [x] Documentation states prerequisites, verified app versions, platform limitations, checksum verification, upgrade, and uninstall behavior.
+- [x] A compatibility matrix distinguishes exact verified hosts, relay-based platform support, unverified provenance, and unsupported Facebook integration.
+- [x] Release notices document Bloom's AI-generation provenance, qualified redistribution boundary, trademark boundary, and direct production dependency licenses.
 - [x] Replace the placeholder license with the owner-approved MIT License and declare SPDX identifier `MIT` in package metadata.
 - [x] Build the stable `1.0.0` archive and verify its manifest, checksum, and secret scan.
 - [x] Install the archive with production dependencies into a clean temporary path and verify start, health/readiness, simulation, stop, upgrade preservation, and uninstall.
@@ -370,6 +373,7 @@ Status: **Complete** — accepted for stable open-source publication as bridge `
 Release-candidate evidence:
 
 - The stable open-source packaging gate passes the full automated suite, build, lint, typecheck, and configuration validation.
+- Focused-review coverage verifies an older SemVer is rejected without touching the installed application, while the explicit downgrade escape hatch preserves creator data.
 - `THSV-StreamBridge-1.0.0.zip` includes a hashed MIT License and all 13 Streamer.bot exports. Its adjacent `.sha256` download is the authoritative archive checksum.
 - The staging secret scan found zero local configurations, control tokens, PID files, state files, logs, or backups.
 - Clean extracted release-candidate and stable-package installs installed only the two production packages with zero reported vulnerabilities.

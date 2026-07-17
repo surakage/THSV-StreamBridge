@@ -27,13 +27,19 @@ try {
     Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $checksum -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Path $staging | Out-Null
-    @('apps','bridge','dist','config','docs','overlays','schemas','scripts','tests','tools','package.json','package-lock.json','tsconfig.json','tsconfig.build.json','vitest.config.ts','eslint.config.mjs','README.md','CHANGELOG.md','LICENSE','.env.example','.gitignore','.gitattributes') | ForEach-Object {
+    @('apps','bridge','dist','config','docs','overlays','schemas','scripts','tests','tools','package.json','package-lock.json','tsconfig.json','tsconfig.build.json','vitest.config.ts','eslint.config.mjs','README.md','CHANGELOG.md','LICENSE','THIRD-PARTY-NOTICES.md','.env.example','.gitignore','.gitattributes') | ForEach-Object {
         Copy-Item -LiteralPath (Join-Path $repo $_) -Destination $staging -Recurse
     }
     @('data\runtime','data\state','data\logs','data\backups','packages') | ForEach-Object {
         New-Item -ItemType Directory -Path (Join-Path $staging $_) -Force | Out-Null
     }
     Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot') -Destination (Join-Path $staging 'packages\streamerbot') -Recurse
+    Get-ChildItem -LiteralPath $staging -Directory -Recurse -Force |
+        Where-Object Name -eq '__pycache__' |
+        Remove-Item -Recurse -Force
+    Get-ChildItem -LiteralPath $staging -File -Recurse -Force |
+        Where-Object Extension -in @('.pyc', '.pyo') |
+        Remove-Item -Force
     $forbiddenReleaseFiles = Get-ChildItem -LiteralPath $staging -File -Recurse | Where-Object {
         $_.Name -in @('.env', 'bridge.local.json', 'control-token', 'streambridge.pid') -or
         $_.FullName -match '[\\/]data[\\/](state|logs|backups)[\\/].+'

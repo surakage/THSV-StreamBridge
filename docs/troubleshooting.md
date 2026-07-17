@@ -1,5 +1,9 @@
 # Troubleshooting
 
+## Confirm support before debugging
+
+Facebook is not supported. Twitch, YouTube, and Kick require the included Streamer.bot relay setup, and TikTok/TikFinity retains documented provenance limitations. Check the [compatibility and platform matrix](compatibility.md) before treating an unsupported or unverified transport as an installation failure.
+
 ## Startup reports a port conflict
 
 Another process owns the configured diagnostics port. Run `Get-NetTCPConnection -LocalPort 8787` or change `service.port`.

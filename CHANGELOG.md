@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-07-17
+
+### Added
+
+- Explicit SemVer downgrade protection with an intentional `-AllowDowngrade` escape hatch and backward-state warning.
+- Bloom image-generation provenance, asset-license scope, trademark boundary, and direct production dependency notices.
+- A centralized compatibility and platform-support matrix linked from first-run and troubleshooting documentation.
+
+### Changed
+
+- Release packaging now includes `THIRD-PARTY-NOTICES.md` and tests its presence.
+
 ## [1.0.0] - 2026-07-17
 
 ### Added
