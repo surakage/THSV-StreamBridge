@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 interface PackageManifest {
   readonly name: string;
   readonly version: string;
+  readonly author: string;
+  readonly description: string;
   readonly action: { readonly name: string; readonly group: string; readonly source: string; readonly importFile: string };
   readonly contract: { readonly requiredOutputArguments: readonly string[] };
 }
@@ -16,7 +18,7 @@ interface ExportSubAction {
 }
 
 interface StreamerBotExport {
-  readonly meta: { readonly name: string; readonly version: string };
+  readonly meta: { readonly name: string; readonly version: string; readonly author: string; readonly description: string };
   readonly data: {
     readonly actions: readonly [{
       readonly name: string;
@@ -38,7 +40,12 @@ describe('Streamer.bot package files', () => {
 
     expect(decoded.subarray(0, 4).toString('ascii')).toBe('SBAE');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as StreamerBotExport;
-    expect(exported.meta).toMatchObject({ name: manifest.name, version: manifest.version });
+    expect(exported.meta).toMatchObject({
+      name: manifest.name,
+      version: manifest.version,
+      author: manifest.author,
+      description: manifest.description,
+    });
     expect(exported.data.actions).toHaveLength(1);
 
     const action = exported.data.actions[0];
