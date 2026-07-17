@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [0.13.0] - 2026-07-17
+## [1.0.0] - 2026-07-17
 
 ### Added
 
@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Public release documentation now distinguishes source setup from archive installation and states the license and production-transport publication boundaries.
 - The project is now licensed as open-source software under the MIT License.
+- The accepted release candidate is promoted to the first stable public release.
 
 ## [0.12.2] - 2026-07-17
 
