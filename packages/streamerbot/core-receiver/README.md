@@ -2,7 +2,7 @@
 
 This is the portable Streamer.bot package foundation for THSV StreamBridge. It contains one platform-neutral action named `THSV StreamBridge - Receive Event` in the `THSV StreamBridge` group.
 
-The action validates the normalized event envelope supplied in `streamBridgeEvent`, rejects malformed or unsupported events without logging raw payloads, and exposes the stable `streamBridge*` argument contract documented in `manifest.json`. The JSON envelope is the only wire-level source of truth; every derived output is cleared before validation and populated only after validation succeeds. Later StreamBridge packages consume these arguments instead of depending on Twitch, YouTube, Kick, TikTok, or Facebook payload shapes.
+The action validates the normalized event envelope supplied in `streamBridgeEvent`, rejects malformed or unsupported events without logging raw payloads, and exposes the stable `streamBridge*` argument contract documented in `manifest.json`. The JSON envelope is the only wire-level source of truth; every derived output is cleared before validation and populated only after validation succeeds. Later StreamBridge packages consume these arguments instead of depending on Twitch, YouTube, Kick, or TikTok payload shapes.
 
 ## Install
 

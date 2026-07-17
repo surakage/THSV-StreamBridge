@@ -4,7 +4,7 @@ Run the complete deterministic suite with `scripts\test.ps1`.
 
 Individual checks are `npm run lint`, `npm run typecheck`, `npm run test:unit`, `npm run test:integration`, `npm run build`, and `npm run config:validate`.
 
-Fixtures cover Twitch, YouTube, Kick, TikTok through explicitly unverified TikFinity-shaped examples, and Facebook. The suite includes ingress security, queue pressure, delivery health, persistence failure, lifecycle, registry, logging, and adapter tests. Tests require no credentials, accounts, live streams, or running Streamer.bot instance.
+Fixtures cover Twitch, YouTube, Kick, and TikTok through explicitly unverified TikFinity-shaped examples. The suite includes ingress security, queue pressure, delivery health, persistence failure, lifecycle, registry, logging, and adapter tests. Tests require no credentials, accounts, live streams, or running Streamer.bot instance.
 
 The simulator defaults to `tests/fixtures/twitch-chat.json`. Provide another fixture with `npm run simulate -- <path>`.
 
@@ -15,7 +15,6 @@ npm run simulate -- tests/fixtures/twitch-chat.json
 npm run simulate -- tests/fixtures/youtube-chat.json
 npm run simulate -- tests/fixtures/kick-chat.json
 npm run simulate -- tests/fixtures/tiktok-tikfinity-chat.json
-npm run simulate -- tests/fixtures/facebook-chat.json
 ```
 
 With live Streamer.bot delivery configured, each receiver action must run Multi-Chat immediately and expose the same `multiChat*` output contract. Fixture fields prove framework routing only; they are not claims about production platform transports.
@@ -27,7 +26,6 @@ npm run simulate -- tests/fixtures/twitch-command.json
 npm run simulate -- tests/fixtures/youtube-command.json
 npm run simulate -- tests/fixtures/kick-command.json
 npm run simulate -- tests/fixtures/tiktok-tikfinity-command.json
-npm run simulate -- tests/fixtures/facebook-command.json
 ```
 
 Each receiver action should run Multi-Commands immediately. The fixtures expose canonical command `shoutout`, invoked alias `so`, one plain-string argument, moderator minimum role, and an authorized result. Private and operator command types deliberately bypass this public package.
@@ -41,7 +39,6 @@ npm run simulate -- tests/fixtures/twitch-follow.json
 npm run simulate -- tests/fixtures/youtube-super-chat.json
 npm run simulate -- tests/fixtures/kick-follow.json
 npm run simulate -- tests/fixtures/tiktok-tikfinity-gift.json
-npm run simulate -- tests/fixtures/facebook-donation.json
 npm run simulate -- tests/fixtures/tiktok-tikfinity-like.json
 ```
 

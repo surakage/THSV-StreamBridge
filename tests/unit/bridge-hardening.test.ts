@@ -68,6 +68,7 @@ describe('StreamBridge hardening', () => {
     const twitch = config.platforms['twitch'];
     if (twitch === undefined) throw new Error('Missing Twitch test configuration');
     twitch.enabled = true;
+    twitch.adapter = 'twitch-placeholder';
     const bridge = createTestBridge(config);
     await bridge.start();
     expect(bridge.readiness()).toMatchObject({ ready: false, status: 'not-ready' });

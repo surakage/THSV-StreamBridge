@@ -9,7 +9,7 @@
 - Core receiver package `1.0.2` compiles with Streamer.bot's bundled CPH API and default Newtonsoft.Json/JObject C# reference in `1.0.5-alpha.31` without adding `System.Core`.
 - Package patch releases `1.0.3`/`1.1.1`/`1.0.1` export the stateless receiver and feature actions on Streamer.bot's Default queue with concurrent execution enabled. Automated export-integrity tests verify the setting. An equivalent installed configuration completed a 25-event live burst in Streamer.bot `1.0.5-alpha.31`; action-history entries started in the same second, all 25 deliveries completed, and none failed.
 - Streamer.bot `Run Action Immediately` passes the receiver-populated argument stack into the Multi-Chat action in `1.0.5-alpha.31`.
-- Multi-Chat package `1.1.0` compiles and produces its declared output contract for live simulated Twitch, YouTube, Kick, TikTok, and Facebook chat events.
+- Multi-Chat package `1.1.0` compiles and produces its declared output contract for live simulated Twitch, YouTube, Kick, and TikTok chat events.
 - Live review probes verified public message identity/time/sequence, bot provenance, and private-message bypass through the inline receiver-to-Multi-Chat action chain.
 - Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` import with populated author/description metadata in Streamer.bot `1.0.5-alpha.31`. A rebuilt immediate receiver chain completed both a linked simulated Twitch chat and its derived progression delivery; the source envelope exposed the bridge-resolved viewer ID and receiver contract `1.2.0`.
 - Streamer.bot `1.0.5-alpha.31` currently reports all eight configured connections active. Twitch has connected broadcaster and bot accounts, YouTube has connected broadcaster and bot accounts, and Kick has a linked broadcaster account. This verifies account availability for native-variable probes; it does not verify any StreamBridge production input transport.
@@ -41,6 +41,5 @@ All five first-party platform entries currently use placeholder transports. The 
 | YouTube | Placeholder | None |
 | Kick | Placeholder | None |
 | TikTok/TikFinity | Streamer.bot relay intake; simulator acceptance pending | Chat, follow, gift, and like shapes implemented but transport fields explicitly unverified |
-| Facebook | Placeholder | None |
 
 Each production adapter must replace its row with a source-backed capability matrix, stable source-ID guarantee, reconnect/replay behavior, retry policy for HTTP 429/output capacity, and unsupported-event list before it can be enabled by default.

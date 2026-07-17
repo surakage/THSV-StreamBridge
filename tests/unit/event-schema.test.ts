@@ -24,7 +24,7 @@ describe('normalized event schema', () => {
   });
 
   it('requires a stable source event ID for every public alert before deduplication', async () => {
-    const alert = await fixture('facebook-donation.json');
+    const alert = await fixture('youtube-super-chat.json');
     const source = { ...alert.source };
     delete source.eventId;
     const result = normalizedEventSchema.safeParse({ ...alert, source });

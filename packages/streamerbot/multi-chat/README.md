@@ -1,6 +1,6 @@
 # THSV StreamBridge Multi-Chat
 
-This package turns a receiver-validated `chat.message` event into one stable set of `multiChat*` arguments. It is platform-neutral: later actions consume the same values for Twitch, YouTube, Kick, TikTok, Facebook, or another registered platform.
+This package turns a receiver-validated `chat.message` event into one stable set of `multiChat*` arguments. It is platform-neutral: later actions consume the same values for Twitch, YouTube, Kick, TikTok, or another registered platform.
 
 ## Install
 
@@ -34,7 +34,7 @@ Running inline is required because Streamer.bot passes the caller's populated ar
 - Missing or non-string `payload.message` sets `multiChatValid=False` with a readable error.
 - Newlines, tabs, and control characters are normalized without damaging Unicode text or emoji.
 - A message longer than 2,000 characters is rejected.
-- Twitch, YouTube, Kick, TikTok, and Facebook fixtures produce the same output contract.
+- Twitch, YouTube, Kick, and TikTok fixtures produce the same output contract.
 - A burst test proves 100 deliveries start FIFO with the configured concurrency bound; consumers must sort by `multiChatSequence` when completion order matters.
 
 ## Uninstall

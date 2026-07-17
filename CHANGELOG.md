@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-07-16
+
+### Added
+
+- Native Streamer.bot intake actions and normalized adapters for Twitch, YouTube, and Kick chat, follow, subscription, gift, raid, cheer, and paid-message triggers.
+- Dedicated Streamer.bot action groups for Twitch, YouTube, Kick, and TikTok while reusing one authenticated WebSocket connection.
+
+### Changed
+
+- Standardized TikFinity action names under the `THSV TikTok - ...` naming scheme.
+
+### Removed
+
+- Removed Facebook from the platform schema, configuration, fixtures, documentation, and test matrix because it is no longer an implementation target.
+
 ## [0.10.3] - 2026-07-16
 
 ### Fixed
@@ -232,7 +247,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Platform-neutral Multi-Chat projection contract for Twitch, YouTube, Kick, TikTok, Facebook, and future registered platforms.
+- Platform-neutral Multi-Chat projection contract for Twitch, YouTube, Kick, TikTok, and future registered platforms.
 - Versioned `THSV StreamBridge - Multi-Chat` Streamer.bot package with reviewed C# source and reproducible import generation.
 - Plain-text normalization, message-length validation, user-role flags, defensive argument initialization, and readable feature-level errors.
 - Offline chat fixtures for all five planned platforms plus unit and package-integrity coverage.

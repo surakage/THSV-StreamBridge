@@ -65,10 +65,10 @@ public class CPHInline
 
     private string KindForAction(string actionName)
     {
-        if (actionName == "TikTok Chat Message") return "chat";
-        if (actionName == "TikTok Follow") return "follow";
-        if (actionName == "TikTok Gift") return "gift";
-        if (actionName == "THSV TikTok Like") return "like";
+        if (actionName == "THSV TikTok - Chat") return "chat";
+        if (actionName == "THSV TikTok - Follow") return "follow";
+        if (actionName == "THSV TikTok - Gift") return "gift";
+        if (actionName == "THSV TikTok - Like") return "like";
         return null;
     }
 }

@@ -21,7 +21,6 @@ describe('Multi-Commands contract', () => {
     ['youtube-command.json', 'youtube'],
     ['kick-command.json', 'kick'],
     ['tiktok-tikfinity-command.json', 'tiktok'],
-    ['facebook-command.json', 'facebook'],
   ])('projects %s into one platform-neutral contract', async (fixtureName, platform) => {
     const command = projectMultiCommand(await commandFixture(fixtureName));
     expect(command).toMatchObject({ contractVersion: '1.1.0', platform, visibility: 'public', command: 'shoutout', invokedAs: 'so', isAlias: true });
@@ -61,7 +60,6 @@ describe('Multi-Commands contract', () => {
     ['youtube-chat.json', 'youtube'],
     ['kick-chat.json', 'kick'],
     ['tiktok-tikfinity-chat.json', 'tiktok'],
-    ['facebook-chat.json', 'facebook'],
   ])('uses the same central tokenizer for raw %s command chat', async (fixtureName, platform) => {
     const chat = normalizedEventSchema.parse(await fixture(fixtureName));
     const derived = deriveCommandEvent(

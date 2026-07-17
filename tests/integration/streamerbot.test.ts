@@ -99,12 +99,14 @@ describe('Streamer.bot adapter', () => {
         socket.send(JSON.stringify({ id: request.id, status: 'ok', events: request.events }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'unrelated' } }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.tikfinity', version: '1.0.0', kind: 'follow' } }));
+        socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.platform', version: '1.0.0', platform: 'twitch' } }));
       });
     });
     await adapter.start();
-    await expect.poll(() => received.length).toBe(1);
+    await expect.poll(() => received.length).toBe(2);
     expect(subscription?.events?.General).toEqual(['Custom']);
     expect(received[0]).toMatchObject({ type: 'thsv.tikfinity', kind: 'follow' });
+    expect(received[1]).toMatchObject({ type: 'thsv.platform', platform: 'twitch' });
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });

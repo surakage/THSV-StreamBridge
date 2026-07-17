@@ -51,7 +51,7 @@ describe('OutputDeliveryManager', () => {
     manager.enqueue(await fixture('kick-follow.json'));
     await expect.poll(() => manager.ready()).toBe(false);
     output.deliverImpl = () => Promise.resolve();
-    manager.enqueue(await fixture('facebook-donation.json'));
+    manager.enqueue(await fixture('youtube-super-chat.json'));
     await expect.poll(() => manager.ready()).toBe(true);
     await manager.stop();
   });

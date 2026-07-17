@@ -38,7 +38,7 @@ Multi-Chat adds:
 - One platform-neutral chat projection for every supported normalized `chat.message` event
 - A portable `THSV StreamBridge - Multi-Chat` Streamer.bot action package
 - Validated plain-text messages, consistent user identity and role flags, and safe non-chat handling
-- Deterministic offline fixtures for Twitch, YouTube, Kick, TikTok, and Facebook
+- Deterministic offline fixtures for Twitch, YouTube, Kick, and TikTok
 
 Import the package and follow the inline action-chain instructions in the [Multi-Chat package guide](packages/streamerbot/multi-chat/README.md). Production platform transports remain deferred; these fixtures prove the shared contract without claiming live platform API support.
 
@@ -51,7 +51,7 @@ Multi-Commands adds:
 - Portable viewer, subscriber/member, moderator, broadcaster, and bot authorization policy
 - A public command boundary that excludes private and operator commands
 - A versioned `THSV StreamBridge - Multi-Commands` Streamer.bot package
-- Offline command fixtures for Twitch, YouTube, Kick, TikTok, and Facebook
+- Offline command fixtures for Twitch, YouTube, Kick, and TikTok
 
 Import the package and follow the inline action-chain instructions in the [Multi-Commands package guide](packages/streamerbot/multi-commands/README.md). Command arguments remain inert data; Streamer.bot creator actions decide what authorized commands do.
 
@@ -113,6 +113,10 @@ Identity and progression are disabled by default. Configure them using the [View
 Bridge `0.10.2` adds a reviewed TikFinity-to-Streamer.bot intake for TikTok chat, follows, gifts, and likes. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.0.0.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
 
 TikFinity does not currently document a stable source-event ID or reliable simulator marker. Intake events therefore expose those limitations explicitly and default to simulated until live provenance is verified; do not use them for production progression or financial statistics yet.
+
+## Native Streamer.bot platform intake
+
+Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection and preserve Streamer.bot's test-event provenance.
 
 ## Requirements
 

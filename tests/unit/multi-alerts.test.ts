@@ -14,7 +14,6 @@ describe('Multi-Alerts contract', () => {
     ['youtube-super-chat.json', 'youtube', 'super-chat'],
     ['kick-follow.json', 'kick', 'follow'],
     ['tiktok-tikfinity-gift.json', 'tiktok', 'gift'],
-    ['facebook-donation.json', 'facebook', 'donation'],
   ])('projects %s into one platform-neutral contract', async (fixtureName, platform, alertType) => {
     const alert = projectMultiAlert(await alertFixture(fixtureName));
     expect(alert).toMatchObject({ contractVersion: '1.0.0', sequence: 1, visibility: 'public', platform, alertType, simulated: true });

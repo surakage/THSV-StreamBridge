@@ -187,7 +187,7 @@ export class StreamerBotAdapter {
         else pending.reject(new Error(`Streamer.bot request ${message.id} failed`));
       }
     }
-    const relayMessage = extractTikfinityRelay(message);
+    const relayMessage = extractInboundRelay(message);
     if (relayMessage !== undefined) this.eventRelay?.publish(relayMessage);
   }
 
@@ -247,11 +247,13 @@ function decodeMessage(data: WebSocket.RawData): string {
   return Buffer.from(data).toString('utf8');
 }
 
-function extractTikfinityRelay(message: StreamerBotMessage & Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
-  if (message['type'] === 'thsv.tikfinity') return message;
+function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
+  if (isSupportedRelay(message)) return message;
   if (message.event?.source !== 'General' || message.event.type !== 'Custom' || !isRecord(message.data)) return undefined;
-  return message.data['type'] === 'thsv.tikfinity' ? message.data : undefined;
+  return isSupportedRelay(message.data) ? message.data : undefined;
 }
+
+function isSupportedRelay(value: Readonly<Record<string, unknown>>): boolean { return value['type'] === 'thsv.tikfinity' || value['type'] === 'thsv.platform'; }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

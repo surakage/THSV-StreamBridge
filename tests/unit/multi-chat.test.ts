@@ -14,7 +14,6 @@ describe('Multi-Chat contract', () => {
     ['youtube-chat.json', 'youtube'],
     ['kick-chat.json', 'kick'],
     ['tiktok-tikfinity-chat.json', 'tiktok'],
-    ['facebook-chat.json', 'facebook'],
   ])('projects %s into one platform-neutral contract', async (fixtureName, platform) => {
     const projected = projectMultiChatMessage(await chatFixture(fixtureName));
     expect(projected).toMatchObject({ contractVersion: '1.1.0', sequence: 1, visibility: 'public', platform, simulated: true });

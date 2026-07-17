@@ -5,7 +5,6 @@ export const STANDARD_PLATFORM_VALUES = [
   'youtube',
   'kick',
   'tiktok',
-  'facebook',
   'streamerbot',
   'system',
 ] as const;

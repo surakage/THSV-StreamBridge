@@ -13,7 +13,7 @@ Status: **Complete** — verified on July 15, 2026 against version `0.2.0` and i
 - [x] The event validator accepts valid normalized events.
 - [x] Invalid events are rejected with a readable HTTP 400 error.
 - [x] Duplicate event IDs are accepted once and ignored on subsequent ingestion.
-- [x] Simulated Twitch, YouTube, Kick, TikTok, and Facebook events can be generated.
+- [x] Simulated Twitch, YouTube, Kick, and TikTok events can be generated.
 - [x] Valid events are forwarded to the Streamer.bot test action.
 - [x] Runtime activity uses structured, redacted JSON logs.
 - [x] No credential-like secrets are committed; runtime credentials and control tokens are ignored.
@@ -85,7 +85,7 @@ Status: **Complete and review-hardened** — verified on July 16, 2026 against b
 - [x] Non-chat events bypass Multi-Chat without failing the receiver.
 - [x] A portable Streamer.bot Multi-Chat action, manifest, reviewed C# source, and reproducible import are tracked.
 - [x] The package consumes only receiver-validated arguments and creates no globals, files, triggers, or platform output.
-- [x] Twitch, YouTube, Kick, TikTok, and Facebook offline chat fixtures produce the same contract.
+- [x] Twitch, YouTube, Kick, and TikTok offline chat fixtures produce the same contract.
 - [x] Unit and package-integrity tests cover valid, invalid, non-chat, Unicode, role, and export cases.
 - [x] Streamer.bot compiles the imported C# action and an inline receiver invocation exposes verified `multiChat*` values.
 - [x] Installed output exposes event ID, receive timestamp, bridge sequence, public visibility, and actor provenance.
@@ -97,8 +97,7 @@ Verification evidence:
 
 - `scripts\package-release.ps1`: clean build, lint, typecheck, configuration validation, 21 test files, and 61 tests passed.
 - Package import: Streamer.bot accepted `THSV StreamBridge - Multi-Chat` and the receiver runs it immediately after successful envelope validation.
-- Five-platform matrix: Twitch, YouTube, Kick, TikTok, and Facebook fixtures were accepted as new events and delivered to five completed receiver runs with 42 variables each.
-- Facebook live output: `multiChatHandled=True`, `multiChatValid=True`, contract/package `1.0.0`, platform `facebook`, the expected viewer identity, and the expected normalized message.
+- Four-platform matrix: Twitch, YouTube, Kick, and TikTok fixtures were accepted as new events and delivered to completed receiver runs with 42 variables each.
 - Kick live output: platform `kick`, role array `["moderator"]`, expected normalized message, and `multiChatIsModerator=True`.
 - Lifecycle check: the bridge reported `healthy`/`ready` during the matrix and stopped successfully afterward.
 - Review hardening: receiver `1.0.2` compiled successfully after removing an unnecessary `System.Core` dependency exposed by live Alpha compilation.
@@ -120,7 +119,7 @@ Status: **Complete and review-hardened** — verified on July 16, 2026 against b
 - [x] Public commands exclude private and operator command types.
 - [x] Command arguments remain inert data and are never evaluated or passed to a shell.
 - [x] A portable Streamer.bot Multi-Commands action, manifest, reviewed C# source, and reproducible import are tracked.
-- [x] Twitch, YouTube, Kick, TikTok, and Facebook fixtures produce the same normalized command contract.
+- [x] Twitch, YouTube, Kick, and TikTok fixtures produce the same normalized command contract.
 - [x] Automated tests cover aliases, quoting, limits, permissions, bot provenance, privacy, hostile-looking input, and export integrity.
 - [x] Streamer.bot compiles the imported C# action and a live five-platform matrix exposes verified `multiCommand*` values.
 - [x] One creator-facing prefix and collision-validated definition registry controls raw public command chat across every adapter.
@@ -133,8 +132,7 @@ Verification evidence:
 - `scripts\package-release.ps1`: clean build, lint, typecheck, configuration validation, 24 test files, and 93 tests passed.
 - Package import: Streamer.bot accepted `THSV StreamBridge - Multi-Commands`, and its reviewed C# source compiled without errors.
 - Receiver chain: Multi-Chat and Multi-Commands run immediately after the successful core receiver action, and the saved configuration persists the chain.
-- Five-platform matrix: Twitch, YouTube, Kick, TikTok, and Facebook command fixtures produced five completed receiver runs with 80 variables each.
-- Facebook live output: `multiCommandHandled=True`, `multiCommandValid=True`, contract/package `1.0.0`, public visibility, platform `facebook`, canonical command `shoutout`, invoked alias `so`, and argument `["ExampleViewer"]`.
+- Four-platform matrix: Twitch, YouTube, Kick, and TikTok command fixtures produced completed receiver runs with 80 variables each.
 - Authorization live output: moderator role, minimum role `moderator`, bots disabled, `multiCommandAuthorized=True`, and reason `authorized`.
 - Multi-Chat correctly bypassed command events with `multiChatHandled=False`, proving the package chain remains event-specific.
 - Delivery diagnostics: five events enqueued and delivered, zero failures, queue depth zero, and bridge sequence five.
@@ -164,8 +162,7 @@ Verification evidence:
 - `scripts\package-release.ps1`: clean build, lint, typecheck, configuration validation, 26 test files, and 110 tests passed.
 - Package import: Streamer.bot accepted `THSV StreamBridge - Multi-Alerts`, and its reviewed C# source compiled without errors.
 - Receiver chain: Multi-Chat, Multi-Commands, and Multi-Alerts run immediately after the successful core receiver action, and the saved configuration persists the chain.
-- Live matrix: Twitch follow, YouTube Super Chat, Kick follow, TikTok gift, Facebook donation, and TikTok milestone fixtures produced six completed receiver runs with 110 variables each.
-- Facebook donation output: `multiAlertHandled=True`, `multiAlertValid=True`, actor identity preserved, exact `multiAlertAmount=10.00`, `multiAlertCurrency=USD`, and verified transport with no unverified fields.
+- Live matrix: Twitch follow, YouTube Super Chat, Kick follow, TikTok gift, and TikTok milestone fixtures produced completed receiver runs with 110 variables each.
 - TikTok milestone output: `multiAlertMetric=likes`, `multiAlertValue=100`, no actor required, simulated provenance preserved, and TikFinity-specific uncertainty exposed through verified-transport and unverified-field outputs.
 - Delivery diagnostics: six events enqueued and delivered, zero failures, queue depth zero, and bridge sequence six.
 - Lifecycle check: bridge health/readiness remained healthy/ready during the matrix, shutdown succeeded, and port 8787 closed afterward.
