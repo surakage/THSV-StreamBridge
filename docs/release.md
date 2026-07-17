@@ -52,4 +52,4 @@ Uninstall preserves the complete `data` directory by default. Use `-RemoveUserDa
 
 The archive is not a claim that every platform transport is production-complete. Twitch, YouTube, and Kick intake currently depends on the verified Streamer.bot relay package; TikTok/TikFinity provenance limitations remain documented. Facebook is not supported. Review [integration assumptions](integration-assumptions.md) before enabling progression, financial alerts, or speech.
 
-No public release may be published until the repository owner replaces the placeholder `LICENSE` with the intended distribution terms and the final release candidate passes installation, upgrade, uninstall, checksum, secret-scan, and live-service acceptance.
+THSV StreamBridge is distributed under the permissive MIT License. Every public archive includes the license text. The final release candidate must still pass installation, upgrade, uninstall, checksum, secret-scan, and live-service acceptance before publication.

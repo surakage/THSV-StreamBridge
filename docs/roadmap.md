@@ -44,7 +44,7 @@ Completed in `0.12.0`, animation-hardened in `0.12.1`, and acceptance-finalized 
 
 ## Milestone 11: Installer and Public Release
 
-Implemented as a release candidate in `0.13.0`. Versioned archives now carry a per-file SHA-256 manifest and an adjacent archive checksum. The Windows installer verifies the release before staging production dependencies, preserves all creator data during upgrades, rolls back a failed final swap, and supports paths containing spaces. Uninstall preserves creator data unless full removal is explicitly requested. Public GitHub publication remains pending the repository owner's final license selection and clean release-candidate acceptance.
+Implemented as a release candidate in `0.13.0`. Versioned archives now carry a per-file SHA-256 manifest and an adjacent archive checksum. The Windows installer verifies the release before staging production dependencies, preserves all creator data during upgrades, rolls back a failed final swap, and supports paths containing spaces. Uninstall preserves creator data unless full removal is explicitly requested. The project owner selected the MIT License; public GitHub publication remains pending the final version choice and downloadable-artifact verification.
 
 ## Carried requirements
 
@@ -79,4 +79,4 @@ Implemented as a release candidate in `0.13.0`. Versioned archives now carry a p
 8. Browser Overlay Hub (Meld/OBS/Streamlabs) — complete and review-hardened
 9. Viewer Identity and Progression — complete and review-hardened
 10. Bloom Companion — complete and acceptance-verified
-11. Installer and Public Release — release candidate implemented; license and publication acceptance pending
+11. Installer and Public Release — release candidate implemented; version and publication acceptance pending

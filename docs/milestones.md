@@ -71,7 +71,7 @@ Verification evidence:
 - [x] Milestone 8 — Browser Overlay Hub (Meld/OBS/Streamlabs)
 - [x] Milestone 9 — Viewer Identity and Progression
 - [x] Milestone 10 — Bloom Companion
-- [ ] Milestone 11 — Installer and Public Release (release candidate implemented; license and publication acceptance pending)
+- [ ] Milestone 11 — Installer and Public Release (release candidate implemented; version and publication acceptance pending)
 
 ## Milestone 3 — Multi-Chat
 
@@ -347,7 +347,7 @@ Automated evidence:
 
 ## Milestone 11 — Installer and Public Release
 
-Status: **Release candidate implemented; final acceptance pending** — automated against bridge `0.13.0` on July 17, 2026. Public publication is blocked until final distribution terms replace the placeholder license and the built archive passes clean-install live acceptance.
+Status: **Release candidate implemented; final publication pending** — automated against bridge `0.13.0` on July 17, 2026. The owner selected the MIT License and the built archive passed clean-install live acceptance; final version selection and GitHub publication remain pending.
 
 - [x] A versioned Windows archive contains compiled runtime files, documentation, and every current Streamer.bot package.
 - [x] Every release file is listed with its size and SHA-256 hash in `release-manifest.json`.
@@ -362,15 +362,15 @@ Status: **Release candidate implemented; final acceptance pending** — automate
 - [x] Uninstall preserves creator data by default and removes it only with an explicit destructive switch.
 - [x] Automated Windows tests cover install, upgrade, tamper rejection, data preservation, uninstall, and full removal.
 - [x] Documentation states prerequisites, verified app versions, platform limitations, checksum verification, upgrade, and uninstall behavior.
-- [ ] Replace the placeholder `LICENSE` with owner-approved distribution terms.
+- [x] Replace the placeholder license with the owner-approved MIT License and declare SPDX identifier `MIT` in package metadata.
 - [x] Build the `0.13.0` release-candidate archive and verify its manifest, checksum, and secret scan.
 - [x] Install the archive with production dependencies into a clean temporary path and verify start, health/readiness, simulation, stop, upgrade preservation, and uninstall.
 - [ ] Publish the owner-approved release and verify the downloadable artifacts.
 
 Release-candidate evidence:
 
-- The full packaging gate passed with 42 test files and 188 tests, clean build, lint, typecheck, and configuration validation.
-- `THSV-StreamBridge-0.13.0.zip` contains 369 hashed release files and 13 Streamer.bot exports, is 7,391,895 bytes, and has SHA-256 `3d42c813a0f4df07a336508d08567a92266099a7d5124ee5e4a3499b7f7ebd9f`.
+- The open-source packaging gate passed with 42 test files and 189 tests, clean build, lint, typecheck, and configuration validation.
+- `THSV-StreamBridge-0.13.0.zip` contains 370 hashed release files, the MIT License, and 13 Streamer.bot exports; it is 7,392,952 bytes and has SHA-256 `3d7b5af9e1cfc0e6ff83676f24880c77e0cf0ab13391e599bf4e7fc8214a1b50`.
 - The staging secret scan found zero local configurations, control tokens, PID files, state files, logs, or backups.
 - A clean extracted install under `C:\tmp\THSV M11 RC 0.13.0\Installed App` installed two production packages with zero reported vulnerabilities.
 - The installed release started independently on port 8792, reported `healthy`/`ready`, accepted and queued the authenticated Twitch fixture, stopped cleanly, and closed the port.
