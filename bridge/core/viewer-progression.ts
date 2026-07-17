@@ -31,6 +31,39 @@ export interface ViewerProgressionProjection {
   readonly nextLevelAt: number | null;
 }
 
+export type ViewerProgressionAdjustmentOperation = 'add' | 'remove' | 'reset';
+export interface ViewerProgressionAdjustment {
+  readonly viewerId: string;
+  readonly operation: ViewerProgressionAdjustmentOperation;
+  readonly amount?: number | undefined;
+  readonly performedBy: string;
+  readonly reason: string;
+}
+export interface ViewerProgressionAdjustmentResult {
+  readonly viewerId: string;
+  readonly operation: ViewerProgressionAdjustmentOperation;
+  readonly amount: number;
+  readonly previousPoints: number;
+  readonly totalPoints: number;
+  readonly previousLevel: number;
+  readonly level: number;
+}
+export interface ViewerLinkRemoval {
+  readonly removedLinks: number;
+  readonly removedAccounts: number;
+  rollback(): Promise<void>;
+}
+export interface ViewerDeletionResult {
+  readonly viewerId: string;
+  readonly recordRemoved: boolean;
+  readonly removedLinks: number;
+  readonly removedAccounts: number;
+}
+
+export const VIEWER_ID_PATTERN = /^[a-z][a-z0-9-]{0,63}$/u;
+export const MAX_PROGRESSION_ADJUSTMENT = 1_000_000;
+export class ViewerProgressionUnavailableError extends Error {}
+
 export class ViewerProgressionEngine {
   private readonly accounts = new Map<string, string>();
   private state: ProgressionState = { version: 1, viewers: {}, processedEvents: [] };
@@ -56,6 +89,18 @@ export class ViewerProgressionEngine {
 
   public process(event: NormalizedEvent): Promise<ViewerProgressionResult | undefined> {
     const operation = this.operationChain.then(() => this.processInternal(event));
+    this.operationChain = operation.catch(() => undefined);
+    return operation;
+  }
+
+  public adjust(input: ViewerProgressionAdjustment): Promise<ViewerProgressionAdjustmentResult> {
+    const operation = this.operationChain.then(() => this.adjustInternal(input));
+    this.operationChain = operation.catch(() => undefined);
+    return operation;
+  }
+
+  public deleteViewer(viewerId: string, removeLinks: () => Promise<ViewerLinkRemoval>): Promise<ViewerDeletionResult> {
+    const operation = this.operationChain.then(() => this.deleteViewerInternal(viewerId, removeLinks));
     this.operationChain = operation.catch(() => undefined);
     return operation;
   }
@@ -149,6 +194,64 @@ export class ViewerProgressionEngine {
     };
   }
 
+  private async adjustInternal(input: ViewerProgressionAdjustment): Promise<ViewerProgressionAdjustmentResult> {
+    this.assertAdministrativeReady();
+    if (!VIEWER_ID_PATTERN.test(input.viewerId)) throw new Error('viewerId must be a lowercase identifier.');
+    const amount = input.operation === 'reset' ? 0 : input.amount;
+    if (input.operation !== 'reset' && (amount === undefined || !Number.isSafeInteger(amount) || amount < 1 || amount > MAX_PROGRESSION_ADJUSTMENT)) {
+      throw new Error(`amount must be a safe integer between 1 and ${String(MAX_PROGRESSION_ADJUSTMENT)}.`);
+    }
+    const current = this.state.viewers[input.viewerId] ?? { points: 0, level: 1, lastAwardAt: {} };
+    const previousPoints = current.points;
+    const previousLevel = levelFor(previousPoints, this.config.progression.levelThresholds);
+    const totalPoints = input.operation === 'reset'
+      ? 0
+      : input.operation === 'add'
+        ? Math.min(Number.MAX_SAFE_INTEGER, previousPoints + (amount ?? 0))
+        : Math.max(0, previousPoints - (amount ?? 0));
+    const level = levelFor(totalPoints, this.config.progression.levelThresholds);
+    const previousState = this.state;
+    this.state = {
+      ...this.state,
+      viewers: {
+        ...this.state.viewers,
+        [input.viewerId]: {
+          points: totalPoints,
+          level,
+          lastAwardAt: input.operation === 'reset' ? {} : { ...current.lastAwardAt },
+        },
+      },
+    };
+    try { await this.store.save(this.state); }
+    catch (error) { this.state = previousState; throw error; }
+    return { viewerId: input.viewerId, operation: input.operation, amount: amount ?? 0, previousPoints, totalPoints, previousLevel, level };
+  }
+
+  private async deleteViewerInternal(viewerId: string, removeLinks: () => Promise<ViewerLinkRemoval>): Promise<ViewerDeletionResult> {
+    this.assertAdministrativeReady();
+    if (!VIEWER_ID_PATTERN.test(viewerId)) throw new Error('viewerId must be a lowercase identifier.');
+    const linkRemoval = await removeLinks();
+    const previousState = this.state;
+    const recordRemoved = this.state.viewers[viewerId] !== undefined;
+    const { [viewerId]: _removed, ...viewers } = this.state.viewers;
+    void _removed;
+    this.state = { ...this.state, viewers };
+    try { await this.store.save(this.state); }
+    catch (error) {
+      this.state = previousState;
+      try { await linkRemoval.rollback(); }
+      catch (rollbackError) { throw new Error(`Viewer deletion failed and link rollback also failed: ${formatError(error)}; rollback: ${formatError(rollbackError)}`, { cause: rollbackError }); }
+      throw error;
+    }
+    for (const [key, linkedViewerId] of this.accounts) if (linkedViewerId === viewerId) this.accounts.delete(key);
+    return { viewerId, recordRemoved, removedLinks: linkRemoval.removedLinks, removedAccounts: linkRemoval.removedAccounts };
+  }
+
+  private assertAdministrativeReady(): void {
+    if (!this.config.enabled) throw new ViewerProgressionUnavailableError('Viewer identity is disabled.');
+    if (this.runtimeError !== undefined) throw new ViewerProgressionUnavailableError(`Viewer identity is degraded: ${this.runtimeError}`);
+  }
+
   private pruneProcessed(now: number): void {
     const cutoff = now - this.config.processedEventTtlMs;
     this.state.processedEvents = this.state.processedEvents.filter((entry) => entry.processedAt > cutoff).slice(-this.config.maxProcessedEvents);
@@ -158,7 +261,7 @@ export class ViewerProgressionEngine {
 export function projectViewerProgression(event: NormalizedEvent): ViewerProgressionProjection | undefined {
   if (event.eventType !== 'viewer.progression') return undefined;
   const viewerId = readString(event, 'viewerId');
-  if (!/^[a-z][a-z0-9-]{0,63}$/u.test(viewerId)) throw new Error('viewer.progression payload.viewerId must be a lowercase identifier.');
+  if (!VIEWER_ID_PATTERN.test(viewerId)) throw new Error('viewer.progression payload.viewerId must be a lowercase identifier.');
   if (event.metadata.viewerId !== viewerId) throw new Error('viewer.progression metadata.viewerId must match payload.viewerId.');
   const projection = {
     viewerId,

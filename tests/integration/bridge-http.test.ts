@@ -130,6 +130,33 @@ describe('bridge HTTP integration', () => {
     expect(diagnostics.timedActions.active).toBe(false);
   });
 
+  it('protects, validates, and applies auditable viewer progression administration', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    config.viewerIdentity.enabled = true;
+    const audit: Array<{ message: string; fields: Readonly<Record<string, unknown>> | undefined }> = [];
+    const auditLogger = { ...silentLogger, info: (message: string, fields?: Readonly<Record<string, unknown>>) => { audit.push({ message, fields }); } };
+    const bridge = createTestBridge(config, undefined, auditLogger);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN);
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const body = JSON.stringify({ viewerId: 'village-friend', operation: 'add', amount: 25, performedBy: 'surakage', reason: 'verified moderator correction' });
+    expect((await fetch(`${baseUrl}/viewer-progression/adjust`, { method: 'POST', headers: { 'content-type': 'application/json' }, body })).status).toBe(401);
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    const adjusted = await fetch(`${baseUrl}/viewer-progression/adjust`, { method: 'POST', headers, body });
+    expect(adjusted.status).toBe(200);
+    expect(await adjusted.json()).toMatchObject({ accepted: true, result: { viewerId: 'village-friend', operation: 'add', totalPoints: 25 } });
+    const malformed = await fetch(`${baseUrl}/viewer-progression/adjust`, { method: 'POST', headers, body: JSON.stringify({ viewerId: 'village-friend', operation: 'remove', performedBy: 'surakage', reason: 'missing amount' }) });
+    expect(malformed.status).toBe(400);
+    const deleted = await fetch(`${baseUrl}/viewer-progression/viewers/village-friend`, { method: 'DELETE', headers, body: JSON.stringify({ performedBy: 'surakage', reason: 'verified viewer deletion request' }) });
+    expect(deleted.status).toBe(200);
+    expect(await deleted.json()).toMatchObject({ accepted: true, result: { viewerId: 'village-friend', recordRemoved: true } });
+    expect(audit.find((entry) => entry.message === 'Viewer progression adjusted')?.fields).toMatchObject({ performedBy: 'surakage', reason: 'verified moderator correction', totalPoints: 25 });
+    expect(audit.find((entry) => entry.message === 'Viewer progression deleted')?.fields).toMatchObject({ performedBy: 'surakage', reason: 'verified viewer deletion request', recordRemoved: true });
+  });
+
   it('serves a generic browser-source overlay and broadcasts projected public events over loopback WebSocket', async () => {
     const config = await testConfig();
     config.service.port = 0;

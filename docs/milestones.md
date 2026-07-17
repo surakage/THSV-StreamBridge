@@ -69,7 +69,7 @@ Verification evidence:
 - [x] Milestone 6 — Speaker.bot Orchestration
 - [x] Milestone 7 — Multi-Timed Actions
 - [x] Milestone 8 — Browser Overlay Hub (Meld/OBS/Streamlabs)
-- [ ] Milestone 9 — Viewer Identity and Progression
+- [x] Milestone 9 — Viewer Identity and Progression
 - [ ] Milestone 10 — Games and Companion Systems
 - [ ] Milestone 11 — Installer and Public Release
 
@@ -272,7 +272,7 @@ Current verification evidence:
 
 ## Milestone 9 — Viewer Identity and Progression
 
-Status: **Complete and review-hardened** — verified on July 16, 2026 against bridge `0.10.0`, then progression-failure isolated in bridge `0.10.1`; Core Receiver `1.0.4`, Multi-Commands `1.1.0`, Viewer Progression `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+Status: **Complete and review-hardened** — verified on July 16, 2026 against bridge `0.10.0`, then progression-failure isolated in bridge `0.10.1` and administration-hardened in `0.11.1`; Core Receiver `1.0.4`, Multi-Commands `1.1.0`, Viewer Progression `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] Cross-platform links are explicit creator-approved configuration; names and behavior are never used to guess identity.
 - [x] Duplicate viewer IDs, duplicate account assignments, invalid IDs, and invalid level thresholds fail configuration validation.
@@ -290,10 +290,15 @@ Status: **Complete and review-hardened** — verified on July 16, 2026 against b
 - [x] A projection-only Streamer.bot package exposes progression arguments without running actions or writing globals.
 - [x] Unit and integration tests cover cross-platform linking, cooldowns, replay, privacy, spoof replacement, invalid state/configuration, and export integrity.
 - [x] Import the three updated packages into Streamer.bot, rebuild the receiver child chain, and verify one simulated linked award in Action History.
+- [x] Authenticated creator/moderator add, remove, and reset operations are bounded, serialized, and structurally audited.
+- [x] Verified viewer deletion removes both progression state and configured account links without racing in-flight awards.
 
 Current verification evidence:
 
 - Focused-review hardening: bridge-level tests prove malformed persisted state cannot block startup and a progression disk failure cannot block valid event acceptance; diagnostics report `state=degraded`, `active=false`, and a readable error.
+- Administration hardening: 38 test files and 170 tests passed with clean lint, typecheck, build, configuration validation, and PowerShell syntax validation.
+- Control-boundary integration proves missing authentication is rejected, malformed adjustments return readable errors, bounded add/delete operations persist, and structured audit entries retain the operator label and required reason.
+- Link-store tests prove verified deletion removes every matching configured account and can restore the original local configuration during rollback.
 
 - Full Windows release validation passed: clean build, lint, typecheck, configuration validation, 33 test files, and 153 tests.
 - `packages\THSV-StreamBridge-0.10.0.zip` was produced by the repository-relative PowerShell release workflow.

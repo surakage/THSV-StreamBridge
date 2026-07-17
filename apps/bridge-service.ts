@@ -9,6 +9,7 @@ import { resolveControlToken } from '../bridge/services/control-token.js';
 import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
 import { ViewerProgressionEngine } from '../bridge/core/viewer-progression.js';
 import { FileViewerProgressionStore } from '../bridge/services/viewer-progression-store.js';
+import { FileViewerLinkStore } from '../bridge/services/viewer-link-store.js';
 
 const configPath = process.env['THSV_STREAMBRIDGE_CONFIG'] ?? 'config/bridge.example.json';
 const config = await loadConfig(configPath);
@@ -23,7 +24,7 @@ const controlToken = await resolveControlToken(config.security.controlTokenEnv, 
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
 const viewerProgression = new ViewerProgressionEngine(config.viewerIdentity, new FileViewerProgressionStore(config.viewerIdentity.stateFile));
-const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, viewerProgression });
+const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, viewerProgression, viewerLinkStore: new FileViewerLinkStore(configPath) });
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
 bridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;

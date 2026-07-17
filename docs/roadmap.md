@@ -36,7 +36,7 @@ Implemented for offline acceptance in `0.9.0`, generalized across browser-source
 
 ## Milestone 9: Viewer Identity and Progression
 
-Completed in `0.10.0` and availability-hardened in `0.10.1`. Creator-approved links unify verified accounts without name-based guessing; unlinked users receive platform-scoped pseudonyms. Atomic privacy-bounded progression applies fixed points, unified cooldowns, bounded replay suppression, levels, and derived events. Corrupted state or a progression write failure now degrades identity alone instead of stopping or rejecting unrelated bridge traffic. Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` expose trusted IDs to Streamer.bot. All three packages, the rebuilt immediate receiver chain, a linked simulated award, derived delivery, and Action History completion were live-verified in Streamer.bot `1.0.5-alpha.31`.
+Completed in `0.10.0`, availability-hardened in `0.10.1`, and administration-hardened in `0.11.1`. Creator-approved links unify verified accounts without name-based guessing; unlinked users receive platform-scoped pseudonyms. Atomic privacy-bounded progression applies fixed points, unified cooldowns, bounded replay suppression, levels, and derived events. Corrupted state or a progression write failure now degrades identity alone instead of stopping or rejecting unrelated bridge traffic. Authenticated, bounded, serialized add/remove/reset operations and stop-safe viewer deletion provide auditable correction and privacy workflows before games can spend progression. Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` expose trusted IDs to Streamer.bot. All three packages, the rebuilt immediate receiver chain, a linked simulated award, derived delivery, and Action History completion were live-verified in Streamer.bot `1.0.5-alpha.31`.
 
 ## Carried requirements
 
@@ -54,8 +54,8 @@ Completed in `0.10.0` and availability-hardened in `0.10.1`. Creator-approved li
 - Before the first live financial adapter ships, output delivery requires a crash-recoverable durable outbox and replay test; an accepted-but-not-yet-delivered donation must survive process failure.
 - Before the first high-volume gift adapter ships, define platform-specific bundle/coalescing behavior and a retry/backpressure policy for capacity rejection.
 - Milestone 8 owns alert priority/preemption, subscription lifecycle fields (new/renewal/upgrade, months, streak, gift provenance), avatars, and contextual HTML escaping.
-- Before Milestone 10 can spend or materially act on progression, provide an authenticated, auditable creator/moderator adjustment workflow with bounded add, remove, and reset operations.
-- Before Viewer Identity is enabled for ordinary production viewers, provide a stop-safe deletion workflow that removes a viewer's progression record and any creator-configured account links without racing the state writer; document the consent/opt-in policy explicitly.
+- Milestone 9 administration hardening provides authenticated, auditable, bounded add/remove/reset operations before Milestone 10 spends progression.
+- Milestone 9 administration hardening provides serialized viewer deletion that removes progression and creator-configured links without racing awards. Creators must still choose and disclose their consent/opt-in policy before enabling ordinary production profiling.
 - Production Twitch, YouTube, and Kick adapters must be implemented from captured native Streamer.bot trigger arguments, with stable platform IDs, source-event IDs, actor provenance, reconnect/replay behavior, and private/public boundaries verified per platform.
 
 ## Planned milestones

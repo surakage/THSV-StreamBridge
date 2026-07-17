@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-07-16
+
+### Added
+
+- Loopback-only authenticated viewer progression add, remove, reset, and deletion controls with required operator and reason audit fields.
+- A PowerShell administration helper for bounded moderator corrections and verified privacy deletion requests.
+
+### Fixed
+
+- Serialized progression administration with ordinary awards so adjustments and deletion cannot race the state writer.
+- Viewer deletion now removes matching creator-configured account links and rolls them back if progression persistence fails.
+
 ## [0.11.0] - 2026-07-16
 
 ### Added

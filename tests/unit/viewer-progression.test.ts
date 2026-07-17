@@ -100,6 +100,36 @@ describe('viewer identity and progression', () => {
     const invalid = { ...base, viewerIdentity: { ...base.viewerIdentity, links: [{ viewerId: 'one', accounts: [{ platform: 'twitch', userId: 'x' }] }, { viewerId: 'two', accounts: [{ platform: 'twitch', userId: 'x' }] }], progression: { ...base.viewerIdentity.progression, levelThresholds: [0, 100, 100] } } };
     expect(bridgeConfigSchema.safeParse(invalid).success).toBe(false);
   });
+
+  it('serializes bounded moderator add, remove, and reset adjustments', async () => {
+    const store = new MemoryStore();
+    const engine = new ViewerProgressionEngine(viewerConfig(), store);
+    await engine.start();
+    const base = { viewerId: 'village-friend', performedBy: 'surakage', reason: 'moderator correction' };
+    expect(await engine.adjust({ ...base, operation: 'add', amount: 6 })).toMatchObject({ previousPoints: 0, totalPoints: 6, previousLevel: 1, level: 3 });
+    expect(await engine.adjust({ ...base, operation: 'remove', amount: 2 })).toMatchObject({ previousPoints: 6, totalPoints: 4, level: 2 });
+    expect(await engine.adjust({ ...base, operation: 'remove', amount: 100 })).toMatchObject({ previousPoints: 4, totalPoints: 0, level: 1 });
+    expect(await engine.adjust({ ...base, operation: 'reset' })).toMatchObject({ previousPoints: 0, totalPoints: 0, amount: 0 });
+    await expect(engine.adjust({ ...base, operation: 'add', amount: 1_000_001 })).rejects.toThrow('amount must be');
+    expect(store.saves).toBe(4);
+  });
+
+  it('deletes a viewer record and active links inside the progression operation queue', async () => {
+    const config = viewerConfig();
+    config.links = [{ viewerId: 'village-friend', accounts: [{ platform: 'twitch', userId: 'viewer-42' }] }];
+    config.progression.cooldownsMs = {};
+    const store = new MemoryStore();
+    const engine = new ViewerProgressionEngine(config, store);
+    await engine.start();
+    await engine.process(await event('twitch', 'viewer-42', 'before-delete'));
+    const rollback = vi.fn(() => Promise.resolve());
+    expect(await engine.deleteViewer('village-friend', async () => ({ removedLinks: 1, removedAccounts: 1, rollback }))).toEqual({
+      viewerId: 'village-friend', recordRemoved: true, removedLinks: 1, removedAccounts: 1,
+    });
+    expect(JSON.stringify(store.value)).not.toContain('village-friend');
+    expect((await engine.process(await event('twitch', 'viewer-42', 'after-delete')))?.linked).toBe(false);
+    expect(rollback).not.toHaveBeenCalled();
+  });
 });
 
 function viewerConfig(): ViewerIdentityConfig {

@@ -8,6 +8,8 @@ import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-ma
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
+import { z } from 'zod';
+import { MAX_PROGRESSION_ADJUSTMENT, VIEWER_ID_PATTERN, ViewerProgressionUnavailableError, type ViewerProgressionAdjustment, type ViewerProgressionAdjustmentResult, type ViewerDeletionResult } from '../core/viewer-progression.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -15,7 +17,11 @@ export interface DiagnosticsTarget {
   diagnostics(): Readonly<Record<string, unknown>>;
   simulate(input: unknown, byteLength?: number): Promise<IngestResult>;
   controlTimedActions(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>>;
+  adjustViewerProgression(input: ViewerProgressionAdjustment): Promise<ViewerProgressionAdjustmentResult>;
+  deleteViewerProgression(viewerId: string, performedBy: string, reason: string): Promise<ViewerDeletionResult>;
 }
+
+class AdministrativeRequestError extends Error {}
 
 export class DiagnosticsServer {
   private server: Server | undefined;
@@ -96,9 +102,24 @@ export class DiagnosticsServer {
         const operation = timedMatch[1] as 'start' | 'stop' | 'pause' | 'resume';
         return this.reply(response, 200, { accepted: true, operation, status: await this.target.controlTimedActions(operation) });
       }
+      if (request.method === 'POST' && request.url === '/viewer-progression/adjust') {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        const input = parseAdministrativeBody(viewerAdjustmentSchema, body.text);
+        return this.reply(response, 200, { accepted: true, result: await this.target.adjustViewerProgression(input) });
+      }
+      const deletionMatch = request.method === 'DELETE' ? /^\/viewer-progression\/viewers\/([a-z][a-z0-9-]{0,63})$/u.exec(request.url ?? '') : null;
+      if (deletionMatch !== null) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        const input = parseAdministrativeBody(viewerDeletionSchema, body.text);
+        return this.reply(response, 200, { accepted: true, result: await this.target.deleteViewerProgression(deletionMatch[1] ?? '', input.performedBy, input.reason) });
+      }
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof AdministrativeRequestError) return this.reply(response, 400, { error: error.message });
+      if (error instanceof ViewerProgressionUnavailableError) return this.reply(response, 409, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
       if (error instanceof OutputCapacityError) return this.reply(response, 429, { error: error.message });
@@ -132,6 +153,29 @@ export class DiagnosticsServer {
     response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src https: data:");
     response.end(body);
   }
+}
+
+const operatorIdentifierSchema = z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9][A-Za-z0-9 ._@-]*$/u, 'performedBy contains unsupported characters');
+const reasonSchema = z.string().trim().min(3).max(500);
+const viewerAdjustmentSchema = z.object({
+  viewerId: z.string().regex(VIEWER_ID_PATTERN),
+  operation: z.enum(['add', 'remove', 'reset']),
+  amount: z.number().int().min(1).max(MAX_PROGRESSION_ADJUSTMENT).optional(),
+  performedBy: operatorIdentifierSchema,
+  reason: reasonSchema,
+}).strict().superRefine((value, context) => {
+  if (value.operation === 'reset' && value.amount !== undefined) context.addIssue({ code: 'custom', path: ['amount'], message: 'reset must not include amount' });
+  if (value.operation !== 'reset' && value.amount === undefined) context.addIssue({ code: 'custom', path: ['amount'], message: 'add and remove require amount' });
+});
+const viewerDeletionSchema = z.object({ performedBy: operatorIdentifierSchema, reason: reasonSchema }).strict();
+
+function parseAdministrativeBody<T>(schema: z.ZodType<T>, body: string): T {
+  let input: unknown;
+  try { input = JSON.parse(body) as unknown; }
+  catch { throw new AdministrativeRequestError('Request body must be valid JSON.'); }
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) throw new AdministrativeRequestError(parsed.error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`).join('; '));
+  return parsed.data;
 }
 
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {

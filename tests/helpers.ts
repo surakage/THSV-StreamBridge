@@ -22,9 +22,9 @@ export async function testConfig(): Promise<BridgeConfig> {
   return config;
 }
 
-export function createTestBridge(config: BridgeConfig, stateWriter?: StateWriter): StreamBridge {
-  const registry = createDefaultAdapterRegistry(config, silentLogger);
-  return new StreamBridge(config, silentLogger, {
+export function createTestBridge(config: BridgeConfig, stateWriter?: StateWriter, logger: Logger = silentLogger): StreamBridge {
+  const registry = createDefaultAdapterRegistry(config, logger);
+  return new StreamBridge(config, logger, {
     inputs: registry.createInputs(config.platforms),
     outputs: registry.createOutputs(config.outputs),
     deduplicationStore: new NoopDeduplicationStore(),

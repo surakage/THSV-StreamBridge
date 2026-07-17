@@ -11,8 +11,9 @@ import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
 import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/timed-actions-adapter.js';
-import { ViewerProgressionEngine } from './viewer-progression.js';
+import { ViewerProgressionEngine, type ViewerProgressionAdjustment, type ViewerProgressionAdjustmentResult, type ViewerDeletionResult } from './viewer-progression.js';
 import { NoopViewerProgressionStore } from '../services/viewer-progression-store.js';
+import { NoopViewerLinkStore, type ViewerLinkStore } from '../services/viewer-link-store.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -36,6 +37,7 @@ export interface StreamBridgeDependencies {
   readonly deduplicationStore: DeduplicationStore;
   readonly stateWriter?: StateWriter;
   readonly viewerProgression?: ViewerProgressionEngine;
+  readonly viewerLinkStore?: ViewerLinkStore;
 }
 
 export class StreamBridge {
@@ -47,6 +49,7 @@ export class StreamBridge {
   private readonly stateWriter: StateWriter;
   private readonly timedActions: TimedActionsAdapter | undefined;
   private readonly viewerProgression: ViewerProgressionEngine;
+  private readonly viewerLinkStore: ViewerLinkStore;
   private readonly livePlatforms = new Set<string>();
   private running = false;
   private startedAt: string | undefined;
@@ -77,6 +80,7 @@ export class StreamBridge {
     );
     this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
     this.viewerProgression = dependencies.viewerProgression ?? new ViewerProgressionEngine(config.viewerIdentity, new NoopViewerProgressionStore());
+    this.viewerLinkStore = dependencies.viewerLinkStore ?? new NoopViewerLinkStore();
   }
 
   public subscribe(handler: Parameters<InternalEventBus['subscribe']>[0]): () => void { return this.bus.subscribe(handler); }
@@ -132,6 +136,18 @@ export class StreamBridge {
     if (this.timedActions === undefined) throw new Error('Timed actions adapter is not configured');
     if (operation === 'stop') this.livePlatforms.clear();
     return this.timedActions.control(operation);
+  }
+
+  public async adjustViewerProgression(input: ViewerProgressionAdjustment): Promise<ViewerProgressionAdjustmentResult> {
+    const result = await this.viewerProgression.adjust(input);
+    this.logger.info('Viewer progression adjusted', { ...result, performedBy: input.performedBy, reason: input.reason });
+    return result;
+  }
+
+  public async deleteViewerProgression(viewerId: string, performedBy: string, reason: string): Promise<ViewerDeletionResult> {
+    const result = await this.viewerProgression.deleteViewer(viewerId, () => this.viewerLinkStore.remove(viewerId));
+    this.logger.info('Viewer progression deleted', { ...result, performedBy, reason });
+    return result;
   }
 
   public async ingest(input: unknown, byteLength?: number): Promise<IngestResult> {

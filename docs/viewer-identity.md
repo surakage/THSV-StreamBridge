@@ -64,3 +64,20 @@ Use `multiCommandViewerId` for shared command cooldowns. If it is empty, identit
 The state file is written by atomic replacement. Invalid or corrupted state is never silently reset. Viewer Identity enters a visible `degraded` state with a readable diagnostic, while the rest of StreamBridge remains healthy and continues delivering events without viewer attribution or awards. A runtime progression write failure has the same fail-safe behavior and disables further progression work until the service is restarted after the storage problem is corrected.
 
 Check `viewerIdentity.state`, `viewerIdentity.active`, and `viewerIdentity.lastError` in `/diagnostics`. Back up or move the damaged file for investigation before restarting; do not delete it unless you have deliberately accepted losing those totals. `scripts\backup.ps1` includes the state directory and `bridge.local.json` but deliberately excludes the runtime control token. Keep those backups private; never publish either file in a release or repository.
+
+## Creator and moderator administration
+
+Viewer progression changes use the same loopback-only, bearer-token-protected, origin-checked, rate-limited control boundary as simulation and timed-action controls. Every successful operation writes a structured audit entry containing the viewer ID, operation, before/after totals and levels, operator label, and required reason. The operator label is supplied by the trusted token holder for auditing; it is not a separate login identity.
+
+Use the helper while the bridge is running:
+
+```powershell
+.\scripts\viewer-progression.ps1 -Operation Add -ViewerId 'village-friend' -Amount 25 -PerformedBy 'surakage' -Reason 'Verified moderator correction'
+.\scripts\viewer-progression.ps1 -Operation Remove -ViewerId 'village-friend' -Amount 5 -PerformedBy 'surakage' -Reason 'Reversed duplicate award'
+.\scripts\viewer-progression.ps1 -Operation Reset -ViewerId 'village-friend' -PerformedBy 'surakage' -Reason 'Viewer requested a fresh profile'
+.\scripts\viewer-progression.ps1 -Operation Delete -ViewerId 'village-friend' -PerformedBy 'surakage' -Reason 'Verified viewer deletion request'
+```
+
+Add/remove amounts are limited to 1,000,000 points per operation. Removal floors at zero; reset clears points, level, and award cooldown timestamps. Delete is stronger than reset: it serializes behind in-flight awards, removes the progression record, removes matching account links from the active local configuration, updates the in-memory resolver, and rolls the configuration back if state persistence fails. Event replay fingerprints are anonymous SHA-256 values and contain no viewer ID, so they remain until their normal bounded expiry.
+
+Keep `PerformedBy` and `Reason` free of secrets and unnecessary personal information because both are intentionally retained in structured logs. Verify account ownership before linking accounts, and verify a deletion request before using the destructive operation. Creators must choose and disclose their consent or opt-in policy before enabling persistent profiles for ordinary production viewers.
