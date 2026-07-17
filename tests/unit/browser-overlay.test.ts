@@ -60,7 +60,8 @@ describe('Browser Overlay Hub contract', () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker-0.9.7.js', 'thsv-browser-overlay-0.9.7'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-0.9.8.js', 'thsv-browser-overlay-0.9.8'");
+    expect(source).toContain("oldest.classList.add('message-expiring')");
     expect(source).toContain('connectDirectly');
     expect(worker.match(/new WebSocket/gu)).toHaveLength(1);
     expect(worker).toContain('for (const port of ports)');
@@ -84,6 +85,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .chat-shell { position: relative; inset: auto;');
     expect(styles).toContain('background: transparent;');
     expect(styles).toContain('body[data-mode="chat"] .chat-shell header { display: none; }');
+    expect(styles).toContain('body[data-mode="chat"] .message.message-expiring');
+    expect(styles).toContain('@keyframes chat-expire');
   });
 
   it('keeps standalone alerts crisp and responsive without scaling', async () => {

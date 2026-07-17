@@ -37,7 +37,7 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - Public `chat.message` events appear in one ordered feed. Private, system, operator, and command events never enter the browser channel.
 - Browser rendering uses DOM `textContent`; event text is never interpreted as HTML.
 - `moderation.action` events with a message-removal action and `targetEventId` remove the correlated chat entry.
-- The feed retains only `browserOverlay.maxChatMessages` in browser memory and stores no chat history.
+- The feed retains only `browserOverlay.maxChatMessages` in browser memory and stores no chat history. The default is eight visible messages; when a ninth arrives, the oldest card fades away from the top.
 - Alerts use a bounded visual queue. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
 - HTTPS avatar/badge URLs, validated hex name colors, and subscription renewal/upgrade/month/streak/gift provenance are supported when a verified adapter supplies them.
 - Simulated events remain visibly labeled and may be disabled through configuration.
@@ -53,7 +53,7 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
 ```json
   "browserOverlay": {
   "enabled": true,
-  "maxChatMessages": 40,
+  "maxChatMessages": 8,
   "alertDurationMs": 7000,
   "showBots": true,
   "showSimulated": true

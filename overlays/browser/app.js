@@ -14,7 +14,8 @@
   const priorityRank = { low: 1, normal: 2, high: 3 };
   let activeAlert;
   let alertTimer;
-  let clientConfig = { maxChatMessages: 40, alertDurationMs: 7000 };
+  const chatFadeMs = 240;
+  let clientConfig = { maxChatMessages: 8, alertDurationMs: 7000 };
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -53,7 +54,7 @@
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-0.9.7.js', 'thsv-browser-overlay-0.9.7');
+        const worker = new SharedWorker('/overlay/worker-0.9.8.js', 'thsv-browser-overlay-0.9.8');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
@@ -84,7 +85,17 @@
     for (const badge of message.presentation.badges) identity.append(element('span', 'role badge', badge.label));
     item.append(identity, element('p', 'body', message.message));
     chat.append(item);
-    while (chat.children.length > clientConfig.maxChatMessages) chat.firstElementChild.remove();
+    trimChat();
+  }
+
+  function trimChat() {
+    const visibleMessages = [...chat.children].filter((item) => !item.classList.contains('message-expiring'));
+    while (visibleMessages.length > clientConfig.maxChatMessages) {
+      const oldest = visibleMessages.shift();
+      if (!oldest) return;
+      oldest.classList.add('message-expiring');
+      setTimeout(() => oldest.remove(), chatFadeMs);
+    }
   }
 
   function removeChat(eventId) {

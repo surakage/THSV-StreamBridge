@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.8] - 2026-07-16
+
+### Fixed
+
+- Limited standalone Chat to eight visible cards by default and faded the oldest card when the next message arrives.
+- Added a larger bottom-safe area so the newest chat card remains fully visible after a browser source is cropped.
+
 ## [0.9.7] - 2026-07-16
 
 ### Fixed
