@@ -54,6 +54,9 @@ Completed in `0.10.0` and availability-hardened in `0.10.1`. Creator-approved li
 - Before the first live financial adapter ships, output delivery requires a crash-recoverable durable outbox and replay test; an accepted-but-not-yet-delivered donation must survive process failure.
 - Before the first high-volume gift adapter ships, define platform-specific bundle/coalescing behavior and a retry/backpressure policy for capacity rejection.
 - Milestone 8 owns alert priority/preemption, subscription lifecycle fields (new/renewal/upgrade, months, streak, gift provenance), avatars, and contextual HTML escaping.
+- Before Milestone 10 can spend or materially act on progression, provide an authenticated, auditable creator/moderator adjustment workflow with bounded add, remove, and reset operations.
+- Before Viewer Identity is enabled for ordinary production viewers, provide a stop-safe deletion workflow that removes a viewer's progression record and any creator-configured account links without racing the state writer; document the consent/opt-in policy explicitly.
+- Production Twitch, YouTube, and Kick adapters must be implemented from captured native Streamer.bot trigger arguments, with stable platform IDs, source-event IDs, actor provenance, reconnect/replay behavior, and private/public boundaries verified per platform.
 
 ## Planned milestones
 
@@ -65,6 +68,6 @@ Completed in `0.10.0` and availability-hardened in `0.10.1`. Creator-approved li
 6. Speaker.bot Orchestration — complete and review-hardened
 7. Multi-Timed Actions — complete and review-hardened
 8. Browser Overlay Hub (Meld/OBS/Streamlabs) — complete and review-hardened
-9. Viewer Identity and Progression — implementation complete; live verification pending
+9. Viewer Identity and Progression — complete and review-hardened
 10. Games and Companion Systems
 11. Installer and Public Release

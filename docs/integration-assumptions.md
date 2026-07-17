@@ -12,6 +12,7 @@
 - Multi-Chat package `1.1.0` compiles and produces its declared output contract for live simulated Twitch, YouTube, Kick, TikTok, and Facebook chat events.
 - Live review probes verified public message identity/time/sequence, bot provenance, and private-message bypass through the inline receiver-to-Multi-Chat action chain.
 - Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` import with populated author/description metadata in Streamer.bot `1.0.5-alpha.31`. A rebuilt immediate receiver chain completed both a linked simulated Twitch chat and its derived progression delivery; the source envelope exposed the bridge-resolved viewer ID and receiver contract `1.2.0`.
+- Streamer.bot `1.0.5-alpha.31` currently reports all eight configured connections active. Twitch has connected broadcaster and bot accounts, YouTube has connected broadcaster and bot accounts, and Kick has a linked broadcaster account. This verifies account availability for native-variable probes; it does not verify any StreamBridge production input transport.
 - Meld Studio, OBS Studio, and Streamlabs Desktop officially support URL-based Chromium/CEF Browser layers/sources; the local THSV overlay assets and loopback WebSocket are integration-tested in Chrome-compatible semantics.
 
 ## Explicitly unverified or deferred
@@ -19,7 +20,7 @@
 - TikFinity event names and payload fields. All TikFinity fixtures label unverified fields and do not claim production accuracy.
 - Live rendering, sizing, transparency, and reconnect behavior in installed Meld Studio, OBS Studio, and Streamlabs Desktop builds. THSV does not yet control application scenes, layers/sources, or audio through their separate control APIs.
 - Live Speaker.bot connection, installed voice aliases, speech playback, and queue-control delivery. Official request shapes and Streamer.bot integration methods are implemented, but live verification remains pending.
-- Production Twitch, YouTube, Kick, TikTok, and Facebook transports.
+- Native Twitch, YouTube, and Kick trigger-variable capture and production StreamBridge transports. Connected Streamer.bot accounts are available for this work, but no native event contract has been claimed or implemented yet.
 - Crash-recoverable output delivery. The current delivery queue is memory-only; production financial adapters must not be enabled until a durable outbox and replay test exist.
 - Platform gift-spree aggregation. Adapters must preserve a platform-provided bundle quantity, but unbundled gift events are not coalesced yet.
 
