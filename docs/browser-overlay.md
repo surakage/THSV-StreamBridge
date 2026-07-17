@@ -44,6 +44,9 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - Combined, Chat-only, and Alerts-only layouts use the same projection stream and do not make additional platform API calls.
 - The standalone Chat canvas is transparent when empty. Messages appear as bottom-anchored cards and grow upward, so sizing the source does not create a permanent panel background.
 - Standalone Chat cards use an opaque high-contrast surface with no backdrop blur or scale transform. The container narrows to the available browser viewport while preserving readable type and card proportions.
+- Standalone Alerts use the same opaque, high-contrast rendering approach. Alert cards center within the available source width, wrap long names/messages, and keep bounded readable typography without scale transforms.
+
+For the clearest standalone Alerts in Meld, keep both the layer and locked **Browser Size** at `1920` by `1080`. Then use **Crop** to remove transparent space around the centered alert and move the cropped result. Do not resize the full webpage to the final banner dimensions; cropping preserves the alert's proportions and text clarity.
 
 ## Configuration
 

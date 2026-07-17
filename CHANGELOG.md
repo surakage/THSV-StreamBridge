@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.7] - 2026-07-16
+
+### Fixed
+
+- Applied the standalone Chat clarity treatment to Alerts with an opaque high-contrast card, crisp type, and an opacity-only entrance.
+- Made standalone Alerts use a centered, bounded card on a full 1920 by 1080 browser canvas so broadcasting apps can crop transparent space without squeezing the webpage.
+- Versioned the shared browser-event worker so updated overlay pages cannot remain attached to a stale event session after a source reload.
+
 ## [0.9.6] - 2026-07-16
 
 ### Fixed

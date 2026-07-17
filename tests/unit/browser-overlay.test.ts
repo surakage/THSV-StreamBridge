@@ -60,7 +60,7 @@ describe('Browser Overlay Hub contract', () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker.js'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-0.9.7.js', 'thsv-browser-overlay-0.9.7'");
     expect(source).toContain('connectDirectly');
     expect(worker.match(/new WebSocket/gu)).toHaveLength(1);
     expect(worker).toContain('for (const port of ports)');
@@ -84,5 +84,14 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .chat-shell { position: relative; inset: auto;');
     expect(styles).toContain('background: transparent;');
     expect(styles).toContain('body[data-mode="chat"] .chat-shell header { display: none; }');
+  });
+
+  it('keeps standalone alerts crisp and responsive without scaling', async () => {
+    const styles = await readFile('overlays/browser/styles.css', 'utf8');
+    expect(styles).toContain('body[data-mode="alerts"] .alerts { inset: 0; display: flex;');
+    expect(styles).toContain('body[data-mode="alerts"] .alert { width: min(760px, 100%)');
+    expect(styles).toContain('background: #171120;');
+    expect(styles).toContain('font-size: clamp(24px, 2.2vw, 38px)');
+    expect(styles).toContain('backdrop-filter: none; animation: alert-fade');
   });
 });

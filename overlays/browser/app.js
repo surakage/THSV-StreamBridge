@@ -53,7 +53,7 @@
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker.js', 'thsv-browser-overlay');
+        const worker = new SharedWorker('/overlay/worker-0.9.7.js', 'thsv-browser-overlay-0.9.7');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
