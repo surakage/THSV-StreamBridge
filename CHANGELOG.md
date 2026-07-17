@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-07-16
+
+### Fixed
+
+- Isolated Viewer Identity and Progression from bridge availability: corrupted state now degrades only that subsystem while chat, commands, alerts, timed actions, and overlays remain active.
+- Continued accepting and delivering valid events when progression persistence fails, disabled further progression work for that run, and exposed the failure through structured logs and diagnostics.
+- Added bridge-level regression coverage for corrupted startup state and runtime progression write failure.
+
 ## [0.10.0] - 2026-07-16
 
 ### Added

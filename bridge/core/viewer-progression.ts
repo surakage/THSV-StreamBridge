@@ -35,6 +35,7 @@ export class ViewerProgressionEngine {
   private readonly accounts = new Map<string, string>();
   private state: ProgressionState = { version: 1, viewers: {}, processedEvents: [] };
   private operationChain: Promise<unknown> = Promise.resolve();
+  private runtimeError: string | undefined;
 
   public constructor(private readonly config: ViewerIdentityConfig, private readonly store: ViewerProgressionStore) {
     for (const link of config.links) for (const account of link.accounts) this.accounts.set(accountKey(account.platform, account.userId), link.viewerId);
@@ -42,6 +43,7 @@ export class ViewerProgressionEngine {
 
   public async start(): Promise<void> {
     if (!this.config.enabled) return;
+    this.runtimeError = undefined;
     const stored = await this.store.load();
     if (stored === undefined) return;
     const parsed = stateSchema.safeParse(stored);
@@ -58,12 +60,27 @@ export class ViewerProgressionEngine {
     return operation;
   }
 
+  public degrade(error: unknown): void {
+    if (!this.config.enabled) return;
+    this.runtimeError = formatError(error);
+  }
+
   public status(): Readonly<Record<string, unknown>> {
-    return { enabled: this.config.enabled, linkedAccounts: this.accounts.size, trackedViewers: Object.keys(this.state.viewers).length, processedEvents: this.state.processedEvents.length, persistence: this.store.status() };
+    const state = !this.config.enabled ? 'disabled' : this.runtimeError === undefined ? 'active' : 'degraded';
+    return {
+      enabled: this.config.enabled,
+      active: state === 'active',
+      state,
+      ...(this.runtimeError === undefined ? {} : { lastError: this.runtimeError }),
+      linkedAccounts: this.accounts.size,
+      trackedViewers: Object.keys(this.state.viewers).length,
+      processedEvents: this.state.processedEvents.length,
+      persistence: this.store.status(),
+    };
   }
 
   private async processInternal(event: NormalizedEvent): Promise<ViewerProgressionResult | undefined> {
-    if (!this.config.enabled || event.user?.actorType !== 'human' || event.user.id === undefined) return undefined;
+    if (!this.config.enabled || this.runtimeError !== undefined || event.user?.actorType !== 'human' || event.user.id === undefined) return undefined;
     const linkedId = this.accounts.get(accountKey(event.platform, event.user.id));
     const identity = { viewerId: linkedId ?? scopedViewerId(event.platform, event.user.id), linked: linkedId !== undefined };
     const configuredPoints = this.config.progression.points[event.eventType as keyof typeof this.config.progression.points];
@@ -170,3 +187,4 @@ function levelFor(points: number, thresholds: readonly number[]): number {
 function readString(event: NormalizedEvent, key: string): string { const value = event.payload[key]; if (typeof value !== 'string' || value.length === 0) throw new Error(`viewer.progression payload.${key} must be a non-empty string.`); return value; }
 function readBoolean(event: NormalizedEvent, key: string): boolean { const value = event.payload[key]; if (typeof value !== 'boolean') throw new Error(`viewer.progression payload.${key} must be a boolean.`); return value; }
 function readInteger(event: NormalizedEvent, key: string, minimum: number): number { const value = event.payload[key]; if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum) throw new Error(`viewer.progression payload.${key} must be a safe integer of at least ${String(minimum)}.`); return value; }
+function formatError(error: unknown): string { return error instanceof Error ? error.message : String(error); }

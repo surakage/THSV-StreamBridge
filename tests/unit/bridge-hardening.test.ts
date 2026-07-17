@@ -4,6 +4,17 @@ import type { OutputAdapter } from '../../bridge/adapters/adapter.js';
 import { createDefaultAdapterRegistry } from '../../bridge/adapters/registry.js';
 import { StreamBridge } from '../../bridge/core/bridge.js';
 import { NoopDeduplicationStore } from '../../bridge/services/deduplication-store.js';
+import { ViewerProgressionEngine } from '../../bridge/core/viewer-progression.js';
+import type { ViewerProgressionStore } from '../../bridge/services/viewer-progression-store.js';
+
+class TestProgressionStore implements ViewerProgressionStore {
+  public constructor(private readonly initial: unknown, private readonly failSave = false) {}
+  public async load(): Promise<unknown> { return this.initial; }
+  public async save(): Promise<void> { if (this.failSave) throw new Error('progression disk full'); }
+  public scheduleSave(): void {}
+  public async flush(): Promise<void> {}
+  public status(): Readonly<Record<string, unknown>> { return { type: 'test' }; }
+}
 
 describe('StreamBridge hardening', () => {
   it('reports an accepted event even when post-acceptance state persistence fails', async () => {
@@ -84,5 +95,52 @@ describe('StreamBridge hardening', () => {
     await bridge.start();
     await bridge.stop();
     await expect.poll(() => aborted).toBe(true);
+  });
+
+  it('starts healthy with viewer progression degraded when persisted state is corrupt', async () => {
+    const config = await testConfig();
+    config.viewerIdentity.enabled = true;
+    const registry = createDefaultAdapterRegistry(config, silentLogger);
+    const progression = new ViewerProgressionEngine(
+      config.viewerIdentity,
+      new TestProgressionStore({ version: 1, viewers: 'broken', processedEvents: [] }),
+    );
+    const bridge = new StreamBridge(config, silentLogger, {
+      inputs: registry.createInputs(config.platforms),
+      outputs: registry.createOutputs(config.outputs),
+      deduplicationStore: new NoopDeduplicationStore(),
+      viewerProgression: progression,
+    });
+
+    await expect(bridge.start()).resolves.toBeUndefined();
+    expect(bridge.health()).toMatchObject({ status: 'healthy' });
+    const viewerIdentity = bridge.diagnostics()['viewerIdentity'] as Readonly<Record<string, unknown>>;
+    expect(viewerIdentity).toMatchObject({ enabled: true, active: false, state: 'degraded' });
+    expect(typeof viewerIdentity['lastError']).toBe('string');
+    expect(String(viewerIdentity['lastError'])).toContain('state is invalid');
+    await expect(bridge.ingest(await fixture())).resolves.toMatchObject({ accepted: true, duplicate: false });
+    await bridge.stop();
+  });
+
+  it('accepts an event and degrades viewer progression when its state write fails', async () => {
+    const config = await testConfig();
+    config.viewerIdentity.enabled = true;
+    config.viewerIdentity.includeSimulated = true;
+    config.viewerIdentity.progression.enabled = true;
+    config.viewerIdentity.progression.points = { 'chat.message': 1 };
+    config.viewerIdentity.progression.cooldownsMs = {};
+    const registry = createDefaultAdapterRegistry(config, silentLogger);
+    const progression = new ViewerProgressionEngine(config.viewerIdentity, new TestProgressionStore(undefined, true));
+    const bridge = new StreamBridge(config, silentLogger, {
+      inputs: registry.createInputs(config.platforms),
+      outputs: registry.createOutputs(config.outputs),
+      deduplicationStore: new NoopDeduplicationStore(),
+      viewerProgression: progression,
+    });
+
+    await bridge.start();
+    await expect(bridge.ingest(await fixture())).resolves.toMatchObject({ accepted: true, duplicate: false, delivery: 'queued' });
+    expect(bridge.diagnostics()['viewerIdentity']).toMatchObject({ enabled: true, active: false, state: 'degraded', lastError: 'progression disk full' });
+    await bridge.stop();
   });
 });

@@ -275,7 +275,7 @@ Current verification evidence:
 
 ## Milestone 9 — Viewer Identity and Progression
 
-Status: **Complete** — verified on July 16, 2026 against bridge `0.10.0`, Core Receiver `1.0.4`, Multi-Commands `1.1.0`, Viewer Progression `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
+Status: **Complete and review-hardened** — verified on July 16, 2026 against bridge `0.10.0`, then progression-failure isolated in bridge `0.10.1`; Core Receiver `1.0.4`, Multi-Commands `1.1.0`, Viewer Progression `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] Cross-platform links are explicit creator-approved configuration; names and behavior are never used to guess identity.
 - [x] Duplicate viewer IDs, duplicate account assignments, invalid IDs, and invalid level thresholds fail configuration validation.
@@ -286,7 +286,8 @@ Status: **Complete** — verified on July 16, 2026 against bridge `0.10.0`, Core
 - [x] Per-event cooldowns key on unified identity, preventing linked users from bypassing chat limits by switching platforms.
 - [x] Levels use creator-configured strictly increasing safe-integer thresholds.
 - [x] Progression state is atomic, local, replay-bounded, and contains no names, display names, messages, avatars, payloads, or raw account IDs.
-- [x] Corrupted state refuses startup instead of silently resetting viewer totals.
+- [x] Corrupted state refuses identity activation instead of silently resetting viewer totals, while the bridge remains healthy and delivers events without attribution or awards.
+- [x] Runtime progression persistence failure degrades identity for the run without rejecting or duplicating the source event.
 - [x] Successful awards emit ordered `viewer.progression` events with viewer ID, award, total, level change, next threshold, correlation, and simulation provenance.
 - [x] Multi-Commands exposes the trusted viewer ID for downstream cooldown and spam policies.
 - [x] A projection-only Streamer.bot package exposes progression arguments without running actions or writing globals.
@@ -294,6 +295,8 @@ Status: **Complete** — verified on July 16, 2026 against bridge `0.10.0`, Core
 - [x] Import the three updated packages into Streamer.bot, rebuild the receiver child chain, and verify one simulated linked award in Action History.
 
 Current verification evidence:
+
+- Focused-review hardening: bridge-level tests prove malformed persisted state cannot block startup and a progression disk failure cannot block valid event acceptance; diagnostics report `state=degraded`, `active=false`, and a readable error.
 
 - Full Windows release validation passed: clean build, lint, typecheck, configuration validation, 33 test files, and 153 tests.
 - `packages\THSV-StreamBridge-0.10.0.zip` was produced by the repository-relative PowerShell release workflow.

@@ -84,7 +84,11 @@ export class StreamBridge {
   public async start(): Promise<void> {
     if (this.running) return;
     this.deduplicator.restore(await this.dependencies.deduplicationStore.load());
-    await this.viewerProgression.start();
+    try { await this.viewerProgression.start(); }
+    catch (error) {
+      this.viewerProgression.degrade(error);
+      this.logger.error('Viewer progression startup failed; bridge remains active', { error });
+    }
     this.startedAt = new Date().toISOString();
     this.running = true;
     await this.delivery.start();
@@ -158,7 +162,15 @@ export class StreamBridge {
       throw error;
     }
     try { progression = await this.viewerProgression.process(validatedEvent); }
-    catch (error) { this.deduplicator.forget(validatedEvent); throw error; }
+    catch (error) {
+      this.viewerProgression.degrade(error);
+      this.logger.error('Viewer progression failed; event will continue without identity or award', {
+        eventId: validatedEvent.eventId,
+        eventType: validatedEvent.eventType,
+        platform: validatedEvent.platform,
+        error,
+      });
+    }
     const attributedEvent = progression === undefined ? validatedEvent : withViewerId(validatedEvent, progression.viewerId);
     if (derivedCommand !== undefined && progression !== undefined) derivedCommand = withViewerId(derivedCommand, progression.viewerId);
     const events = [withBridgeSequence(attributedEvent, ++this.nextSequence)];
