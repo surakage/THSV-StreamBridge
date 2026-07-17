@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-17
+
+### Added
+
+- Checksummed Windows release manifests and adjacent SHA-256 archive files.
+- A staged public-release installer with custom-path support, hash verification, production-only dependency installation, configuration bootstrap, state-preserving upgrades, and rollback on final-swap failure.
+- A managed uninstaller that preserves creator data by default and requires an explicit switch to remove it.
+- A production-safe PowerShell simulation helper that does not require development dependencies.
+- Automated Windows lifecycle coverage for install, upgrade, tamper rejection, data-preserving uninstall, and full removal.
+
+### Changed
+
+- Public release documentation now distinguishes source setup from archive installation and states the license and production-transport publication boundaries.
+
 ## [0.12.2] - 2026-07-17
 
 ### Fixed

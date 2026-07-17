@@ -71,7 +71,7 @@ Verification evidence:
 - [x] Milestone 8 — Browser Overlay Hub (Meld/OBS/Streamlabs)
 - [x] Milestone 9 — Viewer Identity and Progression
 - [x] Milestone 10 — Bloom Companion
-- [ ] Milestone 11 — Installer and Public Release
+- [ ] Milestone 11 — Installer and Public Release (release candidate implemented; license and publication acceptance pending)
 
 ## Milestone 3 — Multi-Chat
 
@@ -344,3 +344,35 @@ Automated evidence:
 - Final animation repair in `0.12.2`: Celebrate's raised-arm jump frames stay inside their fixed cells, no longer clip Bloom's head, and cannot bleed artifacts into neighboring poses. The generator now rejects any future out-of-cell frame.
 - Spending evidence remains transport-independent: integration coverage sends a normalized platform-shaped command through identity, command derivation, exact one-time balance deduction, ordered `companion.action` emission, and the same trusted package fields used by Streamer.bot. Production platform transports remain explicitly deferred to their adapter milestones.
 - Focused-review clarification: "moderator control" means the local token-authenticated operator endpoint. No platform moderator receives an implicit cost, cooldown, or state-transition bypass.
+
+## Milestone 11 — Installer and Public Release
+
+Status: **Release candidate implemented; final acceptance pending** — automated against bridge `0.13.0` on July 17, 2026. Public publication is blocked until final distribution terms replace the placeholder license and the built archive passes clean-install live acceptance.
+
+- [x] A versioned Windows archive contains compiled runtime files, documentation, and every current Streamer.bot package.
+- [x] Every release file is listed with its size and SHA-256 hash in `release-manifest.json`.
+- [x] An adjacent `.sha256` file authenticates the complete release archive.
+- [x] Release packaging rejects local configuration, control tokens, PID files, state, logs, and backups.
+- [x] The installer validates every packaged file before changing an installation.
+- [x] The installer supports safe custom paths containing spaces and checks for Node.js 22 or later.
+- [x] Production dependencies install in a staging directory before the final installation swap.
+- [x] First install creates a creator-local configuration without overwriting the example.
+- [x] Upgrade stops the managed service, creates a backup, and preserves configuration, tokens, state, logs, and backups.
+- [x] A failed final swap restores the previous installation.
+- [x] Uninstall preserves creator data by default and removes it only with an explicit destructive switch.
+- [x] Automated Windows tests cover install, upgrade, tamper rejection, data preservation, uninstall, and full removal.
+- [x] Documentation states prerequisites, verified app versions, platform limitations, checksum verification, upgrade, and uninstall behavior.
+- [ ] Replace the placeholder `LICENSE` with owner-approved distribution terms.
+- [x] Build the `0.13.0` release-candidate archive and verify its manifest, checksum, and secret scan.
+- [x] Install the archive with production dependencies into a clean temporary path and verify start, health/readiness, simulation, stop, upgrade preservation, and uninstall.
+- [ ] Publish the owner-approved release and verify the downloadable artifacts.
+
+Release-candidate evidence:
+
+- The full packaging gate passed with 42 test files and 188 tests, clean build, lint, typecheck, and configuration validation.
+- `THSV-StreamBridge-0.13.0.zip` contains 369 hashed release files and 13 Streamer.bot exports, is 7,391,895 bytes, and has SHA-256 `3d42c813a0f4df07a336508d08567a92266099a7d5124ee5e4a3499b7f7ebd9f`.
+- The staging secret scan found zero local configurations, control tokens, PID files, state files, logs, or backups.
+- A clean extracted install under `C:\tmp\THSV M11 RC 0.13.0\Installed App` installed two production packages with zero reported vulnerabilities.
+- The installed release started independently on port 8792, reported `healthy`/`ready`, accepted and queued the authenticated Twitch fixture, stopped cleanly, and closed the port.
+- Reinstalling the release candidate preserved the control-token hash, custom port 8792, explicit test mode, and all three state files while creating a timestamped backup.
+- Default uninstall removed application files and preserved the complete creator-data directory plus a reinstall notice.

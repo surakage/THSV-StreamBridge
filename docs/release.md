@@ -1,0 +1,55 @@
+# Installer and public release
+
+Milestone 11 packages THSV StreamBridge as a checksummed Windows release archive. The installer supports paths containing spaces, verifies every packaged file before changing an installation, installs production Node dependencies in a staging directory, and swaps the staged installation into place only after validation succeeds.
+
+## Prerequisites
+
+- Windows 10 or later
+- 64-bit Node.js 22 or later, including `npm.cmd`
+- Windows PowerShell 5.1 or later
+- Streamer.bot `1.0.5-alpha.31` for the currently verified automation packages
+
+## Install
+
+1. Download the versioned `.zip` and adjacent `.sha256` file from the official GitHub release.
+2. Verify the archive in PowerShell: `Get-FileHash .\THSV-StreamBridge-<version>.zip -Algorithm SHA256`.
+3. Extract the archive to a temporary directory.
+4. Review the included `LICENSE`, `CHANGELOG.md`, and `release-manifest.json`.
+5. Run:
+
+```powershell
+.\scripts\install-release.ps1
+```
+
+The default installation directory is `%LOCALAPPDATA%\THSV StreamBridge`. Use `-InstallRoot 'D:\Apps\THSV StreamBridge'` to choose another safe directory. The installer creates `data\runtime\bridge.local.json` without changing the checked-in example. It does not start the service unless `-StartBridge` is supplied.
+
+After configuring Streamer.bot or explicitly enabling its reported test mode in the local configuration, verify the installation without development dependencies:
+
+```powershell
+& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\start.ps1" -Config 'data/runtime/bridge.local.json'
+& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\health.ps1"
+& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\simulate.ps1"
+& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\stop.ps1"
+```
+
+## Upgrade and rollback safety
+
+Run the newer extracted release's `install-release.ps1` against the existing installation directory. Before the swap, the installer stops the managed bridge, runs the existing backup script, and carries the complete `data` directory into the new installation. That preserves creator configuration, the private control token, viewer progression, companion state, timer state, logs, and backups. Release-file hashes and production dependencies are validated in a staging directory before the existing installation is moved.
+
+If the final directory swap fails, the installer restores the previous installation. A release never imports `.env`, runtime data, credentials, or state from its archive.
+
+## Uninstall
+
+Run the installed script:
+
+```powershell
+& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\uninstall-release.ps1"
+```
+
+Uninstall preserves the complete `data` directory by default. Use `-RemoveUserData` only when creator configuration, private tokens, logs, progression, companion state, timers, and backups should also be permanently removed.
+
+## Public-release boundary
+
+The archive is not a claim that every platform transport is production-complete. Twitch, YouTube, and Kick intake currently depends on the verified Streamer.bot relay package; TikTok/TikFinity provenance limitations remain documented. Facebook is not supported. Review [integration assumptions](integration-assumptions.md) before enabling progression, financial alerts, or speech.
+
+No public release may be published until the repository owner replaces the placeholder `LICENSE` with the intended distribution terms and the final release candidate passes installation, upgrade, uninstall, checksum, secret-scan, and live-service acceptance.

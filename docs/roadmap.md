@@ -42,6 +42,10 @@ Completed in `0.10.0`, availability-hardened in `0.10.1`, and administration-har
 
 Completed in `0.12.0`, animation-hardened in `0.12.1`, and acceptance-finalized in `0.12.2`. Bloom uses the unified Milestone 9 balance for creator-configured wave, feed, rest, wake, and celebrate interactions. Spending, cooldowns, bounded stats, atomic state, persistence-failure refunds, persistent sleeping, derived events, diagnostics, authenticated visual tests, a projection-only Streamer.bot package, and a dedicated shared-WebSocket browser source are included. Bloom Companion `1.1.0` was imported and compiled in Streamer.bot `1.0.5-alpha.31`; every interaction and the persistent Sleep/Wake lifecycle received creator visual acceptance, including the repaired artifact-free Celebrate jump. General chat games are deferred to later platform extensions.
 
+## Milestone 11: Installer and Public Release
+
+Implemented as a release candidate in `0.13.0`. Versioned archives now carry a per-file SHA-256 manifest and an adjacent archive checksum. The Windows installer verifies the release before staging production dependencies, preserves all creator data during upgrades, rolls back a failed final swap, and supports paths containing spaces. Uninstall preserves creator data unless full removal is explicitly requested. Public GitHub publication remains pending the repository owner's final license selection and clean release-candidate acceptance.
+
 ## Carried requirements
 
 - Milestone 8 must contextually HTML-escape every chat field at its rendering sink and correlate moderation/deletion events by `multiChatEventId`.
@@ -75,4 +79,4 @@ Completed in `0.12.0`, animation-hardened in `0.12.1`, and acceptance-finalized 
 8. Browser Overlay Hub (Meld/OBS/Streamlabs) — complete and review-hardened
 9. Viewer Identity and Progression — complete and review-hardened
 10. Bloom Companion — complete and acceptance-verified
-11. Installer and Public Release
+11. Installer and Public Release — release candidate implemented; license and publication acceptance pending

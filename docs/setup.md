@@ -1,5 +1,7 @@
 # Setup
 
+These steps are for a source checkout. Public release users should follow the [Installer and public release guide](release.md) instead.
+
 1. Install Node.js 22 or later and Git.
 2. Open PowerShell in the repository root.
 3. Run `scripts\install.ps1`.

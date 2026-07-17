@@ -38,6 +38,7 @@ Desktop.ini
 
 # Packages and release artifacts
 *.zip
+*.zip.sha256
 *.tgz
 packages/THSV-StreamBridge-*/
 

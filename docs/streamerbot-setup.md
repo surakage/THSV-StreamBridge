@@ -15,7 +15,7 @@ The foundation sends a `DoAction` WebSocket request and waits for the correlated
 9. Add another immediate **Run Action** child in the receiver and select `THSV StreamBridge - Multi-Commands`. Multi-Chat and Multi-Commands safely ignore event types they do not own.
 10. Import `packages\streamerbot\multi-alerts\THSV-StreamBridge-Multi-Alerts-1.0.1.sb` and add it as another immediate receiver child action.
 11. Import `packages\streamerbot\viewer-progression\THSV-StreamBridge-Viewer-Progression-1.0.0.sb` and add it as another immediate receiver child action. It handles only derived `viewer.progression` events.
-12. Import `packages\streamerbot\companion-actions\THSV-StreamBridge-Bloom-Companion-1.0.0.sb` and add it as another immediate receiver child action. It handles only derived `companion.action` events.
+12. Import `packages\streamerbot\companion-actions\THSV-StreamBridge-Bloom-Companion-1.1.0.sb` and add it as another immediate receiver child action. It handles only derived `companion.action` events.
 12. For TikTok through TikFinity, import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.0.0.sb`. It installs `THSV TikTok - Chat`, `THSV TikTok - Follow`, `THSV TikTok - Gift`, and `THSV TikTok - Like` in the `THSV StreamBridge - TikTok` group.
 13. In TikFinity, set Streamer.bot Address `127.0.0.1`, Port `8080`, Endpoint `/`, then run **Test Connection**. Map Chat, Follow, Gift, and Like events to the matching imported actions.
 14. Enable the local config's `tiktok` entry with adapter `tikfinity-streamerbot`, restart StreamBridge, then use TikFinity's event simulator. Confirm Action History shows the intake action followed by `THSV StreamBridge - Receive Event` and that diagnostics show the `tiktok` adapter connected.
