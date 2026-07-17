@@ -25,6 +25,8 @@ This document is the required Stage 1 migration report. It proposes changes but 
 | `adapter.ts` | Adapter lifecycle/status and capability declarations | Retain and expand |
 | `normalization.ts` | Normalized-event construction and capability assertions | Retain and move behind versioned contracts |
 | `streamerbot-native-adapter.ts` | Twitch/YouTube/Kick relay intake | Retain and split platform mapping tables if needed |
+| `streamerbot-event-relay.ts` | In-process relay between Streamer.bot-triggered platform intake and adapters | Retain as a core-safe transport primitive |
+| `streamerbot-package.ts` | Builds the trusted Streamer.bot event argument envelope | Retain and version with the v2 receiver contract |
 | `tikfinity-adapter.ts` | Conservative TikFinity relay intake | Retain; keep unverified fields explicit |
 | `streamerbot-adapter.ts` | WebSocket output and action acknowledgement | Retain |
 | `timed-actions-adapter.ts` | Session-relative timed scheduling and shuffle containers | Retain and extend |
@@ -136,6 +138,7 @@ Core must expose contracts these add-ons can consume, but must not import them o
 - Core Streamer.bot packages listed above.
 - Chat/alert portions of `overlays/browser/`.
 - Installer, release, backup, health, simulation, lifecycle, and validation scripts.
+- `scripts/timed-actions.ps1` as the retained local control surface for the core timed-actions module.
 - Existing tests for retained behavior, especially validation, deduplication, ordering, delivery pressure, security, adapters, overlays, installers, and packages.
 
 ## 5. Files proposed for refactoring
@@ -278,6 +281,26 @@ Module rule: core host imports contracts and registered module interfaces only. 
 
 Each stage must keep the previous acceptance suite green, add the requested scenario matrix, and avoid modifying unrelated creator-owned Streamer.bot objects.
 
+### Stage 2 and 3 acceptance criteria added after independent review
+
+- Core starts with all optional modules absent and reports no progression/companion diagnostics.
+- A legacy configuration containing `viewerIdentity`, `companion`, and Bloom command defaults produces a readable migration preview without mutation, crash, or silent deletion.
+- Excluded configuration and state paths are enumerated for backup before Stage 2B extraction.
+- The Stage 3 wizard inspection pass emits only documented read requests until ownership is established.
+- Dangerous regular expressions are rejected or time-bounded before Stage 4 blocker rules can be enabled.
+- Twitch and Kick reward modules can be enabled independently without loading or invoking each other's providers.
+
+### Decisions approved for the overhaul
+
+- Development line: `2.0.0-preview`, beginning with `2.0.0-preview.1`.
+- Wizard: authenticated localhost browser UI with a minimal Streamer.bot launcher package; no undocumented internal UI injection.
+- Unsupported Streamer.bot CRUD: reviewed `.sb` packages and native-UI guidance rather than undocumented mutation APIs.
+- Speaker.bot: optional add-on, not revised core.
+- Archive location: main repository until the add-on API stabilizes.
+- Excluded state retention: preserve until the creator explicitly removes it.
+- Kick rewards: redemption routing/testing first; mutation controls remain hidden until documented and live-verified.
+- Host applications: repeat exact-version Meld, OBS, and Streamlabs acceptance during the alerts/wizard work.
+
 ## 11. Questions not resolvable from repository or official documentation
 
 1. Should the revised-core line use a breaking product version such as `2.0.0`, or a separately named preview channel before replacing stable `1.x`?
@@ -297,4 +320,3 @@ Each stage must keep the previous acceptance suite green, add the requested scen
 - [Streamer.bot sub-actions](https://docs.streamer.bot/api/sub-actions) documents state/weight controls for existing sub-actions and the broad provider surface that should not be recreated wholesale.
 - [Twitch Channel Point Rewards](https://docs.streamer.bot/guide/platforms/twitch/) and [Twitch reward C# methods](https://docs.streamer.bot/api/csharp/methods/twitch/channel-reward) support a substantially richer management workflow, including Streamer.bot-owned rewards and redemption status changes.
 - [Kick reward redemption trigger](https://docs.streamer.bot/api/triggers/kick/channel-reward/reward-redemption) is documented from `1.0.2`; [Kick reward sub-actions](https://docs.streamer.bot/api/sub-actions/kick/rewards) are currently labeled as needing documentation, so mutation support remains unapproved.
-

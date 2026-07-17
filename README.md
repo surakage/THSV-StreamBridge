@@ -2,6 +2,8 @@
 
 THSV StreamBridge is a modular, local-first livestream automation foundation. It validates and normalizes events before routing them to Streamer.bot or future adapters without exposing downstream code to platform-specific payloads.
 
+The `overhaul/v2-preview` branch is the isolated `2.0.0-preview.1` development line for the approved revised core scope. Stable `1.x` remains on `main`. Stage 2A adds parallel contracts and a non-writing configuration migration preview only; see [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
+
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
 ## Milestone 1

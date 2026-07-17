@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-preview.1] - 2026-07-17
+
+### Added
+
+- Parallel v2 preview contracts for normalized events, chat, commands, alerts, timed actions, rewards, capabilities, module manifests, configuration extensions, module health, and browser overlays.
+- A strict core-only v2 configuration schema and non-writing v1-to-v2 migration preview that enumerates excluded configuration/state before extraction.
+- Revised product-scope, contract-boundary, and module-system documentation.
+- Stage 2/3 migration acceptance criteria from the independent Stage 1 review.
+
+### Changed
+
+- Completed the Stage 1 adapter inventory with the Streamer.bot relay and package-envelope helpers and explicitly retained the timed-actions control script.
+
+### Safety
+
+- Stable v1 runtime composition is unchanged in Stage 2A. No companion/progression source, state, package, endpoint, or asset has been moved or deleted.
+
 ## [1.0.1] - 2026-07-17
 
 ### Added
