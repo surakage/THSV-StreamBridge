@@ -26,32 +26,29 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .alert-platform, .simulated { color: var(--mint); font-size: 11px; font-weight: 800; letter-spacing: .16em; }
 .simulated { display: inline-block; margin-top: 12px; color: #ffca62; }
 .companion-shell { position: absolute; left: 2vw; bottom: 2vh; z-index: 8; width: clamp(300px, 30vw, 560px); height: clamp(360px, 60vh, 680px); pointer-events: none; }
-.companion-anchor { position: absolute; inset: auto 0 44px; aspect-ratio: 1; transform-origin: 50% 90%; animation: companion-idle 3.8s ease-in-out infinite; }
-.companion-bloom { position: absolute; inset: 0; background: url('/overlay/bloom-sprite-1.0.0.png') 0 0 / 300% 200% no-repeat; filter: drop-shadow(0 16px 13px rgba(0,0,0,.34)); image-rendering: auto; }
+.companion-anchor { position: absolute; inset: auto 0 44px; aspect-ratio: 1; transform-origin: 50% 90%; animation: companion-idle 4.8s ease-in-out infinite; }
+.companion-bloom { position: absolute; top: 0; bottom: 0; left: 50%; width: 100%; transform: translateX(-50%); background: url('/overlay/bloom-idle-sprite-1.1.0.png') 0 0 / 400% 200% no-repeat; filter: drop-shadow(0 16px 13px rgba(0,0,0,.34)); image-rendering: auto; }
+.companion-wave .companion-bloom { background-image: url('/overlay/bloom-wave-sprite-1.1.0.png'); }
+.companion-eat .companion-bloom { background-image: url('/overlay/bloom-eat-sprite-1.1.0.png'); }
+.companion-sleep .companion-bloom { background-image: url('/overlay/bloom-sleep-sprite-1.1.0.png'); }
+.companion-wake .companion-bloom { background-image: url('/overlay/bloom-sleep-sprite-1.1.0.png'); }
+.companion-celebrate .companion-bloom { background-image: url('/overlay/bloom-celebrate-sprite-1.1.0.png'); }
 .companion-notice { position: absolute; z-index: 12; top: 0; left: 50%; width: max-content; max-width: min(92vw, 560px); padding: 10px 15px; transform: translateX(-50%); border: 1px solid rgba(255,255,255,.24); border-radius: 999px; background: rgba(20,16,25,.92); color: #fff; font-size: clamp(13px, 1vw, 18px); font-weight: 700; text-align: center; box-shadow: 0 7px 22px rgba(0,0,0,.34); animation: companion-notice-in .2s ease-out both; }
 .companion-stats { position: absolute; z-index: 12; left: 50%; bottom: 0; display: flex; gap: 7px; transform: translateX(-50%); }
 .companion-stats span { min-width: 66px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(20,16,25,.86); color: #f5d873; font-size: 12px; text-align: center; box-shadow: 0 5px 16px rgba(0,0,0,.28); }
 .companion-stats b { color: #fff; }
-.companion-berry { position: absolute; z-index: 11; right: 6%; bottom: 17%; color: #c64a52; font-size: clamp(38px, 5vw, 74px); line-height: 1; opacity: 0; text-shadow: 0 5px 10px rgba(0,0,0,.28); }
 .companion-sleep-symbols { position: absolute; z-index: 11; top: 12%; right: 8%; color: #f5d873; font-size: clamp(40px, 5vw, 70px); font-weight: 900; opacity: 0; text-shadow: 0 5px 12px rgba(0,0,0,.35); }
 .companion-sleep-symbols small { font-size: .55em; }
 .companion-sparkles { position: absolute; z-index: 11; inset: 0; }
 .companion-sparkles i { position: absolute; opacity: 0; color: #f5d873; font-size: clamp(18px, 2.3vw, 35px); font-style: normal; }
 .companion-sparkles i:nth-child(1) { left: 18%; top: 20%; }.companion-sparkles i:nth-child(2) { left: 32%; top: 5%; color: #ef9b82; }.companion-sparkles i:nth-child(3) { right: 18%; top: 17%; }.companion-sparkles i:nth-child(4) { right: 30%; top: 3%; color: #9cb78f; }
-.companion-eat .companion-anchor { animation: companion-eat 3.2s ease-in-out both; }
-.companion-eat .companion-berry { animation: companion-berry 3.2s ease-in-out both; }
-.companion-sleep .companion-anchor { animation: companion-sleep-motion 5s ease-in-out both; }
+.companion-wave .companion-anchor, .companion-eat .companion-anchor, .companion-sleep .companion-anchor, .companion-wake .companion-anchor, .companion-celebrate .companion-anchor { animation: none; }
 .companion-sleep .companion-sleep-symbols { animation: companion-sleep-symbols 5s ease-in-out both; }
-.companion-celebrate .companion-anchor { animation: companion-celebrate 3s cubic-bezier(.2,.75,.22,1) both; }
 .companion-celebrate .companion-sparkles i { animation: companion-sparkle 1.35s ease-out infinite; }
 .companion-celebrate .companion-sparkles i:nth-child(2) { animation-delay: .18s; }.companion-celebrate .companion-sparkles i:nth-child(3) { animation-delay: .34s; }.companion-celebrate .companion-sparkles i:nth-child(4) { animation-delay: .5s; }
-@keyframes companion-idle { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-5px) scale(1.006,.994); } }
+@keyframes companion-idle { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 @keyframes companion-notice-in { from { opacity: 0; transform: translate(-50%,8px); } }
-@keyframes companion-eat { 0%,100% { transform: rotate(0) translateY(0); } 26% { transform: rotate(4deg) translate(5px,-2px); } 48%,66% { transform: rotate(2deg) translateY(3px) scaleY(.985); } 57%,75% { transform: rotate(2deg) translateY(-2px); } }
-@keyframes companion-berry { 0%,12% { opacity: 0; transform: translate(0,0) scale(.8); } 18% { opacity: 1; } 48% { opacity: 1; transform: translate(-118%,-126%) scale(1); } 62% { opacity: 1; transform: translate(-138%,-145%) scale(.72); } 70%,100% { opacity: 0; transform: translate(-138%,-145%) scale(.25); } }
-@keyframes companion-sleep-motion { 0%,100% { transform: rotate(0) translateY(0); } 20%,82% { transform: rotate(-7deg) translate(-10px,10px) scale(.99); } 36%,52%,68% { transform: rotate(-7deg) translate(-10px,14px) scale(.99,.98); } 44%,60%,76% { transform: rotate(-7deg) translate(-10px,9px) scale(.99,1); } }
 @keyframes companion-sleep-symbols { 0%,10%,92%,100% { opacity: 0; transform: translateY(12px); } 25%,78% { opacity: 1; transform: translateY(0); } }
-@keyframes companion-celebrate { 0%,100% { transform: translateY(0) rotate(0); } 18% { transform: translateY(-22px) rotate(-4deg); } 34% { transform: translateY(0) rotate(3deg); } 52% { transform: translateY(-16px) rotate(-2deg); } 70% { transform: translateY(0) rotate(2deg); } 84% { transform: translateY(-7px); } }
 @keyframes companion-sparkle { 0% { opacity: 0; transform: translateY(30px) scale(.4) rotate(0); } 35% { opacity: 1; } 100% { opacity: 0; transform: translateY(-45px) scale(1.1) rotate(140deg); } }
 @keyframes arrive { from { opacity: 0; transform: translateX(18px); } }
 @keyframes alert-in { from { opacity: 0; transform: translateY(-22px) scale(.97); } }

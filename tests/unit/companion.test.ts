@@ -58,6 +58,16 @@ describe('Bloom companion', () => {
     expect(await disabled.companion.process(commandEvent('bloom-wave'))).toMatchObject({ status: 'rejected', code: 'simulated-disabled' });
   });
 
+  it('holds the persisted sleeping state until a wake action succeeds', async () => {
+    const { companion, wallet } = await setup();
+    await wallet.adjust({ viewerId: 'village-friend', operation: 'add', amount: 20, performedBy: 'test', reason: 'sleep test balance' });
+    expect(await companion.process(commandEvent('bloom-rest', 'sleep-command'))).toMatchObject({ status: 'accepted', action: 'sleep', event: { payload: { sleeping: true } } });
+    expect(companion.status()).toMatchObject({ sleeping: true });
+    expect(await companion.process(commandEvent('bloom-wave', 'wave-while-asleep'))).toMatchObject({ status: 'rejected', code: 'state' });
+    expect(await companion.process(commandEvent('bloom-wake', 'wake-command'))).toMatchObject({ status: 'accepted', action: 'wake', event: { payload: { sleeping: false } } });
+    expect(companion.status()).toMatchObject({ sleeping: false });
+  });
+
   it('refuses malformed persisted state instead of silently resetting Bloom', async () => {
     const config = await testConfig();
     config.viewerIdentity.enabled = true; config.companion.enabled = true;

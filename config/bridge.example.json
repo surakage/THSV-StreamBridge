@@ -37,6 +37,7 @@
       { "name": "bloom-wave", "aliases": [], "minimumRole": "viewer", "allowBots": false },
       { "name": "bloom-feed", "aliases": [], "minimumRole": "viewer", "allowBots": false },
       { "name": "bloom-rest", "aliases": [], "minimumRole": "viewer", "allowBots": false },
+      { "name": "bloom-wake", "aliases": [], "minimumRole": "viewer", "allowBots": false },
       { "name": "bloom-celebrate", "aliases": [], "minimumRole": "viewer", "allowBots": false }
     ]
   },
@@ -91,6 +92,7 @@
       "wave": { "enabled": true, "command": "bloom-wave", "cost": 0, "cooldownMs": 10000, "happiness": 2, "fullness": 0, "energy": 0 },
       "eat": { "enabled": true, "command": "bloom-feed", "cost": 25, "cooldownMs": 30000, "happiness": 3, "fullness": 15, "energy": 2 },
       "sleep": { "enabled": true, "command": "bloom-rest", "cost": 10, "cooldownMs": 60000, "happiness": 2, "fullness": -2, "energy": 20 },
+      "wake": { "enabled": true, "command": "bloom-wake", "cost": 0, "cooldownMs": 5000, "happiness": 0, "fullness": 0, "energy": 0 },
       "celebrate": { "enabled": true, "command": "bloom-celebrate", "cost": 50, "cooldownMs": 60000, "happiness": 15, "fullness": -3, "energy": -5 }
     }
   },

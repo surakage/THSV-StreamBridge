@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-07-16
+
+### Added
+
+- Eight-frame registered animations for Bloom idle blinking, waving, eating, sleeping, waking, and celebrating.
+- Persistent sleep state and a free `!bloom-wake` interaction that reverses the sleep transition.
+
+### Fixed
+
+- Normalized every sprite to a fixed square cell, centerline, baseline, and face scale so poses do not stretch, shrink, slide, or bleed into adjacent frames.
+- Removed detached generation fragments and replaced the artificial berry and eyelid overlays with fully drawn poses.
+
 ## [0.12.0] - 2026-07-16
 
 ### Added

@@ -85,7 +85,7 @@ The combined, Chat-only, and Alerts-only pages are independent layout surfaces. 
 
 The companion engine consumes only trusted derived public commands after unified viewer identity is attached. It serializes cooldown checks, exact point spending, bounded stat changes, and atomic state persistence. Insufficient balances reject without mutation; companion write failure rolls the companion state back and refunds the exact spend before the subsystem degrades.
 
-Accepted interactions emit a correlated `companion.action`. The Streamer.bot package is projection-only. The Browser Overlay Hub strips the private viewer ID, queues complete wave/eat/sleep/celebrate animations, and exposes Companion as a separately positioned surface using the existing SharedWorker connection. Authenticated administrative actions exist only for creator visual acceptance and remain simulated and audited.
+Accepted interactions emit a correlated `companion.action`. The Streamer.bot package is projection-only. The Browser Overlay Hub strips the private viewer ID, queues complete eight-frame wave/eat/sleep/wake/celebrate animations, and exposes Companion as a separately positioned surface using the existing SharedWorker connection. Sleep is persisted and rejects other interactions until Wake clears it. Authenticated administrative actions exist only for creator visual acceptance and remain simulated and audited.
 
 ## Deduplication
 

@@ -40,7 +40,7 @@ Completed in `0.10.0`, availability-hardened in `0.10.1`, and administration-har
 
 ## Milestone 10: Bloom Companion
 
-Implemented in `0.12.0` with manual browser and Streamer.bot acceptance pending. Bloom uses the unified Milestone 9 balance for creator-configured wave, feed, rest, and celebrate interactions. Spending, cooldowns, bounded stats, atomic state, persistence-failure refunds, derived events, diagnostics, authenticated visual tests, a projection-only Streamer.bot package, and a dedicated shared-WebSocket browser source are included. General chat games are deferred to later platform extensions.
+Implemented in `0.12.0` and animation-hardened in `0.12.1`, with final Streamer.bot and broadcasting-app acceptance pending. Bloom uses the unified Milestone 9 balance for creator-configured wave, feed, rest, wake, and celebrate interactions. Spending, cooldowns, bounded stats, atomic state, persistence-failure refunds, persistent sleeping, derived events, diagnostics, authenticated visual tests, a projection-only Streamer.bot package, and a dedicated shared-WebSocket browser source are included. General chat games are deferred to later platform extensions.
 
 ## Carried requirements
 

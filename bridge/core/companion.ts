@@ -10,13 +10,14 @@ const statsSchema = z.object({ happiness: z.number().int().min(0).max(100), full
 const stateSchema = z.object({
   version: z.literal(1),
   stats: statsSchema,
+  sleeping: z.boolean().default(false),
   totalInteractions: z.number().int().nonnegative(),
   cooldowns: z.record(z.string(), z.number().int().nonnegative()),
   updatedAt: z.iso.datetime(),
 }).strict();
 
 type CompanionState = z.infer<typeof stateSchema>;
-export type CompanionRejectionCode = 'unauthorized' | 'simulated-disabled' | 'missing-viewer' | 'cooldown' | 'insufficient-points' | 'disabled';
+export type CompanionRejectionCode = 'unauthorized' | 'simulated-disabled' | 'missing-viewer' | 'cooldown' | 'insufficient-points' | 'disabled' | 'state';
 export type CompanionProcessResult =
   | { readonly status: 'ignored' }
   | { readonly status: 'rejected'; readonly action: CompanionActionName; readonly code: CompanionRejectionCode; readonly message: string }
@@ -32,7 +33,7 @@ export class CompanionEngine {
   private readonly byCommand = new Map<string, CompanionActionName>();
 
   public constructor(private readonly config: CompanionConfig, private readonly store: CompanionStore, private readonly wallet: ViewerProgressionEngine) {
-    this.state = { version: 1, stats: { ...config.initialState }, totalInteractions: 0, cooldowns: {}, updatedAt: new Date(0).toISOString() };
+    this.state = { version: 1, stats: { ...config.initialState }, sleeping: false, totalInteractions: 0, cooldowns: {}, updatedAt: new Date(0).toISOString() };
     for (const [action, reward] of Object.entries(config.rewards)) if (reward.enabled) this.byCommand.set(reward.command, action as CompanionActionName);
   }
 
@@ -65,7 +66,7 @@ export class CompanionEngine {
 
   public status(): Readonly<Record<string, unknown>> {
     const state = !this.config.enabled ? 'disabled' : this.runtimeError === undefined ? 'active' : 'degraded';
-    return { enabled: this.config.enabled, active: state === 'active', state, stats: { ...this.state.stats }, totalInteractions: this.state.totalInteractions, trackedCooldowns: Object.keys(this.state.cooldowns).length, ...(this.runtimeError === undefined ? {} : { lastError: this.runtimeError }), persistence: this.store.status() };
+    return { enabled: this.config.enabled, active: state === 'active', state, stats: { ...this.state.stats }, sleeping: this.state.sleeping, totalInteractions: this.state.totalInteractions, trackedCooldowns: Object.keys(this.state.cooldowns).length, ...(this.runtimeError === undefined ? {} : { lastError: this.runtimeError }), persistence: this.store.status() };
   }
 
   private async processInternal(event: NormalizedEvent): Promise<CompanionProcessResult> {
@@ -79,6 +80,8 @@ export class CompanionEngine {
     if (!command.authorized) return { status: 'rejected', action, code: 'unauthorized', message: command.authorizationReason };
     if (command.simulated && !this.config.includeSimulated) return { status: 'rejected', action, code: 'simulated-disabled', message: 'Simulated companion rewards are disabled.' };
     if (command.viewerId === undefined) return { status: 'rejected', action, code: 'missing-viewer', message: 'Companion rewards require a bridge-resolved viewer ID.' };
+    if (this.state.sleeping && action !== 'wake') return { status: 'rejected', action, code: 'state', message: 'Bloom is sleeping. Use the wake command first.' };
+    if (!this.state.sleeping && action === 'wake') return { status: 'rejected', action, code: 'state', message: 'Bloom is already awake.' };
     const now = Date.now();
     const lastAny = this.state.cooldowns[`${command.viewerId}:*`] ?? 0;
     const lastAction = this.state.cooldowns[`${command.viewerId}:${action}`] ?? 0;
@@ -93,7 +96,7 @@ export class CompanionEngine {
     }
     const previousState = this.state;
     const nextStats = applyEffects(this.state.stats, reward);
-    this.state = { version: 1, stats: nextStats, totalInteractions: this.state.totalInteractions + 1, cooldowns: { ...this.state.cooldowns, [`${command.viewerId}:*`]: now, [`${command.viewerId}:${action}`]: now }, updatedAt: new Date(now).toISOString() };
+    this.state = { version: 1, stats: nextStats, sleeping: action === 'sleep' ? true : action === 'wake' ? false : this.state.sleeping, totalInteractions: this.state.totalInteractions + 1, cooldowns: { ...this.state.cooldowns, [`${command.viewerId}:*`]: now, [`${command.viewerId}:${action}`]: now }, updatedAt: new Date(now).toISOString() };
     this.pruneCooldowns();
     try { await this.store.save(this.state); }
     catch (error) {
@@ -102,19 +105,21 @@ export class CompanionEngine {
       throw error;
     }
     const eventId = `companion-${createHash('sha256').update(`${event.eventId}\u0000${action}`).digest('hex').slice(0, 40)}`;
-    return { status: 'accepted', action, remainingPoints: spending.totalPoints, event: companionEvent(eventId, action, command.user.displayName, command.platform, command.channel, command.simulated, command.viewerId, reward.cost, spending.totalPoints, nextStats, event.eventId) };
+    return { status: 'accepted', action, remainingPoints: spending.totalPoints, event: companionEvent(eventId, action, command.user.displayName, command.platform, command.channel, command.simulated, command.viewerId, reward.cost, spending.totalPoints, nextStats, this.state.sleeping, event.eventId) };
   }
 
   private async triggerAdministrativeInternal(input: CompanionAdministrativeAction): Promise<NormalizedEvent> {
     if (!this.config.enabled || this.runtimeError !== undefined) throw new CompanionUnavailableError(this.runtimeError === undefined ? 'Companion is disabled.' : `Companion is degraded: ${this.runtimeError}`);
     const reward = this.config.rewards[input.action];
     if (!reward.enabled) throw new CompanionUnavailableError(`${input.action} is disabled.`);
+    if (this.state.sleeping && input.action !== 'wake') throw new CompanionUnavailableError('Bloom is sleeping. Wake Bloom before another action.');
+    if (!this.state.sleeping && input.action === 'wake') throw new CompanionUnavailableError('Bloom is already awake.');
     const now = Date.now();
     const previousState = this.state;
-    this.state = { ...this.state, stats: applyEffects(this.state.stats, reward), totalInteractions: this.state.totalInteractions + 1, updatedAt: new Date(now).toISOString() };
+    this.state = { ...this.state, stats: applyEffects(this.state.stats, reward), sleeping: input.action === 'sleep' ? true : input.action === 'wake' ? false : this.state.sleeping, totalInteractions: this.state.totalInteractions + 1, updatedAt: new Date(now).toISOString() };
     try { await this.store.save(this.state); }
     catch (error) { this.state = previousState; throw error; }
-    return companionEvent(`companion-admin-${randomUUID()}`, input.action, input.performedBy, 'system', { name: 'Companion Control' }, true, undefined, 0, 0, this.state.stats, `admin:${input.reason}`);
+    return companionEvent(`companion-admin-${randomUUID()}`, input.action, input.performedBy, 'system', { name: 'Companion Control' }, true, undefined, 0, 0, this.state.stats, this.state.sleeping, `admin:${input.reason}`);
   }
 
   private pruneCooldowns(): void {
@@ -124,8 +129,8 @@ export class CompanionEngine {
   }
 }
 
-function companionEvent(eventId: string, action: CompanionActionName, actorName: string, platform: string, channel: NormalizedEvent['channel'], simulated: boolean, viewerId: string | undefined, cost: number, remainingPoints: number, stats: CompanionState['stats'], sourceEventId: string): NormalizedEvent {
-  return { schemaVersion: '1.0.0', eventId, eventType: 'companion.action', platform, source: { adapter: 'companion', eventId, eventName: 'CompanionAction' }, receivedAt: new Date().toISOString(), channel, user: { name: actorName, displayName: actorName, roles: platform === 'system' ? ['operator'] : [], actorType: platform === 'system' ? 'system' : 'human' }, payload: { action, actorName, cost, remainingPoints, happiness: stats.happiness, fullness: stats.fullness, energy: stats.energy, sourceEventId }, metadata: { correlationId: sourceEventId, simulated, ...(viewerId === undefined ? {} : { viewerId }) } };
+function companionEvent(eventId: string, action: CompanionActionName, actorName: string, platform: string, channel: NormalizedEvent['channel'], simulated: boolean, viewerId: string | undefined, cost: number, remainingPoints: number, stats: CompanionState['stats'], sleeping: boolean, sourceEventId: string): NormalizedEvent {
+  return { schemaVersion: '1.0.0', eventId, eventType: 'companion.action', platform, source: { adapter: 'companion', eventId, eventName: 'CompanionAction' }, receivedAt: new Date().toISOString(), channel, user: { name: actorName, displayName: actorName, roles: platform === 'system' ? ['operator'] : [], actorType: platform === 'system' ? 'system' : 'human' }, payload: { action, actorName, cost, remainingPoints, happiness: stats.happiness, fullness: stats.fullness, energy: stats.energy, sleeping, sourceEventId }, metadata: { correlationId: sourceEventId, simulated, ...(viewerId === undefined ? {} : { viewerId }) } };
 }
 
 function applyEffects(stats: CompanionState['stats'], effects: { readonly happiness: number; readonly fullness: number; readonly energy: number }): CompanionState['stats'] {

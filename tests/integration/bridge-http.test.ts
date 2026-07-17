@@ -223,10 +223,12 @@ describe('bridge HTTP integration', () => {
     const meldChat = await fetch(`${baseUrl}/overlay/chat?layout=meld&canvasWidth=1920&canvasHeight=1080&verticalScale=0.402`);
     expect(meldChat.status).toBe(200);
     expect(meldChat.headers.get('cache-control')).toBe('no-store');
-    expect(await meldChat.text()).toContain('/overlay/app-1.0.0.js');
-    expect((await fetch(`${baseUrl}/overlay/styles-1.0.0.css`)).status).toBe(200);
-    expect((await fetch(`${baseUrl}/overlay/bloom-sprite-1.0.0.png`)).headers.get('content-type')).toContain('image/png');
-    const worker = await fetch(`${baseUrl}/overlay/worker-1.0.0.js`);
+    expect(await meldChat.text()).toContain('/overlay/app-1.1.0.js');
+    expect((await fetch(`${baseUrl}/overlay/styles-1.1.0.css`)).status).toBe(200);
+    for (const asset of ['idle', 'wave', 'eat', 'sleep', 'celebrate']) {
+      expect((await fetch(`${baseUrl}/overlay/bloom-${asset}-sprite-1.1.0.png`)).headers.get('content-type')).toContain('image/png');
+    }
+    const worker = await fetch(`${baseUrl}/overlay/worker-1.1.0.js`);
     expect(worker.status).toBe(200);
     expect(worker.headers.get('content-type')).toContain('text/javascript');
     expect(await worker.text()).toContain('for (const port of ports)');

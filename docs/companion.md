@@ -9,13 +9,16 @@ Milestone 10 adds Bloom, the shared SlothBloom Sprouts companion. It intentional
 | `!bloom-wave` | Wave | 0 | 10 seconds |
 | `!bloom-feed` | Eat a berry | 25 | 30 seconds |
 | `!bloom-rest` | Sleep | 10 | 60 seconds |
+| `!bloom-wake` | Wake up | 0 | 5 seconds |
 | `!bloom-celebrate` | Celebrate | 50 | 60 seconds |
 
 Costs, cooldowns, commands, and happiness/fullness/energy effects are creator configuration. Stats are bounded from 0 to 100. A viewer cannot spend more points than they have. A failed companion-state write rolls Bloom back and automatically refunds the points.
 
 ## Enable it
 
-Copy the `companion` block and four Bloom command definitions from `config/bridge.example.json` into the runtime configuration. Set both `viewerIdentity.enabled` and `companion.enabled` to `true`. Leave both `includeSimulated` settings `false` for normal use.
+Copy the `companion` block and five Bloom command definitions from `config/bridge.example.json` into the runtime configuration. Set both `viewerIdentity.enabled` and `companion.enabled` to `true`. Leave both `includeSimulated` settings `false` for normal use.
+
+Viewer points are the shared local loyalty balance from Milestone 9. By default, eligible chat earns 1 point no more than once per minute, follows earn 10, subscriptions or memberships earn 25, gifts earn 5, donations and Super Chats earn 20, cheers earn 10, raids earn 25, and milestones earn 5. Simulated events do not earn production points. Linked Twitch, YouTube, and Kick accounts use one balance. Points are not money and no financial amount is converted into points.
 
 Progression stores pseudonymous viewer IDs and balances locally. Enable it only after choosing and disclosing the channel's viewer-progression policy. TikFinity still lacks verified stable event identity, so TikTok simulation-origin activity must not award or spend production points.
 
@@ -23,11 +26,11 @@ Progression stores pseudonymous viewer IDs and balances locally. Enable it only 
 
 Add `http://127.0.0.1:8787/overlay/companion` as an independent transparent browser source at 1920 by 1080, then crop and position it in Meld Studio, OBS Studio, Streamlabs Desktop, or a compatible browser host.
 
-Chat, Alerts, and Companion use the same `SharedWorker` WebSocket when the host supports it. Isolated hosts safely fall back to one connection per source. Bloom completes each animation and returns to idle before the next queued action starts. `browserOverlay.maxCompanionQueue` bounds the waiting queue.
+Chat, Alerts, and Companion use the same `SharedWorker` WebSocket when the host supports it. Isolated hosts safely fall back to one connection per source. Each action uses eight registered frames at one fixed scale and anchor. Sleep plays once, holds the final under-blanket frame, persists as companion state, and blocks other interactions until Wake plays the same transition in reverse. `browserOverlay.maxCompanionQueue` bounds the waiting queue.
 
 ## Streamer.bot package
 
-Import `packages\streamerbot\companion-actions\THSV-StreamBridge-Bloom-Companion-1.0.0.sb`, accept the reviewed custom C# warning, and add **Run Action Immediately** for `THSV StreamBridge - Bloom Companion` after the Core Receiver succeeds. The action only exposes validated `companion*` arguments; it does not spend points, run creator actions, or persist state.
+Import `packages\streamerbot\companion-actions\THSV-StreamBridge-Bloom-Companion-1.1.0.sb`, accept the reviewed custom C# warning, and add **Run Action Immediately** for `THSV StreamBridge - Bloom Companion` after the Core Receiver succeeds. The action only exposes validated `companion*` arguments, including `companionSleeping`; it does not spend points, run creator actions, or persist state.
 
 ## Visual test without spending points
 
@@ -37,6 +40,7 @@ With the bridge running and companion enabled:
 .\scripts\companion.ps1 -Action wave -PerformedBy 'surakage' -Reason 'Milestone 10 visual test'
 .\scripts\companion.ps1 -Action eat -PerformedBy 'surakage' -Reason 'Milestone 10 visual test'
 .\scripts\companion.ps1 -Action sleep -PerformedBy 'surakage' -Reason 'Milestone 10 visual test'
+.\scripts\companion.ps1 -Action wake -PerformedBy 'surakage' -Reason 'Milestone 10 visual test'
 .\scripts\companion.ps1 -Action celebrate -PerformedBy 'surakage' -Reason 'Milestone 10 visual test'
 ```
 

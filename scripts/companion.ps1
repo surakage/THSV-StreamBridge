@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Wave', 'Eat', 'Sleep', 'Celebrate')]
+    [ValidateSet('Wave', 'Eat', 'Sleep', 'Wake', 'Celebrate')]
     [string]$Action,
     [Parameter(Mandatory = $true)]
     [ValidateLength(1, 64)]

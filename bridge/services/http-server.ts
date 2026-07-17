@@ -83,7 +83,11 @@ export class DiagnosticsServer {
         return this.reply(response, readiness['ready'] === true ? 200 : 503, readiness);
       }
       if (request.method === 'GET' && request.url === '/diagnostics') return this.reply(response, 200, { ...this.target.diagnostics(), browserOverlay: this.overlayHub?.status() });
-      if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) return this.reply(response, 200, this.overlayHub.clientConfig());
+      if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) {
+        const companion = this.target.diagnostics()['companion'];
+        const companionSleeping = companion !== null && typeof companion === 'object' && (companion as Record<string, unknown>)['sleeping'] === true;
+        return this.reply(response, 200, { ...this.overlayHub.clientConfig(), companionSleeping });
+      }
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
         release = this.guard.acquire(request, false);
@@ -177,7 +181,7 @@ const viewerAdjustmentSchema = z.object({
   if (value.operation !== 'reset' && value.amount === undefined) context.addIssue({ code: 'custom', path: ['amount'], message: 'add and remove require amount' });
 });
 const viewerDeletionSchema = z.object({ performedBy: operatorIdentifierSchema, reason: reasonSchema }).strict();
-const companionActionSchema = z.object({ action: z.enum(['wave', 'eat', 'sleep', 'celebrate']), performedBy: operatorIdentifierSchema, reason: reasonSchema }).strict();
+const companionActionSchema = z.object({ action: z.enum(['wave', 'eat', 'sleep', 'wake', 'celebrate']), performedBy: operatorIdentifierSchema, reason: reasonSchema }).strict();
 
 function parseAdministrativeBody<T>(schema: z.ZodType<T>, body: string): T {
   let input: unknown;
@@ -200,17 +204,25 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/app-0.9.8.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-0.9.9.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.0.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/app-1.1.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.8.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.9.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.0.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker-1.1.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.6.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.8.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.9.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.0.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/styles-1.1.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/bloom-sprite-1.0.0.png': { file: 'bloom-wave-sprite.png', contentType: 'image/png' },
+  '/overlay/bloom-idle-sprite-1.1.0.png': { file: 'bloom-idle-sprite.png', contentType: 'image/png' },
+  '/overlay/bloom-wave-sprite-1.1.0.png': { file: 'bloom-wave-v2-sprite.png', contentType: 'image/png' },
+  '/overlay/bloom-eat-sprite-1.1.0.png': { file: 'bloom-eat-sprite.png', contentType: 'image/png' },
+  '/overlay/bloom-sleep-sprite-1.1.0.png': { file: 'bloom-sleep-sprite.png', contentType: 'image/png' },
+  '/overlay/bloom-celebrate-sprite-1.1.0.png': { file: 'bloom-celebrate-sprite.png', contentType: 'image/png' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }

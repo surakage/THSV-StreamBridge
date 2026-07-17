@@ -20,13 +20,27 @@
   let alertTimer;
   const chatFadeMs = 240;
   const companionQueue = [];
-  const companionDurations = { wave: 2400, eat: 3200, sleep: 5000, celebrate: 3000 };
-  const companionFramePositions = [['0%', '0%'], ['50%', '0%'], ['100%', '0%'], ['0%', '100%'], ['50%', '100%'], ['100%', '100%']];
-  const companionWaveFrames = [0, 1, 2, 1, 2, 1, 0, 3, 4, 5, 4, 3, 0];
+  const companionDurations = { wave: 2300, eat: 3400, sleep: 5200, wake: 5200, celebrate: 2800 };
+  const companionFramePositions = Array.from({ length: 8 }, (_, index) => {
+    const x = ['0%', '33.3333%', '66.6667%', '100%'][index % 4];
+    const y = index < 4 ? '0%' : '100%';
+    return [x, y];
+  });
+  const companionFrames = {
+    idle: [0, 1, 2, 3, 4, 5, 6, 7],
+    wave: [0, 1, 2, 3, 4, 5, 6, 7],
+    eat: [0, 1, 2, 3, 4, 5, 6, 7],
+    sleep: [0, 1, 2, 3, 4, 5, 6, 7],
+    wake: [7, 6, 5, 4, 3, 2, 1, 0],
+    celebrate: [0, 1, 2, 3, 4, 5, 6, 7],
+  };
+  const companionFrameIntervals = { wave: 260, eat: 400, sleep: 650, wake: 650, celebrate: 300 };
   let activeCompanion;
   let companionTimer;
   let companionFrameTimer;
-  let clientConfig = { brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, maxCompanionQueue: 20, alertDurationMs: 7000 };
+  let companionBlinkTimer;
+  let companionSleeping = false;
+  let clientConfig = { brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, maxCompanionQueue: 20, alertDurationMs: 7000, companionSleeping: false };
   brandLabel.textContent = clientConfig.brandLabel;
 
   function element(tag, className, text) {
@@ -67,7 +81,7 @@
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-1.0.0.js', 'thsv-browser-overlay-1.0.0');
+        const worker = new SharedWorker('/overlay/worker-1.1.0.js', 'thsv-browser-overlay-1.1.0');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
@@ -168,19 +182,41 @@
   function enqueueCompanion(action) {
     companionQueue.push(action);
     while (companionQueue.length > clientConfig.maxCompanionQueue) companionQueue.shift();
+    if (action.action === 'wake' && companionSleeping) return beginCompanionWake();
     showNextCompanion();
   }
 
   function showNextCompanion() {
     if (activeCompanion || companionQueue.length === 0) return;
+    clearTimeout(companionBlinkTimer);
+    clearInterval(companionFrameTimer);
     activeCompanion = companionQueue.shift();
     const action = activeCompanion.action;
     setCompanionStats(activeCompanion);
     companionNotice.hidden = false;
     companionNotice.textContent = `${activeCompanion.actorName} · ${companionActionLabel(action)}${activeCompanion.cost > 0 ? ` · ${activeCompanion.cost} sprouts` : ''}`;
     companion.classList.add(`companion-${action}`);
-    if (action === 'wave') animateCompanionWave();
-    companionTimer = setTimeout(finishCompanion, companionDurations[action]);
+    animateCompanionAction(action);
+    companionTimer = setTimeout(action === 'sleep' ? holdCompanionSleep : finishCompanion, companionDurations[action]);
+  }
+
+  function holdCompanionSleep() {
+    clearTimeout(companionTimer);
+    clearInterval(companionFrameTimer);
+    setCompanionFrame(7);
+    companionNotice.hidden = true;
+    companionSleeping = true;
+    companionTimer = undefined;
+    if (companionQueue.some((queued) => queued.action === 'wake')) beginCompanionWake();
+  }
+
+  function beginCompanionWake() {
+    if (activeCompanion?.action === 'sleep') companion.classList.remove('companion-sleep');
+    activeCompanion = undefined;
+    companionSleeping = false;
+    const wakeIndex = companionQueue.findIndex((queued) => queued.action === 'wake');
+    if (wakeIndex > 0) companionQueue.unshift(...companionQueue.splice(wakeIndex, 1));
+    showNextCompanion();
   }
 
   function finishCompanion() {
@@ -191,16 +227,34 @@
     companionNotice.hidden = true;
     activeCompanion = undefined;
     companionTimer = undefined;
+    scheduleCompanionBlink();
     showNextCompanion();
   }
 
-  function animateCompanionWave() {
+  function animateCompanionAction(action) {
+    const frames = companionFrames[action];
     let step = 0;
-    setCompanionFrame(companionWaveFrames[step]);
+    setCompanionFrame(frames[step]);
     companionFrameTimer = setInterval(() => {
       step += 1;
-      if (step < companionWaveFrames.length) setCompanionFrame(companionWaveFrames[step]);
-    }, 180);
+      if (step < frames.length) setCompanionFrame(frames[step]);
+      else clearInterval(companionFrameTimer);
+    }, companionFrameIntervals[action]);
+  }
+
+  function scheduleCompanionBlink() {
+    clearTimeout(companionBlinkTimer);
+    companionBlinkTimer = setTimeout(() => {
+      if (activeCompanion) return scheduleCompanionBlink();
+      const frames = companionFrames.idle;
+      let step = 0;
+      setCompanionFrame(frames[step]);
+      companionFrameTimer = setInterval(() => {
+        step += 1;
+        if (step < frames.length) setCompanionFrame(frames[step]);
+        else { clearInterval(companionFrameTimer); scheduleCompanionBlink(); }
+      }, 75);
+    }, 3200 + Math.floor(Math.random() * 4600));
   }
 
   function setCompanionFrame(index) {
@@ -214,8 +268,17 @@
     document.getElementById('companion-energy').textContent = state.energy;
   }
 
+  function restoreCompanionState() {
+    if (!clientConfig.companionSleeping) return;
+    clearTimeout(companionBlinkTimer);
+    companionSleeping = true;
+    activeCompanion = { action: 'sleep' };
+    companion.classList.add('companion-sleep');
+    setCompanionFrame(7);
+  }
+
   function companionActionLabel(action) {
-    return { wave: 'waved to Bloom', eat: 'fed Bloom a berry', sleep: 'helped Bloom rest', celebrate: 'celebrated with Bloom' }[action] || action;
+    return { wave: 'waved to Bloom', eat: 'fed Bloom a berry', sleep: 'helped Bloom rest', wake: 'woke Bloom up', celebrate: 'celebrated with Bloom' }[action] || action;
   }
 
   function alertTitle(alert) {
@@ -238,6 +301,8 @@
     if (config) clientConfig = config;
     brandLabel.textContent = clientConfig.brandLabel;
     brandLabel.hidden = clientConfig.brandLabel.length === 0;
+    restoreCompanionState();
   }).catch(() => undefined).finally(connect);
   setCompanionFrame(0);
+  scheduleCompanionBlink();
 })();

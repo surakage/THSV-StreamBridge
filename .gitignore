@@ -27,6 +27,7 @@ data/backups/*
 *.tmp
 *.temp
 .cache/
+__pycache__/
 
 # Editors and operating systems
 .idea/

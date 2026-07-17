@@ -7,9 +7,9 @@ import { fixture } from '../helpers.js';
 describe('Browser Overlay Hub contract', () => {
   it('projects privacy-bounded Bloom companion actions', async () => {
     const source = await fixture();
-    const event: NormalizedEvent = { ...source, eventId: 'companion-test', eventType: 'companion.action', payload: { action: 'eat', actorName: 'Example Viewer', cost: 25, remainingPoints: 75, happiness: 78, fullness: 90, energy: 77, sourceEventId: source.eventId }, metadata: { simulated: true, bridgeSequence: 7, viewerId: 'private-viewer-id' } };
+    const event: NormalizedEvent = { ...source, eventId: 'companion-test', eventType: 'companion.action', payload: { action: 'eat', actorName: 'Example Viewer', cost: 25, remainingPoints: 75, happiness: 78, fullness: 90, energy: 77, sleeping: false, sourceEventId: source.eventId }, metadata: { simulated: true, bridgeSequence: 7, viewerId: 'private-viewer-id' } };
     const projected = projectBrowserOverlayEvent(event);
-    expect(projected).toMatchObject({ kind: 'companion.action', payload: { action: 'eat', actorName: 'Example Viewer', cost: 25, remainingPoints: 75, happiness: 78, fullness: 90, energy: 77 } });
+    expect(projected).toMatchObject({ kind: 'companion.action', payload: { action: 'eat', actorName: 'Example Viewer', cost: 25, remainingPoints: 75, happiness: 78, fullness: 90, energy: 77, sleeping: false } });
     expect(JSON.stringify(projected)).not.toContain('private-viewer-id');
   });
 
@@ -68,7 +68,10 @@ describe('Browser Overlay Hub contract', () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker-1.0.0.js', 'thsv-browser-overlay-1.0.0'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-1.1.0.js', 'thsv-browser-overlay-1.1.0'");
+    expect(source).toContain('wake: [7, 6, 5, 4, 3, 2, 1, 0]');
+    expect(source).toContain('action === \'sleep\' ? holdCompanionSleep : finishCompanion');
+    expect(source).toContain('3200 + Math.floor(Math.random() * 4600)');
     expect(source).toContain("oldest.classList.add('message-expiring')");
     expect(source).toContain('while (alertQueue.length > clientConfig.maxAlertQueue)');
     expect(source).toContain('const card = buildAlertCard(nextAlert)');
@@ -111,5 +114,17 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('font-size: clamp(24px, 2.2vw, 38px)');
     expect(styles).toContain('backdrop-filter: none; animation: alert-fade');
     expect(styles).toContain('body[data-mode="alerts"] .connection-status[data-state="reconnecting"]');
+  });
+
+  it('keeps every Bloom animation on the same fixed eight-frame grid', async () => {
+    for (const filename of ['bloom-idle-sprite.png', 'bloom-wave-v2-sprite.png', 'bloom-eat-sprite.png', 'bloom-sleep-sprite.png', 'bloom-celebrate-sprite.png']) {
+      const png = await readFile(`overlays/browser/${filename}`);
+      expect(png.subarray(1, 4).toString('ascii')).toBe('PNG');
+      expect(png.readUInt32BE(16)).toBe(2048);
+      expect(png.readUInt32BE(20)).toBe(1024);
+    }
+    const styles = await readFile('overlays/browser/styles.css', 'utf8');
+    expect(styles).toContain('width: 100%; transform: translateX(-50%);');
+    expect(styles).toContain('400% 200% no-repeat');
   });
 });
