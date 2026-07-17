@@ -9,17 +9,20 @@ interface ExportManifest {
   readonly author?: string;
   readonly description?: string;
   readonly minimumStreamerBotVersion: string;
-  readonly action: {
+  readonly action?: ExportAction;
+  readonly actions?: readonly ExportAction[];
+  readonly runtime: {
+    readonly concurrent: boolean;
+  };
+}
+
+interface ExportAction {
     readonly name: string;
     readonly group: string;
     readonly id?: string;
     readonly sourceSubActionId?: string;
     readonly source: string;
     readonly importFile: string;
-  };
-  readonly runtime: {
-    readonly concurrent: boolean;
-  };
 }
 
 const packageArgument = process.argv[2];
@@ -29,7 +32,11 @@ if (packageArgument === undefined) {
 
 const packageDirectory = resolve(packageArgument);
 const manifest = JSON.parse(await readFile(resolve(packageDirectory, 'manifest.json'), 'utf8')) as ExportManifest;
-const source = await readFile(resolve(packageDirectory, manifest.action.source));
+const actions = manifest.actions ?? (manifest.action === undefined ? [] : [manifest.action]);
+const legacySingleAction = manifest.actions === undefined;
+if (actions.length === 0) throw new Error('Manifest must define action or actions.');
+const importFiles = new Set(actions.map((action) => action.importFile));
+if (importFiles.size !== 1) throw new Error('Every action in a multi-action package must use the same importFile.');
 const exported = {
   meta: {
     name: manifest.name,
@@ -40,14 +47,14 @@ const exported = {
     minimumVersion: null,
   },
   data: {
-    actions: [{
-      id: manifest.action.id ?? stableUuid(`${manifest.name}:action`),
+    actions: await Promise.all(actions.map(async (action) => ({
+      id: action.id ?? stableUuid(legacySingleAction ? `${manifest.name}:action` : `${manifest.name}:${action.name}:action`),
       queue: '00000000-0000-0000-0000-000000000000',
       enabled: true,
       excludeFromHistory: false,
       excludeFromPending: false,
-      name: manifest.action.name,
-      group: manifest.action.group,
+      name: action.name,
+      group: action.group,
       alwaysRun: false,
       randomAction: false,
       concurrent: manifest.runtime.concurrent,
@@ -56,12 +63,12 @@ const exported = {
         name: null,
         description: null,
         references: ['C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll'],
-        byteCode: source.toString('base64'),
+        byteCode: (await readFile(resolve(packageDirectory, action.source))).toString('base64'),
         precompile: false,
         delayStart: false,
         saveResultToVariable: false,
         saveToVariable: null,
-        id: manifest.action.sourceSubActionId ?? stableUuid(`${manifest.name}:source`),
+        id: action.sourceSubActionId ?? stableUuid(legacySingleAction ? `${manifest.name}:source` : `${manifest.name}:${action.name}:source`),
         weight: 0,
         type: 99_999,
         parentId: null,
@@ -69,7 +76,7 @@ const exported = {
         index: 0,
       }],
       collapsedGroups: [],
-    }],
+    }))),
     queues: [],
     commands: [],
     websocketServers: [],
@@ -83,8 +90,10 @@ const exported = {
 
 const header = Buffer.from('SBAE', 'ascii');
 const compressed = gzipSync(Buffer.from(JSON.stringify(exported)), { level: 9 });
-await writeFile(resolve(packageDirectory, manifest.action.importFile), Buffer.concat([header, compressed]).toString('base64'));
-console.log(`Created ${resolve(packageDirectory, manifest.action.importFile)}`);
+const importFile = actions[0]?.importFile;
+if (importFile === undefined) throw new Error('Manifest has no import file.');
+await writeFile(resolve(packageDirectory, importFile), Buffer.concat([header, compressed]).toString('base64'));
+console.log(`Created ${resolve(packageDirectory, importFile)}`);
 
 function stableUuid(input: string): string {
   const bytes = createHash('sha256').update(input).digest().subarray(0, 16);

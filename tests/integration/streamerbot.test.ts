@@ -3,6 +3,7 @@ import { WebSocketServer } from 'ws';
 import { describe, expect, it } from 'vitest';
 import { StreamerBotAdapter } from '../../bridge/adapters/streamerbot-adapter.js';
 import { fixture, silentLogger, testConfig } from '../helpers.js';
+import { StreamerBotEventRelay } from '../../bridge/adapters/streamerbot-event-relay.js';
 
 async function unusedPort(): Promise<number> {
   const server = createServer();
@@ -71,6 +72,31 @@ describe('Streamer.bot adapter', () => {
     await expect(adapter.sendEvent(await fixture('kick-follow.json'))).rejects.toThrow('pending request capacity');
     await adapter.stop();
     await firstRejection;
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('shares allowlisted TikFinity broadcasts without opening another WebSocket', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const relay = new StreamerBotEventRelay();
+    const received: Readonly<Record<string, unknown>>[] = [];
+    relay.subscribe((message) => received.push(message));
+    const adapter = new StreamerBotAdapter({
+      ...config.streamerbot,
+      testMode: false,
+      url: `ws://127.0.0.1:${String(port)}`,
+      reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+    }, silentLogger, 'streamerbot', relay);
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.send(JSON.stringify({ type: 'unrelated' }));
+      socket.send(JSON.stringify({ type: 'thsv.tikfinity', version: '1.0.0', kind: 'follow' }));
+    });
+    await adapter.start();
+    await expect.poll(() => received.length).toBe(1);
+    expect(received[0]).toMatchObject({ type: 'thsv.tikfinity', kind: 'follow' });
+    await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 });

@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-07-16
+
+### Added
+
+- A TikFinity input adapter that receives allowlisted event broadcasts over StreamBridge's existing authenticated Streamer.bot WebSocket connection.
+- A four-action TikFinity Intake package for chat, follow, gift, and like mappings already configured in the adopted TikFinity profile.
+- Safe TikFinity chat/alert normalization with bounded fields, simulator-default provenance, visible unverified-field markers, and no raw payload retention.
+
+### Changed
+
+- The example TikTok platform now uses the `tikfinity-streamerbot` adapter while remaining disabled until its Streamer.bot package is imported and tested.
+- The Streamer.bot export builder now supports reviewed multi-action packages without changing existing single-action exports.
+
 ## [0.10.1] - 2026-07-16
 
 ### Fixed

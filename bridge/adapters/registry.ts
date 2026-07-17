@@ -5,6 +5,8 @@ import { MockAdapter } from './mock-adapter.js';
 import { PlaceholderAdapter } from './placeholder-adapter.js';
 import { StreamerBotAdapter } from './streamerbot-adapter.js';
 import { TimedActionsAdapter } from './timed-actions-adapter.js';
+import { StreamerBotEventRelay } from './streamerbot-event-relay.js';
+import { TikfinityAdapter } from './tikfinity-adapter.js';
 
 export type InputAdapterFactory = (name: string, config: PlatformConfig) => InputAdapter;
 export type OutputAdapterFactory = (name: string, config: OutputConfig) => OutputAdapter;
@@ -44,11 +46,13 @@ export class AdapterRegistry {
 
 export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logger): AdapterRegistry {
   const registry = new AdapterRegistry();
+  const streamerBotEventRelay = new StreamerBotEventRelay();
   registry.registerInput('mock', (name, platform) => new MockAdapter(name, platform));
   registry.registerInput('timed-actions', (name, platform) => new TimedActionsAdapter(name, platform, config.timedActions));
+  registry.registerInput('tikfinity-streamerbot', (name, platform) => new TikfinityAdapter(name, platform, streamerBotEventRelay));
   for (const provider of ['twitch-placeholder', 'youtube-placeholder', 'kick-placeholder', 'tikfinity-placeholder', 'facebook-placeholder']) {
     registry.registerInput(provider, (name, platform) => new PlaceholderAdapter(name, platform, `${provider} has no production transport in Milestone 1.`));
   }
-  registry.registerOutput('streamerbot', (name) => new StreamerBotAdapter(config.streamerbot, logger, name));
+  registry.registerOutput('streamerbot', (name) => new StreamerBotAdapter(config.streamerbot, logger, name, streamerBotEventRelay));
   return registry;
 }

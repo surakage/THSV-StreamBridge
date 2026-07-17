@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - TikFinity Intake",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Relays allowlisted TikFinity event fields through Streamer.bot to the validated THSV StreamBridge pipeline.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "actions": [
+    { "name": "TikTok Chat Message", "group": "THSV StreamBridge", "id": "9f37f61d-f2d6-50cc-bbca-3b1d951ef9ee", "sourceSubActionId": "04e8e779-66ef-541c-b8af-daf65fe95034", "source": "src/RelayTikfinity.cs", "importFile": "THSV-StreamBridge-TikFinity-Intake-1.0.0.sb" },
+    { "name": "TikTok Follow", "group": "THSV StreamBridge", "id": "ab0e5f0a-e714-516c-82ee-1f476a516f7e", "sourceSubActionId": "a7427943-dac0-5dbd-b10e-4e7d5a35948b", "source": "src/RelayTikfinity.cs", "importFile": "THSV-StreamBridge-TikFinity-Intake-1.0.0.sb" },
+    { "name": "TikTok Gift", "group": "THSV StreamBridge", "id": "6bd402de-117e-56f4-8855-308e2894e66c", "sourceSubActionId": "2c315133-3dc8-51f1-ab3e-df9a3a15e03b", "source": "src/RelayTikfinity.cs", "importFile": "THSV-StreamBridge-TikFinity-Intake-1.0.0.sb" },
+    { "name": "THSV TikTok Like", "group": "THSV StreamBridge", "id": "b2ee7599-75b5-5c88-8ef2-4d715885c610", "sourceSubActionId": "f3938490-29a7-5ed4-97c8-a844ea397f87", "source": "src/RelayTikfinity.cs", "importFile": "THSV-StreamBridge-TikFinity-Intake-1.0.0.sb" }
+  ],
+  "runtime": { "queue": "Default", "concurrent": true },
+  "contract": {
+    "version": "1.0.0",
+    "eventKinds": ["chat", "follow", "gift", "like"],
+    "transport": "Streamer.bot WebsocketBroadcastJson",
+    "simulationPolicy": "Events default to simulated unless TikFinity supplies an explicit simulation marker.",
+    "executionSafety": { "runsCreatorActions": false, "writesGlobalVariables": false, "startsProcesses": false, "broadcastsAllowlistedFieldsOnly": true }
+  }
+}

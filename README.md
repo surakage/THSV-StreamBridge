@@ -108,6 +108,12 @@ Viewer Identity and Progression adds:
 
 Identity and progression are disabled by default. Configure them using the [Viewer Identity and Progression guide](docs/viewer-identity.md), then import the updated Core Receiver, Multi-Commands, and Viewer Progression packages.
 
+## TikFinity intake
+
+Bridge `0.10.2` adds a reviewed TikFinity-to-Streamer.bot intake for TikTok chat, follows, gifts, and likes. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.0.0.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
+
+TikFinity does not currently document a stable source-event ID or reliable simulator marker. Intake events therefore expose those limitations explicitly and default to simulated until live provenance is verified; do not use them for production progression or financial statistics yet.
+
 ## Requirements
 
 - Windows 10 or later

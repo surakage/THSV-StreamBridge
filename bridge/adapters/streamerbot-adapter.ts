@@ -4,6 +4,7 @@ import type { BridgeConfig } from '../../schemas/config.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { Logger } from '../services/logger.js';
 import { buildStreamerBotEventArguments } from './streamerbot-package.js';
+import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 
 interface PendingRequest {
   readonly resolve: () => void;
@@ -37,7 +38,7 @@ export class StreamerBotAdapter {
   private authenticated = false;
   private readonly pending = new Map<string, PendingRequest>();
 
-  public constructor(private readonly config: BridgeConfig['streamerbot'], private readonly logger: Logger, public readonly name = 'streamerbot') {}
+  public constructor(private readonly config: BridgeConfig['streamerbot'], private readonly logger: Logger, public readonly name = 'streamerbot', private readonly eventRelay?: StreamerBotEventRelay) {}
 
   public get enabled(): boolean { return this.config.enabled; }
 
@@ -148,8 +149,8 @@ export class StreamerBotAdapter {
   }
 
   private handleMessage(raw: string): void {
-    let message: StreamerBotMessage;
-    try { message = JSON.parse(raw) as StreamerBotMessage; }
+    let message: StreamerBotMessage & Readonly<Record<string, unknown>>;
+    try { message = JSON.parse(raw) as StreamerBotMessage & Readonly<Record<string, unknown>>; }
     catch { this.logger.warn('Ignored invalid Streamer.bot JSON response'); return; }
 
     if (message.request === 'Hello') {
@@ -181,6 +182,7 @@ export class StreamerBotAdapter {
         else pending.reject(new Error(`Streamer.bot request ${message.id} failed`));
       }
     }
+    if (message['type'] === 'thsv.tikfinity') this.eventRelay?.publish(message);
   }
 
   private markReady(): void {
