@@ -10,7 +10,7 @@ Milestone 8 serves transparent local browser overlays for combined, chat-only, a
    - Combined: `http://127.0.0.1:8787/overlay/` (normally 1920 by 1080)
    - Chat only: `http://127.0.0.1:8787/overlay/chat`
    - Compact Chat for hosts that intentionally want the cards to fill a narrow source: `http://127.0.0.1:8787/overlay/chat?layout=compact` (a useful starting size is 500 by 700)
-   - Alerts only: `http://127.0.0.1:8787/overlay/alerts` (a useful starting size is 800 by 260)
+   - Alerts only: `http://127.0.0.1:8787/overlay/alerts` (use a 1920 by 1080 source in Meld, then crop the transparent area)
 4. For independent placement, add Chat and Alerts as two separate browser sources. Move, crop, resize, hide, or assign each source to scenes normally in the broadcasting app.
 5. Run a harmless simulated chat or alert fixture and confirm it appears.
 
@@ -66,4 +66,4 @@ The deprecated `meldOverlay` configuration key from bridge `0.9.0` is migrated a
 
 ## Current boundary
 
-The browser hub is implemented and testable offline. Live rendering in each supported broadcasting application remains a manual acceptance check. TTS-synchronized captions are explicitly excluded: the adopted Speaker.bot transport acknowledges local dispatch but does not report playback start, duration, completion, or generated media. Visual alert priority therefore does not claim to preempt or synchronize Speaker.bot audio.
+The browser hub is implemented, offline-testable, and live-verified in Meld Studio and OBS Studio. The project owner accepts that OBS verification as the Streamlabs Desktop compatibility gate because all three integrations consume the same standards-based fixed URLs; a separate Streamlabs execution is not claimed. TTS-synchronized captions are explicitly excluded: the adopted Speaker.bot transport acknowledges local dispatch but does not report playback start, duration, completion, or generated media. Visual alert priority therefore does not claim to preempt or synchronize Speaker.bot audio.

@@ -68,7 +68,7 @@ Verification evidence:
 - [x] Milestone 5 — Multi-Alerts
 - [x] Milestone 6 — Speaker.bot Orchestration
 - [x] Milestone 7 — Multi-Timed Actions
-- [ ] Milestone 8 — Browser Overlay Hub (Meld/OBS/Streamlabs)
+- [x] Milestone 8 — Browser Overlay Hub (Meld/OBS/Streamlabs)
 - [ ] Milestone 9 — Viewer Identity and Progression
 - [ ] Milestone 10 — Games and Companion Systems
 - [ ] Milestone 11 — Installer and Public Release
@@ -239,7 +239,7 @@ Verification evidence:
 
 ## Milestone 8 — Browser Overlay Hub
 
-Status: **Implementation complete; separate-source live verification pending** — bridge candidate `0.9.4`.
+Status: **Complete** — live-verified in Meld Studio and OBS Studio on July 16, 2026 against bridge `0.9.8`; the project owner accepted OBS Browser Source verification as the Streamlabs Desktop compatibility gate.
 
 - [x] A transparent browser overlay is served locally without a cloud host or broadcasting-app credential.
 - [x] A loopback-only WebSocket broadcasts public presentation projections rather than raw events.
@@ -258,7 +258,7 @@ Status: **Implementation complete; separate-source live verification pending** �
 - [x] Caption synchronization and TTS/audio preemption are documented as unsupported because the adopted Speaker.bot transport provides no playback timing or completion acknowledgement.
 - [x] Add the combined overlay URL to Meld Studio and verify transparency, sizing, live reconnect, public chat, deletion, and alert presentation.
 - [x] Add the separate Chat and Alerts URLs to Meld Studio and verify independent movement/sizing and shared connection behavior.
-- [ ] Verify the adopted overlay URLs in installed OBS Studio and Streamlabs Desktop Browser Sources.
+- [x] Verify the adopted overlay URLs in installed OBS Studio; accept Streamlabs Desktop compatibility through the same standard Browser Source contract without requiring a duplicate manual spot check.
 
 Current verification evidence:
 
@@ -266,7 +266,9 @@ Current verification evidence:
 - `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` are the independently movable section URLs.
 - Automated browser-source review requires `textContent` and rejects `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, and `eval`.
 - Integration coverage opens `/overlay/events` through an actual loopback WebSocket and observes a projected public chat event.
-- Full validation: 31 test files and 142 tests passed; lint, typecheck, build, and configuration validation are clean.
+- Full validation: 31 test files and 143 tests passed; lint, typecheck, build, and configuration validation are clean.
 - Chromium acceptance: the live local page rendered Twitch chat and a YouTube Super Chat, labeled the simulated alert, reported `LIVE`, retained a transparent `rgba(0, 0, 0, 0)` body, removed the chat after a correlated moderation event, and logged no browser warnings or errors.
 - Meld acceptance: the separate Chat and Alerts Browser layers rendered independently; Chat is bottom-anchored, crop-safe, and uses a locked 16:9 browser surface without vertical scale compensation.
+- OBS acceptance: three unique Twitch chat events and a YouTube Super Chat rendered successfully in the installed OBS Studio Browser Sources with correct transparency, proportions, text clarity, chat placement, and alert lifecycle.
+- Streamlabs acceptance decision: the project owner waived a duplicate installed-app spot check after OBS passed because both consume the same fixed local URLs and standards-based browser assets; this is compatibility acceptance, not a claim of separate live Streamlabs execution.
 - Official Meld, OBS Studio, and Streamlabs documentation confirms URL Browser layers/sources use browser-compatible rendering; OBS explicitly documents CEF and transparent browser-source defaults.
