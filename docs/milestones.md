@@ -383,3 +383,6 @@ Release-candidate evidence:
 - Public-release verification: GitHub reports the repository as public with MIT license metadata; `v1.0.0` is non-draft, non-prerelease, and points to release commit `e4532854626dd30c170435c80a487c28ac9224a3`.
 - The published release exposes exactly `THSV-StreamBridge-1.0.0.zip` and `THSV-StreamBridge-1.0.0.zip.sha256`. An unauthenticated download produced a 7,393,865-byte archive whose SHA-256 matched the downloaded checksum: `0dbc76671073831faa0d1478d693dbfe53062b53dcd20a57006497b03cf0d470`.
 - Public release: [THSV StreamBridge v1.0.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v1.0.0).
+- Review-hardening release: `v1.0.1` is non-draft, non-prerelease, contains exactly the versioned archive and adjacent checksum, and points to `5e5a5abe9cc011fb78171b8424cbecfaa0446053`.
+- An anonymous download of `THSV-StreamBridge-1.0.1.zip` produced a 7,393,625-byte archive matching the published SHA-256: `f1fc1766d3e51069ccef6a13af0af6fd9cbb7ade36bae7b32c98a1a09cb9c7c0`.
+- Latest stable release: [THSV StreamBridge v1.0.1](https://github.com/surakage/THSV-StreamBridge/releases/tag/v1.0.1).
