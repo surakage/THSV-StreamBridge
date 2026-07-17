@@ -26,6 +26,13 @@ describe('wizard HTTP surface', () => {
     const shell = await fetch(`${baseUrl}/wizard/`);
     expect(shell.status).toBe(200);
     expect(shell.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+    const shellMarkup = await shell.text();
+    expect(shellMarkup).toContain('id="inspection-state" class="notice" role="status" aria-live="polite" aria-atomic="true"');
+    expect(shellMarkup).toContain('id="transaction" role="status" aria-live="polite" aria-atomic="true"');
+    expect(shellMarkup).toContain('id="diagnostics" role="status" aria-live="polite" aria-atomic="true"');
+    const theme = await fetch(`${baseUrl}/wizard/styles.css`).then((response) => response.text());
+    expect(theme).toContain('color-scheme:light dark');
+    expect(theme).toContain('@media(prefers-color-scheme:light)');
     expect((await fetch(`${baseUrl}/wizard/api/overview`)).status).toBe(401);
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, origin: baseUrl };
     expect((await fetch(`${baseUrl}/wizard/api/overview`, { headers })).status).toBe(200);
