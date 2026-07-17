@@ -326,6 +326,7 @@ Status: **Complete and acceptance-verified** — finalized on July 17, 2026 agai
 - [x] A separate transparent browser source queues fixed-scale eight-frame animations and shares the overlay WebSocket when supported.
 - [x] Sleep plays once and persists on its final frame until Wake reverses the transition; other interactions are rejected while Bloom sleeps.
 - [x] Queue capacity and authenticated creator visual-test actions are configurable and test-covered.
+- [x] Administrative overrides are explicitly limited to the token-authenticated local operator and are not presented as platform-moderator chat controls.
 - [x] Disabled or degraded companion state does not stop unrelated bridge traffic.
 - [x] Chat games are explicitly deferred to future platform extensions.
 - [x] Import and compile Bloom Companion `1.1.0` in Streamer.bot.
@@ -342,3 +343,4 @@ Automated evidence:
 - Creator visual acceptance: Wave, Eat, Celebrate, Sleep, and Wake were exercised one by one in the live standalone Companion source. Sleep held its clean final blanket frame across reload, Wake reversed the transition, every action returned naturally to idle, and the status remained live.
 - Final animation repair in `0.12.2`: Celebrate's raised-arm jump frames stay inside their fixed cells, no longer clip Bloom's head, and cannot bleed artifacts into neighboring poses. The generator now rejects any future out-of-cell frame.
 - Spending evidence remains transport-independent: integration coverage sends a normalized platform-shaped command through identity, command derivation, exact one-time balance deduction, ordered `companion.action` emission, and the same trusted package fields used by Streamer.bot. Production platform transports remain explicitly deferred to their adapter milestones.
+- Focused-review clarification: "moderator control" means the local token-authenticated operator endpoint. No platform moderator receives an implicit cost, cooldown, or state-transition bypass.

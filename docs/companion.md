@@ -46,6 +46,10 @@ With the bridge running and companion enabled:
 
 These token-protected requests bypass viewer cost and cooldown only for the visual test, remain visibly simulated, update shared companion stats, and are logged.
 
+### Control boundary
+
+These administrative actions are local **operator/streamer controls**. They require the bridge control token, accept loopback requests only, and require `performedBy` plus a reason for the audit log. They are not chat commands and do not grant Twitch, YouTube, Kick, or TikTok moderators permission to bypass costs, cooldowns, or companion state rules. Any future in-chat moderator controls must be designed as a separate role-authorized feature with an explicit command list and audit policy.
+
 For a full points test, add a balance with `scripts\viewer-progression.ps1`, then send a Bloom command from a connected Twitch, YouTube, or Kick chat account. Confirm the source chat, derived command, and `companion.action` have consecutive bridge sequences; the balance decreases exactly once; and Action History exposes the `companion*` fields.
 
 ## State and recovery
