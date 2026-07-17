@@ -157,7 +157,9 @@ To create creator-specific settings, copy `config/bridge.example.json` into `dat
 
 See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and [Bloom Companion](docs/companion.md).
 
-For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md). Public publication remains gated on the final version choice and downloadable-artifact verification.
+For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
+
+Latest stable release: [THSV StreamBridge v1.0.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v1.0.0).
 
 ## License
 

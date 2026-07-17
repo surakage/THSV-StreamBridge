@@ -376,3 +376,6 @@ Release-candidate evidence:
 - The installed release started independently on port 8792, reported `healthy`/`ready`, accepted and queued the authenticated Twitch fixture, stopped cleanly, and closed the port.
 - Reinstalling the release candidate preserved the control-token hash, custom port 8792, explicit test mode, and all three state files while creating a timestamped backup.
 - Default uninstall removed application files and preserved the complete creator-data directory plus a reinstall notice.
+- Public-release verification: GitHub reports the repository as public with MIT license metadata; `v1.0.0` is non-draft, non-prerelease, and points to release commit `e4532854626dd30c170435c80a487c28ac9224a3`.
+- The published release exposes exactly `THSV-StreamBridge-1.0.0.zip` and `THSV-StreamBridge-1.0.0.zip.sha256`. An unauthenticated download produced a 7,393,865-byte archive whose SHA-256 matched the downloaded checksum: `0dbc76671073831faa0d1478d693dbfe53062b53dcd20a57006497b03cf0d470`.
+- Public release: [THSV StreamBridge v1.0.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v1.0.0).
