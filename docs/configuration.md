@@ -48,7 +48,7 @@ User presentation metadata accepts HTTPS-only avatar and badge icon URLs, six-di
 
 ## Archived add-on configuration
 
-Stage 2 core has no `viewerIdentity`, `companion`, or `browserOverlay.maxCompanionQueue` settings. Legacy files containing those keys still load so an upgrade does not fail, but the keys are ignored and never reactivate archived features. The v2 migration preview reports preserved progression and companion state paths and flags Bloom-named commands for explicit creator review. See [Future add-ons](future-add-ons.md).
+Stage 2 core has no `viewerIdentity`, `companion`, or `browserOverlay.maxCompanionQueue` settings. Legacy files containing those keys still load so an upgrade does not fail, but the keys are ignored and never reactivate archived features. Startup writes an `archived-config-ignored` warning to the structured service log with the exact ignored paths. The v2 migration preview reports preserved progression and companion state paths and flags Bloom-named commands for explicit creator review. See [Future add-ons](future-add-ons.md).
 
 ## Ports
 

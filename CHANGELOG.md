@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Completed the Stage 1 adapter inventory with the Streamer.bot relay and package-envelope helpers and explicitly retained the timed-actions control script.
 - Archived Viewer Progression, Bloom Companion, and Speaker.bot implementations under `archive/future-add-ons` and removed their runtime, HTTP, configuration, event, overlay, and Streamer.bot argument dependencies from core.
 - Rebuilt the Core Receiver and Multi-Commands imports as `2.0.0-preview.1` without viewer-progression identity arguments.
+- Startup now emits a structured warning listing any archived `viewerIdentity`, `companion`, or companion-overlay configuration paths that were safely ignored, while preserving their state for creator review.
 
 ### Safety
 
