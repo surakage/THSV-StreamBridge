@@ -83,7 +83,9 @@ const timedActionsSchema = z.object({
 
 const browserOverlaySchema = z.object({
   enabled: z.boolean().default(true),
+  brandLabel: z.string().trim().max(60).default('THE HIDDEN SLOTH VILLAGE'),
   maxChatMessages: z.number().int().min(1).max(200).default(8),
+  maxAlertQueue: z.number().int().min(1).max(200).default(20),
   alertDurationMs: z.number().int().min(1_000).max(60_000).default(7_000),
   showBots: z.boolean().default(true),
   showSimulated: z.boolean().default(true),
@@ -151,7 +153,7 @@ const bridgeConfigObjectSchema = z
       .strict(),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
-    browserOverlay: browserOverlaySchema.default({ enabled: true, maxChatMessages: 8, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
+    browserOverlay: browserOverlaySchema.default({ enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
     streamerbot: z
       .object({
         enabled: z.boolean(),

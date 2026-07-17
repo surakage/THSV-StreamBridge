@@ -42,7 +42,7 @@ Timers do not arm merely because the bridge process is running. A normalized `st
 
 ## Browser overlay
 
-`browserOverlay.enabled` controls public browser-event broadcasting. `maxChatMessages` bounds browser-only chat retention, `alertDurationMs` controls visual display time, and `showBots`/`showSimulated` provide explicit presentation filters. These settings are non-secret and available to the local browser layer through `/overlay/config`. The deprecated `meldOverlay` key is automatically migrated for `0.9.0` configuration compatibility.
+`browserOverlay.enabled` controls public browser-event broadcasting. `brandLabel` customizes or hides the combined-layout heading, `maxChatMessages` bounds browser-only chat retention, `maxAlertQueue` bounds waiting visual alerts with a lowest-priority/oldest-first discard policy, `alertDurationMs` controls visual display time, and `showBots`/`showSimulated` provide explicit presentation filters. These settings are non-secret and available to the local browser layer through `/overlay/config`. The deprecated `meldOverlay` key is automatically migrated for `0.9.0` configuration compatibility.
 
 User presentation metadata accepts HTTPS-only avatar and badge icon URLs, six-digit hex name colors, and at most 16 bounded badges. Subscription presentation accepts explicit new/renewal/upgrade, month, streak, gift, and gifter fields; values are never inferred from unrelated platform data.
 

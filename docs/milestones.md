@@ -239,7 +239,7 @@ Verification evidence:
 
 ## Milestone 8 — Browser Overlay Hub
 
-Status: **Complete** — live-verified in Meld Studio and OBS Studio on July 16, 2026 against bridge `0.9.8`; the project owner accepted OBS Browser Source verification as the Streamlabs Desktop compatibility gate.
+Status: **Complete and review-hardened** — live-verified in Meld Studio and OBS Studio on July 16, 2026, then hardened against alert storms, renderer faults, stale-source upgrades, hardcoded branding, and silent standalone disconnects in bridge `0.9.9`; the project owner accepted OBS Browser Source verification as the Streamlabs Desktop compatibility gate.
 
 - [x] A transparent browser overlay is served locally without a cloud host or broadcasting-app credential.
 - [x] A loopback-only WebSocket broadcasts public presentation projections rather than raw events.

@@ -4,6 +4,7 @@
   const chat = document.getElementById('chat');
   const alerts = document.getElementById('alerts');
   const status = document.getElementById('status');
+  const brandLabel = document.getElementById('brand-label');
   const mode = location.pathname.endsWith('/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
   const search = new URLSearchParams(location.search);
   const requestedLayout = search.get('layout');
@@ -15,7 +16,8 @@
   let activeAlert;
   let alertTimer;
   const chatFadeMs = 240;
-  let clientConfig = { maxChatMessages: 8, alertDurationMs: 7000 };
+  let clientConfig = { brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000 };
+  brandLabel.textContent = clientConfig.brandLabel;
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -54,7 +56,7 @@
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-0.9.8.js', 'thsv-browser-overlay-0.9.8');
+        const worker = new SharedWorker('/overlay/worker-0.9.9.js', 'thsv-browser-overlay-0.9.9');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
@@ -72,7 +74,9 @@
     item.dataset.eventId = message.eventId;
     const identity = element('div', 'identity');
     if (message.presentation.avatarUrl) {
-      const avatar = element('img', 'avatar'); avatar.src = message.presentation.avatarUrl; avatar.alt = ''; avatar.referrerPolicy = 'no-referrer'; identity.append(avatar);
+      const avatar = element('img', 'avatar'); avatar.src = message.presentation.avatarUrl; avatar.alt = ''; avatar.referrerPolicy = 'no-referrer';
+      avatar.addEventListener('error', () => avatar.remove(), { once: true });
+      identity.append(avatar);
     }
     identity.append(element('span', 'platform', message.platform.toUpperCase()));
     const displayName = element('strong', 'display-name', message.user.displayName);
@@ -108,20 +112,46 @@
     }
     alertQueue.push(alert);
     alertQueue.sort((a, b) => priorityRank[b.priority] - priorityRank[a.priority] || a.sequence - b.sequence);
+    while (alertQueue.length > clientConfig.maxAlertQueue) {
+      const lowestRank = Math.min(...alertQueue.map((queued) => priorityRank[queued.priority]));
+      const oldestLowestPriority = alertQueue.findIndex((queued) => priorityRank[queued.priority] === lowestRank);
+      alertQueue.splice(oldestLowestPriority, 1);
+    }
     showNextAlert();
   }
 
   function showNextAlert() {
     if (activeAlert || alertQueue.length === 0) return;
-    activeAlert = alertQueue.shift();
-    const card = element('article', `alert priority-${activeAlert.priority}`);
-    card.append(element('span', 'alert-platform', activeAlert.platform.toUpperCase()));
-    card.append(element('h2', '', alertTitle(activeAlert)));
-    const detail = alertDetail(activeAlert);
+    while (!activeAlert && alertQueue.length > 0) {
+      const nextAlert = alertQueue.shift();
+      try {
+        const card = buildAlertCard(nextAlert);
+        alerts.replaceChildren(card);
+        const timer = setTimeout(finishAlert, clientConfig.alertDurationMs);
+        activeAlert = nextAlert;
+        alertTimer = timer;
+      } catch (error) {
+        alerts.replaceChildren();
+        console.warn('Skipped an alert that could not be rendered.', error);
+      }
+    }
+  }
+
+  function buildAlertCard(alert) {
+    const card = element('article', `alert priority-${alert.priority}`);
+    card.append(element('span', 'alert-platform', alert.platform.toUpperCase()));
+    card.append(element('h2', '', alertTitle(alert)));
+    const detail = alertDetail(alert);
     if (detail) card.append(element('p', '', detail));
-    if (activeAlert.simulated) card.append(element('span', 'simulated', 'TEST EVENT'));
-    alerts.replaceChildren(card);
-    alertTimer = setTimeout(() => { alerts.replaceChildren(); activeAlert = undefined; showNextAlert(); }, clientConfig.alertDurationMs);
+    if (alert.simulated) card.append(element('span', 'simulated', 'TEST EVENT'));
+    return card;
+  }
+
+  function finishAlert() {
+    alerts.replaceChildren();
+    activeAlert = undefined;
+    alertTimer = undefined;
+    showNextAlert();
   }
 
   function alertTitle(alert) {
@@ -140,5 +170,9 @@
   }
 
   function safeClass(value) { return String(value).toLowerCase().replace(/[^a-z0-9-]/g, ''); }
-  fetch('/overlay/config').then((response) => response.ok ? response.json() : undefined).then((config) => { if (config) clientConfig = config; }).catch(() => undefined).finally(connect);
+  fetch('/overlay/config').then((response) => response.ok ? response.json() : undefined).then((config) => {
+    if (config) clientConfig = config;
+    brandLabel.textContent = clientConfig.brandLabel;
+    brandLabel.hidden = clientConfig.brandLabel.length === 0;
+  }).catch(() => undefined).finally(connect);
 })();

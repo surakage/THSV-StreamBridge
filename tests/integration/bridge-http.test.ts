@@ -120,13 +120,15 @@ describe('bridge HTTP integration', () => {
     const meldChat = await fetch(`${baseUrl}/overlay/chat?layout=meld&canvasWidth=1920&canvasHeight=1080&verticalScale=0.402`);
     expect(meldChat.status).toBe(200);
     expect(meldChat.headers.get('cache-control')).toBe('no-store');
-    expect(await meldChat.text()).toContain('/overlay/app-0.9.8.js');
-    expect((await fetch(`${baseUrl}/overlay/styles-0.9.8.css`)).status).toBe(200);
-    const worker = await fetch(`${baseUrl}/overlay/worker-0.9.8.js`);
+    expect(await meldChat.text()).toContain('/overlay/app-0.9.9.js');
+    expect((await fetch(`${baseUrl}/overlay/styles-0.9.9.css`)).status).toBe(200);
+    const worker = await fetch(`${baseUrl}/overlay/worker-0.9.9.js`);
     expect(worker.status).toBe(200);
     expect(worker.headers.get('content-type')).toContain('text/javascript');
     expect(await worker.text()).toContain('for (const port of ports)');
-    expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toMatchObject({ maxChatMessages: 8, alertDurationMs: 7000 });
+    expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toMatchObject({
+      brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
+    });
 
     const messages: Array<Record<string, unknown>> = [];
     const socket = new WebSocket(`${baseUrl.replace('http:', 'ws:')}/overlay/events`);

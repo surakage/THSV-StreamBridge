@@ -60,8 +60,13 @@ describe('Browser Overlay Hub contract', () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker-0.9.8.js', 'thsv-browser-overlay-0.9.8'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-0.9.9.js', 'thsv-browser-overlay-0.9.9'");
     expect(source).toContain("oldest.classList.add('message-expiring')");
+    expect(source).toContain('while (alertQueue.length > clientConfig.maxAlertQueue)');
+    expect(source).toContain('const card = buildAlertCard(nextAlert)');
+    expect(source).toContain("console.warn('Skipped an alert that could not be rendered.'");
+    expect(source).toContain("avatar.addEventListener('error', () => avatar.remove()");
+    expect(source).toContain('brandLabel.textContent = clientConfig.brandLabel');
     expect(source).toContain('connectDirectly');
     expect(worker.match(/new WebSocket/gu)).toHaveLength(1);
     expect(worker).toContain('for (const port of ports)');
@@ -86,6 +91,7 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('background: transparent;');
     expect(styles).toContain('body[data-mode="chat"] .chat-shell header { display: none; }');
     expect(styles).toContain('body[data-mode="chat"] .message.message-expiring');
+    expect(styles).toContain('body[data-mode="chat"] .connection-status[data-state="reconnecting"]');
     expect(styles).toContain('@keyframes chat-expire');
   });
 
@@ -96,5 +102,6 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('background: #171120;');
     expect(styles).toContain('font-size: clamp(24px, 2.2vw, 38px)');
     expect(styles).toContain('backdrop-filter: none; animation: alert-fade');
+    expect(styles).toContain('body[data-mode="alerts"] .connection-status[data-state="reconnecting"]');
   });
 });

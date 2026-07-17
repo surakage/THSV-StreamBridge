@@ -16,6 +16,8 @@ Milestone 8 serves transparent local browser overlays for combined, chat-only, a
 
 Chat and Alerts opened by the same browser-source host share a `SharedWorker`, which owns one event WebSocket and fans events out locally. This keeps the independently movable sources from doubling the normal WebSocket traffic. If a broadcasting app isolates browser sources or lacks `SharedWorker`, each source safely falls back to its own reconnecting WebSocket; presentation still works, but the host will show one connection per isolated source.
 
+After upgrading StreamBridge, manually refresh or reload each Browser Source once so the host picks up the new versioned overlay assets. Keep OBS/Streamlabs **Shutdown source when not visible** disabled when you want recent chat to remain visible across scene changes; destroying the source intentionally clears its privacy-bounded in-memory feed.
+
 ### Meld Studio sizing
 
 The plain Chat URL is already configured for Meld's canvas behavior. It uses no scale compensation and needs no `layout`, `canvasWidth`, `canvasHeight`, or `verticalScale` query parameters.
@@ -38,7 +40,7 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - Browser rendering uses DOM `textContent`; event text is never interpreted as HTML.
 - `moderation.action` events with a message-removal action and `targetEventId` remove the correlated chat entry.
 - The feed retains only `browserOverlay.maxChatMessages` in browser memory and stores no chat history. The default is eight visible messages; when a ninth arrives, the oldest card fades away from the top.
-- Alerts use a bounded visual queue. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
+- Alerts use a bounded visual queue. The default holds at most 20 waiting alerts; when full, it discards the oldest alert from the lowest available priority so a gift storm cannot grow browser memory indefinitely. A malformed card is skipped without freezing later alerts. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
 - HTTPS avatar/badge URLs, validated hex name colors, and subscription renewal/upgrade/month/streak/gift provenance are supported when a verified adapter supplies them.
 - Simulated events remain visibly labeled and may be disabled through configuration.
 - Combined, Chat-only, and Alerts-only layouts use the same projection stream and do not make additional platform API calls.
@@ -53,12 +55,16 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
 ```json
   "browserOverlay": {
   "enabled": true,
+  "brandLabel": "THE HIDDEN SLOTH VILLAGE",
   "maxChatMessages": 8,
+  "maxAlertQueue": 20,
   "alertDurationMs": 7000,
   "showBots": true,
   "showSimulated": true
 }
 ```
+
+`brandLabel` changes the combined overlay heading without editing HTML; set it to an empty string to hide the label. Standalone Chat and Alerts keep the live badge hidden during normal operation and show a subtle **RECONNECTING** badge whenever the bridge connection is unavailable.
 
 The event WebSocket accepts loopback clients only, even if the diagnostics HTTP service is deliberately exposed on another interface. It broadcasts public presentation projections, never raw payloads, credentials, private messages, or operator traffic.
 

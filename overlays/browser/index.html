@@ -4,16 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>THSV Browser Overlay Hub</title>
-  <link rel="stylesheet" href="/overlay/styles-0.9.8.css">
+  <link rel="stylesheet" href="/overlay/styles-0.9.9.css">
 </head>
 <body>
   <main class="overlay" aria-live="polite">
     <section id="alerts" class="alerts" aria-label="Stream alerts"></section>
     <section class="chat-shell" aria-label="Public multistream chat">
-      <header><span>THE HIDDEN SLOTH VILLAGE</span><strong id="status">CONNECTING</strong></header>
+      <header><span id="brand-label"></span></header>
       <ol id="chat" class="chat"></ol>
     </section>
+    <strong id="status" class="connection-status" data-state="reconnecting">RECONNECTING</strong>
   </main>
-  <script src="/overlay/app-0.9.8.js" defer></script>
+  <script src="/overlay/app-0.9.9.js" defer></script>
 </body>
 </html>

@@ -42,7 +42,9 @@
   },
   "browserOverlay": {
     "enabled": true,
+    "brandLabel": "THE HIDDEN SLOTH VILLAGE",
     "maxChatMessages": 8,
+    "maxAlertQueue": 20,
     "alertDurationMs": 7000,
     "showBots": true,
     "showSimulated": true
