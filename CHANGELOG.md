@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-07-17
+
+### Fixed
+
+- Kept Bloom's raised-arm celebration poses inside their sprite cells so the jump no longer clips the head or leaves neighboring-frame artifacts.
+- Added a sprite-generation boundary check that rejects any future pose that would escape its fixed cell.
+
 ## [0.12.1] - 2026-07-16
 
 ### Added

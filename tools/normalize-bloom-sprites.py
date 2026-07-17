@@ -190,10 +190,22 @@ def normalize_sheet(name: str, source_path: Path, output_path: Path) -> None:
         left = round(TARGET_CENTER_X - anchor_after_scale)
 
         if name == "celebrate" and index in (3, 4, 5):
-            bottom = {3: 405, 4: 325, 5: 365}[index]
+            # Preserve a visible jump without pushing the raised arms or head
+            # outside the frame. Overflow here bleeds into the row above.
+            bottom = {3: 405, 4: 415, 5: 430}[index]
         else:
             bottom = TARGET_BASELINE_Y
         top = round(bottom - resized.height)
+        if (
+            left < 0
+            or top < 0
+            or left + resized.width > CELL_WIDTH
+            or top + resized.height > CELL_HEIGHT
+        ):
+            raise ValueError(
+                f"{name} frame {index + 1} escapes its sprite cell: "
+                f"left={left}, top={top}, width={resized.width}, height={resized.height}"
+            )
         column = index % 4
         row = index // 4
         output.alpha_composite(resized, (column * CELL_WIDTH + left, row * CELL_HEIGHT + top))

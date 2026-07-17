@@ -224,9 +224,10 @@ describe('bridge HTTP integration', () => {
     expect(meldChat.status).toBe(200);
     expect(meldChat.headers.get('cache-control')).toBe('no-store');
     expect(await meldChat.text()).toContain('/overlay/app-1.1.0.js');
-    expect((await fetch(`${baseUrl}/overlay/styles-1.1.0.css`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/styles-1.1.1.css`)).status).toBe(200);
     for (const asset of ['idle', 'wave', 'eat', 'sleep', 'celebrate']) {
-      expect((await fetch(`${baseUrl}/overlay/bloom-${asset}-sprite-1.1.0.png`)).headers.get('content-type')).toContain('image/png');
+      const version = asset === 'celebrate' ? '1.1.1' : '1.1.0';
+      expect((await fetch(`${baseUrl}/overlay/bloom-${asset}-sprite-${version}.png`)).headers.get('content-type')).toContain('image/png');
     }
     const worker = await fetch(`${baseUrl}/overlay/worker-1.1.0.js`);
     expect(worker.status).toBe(200);

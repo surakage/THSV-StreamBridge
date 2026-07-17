@@ -217,12 +217,14 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/styles-0.9.9.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.0.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.1.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/styles-1.1.1.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/bloom-sprite-1.0.0.png': { file: 'bloom-wave-sprite.png', contentType: 'image/png' },
   '/overlay/bloom-idle-sprite-1.1.0.png': { file: 'bloom-idle-sprite.png', contentType: 'image/png' },
   '/overlay/bloom-wave-sprite-1.1.0.png': { file: 'bloom-wave-v2-sprite.png', contentType: 'image/png' },
   '/overlay/bloom-eat-sprite-1.1.0.png': { file: 'bloom-eat-sprite.png', contentType: 'image/png' },
   '/overlay/bloom-sleep-sprite-1.1.0.png': { file: 'bloom-sleep-sprite.png', contentType: 'image/png' },
   '/overlay/bloom-celebrate-sprite-1.1.0.png': { file: 'bloom-celebrate-sprite.png', contentType: 'image/png' },
+  '/overlay/bloom-celebrate-sprite-1.1.1.png': { file: 'bloom-celebrate-sprite.png', contentType: 'image/png' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }
