@@ -36,7 +36,7 @@ Implemented for offline acceptance in `0.9.0`, generalized across browser-source
 
 ## Milestone 9: Viewer Identity and Progression
 
-Implemented for offline acceptance in `0.10.0`. Creator-approved links unify verified accounts without name-based guessing; unlinked users receive platform-scoped pseudonyms. Atomic privacy-bounded progression applies fixed points, unified cooldowns, bounded replay suppression, levels, and derived events. Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` expose trusted IDs to Streamer.bot. Live package import and action-history verification remain pending.
+Completed in `0.10.0`. Creator-approved links unify verified accounts without name-based guessing; unlinked users receive platform-scoped pseudonyms. Atomic privacy-bounded progression applies fixed points, unified cooldowns, bounded replay suppression, levels, and derived events. Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` expose trusted IDs to Streamer.bot. All three packages, the rebuilt immediate receiver chain, a linked simulated award, derived delivery, and Action History completion were live-verified in Streamer.bot `1.0.5-alpha.31`.
 
 ## Carried requirements
 

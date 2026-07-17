@@ -275,7 +275,7 @@ Current verification evidence:
 
 ## Milestone 9 — Viewer Identity and Progression
 
-Status: **Implementation complete; live Streamer.bot verification pending** — implemented in bridge `0.10.0`, Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression package `1.0.0`.
+Status: **Complete** — verified on July 16, 2026 against bridge `0.10.0`, Core Receiver `1.0.4`, Multi-Commands `1.1.0`, Viewer Progression `1.0.0`, and Streamer.bot `1.0.5-alpha.31`.
 
 - [x] Cross-platform links are explicit creator-approved configuration; names and behavior are never used to guess identity.
 - [x] Duplicate viewer IDs, duplicate account assignments, invalid IDs, and invalid level thresholds fail configuration validation.
@@ -291,7 +291,7 @@ Status: **Implementation complete; live Streamer.bot verification pending** — 
 - [x] Multi-Commands exposes the trusted viewer ID for downstream cooldown and spam policies.
 - [x] A projection-only Streamer.bot package exposes progression arguments without running actions or writing globals.
 - [x] Unit and integration tests cover cross-platform linking, cooldowns, replay, privacy, spoof replacement, invalid state/configuration, and export integrity.
-- [ ] Import the three updated packages into Streamer.bot, rebuild the receiver child chain, and verify one simulated linked award in Action History.
+- [x] Import the three updated packages into Streamer.bot, rebuild the receiver child chain, and verify one simulated linked award in Action History.
 
 Current verification evidence:
 
@@ -300,4 +300,8 @@ Current verification evidence:
 - Export-integrity tests decoded all three new `.sb` files and matched their embedded C# bytecode to the reviewed sources.
 - Cross-platform unit evidence links Twitch and YouTube accounts to one viewer and suppresses the second chat award through one shared cooldown.
 - Integration evidence replaces a spoofed caller viewer ID, emits chat then progression in bridge-sequence order, and returns the progression event ID in `derivedEventIds` only when simulated awards are explicitly enabled.
-- Live package import, C# compilation, receiver-chain persistence, and Action History output remain the only pending acceptance gate.
+- Package metadata/import: all three exports displayed author `surakage` and a non-empty description before their reviewed custom C# was accepted. Core Receiver and Multi-Commands upgraded their existing actions; Viewer Progression installed as a new triggerless action.
+- Receiver-chain persistence: Streamer.bot saved the immediate child order Multi-Chat, Multi-Commands, Multi-Alerts, Multi-Timed Actions, and Viewer Progression after the upgraded receiver C# sub-action.
+- Controlled linked award: a test-only explicit Twitch account link accepted `sim-twitch-chat-001` as new and returned derived progression event `progression-d94ad5686077ddfa58e8ed1a278fd0183938822b`.
+- Live diagnostics reported identity enabled with one linked account, one tracked viewer, one processed event, and completed file persistence. Action History recorded two completed receiver runs for the source and derived delivery at 8:08:39 PM with 135 and 158 variables; the source envelope carried trusted viewer ID `fixture-linked-viewer` under receiver contract `1.2.0` and package `1.0.4`.
+- Post-test restoration: the normal `data/runtime/bridge.local.json` service returned to `healthy`/`ready` with viewer identity disabled by default and no test links or totals loaded.
