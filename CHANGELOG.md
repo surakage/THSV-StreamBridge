@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-16
+
+### Added
+
+- Bloom Companion with unified progression spending, creator-configured commands, cooldowns, bounded shared stats, and atomic local state.
+- Wave, eat, sleep, and celebrate animations in an independent shared-WebSocket browser source.
+- A projection-only Streamer.bot package and authenticated PowerShell visual-test helper.
+
+### Fixed
+
+- Companion persistence failures roll state back and automatically refund spent points.
+- Derived commands receive their trusted bridge sequence before companion validation.
+
 ## [0.11.1] - 2026-07-16
 
 ### Added

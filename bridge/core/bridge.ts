@@ -14,6 +14,8 @@ import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/
 import { ViewerProgressionEngine, type ViewerProgressionAdjustment, type ViewerProgressionAdjustmentResult, type ViewerDeletionResult } from './viewer-progression.js';
 import { NoopViewerProgressionStore } from '../services/viewer-progression-store.js';
 import { NoopViewerLinkStore, type ViewerLinkStore } from '../services/viewer-link-store.js';
+import { CompanionEngine, type CompanionAdministrativeAction, type CompanionProcessResult } from './companion.js';
+import { NoopCompanionStore } from '../services/companion-store.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -38,6 +40,7 @@ export interface StreamBridgeDependencies {
   readonly stateWriter?: StateWriter;
   readonly viewerProgression?: ViewerProgressionEngine;
   readonly viewerLinkStore?: ViewerLinkStore;
+  readonly companion?: CompanionEngine;
 }
 
 export class StreamBridge {
@@ -50,6 +53,7 @@ export class StreamBridge {
   private readonly timedActions: TimedActionsAdapter | undefined;
   private readonly viewerProgression: ViewerProgressionEngine;
   private readonly viewerLinkStore: ViewerLinkStore;
+  private readonly companion: CompanionEngine;
   private readonly livePlatforms = new Set<string>();
   private running = false;
   private startedAt: string | undefined;
@@ -81,6 +85,7 @@ export class StreamBridge {
     this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
     this.viewerProgression = dependencies.viewerProgression ?? new ViewerProgressionEngine(config.viewerIdentity, new NoopViewerProgressionStore());
     this.viewerLinkStore = dependencies.viewerLinkStore ?? new NoopViewerLinkStore();
+    this.companion = dependencies.companion ?? new CompanionEngine(config.companion, new NoopCompanionStore(), this.viewerProgression);
   }
 
   public subscribe(handler: Parameters<InternalEventBus['subscribe']>[0]): () => void { return this.bus.subscribe(handler); }
@@ -92,6 +97,11 @@ export class StreamBridge {
     catch (error) {
       this.viewerProgression.degrade(error);
       this.logger.error('Viewer progression startup failed; bridge remains active', { error });
+    }
+    try { await this.companion.start(); }
+    catch (error) {
+      this.companion.degrade(error);
+      this.logger.error('Companion startup failed; bridge remains active', { error });
     }
     this.startedAt = new Date().toISOString();
     this.running = true;
@@ -113,6 +123,7 @@ export class StreamBridge {
       this.delivery.stop(controller.signal),
       this.dependencies.deduplicationStore.flush(),
       this.viewerProgression.stop(),
+      this.companion.stop(),
     ];
     const completion = Promise.allSettled(operations).then(() => 'complete' as const);
     let timer: NodeJS.Timeout | undefined;
@@ -148,6 +159,13 @@ export class StreamBridge {
     const result = await this.viewerProgression.deleteViewer(viewerId, () => this.viewerLinkStore.remove(viewerId));
     this.logger.info('Viewer progression deleted', { ...result, performedBy, reason });
     return result;
+  }
+
+  public async controlCompanion(input: CompanionAdministrativeAction): Promise<IngestResult> {
+    const event = withBridgeSequence(await this.companion.triggerAdministrative(input), ++this.nextSequence);
+    const outputs = await this.publishEvents([event]);
+    this.logger.info('Companion action triggered administratively', { action: input.action, performedBy: input.performedBy, reason: input.reason, eventId: event.eventId, outputs });
+    return { accepted: true, duplicate: false, eventId: event.eventId, delivery: outputs.length === 0 ? 'none' : 'queued', outputs };
   }
 
   public async ingest(input: unknown, byteLength?: number): Promise<IngestResult> {
@@ -190,12 +208,24 @@ export class StreamBridge {
     const attributedEvent = progression === undefined ? validatedEvent : withViewerId(validatedEvent, progression.viewerId);
     if (derivedCommand !== undefined && progression !== undefined) derivedCommand = withViewerId(derivedCommand, progression.viewerId);
     const events = [withBridgeSequence(attributedEvent, ++this.nextSequence)];
-    if (derivedCommand !== undefined) events.push(withBridgeSequence(derivedCommand, ++this.nextSequence));
+    if (derivedCommand !== undefined) {
+      derivedCommand = withBridgeSequence(derivedCommand, ++this.nextSequence);
+      events.push(derivedCommand);
+    }
+    let companion: CompanionProcessResult | undefined;
+    if (derivedCommand !== undefined) {
+      try { companion = await this.companion.process(derivedCommand); }
+      catch (error) {
+        this.companion.degrade(error);
+        this.logger.error('Companion action failed; source event will continue', { eventId: derivedCommand.eventId, error });
+      }
+      if (companion?.status === 'rejected') this.logger.info('Companion action rejected', { eventId: derivedCommand.eventId, action: companion.action, code: companion.code, message: companion.message });
+    }
     if (progression?.progressionEvent !== undefined) events.push(withBridgeSequence(progression.progressionEvent, ++this.nextSequence));
+    if (companion?.status === 'accepted') events.push(withBridgeSequence(companion.event, ++this.nextSequence));
 
     try {
-      for (const event of events) await this.bus.publish(event);
-      const outputs = this.delivery.enqueueBatch(events);
+      const outputs = await this.publishEvents(events);
       const lastEvent = events.at(-1);
       if (lastEvent === undefined) throw new Error('No accepted event was produced');
       const acceptedAt = new Date().toISOString();
@@ -247,7 +277,13 @@ export class StreamBridge {
       deduplicationPersistence: this.dependencies.deduplicationStore.status(),
       timedActions: this.timedActions?.controlStatus(),
       viewerIdentity: this.viewerProgression.status(),
+      companion: this.companion.status(),
     };
+  }
+
+  private async publishEvents(events: readonly NormalizedEvent[]): Promise<readonly string[]> {
+    for (const event of events) await this.bus.publish(event);
+    return this.delivery.enqueueBatch(events);
   }
 
   private adapterStatuses(): AdapterStatus[] { return this.inputs.map((adapter) => adapter.status()); }

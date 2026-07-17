@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>THSV Browser Overlay Hub</title>
-  <link rel="stylesheet" href="/overlay/styles-0.9.9.css">
+  <link rel="stylesheet" href="/overlay/styles-1.0.0.css">
 </head>
 <body>
   <main class="overlay" aria-live="polite">
@@ -13,8 +13,22 @@
       <header><span id="brand-label"></span></header>
       <ol id="chat" class="chat"></ol>
     </section>
+    <section id="companion" class="companion-shell" aria-label="Bloom companion">
+      <div class="companion-notice" id="companion-notice" hidden></div>
+      <div class="companion-anchor" id="companion-anchor">
+        <div class="companion-bloom" id="companion-bloom"></div>
+        <div class="companion-berry" aria-hidden="true">●</div>
+        <div class="companion-sleep-symbols" aria-hidden="true">Z <small>z z</small></div>
+        <div class="companion-sparkles" aria-hidden="true"><i>★</i><i>●</i><i>★</i><i>●</i></div>
+      </div>
+      <div class="companion-stats" id="companion-stats">
+        <span title="Happiness">♥ <b id="companion-happiness">75</b></span>
+        <span title="Fullness">● <b id="companion-fullness">75</b></span>
+        <span title="Energy">⚡ <b id="companion-energy">75</b></span>
+      </div>
+    </section>
     <strong id="status" class="connection-status" data-state="reconnecting">RECONNECTING</strong>
   </main>
-  <script src="/overlay/app-0.9.9.js" defer></script>
+  <script src="/overlay/app-1.0.0.js" defer></script>
 </body>
 </html>

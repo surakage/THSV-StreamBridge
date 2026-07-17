@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Bloom Companion",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Validated Bloom companion action projection for THSV StreamBridge.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Bloom Companion",
+    "group": "THSV StreamBridge",
+    "source": "src/ProcessCompanionAction.cs",
+    "importFile": "THSV-StreamBridge-Bloom-Companion-1.0.0.sb"
+  },
+  "runtime": {
+    "queue": "Default",
+    "concurrent": true,
+    "dependencies": ["THSV StreamBridge - Core Receiver 1.0.4 or later", "Streamer.bot CPH API", "Newtonsoft.Json/JObject default C# reference"]
+  },
+  "contract": {
+    "version": "1.0.0",
+    "acceptedEventTypes": ["companion.action"],
+    "requiredInputArguments": ["streamBridgeValid", "streamBridgeEventType", "streamBridgeEventId", "streamBridgeReceivedAt", "streamBridgeSequence", "streamBridgePlatform", "streamBridgePayload"],
+    "outputArguments": ["companionHandled", "companionValid", "companionValidationError", "companionContractVersion", "companionPackageVersion", "companionEventId", "companionReceivedAt", "companionSequence", "companionPlatform", "companionAction", "companionActorName", "companionCost", "companionRemainingPoints", "companionHappiness", "companionFullness", "companionEnergy", "companionSimulated"],
+    "executionSafety": { "runsCreatorActions": false, "writesGlobalVariables": false, "directTriggers": false }
+  }
+}

@@ -81,6 +81,12 @@ Chat and alert projections reuse the reviewed shared contracts, then add present
 
 The combined, Chat-only, and Alerts-only pages are independent layout surfaces. Pages in the same Chromium/CEF browser-source host connect to one same-origin `SharedWorker`; that worker owns one WebSocket and distributes projected events to the pages. Hosts that isolate sources or do not implement `SharedWorker` fall back to one reconnecting WebSocket per page without changing the event contract.
 
+## Bloom Companion
+
+The companion engine consumes only trusted derived public commands after unified viewer identity is attached. It serializes cooldown checks, exact point spending, bounded stat changes, and atomic state persistence. Insufficient balances reject without mutation; companion write failure rolls the companion state back and refunds the exact spend before the subsystem degrades.
+
+Accepted interactions emit a correlated `companion.action`. The Streamer.bot package is projection-only. The Browser Overlay Hub strips the private viewer ID, queues complete wave/eat/sleep/celebrate animations, and exposes Companion as a separately positioned surface using the existing SharedWorker connection. Authenticated administrative actions exist only for creator visual acceptance and remain simulated and audited.
+
 ## Deduplication
 
 Identity uses `platform + eventType + source.eventId` when available. Without a source ID, it hashes canonical key-sorted JSON containing platform, type, normalized channel/user names, and payload. Entries expire after `deduplication.ttlMs`, oldest entries are evicted beyond `maxEntries`, and the bounded cache is persisted across restarts by default.

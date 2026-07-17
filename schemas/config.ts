@@ -86,6 +86,7 @@ const browserOverlaySchema = z.object({
   brandLabel: z.string().trim().max(60).default('THE HIDDEN SLOTH VILLAGE'),
   maxChatMessages: z.number().int().min(1).max(200).default(8),
   maxAlertQueue: z.number().int().min(1).max(200).default(20),
+  maxCompanionQueue: z.number().int().min(1).max(200).default(20),
   alertDurationMs: z.number().int().min(1_000).max(60_000).default(7_000),
   showBots: z.boolean().default(true),
   showSimulated: z.boolean().default(true),
@@ -156,6 +157,41 @@ const viewerIdentitySchema = z.object({
   }
 });
 
+const companionActionNameSchema = z.enum(['wave', 'eat', 'sleep', 'celebrate']);
+const companionRewardSchema = z.object({
+  enabled: z.boolean().default(true),
+  command: commandNameSchema,
+  cost: z.number().int().min(0).max(1_000_000),
+  cooldownMs: z.number().int().min(0).max(86_400_000),
+  happiness: z.number().int().min(-100).max(100).default(0),
+  fullness: z.number().int().min(-100).max(100).default(0),
+  energy: z.number().int().min(-100).max(100).default(0),
+}).strict();
+const companionSchema = z.object({
+  enabled: z.boolean().default(false),
+  stateFile: z.string().min(1).default('data/state/companion.json'),
+  includeSimulated: z.boolean().default(false),
+  minimumActionIntervalMs: z.number().int().min(0).max(60_000).default(1_000),
+  maxTrackedCooldowns: z.number().int().min(100).max(100_000).default(10_000),
+  initialState: z.object({
+    happiness: z.number().int().min(0).max(100).default(75),
+    fullness: z.number().int().min(0).max(100).default(75),
+    energy: z.number().int().min(0).max(100).default(75),
+  }).strict().default({ happiness: 75, fullness: 75, energy: 75 }),
+  rewards: z.record(companionActionNameSchema, companionRewardSchema).default({
+    wave: { enabled: true, command: 'bloom-wave', cost: 0, cooldownMs: 10_000, happiness: 2, fullness: 0, energy: 0 },
+    eat: { enabled: true, command: 'bloom-feed', cost: 25, cooldownMs: 30_000, happiness: 3, fullness: 15, energy: 2 },
+    sleep: { enabled: true, command: 'bloom-rest', cost: 10, cooldownMs: 60_000, happiness: 2, fullness: -2, energy: 20 },
+    celebrate: { enabled: true, command: 'bloom-celebrate', cost: 50, cooldownMs: 60_000, happiness: 15, fullness: -3, energy: -5 },
+  }),
+}).strict().superRefine((value, context) => {
+  const commands = new Set<string>();
+  for (const [action, reward] of Object.entries(value.rewards)) {
+    if (commands.has(reward.command)) context.addIssue({ code: 'custom', path: ['rewards', action, 'command'], message: `Companion command ${reward.command} is duplicated.` });
+    commands.add(reward.command);
+  }
+});
+
 export const platformSchema = z
   .object({
     enabled: z.boolean(),
@@ -218,8 +254,9 @@ const bridgeConfigObjectSchema = z
       .strict(),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
-    browserOverlay: browserOverlaySchema.default({ enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
+    browserOverlay: browserOverlaySchema.default({ enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, maxCompanionQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
     viewerIdentity: viewerIdentitySchema.default({ enabled: false, stateFile: 'data/state/viewer-progression.json', includeSimulated: false, processedEventTtlMs: 86_400_000, maxProcessedEvents: 10_000, links: [], progression: { enabled: true, points: { 'chat.message': 1, 'channel.follow': 10, 'channel.subscription': 25, 'channel.membership': 25, 'channel.gift-subscription': 25, 'engagement.gift': 5, 'engagement.donation': 20, 'engagement.cheer': 10, 'engagement.super-chat': 20, 'channel.raid': 25, 'engagement.milestone': 5 }, cooldownsMs: { 'chat.message': 60_000 }, levelThresholds: [0, 100, 250, 500, 1_000] } }),
+    companion: companionSchema.default({ enabled: false, stateFile: 'data/state/companion.json', includeSimulated: false, minimumActionIntervalMs: 1_000, maxTrackedCooldowns: 10_000, initialState: { happiness: 75, fullness: 75, energy: 75 }, rewards: { wave: { enabled: true, command: 'bloom-wave', cost: 0, cooldownMs: 10_000, happiness: 2, fullness: 0, energy: 0 }, eat: { enabled: true, command: 'bloom-feed', cost: 25, cooldownMs: 30_000, happiness: 3, fullness: 15, energy: 2 }, sleep: { enabled: true, command: 'bloom-rest', cost: 10, cooldownMs: 60_000, happiness: 2, fullness: -2, energy: 20 }, celebrate: { enabled: true, command: 'bloom-celebrate', cost: 50, cooldownMs: 60_000, happiness: 15, fullness: -3, energy: -5 } } }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
@@ -251,6 +288,14 @@ const bridgeConfigObjectSchema = z
     }),
   })
   .strict()
+  .superRefine((config, context) => {
+    if (!config.companion.enabled) return;
+    if (!config.viewerIdentity.enabled || !config.viewerIdentity.progression.enabled) context.addIssue({ code: 'custom', path: ['companion', 'enabled'], message: 'Companion rewards require viewer identity and progression to be enabled.' });
+    const configuredCommands = new Set(config.commands.definitions.flatMap((definition) => [definition.name, ...definition.aliases]));
+    for (const [action, reward] of Object.entries(config.companion.rewards)) {
+      if (reward.enabled && !configuredCommands.has(reward.command)) context.addIssue({ code: 'custom', path: ['companion', 'rewards', action, 'command'], message: `Enabled companion command ${reward.command} must be defined in commands.definitions.` });
+    }
+  })
   .refine((config) => Object.values(config.platforms).some((platform) => platform.adapter === 'mock'), {
     message: 'At least one platform entry must use the mock adapter for simulation',
     path: ['platforms'],
@@ -272,4 +317,6 @@ export type TimedActionsConfig = z.infer<typeof timedActionsSchema>;
 export type TimedActionDefinition = TimedActionsConfig['definitions'][number];
 export type BrowserOverlayConfig = z.infer<typeof browserOverlaySchema>;
 export type ViewerIdentityConfig = z.infer<typeof viewerIdentitySchema>;
+export type CompanionConfig = z.infer<typeof companionSchema>;
+export type CompanionActionName = z.infer<typeof companionActionNameSchema>;
 export type Capability = (typeof CAPABILITY_VALUES)[number];

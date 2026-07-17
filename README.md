@@ -110,6 +110,18 @@ Identity and progression are disabled by default. Configure them using the [View
 
 Authenticated creator/moderator add, remove, reset, and verified viewer-deletion workflows are available through `scripts\viewer-progression.ps1`. They are loopback-only, bounded, serialized with awards, and written to structured audit logs.
 
+## Milestone 10
+
+Bloom Companion adds a shared animated companion funded by the unified progression balance:
+
+- Wave, feed, rest, and celebrate commands with creator-configured costs, cooldowns, and bounded stat effects
+- Atomic companion state, exact point spending, and automatic refunds if persistence fails
+- A bounded sequential browser animation queue at `http://127.0.0.1:8787/overlay/companion`
+- A projection-only `THSV StreamBridge - Bloom Companion` Streamer.bot package
+- Token-protected visual test actions that do not require a live viewer or point balance
+
+Follow the [Bloom Companion guide](docs/companion.md). Chat games are deliberately deferred for later platform extensions.
+
 ## TikFinity intake
 
 Bridge `0.10.2` adds a reviewed TikFinity-to-Streamer.bot intake for TikTok chat, follows, gifts, and likes. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.0.0.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
@@ -143,7 +155,7 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), and [Browser Overlay Hub](docs/browser-overlay.md).
+See the [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and [Bloom Companion](docs/companion.md).
 
 ## License
 

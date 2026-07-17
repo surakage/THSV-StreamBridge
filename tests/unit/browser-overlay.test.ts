@@ -5,6 +5,14 @@ import { projectBrowserOverlayEvent } from '../../bridge/core/browser-overlay.js
 import { fixture } from '../helpers.js';
 
 describe('Browser Overlay Hub contract', () => {
+  it('projects privacy-bounded Bloom companion actions', async () => {
+    const source = await fixture();
+    const event: NormalizedEvent = { ...source, eventId: 'companion-test', eventType: 'companion.action', payload: { action: 'eat', actorName: 'Example Viewer', cost: 25, remainingPoints: 75, happiness: 78, fullness: 90, energy: 77, sourceEventId: source.eventId }, metadata: { simulated: true, bridgeSequence: 7, viewerId: 'private-viewer-id' } };
+    const projected = projectBrowserOverlayEvent(event);
+    expect(projected).toMatchObject({ kind: 'companion.action', payload: { action: 'eat', actorName: 'Example Viewer', cost: 25, remainingPoints: 75, happiness: 78, fullness: 90, energy: 77 } });
+    expect(JSON.stringify(projected)).not.toContain('private-viewer-id');
+  });
+
   it('projects public chat and preserves hostile markup as inert text data', async () => {
     const source = await fixture();
     const event: NormalizedEvent = { ...source, payload: { message: '<img src=x onerror=alert(1)> 🦥' }, metadata: { ...source.metadata, bridgeSequence: 7 } };
@@ -60,7 +68,7 @@ describe('Browser Overlay Hub contract', () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker-0.9.9.js', 'thsv-browser-overlay-0.9.9'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-1.0.0.js', 'thsv-browser-overlay-1.0.0'");
     expect(source).toContain("oldest.classList.add('message-expiring')");
     expect(source).toContain('while (alertQueue.length > clientConfig.maxAlertQueue)');
     expect(source).toContain('const card = buildAlertCard(nextAlert)');
@@ -81,7 +89,7 @@ describe('Browser Overlay Hub contract', () => {
     const styles = await readFile('overlays/browser/styles.css', 'utf8');
     expect(source).toContain("requestedLayout === 'compact' ? 'compact' : 'canvas'");
     expect(source).not.toContain('verticalScale');
-    expect(styles).not.toContain('scaleY');
+    expect(styles).not.toMatch(/body\[data-mode="chat"\][^{]*\{[^}]*scaleY/u);
     expect(styles).toContain('width: min(520px, calc(100vw - 32px))');
     expect(styles).toContain('background: #171120;');
     expect(styles).toContain('font-size: clamp(16px, 1vw, 19px)');

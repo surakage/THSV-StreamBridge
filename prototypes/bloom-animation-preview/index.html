@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bloom Animation Preview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="preview-shell">
+    <header>
+      <div>
+        <p class="eyebrow">SlothBloom Sprouts companion prototype</p>
+        <h1>Bloom animation studio</h1>
+        <p class="subtitle">One animation finishes before the next begins. Requests made while Bloom is moving wait safely in the queue.</p>
+      </div>
+      <div class="live-status" aria-live="polite">
+        <span class="status-dot"></span>
+        <span id="statusText">Idle</span>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <div class="stage-card">
+        <div class="stage" id="stage" aria-label="Animated preview of Bloom the sloth">
+          <div class="scene-glow"></div>
+          <div class="star-field" aria-hidden="true"></div>
+          <div class="bloom-anchor" id="bloomAnchor">
+            <div class="bloom" id="bloom">
+              <div class="bloom-sprite" id="bloomSprite"></div>
+              <div class="blink-cover blink-left"></div>
+              <div class="blink-cover blink-right"></div>
+            </div>
+            <div class="berry" aria-hidden="true">●</div>
+            <div class="sleep-symbols" aria-hidden="true"><span>Z</span><span>z</span><span>z</span></div>
+            <div class="celebration" aria-hidden="true"><i>★</i><i>●</i><i>★</i><i>●</i><i>★</i></div>
+          </div>
+          <div class="ground-shadow"></div>
+        </div>
+        <div class="timeline">
+          <div><span>Now</span><strong id="nowPlaying">Idle breathing</strong></div>
+          <div><span>Duration</span><strong id="durationText">Ambient</strong></div>
+          <div><span>Queued</span><strong id="queueCount">0</strong></div>
+        </div>
+      </div>
+
+      <aside class="control-card">
+        <h2>Test each motion</h2>
+        <p>Press buttons quickly to test the queue. Bloom will never cut one animation off to start another.</p>
+        <div class="control-grid">
+          <button data-action="blink"><span>◡</span> Blink <small>0.45 sec</small></button>
+          <button data-action="wave"><span>👋</span> Wave <small>2.4 sec</small></button>
+          <button data-action="eat"><span>●</span> Eat berry <small>3.2 sec</small></button>
+          <button data-action="sleep"><span>zZ</span> Sleep <small>5 sec</small></button>
+          <button data-action="celebrate"><span>★</span> Celebrate <small>3 sec</small></button>
+          <button data-action="idle" class="secondary"><span>↺</span> Return idle <small>after current</small></button>
+        </div>
+        <label class="toggle-row">
+          <input type="checkbox" id="naturalLoop" checked>
+          <span><strong>Natural ambient loop</strong><small>Waits 8–14 seconds, uses every motion before repeating, and never interrupts.</small></span>
+        </label>
+        <button id="clearQueue" class="clear-button">Clear waiting animations</button>
+        <div class="queue-list">
+          <span>Waiting</span>
+          <p id="queueList">Nothing queued</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="notes-card">
+      <h2>Animation plan</h2>
+      <div class="notes-grid">
+        <div><strong>Idle</strong><span>Continuous subtle breathing, not a repeated action clip.</span></div>
+        <div><strong>Actions</strong><span>One-shot clips return to idle on their final frame.</span></div>
+        <div><strong>Queue</strong><span>Reward actions wait in order instead of overlapping.</span></div>
+        <div><strong>Natural timing</strong><span>A shuffle bag prevents the same ambient action repeating too soon.</span></div>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -90,6 +90,7 @@ describe('bridge HTTP integration', () => {
     const config = await testConfig();
     config.viewerIdentity.enabled = true;
     config.viewerIdentity.includeSimulated = true;
+    config.viewerIdentity.links = [{ viewerId: 'village-friend', accounts: [{ platform: 'twitch', userId: 'fixture-user' }] }];
     config.viewerIdentity.progression.points = { 'chat.message': 1 };
     config.viewerIdentity.progression.cooldownsMs = {};
     const bridge = createTestBridge(config);
@@ -157,6 +158,47 @@ describe('bridge HTTP integration', () => {
     expect(audit.find((entry) => entry.message === 'Viewer progression deleted')?.fields).toMatchObject({ performedBy: 'surakage', reason: 'verified viewer deletion request', recordRemoved: true });
   });
 
+  it('spends progression through a companion command and emits an ordered Bloom action', async () => {
+    const config = await testConfig();
+    config.viewerIdentity.enabled = true;
+    config.viewerIdentity.includeSimulated = true;
+    config.viewerIdentity.links = [{ viewerId: 'village-friend', accounts: [{ platform: 'twitch', userId: 'fixture-user' }] }];
+    config.viewerIdentity.progression.points['chat.message'] = 0;
+    config.companion.enabled = true;
+    config.companion.includeSimulated = true;
+    config.companion.minimumActionIntervalMs = 0;
+    config.companion.rewards.eat.cooldownMs = 0;
+    const bridge = createTestBridge(config);
+    await bridge.start();
+    stops.push(() => bridge.stop());
+    await bridge.adjustViewerProgression({ viewerId: 'village-friend', operation: 'add', amount: 100, performedBy: 'test', reason: 'companion integration balance' });
+    const observed: NormalizedEvent[] = [];
+    bridge.subscribe((event) => { observed.push(event); });
+    const source = await fixture();
+    const result = await bridge.simulate({ ...source, eventId: 'companion-chat-001', source: { ...source.source, eventId: 'companion-chat-001' }, payload: { message: '!bloom-feed' } });
+    expect(result.derivedEventIds).toHaveLength(2);
+    expect(observed.map((event) => event.eventType)).toEqual(['chat.message', 'command.received', 'companion.action']);
+    expect(observed.map((event) => event.metadata.bridgeSequence)).toEqual([1, 2, 3]);
+    expect(observed[2]?.payload).toMatchObject({ action: 'eat', cost: 25, remainingPoints: 75 });
+  });
+
+  it('protects the administrative Bloom animation test endpoint', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    config.viewerIdentity.enabled = true;
+    config.companion.enabled = true;
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN);
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const body = JSON.stringify({ action: 'wave', performedBy: 'surakage', reason: 'visual acceptance test' });
+    expect((await fetch(`${baseUrl}/companion/actions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body })).status).toBe(401);
+    const response = await fetch(`${baseUrl}/companion/actions`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' }, body });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({ accepted: true, duplicate: false });
+  });
+
   it('serves a generic browser-source overlay and broadcasts projected public events over loopback WebSocket', async () => {
     const config = await testConfig();
     config.service.port = 0;
@@ -173,7 +215,7 @@ describe('bridge HTTP integration', () => {
     expect(page.headers.get('content-type')).toContain('text/html');
     expect(page.headers.get('content-security-policy')).toContain("default-src 'none'");
     expect(page.headers.get('content-security-policy')).toContain("worker-src 'self'");
-    for (const route of ['/overlay/chat', '/overlay/alerts']) {
+    for (const route of ['/overlay/chat', '/overlay/alerts', '/overlay/companion']) {
       const section = await fetch(`${baseUrl}${route}`);
       expect(section.status).toBe(200);
       expect(section.headers.get('content-type')).toContain('text/html');
@@ -181,9 +223,10 @@ describe('bridge HTTP integration', () => {
     const meldChat = await fetch(`${baseUrl}/overlay/chat?layout=meld&canvasWidth=1920&canvasHeight=1080&verticalScale=0.402`);
     expect(meldChat.status).toBe(200);
     expect(meldChat.headers.get('cache-control')).toBe('no-store');
-    expect(await meldChat.text()).toContain('/overlay/app-0.9.9.js');
-    expect((await fetch(`${baseUrl}/overlay/styles-0.9.9.css`)).status).toBe(200);
-    const worker = await fetch(`${baseUrl}/overlay/worker-0.9.9.js`);
+    expect(await meldChat.text()).toContain('/overlay/app-1.0.0.js');
+    expect((await fetch(`${baseUrl}/overlay/styles-1.0.0.css`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/bloom-sprite-1.0.0.png`)).headers.get('content-type')).toContain('image/png');
+    const worker = await fetch(`${baseUrl}/overlay/worker-1.0.0.js`);
     expect(worker.status).toBe(200);
     expect(worker.headers.get('content-type')).toContain('text/javascript');
     expect(await worker.text()).toContain('for (const port of ports)');

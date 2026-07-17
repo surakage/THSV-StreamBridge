@@ -70,7 +70,7 @@ Verification evidence:
 - [x] Milestone 7 — Multi-Timed Actions
 - [x] Milestone 8 — Browser Overlay Hub (Meld/OBS/Streamlabs)
 - [x] Milestone 9 — Viewer Identity and Progression
-- [ ] Milestone 10 — Games and Companion Systems
+- [ ] Milestone 10 — Bloom Companion (implementation complete; manual acceptance pending)
 - [ ] Milestone 11 — Installer and Public Release
 
 ## Milestone 3 — Multi-Chat
@@ -310,3 +310,31 @@ Current verification evidence:
 - Controlled linked award: a test-only explicit Twitch account link accepted `sim-twitch-chat-001` as new and returned derived progression event `progression-d94ad5686077ddfa58e8ed1a278fd0183938822b`.
 - Live diagnostics reported identity enabled with one linked account, one tracked viewer, one processed event, and completed file persistence. Action History recorded two completed receiver runs for the source and derived delivery at 8:08:39 PM with 135 and 158 variables; the source envelope carried trusted viewer ID `fixture-linked-viewer` under receiver contract `1.2.0` and package `1.0.4`.
 - Post-test restoration: the normal `data/runtime/bridge.local.json` service returned to `healthy`/`ready` with viewer identity disabled by default and no test links or totals loaded.
+
+## Milestone 10 — Bloom Companion
+
+Status: **Implementation complete; manual browser and Streamer.bot acceptance pending** — automated on July 16, 2026 against bridge `0.12.0` and Bloom Companion package `1.0.0`.
+
+- [x] Viewer commands map to wave, eat, sleep, and celebrate without platform-specific branches.
+- [x] Costs use the unified Milestone 9 balance and cannot overdraw it.
+- [x] Per-viewer action and cross-action cooldowns are configurable and bounded.
+- [x] Happiness, fullness, and energy effects are creator-configured and clamped from 0 to 100.
+- [x] State persists atomically without names, messages, avatars, or raw platform IDs.
+- [x] Failed companion persistence rolls state back and refunds spent points.
+- [x] Accepted interactions emit ordered normalized `companion.action` events.
+- [x] A projection-only Streamer.bot package exposes validated fields without running actions or writing globals.
+- [x] A separate transparent browser source queues complete non-overlapping animations and shares the overlay WebSocket when supported.
+- [x] Queue capacity and authenticated creator visual-test actions are configurable and test-covered.
+- [x] Disabled or degraded companion state does not stop unrelated bridge traffic.
+- [x] Chat games are explicitly deferred to future platform extensions.
+- [ ] Import and compile Bloom Companion `1.0.0` in Streamer.bot.
+- [ ] Verify all four animations in a broadcasting-app Browser Source.
+- [ ] Verify one connected-platform command spends points once and exposes `companion*` fields in Action History.
+
+Automated evidence:
+
+- Typecheck, lint, state/refund/projection/package/HTTP tests passed before the full release gate.
+- Integration coverage proves authenticated control, exact spending, ordered source-command-companion sequences, privacy-bounded overlay projection, fixed assets, CSP, and loopback WebSocket routing.
+- Package-source review rejects global writes, creator action execution, process launch, direct triggers, and unvalidated wire-data access.
+- Full release gate: 40 test files and 180 tests passed with clean lint, typecheck, build, configuration validation, and PowerShell syntax validation.
+- Rendered browser acceptance: transparent 1920 by 1080 Companion view loaded the versioned sprite, all four action classes and labels activated, Eat visibly animated its berry, stats updated, the queue returned to idle, and the console remained free of warnings/errors.

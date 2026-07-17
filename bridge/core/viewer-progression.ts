@@ -63,6 +63,7 @@ export interface ViewerDeletionResult {
 export const VIEWER_ID_PATTERN = /^[a-z][a-z0-9-]{0,63}$/u;
 export const MAX_PROGRESSION_ADJUSTMENT = 1_000_000;
 export class ViewerProgressionUnavailableError extends Error {}
+export class InsufficientViewerPointsError extends Error {}
 
 export class ViewerProgressionEngine {
   private readonly accounts = new Map<string, string>();
@@ -95,6 +96,12 @@ export class ViewerProgressionEngine {
 
   public adjust(input: ViewerProgressionAdjustment): Promise<ViewerProgressionAdjustmentResult> {
     const operation = this.operationChain.then(() => this.adjustInternal(input));
+    this.operationChain = operation.catch(() => undefined);
+    return operation;
+  }
+
+  public spend(viewerId: string, amount: number): Promise<ViewerProgressionAdjustmentResult> {
+    const operation = this.operationChain.then(() => this.spendInternal(viewerId, amount));
     this.operationChain = operation.catch(() => undefined);
     return operation;
   }
@@ -225,6 +232,23 @@ export class ViewerProgressionEngine {
     try { await this.store.save(this.state); }
     catch (error) { this.state = previousState; throw error; }
     return { viewerId: input.viewerId, operation: input.operation, amount: amount ?? 0, previousPoints, totalPoints, previousLevel, level };
+  }
+
+  private async spendInternal(viewerId: string, amount: number): Promise<ViewerProgressionAdjustmentResult> {
+    this.assertAdministrativeReady();
+    if (!VIEWER_ID_PATTERN.test(viewerId)) throw new Error('viewerId must be a lowercase identifier.');
+    if (!Number.isSafeInteger(amount) || amount < 0 || amount > MAX_PROGRESSION_ADJUSTMENT) throw new Error(`amount must be a safe integer between 0 and ${String(MAX_PROGRESSION_ADJUSTMENT)}.`);
+    const current = this.state.viewers[viewerId] ?? { points: 0, level: 1, lastAwardAt: {} };
+    const previousPoints = current.points;
+    const previousLevel = levelFor(previousPoints, this.config.progression.levelThresholds);
+    if (previousPoints < amount) throw new InsufficientViewerPointsError(`Viewer has ${String(previousPoints)} points but the companion reward costs ${String(amount)}.`);
+    const totalPoints = previousPoints - amount;
+    const level = levelFor(totalPoints, this.config.progression.levelThresholds);
+    const previousState = this.state;
+    this.state = { ...this.state, viewers: { ...this.state.viewers, [viewerId]: { points: totalPoints, level, lastAwardAt: { ...current.lastAwardAt } } } };
+    try { await this.store.save(this.state); }
+    catch (error) { this.state = previousState; throw error; }
+    return { viewerId, operation: 'remove', amount, previousPoints, totalPoints, previousLevel, level };
   }
 
   private async deleteViewerInternal(viewerId: string, removeLinks: () => Promise<ViewerLinkRemoval>): Promise<ViewerDeletionResult> {

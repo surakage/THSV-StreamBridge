@@ -52,6 +52,12 @@ User presentation metadata accepts HTTPS-only avatar and badge icon URLs, six-di
 
 Names, display names, avatars, messages, raw payloads, and raw account IDs are never written to progression state. Default chat points have a 60-second cooldown keyed by the unified identity. Monetary values never determine progression points.
 
+## Bloom companion
+
+`companion` is disabled by default and requires `viewerIdentity.enabled`. Each enabled reward maps one unique configured public command to a point cost, per-viewer cooldown, and bounded happiness/fullness/energy changes. `minimumActionIntervalMs` adds a cross-action viewer cooldown, while `maxTrackedCooldowns` bounds persisted cooldown state. Keep `includeSimulated` false for production.
+
+`browserOverlay.maxCompanionQueue` bounds waiting Bloom animations. Companion state uses its own atomic file and can degrade independently without stopping ordinary bridge traffic. See [Bloom Companion](companion.md).
+
 ## Ports
 
 | Component | Default | Bind | Purpose |

@@ -33,6 +33,7 @@ export const EVENT_TYPE_VALUES = [
   'system.custom',
   'system.timed',
   'viewer.progression',
+  'companion.action',
 ] as const;
 
 export const PUBLIC_ALERT_EVENT_TYPE_VALUES = [

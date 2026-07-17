@@ -38,6 +38,10 @@ Implemented for offline acceptance in `0.9.0`, generalized across browser-source
 
 Completed in `0.10.0`, availability-hardened in `0.10.1`, and administration-hardened in `0.11.1`. Creator-approved links unify verified accounts without name-based guessing; unlinked users receive platform-scoped pseudonyms. Atomic privacy-bounded progression applies fixed points, unified cooldowns, bounded replay suppression, levels, and derived events. Corrupted state or a progression write failure now degrades identity alone instead of stopping or rejecting unrelated bridge traffic. Authenticated, bounded, serialized add/remove/reset operations and stop-safe viewer deletion provide auditable correction and privacy workflows before games can spend progression. Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` expose trusted IDs to Streamer.bot. All three packages, the rebuilt immediate receiver chain, a linked simulated award, derived delivery, and Action History completion were live-verified in Streamer.bot `1.0.5-alpha.31`.
 
+## Milestone 10: Bloom Companion
+
+Implemented in `0.12.0` with manual browser and Streamer.bot acceptance pending. Bloom uses the unified Milestone 9 balance for creator-configured wave, feed, rest, and celebrate interactions. Spending, cooldowns, bounded stats, atomic state, persistence-failure refunds, derived events, diagnostics, authenticated visual tests, a projection-only Streamer.bot package, and a dedicated shared-WebSocket browser source are included. General chat games are deferred to later platform extensions.
+
 ## Carried requirements
 
 - Milestone 8 must contextually HTML-escape every chat field at its rendering sink and correlate moderation/deletion events by `multiChatEventId`.
@@ -69,5 +73,5 @@ Completed in `0.10.0`, availability-hardened in `0.10.1`, and administration-har
 7. Multi-Timed Actions — complete and review-hardened
 8. Browser Overlay Hub (Meld/OBS/Streamlabs) — complete and review-hardened
 9. Viewer Identity and Progression — complete and review-hardened
-10. Games and Companion Systems
+10. Bloom Companion — implementation complete; manual acceptance pending
 11. Installer and Public Release

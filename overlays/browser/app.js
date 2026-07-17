@@ -5,7 +5,10 @@
   const alerts = document.getElementById('alerts');
   const status = document.getElementById('status');
   const brandLabel = document.getElementById('brand-label');
-  const mode = location.pathname.endsWith('/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
+  const companion = document.getElementById('companion');
+  const companionBloom = document.getElementById('companion-bloom');
+  const companionNotice = document.getElementById('companion-notice');
+  const mode = location.pathname.endsWith('/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : location.pathname.endsWith('/companion') ? 'companion' : 'combined';
   const search = new URLSearchParams(location.search);
   const requestedLayout = search.get('layout');
   const layout = requestedLayout === 'compact' ? 'compact' : 'canvas';
@@ -16,7 +19,14 @@
   let activeAlert;
   let alertTimer;
   const chatFadeMs = 240;
-  let clientConfig = { brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000 };
+  const companionQueue = [];
+  const companionDurations = { wave: 2400, eat: 3200, sleep: 5000, celebrate: 3000 };
+  const companionFramePositions = [['0%', '0%'], ['50%', '0%'], ['100%', '0%'], ['0%', '100%'], ['50%', '100%'], ['100%', '100%']];
+  const companionWaveFrames = [0, 1, 2, 1, 2, 1, 0, 3, 4, 5, 4, 3, 0];
+  let activeCompanion;
+  let companionTimer;
+  let companionFrameTimer;
+  let clientConfig = { brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, maxCompanionQueue: 20, alertDurationMs: 7000 };
   brandLabel.textContent = clientConfig.brandLabel;
 
   function element(tag, className, text) {
@@ -27,9 +37,10 @@
   }
 
   function receive(event) {
-    if (event.kind === 'chat.add' && mode !== 'alerts') addChat(event.payload);
-    else if (event.kind === 'chat.remove' && mode !== 'alerts') removeChat(event.payload.targetEventId);
-    else if (event.kind === 'alert.show' && mode !== 'chat') enqueueAlert(event.payload);
+    if (event.kind === 'chat.add' && (mode === 'chat' || mode === 'combined')) addChat(event.payload);
+    else if (event.kind === 'chat.remove' && (mode === 'chat' || mode === 'combined')) removeChat(event.payload.targetEventId);
+    else if (event.kind === 'alert.show' && (mode === 'alerts' || mode === 'combined')) enqueueAlert(event.payload);
+    else if (event.kind === 'companion.action' && (mode === 'companion' || mode === 'combined')) enqueueCompanion(event.payload);
   }
 
   function transportStatus(state) {
@@ -56,7 +67,7 @@
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-0.9.9.js', 'thsv-browser-overlay-0.9.9');
+        const worker = new SharedWorker('/overlay/worker-1.0.0.js', 'thsv-browser-overlay-1.0.0');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
@@ -154,6 +165,59 @@
     showNextAlert();
   }
 
+  function enqueueCompanion(action) {
+    companionQueue.push(action);
+    while (companionQueue.length > clientConfig.maxCompanionQueue) companionQueue.shift();
+    showNextCompanion();
+  }
+
+  function showNextCompanion() {
+    if (activeCompanion || companionQueue.length === 0) return;
+    activeCompanion = companionQueue.shift();
+    const action = activeCompanion.action;
+    setCompanionStats(activeCompanion);
+    companionNotice.hidden = false;
+    companionNotice.textContent = `${activeCompanion.actorName} · ${companionActionLabel(action)}${activeCompanion.cost > 0 ? ` · ${activeCompanion.cost} sprouts` : ''}`;
+    companion.classList.add(`companion-${action}`);
+    if (action === 'wave') animateCompanionWave();
+    companionTimer = setTimeout(finishCompanion, companionDurations[action]);
+  }
+
+  function finishCompanion() {
+    clearTimeout(companionTimer);
+    clearInterval(companionFrameTimer);
+    if (activeCompanion) companion.classList.remove(`companion-${activeCompanion.action}`);
+    setCompanionFrame(0);
+    companionNotice.hidden = true;
+    activeCompanion = undefined;
+    companionTimer = undefined;
+    showNextCompanion();
+  }
+
+  function animateCompanionWave() {
+    let step = 0;
+    setCompanionFrame(companionWaveFrames[step]);
+    companionFrameTimer = setInterval(() => {
+      step += 1;
+      if (step < companionWaveFrames.length) setCompanionFrame(companionWaveFrames[step]);
+    }, 180);
+  }
+
+  function setCompanionFrame(index) {
+    const position = companionFramePositions[index];
+    companionBloom.style.backgroundPosition = `${position[0]} ${position[1]}`;
+  }
+
+  function setCompanionStats(state) {
+    document.getElementById('companion-happiness').textContent = state.happiness;
+    document.getElementById('companion-fullness').textContent = state.fullness;
+    document.getElementById('companion-energy').textContent = state.energy;
+  }
+
+  function companionActionLabel(action) {
+    return { wave: 'waved to Bloom', eat: 'fed Bloom a berry', sleep: 'helped Bloom rest', celebrate: 'celebrated with Bloom' }[action] || action;
+  }
+
   function alertTitle(alert) {
     const actor = alert.actor ? alert.actor.displayName : 'The community';
     return `${actor} \u00b7 ${alert.alertType.replaceAll('-', ' ')}`;
@@ -175,4 +239,5 @@
     brandLabel.textContent = clientConfig.brandLabel;
     brandLabel.hidden = clientConfig.brandLabel.length === 0;
   }).catch(() => undefined).finally(connect);
+  setCompanionFrame(0);
 })();
