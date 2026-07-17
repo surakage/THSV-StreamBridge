@@ -88,13 +88,22 @@ describe('Streamer.bot adapter', () => {
       reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
     }, silentLogger, 'streamerbot', relay);
     const server = new WebSocketServer({ host: '127.0.0.1', port });
+    let subscription: { readonly events?: { readonly General?: readonly string[] } } | undefined;
     server.on('connection', (socket) => {
       socket.send(JSON.stringify({ request: 'Hello', info: {} }));
-      socket.send(JSON.stringify({ type: 'unrelated' }));
-      socket.send(JSON.stringify({ type: 'thsv.tikfinity', version: '1.0.0', kind: 'follow' }));
+      socket.on('message', (data) => {
+        const raw = Buffer.isBuffer(data) ? data.toString('utf8') : Buffer.from(data as ArrayBuffer).toString('utf8');
+        const request = JSON.parse(raw) as { readonly id: string; readonly request: string; readonly events?: { readonly General?: readonly string[] } };
+        if (request.request !== 'Subscribe') return;
+        subscription = request;
+        socket.send(JSON.stringify({ id: request.id, status: 'ok', events: request.events }));
+        socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'unrelated' } }));
+        socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.tikfinity', version: '1.0.0', kind: 'follow' } }));
+      });
     });
     await adapter.start();
     await expect.poll(() => received.length).toBe(1);
+    expect(subscription?.events?.General).toEqual(['Custom']);
     expect(received[0]).toMatchObject({ type: 'thsv.tikfinity', kind: 'follow' });
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-07-16
+
+### Fixed
+
+- Subscribed the shared Streamer.bot connection to `General.Custom` events before reporting it ready, allowing `WebsocketBroadcastJson` TikFinity relays to reach StreamBridge.
+- Unwrapped Streamer.bot's live custom-event envelope before validating and normalizing TikFinity events.
+- Added an integration regression test for the actual Subscribe acknowledgement and `General.Custom` wire shape.
+
 ## [0.10.2] - 2026-07-16
 
 ### Added

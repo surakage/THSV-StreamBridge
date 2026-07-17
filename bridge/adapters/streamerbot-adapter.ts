@@ -17,6 +17,8 @@ interface StreamerBotMessage {
   readonly id?: string;
   readonly status?: string;
   readonly authentication?: { readonly salt?: string; readonly challenge?: string };
+  readonly event?: { readonly source?: string; readonly type?: string };
+  readonly data?: unknown;
 }
 
 export type StreamerBotState = 'disabled' | 'stopped' | 'connecting' | 'connected' | 'reconnecting' | 'error';
@@ -165,11 +167,14 @@ export class StreamerBotAdapter {
         const secret = createHash('sha256').update(password + authentication.salt, 'utf8').digest('base64');
         const response = createHash('sha256').update(secret + authentication.challenge, 'utf8').digest('base64');
         const id = randomUUID();
-        void this.sendRequest(id, { request: 'Authenticate', id, authentication: response }).then(() => this.markReady()).catch((error: unknown) => {
+        void this.sendRequest(id, { request: 'Authenticate', id, authentication: response }).then(() => this.completeHandshake()).catch((error: unknown) => {
           this.lastError = error instanceof Error ? error.message : String(error);
           this.socket?.close();
         });
-      } else this.markReady();
+      } else void this.completeHandshake().catch((error: unknown) => {
+        this.lastError = error instanceof Error ? error.message : String(error);
+        this.socket?.close();
+      });
       return;
     }
 
@@ -182,7 +187,16 @@ export class StreamerBotAdapter {
         else pending.reject(new Error(`Streamer.bot request ${message.id} failed`));
       }
     }
-    if (message['type'] === 'thsv.tikfinity') this.eventRelay?.publish(message);
+    const relayMessage = extractTikfinityRelay(message);
+    if (relayMessage !== undefined) this.eventRelay?.publish(relayMessage);
+  }
+
+  private async completeHandshake(): Promise<void> {
+    if (this.eventRelay !== undefined) {
+      const id = randomUUID();
+      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'] } });
+    }
+    this.markReady();
   }
 
   private markReady(): void {
@@ -231,4 +245,14 @@ function decodeMessage(data: WebSocket.RawData): string {
   if (data instanceof ArrayBuffer) return Buffer.from(data).toString('utf8');
   if (Array.isArray(data)) return Buffer.concat(data).toString('utf8');
   return Buffer.from(data).toString('utf8');
+}
+
+function extractTikfinityRelay(message: StreamerBotMessage & Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
+  if (message['type'] === 'thsv.tikfinity') return message;
+  if (message.event?.source !== 'General' || message.event.type !== 'Custom' || !isRecord(message.data)) return undefined;
+  return message.data['type'] === 'thsv.tikfinity' ? message.data : undefined;
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
