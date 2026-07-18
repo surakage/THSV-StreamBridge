@@ -1,12 +1,24 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { bridgeConfigSchema, type BridgeConfig } from '../../schemas/config.js';
+import { z } from 'zod';
+import { bridgeConfigSchema, filtersSchema, type BridgeConfig } from '../../schemas/config.js';
 import type { PlatformCapabilityReport } from '../contracts/v2/capability.js';
 
-export type WizardConfigurationChange =
-  | { readonly kind: 'platform'; readonly platform: string; readonly enabled: boolean; readonly inputEnabled: boolean; readonly outputEnabled: boolean }
-  | { readonly kind: 'filters'; readonly filters: unknown };
+const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('platform'), platform: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/), enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict(),
+  z.object({ kind: z.literal('filters'), filters: filtersSchema }).strict(),
+]);
+
+const wizardConfigurationImportSchema = z.object({
+  format: z.literal('thsv.streambridge.wizard-configuration'),
+  version: z.literal(1),
+  exportedAt: z.iso.datetime({ offset: true }),
+  platforms: z.record(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), z.object({ enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict()),
+  filters: filtersSchema,
+}).strict();
+
+export type WizardConfigurationChange = z.infer<typeof wizardConfigurationChangeSchema>;
 
 export interface WizardConfigurationDraft {
   readonly id: string;
@@ -67,8 +79,9 @@ export class WizardConfigurationGateway {
     return publicDraft;
   }
 
-  public stage(id: string, change: WizardConfigurationChange): WizardConfigurationDraft {
+  public stage(id: string, input: unknown): WizardConfigurationDraft {
     const draft = this.requireDraft(id);
+    const change = parseWithReadableError(wizardConfigurationChangeSchema, input, 'Staged configuration change');
     if (change.kind === 'platform') {
       const validated = bridgeConfigSchema.parse(draft.candidate);
       const current = validated.platforms[change.platform];
@@ -156,12 +169,7 @@ export class WizardConfigurationError extends Error {
 }
 
 function parseImport(input: unknown): WizardConfigurationExport {
-  if (input === null || typeof input !== 'object' || Array.isArray(input)) throw new WizardConfigurationError(400, 'Imported configuration must be an object.');
-  const record = input as Record<string, unknown>;
-  if (record['format'] !== 'thsv.streambridge.wizard-configuration' || record['version'] !== 1 || record['platforms'] === null || typeof record['platforms'] !== 'object' || Array.isArray(record['platforms'])) {
-    throw new WizardConfigurationError(400, 'Imported configuration format is not supported.');
-  }
-  return input as WizardConfigurationExport;
+  return parseWithReadableError(wizardConfigurationImportSchema, input, 'Imported configuration');
 }
 
 function hash(value: string): string { return createHash('sha256').update(value).digest('hex'); }
@@ -174,6 +182,13 @@ function parseObject(raw: string): Record<string, unknown> {
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function parseWithReadableError<T>(schema: z.ZodType<T>, input: unknown, label: string): T {
+  const result = schema.safeParse(input);
+  if (result.success) return result.data;
+  const details = result.error.issues.slice(0, 5).map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`).join('; ');
+  throw new WizardConfigurationError(400, `${label} is invalid: ${details}`);
 }
 
 async function writeAtomic(path: string, value: string): Promise<void> {

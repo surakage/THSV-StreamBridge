@@ -115,7 +115,7 @@ const filterRuleSchema = z.object({
   }
 });
 
-const filtersSchema = z.object({
+export const filtersSchema = z.object({
   enabled: z.boolean().default(true),
   rules: z.array(filterRuleSchema).max(500).default([]),
 }).strict().superRefine((filters, context) => {

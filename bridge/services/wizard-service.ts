@@ -4,7 +4,7 @@ import type {
   StreamerBotCommandSummary,
   StreamerBotInspectionAuditEntry,
 } from '../adapters/streamerbot-adapter.js';
-import { WizardConfigurationError, type WizardConfigurationChange, type WizardConfigurationDraft, type WizardConfigurationExport, type WizardConfigurationGateway } from './wizard-configuration.js';
+import { WizardConfigurationError, type WizardConfigurationDraft, type WizardConfigurationExport, type WizardConfigurationGateway } from './wizard-configuration.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -118,7 +118,7 @@ export class WizardService {
     return cancelled;
   }
 
-  public stageTransaction(id: string, change: WizardConfigurationChange): WizardConfigurationDraft {
+  public stageTransaction(id: string, change: unknown): WizardConfigurationDraft {
     if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration mutations are not available.');
     return this.configuration.stage(id, change);
   }
