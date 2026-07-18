@@ -59,7 +59,9 @@ export const coreConfigV2Schema = z.object({
   }).strict(),
   streamerbot: z.object({
     enabled: z.boolean(), url: z.url(), allowRemote: z.boolean(), passwordEnv: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
-    actionAlias: z.string().min(1).max(200), actionId: z.uuid().optional(), acknowledgementTimeoutMs: z.number().int().min(100).max(60_000),
+    actionAlias: z.string().min(1).max(200), actionId: z.uuid().optional(),
+    commandAdministrationActionAlias: z.string().min(1).max(200).default('THSV StreamBridge - Command Administration'),
+    acknowledgementTimeoutMs: z.number().int().min(100).max(60_000),
     maxPendingRequests: z.number().int().min(1).max(1_000), deliveryQueueCapacity: z.number().int().min(1).max(100_000), deliveryConcurrency: z.number().int().min(1).max(32), deliveryFailureThreshold: z.number().int().min(1).max(100), testMode: z.boolean(), reconnect: reconnectV2Schema,
   }).strict().superRefine((streamerbot, context) => {
     const url = new URL(streamerbot.url);

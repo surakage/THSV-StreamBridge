@@ -59,6 +59,7 @@
     "allowRemote": false,
     "passwordEnv": "STREAMERBOT_PASSWORD",
     "actionAlias": "THSV StreamBridge - Receive Event",
+    "commandAdministrationActionAlias": "THSV StreamBridge - Command Administration",
     "acknowledgementTimeoutMs": 5000,
     "maxPendingRequests": 16,
     "deliveryQueueCapacity": 100,

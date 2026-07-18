@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Command Administration",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Creator-approved, documented-API-only enable/disable boundary for Streamer.bot commands, invoked live from the Stage 5 wizard.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Command Administration",
+    "group": "THSV StreamBridge",
+    "id": "04ca0087-578d-5c2e-9e06-249dc072e9f8",
+    "sourceSubActionId": "88db0aac-0cea-5e8b-85d7-8a73fff502c6",
+    "source": "src/ProcessCommandAdministration.cs",
+    "importFile": "THSV-StreamBridge-Command-Administration-1.0.0.sb"
+  },
+  "runtime": {
+    "queue": "Default",
+    "concurrent": true,
+    "dependencies": [
+      "Streamer.bot CPH API",
+      "Streamer.bot command enable/disable C# methods (unverified against a live build; see docs/stage-5-plan.md open question 2)"
+    ]
+  },
+  "contract": {
+    "version": "1.0.0",
+    "operations": ["enable", "disable"],
+    "requiredInputArguments": ["commandAdminOperation", "commandAdminCommandId", "commandAdminApproved"],
+    "conditionalInputArguments": ["commandAdminRequestId"],
+    "outputArguments": [
+      "commandAdminHandled",
+      "commandAdminValid",
+      "commandAdminValidationError",
+      "commandAdminContractVersion",
+      "commandAdminPackageVersion",
+      "commandAdminRequestId",
+      "commandAdminOperationResult",
+      "commandAdminCommandIdResult",
+      "commandAdminDispatched"
+    ],
+    "safety": {
+      "requiresCreatorApproval": true,
+      "directTriggers": false,
+      "cooldownSupport": "deferred until CPH cooldown method signatures are live-confirmed"
+    }
+  },
+  "verificationStatus": "implementation complete; live Streamer.bot Alpha compilation pending"
+}

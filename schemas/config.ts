@@ -203,6 +203,9 @@ const bridgeConfigObjectSchema = z
         passwordEnv: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
         actionAlias: z.string().min(1).max(200),
         actionId: z.uuid().optional(),
+        // Command Administration is invoked directly by the bridge (Stage 5 Tier 1), the same
+        // way actionAlias's receiver action is, not chained as a child of another action.
+        commandAdministrationActionAlias: z.string().min(1).max(200).default('THSV StreamBridge - Command Administration'),
         acknowledgementTimeoutMs: z.number().int().min(100).max(60_000),
         maxPendingRequests: z.number().int().min(1).max(1_000).default(16),
         deliveryQueueCapacity: z.number().int().min(1).max(100_000).default(100),

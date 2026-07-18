@@ -5,6 +5,7 @@ import type { NormalizedEvent } from '../../schemas/event.js';
 import type { Logger } from '../services/logger.js';
 import { buildStreamerBotEventArguments } from './streamerbot-package.js';
 import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
+import type { CommandAdministrationRequest } from '../core/command-administration.js';
 
 interface PendingRequest {
   readonly resolve: (data: unknown) => void;
@@ -121,6 +122,28 @@ export class StreamerBotAdapter {
     };
     await this.sendRequest(requestId, request);
     this.lastEventAt = new Date().toISOString();
+  }
+
+  public async requestCommandAdministration(request: CommandAdministrationRequest): Promise<void> {
+    if (!this.config.enabled) throw new Error('Streamer.bot output is disabled.');
+    if (this.config.testMode) {
+      this.logger.info('Streamer.bot test mode accepted command administration request', { operation: request.operation, commandId: request.commandId });
+      return;
+    }
+    if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) throw new Error('Streamer.bot is unavailable');
+    const requestId = randomUUID();
+    const doAction = {
+      request: 'DoAction',
+      id: requestId,
+      action: { name: this.config.commandAdministrationActionAlias },
+      args: {
+        commandAdminOperation: request.operation,
+        commandAdminCommandId: request.commandId,
+        commandAdminApproved: true,
+        ...(request.requestId === undefined ? {} : { commandAdminRequestId: request.requestId }),
+      },
+    };
+    await this.sendRequest(requestId, doAction);
   }
 
   public async inspectActions(): Promise<readonly StreamerBotActionSummary[]> {

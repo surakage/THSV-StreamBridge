@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { StreamerBotAdapter } from '../../bridge/adapters/streamerbot-adapter.js';
 import { fixture, silentLogger, testConfig } from '../helpers.js';
 import { StreamerBotEventRelay } from '../../bridge/adapters/streamerbot-event-relay.js';
+import { createCommandAdministrationRequest } from '../../bridge/core/command-administration.js';
 
 async function unusedPort(): Promise<number> {
   const server = createServer();
@@ -136,5 +137,46 @@ describe('Streamer.bot adapter', () => {
     expect(adapter.inspectionRequests().map((entry) => entry.request)).toEqual(observed);
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('dispatches an approved command administration request to its own action, separate from the receiver', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const adapter = new StreamerBotAdapter({
+      ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`,
+      reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+    }, silentLogger);
+    let doAction: { readonly action?: { readonly name?: string }; readonly args?: Record<string, unknown> } | undefined;
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => {
+        const raw = Buffer.isBuffer(data) ? data.toString('utf8') : Buffer.from(data as ArrayBuffer).toString('utf8');
+        const request = JSON.parse(raw) as { id: string; request: string; action?: { name?: string }; args?: Record<string, unknown> };
+        if (request.request === 'DoAction') {
+          doAction = request;
+          socket.send(JSON.stringify({ id: request.id, status: 'ok' }));
+        }
+      });
+    });
+    await adapter.start();
+    await expect.poll(() => adapter.status()['state'], { timeout: 2_000 }).toBe('connected');
+    const request = createCommandAdministrationRequest({ operation: 'disable', commandId: 'sb-command-1', approvedByCreator: true, requestId: 'admin-req-1' });
+    await expect(adapter.requestCommandAdministration(request)).resolves.toBeUndefined();
+    expect(doAction?.action?.name).toBe(config.streamerbot.commandAdministrationActionAlias);
+    expect(doAction?.action?.name).not.toBe(config.streamerbot.actionAlias);
+    expect(doAction?.args).toEqual({ commandAdminOperation: 'disable', commandAdminCommandId: 'sb-command-1', commandAdminApproved: true, commandAdminRequestId: 'admin-req-1' });
+    await adapter.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('fails a command administration request safely when Streamer.bot is unavailable', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const adapter = new StreamerBotAdapter({ ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 } }, silentLogger);
+    await adapter.start();
+    const request = createCommandAdministrationRequest({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: true });
+    await expect(adapter.requestCommandAdministration(request)).rejects.toThrow('unavailable');
+    await adapter.stop();
   });
 });
