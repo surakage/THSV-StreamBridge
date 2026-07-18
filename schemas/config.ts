@@ -119,6 +119,33 @@ export const timedActionsSchema = z.object({
   }
 });
 
+export const ALERT_PRESENTATION_TYPE_VALUES = ['follow', 'subscription', 'membership', 'gift-subscription', 'gift', 'donation', 'cheer', 'super-chat', 'raid', 'milestone'] as const;
+const ALERT_TEMPLATE_TOKEN_VALUES = ['actor', 'alertType', 'platform', 'amount', 'currency', 'quantity', 'itemName', 'tier', 'message', 'metric', 'value'] as const;
+const alertTemplateTokens = new Set<string>(ALERT_TEMPLATE_TOKEN_VALUES);
+const alertTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.test(value), 'Alert templates cannot contain control characters.').superRefine((value, context) => {
+  for (const match of value.matchAll(/\{([a-z][a-zA-Z]*)\}/gu)) {
+    if (!alertTemplateTokens.has(match[1] ?? '')) context.addIssue({ code: 'custom', message: `Unknown alert template token ${match[0]}.` });
+  }
+});
+const alertPresentationProfileSchema = z.object({
+  enabled: z.boolean().default(true),
+  priority: z.enum(['low', 'normal', 'high', 'critical']).optional(),
+  durationMs: z.number().int().min(1_000).max(60_000).optional(),
+  titleTemplate: alertTemplateSchema.min(1).optional(),
+  detailTemplate: alertTemplateSchema.optional(),
+  sound: z.object({ mode: z.enum(['none', 'chime']).default('none'), volume: z.number().min(0).max(1).default(0.35) }).strict().default({ mode: 'none', volume: 0.35 }),
+  aggregation: z.object({ mode: z.enum(['none', 'sum-quantity']).default('none'), windowMs: z.number().int().min(500).max(30_000).default(5_000) }).strict().default({ mode: 'none', windowMs: 5_000 }),
+}).strict();
+export const alertPresentationSchema = z.object({
+  profiles: z.partialRecord(z.enum(ALERT_PRESENTATION_TYPE_VALUES), alertPresentationProfileSchema).default({}),
+}).strict().superRefine((alerts, context) => {
+  for (const [alertType, profile] of Object.entries(alerts.profiles)) {
+    if (profile.aggregation.mode === 'sum-quantity' && alertType !== 'gift' && alertType !== 'gift-subscription') {
+      context.addIssue({ code: 'custom', path: ['profiles', alertType, 'aggregation', 'mode'], message: 'Quantity aggregation is supported only for gift and gift-subscription alerts.' });
+    }
+  }
+});
+
 const browserOverlaySchema = z.object({
   enabled: z.boolean().default(true),
   brandLabel: z.string().trim().max(60).default('THE HIDDEN SLOTH VILLAGE'),
@@ -127,6 +154,7 @@ const browserOverlaySchema = z.object({
   alertDurationMs: z.number().int().min(1_000).max(60_000).default(7_000),
   showBots: z.boolean().default(true),
   showSimulated: z.boolean().default(true),
+  alerts: alertPresentationSchema.default({ profiles: {} }),
 }).strict();
 
 const filterRuleSchema = z.object({
@@ -227,7 +255,7 @@ const bridgeConfigObjectSchema = z
       .strict(),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
-    browserOverlay: browserOverlaySchema.default({ enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
+    browserOverlay: browserOverlaySchema.default({ enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true, alerts: { profiles: {} } }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
     streamerbot: z
       .object({
@@ -291,6 +319,8 @@ export type CommandDefinition = CommandsConfig['definitions'][number];
 export type TimedActionsConfig = z.infer<typeof timedActionsSchema>;
 export type TimedActionDefinition = TimedActionsConfig['definitions'][number];
 export type BrowserOverlayConfig = z.infer<typeof browserOverlaySchema>;
+export type AlertPresentationConfig = z.infer<typeof alertPresentationSchema>;
+export type AlertPresentationProfile = z.infer<typeof alertPresentationProfileSchema>;
 export type FiltersConfig = z.infer<typeof filtersSchema>;
 export type FilterRule = FiltersConfig['rules'][number];
 export type Capability = (typeof CAPABILITY_VALUES)[number];

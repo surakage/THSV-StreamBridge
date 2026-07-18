@@ -116,6 +116,17 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['facebook'] } }] } }).success).toBe(false);
   });
 
+  it('validates alert presentation templates, bounds, and gift-only aggregation', async () => {
+    const config = await testConfig();
+    const valid = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      donation: { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} donated {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.4 }, aggregation: { mode: 'none', windowMs: 5_000 } },
+      gift: { enabled: true, sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 4_000 } },
+    } } } });
+    expect(valid.browserOverlay.alerts.profiles.donation).toMatchObject({ priority: 'critical', durationMs: 9_000 });
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { donation: { titleTemplate: '{unknown}', sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 } } } } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { donation: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 5_000 } } } } } }).success).toBe(false);
+  });
+
   it('loads legacy viewer and companion configuration without reactivating archived add-ons', async () => {
     const config = await testConfig();
     const legacy = {

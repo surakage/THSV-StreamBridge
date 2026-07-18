@@ -60,7 +60,7 @@ describe('Browser Overlay Hub contract', () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker-1.1.0.js', 'thsv-browser-overlay-1.1.0'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-1.2.0.js', 'thsv-browser-overlay-1.2.0'");
     expect(source).toContain("oldest.classList.add('message-expiring')");
     expect(source).toContain('while (alertQueue.length > clientConfig.maxAlertQueue)');
     expect(source).toContain('const next = alertQueue.shift()');
@@ -74,6 +74,19 @@ describe('Browser Overlay Hub contract', () => {
       expect(reviewedSource).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write/u);
       expect(reviewedSource).not.toContain('eval(');
     }
+  });
+
+  it('applies plain-text alert profiles and suppresses disabled alert types', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    const config = {
+      enabled: true, brandLabel: '', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
+      alerts: { profiles: { 'super-chat': { enabled: true, priority: 'critical' as const, durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime' as const, volume: 0.25 }, aggregation: { mode: 'none' as const, windowMs: 5_000 } } } },
+    };
+    expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
+      kind: 'alert.show', payload: { priority: 'critical', display: { title: 'example_member supported with 5.00 USD', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
+    });
+    const disabled = { ...config, alerts: { profiles: { 'super-chat': { ...config.alerts.profiles['super-chat'], enabled: false } } } };
+    expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 14 } }, disabled)).toBeUndefined();
   });
 
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {

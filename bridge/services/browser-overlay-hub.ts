@@ -32,7 +32,7 @@ export class BrowserOverlayHub {
 
   public publish(event: NormalizedEvent): void {
     if (!this.config.enabled || (!this.config.showSimulated && event.metadata.simulated) || (!this.config.showBots && event.eventType === 'chat.message' && event.user?.actorType === 'bot')) return;
-    const overlayEvent = projectBrowserOverlayEvent(event);
+    const overlayEvent = projectBrowserOverlayEvent(event, this.config);
     if (overlayEvent === undefined) return;
     const message = JSON.stringify(overlayEvent);
     for (const socket of this.sockets.clients) if (socket.readyState === WebSocket.OPEN) socket.send(message);

@@ -40,7 +40,7 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - Browser rendering uses DOM `textContent`; event text is never interpreted as HTML.
 - `moderation.action` events with a message-removal action and `targetEventId` remove the correlated chat entry.
 - The feed retains only `browserOverlay.maxChatMessages` in browser memory and stores no chat history. The default is eight visible messages; when a ninth arrives, the oldest card fades away from the top.
-- Alerts use a bounded visual queue. The default holds at most 20 waiting alerts; when full, it discards the oldest alert from the lowest available priority so a gift storm cannot grow browser memory indefinitely. A malformed card is skipped without freezing later alerts. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
+- Alerts use a bounded visual queue. The default holds at most 20 waiting alerts; when full, it discards the oldest alert from the lowest available priority so a gift storm cannot grow browser memory indefinitely. A malformed card is skipped without freezing later alerts. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. Creator profiles may override priority and duration, disable a type, render bounded plain-text templates, play a local chime, or combine queued gift quantities inside a short window. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
 - HTTPS avatar/badge URLs, validated hex name colors, and subscription renewal/upgrade/month/streak/gift provenance are supported when a verified adapter supplies them.
 - Simulated events remain visibly labeled and may be disabled through configuration.
 - Combined, Chat-only, and Alerts-only layouts use the same projection stream and do not make additional platform API calls.
@@ -60,9 +60,24 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
   "maxAlertQueue": 20,
   "alertDurationMs": 7000,
   "showBots": true,
-  "showSimulated": true
+  "showSimulated": true,
+  "alerts": {
+    "profiles": {
+      "gift": {
+        "enabled": true,
+        "priority": "high",
+        "durationMs": 6000,
+        "titleTemplate": "{actor} sent {quantity} {itemName}",
+        "detailTemplate": "Thank you, {actor}!",
+        "sound": { "mode": "chime", "volume": 0.2 },
+        "aggregation": { "mode": "sum-quantity", "windowMs": 3000 }
+      }
+    }
+  }
 }
 ```
+
+Use the authenticated wizard's **Alerts** page instead of editing this JSON by hand. Templates are normalized and rendered through `textContent`; unknown placeholders and control characters are rejected. Quantity aggregation is limited to gifts and gift subscriptions and combines only waiting cards, never an alert already on screen.
 
 `brandLabel` changes the combined overlay heading without editing HTML; set it to an empty string to hide the label. Standalone Chat and Alerts keep the live badge hidden during normal operation and show a subtle **RECONNECTING** badge whenever the bridge connection is unavailable.
 

@@ -2,13 +2,19 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
-import { bridgeConfigSchema, filtersSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
+import { alertPresentationSchema, bridgeConfigSchema, filtersSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
 import type { PlatformCapabilityReport } from '../contracts/v2/capability.js';
 
 const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('platform'), platform: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/), enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict(),
   z.object({ kind: z.literal('filters'), filters: filtersSchema }).strict(),
   z.object({ kind: z.literal('timed-actions'), timedActions: timedActionsSchema }).strict(),
+  z.object({ kind: z.literal('alerts'), alertSettings: z.object({
+    maxAlertQueue: z.number().int().min(1).max(200),
+    alertDurationMs: z.number().int().min(1_000).max(60_000),
+    showSimulated: z.boolean(),
+    alerts: alertPresentationSchema,
+  }).strict() }).strict(),
 ]);
 
 const wizardConfigurationImportSchema = z.object({
@@ -18,6 +24,7 @@ const wizardConfigurationImportSchema = z.object({
   platforms: z.record(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), z.object({ enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict()),
   filters: filtersSchema,
   timedActions: timedActionsSchema.optional(),
+  alertSettings: z.object({ maxAlertQueue: z.number().int().min(1).max(200), alertDurationMs: z.number().int().min(1_000).max(60_000), showSimulated: z.boolean(), alerts: alertPresentationSchema }).strict().optional(),
 }).strict();
 
 export type WizardConfigurationChange = z.infer<typeof wizardConfigurationChangeSchema>;
@@ -46,6 +53,7 @@ export interface WizardConfigurationExport {
   readonly platforms: Readonly<Record<string, Pick<BridgeConfig['platforms'][string], 'enabled' | 'inputEnabled' | 'outputEnabled'>>>;
   readonly filters: BridgeConfig['filters'];
   readonly timedActions: BridgeConfig['timedActions'];
+  readonly alertSettings: Pick<BridgeConfig['browserOverlay'], 'maxAlertQueue' | 'alertDurationMs' | 'showSimulated' | 'alerts'>;
 }
 
 export class WizardConfigurationGateway {
@@ -76,6 +84,7 @@ export class WizardConfigurationGateway {
       }])),
       filters: config.filters,
       timedActions: config.timedActions,
+      alertSettings: pickAlertSettings(config),
       capabilities: this.capabilitySource(config.platforms),
     };
   }
@@ -101,8 +110,11 @@ export class WizardConfigurationGateway {
       draft.candidate = { ...draft.candidate, platforms: { ...rawPlatforms, [change.platform]: { ...objectValue(rawPlatforms[change.platform]), enabled: change.enabled, inputEnabled: change.inputEnabled, outputEnabled: change.outputEnabled } } };
     } else if (change.kind === 'filters') {
       draft.candidate = { ...draft.candidate, filters: change.filters };
-    } else {
+    } else if (change.kind === 'timed-actions') {
       draft.candidate = { ...draft.candidate, timedActions: change.timedActions };
+    } else {
+      const current = bridgeConfigSchema.parse(draft.candidate).browserOverlay;
+      draft.candidate = { ...draft.candidate, browserOverlay: { ...current, ...change.alertSettings } };
     }
     bridgeConfigSchema.parse(draft.candidate);
     draft.public = { ...draft.public, stagedChanges: [...draft.public.stagedChanges.filter((existing) => existing.kind !== change.kind || (change.kind === 'platform' && existing.kind === 'platform' && existing.platform !== change.platform)), change] };
@@ -117,6 +129,7 @@ export class WizardConfigurationGateway {
     }
     let result = this.stage(id, { kind: 'filters', filters: imported.filters });
     if (imported.timedActions !== undefined) result = this.stage(id, { kind: 'timed-actions', timedActions: imported.timedActions });
+    if (imported.alertSettings !== undefined) result = this.stage(id, { kind: 'alerts', alertSettings: imported.alertSettings });
     return result;
   }
 
@@ -127,6 +140,7 @@ export class WizardConfigurationGateway {
       platforms: Object.fromEntries(Object.entries(config.platforms).map(([id, value]) => [id, { enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled }])),
       filters: config.filters,
       timedActions: config.timedActions,
+      alertSettings: pickAlertSettings(config),
     };
   }
 
@@ -189,6 +203,15 @@ function parseImport(input: unknown): z.infer<typeof wizardConfigurationImportSc
 }
 
 function hash(value: string): string { return createHash('sha256').update(value).digest('hex'); }
+
+function pickAlertSettings(config: BridgeConfig): WizardConfigurationExport['alertSettings'] {
+  return {
+    maxAlertQueue: config.browserOverlay.maxAlertQueue,
+    alertDurationMs: config.browserOverlay.alertDurationMs,
+    showSimulated: config.browserOverlay.showSimulated,
+    alerts: config.browserOverlay.alerts,
+  };
+}
 
 function parseObject(raw: string): Record<string, unknown> {
   const value = JSON.parse(raw) as unknown;

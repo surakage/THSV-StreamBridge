@@ -4,6 +4,7 @@ import { WizardService, type StreamerBotInspector } from '../../bridge/services/
 import type { CommandSyncStore } from '../../bridge/services/command-sync-store.js';
 import type { CommandSyncState } from '../../bridge/contracts/v2/command-sync.js';
 import { createTestBridge, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
@@ -237,5 +238,26 @@ describe('wizard HTTP surface', () => {
     const response = await fetch(`${baseUrl}/wizard/api/timed-actions/test-timer/test`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
     expect(response.status).toBe(202);
     expect(await response.json()).toMatchObject({ accepted: true, timerId: 'test-timer', simulated: true });
+  });
+
+  it('generates authenticated alert previews with forced simulated provenance', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const observed: NormalizedEvent[] = [];
+    bridge.subscribe((event) => { observed.push(event); });
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined));
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    expect((await fetch(`${baseUrl}/wizard/api/alerts/donation/preview`, { method: 'POST' })).status).toBe(401);
+    const response = await fetch(`${baseUrl}/wizard/api/alerts/donation/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({ contractVersion: '2.0.0-preview.1', accepted: true, simulated: true, alertType: 'donation', visible: false });
+    expect(observed[0]?.eventType).toBe('engagement.donation');
+    expect(observed[0]?.source.adapter).toBe('mock');
+    expect(observed[0]?.source.eventId).toMatch(/^wizard-/u);
+    expect(observed[0]?.metadata.simulated).toBe(true);
+    expect((await fetch(`${baseUrl}/wizard/api/alerts/not-real/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);
   });
 });

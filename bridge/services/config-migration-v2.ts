@@ -39,7 +39,7 @@ export function previewV2ConfigMigration(input: unknown): ConfigMigrationPreview
   const publicOverlayConfig = legacy.browserOverlay;
 
   const modules: Record<string, { enabled: boolean; schemaVersion: string; config: Record<string, JsonValueV2> }> = {
-    'core.chat': { enabled: true, schemaVersion: '1.0.0', config: publicOverlayConfig },
+    'core.chat': { enabled: true, schemaVersion: '1.0.0', config: publicOverlayConfig as unknown as Record<string, JsonValueV2> },
     'core.commands': { enabled: legacy.commands.enabled, schemaVersion: '1.0.0', config: legacy.commands },
     'core.alerts': { enabled: true, schemaVersion: '1.0.0', config: {} },
     'core.timed-actions': { enabled: true, schemaVersion: '1.0.0', config: legacy.timedActions as unknown as Record<string, JsonValueV2> },

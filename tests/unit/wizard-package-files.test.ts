@@ -23,8 +23,8 @@ describe('wizard launcher package', () => {
     const shell = await readFile('wizard/browser/index.html', 'utf8');
     const styles = await readFile('wizard/browser/styles.css', 'utf8');
     const script = await readFile('wizard/browser/app.js', 'utf8');
-    expect(shell.match(/aria-live="polite"/g)).toHaveLength(9);
-    expect(shell.match(/role="status"/g)).toHaveLength(9);
+    expect(shell.match(/aria-live="polite"/g)).toHaveLength(10);
+    expect(shell.match(/role="status"/g)).toHaveLength(10);
     expect(styles).toContain('color-scheme:light dark');
     expect(styles).toContain('@media(prefers-color-scheme:light)');
     expect(script).toContain("status.setAttribute('aria-busy','true')");

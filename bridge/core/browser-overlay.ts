@@ -1,10 +1,11 @@
 import type { NormalizedEvent } from '../../schemas/event.js';
-import { projectMultiAlert, type MultiAlert } from './multi-alerts.js';
+import type { BrowserOverlayConfig } from '../../schemas/config.js';
+import { normalizeAlertPlainText, projectMultiAlert, type MultiAlert } from './multi-alerts.js';
 import { projectMultiChatMessage, type MultiChatMessage } from './multi-chat.js';
 
-export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.1.0';
+export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.2.0';
 
-export type OverlayAlertPriority = 'low' | 'normal' | 'high';
+export type OverlayAlertPriority = 'low' | 'normal' | 'high' | 'critical';
 export interface OverlayActorPresentation {
   readonly avatarUrl?: string;
   readonly nameColor?: string;
@@ -17,10 +18,17 @@ export interface OverlaySubscriptionLifecycle {
   readonly gifted?: boolean;
   readonly gifterName?: string;
 }
+export interface OverlayAlertDisplay {
+  readonly title: string;
+  readonly detail?: string;
+  readonly durationMs: number;
+  readonly sound: { readonly mode: 'none' | 'chime'; readonly volume: number };
+  readonly aggregation?: { readonly key: string; readonly windowMs: number; readonly mode: 'sum-quantity' };
+}
 export type BrowserOverlayEvent =
   | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'chat.add'; readonly emittedAt: string; readonly payload: MultiChatMessage & { readonly presentation: OverlayActorPresentation } }
   | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'chat.remove'; readonly emittedAt: string; readonly payload: { readonly eventId: string; readonly targetEventId: string; readonly reason?: string } }
-  | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'alert.show'; readonly emittedAt: string; readonly payload: MultiAlert & { readonly priority: OverlayAlertPriority; readonly presentation?: OverlayActorPresentation; readonly subscription?: OverlaySubscriptionLifecycle } };
+  | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'alert.show'; readonly emittedAt: string; readonly payload: MultiAlert & { readonly priority: OverlayAlertPriority; readonly presentation?: OverlayActorPresentation; readonly subscription?: OverlaySubscriptionLifecycle; readonly display: OverlayAlertDisplay } };
 
 export class InvalidBrowserOverlayEventError extends Error {}
 
@@ -28,23 +36,30 @@ const HIGH_PRIORITY_ALERTS = new Set(['donation', 'cheer', 'super-chat', 'raid']
 const NORMAL_PRIORITY_ALERTS = new Set(['subscription', 'membership', 'gift-subscription', 'gift', 'milestone']);
 const MESSAGE_REMOVAL_ACTIONS = new Set(['delete-message', 'message-delete', 'remove-message']);
 
-export function projectBrowserOverlayEvent(event: NormalizedEvent): BrowserOverlayEvent | undefined {
+export function projectBrowserOverlayEvent(event: NormalizedEvent, config?: BrowserOverlayConfig): BrowserOverlayEvent | undefined {
   const emittedAt = new Date().toISOString();
   const chat = projectMultiChatMessage(event);
   if (chat !== undefined) return { contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'chat.add', emittedAt, payload: { ...chat, presentation: actorPresentation(event) } };
 
   const alert = projectMultiAlert(event);
-  if (alert !== undefined) return {
+  const profile = alert === undefined ? undefined : config?.alerts.profiles[alert.alertType];
+  if (alert !== undefined && profile?.enabled === false) return undefined;
+  if (alert !== undefined) {
+    const subscription = subscriptionLifecycle(event, alert);
+    const priority = profile?.priority ?? alertPriority(alert);
+    return {
     contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION,
     kind: 'alert.show',
     emittedAt,
     payload: {
       ...alert,
-      priority: alertPriority(alert),
+      priority,
       ...(event.user === undefined ? {} : { presentation: actorPresentation(event) }),
-      ...subscriptionLifecycle(event, alert),
+      ...subscription,
+      display: alertDisplay(alert, subscription.subscription, profile, config?.alertDurationMs ?? 7_000),
     },
-  };
+    };
+  }
 
   if (event.eventType !== 'moderation.action') return undefined;
   const action = event.payload['action'];
@@ -103,4 +118,62 @@ function alertPriority(alert: MultiAlert): OverlayAlertPriority {
   if (HIGH_PRIORITY_ALERTS.has(alert.alertType)) return 'high';
   if (NORMAL_PRIORITY_ALERTS.has(alert.alertType)) return 'normal';
   return 'low';
+}
+
+function alertDisplay(
+  alert: MultiAlert,
+  subscription: OverlaySubscriptionLifecycle | undefined,
+  profile: BrowserOverlayConfig['alerts']['profiles'][keyof BrowserOverlayConfig['alerts']['profiles']],
+  defaultDurationMs: number,
+): OverlayAlertDisplay {
+  const values = alertTemplateValues(alert);
+  const defaultTitle = (values.actor ?? '') + ' · ' + (values.alertType ?? '');
+  const defaultDetail = alertDetail(alert, subscription);
+  const title = renderTemplate(profile?.titleTemplate, values, defaultTitle, 200);
+  const detail = renderTemplate(profile?.detailTemplate, values, defaultDetail, 500);
+  const aggregation = profile?.aggregation.mode === 'sum-quantity' && alert.quantity !== undefined
+    ? { mode: 'sum-quantity' as const, key: aggregationKey(alert), windowMs: profile.aggregation.windowMs }
+    : undefined;
+  return {
+    title,
+    ...(detail.length === 0 ? {} : { detail }),
+    durationMs: profile?.durationMs ?? defaultDurationMs,
+    sound: profile?.sound ?? { mode: 'none', volume: 0.35 },
+    ...(aggregation === undefined ? {} : { aggregation }),
+  };
+}
+
+function alertTemplateValues(alert: MultiAlert): Readonly<Record<string, string>> {
+  return {
+    actor: alert.actor?.displayName ?? 'The community',
+    alertType: alert.alertType.replaceAll('-', ' '),
+    platform: alert.platform,
+    amount: alert.amount ?? '',
+    currency: alert.currency ?? '',
+    quantity: alert.quantity === undefined ? '' : String(alert.quantity),
+    itemName: alert.itemName ?? '',
+    tier: alert.tier ?? '',
+    message: alert.message ?? '',
+    metric: alert.metric ?? '',
+    value: alert.value === undefined ? '' : String(alert.value),
+  };
+}
+
+function renderTemplate(template: string | undefined, values: Readonly<Record<string, string>>, fallback: string, maximum: number): string {
+  const rendered = (template ?? fallback).replace(/\{([a-z][a-zA-Z]*)\}/gu, (_match, token: string) => values[token] ?? '');
+  return normalizeAlertPlainText(rendered).slice(0, maximum);
+}
+
+function alertDetail(alert: MultiAlert, subscription: OverlaySubscriptionLifecycle | undefined): string {
+  if (subscription !== undefined) {
+    const parts = [subscription.kind, subscription.months === undefined ? '' : `${String(subscription.months)} months`, subscription.streakMonths === undefined ? '' : `${String(subscription.streakMonths)} month streak`, subscription.gifterName === undefined ? '' : `gifted by ${subscription.gifterName}`].filter((value): value is string => typeof value === 'string' && value.length > 0);
+    if (parts.length > 0) return parts.join(' · ');
+  }
+  if (alert.amount !== undefined && alert.currency !== undefined) return `${alert.amount} ${alert.currency}${alert.message === undefined ? '' : ` · ${alert.message}`}`;
+  if (alert.quantity !== undefined) return `${String(alert.quantity)}${alert.itemName === undefined ? '' : ` × ${alert.itemName}`}`;
+  return alert.message ?? alert.tier ?? (alert.value === undefined ? '' : `${alert.metric ?? 'value'}: ${String(alert.value)}`);
+}
+
+function aggregationKey(alert: MultiAlert): string {
+  return [alert.alertType, alert.platform, alert.actor?.id ?? alert.actor?.name ?? 'community', alert.itemName ?? alert.tier ?? ''].join(':');
 }

@@ -136,11 +136,11 @@ export class WizardService {
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
     return {
       version: '2.0.0-preview.1',
-      stage: 6,
+      stage: 7,
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
       mutationSupport: this.configuration !== undefined,
-      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Ownership', 'Diagnostics'],
+      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Alerts', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
       transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
       lastInspection: this.lastInspection,

@@ -11,7 +11,7 @@
   document.body.dataset.layout = requestedLayout === 'compact' ? 'compact' : 'canvas';
 
   const alertQueue = [];
-  const priorityRank = { low: 1, normal: 2, high: 3 };
+  const priorityRank = { low: 1, normal: 2, high: 3, critical: 4 };
   const chatFadeMs = 240;
   let activeAlert;
   let alertTimer;
@@ -54,7 +54,7 @@
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-1.1.0.js', 'thsv-browser-overlay-1.1.0');
+        const worker = new SharedWorker('/overlay/worker-1.2.0.js', 'thsv-browser-overlay-1.2.0');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
@@ -108,12 +108,23 @@
   }
 
   function enqueueAlert(alert) {
+    const queuedAt = Date.now();
+    const aggregation = alert.display && alert.display.aggregation;
+    if (aggregation) {
+      const existing = alertQueue.find((queued) => queued.display && queued.display.aggregation && queued.display.aggregation.key === aggregation.key && queuedAt - queued.queuedAt <= aggregation.windowMs);
+      if (existing) {
+        existing.aggregateCount += 1;
+        existing.quantity = Number(existing.quantity || 0) + Number(alert.quantity || 0);
+        existing.queuedAt = queuedAt;
+        return;
+      }
+    }
     if (activeAlert && priorityRank[alert.priority] > priorityRank[activeAlert.priority]) {
       clearTimeout(alertTimer);
       alerts.replaceChildren();
       activeAlert = undefined;
     }
-    alertQueue.push(alert);
+    alertQueue.push({ ...alert, queuedAt, aggregateCount: 1 });
     alertQueue.sort((a, b) => priorityRank[b.priority] - priorityRank[a.priority] || a.sequence - b.sequence);
     while (alertQueue.length > clientConfig.maxAlertQueue) {
       const lowestRank = Math.min(...alertQueue.map((queued) => priorityRank[queued.priority]));
@@ -129,7 +140,8 @@
       try {
         alerts.replaceChildren(buildAlertCard(next));
         activeAlert = next;
-        alertTimer = setTimeout(finishAlert, clientConfig.alertDurationMs);
+        playAlertSound(next);
+        alertTimer = setTimeout(finishAlert, next.display ? next.display.durationMs : clientConfig.alertDurationMs);
       } catch (error) {
         alerts.replaceChildren();
         console.warn('Skipped an alert that could not be rendered.', error);
@@ -140,9 +152,10 @@
   function buildAlertCard(alert) {
     const card = element('article', `alert priority-${alert.priority}`);
     card.append(element('span', 'alert-platform', alert.platform.toUpperCase()));
-    card.append(element('h2', '', alertTitle(alert)));
-    const detail = alertDetail(alert);
+    card.append(element('h2', '', alert.display ? alert.display.title : alertTitle(alert)));
+    const detail = alert.display ? alert.display.detail : alertDetail(alert);
     if (detail) card.append(element('p', '', detail));
+    if (alert.aggregateCount > 1) card.append(element('span', 'aggregated', `${alert.aggregateCount} EVENTS COMBINED${alert.quantity ? ` · ${alert.quantity} TOTAL` : ''}`));
     if (alert.simulated) card.append(element('span', 'simulated', 'TEST EVENT'));
     return card;
   }
@@ -167,6 +180,23 @@
     if (alert.amount && alert.currency) return `${alert.amount} ${alert.currency}${alert.message ? ` · ${alert.message}` : ''}`;
     if (alert.quantity) return `${alert.quantity}${alert.itemName ? ` × ${alert.itemName}` : ''}`;
     return alert.message || alert.tier || (alert.value !== undefined ? `${alert.metric}: ${alert.value}` : '');
+  }
+
+  function playAlertSound(alert) {
+    if (!alert.display || alert.display.sound.mode !== 'chime' || alert.display.sound.volume <= 0) return;
+    try {
+      const AudioContextType = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextType) return;
+      const context = new AudioContextType();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.frequency.value = 660;
+      gain.gain.setValueAtTime(Math.min(1, Math.max(0, alert.display.sound.volume)), context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.35);
+      oscillator.connect(gain); gain.connect(context.destination);
+      oscillator.start(); oscillator.stop(context.currentTime + 0.35);
+      oscillator.addEventListener('ended', () => context.close(), { once: true });
+    } catch { /* Browser-source audio policy may block a preview; visuals continue. */ }
   }
 
   function safeClass(value) { return String(value).toLowerCase().replace(/[^a-z0-9-]/g, ''); }

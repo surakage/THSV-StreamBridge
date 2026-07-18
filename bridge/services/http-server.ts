@@ -1,7 +1,10 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import type { BridgeConfig } from '../../schemas/config.js';
+import { ALERT_PRESENTATION_TYPE_VALUES } from '../../schemas/config.js';
+import { buildNormalizedEvent } from '../adapters/normalization.js';
 import type { IngestResult } from '../core/bridge.js';
 import { InvalidEventError, PayloadTooLargeError } from '../core/bridge.js';
 import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-manager.js';
@@ -170,6 +173,17 @@ export class DiagnosticsServer {
         if (this.target.testTimedAction === undefined) return this.reply(response, 503, { error: 'Timed-action testing is unavailable.' });
         return this.reply(response, 202, await this.target.testTimedAction(decodeURIComponent(timedTestMatch[1])));
       }
+      const alertPreviewMatch = request.method === 'POST' ? /^\/wizard\/api\/alerts\/([^/]+)\/preview$/u.exec(request.url ?? '') : null;
+      if (alertPreviewMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const alertType = decodeURIComponent(alertPreviewMatch[1]);
+        if (!(ALERT_PRESENTATION_TYPE_VALUES as readonly string[]).includes(alertType)) return this.reply(response, 400, { error: 'Unknown alert preview type' });
+        const result = await this.target.simulate(buildAlertPreview(alertType));
+        return this.reply(response, 202, {
+          contractVersion: '2.0.0-preview.1', accepted: result.accepted, simulated: true, alertType,
+          visible: this.overlayHub?.clientConfig().showSimulated === true, delivery: result.delivery, outputs: result.outputs,
+        });
+      }
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
@@ -221,6 +235,27 @@ export class DiagnosticsServer {
   }
 }
 
+function buildAlertPreview(alertType: string): unknown {
+  const eventTypes: Readonly<Record<string, string>> = {
+    follow: 'channel.follow', subscription: 'channel.subscription', membership: 'channel.membership',
+    'gift-subscription': 'channel.gift-subscription', gift: 'engagement.gift', donation: 'engagement.donation',
+    cheer: 'engagement.cheer', 'super-chat': 'engagement.super-chat', raid: 'channel.raid', milestone: 'engagement.milestone',
+  };
+  const payloads: Readonly<Record<string, Readonly<Record<string, string | number>>>> = {
+    follow: {}, subscription: { tier: 'Tier 1', message: 'Simulated subscription alert' }, membership: { tier: 'Member' },
+    'gift-subscription': { tier: 'Tier 1', quantity: 5 }, gift: { itemName: 'Berry', quantity: 12 },
+    donation: { amount: '5.00', currency: 'USD', message: 'Simulated support' }, cheer: { quantity: 100, message: 'Simulated cheer' },
+    'super-chat': { amount: '5.00', currency: 'USD', message: 'Simulated Super Chat' }, raid: { quantity: 25 },
+    milestone: { metric: 'followers', value: 1000 },
+  };
+  return buildNormalizedEvent({
+    eventType: eventTypes[alertType] ?? 'engagement.milestone', platform: alertType === 'super-chat' || alertType === 'membership' ? 'youtube' : 'twitch',
+    adapter: 'wizard-preview', sourceEventName: `Wizard ${alertType} preview`, sourceEventId: `wizard-${randomUUID()}`,
+    channel: { name: 'Preview Channel' }, ...(alertType === 'milestone' ? {} : { user: { name: 'preview_viewer', displayName: 'Preview Viewer', actorType: 'human' as const, roles: [] } }),
+    payload: payloads[alertType] ?? {}, simulated: true,
+  });
+}
+
 const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
   '/wizard': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
@@ -240,11 +275,13 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/app-0.9.9.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.0.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.1.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/app-1.2.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.8.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.9.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.0.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.1.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker-1.2.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.6.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },

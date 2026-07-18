@@ -53,6 +53,23 @@ describe('Stage 4 wizard configuration gateway', () => {
     expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ timedActions: { definitions: [expect.objectContaining({ id: 'socials' })] } });
   });
 
+  it('stages alert profiles through the same backup transaction and safe export', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-alerts-'));
+    const path = join(directory, 'bridge.json');
+    await writeFile(path, await readFile('config/bridge.example.json', 'utf8'));
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const draft = await gateway.begin();
+    const alertSettings = {
+      maxAlertQueue: 12, alertDurationMs: 8_000, showSimulated: true,
+      alerts: { profiles: { gift: { enabled: true, priority: 'high', durationMs: 6_000, titleTemplate: '{actor} sent {quantity} {itemName}', sound: { mode: 'chime', volume: 0.25 }, aggregation: { mode: 'sum-quantity', windowMs: 4_000 } } } },
+    };
+    const staged = gateway.stage(draft.id, { kind: 'alerts', alertSettings });
+    expect(staged.stagedChanges).toEqual([expect.objectContaining({ kind: 'alerts' })]);
+    await gateway.commit(draft.id);
+    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ browserOverlay: { maxAlertQueue: 12, alerts: { profiles: { gift: { priority: 'high' } } } } });
+    expect(await gateway.export()).toMatchObject({ alertSettings: { maxAlertQueue: 12, alerts: { profiles: { gift: { aggregation: { mode: 'sum-quantity' } } } } } });
+  });
+
   it('rejects a stale draft without writing', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-stale-'));
     const path = join(directory, 'bridge.json');

@@ -70,6 +70,18 @@ describe('v2 preview contracts', () => {
     expect(browserOverlayEventV2Schema.safeParse({ contractVersion: CORE_CONTRACT_VERSION, kind: 'companion.action', emittedAt: '2026-07-17T20:00:00.000Z', payload: {} }).success).toBe(false);
   });
 
+  it('requires a bounded display contract for browser alert events', () => {
+    const alert = {
+      contractVersion: CORE_CONTRACT_VERSION, eventId: 'alert-1', receivedAt: '2026-07-17T20:00:00.000Z', sequence: 2,
+      platform: 'youtube', channel: baseEvent.channel, actor: baseEvent.actor, alertType: 'super-chat', amount: '5.00', currency: 'USD',
+      priority: 'critical', simulated: true, verifiedTransport: false, unverifiedFields: [],
+      display: { title: 'Viewer supported with 5.00 USD', detail: 'Test alert', durationMs: 7_000, sound: { mode: 'chime', volume: 0.3 } },
+    };
+    const event = { contractVersion: CORE_CONTRACT_VERSION, kind: 'alert.show', emittedAt: '2026-07-17T20:00:00.000Z', payload: alert };
+    expect(browserOverlayEventV2Schema.safeParse(event).success).toBe(true);
+    expect(browserOverlayEventV2Schema.safeParse({ ...event, payload: { ...alert, display: { ...alert.display, durationMs: 0 } } }).success).toBe(false);
+  });
+
   it('keeps Twitch and Kick reward operations explicit per redemption', () => {
     const redemption = {
       contractVersion: CORE_CONTRACT_VERSION, eventId: 'reward-1', sourceEventId: 'source-reward-1', receivedAt: '2026-07-17T20:00:00.000Z',
@@ -81,4 +93,3 @@ describe('v2 preview contracts', () => {
     expect(rewardRedemptionV2Schema.safeParse({ ...redemption, supportedOperations: ['create'] }).success).toBe(false);
   });
 });
-

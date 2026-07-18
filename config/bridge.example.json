@@ -47,7 +47,10 @@
     "maxAlertQueue": 20,
     "alertDurationMs": 7000,
     "showBots": true,
-    "showSimulated": true
+      "showSimulated": true,
+      "alerts": {
+        "profiles": {}
+      }
   },
   "filters": {
     "enabled": true,
