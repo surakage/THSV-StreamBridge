@@ -18,7 +18,7 @@
     "concurrent": true,
     "dependencies": [
       "Streamer.bot CPH API",
-      "Streamer.bot command enable/disable C# methods (unverified against a live build; see docs/stage-5-plan.md open question 2)"
+      "Streamer.bot command enable/disable C# methods (CPH.EnableCommand(string)/CPH.DisableCommand(string), confirmed against a live v1.0.5-alpha.31 build - see docs/stage-5-plan.md)"
     ]
   },
   "contract": {
@@ -43,5 +43,5 @@
       "cooldownSupport": "deferred until CPH cooldown method signatures are live-confirmed"
     }
   },
-  "verificationStatus": "implementation complete; live Streamer.bot Alpha compilation pending"
+  "verificationStatus": "confirmed live: enable and disable both verified against a real Streamer.bot v1.0.5-alpha.31 command"
 }

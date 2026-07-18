@@ -191,9 +191,24 @@ A new `Commands` panel, matching the existing `Platforms`/`Blockers` panel patte
 
 1. **Done.** Contracts + `command-sync-store.ts` + schema `source` field — no behavior change yet,
    matches Stage 2A's "contracts before code" discipline.
-2. **Done.** Tier 1 package + live enable/disable/cooldown, since it's the smaller,
+2. **Done, and confirmed live.** Tier 1 package + live enable/disable, since it's the smaller,
    fully-documented-API surface and proves the `DoAction`-wrapped-C#-method pattern works before
-   Tier 2 depends on it. Cooldown was deliberately deferred — see open question 2.
+   Tier 2 depends on it. Cooldown was deliberately deferred — see open question 2 — and remains
+   deferred; only enable/disable were built or tested.
+
+   The package was built and committed with an honest `"implementation complete; live
+   Streamer.bot Alpha compilation pending"` status, since `CPH.EnableCommand`/`CPH.DisableCommand`
+   had never actually been dispatched anywhere — there was no HTTP route or UI control calling
+   `StreamerBotAdapter.requestCommandAdministration` outside of tests. That gap was closed by
+   adding `WizardService.administerCommand`, `POST /wizard/api/commands/administer`, and
+   Enable/Disable buttons on each live command in the wizard's Streamer.bot inventory panel.
+
+   **Confirmed live:** imported into the same real Streamer.bot v1.0.5-alpha.31 instance, then
+   dispatched a disable request at a live test command (`Command Test` / `!test`) through the
+   real bridge over the actual WebSocket connection. A fresh `GetCommands` inspection confirmed
+   `enabled: false`. An enable request afterward confirmed `enabled: true` again. Both directions
+   of the one thing this package exists to do are now real, verified behavior, not an assumption
+   about an undocumented overload.
 3. **Done.** Inspection-based sync + drift detection, independent of Tier 2, and immediately
    useful on its own (a creator can see drift even before any generation feature exists).
 4. **Done.** Collision detection + Tier 2 generation + verify-after-import loop. Built on a
@@ -249,12 +264,12 @@ A new `Commands` panel, matching the existing `Platforms`/`Blockers` panel patte
 
 Live-verified end-to-end in Streamer.bot test mode (design → collision check → generation →
 download → verify-before-import-correctly-reports-not-found) and against the real Streamer.bot
-instance (generated package imports successfully), confirming the wizard's HTTP surface, UI, the
-generated `.sb` shape, and the "never marks a command synced without live confirmation" guarantee
-all work as wired. Still open: whether the Tier 1 package's `CPH.EnableCommand`/
-`CPH.DisableCommand` calls compile against a live Alpha build, and completing the
-enable-and-verify loop for a generated command (bind the imported command to its action, enable
-it, then run the wizard's "Verify import" step).
+instance: Tier 2's generated package imports successfully, and Tier 1's enable/disable dispatch
+was confirmed both directions against a real command. Both tiers' core, previously-unverified risk
+is now closed. Still open: completing the enable-and-verify loop for a *generated* Tier 2 command
+specifically (bind the imported command to its action, enable it, then run the wizard's "Verify
+import" step) — Tier 1 dispatch and Tier 2 import have each been proven independently, but not yet
+chained together on the same command.
 
 Each step should land with its own full quality gate pass (lint, typecheck, test, build), matching
 every prior stage in this project — no stage in this series has ever been merged as one large,

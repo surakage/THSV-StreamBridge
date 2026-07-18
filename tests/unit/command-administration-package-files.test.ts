@@ -53,8 +53,9 @@ describe('Command Administration Streamer.bot package', () => {
     expect(reviewedSource).toContain('CPH.DisableCommand(commandId)');
     expect(reviewedSource).not.toMatch(/CPH\.SetGlobalVar|CPH\.RunAction|Process\.Start|PowerShell|cmd\.exe/);
 
-    // The exact CPH method signatures have not been compiled against a live Streamer.bot
-    // instance yet; this must stay explicit so the package is never mistaken for verified.
-    expect(manifest.verificationStatus).toBe('implementation complete; live Streamer.bot Alpha compilation pending');
+    // Both enable and disable were dispatched against a real, live Streamer.bot command and
+    // confirmed to actually flip its enabled state - this must stay explicit and accurate, the
+    // same discipline that kept it honestly marked "pending" before this was confirmed.
+    expect(manifest.verificationStatus).toBe('confirmed live: enable and disable both verified against a real Streamer.bot v1.0.5-alpha.31 command');
   });
 });

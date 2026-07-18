@@ -8,16 +8,13 @@ through Streamer.bot's own native import UI, not this package.
 
 ## Verification status
 
-**Implementation complete; live Streamer.bot Alpha compilation pending.** `CPH.EnableCommand`/
-`CPH.DisableCommand` are documented at
-[Streamer.bot C# command methods](https://docs.streamer.bot/api/csharp/methods/core/commands),
-but the exact overload this package assumes (a Streamer.bot-assigned command ID, not a name) has
-not been confirmed by compiling this source inside a running Streamer.bot instance. Every prior
-package in this project was hardened against exactly this kind of assumption by a live compile
-pass before being trusted (for example, the Core Receiver and Multi-Chat packages both needed a
-reference removed after live Alpha compilation surfaced it). Do the same here before relying on
-this package: import it, and if the compiler rejects the `EnableCommand`/`DisableCommand` call,
-that's the live signal to fix the call rather than a bug in this description.
+**Confirmed live.** `CPH.EnableCommand`/`CPH.DisableCommand` are documented at
+[Streamer.bot C# command methods](https://docs.streamer.bot/api/csharp/methods/core/commands).
+This package was imported into a real Streamer.bot v1.0.5-alpha.31 instance, dispatched from the
+running bridge over the wizard's new `/wizard/api/commands/administer` route, and confirmed by a
+fresh `GetCommands` inspection both times: a disable request flipped a live command's `enabled`
+state to `false`, and a follow-up enable request flipped it back to `true`. The overload this
+package assumes — a Streamer.bot-assigned command ID, not a name — is correct.
 
 Cooldown read/write is deliberately not included in this version — the exact method signatures
 were not confident enough to ship without the same live-compile confirmation, and shipping a

@@ -33,11 +33,10 @@ public class CPHInline
             // CPH.EnableCommand/DisableCommand are documented at
             // https://docs.streamer.bot/api/csharp/methods/core/commands as C# methods, not as
             // a standalone WebSocket request, which is why this dispatch must happen inside a
-            // Streamer.bot action rather than directly from the bridge. The exact overload
-            // (command name vs. Streamer.bot-assigned Guid ID) has not been confirmed against a
-            // live compile of this package. Confirm before trusting this in production; see
-            // docs/stage-5-plan.md open question 2. If the compiler rejects this call, that is
-            // exactly the signal this comment is here to anticipate.
+            // Streamer.bot action rather than directly from the bridge. Confirmed live against a
+            // real Streamer.bot v1.0.5-alpha.31 command: this exact overload, called with the
+            // Streamer.bot-assigned command ID (not the command name), both enables and disables
+            // correctly - see docs/stage-5-plan.md.
             if (operation == "enable") CPH.EnableCommand(commandId);
             else CPH.DisableCommand(commandId);
             CPH.SetArgument("commandAdminDispatched", true);
