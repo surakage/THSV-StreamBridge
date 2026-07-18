@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { FileCommandSyncStore, NoopCommandSyncStore } from '../../bridge/services/command-sync-store.js';
+import { FileCommandSyncStore, NoopCommandSyncStore, reconcileCommandSync } from '../../bridge/services/command-sync-store.js';
 import { commandSyncStateSchema, syncedCommandSchema } from '../../bridge/contracts/v2/command-sync.js';
 import { silentLogger } from '../helpers.js';
 
@@ -66,6 +66,31 @@ describe('FileCommandSyncStore', () => {
     const store = new FileCommandSyncStore(path, silentLogger, 0);
     await expect(store.load()).resolves.toEqual({ version: 1, commands: [] });
     expect(store.status()['lastError']).toContain('Command sync state is invalid');
+  });
+});
+
+describe('reconcileCommandSync', () => {
+  it('marks a tracked command in-sync when its id and name both still match', () => {
+    const previous = [syncedCommand({ streamerBotId: 'sb-1', name: 'shoutout' })];
+    const result = reconcileCommandSync(previous, [{ id: 'sb-1', name: 'shoutout' }], '2026-07-19T00:00:00.000Z');
+    expect(result).toEqual([{ ...previous[0], driftStatus: 'in-sync', lastSeenAt: '2026-07-19T00:00:00.000Z' }]);
+  });
+
+  it('follows a rename by id, not by name, and updates the mirrored name', () => {
+    const previous = [syncedCommand({ streamerBotId: 'sb-1', name: 'shoutout' })];
+    const result = reconcileCommandSync(previous, [{ id: 'sb-1', name: 'so-renamed' }], '2026-07-19T00:00:00.000Z');
+    expect(result).toEqual([{ ...previous[0], name: 'so-renamed', driftStatus: 'renamed', lastSeenAt: '2026-07-19T00:00:00.000Z' }]);
+  });
+
+  it('marks a tracked command missing when its id disappears, without dropping the entry or bumping lastSeenAt', () => {
+    const previous = [syncedCommand({ streamerBotId: 'sb-1', lastSeenAt: '2026-07-18T00:00:00.000Z' })];
+    const result = reconcileCommandSync(previous, [], '2026-07-19T00:00:00.000Z');
+    expect(result).toEqual([{ ...previous[0], driftStatus: 'missing', lastSeenAt: '2026-07-18T00:00:00.000Z' }]);
+  });
+
+  it('never adds an entry for a live command the mirror was not already tracking', () => {
+    const result = reconcileCommandSync([], [{ id: 'sb-unrelated', name: 'creator-command' }], '2026-07-19T00:00:00.000Z');
+    expect(result).toEqual([]);
   });
 });
 

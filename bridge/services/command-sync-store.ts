@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { commandSyncStateSchema, type CommandSyncState } from '../contracts/v2/command-sync.js';
+import { commandSyncStateSchema, type CommandSyncState, type SyncedCommand } from '../contracts/v2/command-sync.js';
 import type { Logger } from './logger.js';
 import { writeJsonAtomic } from './atomic-state.js';
 
@@ -77,4 +77,17 @@ export class FileCommandSyncStore implements CommandSyncStore {
       this.logger.warn('Command sync state write failed', { error });
     });
   }
+}
+
+// Reconciles the bridge's own command mirror against a fresh live inspection. This only ever
+// updates entries the mirror already tracks (framework or wizard-generated commands) — it never
+// adds an entry for a command it has not been told to track, which is exactly what keeps this
+// from becoming a second, independently-populated command database.
+export function reconcileCommandSync(previous: readonly SyncedCommand[], observed: readonly { readonly id: string; readonly name: string }[], now: string): SyncedCommand[] {
+  const observedById = new Map(observed.map((entry) => [entry.id, entry] as const));
+  return previous.map((entry) => {
+    const live = observedById.get(entry.streamerBotId);
+    if (live === undefined) return { ...entry, driftStatus: 'missing' };
+    return { ...entry, name: live.name, driftStatus: live.name === entry.name ? 'in-sync' : 'renamed', lastSeenAt: now };
+  });
 }

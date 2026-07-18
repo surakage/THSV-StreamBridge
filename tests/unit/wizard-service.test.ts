@@ -62,4 +62,12 @@ describe('Stage 3 wizard service', () => {
     const cancelled = service.cancelTransaction(draft.id);
     expect(cancelled).toMatchObject({ status: 'cancelled', stagedChanges: [] });
   });
+
+  it('reports command sync as unavailable rather than throwing when no store is configured', async () => {
+    const service = new WizardService(inspector());
+    const result = await service.syncCommands();
+    expect(result).toMatchObject({ available: false, commands: [] });
+    expect(result.error).toContain('command sync storage');
+    expect((await service.overview())['lastCommandSync']).toEqual(result);
+  });
 });

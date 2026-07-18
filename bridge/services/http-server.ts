@@ -115,6 +115,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.cancelTransaction(cancelMatch[1]));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/commands/sync' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.syncCommands());
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/diagnostics' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.diagnostics());

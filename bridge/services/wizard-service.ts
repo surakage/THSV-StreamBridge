@@ -5,6 +5,8 @@ import type {
   StreamerBotInspectionAuditEntry,
 } from '../adapters/streamerbot-adapter.js';
 import { WizardConfigurationError, type WizardConfigurationDraft, type WizardConfigurationExport, type WizardConfigurationGateway } from './wizard-configuration.js';
+import { reconcileCommandSync, type CommandSyncStore } from './command-sync-store.js';
+import type { SyncedCommand } from '../contracts/v2/command-sync.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -36,6 +38,13 @@ export interface WizardInspection {
   readonly error?: string;
 }
 
+export interface CommandSyncResult {
+  readonly syncedAt: string;
+  readonly available: boolean;
+  readonly commands: readonly SyncedCommand[];
+  readonly error?: string;
+}
+
 const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
   { kind: 'action', id: '143fce1d-c5b0-4108-b766-ee2d0249e2d4', name: 'THSV StreamBridge - Receive Event', packageId: 'core-receiver' },
   { kind: 'action', id: '99e202ab-0ee9-58d1-b22c-95b30fdc702e', name: 'THSV StreamBridge - Multi-Chat', packageId: 'multi-chat' },
@@ -56,20 +65,26 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
 export class WizardService {
   private readonly transactions = new Map<string, WizardTransaction>();
   private lastInspection: WizardInspection | undefined;
+  private lastCommandSync: CommandSyncResult | undefined;
 
-  public constructor(private readonly inspector: StreamerBotInspector | undefined, private readonly configuration?: WizardConfigurationGateway) {}
+  public constructor(
+    private readonly inspector: StreamerBotInspector | undefined,
+    private readonly configuration?: WizardConfigurationGateway,
+    private readonly commandSyncStore?: CommandSyncStore,
+  ) {}
 
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
     return {
       version: '2.0.0-preview.1',
-      stage: 4,
+      stage: 5,
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
       mutationSupport: this.configuration !== undefined,
-      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Ownership', 'Diagnostics'],
+      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
       transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
       lastInspection: this.lastInspection,
+      lastCommandSync: this.lastCommandSync,
       ...(this.configuration === undefined ? {} : { configuration: await this.configuration.snapshot() }),
     };
   }
@@ -98,6 +113,34 @@ export class WizardService {
         inspectedAt: new Date().toISOString(), available: false, actions: [], commands: [], requests: this.inspector.inspectionRequests(), error: error instanceof Error ? error.message : String(error),
       };
       this.lastInspection = result;
+      return result;
+    }
+  }
+
+  // Reconciles the bridge's command mirror against a fresh live inspection. This never adds an
+  // entry for a command the mirror was not already tracking (framework or wizard-generated) —
+  // Streamer.bot stays the sole source of truth for what commands exist, this only updates the
+  // bridge's own record of the ones it has a reason to track.
+  public async syncCommands(): Promise<CommandSyncResult> {
+    if (this.inspector === undefined || this.commandSyncStore === undefined) {
+      const result: CommandSyncResult = {
+        syncedAt: new Date().toISOString(), available: false, commands: [],
+        error: 'Command sync requires both Streamer.bot output and command sync storage to be configured.',
+      };
+      this.lastCommandSync = result;
+      return result;
+    }
+    try {
+      const [observed, state] = await Promise.all([this.inspector.inspectCommands(), this.commandSyncStore.load()]);
+      const now = new Date().toISOString();
+      const reconciled = reconcileCommandSync(state.commands, observed, now);
+      this.commandSyncStore.scheduleSave({ version: 1, commands: reconciled });
+      const result: CommandSyncResult = { syncedAt: now, available: true, commands: reconciled };
+      this.lastCommandSync = result;
+      return result;
+    } catch (error) {
+      const result: CommandSyncResult = { syncedAt: new Date().toISOString(), available: false, commands: [], error: error instanceof Error ? error.message : String(error) };
+      this.lastCommandSync = result;
       return result;
     }
   }
@@ -148,6 +191,7 @@ export class WizardService {
       inspectionRequests: this.inspector?.inspectionRequests() ?? [],
       activeTransactions: [...this.transactions.values()].filter((transaction) => transaction.status === 'draft').length,
       configuration: this.configuration?.diagnostics(),
+      commandSync: this.commandSyncStore?.status(),
     };
   }
 }
