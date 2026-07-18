@@ -1,9 +1,11 @@
 # Stage 5 plan: Streamer.bot command discovery and management
 
-Status: **proposed, not implemented.** This document defines the design before any Stage 5 code
-lands, the same way `overhaul-stage-1-audit.md` preceded Stage 2. Nothing in `bridge/`,
-`schemas/`, `packages/streamerbot/`, or `wizard/` should be assumed to exist until a
-`stage-5-completion.md` replaces this file.
+Status: **complete — see `stage-5-completion.md` for the authoritative summary and acceptance
+evidence.** This document is kept as the design and discovery record: the original plan, the
+build-order log, and the ground-truth corrections discovered along the way (particularly the
+real Streamer.bot command/trigger export shape, which contradicted its own public documentation
+and had to be reverse-engineered from a live export). Nothing below should be read as a current
+status claim on its own — `stage-5-completion.md` is the one that reflects final state.
 
 ## Guiding principle
 
@@ -262,14 +264,21 @@ A new `Commands` panel, matching the existing `Platforms`/`Blockers` panel patte
    "Not a valid Streamer.bot export"; the generator's own output decoded and imported cleanly).
    The corrected command/trigger shape is real Tier 2 ground truth now, not a pending guess.
 
+   **The full loop is confirmed too.** The creator bound the imported `shoutout` command to its
+   generated action in Streamer.bot's own UI (Actions > the generated action > Triggers > Core >
+   Commands > Command Triggered, source command `shoutout`) and enabled it. A fresh
+   `GetCommands` inspection showed `enabled: true`. Calling `POST /wizard/api/commands/verify`
+   with that command's ID returned `verified: true`, `driftStatus: "in-sync"`,
+   `source: "wizard-generated"` — the sync mirror now tracks a command that started as nothing
+   more than a name typed into the wizard's "Design a command" form, generated, imported, bound,
+   enabled, and confirmed, entirely through the path this whole stage exists to provide.
+
 Live-verified end-to-end in Streamer.bot test mode (design → collision check → generation →
 download → verify-before-import-correctly-reports-not-found) and against the real Streamer.bot
-instance: Tier 2's generated package imports successfully, and Tier 1's enable/disable dispatch
-was confirmed both directions against a real command. Both tiers' core, previously-unverified risk
-is now closed. Still open: completing the enable-and-verify loop for a *generated* Tier 2 command
-specifically (bind the imported command to its action, enable it, then run the wizard's "Verify
-import" step) — Tier 1 dispatch and Tier 2 import have each been proven independently, but not yet
-chained together on the same command.
+instance: Tier 2's generated package imports successfully, Tier 1's enable/disable dispatch was
+confirmed both directions against a real command, and the full Tier 2 generate → import → bind →
+enable → verify loop was completed and confirmed `in-sync` on the same command. Every risk this
+plan opened with is now closed by a real, observed result rather than an assumption.
 
 Each step should land with its own full quality gate pass (lint, typecheck, test, build), matching
 every prior stage in this project — no stage in this series has ever been merged as one large,

@@ -1,0 +1,37 @@
+# Stage 5 completion
+
+Stage 5 is complete on `overhaul/v2-preview` for `2.0.0-preview.1`. Stable `main` and the `1.x` release line remain unchanged.
+
+## Delivered
+
+- **Command sync mirror.** `FileCommandSyncStore` tracks only commands the bridge already has a reason to track (framework packages or wizard-generated) — it never adds an entry for a live command it wasn't already told about. `reconcileCommandSync` matches by Streamer.bot-assigned ID, never name, and reports `in-sync` / `renamed` / `missing`.
+- **Tier 1 — live enable/disable.** The reviewed Command Administration package wraps the documented `CPH.EnableCommand`/`CPH.DisableCommand` C# methods, dispatched from the bridge over the already-authenticated `DoAction` WebSocket request. `WizardService.administerCommand` and `POST /wizard/api/commands/administer` expose it, gated by explicit creator approval enforced before a request is even built.
+- **Tier 2 — generate-and-verify.** For command creation, which no documented API level supports: `bridge/core/command-generation.ts` validates a batch of designs, checks every one against a fresh live inspection (case-insensitive, against both actions and commands, regardless of ownership, and against the rest of the same batch), and generates one `.sb` package containing an action, a native Command object, and the trigger binding them for every design. `WizardService.generateCommands`/`verifyGeneratedCommands` and `POST /wizard/api/commands/generate`/`/verify` expose it. A command is marked owned or synced only after re-inspection independently confirms the generated ID is actually live.
+- **Wizard UI.** A "Command Sync" panel: sync-now, a batch command-design builder (queue several designs, approve once, generate one package), download, and verify-import with per-command drift status. Enable/Disable buttons on every live command shown by "Inspect now".
+- **Shared export pipeline.** `bridge/services/streamerbot-package-builder.ts` was extracted out of `tools/build-streamerbot-export.ts` so the CLI tool and the wizard's Tier 2 generation share one proven mechanism instead of two. Reproducibility re-verified byte-for-byte across all 9 previously-shipped packages after the extraction and again after later shape corrections.
+
+## Dispatch safety
+
+- Streamer.bot remains the sole authoritative store. The sync mirror never becomes a second command database; it only ever updates entries it already tracks.
+- Every mutating operation (Tier 1 dispatch, Tier 2 generation) requires explicit creator approval, checked before a request is built.
+- Tier 2 collision detection runs immediately before generation against a fresh inspection, never a stale one, and rejects the whole batch if any design collides with live state or with another design in the same batch.
+- Generated commands import **disabled** and unbound. The command-to-action trigger binding and enabling are manual creator steps in Streamer.bot's own UI — the wizard never claims a generated command is live until it re-inspects and confirms the ID is actually present.
+- A base64 package pasted into chat can be corrupted in transit; packages are handed over as files for direct import, not pasted text, after this was observed to fail once.
+
+## Acceptance evidence
+
+- The complete suite passes with 48 files and 263 tests, run twice for stability, followed by lint, typecheck, build, and example-configuration validation.
+- **Tier 1 confirmed live:** dispatched a disable request at a real Streamer.bot command over an actual WebSocket connection; a fresh `GetCommands` inspection confirmed `enabled: false`. An enable request afterward confirmed `enabled: true` again.
+- **Tier 2 confirmed live, full loop:** designed a command in the wizard, generated a package, imported it into a real Streamer.bot instance, bound the generated command to its generated action and enabled it through Streamer.bot's own UI, then called the wizard's verify endpoint and confirmed `verified: true`, `driftStatus: "in-sync"`, `source: "wizard-generated"`.
+- **Command/trigger shape ground truth.** The first generation attempt was rejected by a real Streamer.bot import. Decoding a manually-created command+action export from that same instance revealed the real shape (the binding lives on the action's `triggers` array, not the command; a command's trigger phrase is a single string, not a list) and replaced what had been inferred from Streamer.bot's own out-of-date public documentation.
+- Batch generation, sync, and administration were each also live-verified against Streamer.bot test mode for the parts a live instance couldn't exercise directly (HTTP wiring, UI rendering, the never-mark-synced-without-confirmation guarantee under a controlled empty inventory).
+
+## Not built
+
+- Cooldown read/write for Tier 1 — the CPH method signatures were never confident enough to ship a guess, and the live-verification pass that would have confirmed them was scoped to enable/disable only.
+- Command deletion — Tier 2 covers creation only; deleting a generated command is a manual Streamer.bot step, matching how creation's manual finishing steps (binding, enabling) already work.
+- Multi-alias embedding in generated commands — Streamer.bot's real command shape uses a single trigger-phrase string, not a list, so aliases designed in the wizard are used for the collision check only; a creator adds them through Streamer.bot's own Command(s) box after import.
+
+## Next stage
+
+Not yet determined. The original milestone list's post-command-management scope (Browser Overlay Hub, Viewer Identity/Progression, Companion Systems) was narrowed out of the revised core; what comes after Stage 5 is an open decision for the user, not implied by this document.
