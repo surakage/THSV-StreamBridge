@@ -67,7 +67,7 @@ export class WizardService {
       mutationSupport: this.configuration !== undefined,
       navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
-      transactions: [...this.transactions.values()],
+      transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
       lastInspection: this.lastInspection,
       ...(this.configuration === undefined ? {} : { configuration: await this.configuration.snapshot() }),
     };
@@ -108,8 +108,8 @@ export class WizardService {
     return transaction;
   }
 
-  public cancelTransaction(id: string): WizardTransaction {
-    if (this.configuration !== undefined) return this.configuration.cancel(id) as unknown as WizardTransaction;
+  public cancelTransaction(id: string): WizardTransaction | WizardConfigurationDraft {
+    if (this.configuration !== undefined) return this.configuration.cancel(id);
     const current = this.transactions.get(id);
     if (current === undefined) throw new WizardTransactionError(404, 'Wizard transaction was not found.');
     if (current.status === 'cancelled') return current;

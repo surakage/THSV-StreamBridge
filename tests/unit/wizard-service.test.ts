@@ -1,5 +1,9 @@
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { WizardService, WizardTransactionError, type StreamerBotInspector } from '../../bridge/services/wizard-service.js';
+import { WizardConfigurationGateway } from '../../bridge/services/wizard-configuration.js';
 
 function inspector(): StreamerBotInspector {
   const requests: Array<{ request: 'GetActions' | 'GetCommands'; requestedAt: string }> = [];
@@ -30,5 +34,32 @@ describe('Stage 3 wizard service', () => {
     expect(draft).toMatchObject({ status: 'draft', stagedChanges: [] });
     expect(service.cancelTransaction(draft.id)).toMatchObject({ status: 'cancelled', stagedChanges: [] });
     expect(() => service.cancelTransaction('missing')).toThrow(WizardTransactionError);
+  });
+
+  it('reports real configuration drafts in overview and preserves staged changes on cancel', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-service-'));
+    const path = join(directory, 'bridge.json');
+    await writeFile(path, await readFile('config/bridge.example.json', 'utf8'));
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const service = new WizardService(undefined, gateway);
+
+    const draft = await service.beginTransaction();
+    if (!('restartRequired' in draft)) throw new Error('Expected a configuration draft.');
+
+    // Before this fix, overview().transactions always read from WizardService's own
+    // now-unused Stage 3 map and never reflected a real configuration-mode draft.
+    const beforeStaging = await service.overview();
+    expect(beforeStaging['transactions']).toMatchObject([{ id: draft.id, status: 'draft' }]);
+
+    const staged = service.stageTransaction(draft.id, { kind: 'platform', platform: 'twitch', enabled: true, inputEnabled: true, outputEnabled: false });
+    // Before this fix, cancelTransaction()'s declared return type (`as unknown as
+    // WizardTransaction`) claimed stagedChanges is always empty (typed `never[]`), even
+    // though a real configuration draft can genuinely hold staged changes like this one.
+    expect(staged.stagedChanges).toHaveLength(1);
+    const afterStaging = await service.overview();
+    expect((afterStaging['transactions'] as Array<{ stagedChanges: unknown[] }>)[0]?.stagedChanges).toHaveLength(1);
+
+    const cancelled = service.cancelTransaction(draft.id);
+    expect(cancelled).toMatchObject({ status: 'cancelled', stagedChanges: [] });
   });
 });

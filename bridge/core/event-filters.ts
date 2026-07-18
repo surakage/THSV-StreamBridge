@@ -18,14 +18,14 @@ const EMPTY_DECISION: FilterDecision = {
 export class EventFilterEngine {
   public constructor(private readonly config: FiltersConfig) {}
 
-  public evaluate(event: NormalizedEvent): FilterDecision {
+  public evaluate(event: NormalizedEvent, now: number = Date.now()): FilterDecision {
     if (!this.config.enabled || !isChatEvent(event)) return EMPTY_DECISION;
     let displayBlocked = false;
     let commandBlocked = false;
     const blockedModuleIds = new Set<string>();
     const matchedRuleIds: string[] = [];
     for (const rule of this.config.rules) {
-      if (!rule.enabled || !applies(rule, event) || !matches(rule, event)) continue;
+      if (!rule.enabled || isExpired(rule, now) || !applies(rule, event) || !matches(rule, event)) continue;
       matchedRuleIds.push(rule.id);
       if (rule.scope === 'display') displayBlocked = true;
       else if (rule.scope === 'command') commandBlocked = true;
@@ -59,6 +59,11 @@ function matches(rule: FilterRule, event: NormalizedEvent): boolean {
 
 function targetValue(rule: FilterRule, event: NormalizedEvent): string | undefined {
   if (rule.target === 'message') return typeof event.payload['message'] === 'string' ? event.payload['message'] : undefined;
+  if (rule.target === 'user.id') return event.user?.id;
   if (rule.target === 'user.name') return event.user?.name;
   return event.user?.displayName;
+}
+
+function isExpired(rule: FilterRule, now: number): boolean {
+  return rule.expiresAt !== undefined && Date.parse(rule.expiresAt) <= now;
 }

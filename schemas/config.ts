@@ -99,12 +99,13 @@ const filterRuleSchema = z.object({
   moduleIds: z.array(z.string().min(3).max(128).regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/)).max(32).default([]),
   platforms: z.array(z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/)).max(32).default([]),
   actorTypes: z.array(z.enum(['human', 'bot', 'system'])).max(3).default([]),
-  target: z.enum(['message', 'user.name', 'user.displayName']),
+  target: z.enum(['message', 'user.id', 'user.name', 'user.displayName']),
   match: z.object({
     kind: z.enum(['contains', 'exact', 'regex']),
     value: z.string().min(1).max(200),
     caseSensitive: z.boolean().default(false),
   }).strict(),
+  expiresAt: z.iso.datetime({ offset: true }).optional(),
 }).strict().superRefine((rule, context) => {
   if (rule.scope !== 'module' && rule.moduleIds.length > 0) {
     context.addIssue({ code: 'custom', path: ['moduleIds'], message: 'moduleIds may only be set for module-scoped blocker rules.' });
@@ -252,6 +253,8 @@ export type FiltersConfig = z.infer<typeof filtersSchema>;
 export type FilterRule = FiltersConfig['rules'][number];
 export type Capability = (typeof CAPABILITY_VALUES)[number];
 
+const MAX_REGEX_QUANTIFIERS = 4;
+
 function unsafeRegexReason(pattern: string): string | undefined {
   if (pattern.length > 200) return 'Regular expressions are limited to 200 characters.';
   if (/\\[1-9]/u.test(pattern)) return 'Regular-expression backreferences are not allowed.';
@@ -259,6 +262,19 @@ function unsafeRegexReason(pattern: string): string | undefined {
   if (/\([^)]*\|[^)]*\)[+*{]/u.test(pattern)) return 'Quantified alternation groups are not allowed.';
   if (/\([^)]*[+*][^)]*\)[+*{]/u.test(pattern)) return 'Nested quantified groups are not allowed.';
   if (/(?:\.[+*]|\[[^\]]+\][+*]|\\[dDsSwW][+*])[+*{]/u.test(pattern)) return 'Nested quantifiers are not allowed.';
+  // A chain of many adjacent quantified atoms (e.g. "a?a?a?...") contains no nesting or
+  // alternation for the checks above to catch, but still produces exponential backtracking
+  // cost on a non-matching input. Bounding the total quantifier count keeps that search
+  // space small regardless of shape.
+  if (countQuantifiers(pattern) > MAX_REGEX_QUANTIFIERS) {
+    return `Regular expressions may use at most ${String(MAX_REGEX_QUANTIFIERS)} quantifiers (+, *, ?, or {n,m}).`;
+  }
   try { new RegExp(pattern, 'u'); } catch { return 'Regular expression is invalid.'; }
   return undefined;
+}
+
+function countQuantifiers(pattern: string): number {
+  const withoutEscapedLiterals = pattern.replace(/\\[+*?]/gu, '');
+  const withoutNonCapturingMarkers = withoutEscapedLiterals.replace(/\(\?:/gu, '(');
+  return (withoutNonCapturingMarkers.match(/[+*?]|\{\d+(?:,\d*)?\}/gu) ?? []).length;
 }
