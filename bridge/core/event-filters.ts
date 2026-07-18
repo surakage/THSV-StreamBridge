@@ -48,7 +48,8 @@ function applies(rule: FilterRule, event: NormalizedEvent): boolean {
 function matches(rule: FilterRule, event: NormalizedEvent): boolean {
   const raw = targetValue(rule, event);
   if (raw === undefined) return false;
-  const value = rule.match.caseSensitive ? raw : raw.toLocaleLowerCase('en-US');
+  const userTarget = rule.target === 'user.id';
+  const value = userTarget || rule.match.caseSensitive ? raw : raw.toLocaleLowerCase('en-US');
   const expected = rule.match.caseSensitive ? rule.match.value : rule.match.value.toLocaleLowerCase('en-US');
   if (rule.match.kind === 'contains') return value.includes(expected);
   if (rule.match.kind === 'exact') return value === expected;
@@ -60,5 +61,6 @@ function matches(rule: FilterRule, event: NormalizedEvent): boolean {
 function targetValue(rule: FilterRule, event: NormalizedEvent): string | undefined {
   if (rule.target === 'message') return typeof event.payload['message'] === 'string' ? event.payload['message'] : undefined;
   if (rule.target === 'user.name') return event.user?.name;
+  if (rule.target === 'user.id') return event.user?.id;
   return event.user?.displayName;
 }

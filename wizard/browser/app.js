@@ -1,24 +1,319 @@
-const state={token:'',overview:null,draft:null,filters:null};
-const byId=(id)=>document.getElementById(id);
-async function api(path,options={}){const response=await fetch(path,{...options,headers:{authorization:`Bearer ${state.token}`,...options.headers}});const body=await response.json();if(!response.ok)throw new Error(body.error||`Request failed (${response.status})`);return body}
-function safe(value){return String(value??'').replace(/[&<>"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
-function items(target,values,kind){byId(target).innerHTML=values.length?values.map((value)=>`<article class="item ${value.owned?'owned':''}"><strong>${safe(value.name)}</strong><small>${safe(kind==='action'?value.group:'')} ${safe(value.id)}</small><small>${value.enabled?'Enabled':'Disabled'}</small></article>`).join(''):'<p class="notice">None reported.</p>'}
-function renderOverview(){const value=state.overview;byId('overview-cards').innerHTML=[['Mode',value.mode],['Platforms',Object.keys(value.configuration.platforms).length],['Blocker rules',value.configuration.filters.rules.length],['Preview',value.version]].map(([label,data])=>`<div class="stat"><span>${safe(label)}</span><strong>${safe(data)}</strong></div>`).join('');byId('ownership').innerHTML=value.ownership.map((item)=>`<article class="item owned"><strong>${safe(item.name)}</strong><small>${safe(item.kind)} · ${safe(item.packageId)} · ${safe(item.id)}</small></article>`).join('');state.filters=structuredClone(value.configuration.filters);renderPlatforms();renderFilters()}
-function renderPlatforms(){const reports=new Map(state.overview.configuration.capabilities.map((report)=>[report.platform,report]));byId('platform-list').innerHTML=Object.entries(state.overview.configuration.platforms).map(([id,platform])=>{const report=reports.get(id);const supported=report?Object.entries(report.capabilities).filter(([,value])=>value.supported).map(([name])=>name).join(', '):'No provider declaration';return `<article class="item platform" data-platform="${safe(id)}"><div><strong>${safe(id)}</strong><small>${safe(platform.adapter)}</small></div><label><input type="checkbox" data-flag="enabled" ${platform.enabled?'checked':''}> Platform enabled</label><label><input type="checkbox" data-flag="inputEnabled" ${platform.inputEnabled?'checked':''}> Input enabled</label><label><input type="checkbox" data-flag="outputEnabled" ${platform.outputEnabled?'checked':''}> Output enabled</label><small>Provider capabilities: ${safe(supported||'none')}</small>${report?.limitations?.length?`<small>Limits: ${safe(report.limitations.join(' '))}</small>`:''}</article>`}).join('');document.querySelectorAll('.platform input').forEach((input)=>input.addEventListener('change',stagePlatform))}
-function renderFilters(){byId('filter-list').innerHTML=state.filters.rules.length?state.filters.rules.map((rule)=>`<article class="item"><strong>${safe(rule.name)}</strong><small>${safe(rule.scope)} · ${safe(rule.target)} · ${safe(rule.match.kind)} “${safe(rule.match.value)}”</small><button class="danger" data-delete-rule="${safe(rule.id)}">Delete</button></article>`).join(''):'<p class="notice">No blocker rules configured.</p>';document.querySelectorAll('[data-delete-rule]').forEach((button)=>button.addEventListener('click',async()=>{state.filters.rules=state.filters.rules.filter((rule)=>rule.id!==button.dataset.deleteRule);await stageFilters();renderFilters()}))}
-async function ensureDraft(){if(state.draft?.status==='draft')return state.draft;state.draft=await api('/wizard/api/transactions',{method:'POST'});renderDraft();return state.draft}
-function renderDraft(message=''){byId('transaction-state').textContent=message||(state.draft?`Draft ${state.draft.id}: ${state.draft.stagedChanges.length} staged change(s).`:'No configuration draft is active.');byId('commit').disabled=!state.draft||state.draft.stagedChanges.length===0;byId('cancel').disabled=!state.draft}
-async function stagePlatform(event){try{const card=event.target.closest('[data-platform]');const values=Object.fromEntries([...card.querySelectorAll('input[data-flag]')].map((input)=>[input.dataset.flag,input.checked]));const draft=await ensureDraft();state.draft=await api(`/wizard/api/transactions/${draft.id}/stage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({kind:'platform',platform:card.dataset.platform,...values})});renderDraft()}catch(error){renderDraft(error.message)}}
-async function stageFilters(){const draft=await ensureDraft();state.draft=await api(`/wizard/api/transactions/${draft.id}/stage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({kind:'filters',filters:state.filters})});renderDraft()}
-byId('login-form').addEventListener('submit',async(event)=>{event.preventDefault();state.token=byId('token').value.trim();byId('login-error').textContent='';try{state.overview=await api('/wizard/api/overview');renderOverview();byId('login').classList.add('hidden');byId('workspace').classList.remove('hidden');byId('mode').textContent='Authenticated · configuration mode'}catch(error){state.token='';byId('login-error').textContent=error.message}});
-document.querySelectorAll('[data-view]').forEach((button)=>button.addEventListener('click',()=>{document.querySelectorAll('[data-view]').forEach((item)=>item.classList.toggle('active',item===button));document.querySelectorAll('[data-panel]').forEach((panel)=>panel.classList.toggle('hidden',panel.dataset.panel!==button.dataset.view))}));
-byId('lock').addEventListener('click',()=>{state.token='';state.overview=null;state.draft=null;byId('token').value='';byId('workspace').classList.add('hidden');byId('login').classList.remove('hidden');byId('mode').textContent='Locked'});
-byId('inspect').addEventListener('click',async()=>{const button=byId('inspect');const status=byId('inspection-state');button.disabled=true;status.setAttribute('aria-busy','true');status.textContent='Inspecting with GetActions and GetCommands…';try{const result=await api('/wizard/api/inspect',{method:'POST'});status.textContent=result.available?`Inspection completed ${new Date(result.inspectedAt).toLocaleString()}. ${result.requests.length} audited read requests.`:`Inspection unavailable: ${result.error}`;items('actions',result.actions,'action');items('commands',result.commands,'command')}catch(error){status.textContent=error.message}finally{status.removeAttribute('aria-busy');button.disabled=false}});
-byId('add-filter').addEventListener('submit',async(event)=>{event.preventDefault();const data=new FormData(event.target);const id=String(data.get('name')).trim().toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,50)||`rule-${Date.now()}`;if(state.filters.rules.some((rule)=>rule.id===id)){byId('filter-state').textContent='Use a unique rule name.';return}const scope=String(data.get('scope'));state.filters.rules.push({id,name:String(data.get('name')).trim(),enabled:true,scope,moduleIds:scope==='module'?String(data.get('moduleIds')).split(',').map((value)=>value.trim()).filter(Boolean):[],platforms:String(data.get('platforms')).split(',').map((value)=>value.trim().toLowerCase()).filter(Boolean),actorTypes:[],target:String(data.get('target')),match:{kind:String(data.get('kind')),value:String(data.get('value')),caseSensitive:data.get('caseSensitive')==='on'}});try{await stageFilters();renderFilters();event.target.reset();byId('filter-state').textContent='Rule staged. Commit the draft to save it.'}catch(error){state.filters.rules=state.filters.rules.filter((rule)=>rule.id!==id);byId('filter-state').textContent=error.message}});
-byId('begin').addEventListener('click',async()=>{try{await ensureDraft()}catch(error){renderDraft(error.message)}});
-byId('cancel').addEventListener('click',async()=>{if(!state.draft)return;try{state.draft=await api(`/wizard/api/transactions/${state.draft.id}/cancel`,{method:'POST'});state.overview=await api('/wizard/api/overview');state.draft=null;renderOverview();renderDraft('Draft cancelled; no configuration was changed.')}catch(error){renderDraft(error.message)}});
-byId('commit').addEventListener('click',async()=>{if(!state.draft)return;try{const committed=await api(`/wizard/api/transactions/${state.draft.id}/commit`,{method:'POST'});state.draft=null;state.overview=await api('/wizard/api/overview');renderOverview();renderDraft(`Committed with backup ${committed.backupPath}. Restart StreamBridge to apply the settings.`)}catch(error){renderDraft(error.message)}});
-byId('export-config').addEventListener('click',async()=>{try{byId('transfer').value=JSON.stringify(await api('/wizard/api/configuration/export'),null,2);byId('transfer-state').textContent='Safe configuration export created. Secrets are not included.'}catch(error){byId('transfer-state').textContent=error.message}});
-byId('import-config').addEventListener('click',async()=>{try{const draft=await ensureDraft();state.draft=await api(`/wizard/api/transactions/${draft.id}/import`,{method:'POST',headers:{'content-type':'application/json'},body:byId('transfer').value});renderDraft();byId('transfer-state').textContent='Import staged. Review and commit to save it.'}catch(error){byId('transfer-state').textContent=error.message}});
-byId('refresh-diagnostics').addEventListener('click',async()=>{byId('diagnostics').textContent=JSON.stringify(await api('/wizard/api/diagnostics'),null,2)});
+const state = {
+  token: '',
+  overview: null,
+  draft: null,
+  filters: null,
+  commands: null,
+  commandCollisions: [],
+};
+
+const byId = (id) => document.getElementById(id);
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: { authorization: `Bearer ${state.token}`, ...options.headers },
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`);
+  return body;
+}
+
+function safe(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[char]);
+}
+
+function items(target, values, kind) {
+  byId(target).innerHTML = values.length
+    ? values.map((value) => `<article class="item ${value.owned ? 'owned' : ''}"><strong>${safe(value.name)}</strong><small>${safe(kind === 'action' ? value.group : '')} ${safe(value.id)}</small><small>${value.enabled ? 'Enabled' : 'Disabled'}</small></article>`).join('')
+    : '<p class="notice">None reported.</p>';
+}
+
+function renderOverview() {
+  const value = state.overview;
+  byId('overview-cards').innerHTML = [
+    ['Mode', value.mode],
+    ['Platforms', Object.keys(value.configuration.platforms).length],
+    ['Blocker rules', value.configuration.filters.rules.length],
+    ['Preview', value.version],
+  ].map(([label, data]) => `<div class="stat"><span>${safe(label)}</span><strong>${safe(data)}</strong></div>`).join('');
+  byId('ownership').innerHTML = value.ownership.map((item) => `<article class="item owned"><strong>${safe(item.name)}</strong><small>${safe(item.kind)} · ${safe(item.packageId)} · ${safe(item.id)}</small></article>`).join('');
+  state.filters = structuredClone(value.configuration.filters);
+  state.commands = structuredClone(value.configuration.commands);
+  state.commandCollisions = [];
+  renderPlatforms();
+  renderFilters();
+  renderCommandConfig();
+  renderCommandCollisions();
+  renderCommandScanDefault();
+}
+
+function renderPlatforms() {
+  const reports = new Map(valueFromConfigurationCapabilities().map((report) => [report.platform, report]));
+  byId('platform-list').innerHTML = Object.entries(state.overview.configuration.platforms).map(([id, platform]) => {
+    const report = reports.get(id);
+    const supported = report ? Object.entries(report.capabilities).filter(([, value]) => value.supported).map(([name]) => name).join(', ') : 'No provider declaration';
+    return `<article class="item platform" data-platform="${safe(id)}"><div><strong>${safe(id)}</strong><small>${safe(platform.adapter)}</small></div><label><input type="checkbox" data-flag="enabled" ${platform.enabled ? 'checked' : ''}> Platform enabled</label><label><input type="checkbox" data-flag="inputEnabled" ${platform.inputEnabled ? 'checked' : ''}> Input enabled</label><label><input type="checkbox" data-flag="outputEnabled" ${platform.outputEnabled ? 'checked' : ''}> Output enabled</label><small>Provider capabilities: ${safe(supported || 'none')}</small>${report?.limitations?.length ? `<small>Limits: ${safe(report.limitations.join(' '))}</small>` : ''}</article>`;
+  }).join('');
+  document.querySelectorAll('.platform input').forEach((input) => input.addEventListener('change', stagePlatform));
+}
+
+function valueFromConfigurationCapabilities() {
+  return (state.overview?.configuration?.capabilities ?? []);
+}
+
+function renderCommandConfig() {
+  if (state.commands === null || state.commands === undefined) {
+    byId('command-summary').textContent = 'No command configuration is available.';
+    byId('command-definitions').innerHTML = '<p class="notice">No command definitions available.</p>';
+    return;
+  }
+
+  const definitions = state.commands.definitions ?? [];
+  const prefixes = safe(state.commands.prefix ?? '!');
+  const enabled = state.commands.enabled ? 'Enabled' : 'Disabled';
+  const status = `Prefix: ${prefixes} · ${enabled} · ${definitions.length} definition${definitions.length === 1 ? '' : 's'}`;
+  byId('command-summary').textContent = status;
+  byId('command-definitions').innerHTML = definitions.length
+    ? definitions.map((definition) => {
+      const aliases = definition.aliases?.length ? definition.aliases.map((alias) => `!${safe(alias)}`).join(', ') : 'none';
+      return `<article class="item"><strong>!${safe(definition.name)}</strong><small>Aliases: ${aliases}</small><small>Minimum role: ${safe(definition.minimumRole ?? 'viewer')} Â· Bot allowed: ${definition.allowBots ? 'yes' : 'no'}</small></article>`;
+    }).join('')
+    : '<p class="notice">No command definitions configured.</p>';
+}
+
+function renderCommandCollisions() {
+  if (state.commandCollisions.length === 0) {
+    byId('command-collisions-summary').textContent = 'No collisions detected.';
+    byId('command-collisions').innerHTML = '<p class="notice">Run an inspection to refresh collisions.</p>';
+    return;
+  }
+
+  byId('command-collisions-summary').textContent = `${state.commandCollisions.length} collision${state.commandCollisions.length === 1 ? '' : 's'} detected between local command definitions and Streamer.bot commands.`;
+  byId('command-collisions').innerHTML = state.commandCollisions.map((collision) => `<article class="item"><strong>${safe(collision.commandName)}</strong><small>Streamer.bot command: ${safe(collision.streamBotCommand.name)} (${safe(collision.streamBotCommand.id)})</small></article>`).join('');
+}
+
+function renderCommandScanDefault() {
+  if (byId('command-collisions-summary')) byId('command-collisions-summary').textContent = 'No inspection has run yet.';
+}
+
+function renderFilters() {
+  byId('filter-list').innerHTML = state.filters.rules.length
+    ? state.filters.rules.map((rule) => `<article class="item"><strong>${safe(rule.name)}</strong><small>${safe(rule.scope)} · ${safe(rule.target)} · ${safe(rule.match.kind)} “${safe(rule.match.value)}”</small><label class="check"><input type="checkbox" data-toggle-rule="${safe(rule.id)}" ${rule.enabled ? 'checked' : ''}> Enabled</label> <button class="danger" data-delete-rule="${safe(rule.id)}">Delete</button></article>`).join('')
+    : '<p class="notice">No blocker rules configured.</p>';
+  document.querySelectorAll('[data-toggle-rule]').forEach((input) => input.addEventListener('change', async () => {
+    const id = input.dataset.toggleRule;
+    if (id === undefined) return;
+    const rule = state.filters.rules.find((item) => item.id === id);
+    if (rule === undefined) return;
+    rule.enabled = input.checked;
+    await stageFilters();
+    renderFilters();
+  }));
+  document.querySelectorAll('[data-delete-rule]').forEach((button) => button.addEventListener('click', async () => {
+    state.filters.rules = state.filters.rules.filter((rule) => rule.id !== button.dataset.deleteRule);
+    await stageFilters();
+    renderFilters();
+  }));
+}
+
+function renderDraft(message = '') {
+  byId('transaction-state').textContent = message || (state.draft ? `Draft ${state.draft.id}: ${state.draft.stagedChanges.length} staged change(s).` : 'No configuration draft is active.');
+  byId('commit').disabled = !state.draft || state.draft.stagedChanges.length === 0;
+  byId('cancel').disabled = !state.draft;
+}
+
+async function stagePlatform(event) {
+  try {
+    const card = event.target.closest('[data-platform]');
+    const values = Object.fromEntries([...card.querySelectorAll('input[data-flag]')].map((input) => [input.dataset.flag, input.checked]));
+    const draft = await ensureDraft();
+    state.draft = await api(`/wizard/api/transactions/${draft.id}/stage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ kind: 'platform', platform: card.dataset.platform, ...values }),
+    });
+    renderDraft();
+  } catch (error) {
+    renderDraft(error.message);
+  }
+}
+
+async function stageFilters() {
+  const draft = await ensureDraft();
+  state.draft = await api(`/wizard/api/transactions/${draft.id}/stage`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ kind: 'filters', filters: state.filters }),
+  });
+  renderDraft();
+}
+
+async function ensureDraft() {
+  if (state.draft?.status === 'draft') return state.draft;
+  state.draft = await api('/wizard/api/transactions', { method: 'POST' });
+  renderDraft();
+  return state.draft;
+}
+
+byId('login-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  state.token = byId('token').value.trim();
+  byId('login-error').textContent = '';
+  try {
+    state.overview = await api('/wizard/api/overview');
+    renderOverview();
+    byId('login').classList.add('hidden');
+    byId('workspace').classList.remove('hidden');
+    byId('mode').textContent = 'Authenticated · configuration mode';
+  } catch (error) {
+    state.token = '';
+    byId('login-error').textContent = error.message;
+  }
+});
+
+document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => {
+  document.querySelectorAll('[data-view]').forEach((item) => item.classList.toggle('active', item === button));
+  document.querySelectorAll('[data-panel]').forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== button.dataset.view));
+}));
+
+byId('lock').addEventListener('click', () => {
+  state.token = '';
+  state.overview = null;
+  state.draft = null;
+  byId('token').value = '';
+  byId('workspace').classList.add('hidden');
+  byId('login').classList.remove('hidden');
+  byId('mode').textContent = 'Locked';
+});
+
+byId('inspect').addEventListener('click', async () => {
+  const button = byId('inspect');
+  const status = byId('inspection-state');
+  button.disabled = true;
+  status.setAttribute('aria-busy','true');
+  status.textContent = 'Inspecting with GetActions and GetCommands…';
+  try {
+    const result = await api('/wizard/api/inspect', { method: 'POST' });
+    status.textContent = result.available ? `Inspection completed ${new Date(result.inspectedAt).toLocaleString()}. ${result.requests.length} audited read requests.` : `Inspection unavailable: ${result.error}`;
+    items('actions', result.actions, 'action');
+    items('streamerbot-commands', result.commands, 'command');
+    state.commandCollisions = result.commandCollisions ?? [];
+    renderCommandCollisions();
+  } catch (error) {
+    state.commandCollisions = [];
+    renderCommandCollisions();
+    status.textContent = error.message;
+  } finally {
+    status.removeAttribute('aria-busy');
+    button.disabled = false;
+  }
+});
+
+byId('add-filter').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const data = new FormData(event.target);
+  const id = String(data.get('name')).trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || `rule-${Date.now()}`;
+  if (state.filters.rules.some((rule) => rule.id === id)) {
+    byId('filter-state').textContent = 'Use a unique rule name.';
+    return;
+  }
+
+  const scope = String(data.get('scope'));
+  const rule = {
+    id,
+    name: String(data.get('name')).trim(),
+    enabled: data.get('enabled') === 'on',
+    scope,
+    moduleIds: scope === 'module' ? String(data.get('moduleIds')).split(',').map((value) => value.trim()).filter(Boolean) : [],
+    platforms: String(data.get('platforms')).split(',').map((value) => value.trim().toLowerCase()).filter(Boolean),
+    actorTypes: [],
+    target: String(data.get('target')),
+    match: {
+      kind: String(data.get('kind')),
+      value: String(data.get('value')),
+      caseSensitive: data.get('caseSensitive') === 'on',
+    },
+  };
+
+  state.filters.rules.push(rule);
+  try {
+    await stageFilters();
+    renderFilters();
+    event.target.reset();
+    byId('filter-state').textContent = 'Rule staged. Commit the draft to save it.';
+  } catch (error) {
+    state.filters.rules = state.filters.rules.filter((item) => item.id !== id);
+    byId('filter-state').textContent = error.message;
+  }
+});
+
+byId('begin').addEventListener('click', async () => {
+  try {
+    await ensureDraft();
+  } catch (error) {
+    renderDraft(error.message);
+  }
+});
+
+byId('cancel').addEventListener('click', async () => {
+  if (!state.draft) return;
+  try {
+    state.draft = await api(`/wizard/api/transactions/${state.draft.id}/cancel`, { method: 'POST' });
+    state.overview = await api('/wizard/api/overview');
+    state.draft = null;
+    renderOverview();
+    renderDraft('Draft cancelled; no configuration was changed.');
+  } catch (error) {
+    renderDraft(error.message);
+  }
+});
+
+byId('commit').addEventListener('click', async () => {
+  if (!state.draft) return;
+  try {
+    const committed = await api(`/wizard/api/transactions/${state.draft.id}/commit`, { method: 'POST' });
+    state.draft = null;
+    state.overview = await api('/wizard/api/overview');
+    renderOverview();
+    renderDraft(`Committed with backup ${committed.backupPath}. Restart StreamBridge to apply the settings.`);
+  } catch (error) {
+    renderDraft(error.message);
+  }
+});
+
+byId('export-config').addEventListener('click', async () => {
+  try {
+    byId('transfer').value = JSON.stringify(await api('/wizard/api/configuration/export'), null, 2);
+    byId('transfer-state').textContent = 'Safe configuration export created. Secrets are not included.';
+  } catch (error) {
+    byId('transfer-state').textContent = error.message;
+  }
+});
+
+byId('import-config').addEventListener('click', async () => {
+  try {
+    const draft = await ensureDraft();
+    state.draft = await api(`/wizard/api/transactions/${draft.id}/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: byId('transfer').value,
+    });
+    renderDraft();
+    byId('transfer-state').textContent = 'Import staged. Review and commit to save it.';
+  } catch (error) {
+    byId('transfer-state').textContent = error.message;
+  }
+});
+
+byId('refresh-diagnostics').addEventListener('click', async () => {
+  byId('diagnostics').textContent = JSON.stringify(await api('/wizard/api/diagnostics'), null, 2);
+});
+
 renderDraft();

@@ -99,7 +99,7 @@ const filterRuleSchema = z.object({
   moduleIds: z.array(z.string().min(3).max(128).regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/)).max(32).default([]),
   platforms: z.array(z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/)).max(32).default([]),
   actorTypes: z.array(z.enum(['human', 'bot', 'system'])).max(3).default([]),
-  target: z.enum(['message', 'user.name', 'user.displayName']),
+  target: z.enum(['message', 'user.name', 'user.displayName', 'user.id']),
   match: z.object({
     kind: z.enum(['contains', 'exact', 'regex']),
     value: z.string().min(1).max(200),
@@ -259,6 +259,125 @@ function unsafeRegexReason(pattern: string): string | undefined {
   if (/\([^)]*\|[^)]*\)[+*{]/u.test(pattern)) return 'Quantified alternation groups are not allowed.';
   if (/\([^)]*[+*][^)]*\)[+*{]/u.test(pattern)) return 'Nested quantified groups are not allowed.';
   if (/(?:\.[+*]|\[[^\]]+\][+*]|\\[dDsSwW][+*])[+*{]/u.test(pattern)) return 'Nested quantifiers are not allowed.';
+  if (hasConsecutiveOptionalAtoms(pattern)) return 'Regex alternations with repeated optional tokens are not allowed due catastrophic-backtracking risk.';
   try { new RegExp(pattern, 'u'); } catch { return 'Regular expression is invalid.'; }
   return undefined;
+}
+
+interface RegexAtom {
+  atom: string;
+  quantifier: string | null;
+}
+
+function hasConsecutiveOptionalAtoms(pattern: string): boolean {
+  const tokens = parseRegexAtoms(pattern);
+  if (tokens.length < 2) return false;
+  for (let index = 0; index < tokens.length; index += 1) {
+    const current = tokens[index];
+    if (current === undefined) continue;
+    if (!isSingleOptionalAtom(current)) continue;
+    let runLength = 1;
+    while (index + runLength < tokens.length) {
+      const token = tokens[index + runLength];
+      if (token === undefined || !isSingleOptionalAtom(token)) break;
+      runLength += 1;
+    }
+    if (runLength >= 3) return true;
+    if (runLength >= 2) {
+      const optionalAtom = current.atom;
+      let suffixRun = 0;
+      for (let suffix = index + runLength; suffix < tokens.length; suffix += 1) {
+        const suffixToken = tokens[suffix];
+        if (suffixToken === undefined) break;
+        if (suffixToken.quantifier !== null) break;
+        if (suffixToken.atom !== optionalAtom) break;
+        suffixRun += 1;
+      }
+      if (suffixRun >= 2) return true;
+    }
+    index += Math.max(runLength - 1, 0);
+  }
+  return false;
+}
+
+function isSingleOptionalAtom(token: RegexAtom): boolean {
+  return token.quantifier === '?' && token.atom.length === 1 && !/[\]|(){}.?*+]/u.test(token.atom) && token.atom !== '\\\\';
+}
+
+function parseRegexAtoms(pattern: string): RegexAtom[] {
+  const tokens: RegexAtom[] = [];
+  for (let index = 0; index < pattern.length; index += 1) {
+    let atom: string;
+    const start = pattern.charAt(index);
+    if (start === '\\') {
+      const escaped = pattern.charAt(index + 1);
+      atom = escaped === '' ? start : `${start}${escaped}`;
+      index += escaped === '' ? 0 : 1;
+    } else if (start === '[') {
+      const close = closingBracket(pattern, index + 1);
+      atom = pattern.slice(index, close + 1);
+      index = close;
+    } else if (start === '(') {
+      const close = closingParen(pattern, index + 1);
+      if (close === -1) {
+        atom = start;
+      } else {
+        atom = pattern.slice(index, close + 1);
+        index = close;
+      }
+    } else {
+      atom = start;
+    }
+    let quantifier: string | null = null;
+    const next = pattern.charAt(index + 1);
+    if (next === '?') {
+      quantifier = '?';
+      index += 1;
+    } else if (next === '*' || next === '+') {
+      quantifier = next;
+      index += 1;
+    } else if (next === '{') {
+      const quantifierEnd = closingBrace(pattern, index + 2);
+      if (quantifierEnd !== -1) {
+        quantifier = pattern.slice(index + 1, quantifierEnd + 1);
+        index = quantifierEnd;
+      }
+    }
+    tokens.push({ atom, quantifier });
+  }
+  return tokens;
+}
+
+function closingBracket(pattern: string, startIndex: number): number {
+  for (let i = startIndex; i < pattern.length; i += 1) {
+    if (pattern[i] === '\\') {
+      i += 1;
+    } else if (pattern[i] === ']') {
+      return i;
+    }
+  }
+  return pattern.length - 1;
+}
+
+function closingParen(pattern: string, startIndex: number): number {
+  let depth = 1;
+  for (let i = startIndex; i < pattern.length; i += 1) {
+    if (pattern[i] === '\\') {
+      i += 1;
+    } else if (pattern[i] === '(') {
+      depth += 1;
+    } else if (pattern[i] === ')' && --depth === 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function closingBrace(pattern: string, startIndex: number): number {
+  for (let i = startIndex; i < pattern.length; i += 1) {
+    if (pattern[i] === '}') return i;
+    const current = pattern.charAt(i);
+    if (current === '' || current < '0' || current > '9') return -1;
+  }
+  return -1;
 }

@@ -33,6 +33,10 @@ export interface WizardInspection {
   readonly actions: readonly (StreamerBotActionSummary & { readonly owned: boolean })[];
   readonly commands: readonly (StreamerBotCommandSummary & { readonly owned: boolean })[];
   readonly requests: readonly StreamerBotInspectionAuditEntry[];
+  readonly commandCollisions: readonly {
+    readonly commandName: string;
+    readonly streamBotCommand: { readonly id: string; readonly name: string };
+  }[];
   readonly error?: string;
 }
 
@@ -65,7 +69,7 @@ export class WizardService {
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
       mutationSupport: this.configuration !== undefined,
-      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Ownership', 'Diagnostics'],
+      navigation: ['Overview', 'Platforms', 'Blockers', 'Commands', 'Streamer.bot', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
       transactions: [...this.transactions.values()],
       lastInspection: this.lastInspection,
@@ -76,18 +80,24 @@ export class WizardService {
   public async inspect(): Promise<WizardInspection> {
     if (this.inspector === undefined) {
       const result: WizardInspection = {
-        inspectedAt: new Date().toISOString(), available: false, actions: [], commands: [], requests: [], error: 'Streamer.bot output is not configured.',
+        inspectedAt: new Date().toISOString(), available: false, actions: [], commands: [], requests: [], error: 'Streamer.bot output is not configured.', commandCollisions: [],
       };
       this.lastInspection = result;
       return result;
     }
     try {
-      const [actions, commands] = await Promise.all([this.inspector.inspectActions(), this.inspector.inspectCommands()]);
+      const [actions, commands, snapshot] = await Promise.all([
+        this.inspector.inspectActions(),
+        this.inspector.inspectCommands(),
+        this.configuration?.snapshot(),
+      ]);
+      const commandCollisions = findCommandCollisions(snapshot, commands);
       const result: WizardInspection = {
         inspectedAt: new Date().toISOString(),
         available: true,
         actions: actions.map((action) => ({ ...action, owned: isOwned('action', action.id, action.name) })),
         commands: commands.map((command) => ({ ...command, owned: isOwned('command', command.id, command.name) })),
+        commandCollisions,
         requests: this.inspector.inspectionRequests(),
       };
       this.lastInspection = result;
@@ -95,6 +105,7 @@ export class WizardService {
     } catch (error) {
       const result: WizardInspection = {
         inspectedAt: new Date().toISOString(), available: false, actions: [], commands: [], requests: this.inspector.inspectionRequests(), error: error instanceof Error ? error.message : String(error),
+        commandCollisions: [],
       };
       this.lastInspection = result;
       return result;
@@ -159,4 +170,46 @@ export { WizardConfigurationError };
 
 function isOwned(kind: WizardOwnedObject['kind'], id: string, name: string): boolean {
   return PACKAGE_OWNERSHIP.some((object) => object.kind === kind && object.id === id && object.name === name);
+}
+
+function findCommandCollisions(snapshot: Readonly<Record<string, unknown>> | undefined, commands: readonly StreamerBotCommandSummary[]): Array<{ commandName: string; streamBotCommand: { id: string; name: string } }> {
+  const definitions = readCommandDefinitions(snapshot);
+  if (definitions.length === 0 || commands.length === 0) return [];
+  const commandNameByNormalized = new Map<string, { id: string; name: string }>();
+  for (const command of commands) {
+    const normalized = normalizeCommandName(command.name);
+    if (normalized.length === 0) continue;
+    commandNameByNormalized.set(normalized, { id: command.id, name: command.name });
+  }
+  const collisions: Array<{ commandName: string; streamBotCommand: { id: string; name: string } }> = [];
+  for (const definition of definitions) {
+    const normalized = normalizeCommandName(definition);
+    const match = normalized.length > 0 ? commandNameByNormalized.get(normalized) : undefined;
+    if (match !== undefined) collisions.push({ commandName: definition, streamBotCommand: match });
+  }
+  return collisions;
+}
+
+function readCommandDefinitions(snapshot: Readonly<Record<string, unknown>> | undefined): string[] {
+  const commandsValue = snapshot?.commands;
+  if (commandsValue === undefined || typeof commandsValue !== 'object' || commandsValue === null || Array.isArray(commandsValue)) return [];
+  const definitionsValue = (commandsValue as { definitions?: unknown }).definitions;
+  if (!Array.isArray(definitionsValue)) return [];
+  const names: string[] = [];
+  for (const definition of definitionsValue) {
+    if (definition === null || typeof definition !== 'object' || Array.isArray(definition)) continue;
+    const typed = definition as { name?: unknown; aliases?: unknown };
+    const name = typeof typed.name === 'string' ? typed.name : '';
+    if (name.trim().length > 0) names.push(name.trim());
+    if (Array.isArray(typed.aliases)) {
+      for (const alias of typed.aliases) {
+        if (typeof alias === 'string' && alias.trim().length > 0) names.push(alias.trim());
+      }
+    }
+  }
+  return names;
+}
+
+function normalizeCommandName(value: string): string {
+  return value.trim().toLowerCase().replace(/^\s*!/u, '').replace(/\s+$/u, '');
 }

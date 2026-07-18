@@ -27,10 +27,55 @@ describe('Stage 4 event blockers', () => {
     const config = await testConfig();
     expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('dangerous', 'display', '(a+)+$'), match: { kind: 'regex', value: '(a+)+$', caseSensitive: false } }] } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('ambiguous', 'display', '(a|aa)+$'), match: { kind: 'regex', value: '(a|aa)+$', caseSensitive: false } }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('optional-chain', 'display', 'a?a?a?aaaa'), match: { kind: 'regex', value: 'a?a?a?aaaa', caseSensitive: false } }] } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('safe', 'display', '^hello\\s+world$'), match: { kind: 'regex', value: '^hello\\s+world$', caseSensitive: false } }] } }).success).toBe(true);
+  });
+
+  it('can block a specific platform user id', async () => {
+    const event = await fixture();
+    const blocked = new EventFilterEngine({
+      enabled: true,
+      rules: [{ ...rule('user-id', 'display', 'viewer-uuid-123', 'user.id'), target: 'user.id' as const }],
+    });
+    const allowed = new EventFilterEngine({
+      enabled: true,
+      rules: [{ ...rule('user-id', 'display', 'other-id', 'user.id'), target: 'user.id' as const }],
+    });
+    const blockedUserEvent: typeof event = {
+      ...event,
+      user: {
+        ...event.user,
+        name: event.user?.name ?? 'viewer',
+        actorType: event.user?.actorType ?? 'human',
+        roles: event.user?.roles ?? [],
+        id: 'viewer-uuid-123',
+      },
+    };
+    expect(blocked.evaluate(blockedUserEvent).displayBlocked).toBe(true);
+    const allowedUserEvent: typeof event = {
+      ...event,
+      user: {
+        ...event.user,
+        name: event.user?.name ?? 'viewer',
+        actorType: event.user?.actorType ?? 'human',
+        roles: event.user?.roles ?? [],
+        id: 'viewer-uuid-124',
+      },
+    };
+    expect(allowed.evaluate(allowedUserEvent).displayBlocked).toBe(false);
   });
 });
 
-function rule(id: string, scope: 'display' | 'command' | 'module', value: string) {
-  return { id, name: id, enabled: true, scope, moduleIds: [] as string[], platforms: [] as string[], actorTypes: [] as Array<'human' | 'bot' | 'system'>, target: 'message' as const, match: { kind: 'contains' as const, value, caseSensitive: false } };
+function rule(id: string, scope: 'display' | 'command' | 'module', value: string, target: 'message' | 'user.name' | 'user.displayName' | 'user.id' = 'message') {
+  return {
+    id,
+    name: id,
+    enabled: true,
+    scope,
+    moduleIds: [] as string[],
+    platforms: [] as string[],
+    actorTypes: [] as Array<'human' | 'bot' | 'system'>,
+    target,
+    match: { kind: 'contains' as const, value, caseSensitive: false },
+  };
 }

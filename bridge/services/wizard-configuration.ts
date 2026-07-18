@@ -64,6 +64,7 @@ export class WizardConfigurationGateway {
       platforms: Object.fromEntries(Object.entries(config.platforms).map(([id, value]) => [id, {
         enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled, adapter: value.adapter,
       }])),
+      commands: config.commands,
       filters: config.filters,
       capabilities: this.capabilitySource(config.platforms),
     };
@@ -98,11 +99,35 @@ export class WizardConfigurationGateway {
 
   public stageImport(id: string, input: unknown): WizardConfigurationDraft {
     const imported = parseImport(input);
-    this.requireDraft(id);
-    for (const [platform, flags] of Object.entries(imported.platforms)) {
-      this.stage(id, { kind: 'platform', platform, ...flags });
+    const draft = this.requireDraft(id);
+    const validated = bridgeConfigSchema.parse(draft.candidate);
+    const nextCandidate = structuredClone(draft.candidate);
+    const platforms = objectValue(nextCandidate['platforms']);
+    const stagedPlatformChanges = new Map<string, { enabled: boolean; inputEnabled: boolean; outputEnabled: boolean }>();
+    const proposedPlatforms = Object.entries(imported.platforms);
+    for (const [platform] of proposedPlatforms) {
+      if (validated.platforms[platform] === undefined) {
+        throw new WizardConfigurationError(400, `Unknown configured platform: ${platform}`);
+      }
     }
-    return this.stage(id, { kind: 'filters', filters: imported.filters });
+
+    for (const [platform, flags] of proposedPlatforms) {
+      platforms[platform] = { ...objectValue(platforms[platform]), enabled: flags.enabled, inputEnabled: flags.inputEnabled, outputEnabled: flags.outputEnabled };
+      stagedPlatformChanges.set(platform, flags);
+    }
+    nextCandidate['filters'] = imported.filters;
+    bridgeConfigSchema.parse(nextCandidate);
+    draft.candidate = nextCandidate;
+    const existing = draft.public.stagedChanges.filter((change) => change.kind === 'platform' && !stagedPlatformChanges.has(change.platform));
+    draft.public = {
+      ...draft.public,
+      stagedChanges: [
+        ...existing,
+        ...[...stagedPlatformChanges.entries()].map(([platform, flags]) => ({ kind: 'platform' as const, platform, ...flags })),
+        { kind: 'filters', filters: imported.filters },
+      ],
+    };
+    return draft.public;
   }
 
   public async export(): Promise<WizardConfigurationExport> {

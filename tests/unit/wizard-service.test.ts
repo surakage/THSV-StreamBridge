@@ -31,4 +31,28 @@ describe('Stage 3 wizard service', () => {
     expect(service.cancelTransaction(draft.id)).toMatchObject({ status: 'cancelled', stagedChanges: [] });
     expect(() => service.cancelTransaction('missing')).toThrow(WizardTransactionError);
   });
+
+  it('reports collisions between configured commands and discovered Streamer.bot commands', async () => {
+    const service = new WizardService(inspector(), {
+      begin: () => Promise.reject(new Error('not used')),
+      stage: () => { throw new Error('not used'); },
+      stageImport: () => { throw new Error('not used'); },
+      commit: () => { throw new Error('not used'); },
+      export: () => { throw new Error('not used'); },
+      diagnostics: () => ({ mutationWrites: 0, rollbackWrites: 0, activeMutationLeases: 0, transactions: [] }),
+      snapshot: async () => ({
+        commands: {
+          prefix: '!',
+          definitions: [
+            { name: 'hello', aliases: ['h'] },
+            { name: 'wave', aliases: [] },
+          ],
+        },
+      }),
+    } as never);
+    const inspected = await service.inspect();
+    expect(inspected.commandCollisions).toMatchObject([
+      { commandName: 'hello', streamBotCommand: { name: '!hello', id: 'creator-command' } },
+    ]);
+  });
 });

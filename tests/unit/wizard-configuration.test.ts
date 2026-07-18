@@ -46,4 +46,32 @@ describe('Stage 4 wizard configuration gateway', () => {
     expect(await readFile(path, 'utf8')).toBe(`${source}\n`);
     expect(gateway.diagnostics()).toMatchObject({ mutationWrites: 0, rollbackWrites: 0 });
   });
+
+  it('stages imported platforms atomically', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-import-'));
+    const path = join(directory, 'bridge.json');
+    const source = await readFile('config/bridge.example.json', 'utf8');
+    const sourceObject = JSON.parse(source) as { platforms: Record<string, { enabled: boolean; inputEnabled: boolean; outputEnabled: boolean }> };
+    const sourcePlatforms = Object.fromEntries(Object.entries(sourceObject.platforms).map(([id, value]) => [
+      id,
+      { enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled },
+    ]));
+    await writeFile(path, source);
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const draft = await gateway.begin();
+    const imported = {
+      format: 'thsv.streambridge.wizard-configuration',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      platforms: {
+        // intentionally unknown to prove atomic handling.
+        unknown: { enabled: true, inputEnabled: true, outputEnabled: true },
+      },
+      filters: { enabled: true, rules: [] },
+    };
+    expect(() => gateway.stageImport(draft.id, imported)).toThrow('Unknown configured platform: unknown');
+    expect((gateway.diagnostics().transactions as { stagedChanges: readonly unknown[] }[]).at(-1)?.stagedChanges).toEqual([]);
+    expect(await readFile(path, 'utf8')).toBe(source);
+    expect((await gateway.export()).platforms).toMatchObject(sourcePlatforms);
+  });
 });
