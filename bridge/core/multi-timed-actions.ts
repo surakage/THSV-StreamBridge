@@ -25,6 +25,10 @@ export interface MultiTimedAction {
   readonly containerSize: number;
   readonly simulated: boolean;
   readonly creatorPayload: Readonly<Record<string, JsonValue>>;
+  readonly targetProvider: 'event-only' | 'run-existing-action';
+  readonly targetActionId?: string;
+  readonly targetActionName?: string;
+  readonly targetPlatforms: readonly string[];
 }
 
 export class InvalidMultiTimedActionError extends Error {}
@@ -48,6 +52,12 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
   const containerCycle = safeInteger(event.payload['containerCycle'], 'containerCycle', 0);
   const containerPosition = safeInteger(event.payload['containerPosition'], 'containerPosition', 0);
   const containerSize = safeInteger(event.payload['containerSize'], 'containerSize', 0);
+  const targetProvider = event.payload['targetProvider'];
+  if (targetProvider !== 'event-only' && targetProvider !== 'run-existing-action') throw new InvalidMultiTimedActionError('targetProvider must be event-only or run-existing-action.');
+  const targetActionId = targetProvider === 'run-existing-action' ? boundedUuid(event.payload['targetActionId'], 'targetActionId') : undefined;
+  const targetActionName = targetProvider === 'run-existing-action' ? boundedText(event.payload['targetActionName'], 'targetActionName', 200) : undefined;
+  if (targetProvider === 'run-existing-action' && event.payload['targetActionApproved'] !== true) throw new InvalidMultiTimedActionError('targetActionApproved must be true for run-existing-action.');
+  const targetPlatforms = stringArray(event.payload['targetPlatforms'], 'targetPlatforms', 16, 64);
   return {
     contractVersion: MULTI_TIMED_ACTIONS_CONTRACT_VERSION,
     eventId: event.eventId,
@@ -70,6 +80,10 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
     containerSize,
     simulated: event.metadata.simulated,
     creatorPayload,
+    targetProvider,
+    ...(targetActionId === undefined ? {} : { targetActionId }),
+    ...(targetActionName === undefined ? {} : { targetActionName }),
+    targetPlatforms,
   };
 }
 
@@ -85,6 +99,16 @@ function boundedText(value: JsonValue | undefined, field: string, maximum: numbe
   const normalized = value.replace(/[\p{Cc}\s]+/gu, ' ').trim();
   if (normalized.length === 0 || normalized.length > maximum) throw new InvalidMultiTimedActionError(`${field} must contain 1-${String(maximum)} characters.`);
   return normalized;
+}
+
+function boundedUuid(value: JsonValue | undefined, field: string): string {
+  if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value)) throw new InvalidMultiTimedActionError(`${field} must be a UUID.`);
+  return value;
+}
+
+function stringArray(value: JsonValue | undefined, field: string, maximumItems: number, maximumLength: number): string[] {
+  if (!Array.isArray(value) || value.length > maximumItems || !value.every((item) => typeof item === 'string' && item.length > 0 && item.length <= maximumLength)) throw new InvalidMultiTimedActionError(`${field} must be a bounded string array.`);
+  return value as string[];
 }
 
 function timestamp(value: JsonValue | undefined, field: string): string {

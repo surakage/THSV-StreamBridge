@@ -30,7 +30,27 @@ describe('Stage 4 wizard configuration gateway', () => {
     const exported = JSON.stringify(await gateway.export());
     expect(exported).not.toContain('controlToken');
     expect(exported).not.toContain('passwordEnv');
+    expect(exported).toContain('timedActions');
     expect(gateway.diagnostics()).toMatchObject({ mutationWrites: 1, rollbackWrites: 0, activeMutationLeases: 0 });
+  });
+
+  it('stages timed-action CRUD data through the same validated transaction', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-timers-'));
+    const path = join(directory, 'bridge.json');
+    await writeFile(path, await readFile('config/bridge.example.json', 'utf8'));
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const draft = await gateway.begin();
+    const snapshot = await gateway.snapshot() as { timedActions: { stateFile: string; definitions: unknown[] } };
+    const timer = {
+      id: 'socials', name: 'Socials', enabled: true, intervalMode: 'random', everyMinutes: 15, minimumMinutes: 10, maximumMinutes: 20,
+      missedRunPolicy: 'skip', payload: {}, selection: { mode: 'shuffle-container', messages: ['One', 'Two'] },
+      gates: { requireLive: true, platforms: ['twitch'], scenes: [], activity: { minimumMessages: 2, windowMinutes: 5 } },
+      target: { provider: 'event-only' },
+    };
+    const staged = gateway.stage(draft.id, { kind: 'timed-actions', timedActions: { ...snapshot.timedActions, definitions: [timer] } });
+    expect(staged.stagedChanges).toEqual([expect.objectContaining({ kind: 'timed-actions' })]);
+    await gateway.commit(draft.id);
+    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ timedActions: { definitions: [expect.objectContaining({ id: 'socials' })] } });
   });
 
   it('rejects a stale draft without writing', async () => {

@@ -132,6 +132,11 @@ export class StreamBridge {
     return this.timedActions.control(operation);
   }
 
+  public async testTimedAction(id: string): Promise<Readonly<Record<string, unknown>>> {
+    if (this.timedActions === undefined) throw new Error('Timed actions adapter is not configured');
+    return this.timedActions.test(id);
+  }
+
   public async ingest(input: unknown, byteLength?: number): Promise<IngestResult> {
     const size = byteLength ?? Buffer.byteLength(JSON.stringify(input));
     if (size > this.config.security.maxPayloadBytes) throw new PayloadTooLargeError(`Payload is ${String(size)} bytes; maximum is ${String(this.config.security.maxPayloadBytes)}`);
@@ -142,6 +147,7 @@ export class StreamBridge {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', outputs: [] };
     }
+    this.timedActions?.observe(validatedEvent);
     if (validatedEvent.eventType === 'stream.online') {
       const wasOffline = this.livePlatforms.size === 0;
       this.livePlatforms.add(validatedEvent.platform);

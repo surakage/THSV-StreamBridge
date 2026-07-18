@@ -19,6 +19,26 @@ function inspector(): StreamerBotInspector {
   };
 }
 
+function commandSyncStore(commandIds: readonly string[]): CommandSyncStore {
+  return {
+    load: () => Promise.resolve({
+      version: 1,
+      commands: commandIds.map((streamerBotId) => ({
+        contractVersion: '2.0.0-preview.1' as const,
+        streamerBotId,
+        name: streamerBotId,
+        aliases: [],
+        source: 'wizard-generated' as const,
+        lastSeenAt: '2026-07-17T00:00:00.000Z',
+        driftStatus: 'in-sync' as const,
+      })),
+    }),
+    scheduleSave: () => {},
+    flush: () => Promise.resolve(),
+    status: () => ({ enabled: true }),
+  };
+}
+
 describe('Stage 3 wizard service', () => {
   it('inspects with documented reads and recognizes ownership only by exact id and name', async () => {
     const service = new WizardService(inspector());
@@ -28,6 +48,12 @@ describe('Stage 3 wizard service', () => {
     expect(result.actions.map((action) => action.owned)).toEqual([true, false]);
     expect(result.commands[0]?.owned).toBe(false);
     expect(service.diagnostics()).toMatchObject({ documentedRequestsOnly: true, mutationRequestsSent: 0 });
+  });
+
+  it('marks only commands in the sync mirror as manageable', async () => {
+    const service = new WizardService(inspector(), undefined, commandSyncStore(['creator-command']));
+    const result = await service.inspect();
+    expect(result.commands).toEqual([expect.objectContaining({ id: 'creator-command', owned: false, managed: true })]);
   });
 
   it('cancels a non-mutating draft transaction and rejects unknown ids', async () => {
@@ -183,7 +209,7 @@ describe('Tier 1 command administration dispatch', () => {
 
   it('dispatches an approved enable request', async () => {
     const { inspector: withAdmin, dispatched } = inspectorWithAdministration();
-    const service = new WizardService(withAdmin);
+    const service = new WizardService(withAdmin, undefined, commandSyncStore(['sb-command-1']));
     const result = await service.administerCommand({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: true });
     expect(result).toMatchObject({ available: true, operation: 'enable', commandId: 'sb-command-1' });
     expect(dispatched).toEqual([{ operation: 'enable', commandId: 'sb-command-1' }]);
@@ -211,6 +237,15 @@ describe('Tier 1 command administration dispatch', () => {
     expect(dispatched).toEqual([]);
   });
 
+  it('rejects administration of a command outside the sync mirror', async () => {
+    const { inspector: withAdmin, dispatched } = inspectorWithAdministration();
+    const service = new WizardService(withAdmin, undefined, commandSyncStore(['managed-command']));
+    const result = await service.administerCommand({ operation: 'disable', commandId: 'unrelated-command', approvedByCreator: true });
+    expect(result.available).toBe(false);
+    expect(result.error).toContain('limited to commands tracked by THSV StreamBridge');
+    expect(dispatched).toEqual([]);
+  });
+
   it('reports a dispatch failure without throwing', async () => {
     const inspector: StreamerBotInspector = {
       inspectActions: () => Promise.resolve([]),
@@ -218,7 +253,7 @@ describe('Tier 1 command administration dispatch', () => {
       inspectionRequests: () => [],
       requestCommandAdministration: () => Promise.reject(new Error('Streamer.bot is unavailable')),
     };
-    const service = new WizardService(inspector);
+    const service = new WizardService(inspector, undefined, commandSyncStore(['sb-command-1']));
     const result = await service.administerCommand({ operation: 'disable', commandId: 'sb-command-1', approvedByCreator: true });
     expect(result.available).toBe(false);
     expect(result.error).toBe('Streamer.bot is unavailable');

@@ -17,6 +17,7 @@ export interface DiagnosticsTarget {
   diagnostics(): Readonly<Record<string, unknown>>;
   simulate(input: unknown, byteLength?: number): Promise<IngestResult>;
   controlTimedActions(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>>;
+  testTimedAction?(id: string): Promise<Readonly<Record<string, unknown>>>;
 }
 
 export class DiagnosticsServer {
@@ -162,6 +163,12 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         const operation = timedMatch[1] as 'start' | 'stop' | 'pause' | 'resume';
         return this.reply(response, 200, { accepted: true, operation, status: await this.target.controlTimedActions(operation) });
+      }
+      const timedTestMatch = request.method === 'POST' ? /^\/wizard\/api\/timed-actions\/([^/]+)\/test$/u.exec(request.url ?? '') : null;
+      if (timedTestMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        if (this.target.testTimedAction === undefined) return this.reply(response, 503, { error: 'Timed-action testing is unavailable.' });
+        return this.reply(response, 202, await this.target.testTimedAction(decodeURIComponent(timedTestMatch[1])));
       }
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {

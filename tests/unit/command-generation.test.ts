@@ -37,6 +37,12 @@ describe('command design validation', () => {
     expect(() => createCommandDesign({ name: '1so', approvedByCreator: true })).toThrow('letters, numbers, and hyphens');
   });
 
+  it('rejects overlong and Unicode command names at the boundary', () => {
+    expect(() => createCommandDesign({ name: `a${'b'.repeat(64)}`, approvedByCreator: true })).toThrow('at most 64 characters');
+    expect(() => createCommandDesign({ name: 'café', approvedByCreator: true })).toThrow('letters, numbers, and hyphens');
+    expect(() => createCommandDesign({ name: 'wave-🦥', approvedByCreator: true })).toThrow('letters, numbers, and hyphens');
+  });
+
   it('rejects duplicate name/alias entries', () => {
     expect(() => createCommandDesign({ name: 'so', aliases: ['so'], approvedByCreator: true })).toThrow('must all be distinct');
   });

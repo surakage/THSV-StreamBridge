@@ -65,23 +65,55 @@ const timedActionSelectionSchema = z.discriminatedUnion('mode', [
   }).strict(),
 ]);
 
-const timedActionsSchema = z.object({
+const timedActionTargetSchema = z.discriminatedUnion('provider', [
+  z.object({ provider: z.literal('event-only') }).strict(),
+  z.object({
+    provider: z.literal('run-existing-action'),
+    actionId: z.uuid(),
+    actionName: z.string().min(1).max(200),
+    approvedByCreator: z.literal(true),
+  }).strict(),
+]);
+
+const timedActionGatesSchema = z.object({
+  requireLive: z.boolean().default(true),
+  platforms: z.array(z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/)).max(16).default([]),
+  scenes: z.array(z.string().trim().min(1).max(200)).max(32).default([]),
+  activity: z.object({
+    minimumMessages: z.number().int().min(0).max(10_000).default(0),
+    windowMinutes: z.number().int().min(1).max(1_440).default(5),
+  }).strict().default({ minimumMessages: 0, windowMinutes: 5 }),
+}).strict().default({ requireLive: true, platforms: [], scenes: [], activity: { minimumMessages: 0, windowMinutes: 5 } });
+
+export const timedActionsSchema = z.object({
   stateFile: z.string().min(1).default('data/state/timed-actions.json'),
   definitions: z.array(z.object({
     id: timedActionIdSchema,
     name: z.string().min(1).max(100),
     enabled: z.boolean(),
+    intervalMode: z.enum(['fixed', 'random']).default('fixed'),
     everyMinutes: z.number().int().min(1).max(1_440),
+    minimumMinutes: z.number().int().min(1).max(1_440).optional(),
+    maximumMinutes: z.number().int().min(1).max(1_440).optional(),
     firstRunAfterMinutes: z.number().int().min(0).max(1_440).optional(),
     missedRunPolicy: z.enum(['skip', 'fire-once']).default('skip'),
     payload: z.record(z.string(), z.json()).default({}),
     selection: timedActionSelectionSchema.default({ mode: 'fixed' }),
+    gates: timedActionGatesSchema,
+    target: timedActionTargetSchema.default({ provider: 'event-only' }),
   }).strict()).max(200),
 }).strict().superRefine((timedActions, context) => {
   const seen = new Set<string>();
   for (const [index, definition] of timedActions.definitions.entries()) {
     if (seen.has(definition.id)) context.addIssue({ code: 'custom', path: ['definitions', index, 'id'], message: `Timed action ID ${definition.id} is duplicated.` });
     seen.add(definition.id);
+    if (definition.intervalMode === 'random') {
+      if (definition.minimumMinutes === undefined || definition.maximumMinutes === undefined) {
+        context.addIssue({ code: 'custom', path: ['definitions', index], message: 'Random intervals require minimumMinutes and maximumMinutes.' });
+      } else if (definition.maximumMinutes < definition.minimumMinutes) {
+        context.addIssue({ code: 'custom', path: ['definitions', index, 'maximumMinutes'], message: 'maximumMinutes must be greater than or equal to minimumMinutes.' });
+      }
+    }
   }
 });
 

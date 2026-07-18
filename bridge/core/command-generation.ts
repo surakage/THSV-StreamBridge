@@ -105,7 +105,10 @@ export function parseCommandDesignsInput(value: unknown): CommandDesignInput[] {
 
 function normalizeCommandToken(value: string, field: string): string {
   const trimmed = value.trim().toLowerCase();
-  if (trimmed.length === 0 || trimmed.length > MAX_NAME_LENGTH || !NAME_PATTERN.test(trimmed)) {
+  if (trimmed.length > MAX_NAME_LENGTH) {
+    throw new InvalidCommandDesignError(`${field} must be at most ${String(MAX_NAME_LENGTH)} characters.`);
+  }
+  if (trimmed.length === 0 || !NAME_PATTERN.test(trimmed)) {
     throw new InvalidCommandDesignError(`${field} must be lowercase, start with a letter, and contain only letters, numbers, and hyphens.`);
   }
   return trimmed;

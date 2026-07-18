@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { PlatformConfig, TimedActionDefinition, TimedActionsConfig } from '../../schemas/config.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
 import { buildNormalizedEvent } from './normalization.js';
 import type { AdapterContext } from './adapter.js';
 import { ManagedAdapter } from './adapter.js';
@@ -7,6 +8,9 @@ import { writeJsonAtomic } from '../services/atomic-state.js';
 
 interface TimerState {
   lastScheduledAt?: string;
+  nextScheduledAt?: string;
+  nextIntervalMinutes?: number;
+  occurrence?: number;
   remaining?: number[];
   lastSelected?: number;
   cycle?: number;
@@ -25,6 +29,9 @@ export class TimedActionsAdapter extends ManagedAdapter {
   private stateData: TimedActionState = { session: { active: false, paused: false, startedAt: '' }, timers: {} };
   private writeChain: Promise<void> = Promise.resolve();
   private stopping = false;
+  private readonly livePlatforms = new Set<string>();
+  private readonly chatActivity: Array<{ at: number; platform: string }> = [];
+  private currentScene: string | undefined;
 
   public constructor(name: string, config: PlatformConfig, private readonly timedActions: TimedActionsConfig, private readonly random: () => number = Math.random) { super(name, config); }
 
@@ -49,7 +56,9 @@ export class TimedActionsAdapter extends ManagedAdapter {
     if (operation === 'start') {
       this.clearTimers();
       this.stateData.session = { active: true, paused: false, startedAt: new Date().toISOString() };
-      for (const timer of Object.values(this.stateData.timers)) { delete timer.lastScheduledAt; delete timer.pending; }
+      for (const timer of Object.values(this.stateData.timers)) {
+        delete timer.lastScheduledAt; delete timer.nextScheduledAt; delete timer.nextIntervalMinutes; delete timer.occurrence; delete timer.pending;
+      }
       await this.persist();
       for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
     } else if (operation === 'stop') {
@@ -67,11 +76,48 @@ export class TimedActionsAdapter extends ManagedAdapter {
   }
 
   public controlStatus(): Readonly<Record<string, unknown>> { return { ...this.stateData.session, armedTimers: this.timers.size }; }
+  public observe(event: NormalizedEvent): void {
+    if (event.eventType === 'stream.online') this.livePlatforms.add(event.platform);
+    if (event.eventType === 'stream.offline') this.livePlatforms.delete(event.platform);
+    if (event.eventType === 'chat.message') {
+      this.chatActivity.push({ at: Date.parse(event.receivedAt), platform: event.platform });
+      this.pruneActivity(Date.now() - 1_440 * 60_000);
+    }
+    if (event.eventType === 'stream.scene-changed' && typeof event.payload['sceneName'] === 'string') this.currentScene = event.payload['sceneName'];
+  }
+  public async test(id: string): Promise<Readonly<Record<string, unknown>>> {
+    const definition = this.timedActions.definitions.find((candidate) => candidate.id === id);
+    if (definition === undefined) throw new Error(`Unknown timed action: ${id}`);
+    if (this.context === undefined) throw new Error('Timed actions adapter is not running');
+    const now = new Date().toISOString();
+    await this.emitDefinition(definition, now, (this.timerState(id).occurrence ?? 0) + 1, 0, true);
+    return { accepted: true, timerId: id, simulated: true };
+  }
   private clearTimers(): void { for (const timer of this.timers.values()) clearTimeout(timer); this.timers.clear(); }
 
   private async plan(definition: TimedActionDefinition): Promise<void> {
     if (this.stopping) return;
     const timer = this.timerState(definition.id);
+    if (definition.intervalMode === 'random') {
+      if (timer.nextScheduledAt === undefined) {
+        const anchor = timer.lastScheduledAt === undefined ? Date.parse(this.stateData.session.startedAt) : Date.parse(timer.lastScheduledAt);
+        const intervalMinutes = timer.lastScheduledAt === undefined && definition.firstRunAfterMinutes !== undefined
+          ? definition.firstRunAfterMinutes
+          : this.intervalMinutes(definition);
+        timer.nextIntervalMinutes = intervalMinutes;
+        timer.nextScheduledAt = new Date(anchor + intervalMinutes * 60_000).toISOString();
+        timer.occurrence = (timer.occurrence ?? 0) + 1;
+        await this.persist();
+      }
+      const due = Date.parse(timer.nextScheduledAt);
+      if (due <= Date.now() && definition.missedRunPolicy === 'skip') {
+        timer.lastScheduledAt = new Date().toISOString();
+        delete timer.nextScheduledAt; delete timer.nextIntervalMinutes;
+        await this.persist(); await this.plan(definition); return;
+      }
+      this.arm(definition, timer.nextScheduledAt, timer.occurrence ?? 1, due <= Date.now() ? 1 : 0);
+      return;
+    }
     const interval = definition.everyMinutes * 60_000;
     const firstDelay = (definition.firstRunAfterMinutes ?? definition.everyMinutes) * 60_000;
     const sessionStart = Date.parse(this.stateData.session.startedAt);
@@ -103,27 +149,74 @@ export class TimedActionsAdapter extends ManagedAdapter {
     if (this.stopping || this.context === undefined) return;
     this.timers.delete(definition.id);
     if (Date.parse(scheduledAt) > Date.now()) { this.arm(definition, scheduledAt, occurrence, missedRuns); return; }
-    const selection = await this.select(definition, scheduledAt);
-    const firedAt = new Date().toISOString();
-    const event = buildNormalizedEvent({
-      eventType: 'system.timed', platform: 'system', adapter: this.name, sourceEventName: 'timed-action.fired', sourceEventId: `${definition.id}:${scheduledAt}`,
-      receivedAt: firedAt, channel: { id: 'local', name: 'local' }, payload: {
-        timerId: definition.id, timerName: definition.name, scheduleType: 'session-interval', scheduledAt, firedAt, occurrence, missedRuns,
-        lateByMs: Math.max(0, Date.parse(firedAt) - Date.parse(scheduledAt)), selectionMode: selection.mode, selectedMessage: selection.message,
-        containerCycle: selection.cycle, containerPosition: selection.position, containerSize: selection.size, creatorPayload: definition.payload,
-      },
-    });
+    const blockedReason = this.gateReason(definition);
+    if (blockedReason !== undefined) {
+      const timer = this.timerState(definition.id);
+      timer.lastScheduledAt = scheduledAt; timer.occurrence = occurrence;
+      delete timer.nextScheduledAt; delete timer.nextIntervalMinutes;
+      await this.persist();
+      this.context.logger.info('Timed action skipped by gate', { timerId: definition.id, reason: blockedReason });
+      await this.plan(definition); return;
+    }
     try {
-      await this.context.emit(event);
-      this.lastEventAt = firedAt; this.lastError = undefined; this.state = 'connected';
-      const timer = this.timerState(definition.id); timer.lastScheduledAt = scheduledAt;
-      if (selection.index !== undefined) { timer.remaining = (timer.remaining ?? []).filter((index) => index !== selection.index); timer.lastSelected = selection.index; delete timer.pending; }
+      await this.emitDefinition(definition, scheduledAt, occurrence, missedRuns, false);
+      const timer = this.timerState(definition.id); timer.lastScheduledAt = scheduledAt; timer.occurrence = occurrence;
+      delete timer.nextScheduledAt; delete timer.nextIntervalMinutes;
       await this.persist(); await this.plan(definition);
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error); this.state = 'degraded';
       this.context.logger.warn('Timed action emission failed; retrying', { timerId: definition.id, scheduledAt, error });
       this.timers.set(definition.id, setTimeout(() => void this.fire(definition, scheduledAt, occurrence, missedRuns), 1_000));
     }
+  }
+
+  private async emitDefinition(definition: TimedActionDefinition, scheduledAt: string, occurrence: number, missedRuns: number, simulated: boolean): Promise<void> {
+    if (this.context === undefined) throw new Error('Timed actions adapter is not running');
+    const selection = await this.select(definition, scheduledAt);
+    const firedAt = new Date().toISOString();
+    const event = buildNormalizedEvent({
+      eventType: 'system.timed', platform: 'system', adapter: this.name, sourceEventName: simulated ? 'timed-action.test' : 'timed-action.fired', sourceEventId: `${definition.id}:${scheduledAt}:${simulated ? 'test' : 'live'}`,
+      receivedAt: firedAt, channel: { id: 'local', name: 'local' }, payload: {
+        timerId: definition.id, timerName: definition.name, scheduleType: 'session-interval', scheduledAt, firedAt, occurrence, missedRuns,
+        lateByMs: Math.max(0, Date.parse(firedAt) - Date.parse(scheduledAt)), selectionMode: selection.mode, selectedMessage: selection.message,
+        containerCycle: selection.cycle, containerPosition: selection.position, containerSize: selection.size, creatorPayload: definition.payload,
+        targetProvider: definition.target.provider,
+        ...(definition.target.provider === 'run-existing-action' ? {
+          targetActionId: definition.target.actionId, targetActionName: definition.target.actionName, targetActionApproved: true,
+        } : {}),
+        targetPlatforms: definition.gates.platforms,
+      },
+      simulated,
+    });
+    await this.context.emit(event);
+    this.lastEventAt = firedAt; this.lastError = undefined; this.state = 'connected';
+    const timer = this.timerState(definition.id);
+    if (selection.index !== undefined && !simulated) { timer.remaining = (timer.remaining ?? []).filter((index) => index !== selection.index); timer.lastSelected = selection.index; delete timer.pending; }
+  }
+
+  private intervalMinutes(definition: TimedActionDefinition): number {
+    if (definition.intervalMode !== 'random') return definition.everyMinutes;
+    const minimum = definition.minimumMinutes ?? definition.everyMinutes;
+    const maximum = definition.maximumMinutes ?? minimum;
+    return minimum + Math.floor(Math.min(1, Math.max(0, this.random())) * (maximum - minimum + 1));
+  }
+
+  private gateReason(definition: TimedActionDefinition): string | undefined {
+    if (definition.gates.requireLive && this.livePlatforms.size === 0) return 'stream-offline';
+    if (definition.gates.platforms.length > 0 && !definition.gates.platforms.some((platform) => this.livePlatforms.has(platform))) return 'target-platform-offline';
+    if (definition.gates.scenes.length > 0 && (this.currentScene === undefined || !definition.gates.scenes.includes(this.currentScene))) return this.currentScene === undefined ? 'scene-unavailable' : 'scene-mismatch';
+    const { minimumMessages, windowMinutes } = definition.gates.activity;
+    if (minimumMessages > 0) {
+      const threshold = Date.now() - windowMinutes * 60_000;
+      this.pruneActivity(threshold);
+      const count = this.chatActivity.filter((entry) => definition.gates.platforms.length === 0 || definition.gates.platforms.includes(entry.platform)).length;
+      if (count < minimumMessages) return 'quiet-chat';
+    }
+    return undefined;
+  }
+
+  private pruneActivity(threshold: number): void {
+    while ((this.chatActivity[0]?.at ?? Number.POSITIVE_INFINITY) < threshold) this.chatActivity.shift();
   }
 
   private async select(definition: TimedActionDefinition, scheduledAt: string): Promise<Selection> {

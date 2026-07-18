@@ -21,7 +21,7 @@ The foundation sends a `DoAction` WebSocket request and waits for the correlated
 16. Add only the trigger types declared for each platform in `packages\streamerbot\native-platform-intake\manifest.json`, then enable the corresponding `streamerbot-native` platform entries in the local bridge configuration.
 
 The intake broadcasts only documented, allowlisted placeholder fields. It reuses StreamBridge's existing Streamer.bot WebSocket rather than opening another connection. Until live provenance is verified, events default to simulated and expose unverified transport/source-ID fields.
-11. Import `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-1.0.0.sb` and add it as another immediate receiver child action.
+11. Import `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-1.1.0.sb` and add it as another immediate receiver child action.
 12. For a network-free check, explicitly set `streamerbot.testMode` true and run the simulator. Diagnostics will report `liveDelivery: false`; no Streamer.bot action will execute.
 13. For a live check, set test mode false, start Streamer.bot, start the bridge, and run the fixture matrices listed in [Testing](testing.md).
 14. If authentication is enabled, set the environment variable named by `passwordEnv` before starting. Never store the password in JSON.

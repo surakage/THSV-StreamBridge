@@ -90,6 +90,15 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [definition, definition] } }).success).toBe(false);
   });
 
+  it('validates random intervals, activity gates, and approved action targets', async () => {
+    const config = await testConfig();
+    const base = { id: 'random', name: 'Random', enabled: true, intervalMode: 'random', everyMinutes: 15, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, minimumMinutes: 20, maximumMinutes: 10 }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, minimumMinutes: 10, maximumMinutes: 20, target: { provider: 'run-existing-action', actionId: '11111111-1111-4111-8111-111111111111', actionName: 'Creator Action', approvedByCreator: false } }] } }).success).toBe(false);
+    const parsed = bridgeConfigSchema.parse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, minimumMinutes: 10, maximumMinutes: 20 }] } });
+    expect(parsed.timedActions.definitions[0]).toMatchObject({ intervalMode: 'random', gates: { requireLive: true, activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { provider: 'event-only' } });
+  });
+
   it('loads legacy viewer and companion configuration without reactivating archived add-ons', async () => {
     const config = await testConfig();
     const legacy = {

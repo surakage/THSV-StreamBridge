@@ -53,7 +53,7 @@ export interface WizardInspection {
   readonly inspectedAt: string;
   readonly available: boolean;
   readonly actions: readonly (StreamerBotActionSummary & { readonly owned: boolean })[];
-  readonly commands: readonly (StreamerBotCommandSummary & { readonly owned: boolean })[];
+  readonly commands: readonly (StreamerBotCommandSummary & { readonly owned: boolean; readonly managed: boolean })[];
   readonly requests: readonly StreamerBotInspectionAuditEntry[];
   readonly error?: string;
 }
@@ -135,11 +135,11 @@ export class WizardService {
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
     return {
       version: '2.0.0-preview.1',
-      stage: 5,
+      stage: 6,
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
       mutationSupport: this.configuration !== undefined,
-      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Ownership', 'Diagnostics'],
+      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
       transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
       lastInspection: this.lastInspection,
@@ -157,12 +157,21 @@ export class WizardService {
       return result;
     }
     try {
-      const [actions, commands] = await Promise.all([this.inspector.inspectActions(), this.inspector.inspectCommands()]);
+      const [actions, commands, commandSyncState] = await Promise.all([
+        this.inspector.inspectActions(),
+        this.inspector.inspectCommands(),
+        this.commandSyncStore?.load() ?? Promise.resolve(undefined),
+      ]);
+      const managedCommandIds = new Set(commandSyncState?.commands.map((command) => command.streamerBotId) ?? []);
       const result: WizardInspection = {
         inspectedAt: new Date().toISOString(),
         available: true,
         actions: actions.map((action) => ({ ...action, owned: isOwned('action', action.id, action.name) })),
-        commands: commands.map((command) => ({ ...command, owned: isOwned('command', command.id, command.name) })),
+        commands: commands.map((command) => ({
+          ...command,
+          owned: isOwned('command', command.id, command.name),
+          managed: managedCommandIds.has(command.id),
+        })),
         requests: this.inspector.inspectionRequests(),
       };
       this.lastInspection = result;
@@ -295,7 +304,9 @@ export class WizardService {
   // Tier 1: live enable/disable via the documented C# CPH.EnableCommand/DisableCommand methods,
   // dispatched through the reviewed Command Administration package (see
   // packages/streamerbot/command-administration). The creator-approval gate is enforced inside
-  // createCommandAdministrationRequest itself, before this ever reaches the adapter.
+  // createCommandAdministrationRequest itself, before this ever reaches the adapter. The command
+  // must also be present in the persisted sync mirror, so inventory inspection cannot turn this
+  // into a general-purpose control for unrelated creator commands.
   public async administerCommand(input: unknown): Promise<CommandAdministrationResult> {
     const requestedAt = new Date().toISOString();
     if (this.inspector === undefined || this.inspector.requestCommandAdministration === undefined) {
@@ -308,6 +319,13 @@ export class WizardService {
       return { requestedAt, available: false, error: error instanceof Error ? error.message : String(error) };
     }
     try {
+      if (this.commandSyncStore === undefined) {
+        return { requestedAt, available: false, error: 'Command administration requires command sync storage to verify ownership.' };
+      }
+      const state = await this.commandSyncStore.load();
+      if (!state.commands.some((command) => command.streamerBotId === request.commandId)) {
+        return { requestedAt, available: false, error: 'Command administration is limited to commands tracked by THSV StreamBridge.' };
+      }
       await this.inspector.requestCommandAdministration(request);
       return { requestedAt, available: true, operation: request.operation, commandId: request.commandId };
     } catch (error) {

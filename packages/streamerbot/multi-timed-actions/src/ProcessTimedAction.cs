@@ -7,7 +7,8 @@ using Newtonsoft.Json.Linq;
 public class CPHInline
 {
     private const string ContractVersion = "1.0.0";
-    private const string PackageVersion = "1.0.0";
+    private const string PackageVersion = "1.1.0";
+    private const string ThisActionId = "f021d77f-7eb8-55d8-87dd-d681c439dfef";
     private const long MaximumSafeInteger = 9007199254740991L;
 
     public bool Execute()
@@ -55,6 +56,19 @@ public class CPHInline
         if (selectionMode == "shuffle-container" && !ReadText(payload, "selectedMessage", 500, out selectedMessage)) return Fail("payload.selectedMessage must contain 1-500 creator-authored plain-text characters.");
         long containerCycle, containerPosition, containerSize;
         if (!ReadInteger(payload, "containerCycle", 0, out containerCycle) || !ReadInteger(payload, "containerPosition", 0, out containerPosition) || !ReadInteger(payload, "containerSize", 0, out containerSize)) return Fail("payload container counters must be non-negative safe integers.");
+        string targetProvider = ReadString(payload, "targetProvider");
+        if (targetProvider != "event-only" && targetProvider != "run-existing-action") return Fail("payload.targetProvider must be event-only or run-existing-action.");
+        string targetActionId = string.Empty;
+        string targetActionName = string.Empty;
+        if (targetProvider == "run-existing-action")
+        {
+            targetActionId = ReadString(payload, "targetActionId");
+            targetActionName = ReadString(payload, "targetActionName");
+            Guid parsedActionId;
+            if (!Guid.TryParse(targetActionId, out parsedActionId) || targetActionId == ThisActionId) return Fail("payload.targetActionId must identify a different Streamer.bot action.");
+            JToken approved = payload["targetActionApproved"];
+            if (approved == null || approved.Type != JTokenType.Boolean || !string.Equals(approved.ToString(), "true", StringComparison.OrdinalIgnoreCase)) return Fail("Running a selected action requires explicit creator approval.");
+        }
 
         DateTimeOffset scheduled = DateTimeOffset.Parse(scheduledAt);
         DateTimeOffset fired = DateTimeOffset.Parse(firedAt);
@@ -79,7 +93,16 @@ public class CPHInline
         CPH.SetArgument("multiTimedContainerSize", containerSize);
         CPH.SetArgument("multiTimedSimulated", ReadBoolean("streamBridgeSimulated"));
         CPH.SetArgument("multiTimedCreatorPayload", creatorPayload.ToString(Formatting.None));
+        CPH.SetArgument("multiTimedTargetProvider", targetProvider);
+        CPH.SetArgument("multiTimedTargetActionId", targetActionId);
+        CPH.SetArgument("multiTimedTargetActionName", targetActionName);
         CPH.SetArgument("multiTimedValid", true);
+        if (targetProvider == "run-existing-action")
+        {
+            bool dispatched = CPH.RunActionById(targetActionId, false);
+            CPH.SetArgument("multiTimedActionDispatched", dispatched);
+            if (!dispatched) CPH.LogWarn("THSV Multi-Timed Actions could not dispatch selected action " + targetActionId + ".");
+        }
         return true;
     }
 
@@ -94,6 +117,8 @@ public class CPHInline
         CPH.SetArgument("multiTimedLateByMs", 0L); CPH.SetArgument("multiTimedSimulated", false); CPH.SetArgument("multiTimedCreatorPayload", "{}");
         CPH.SetArgument("multiTimedSelectionMode", string.Empty); CPH.SetArgument("multiTimedSelectedMessage", string.Empty); CPH.SetArgument("multiTimedContainerCycle", 0L);
         CPH.SetArgument("multiTimedContainerPosition", 0L); CPH.SetArgument("multiTimedContainerSize", 0L);
+        CPH.SetArgument("multiTimedTargetProvider", string.Empty); CPH.SetArgument("multiTimedTargetActionId", string.Empty); CPH.SetArgument("multiTimedTargetActionName", string.Empty);
+        CPH.SetArgument("multiTimedActionDispatched", false);
     }
 
     private bool Fail(string message) { CPH.SetArgument("multiTimedValidationError", message); CPH.LogError("THSV Multi-Timed Actions rejected an event: " + message); return false; }

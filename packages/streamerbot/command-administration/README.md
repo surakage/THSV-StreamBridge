@@ -6,6 +6,10 @@ documented C# command-management methods, invoked live from the bridge wizard. I
 edits, or deletes a command — those remain Tier 2, generate-and-verify `.sb` packages imported
 through Streamer.bot's own native import UI, not this package.
 
+The wizard only exposes these controls for commands already present in THSV StreamBridge's
+persisted command-sync mirror. Other creator-owned commands remain visible during inspection but
+cannot be enabled or disabled through this package's wizard route.
+
 ## Verification status
 
 **Confirmed live.** `CPH.EnableCommand`/`CPH.DisableCommand` are documented at

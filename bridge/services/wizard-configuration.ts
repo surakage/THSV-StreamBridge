@@ -2,12 +2,13 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
-import { bridgeConfigSchema, filtersSchema, type BridgeConfig } from '../../schemas/config.js';
+import { bridgeConfigSchema, filtersSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
 import type { PlatformCapabilityReport } from '../contracts/v2/capability.js';
 
 const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('platform'), platform: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/), enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict(),
   z.object({ kind: z.literal('filters'), filters: filtersSchema }).strict(),
+  z.object({ kind: z.literal('timed-actions'), timedActions: timedActionsSchema }).strict(),
 ]);
 
 const wizardConfigurationImportSchema = z.object({
@@ -16,6 +17,7 @@ const wizardConfigurationImportSchema = z.object({
   exportedAt: z.iso.datetime({ offset: true }),
   platforms: z.record(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), z.object({ enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict()),
   filters: filtersSchema,
+  timedActions: timedActionsSchema.optional(),
 }).strict();
 
 export type WizardConfigurationChange = z.infer<typeof wizardConfigurationChangeSchema>;
@@ -43,6 +45,7 @@ export interface WizardConfigurationExport {
   readonly exportedAt: string;
   readonly platforms: Readonly<Record<string, Pick<BridgeConfig['platforms'][string], 'enabled' | 'inputEnabled' | 'outputEnabled'>>>;
   readonly filters: BridgeConfig['filters'];
+  readonly timedActions: BridgeConfig['timedActions'];
 }
 
 export class WizardConfigurationGateway {
@@ -72,6 +75,7 @@ export class WizardConfigurationGateway {
         enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled, adapter: value.adapter,
       }])),
       filters: config.filters,
+      timedActions: config.timedActions,
       capabilities: this.capabilitySource(config.platforms),
     };
   }
@@ -95,8 +99,10 @@ export class WizardConfigurationGateway {
       if (current === undefined) throw new WizardConfigurationError(400, `Unknown configured platform: ${change.platform}`);
       const rawPlatforms = objectValue(draft.candidate['platforms']);
       draft.candidate = { ...draft.candidate, platforms: { ...rawPlatforms, [change.platform]: { ...objectValue(rawPlatforms[change.platform]), enabled: change.enabled, inputEnabled: change.inputEnabled, outputEnabled: change.outputEnabled } } };
-    } else {
+    } else if (change.kind === 'filters') {
       draft.candidate = { ...draft.candidate, filters: change.filters };
+    } else {
+      draft.candidate = { ...draft.candidate, timedActions: change.timedActions };
     }
     bridgeConfigSchema.parse(draft.candidate);
     draft.public = { ...draft.public, stagedChanges: [...draft.public.stagedChanges.filter((existing) => existing.kind !== change.kind || (change.kind === 'platform' && existing.kind === 'platform' && existing.platform !== change.platform)), change] };
@@ -109,7 +115,9 @@ export class WizardConfigurationGateway {
     for (const [platform, flags] of Object.entries(imported.platforms)) {
       this.stage(id, { kind: 'platform', platform, ...flags });
     }
-    return this.stage(id, { kind: 'filters', filters: imported.filters });
+    let result = this.stage(id, { kind: 'filters', filters: imported.filters });
+    if (imported.timedActions !== undefined) result = this.stage(id, { kind: 'timed-actions', timedActions: imported.timedActions });
+    return result;
   }
 
   public async export(): Promise<WizardConfigurationExport> {
@@ -118,6 +126,7 @@ export class WizardConfigurationGateway {
       format: 'thsv.streambridge.wizard-configuration', version: 1, exportedAt: new Date().toISOString(),
       platforms: Object.fromEntries(Object.entries(config.platforms).map(([id, value]) => [id, { enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled }])),
       filters: config.filters,
+      timedActions: config.timedActions,
     };
   }
 
@@ -175,7 +184,7 @@ export class WizardConfigurationError extends Error {
   public constructor(public readonly statusCode: number, message: string) { super(message); }
 }
 
-function parseImport(input: unknown): WizardConfigurationExport {
+function parseImport(input: unknown): z.infer<typeof wizardConfigurationImportSchema> {
   return parseWithReadableError(wizardConfigurationImportSchema, input, 'Imported configuration');
 }
 

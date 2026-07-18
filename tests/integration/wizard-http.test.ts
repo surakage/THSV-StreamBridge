@@ -179,8 +179,20 @@ describe('wizard HTTP surface', () => {
       inspectionRequests: () => [],
       requestCommandAdministration: (request) => { dispatched.push({ operation: request.operation, commandId: request.commandId }); return Promise.resolve(); },
     };
+    const store: CommandSyncStore = {
+      load: () => Promise.resolve({
+        version: 1,
+        commands: [{
+          contractVersion: '2.0.0-preview.1', streamerBotId: 'sb-command-1', name: 'managed-command', aliases: [],
+          source: 'wizard-generated', lastSeenAt: '2026-07-18T00:00:00.000Z', driftStatus: 'in-sync',
+        }],
+      }),
+      scheduleSave: () => {},
+      flush: () => Promise.resolve(),
+      status: () => ({ enabled: true }),
+    };
     const bridge = createTestBridge(config);
-    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(inspector));
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(inspector, undefined, store));
     await bridge.start();
     await server.start();
     stops.push(async () => { await server.stop(); await bridge.stop(); });
@@ -200,5 +212,30 @@ describe('wizard HTTP surface', () => {
     expect(approved.status).toBe(200);
     expect(await approved.json()).toMatchObject({ available: true, operation: 'disable', commandId: 'sb-command-1' });
     expect(dispatched).toEqual([{ operation: 'disable', commandId: 'sb-command-1' }]);
+
+    const unrelated = await fetch(`${baseUrl}/wizard/api/commands/administer`, {
+      method: 'POST', headers, body: JSON.stringify({ operation: 'disable', commandId: 'unrelated-command', approvedByCreator: true }),
+    });
+    expect(unrelated.status).toBe(200);
+    expect(await unrelated.json()).toMatchObject({ available: false, error: expect.stringContaining('limited to commands tracked') as unknown });
+    expect(dispatched).toEqual([{ operation: 'disable', commandId: 'sb-command-1' }]);
+  });
+
+  it('runs an authenticated saved timed-action test through the real bridge pipeline', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    config.timedActions.definitions = [{
+      id: 'test-timer', name: 'Test timer', enabled: false, intervalMode: 'fixed', everyMinutes: 15, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' },
+      gates: { requireLive: true, platforms: [], scenes: [], activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { provider: 'event-only' },
+    }];
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined));
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    expect((await fetch(`${baseUrl}/wizard/api/timed-actions/test-timer/test`, { method: 'POST' })).status).toBe(401);
+    const response = await fetch(`${baseUrl}/wizard/api/timed-actions/test-timer/test`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({ accepted: true, timerId: 'test-timer', simulated: true });
   });
 });
