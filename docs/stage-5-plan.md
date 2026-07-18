@@ -239,14 +239,22 @@ A new `Commands` panel, matching the existing `Platforms`/`Blockers` panel patte
    packages afterward (none of them pass `triggers`/`commands`, so their output is unaffected).
    The command object still imports **disabled**: the obfuscated fields and the full `sources`
    bit range remain unverified, so a wrong guess there stays inert until the creator reviews and
-   enables it. Whether *this* corrected shape imports cleanly is the next thing to confirm live.
+   enables it.
+
+   **Confirmed live:** a freshly generated `!shoutout` package imported successfully into the
+   same real Streamer.bot v1.0.5-alpha.31 instance (imported via file, not pasted text — an
+   earlier paste-into-chat attempt silently corrupted the base64 in transit and failed with
+   "Not a valid Streamer.bot export"; the generator's own output decoded and imported cleanly).
+   The corrected command/trigger shape is real Tier 2 ground truth now, not a pending guess.
 
 Live-verified end-to-end in Streamer.bot test mode (design → collision check → generation →
-download → verify-before-import-correctly-reports-not-found), confirming the wizard's HTTP
-surface, UI, and the "never marks a command synced without live confirmation" guarantee all work
-as wired. Test mode cannot confirm whether Streamer.bot's importer accepts the *corrected*
-`.sb` shape, or whether the Tier 1 package's `CPH.EnableCommand`/`CPH.DisableCommand` calls
-compile against a live Alpha build — both need a real import/compile attempt to close out.
+download → verify-before-import-correctly-reports-not-found) and against the real Streamer.bot
+instance (generated package imports successfully), confirming the wizard's HTTP surface, UI, the
+generated `.sb` shape, and the "never marks a command synced without live confirmation" guarantee
+all work as wired. Still open: whether the Tier 1 package's `CPH.EnableCommand`/
+`CPH.DisableCommand` calls compile against a live Alpha build, and completing the
+enable-and-verify loop for a generated command (bind the imported command to its action, enable
+it, then run the wizard's "Verify import" step).
 
 Each step should land with its own full quality gate pass (lint, typecheck, test, build), matching
 every prior stage in this project — no stage in this series has ever been merged as one large,
