@@ -1,8 +1,12 @@
 # Stage 6 completion
 
 Stage 6 is implementation-complete on `overhaul/v2-preview` for `2.0.0-preview.1`.
-The rebuilt Multi-Timed Actions 1.1.0 package has been imported, replaced over the earlier
-package, compiled successfully, and saved in the creator's live Streamer.bot instance. The
+
+Post-acceptance timed-chat delivery adds Multi-Timed Actions 1.2.0 and the triggerless Timed
+Message Output 1.0.0 package. The wizard stores creator-selected delivery platforms separately
+from live gates, and simulated tests suppress every external platform send.
+The rebuilt Multi-Timed Actions 1.2.0 and Timed Message Output 1.0.0 packages have been
+imported, compiled successfully, and saved in the creator's live Streamer.bot instance. The
 focused live runtime checks are complete.
 
 ## Delivered
@@ -31,13 +35,14 @@ The wizard does not invent or call an undocumented timer CRUD request.
 
 ## Verification
 
-- Full automated suite: 48 files and 272 tests passed.
+- Full automated suite: 49 files and 275 tests passed.
 - Focused Stage 6 coverage includes random interval persistence, quiet-chat gating, simulated
   test execution, configuration validation, transaction-backed CRUD, package integrity, and
   approved action-dispatch source review.
 - Lint and typecheck pass cleanly.
 - Live package metadata confirmed: `THSV StreamBridge - Multi-Timed Actions`, author `surakage`,
-  export version `1.1.0`, and the expected package description.
+  export version `1.2.0`, and the expected package description. Timed Message Output 1.0.0 is
+  installed under stable action ID `7d107c29-1127-5bb1-ae8b-6f04d89a71d4`.
 - The reviewed C# source was accepted, compiled successfully in Streamer.bot
   `1.0.5-alpha.31`, and the updated Streamer.bot configuration was saved.
 - The receiver chain was live-inspected and repaired so Multi-Timed Actions runs as an immediate
@@ -55,6 +60,9 @@ The wizard does not invent or call an undocumented timer CRUD request.
   each arm, and delivered live `system.timed` events at the selected interval.
 - The quiet-chat timer repeatedly logged `Timed action skipped by gate` with reason
   `quiet-chat` and emitted no timer event.
+- A normalized simulated timed-message event selected all four delivery platforms. Streamer.bot
+  ran Multi-Timed Actions and Timed Message Output once, then logged that every external send
+  was suppressed. This verifies the full chain without posting to creator chat.
 - The acceptance timers were stopped and removed through a backed-up wizard transaction. Their
   generated state entries were removed; the final service reports `healthy` and `ready` with
   zero configured timed definitions.

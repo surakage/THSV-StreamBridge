@@ -57,6 +57,7 @@ const commandsSchema = z
   });
 
 const timedActionIdSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
+export const TIMED_CHAT_PLATFORM_VALUES = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
 const timedActionSelectionSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('fixed') }).strict(),
   z.object({
@@ -72,6 +73,7 @@ const timedActionTargetSchema = z.discriminatedUnion('provider', [
     actionId: z.uuid(),
     actionName: z.string().min(1).max(200),
     approvedByCreator: z.literal(true),
+    deliveryPlatforms: z.array(z.enum(TIMED_CHAT_PLATFORM_VALUES)).max(TIMED_CHAT_PLATFORM_VALUES.length).refine((platforms) => new Set(platforms).size === platforms.length, 'delivery platforms must be unique').default([]),
   }).strict(),
 ]);
 

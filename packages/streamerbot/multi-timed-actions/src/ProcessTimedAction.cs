@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 public class CPHInline
 {
     private const string ContractVersion = "1.0.0";
-    private const string PackageVersion = "1.1.0";
+    private const string PackageVersion = "1.2.0";
     private const string ThisActionId = "f021d77f-7eb8-55d8-87dd-d681c439dfef";
     private const long MaximumSafeInteger = 9007199254740991L;
 
@@ -69,6 +69,8 @@ public class CPHInline
             JToken approved = payload["targetActionApproved"];
             if (approved == null || approved.Type != JTokenType.Boolean || !string.Equals(approved.ToString(), "true", StringComparison.OrdinalIgnoreCase)) return Fail("Running a selected action requires explicit creator approval.");
         }
+        JArray deliveryPlatforms = payload["deliveryPlatforms"] as JArray;
+        if (!ReadDeliveryPlatforms(deliveryPlatforms)) return Fail("payload.deliveryPlatforms must contain only unique twitch, youtube, kick, or tiktok values.");
 
         DateTimeOffset scheduled = DateTimeOffset.Parse(scheduledAt);
         DateTimeOffset fired = DateTimeOffset.Parse(firedAt);
@@ -96,6 +98,7 @@ public class CPHInline
         CPH.SetArgument("multiTimedTargetProvider", targetProvider);
         CPH.SetArgument("multiTimedTargetActionId", targetActionId);
         CPH.SetArgument("multiTimedTargetActionName", targetActionName);
+        CPH.SetArgument("multiTimedDeliveryPlatforms", deliveryPlatforms.ToString(Formatting.None));
         CPH.SetArgument("multiTimedValid", true);
         if (targetProvider == "run-existing-action")
         {
@@ -118,6 +121,7 @@ public class CPHInline
         CPH.SetArgument("multiTimedSelectionMode", string.Empty); CPH.SetArgument("multiTimedSelectedMessage", string.Empty); CPH.SetArgument("multiTimedContainerCycle", 0L);
         CPH.SetArgument("multiTimedContainerPosition", 0L); CPH.SetArgument("multiTimedContainerSize", 0L);
         CPH.SetArgument("multiTimedTargetProvider", string.Empty); CPH.SetArgument("multiTimedTargetActionId", string.Empty); CPH.SetArgument("multiTimedTargetActionName", string.Empty);
+        CPH.SetArgument("multiTimedDeliveryPlatforms", "[]");
         CPH.SetArgument("multiTimedActionDispatched", false);
     }
 
@@ -141,5 +145,20 @@ public class CPHInline
         string input = ReadString(value, key); StringBuilder normalized = new StringBuilder(input.Length); bool space = false;
         foreach (char item in input) { if (char.IsControl(item) || char.IsWhiteSpace(item)) { space = normalized.Length > 0; continue; } if (space) { normalized.Append(' '); space = false; } normalized.Append(item); }
         result = normalized.ToString(); return result.Length > 0 && result.Length <= maximum;
+    }
+
+    private static bool ReadDeliveryPlatforms(JArray value)
+    {
+        if (value == null || value.Count > 4) return false;
+        System.Collections.Generic.List<string> seen = new System.Collections.Generic.List<string>();
+        foreach (JToken token in value)
+        {
+            if (token.Type != JTokenType.String) return false;
+            string platform = token.ToString();
+            if (platform != "twitch" && platform != "youtube" && platform != "kick" && platform != "tiktok") return false;
+            if (seen.Contains(platform)) return false;
+            seen.Add(platform);
+        }
+        return true;
     }
 }

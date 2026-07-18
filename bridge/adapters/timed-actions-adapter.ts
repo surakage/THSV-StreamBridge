@@ -185,6 +185,7 @@ export class TimedActionsAdapter extends ManagedAdapter {
           targetActionId: definition.target.actionId, targetActionName: definition.target.actionName, targetActionApproved: true,
         } : {}),
         targetPlatforms: definition.gates.platforms,
+        deliveryPlatforms: definition.target.provider === 'run-existing-action' ? definition.target.deliveryPlatforms : [],
       },
       simulated,
     });

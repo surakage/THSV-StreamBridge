@@ -27,15 +27,23 @@ No chat text, viewer identity, or long-term activity history is stored for these
 `event-only` publishes the normalized timer event without running another action.
 
 `run-existing-action` invokes one creator-selected Streamer.bot action by stable ID through
-Multi-Timed Actions 1.1.0. The wizard requires explicit approval, reports action rename/missing
+Multi-Timed Actions 1.2.0. The wizard requires explicit approval, reports action rename/missing
 drift, and excludes the receiver and timed-action package itself to prevent recursion. Advanced
 sub-action editing remains in Streamer.bot's native action editor.
+
+For cross-platform timed chat, import **Timed Message Output 1.0.0**, select
+`THSV StreamBridge - Send Timed Message`, and use the wizard's Twitch, YouTube, Kick, and TikTok
+delivery switches. One occurrence selects one message and makes one Streamer.bot dispatch; that
+action fans the message out to every selected platform. Twitch, YouTube, and Kick use native
+Streamer.bot chat APIs. TikTok uses TikFinity's `sendChatbotMessage` WebSocket action and requires
+**Allow Streamer.bot to push messages to TikFinity** in TikFinity chatbot settings. Live-platform
+gates and delivery-platform switches are intentionally separate.
 
 ## Testing and configuration
 
 Use the wizard's Timed Actions page to stage changes. Commit creates a backup and applies the
 validated configuration atomically; restart StreamBridge afterward. `Test saved` sends one
 simulated execution through the normal receiver/package path while bypassing live gates. It does
-not advance the schedule occurrence or consume a shuffle message.
+not advance the schedule occurrence, consume a shuffle message, or post to platform chat.
 
 PowerShell lifecycle controls remain available through `scripts/timed-actions.ps1`.

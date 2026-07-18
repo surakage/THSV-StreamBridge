@@ -1,6 +1,6 @@
 # THSV StreamBridge Multi-Timed Actions
 
-This package projects receiver-validated `system.timed` events into one stable Streamer.bot argument contract. For the reviewed `run-existing-action` provider it can dispatch one creator-selected Streamer.bot action by stable ID using the documented `CPH.RunActionById(id, false)` method. The target must have been explicitly selected and approved in the wizard; event-only timers remain projection-only.
+This package projects receiver-validated `system.timed` events into one stable Streamer.bot argument contract. For the reviewed `run-existing-action` provider it can dispatch one creator-selected Streamer.bot action by stable ID using the documented `CPH.RunActionById(id, false)` method. The target must have been explicitly selected and approved in the wizard; event-only timers remain projection-only. Version 1.2.0 also exposes the separately validated `multiTimedDeliveryPlatforms` JSON array for the triggerless Timed Message Output action.
 
 ## Scheduling model
 

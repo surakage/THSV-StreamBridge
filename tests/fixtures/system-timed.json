@@ -22,7 +22,8 @@
     "containerSize": 4,
     "creatorPayload": { "category": "wellness", "messageKey": "hydrate" },
     "targetProvider": "event-only",
-    "targetPlatforms": []
+    "targetPlatforms": [],
+    "deliveryPlatforms": []
   },
   "metadata": { "simulated": true }
 }

@@ -99,6 +99,16 @@ describe('bridge configuration', () => {
     expect(parsed.timedActions.definitions[0]).toMatchObject({ intervalMode: 'random', gates: { requireLive: true, activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { provider: 'event-only' } });
   });
 
+  it('validates unique timed-message delivery platforms independently from live gates', async () => {
+    const config = await testConfig();
+    const base = { id: 'delivery', name: 'Delivery', enabled: true, everyMinutes: 15, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'shuffle-container', messages: ['One', 'Two'] } };
+    const action = { provider: 'run-existing-action', actionId: '7d107c29-1127-5bb1-ae8b-6f04d89a71d4', actionName: 'THSV StreamBridge - Send Timed Message', approvedByCreator: true };
+    const valid = bridgeConfigSchema.parse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, gates: { requireLive: true, platforms: ['twitch'], scenes: [], activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { ...action, deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } }] } });
+    expect(valid.timedActions.definitions[0]).toMatchObject({ gates: { platforms: ['twitch'] }, target: { deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } });
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['twitch', 'twitch'] } }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['facebook'] } }] } }).success).toBe(false);
+  });
+
   it('loads legacy viewer and companion configuration without reactivating archived add-ons', async () => {
     const config = await testConfig();
     const legacy = {

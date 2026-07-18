@@ -58,6 +58,7 @@ For a no-wait Multi-Timed Actions contract check, run:
 
 ```powershell
 npm run simulate -- tests/fixtures/system-timed.json
+npm run simulate -- tests/fixtures/system-timed-message-output.json
 ```
 
 This proves validation, delivery, and Streamer.bot projection only. To test the scheduler itself, copy the example configuration and add a harmless definition with `everyMinutes: 1`, `firstRunAfterMinutes: 0`, and either fixed or shuffle-container selection. The deterministic suite verifies independent intervals, container exhaustion before repetition, persisted bag state, catch-up, and skip behavior without waiting on wall-clock time.

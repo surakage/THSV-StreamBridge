@@ -78,8 +78,9 @@ Multi-Timed Actions adds:
 - Atomic restart state and deterministic occurrence identities
 - Normalized `system.timed` events with scheduled time, actual fire time, lateness, occurrence, and missed-run counts
 - A triggerless concurrent `THSV StreamBridge - Multi-Timed Actions` package that exposes inert data while leaving action selection to Streamer.bot
+- A triggerless `THSV StreamBridge - Send Timed Message` output action with independent Twitch, YouTube, Kick, and TikFinity switches; simulated wizard tests never post externally
 
-Configure schedules in `timedActions.definitions`, then import the package described in the [Multi-Timed Actions guide](packages/streamerbot/multi-timed-actions/README.md). The example starts with no scheduled definitions, so installing the bridge never creates surprise automation.
+Configure schedules in `timedActions.definitions`, then import the packages described in the [Multi-Timed Actions guide](packages/streamerbot/multi-timed-actions/README.md) and [Timed Message Output guide](packages/streamerbot/timed-message-output/README.md). The example starts with no scheduled definitions, so installing the bridge never creates surprise automation.
 
 ## Milestone 8
 

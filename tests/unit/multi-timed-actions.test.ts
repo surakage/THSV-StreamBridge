@@ -18,6 +18,7 @@ describe('Multi-Timed Actions', () => {
     expect(projectMultiTimedAction({ ...event, metadata: { ...event.metadata, bridgeSequence: 9 } })).toMatchObject({
       contractVersion: '1.0.0', timerId: 'hydration-reminder', scheduleType: 'session-interval', occurrence: 3,
       lateByMs: 250, selectionMode: 'shuffle-container', selectedMessage: 'Remember to drink some water!', containerPosition: 3, containerSize: 4,
+      deliveryPlatforms: [],
     });
   });
 
@@ -115,6 +116,23 @@ describe('Multi-Timed Actions', () => {
     await adapter.test('testable');
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({ eventType: 'system.timed', metadata: { simulated: true } });
+    await adapter.stop();
+  });
+
+  it('carries timer-specific chat delivery platforms separately from live gates', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-delivery-platforms-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
+      ...defaultTimerPolicy, id: 'cross-platform-chat', name: 'Cross-platform chat', enabled: false, everyMinutes: 10, missedRunPolicy: 'skip', payload: {},
+      selection: { mode: 'shuffle-container', messages: ['One', 'Two'] },
+      gates: { ...defaultTimerPolicy.gates, platforms: ['twitch'] },
+      target: { provider: 'run-existing-action', actionId: '7d107c29-1127-5bb1-ae8b-6f04d89a71d4', actionName: 'THSV StreamBridge - Send Timed Message', approvedByCreator: true, deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] },
+    }] };
+    const events: NormalizedEvent[] = [];
+    const adapter = new TimedActionsAdapter('timers', platform, config, () => 0);
+    await adapter.start({ logger: silentLogger, emit: (event) => { events.push(event as NormalizedEvent); return Promise.resolve({ accepted: true }); } });
+    await adapter.test('cross-platform-chat');
+    expect(events[0]?.payload).toMatchObject({ targetPlatforms: ['twitch'], deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] });
+    expect(projectMultiTimedAction(events[0] as NormalizedEvent)?.deliveryPlatforms).toEqual(['twitch', 'youtube', 'kick', 'tiktok']);
     await adapter.stop();
   });
 

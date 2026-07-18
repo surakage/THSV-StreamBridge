@@ -21,7 +21,8 @@ The foundation sends a `DoAction` WebSocket request and waits for the correlated
 16. Add only the trigger types declared for each platform in `packages\streamerbot\native-platform-intake\manifest.json`, then enable the corresponding `streamerbot-native` platform entries in the local bridge configuration.
 
 The intake broadcasts only documented, allowlisted placeholder fields. It reuses StreamBridge's existing Streamer.bot WebSocket rather than opening another connection. Until live provenance is verified, events default to simulated and expose unverified transport/source-ID fields.
-11. Import `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-1.1.0.sb` and add it as another immediate receiver child action.
+11. Import `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-1.2.0.sb` and add it as another immediate receiver child action.
+12. Import `packages\streamerbot\timed-message-output\THSV-StreamBridge-Timed-Message-Output-1.0.0.sb`. Keep `THSV StreamBridge - Send Timed Message` triggerless; select it from the wizard only for shuffled timed-chat definitions.
 12. For a network-free check, explicitly set `streamerbot.testMode` true and run the simulator. Diagnostics will report `liveDelivery: false`; no Streamer.bot action will execute.
 13. For a live check, set test mode false, start Streamer.bot, start the bridge, and run the fixture matrices listed in [Testing](testing.md).
 14. If authentication is enabled, set the environment variable named by `passwordEnv` before starting. Never store the password in JSON.
@@ -30,7 +31,7 @@ The intake broadcasts only documented, allowlisted placeholder fields. It reuses
 
 The import file is Base64-encoded and contains an `SBAE` header followed by gzip-compressed export JSON. Its readable source, manifest, and automated reproducibility test are stored beside it under `packages\streamerbot\core-receiver`.
 
-Multi-Chat, Multi-Commands, Multi-Alerts, and Multi-Timed Actions must not have direct triggers. Their trust boundary depends on running after a successful receiver invocation. Viewer Progression, Bloom Companion, and Speaker Orchestration are archived and must not be imported into the Stage 2 core chain.
+Multi-Chat, Multi-Commands, Multi-Alerts, Multi-Timed Actions, and Send Timed Message must not have direct triggers. Their trust boundary depends on running after a successful receiver invocation. Viewer Progression, Bloom Companion, and Speaker Orchestration are archived and must not be imported into the Stage 2 core chain.
 
 Official references:
 

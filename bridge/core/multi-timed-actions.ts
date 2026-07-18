@@ -29,6 +29,7 @@ export interface MultiTimedAction {
   readonly targetActionId?: string;
   readonly targetActionName?: string;
   readonly targetPlatforms: readonly string[];
+  readonly deliveryPlatforms: readonly string[];
 }
 
 export class InvalidMultiTimedActionError extends Error {}
@@ -58,6 +59,8 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
   const targetActionName = targetProvider === 'run-existing-action' ? boundedText(event.payload['targetActionName'], 'targetActionName', 200) : undefined;
   if (targetProvider === 'run-existing-action' && event.payload['targetActionApproved'] !== true) throw new InvalidMultiTimedActionError('targetActionApproved must be true for run-existing-action.');
   const targetPlatforms = stringArray(event.payload['targetPlatforms'], 'targetPlatforms', 16, 64);
+  const deliveryPlatforms = stringArray(event.payload['deliveryPlatforms'], 'deliveryPlatforms', 4, 64);
+  if (!deliveryPlatforms.every((platform) => ['twitch', 'youtube', 'kick', 'tiktok'].includes(platform))) throw new InvalidMultiTimedActionError('deliveryPlatforms contains an unsupported chat platform.');
   return {
     contractVersion: MULTI_TIMED_ACTIONS_CONTRACT_VERSION,
     eventId: event.eventId,
@@ -84,6 +87,7 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
     ...(targetActionId === undefined ? {} : { targetActionId }),
     ...(targetActionName === undefined ? {} : { targetActionName }),
     targetPlatforms,
+    deliveryPlatforms,
   };
 }
 

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Timed Message Output",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Creator-controlled Twitch, YouTube, Kick, and TikFinity chat delivery for shuffled THSV timed messages.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Send Timed Message",
+    "group": "THSV StreamBridge",
+    "id": "7d107c29-1127-5bb1-ae8b-6f04d89a71d4",
+    "sourceSubActionId": "02c87ae4-afae-5d07-9ff6-9eabf454a3fc",
+    "source": "src/SendTimedMessage.cs",
+    "importFile": "THSV-StreamBridge-Timed-Message-Output-1.0.0.sb"
+  },
+  "runtime": {
+    "queue": "Default",
+    "concurrent": true,
+    "dependencies": ["THSV StreamBridge - Multi-Timed Actions 1.2.0 or later", "Streamer.bot CPH API", "Newtonsoft.Json/JArray default C# reference"]
+  },
+  "contract": {
+    "version": "1.0.0",
+    "requiredInputArguments": ["multiTimedValid", "multiTimedSelectedMessage", "multiTimedDeliveryPlatforms", "multiTimedSimulated"],
+    "outputArguments": ["timedMessageHandled", "timedMessageValid", "timedMessageValidationError", "timedMessagePackageVersion", "timedMessageRequestedPlatforms", "timedMessageDispatchedPlatforms", "timedMessageFailedPlatforms", "timedMessageSimulated", "timedMessageDispatchSuppressed", "timedMessageDispatchComplete"],
+    "executionSafety": {
+      "directTriggers": false,
+      "writesGlobalVariables": false,
+      "simulatedEventsSendExternally": false,
+      "platforms": ["twitch", "youtube", "kick", "tiktok"],
+      "deliveryAcknowledgement": "api-call-only-platform-delivery-is-not-confirmed"
+    }
+  }
+}

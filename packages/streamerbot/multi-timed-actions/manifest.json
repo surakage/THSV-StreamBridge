@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Multi-Timed Actions",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "surakage",
   "description": "Restart-aware platform-neutral timed-event projection for THSV StreamBridge.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
@@ -11,7 +11,7 @@
     "id": "f021d77f-7eb8-55d8-87dd-d681c439dfef",
     "sourceSubActionId": "0e956acd-7505-54f9-9698-c086af748080",
     "source": "src/ProcessTimedAction.cs",
-    "importFile": "THSV-StreamBridge-Multi-Timed-Actions-1.1.0.sb"
+    "importFile": "THSV-StreamBridge-Multi-Timed-Actions-1.2.0.sb"
   },
   "runtime": {
     "queue": "Default",
@@ -22,7 +22,7 @@
     "version": "1.0.0",
     "acceptedEventTypes": ["system.timed"],
     "requiredInputArguments": ["streamBridgeValid", "streamBridgeEventType", "streamBridgeEventId", "streamBridgeReceivedAt", "streamBridgeSequence", "streamBridgePlatform", "streamBridgePayload"],
-    "outputArguments": ["multiTimedHandled", "multiTimedValid", "multiTimedValidationError", "multiTimedContractVersion", "multiTimedPackageVersion", "multiTimedEventId", "multiTimedCorrelationId", "multiTimedPlatform", "multiTimedReceivedAt", "multiTimedSequence", "multiTimedTimerId", "multiTimedTimerName", "multiTimedScheduleType", "multiTimedScheduledAt", "multiTimedFiredAt", "multiTimedOccurrence", "multiTimedMissedRuns", "multiTimedLateByMs", "multiTimedSelectionMode", "multiTimedSelectedMessage", "multiTimedContainerCycle", "multiTimedContainerPosition", "multiTimedContainerSize", "multiTimedSimulated", "multiTimedCreatorPayload", "multiTimedTargetProvider", "multiTimedTargetActionId", "multiTimedTargetActionName", "multiTimedActionDispatched"],
+    "outputArguments": ["multiTimedHandled", "multiTimedValid", "multiTimedValidationError", "multiTimedContractVersion", "multiTimedPackageVersion", "multiTimedEventId", "multiTimedCorrelationId", "multiTimedPlatform", "multiTimedReceivedAt", "multiTimedSequence", "multiTimedTimerId", "multiTimedTimerName", "multiTimedScheduleType", "multiTimedScheduledAt", "multiTimedFiredAt", "multiTimedOccurrence", "multiTimedMissedRuns", "multiTimedLateByMs", "multiTimedSelectionMode", "multiTimedSelectedMessage", "multiTimedContainerCycle", "multiTimedContainerPosition", "multiTimedContainerSize", "multiTimedSimulated", "multiTimedCreatorPayload", "multiTimedTargetProvider", "multiTimedTargetActionId", "multiTimedTargetActionName", "multiTimedDeliveryPlatforms", "multiTimedActionDispatched"],
     "executionSafety": {
       "runsCreatorActions": "only-explicitly-approved-existing-action-by-id",
       "writesGlobalVariables": false,
