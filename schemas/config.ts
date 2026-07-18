@@ -130,6 +130,7 @@ const alertTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.t
 });
 const alertPresentationProfileSchema = z.object({
   enabled: z.boolean().default(true),
+  platforms: z.array(z.enum(TIMED_CHAT_PLATFORM_VALUES)).max(TIMED_CHAT_PLATFORM_VALUES.length).refine((platforms) => new Set(platforms).size === platforms.length, 'alert platforms must be unique').default([]),
   priority: z.enum(['low', 'normal', 'high', 'critical']).optional(),
   durationMs: z.number().int().min(1_000).max(60_000).optional(),
   titleTemplate: alertTemplateSchema.min(1).optional(),

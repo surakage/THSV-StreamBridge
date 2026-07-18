@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import type { NormalizedEvent } from '../../schemas/event.js';
+import type { BrowserOverlayConfig } from '../../schemas/config.js';
 import { projectBrowserOverlayEvent } from '../../bridge/core/browser-overlay.js';
 import { fixture } from '../helpers.js';
 
@@ -21,14 +22,15 @@ describe('Browser Overlay Hub contract', () => {
       ...source,
       eventType: 'channel.membership',
       user: { ...source.user, avatarUrl: 'https://example.com/avatar.png', nameColor: '#72efc2', badges: [{ id: 'member', label: 'Member' }] },
-      payload: { tier: 'Village', subscriptionKind: 'renewal', months: 6, streakMonths: 4 },
+      payload: { tier: 'Village', subscriptionKind: 'upgrade', months: 6, streakMonths: 4, gifted: true, gifterName: 'Kind Gifter' },
       metadata: { ...source.metadata, bridgeSequence: 12 },
     };
     expect(projectBrowserOverlayEvent(event)).toMatchObject({
       kind: 'alert.show',
       payload: {
         presentation: { avatarUrl: 'https://example.com/avatar.png', nameColor: '#72efc2', badges: [{ id: 'member', label: 'Member' }] },
-        subscription: { kind: 'renewal', months: 6, streakMonths: 4 },
+        tier: 'Village',
+        subscription: { kind: 'upgrade', months: 6, streakMonths: 4, gifted: true, gifterName: 'Kind Gifter' },
       },
     });
   });
@@ -62,8 +64,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain('textContent');
     expect(source).toContain("new SharedWorker('/overlay/worker-1.2.0.js', 'thsv-browser-overlay-1.2.0'");
     expect(source).toContain("oldest.classList.add('message-expiring')");
-    expect(source).toContain('while (alertQueue.length > clientConfig.maxAlertQueue)');
-    expect(source).toContain('const next = alertQueue.shift()');
+    expect(source).toContain('new AlertPresentationController({');
+    expect(source).toContain('alertController.enqueue(alert)');
     expect(source).toContain("console.warn('Skipped an alert that could not be rendered.'");
     expect(source).toContain("avatar.addEventListener('error', () => avatar.remove()");
     expect(source).toContain('brandLabel.textContent = clientConfig.brandLabel');
@@ -78,15 +80,19 @@ describe('Browser Overlay Hub contract', () => {
 
   it('applies plain-text alert profiles and suppresses disabled alert types', async () => {
     const source = await fixture('youtube-super-chat.json');
-    const config = {
+    const config: BrowserOverlayConfig = {
       enabled: true, brandLabel: '', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
-      alerts: { profiles: { 'super-chat': { enabled: true, priority: 'critical' as const, durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime' as const, volume: 0.25 }, aggregation: { mode: 'none' as const, windowMs: 5_000 } } } },
+      alerts: { profiles: { 'super-chat': { enabled: true, platforms: ['youtube'], priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, aggregation: { mode: 'none', windowMs: 5_000 } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
       kind: 'alert.show', payload: { priority: 'critical', display: { title: 'example_member supported with 5.00 USD', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
     });
-    const disabled = { ...config, alerts: { profiles: { 'super-chat': { ...config.alerts.profiles['super-chat'], enabled: false } } } };
+    const profile = config.alerts.profiles['super-chat'];
+    if (profile === undefined) throw new Error('Test profile is required');
+    const disabled: BrowserOverlayConfig = { ...config, alerts: { profiles: { 'super-chat': { ...profile, enabled: false } } } };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 14 } }, disabled)).toBeUndefined();
+    const wrongPlatform: BrowserOverlayConfig = { ...config, alerts: { profiles: { 'super-chat': { ...profile, platforms: ['twitch'] } } } };
+    expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 15 } }, wrongPlatform)).toBeUndefined();
   });
 
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {

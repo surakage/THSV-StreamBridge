@@ -12,6 +12,7 @@ import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
 import { WizardConfigurationGateway } from '../bridge/services/wizard-configuration.js';
 import { FileCommandSyncStore } from '../bridge/services/command-sync-store.js';
+import type { PlatformCapabilityId } from '../bridge/contracts/v2/capability.js';
 
 const configPath = process.env['THSV_STREAMBRIDGE_CONFIG'] ?? 'config/bridge.example.json';
 const loadedConfig = await loadConfigWithNotices(configPath);
@@ -28,7 +29,10 @@ const deduplicationStore = config.deduplication.persistAcrossRestarts
 const controlToken = await resolveControlToken(config.security.controlTokenEnv, config.security.controlTokenFile);
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
-const modules = await createInstalledModuleRegistry(logger);
+const enabledPlatformIds = new Set(Object.entries(config.platforms).filter(([, platform]) => platform.enabled && platform.inputEnabled).map(([platformId]) => platformId));
+const capabilityReports = registry.capabilityReports(config.platforms);
+const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
+const modules = await createInstalledModuleRegistry(logger, 'data/addons', availableCapabilities);
 const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, modules });
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
 const wizard = new WizardService(

@@ -1,3 +1,5 @@
+import { AlertPresentationController } from '/overlay/alert-queue-1.2.0.js';
+
 // Compatible with standard Chromium/CEF browser sources.
 (() => {
   'use strict';
@@ -10,13 +12,17 @@
   document.body.dataset.mode = mode;
   document.body.dataset.layout = requestedLayout === 'compact' ? 'compact' : 'canvas';
 
-  const alertQueue = [];
-  const priorityRank = { low: 1, normal: 2, high: 3, critical: 4 };
   const chatFadeMs = 240;
-  let activeAlert;
-  let alertTimer;
   let clientConfig = { brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000 };
   brandLabel.textContent = clientConfig.brandLabel;
+  const alertController = new AlertPresentationController({
+    capacity: clientConfig.maxAlertQueue,
+    defaultDurationMs: clientConfig.alertDurationMs,
+    render: (alert) => alerts.replaceChildren(buildAlertCard(alert)),
+    clear: () => alerts.replaceChildren(),
+    playSound: playAlertSound,
+    onError: (error) => console.warn('Skipped an alert that could not be rendered.', error),
+  });
 
   function element(tag, className, value) {
     const node = document.createElement(tag);
@@ -108,45 +114,7 @@
   }
 
   function enqueueAlert(alert) {
-    const queuedAt = Date.now();
-    const aggregation = alert.display && alert.display.aggregation;
-    if (aggregation) {
-      const existing = alertQueue.find((queued) => queued.display && queued.display.aggregation && queued.display.aggregation.key === aggregation.key && queuedAt - queued.queuedAt <= aggregation.windowMs);
-      if (existing) {
-        existing.aggregateCount += 1;
-        existing.quantity = Number(existing.quantity || 0) + Number(alert.quantity || 0);
-        existing.queuedAt = queuedAt;
-        return;
-      }
-    }
-    if (activeAlert && priorityRank[alert.priority] > priorityRank[activeAlert.priority]) {
-      clearTimeout(alertTimer);
-      alerts.replaceChildren();
-      activeAlert = undefined;
-    }
-    alertQueue.push({ ...alert, queuedAt, aggregateCount: 1 });
-    alertQueue.sort((a, b) => priorityRank[b.priority] - priorityRank[a.priority] || a.sequence - b.sequence);
-    while (alertQueue.length > clientConfig.maxAlertQueue) {
-      const lowestRank = Math.min(...alertQueue.map((queued) => priorityRank[queued.priority]));
-      alertQueue.splice(alertQueue.findIndex((queued) => priorityRank[queued.priority] === lowestRank), 1);
-    }
-    showNextAlert();
-  }
-
-  function showNextAlert() {
-    if (activeAlert || alertQueue.length === 0) return;
-    while (!activeAlert && alertQueue.length > 0) {
-      const next = alertQueue.shift();
-      try {
-        alerts.replaceChildren(buildAlertCard(next));
-        activeAlert = next;
-        playAlertSound(next);
-        alertTimer = setTimeout(finishAlert, next.display ? next.display.durationMs : clientConfig.alertDurationMs);
-      } catch (error) {
-        alerts.replaceChildren();
-        console.warn('Skipped an alert that could not be rendered.', error);
-      }
-    }
+    alertController.enqueue(alert);
   }
 
   function buildAlertCard(alert) {
@@ -158,13 +126,6 @@
     if (alert.aggregateCount > 1) card.append(element('span', 'aggregated', `${alert.aggregateCount} EVENTS COMBINED${alert.quantity ? ` · ${alert.quantity} TOTAL` : ''}`));
     if (alert.simulated) card.append(element('span', 'simulated', 'TEST EVENT'));
     return card;
-  }
-
-  function finishAlert() {
-    alerts.replaceChildren();
-    activeAlert = undefined;
-    alertTimer = undefined;
-    showNextAlert();
   }
 
   function alertTitle(alert) {
@@ -202,7 +163,7 @@
   function safeClass(value) { return String(value).toLowerCase().replace(/[^a-z0-9-]/g, ''); }
 
   fetch('/overlay/config').then((response) => response.ok ? response.json() : undefined).then((config) => {
-    if (config) clientConfig = config;
+    if (config) { clientConfig = config; alertController.configure(config.maxAlertQueue, config.alertDurationMs); }
     brandLabel.textContent = clientConfig.brandLabel;
     brandLabel.hidden = clientConfig.brandLabel.length === 0;
   }).catch(() => undefined).finally(connect);

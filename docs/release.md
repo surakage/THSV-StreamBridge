@@ -38,6 +38,11 @@ Run the newer extracted release's `install-release.ps1` against the existing ins
 
 If the final directory swap fails, the installer restores the previous installation. A release never imports `.env`, runtime data, credentials, or state from its archive.
 
+To repair corrupted or missing release files, rerun the same version's extracted
+`scripts\install-release.ps1` against the managed installation. The installer re-verifies and
+replaces release-owned files while preserving creator `data/`, which is the supported repair path;
+no separate repair script is required.
+
 ### Downgrades
 
 The installer refuses to replace a newer installed SemVer with an older release because older code may not understand newer state schemas. If a downgrade is deliberately required, first make and retain an external copy of the entire `data` directory, review the target release's state compatibility, and then pass `-AllowDowngrade`. This explicit switch removes the version guard; it does not migrate newer state backward.

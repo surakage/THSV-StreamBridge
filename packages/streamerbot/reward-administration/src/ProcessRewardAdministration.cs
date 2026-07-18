@@ -17,6 +17,9 @@ public class CPHInline
         if ((operation == "fulfill" || operation == "cancel") && (redemptionId.Length == 0 || redemptionId.Length > 256)) return Fail("Redemption operations require a bounded redemption ID.");
         try
         {
+            // These six CPH calls compiled successfully in a live Streamer.bot v1.0.5-alpha.31
+            // instance. Their live state-changing behavior was deliberately not exercised; use
+            // only a harmless custom reward when completing creator acceptance testing.
             bool dispatched = true;
             if (operation == "enable") CPH.EnableReward(rewardId);
             else if (operation == "disable") CPH.DisableReward(rewardId);

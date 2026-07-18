@@ -274,4 +274,13 @@ describe('reward administration dispatch', () => {
     expect(kick.error).toContain('Kick reward mutation controls are unavailable');
     expect(dispatched).toHaveLength(1);
   });
+
+  it('reports Streamer.bot unavailability without claiming dispatch', async () => {
+    const rewardInspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]), inspectCommands: () => Promise.resolve([]), inspectionRequests: () => [],
+      requestRewardAdministration: () => Promise.reject(new Error('Streamer.bot is unavailable')),
+    };
+    const result = await new WizardService(rewardInspector).administerReward({ platform: 'twitch', operation: 'enable', rewardId: 'reward-1', approvedByCreator: true });
+    expect(result).toMatchObject({ available: false, error: 'Streamer.bot is unavailable' });
+  });
 });

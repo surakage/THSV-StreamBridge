@@ -281,6 +281,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/app-1.0.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.1.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.2.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/alert-queue-1.2.0.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.8.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.9.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },

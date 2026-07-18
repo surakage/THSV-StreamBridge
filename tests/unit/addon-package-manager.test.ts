@@ -1,6 +1,7 @@
 import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { installAddOnPackage, removeAddOnPackage, verifyAddOnPackage } from '../../bridge/services/addon-package-manager.js';
 import { loadInstalledAddOns } from '../../bridge/core/installed-modules.js';
@@ -11,6 +12,21 @@ import { silentLogger } from '../helpers.js';
 const temporary: string[] = [];
 async function workspace(): Promise<string> { const path = await mkdtemp(join(tmpdir(), 'thsv-addon-')); temporary.push(path); return path; }
 afterEach(async () => { await Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))); });
+
+async function migrationPackage(root: string, version: string, migrations: Array<{ from: string; to: string; script: string }>, migrationSource?: string): Promise<void> {
+  const moduleId = 'sample.migrating';
+  const manifest = {
+    contractVersion: '2.0.0-preview.1', moduleId, name: 'Migrating Sample', version,
+    minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies: [], requiredCapabilities: [],
+    configurationSchema: 'schemas/config.json', eventSubscriptions: [], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+    dataStorageOwned: migrations.length === 0 ? [] : [`data/addons/.state/${moduleId}/`], installationSteps: ['Install.'], uninstallationSteps: ['Remove.'], migrations, healthChecks: [],
+  };
+  const contents = new Map<string, string>([['dist/index.mjs', `export default ${JSON.stringify({ manifest, required: false })};\n`], ['schemas/config.json', '{}\n']]);
+  if (migrationSource !== undefined && migrations[0] !== undefined) contents.set(migrations[0].script, migrationSource);
+  for (const [path, content] of contents) { await mkdir(dirname(join(root, path)), { recursive: true }); await writeFile(join(root, path), content); }
+  const files = [...contents].map(([path, content]) => ({ path, size: Buffer.byteLength(content), sha256: createHash('sha256').update(content).digest('hex') }));
+  await writeFile(join(root, 'module-package.json'), JSON.stringify({ packageFormat: 'thsv-addon-v2', manifest, entrypoint: 'dist/index.mjs', files }, null, 2) + '\n');
+}
 
 describe('Stage 9 add-on packages', () => {
   it('verifies the public no-op sample and its complete hash manifest', async () => {
@@ -48,6 +64,31 @@ describe('Stage 9 add-on packages', () => {
     await expect(readFile(join(state, 'creator.json'), 'utf8')).resolves.toContain('kept');
   });
 
+  it('runs ordered add-on data migrations and rolls code and state back when a later migration fails', async () => {
+    const root = await workspace(); const addOns = join(root, 'data', 'addons');
+    const v1 = join(root, 'v1'); await mkdir(v1); await migrationPackage(v1, '1.0.0', []);
+    await installAddOnPackage(v1, addOns, true);
+    const storage = join(addOns, '.state', 'sample.migrating');
+    await mkdir(storage, { recursive: true }); await writeFile(join(storage, 'state.json'), JSON.stringify({ format: 1 }));
+
+    const v2 = join(root, 'v2'); await mkdir(v2); await migrationPackage(v2, '2.0.0', [{ from: '1.0.0', to: '2.0.0', script: 'migrations/001.mjs' }],
+      `import { readFile, writeFile } from 'node:fs/promises'; import { join } from 'node:path'; export async function migrate(context) { const path = join(context.storageRoot, 'state.json'); const state = JSON.parse(await readFile(path, 'utf8')); await writeFile(path, JSON.stringify({ ...state, format: 2, migratedFrom: context.fromVersion })); }\n`);
+    await installAddOnPackage(v2, addOns, true);
+    await expect(readFile(join(storage, 'state.json'), 'utf8')).resolves.toContain('"format":2');
+
+    const v3 = join(root, 'v3'); await mkdir(v3); await migrationPackage(v3, '3.0.0', [{ from: '2.0.0', to: '3.0.0', script: 'migrations/002.mjs' }],
+      `import { writeFile } from 'node:fs/promises'; import { join } from 'node:path'; export async function migrate(context) { await writeFile(join(context.storageRoot, 'state.json'), '{"format":3}'); throw new Error('migration failed'); }\n`);
+    await expect(installAddOnPackage(v3, addOns, true)).rejects.toThrow('migration failed');
+    await expect(readFile(join(storage, 'state.json'), 'utf8')).resolves.toContain('"format":2');
+    await expect(readFile(join(addOns, 'sample.migrating', 'installed-package.json'), 'utf8')).resolves.toContain('"version": "2.0.0"');
+
+    const hanging = join(root, 'hanging'); await mkdir(hanging); await migrationPackage(hanging, '3.0.0', [{ from: '2.0.0', to: '3.0.0', script: 'migrations/hang.mjs' }],
+      `export async function migrate() { await new Promise(() => setInterval(() => undefined, 1000)); }\n`);
+    await expect(installAddOnPackage(hanging, addOns, true, { migrationTimeoutMs: 100 })).rejects.toThrow('exceeded 100 ms');
+    await expect(readFile(join(storage, 'state.json'), 'utf8')).resolves.toContain('"format":2');
+    await expect(readFile(join(addOns, 'sample.migrating', 'installed-package.json'), 'utf8')).resolves.toContain('"version": "2.0.0"');
+  });
+
   it('rejects one corrupted installed add-on without preventing a verified neighbor from loading', async () => {
     const root = await workspace(); const addOns = join(root, 'addons');
     await installAddOnPackage('examples/addons/no-op', addOns, true);
@@ -58,10 +99,10 @@ describe('Stage 9 add-on packages', () => {
   });
 
   it('filters duplicate, missing, and cyclic optional dependencies while keeping healthy neighbors', () => {
-    const base = (moduleId: string, dependencies: readonly string[] = []): FrameworkModule => ({
+    const base = (moduleId: string, dependencies: readonly string[] = [], requiredCapabilities: FrameworkModule['manifest']['requiredCapabilities'] = []): FrameworkModule => ({
       manifest: {
         contractVersion: '2.0.0-preview.1', moduleId, name: moduleId, version: '1.0.0', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1',
-        dependencies: [...dependencies], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: [], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: [], installationSteps: ['Install.'], uninstallationSteps: ['Remove.'], migrations: [], healthChecks: [],
+        dependencies: [...dependencies], requiredCapabilities: [...requiredCapabilities], configurationSchema: 'schemas/config.json', eventSubscriptions: [], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: [], installationSteps: ['Install.'], uninstallationSteps: ['Remove.'], migrations: [], healthChecks: [],
       },
       required: moduleId.startsWith('core.'),
     });
@@ -71,5 +112,8 @@ describe('Stage 9 add-on packages', () => {
       base('addon.healthy'),
     ], silentLogger);
     expect(filtered.map((module) => module.manifest.moduleId)).toEqual(['addon.healthy']);
+
+    const capabilityFiltered = filterLoadableAddOns([], [base('addon.chat', [], ['chat.input']), base('addon.rewards', [], ['channel-rewards.create']), base('addon.dependent', ['addon.rewards'])], silentLogger, new Set(['chat.input']));
+    expect(capabilityFiltered.map((module) => module.manifest.moduleId)).toEqual(['addon.chat']);
   });
 });

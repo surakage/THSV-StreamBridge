@@ -32,6 +32,19 @@ describe('bridge HTTP integration', () => {
     expect((await fetch(`${baseUrl}/ready`)).status).toBe(200);
   });
 
+  it('publishes a financial alert only once when the same source event is ingested twice', async () => {
+    const config = await testConfig();
+    const bridge = createTestBridge(config);
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    bridge.subscribe((event) => hub.publish(event));
+    await bridge.start();
+    stops.push(async () => bridge.stop());
+    const event = await fixture('youtube-super-chat.json');
+    expect(await bridge.ingest(event)).toMatchObject({ accepted: true, duplicate: false });
+    expect(await bridge.ingest(event)).toMatchObject({ accepted: true, duplicate: true });
+    expect(hub.status()).toMatchObject({ published: 1 });
+  });
+
   it('rejects invalid, oversized, unauthenticated, and browser-origin mutation requests', async () => {
     const { baseUrl } = await runningService(1_024);
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
@@ -97,8 +110,9 @@ describe('bridge HTTP integration', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
     }
-    const source = await fetch(`${baseUrl}/overlay/app-1.1.0.js`).then((response) => response.text());
+    const source = await fetch(`${baseUrl}/overlay/app-1.2.0.js`).then((response) => response.text());
     expect(source).not.toContain('companion');
+    expect((await fetch(`${baseUrl}/overlay/alert-queue-1.2.0.js`)).status).toBe(200);
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
   });
 });

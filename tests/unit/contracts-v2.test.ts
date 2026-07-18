@@ -59,6 +59,9 @@ describe('v2 preview contracts', () => {
     };
     expect(moduleManifestV2Schema.safeParse(manifest).success).toBe(true);
     expect(moduleManifestV2Schema.safeParse({ ...manifest, dependencies: ['addon.example'] }).success).toBe(false);
+    expect(moduleManifestV2Schema.safeParse({ ...manifest, browserSourcesProvided: [{ id: 'addon.example.overlay', name: 'Overlay', path: '/addon/example' }] }).success).toBe(false);
+    expect(moduleManifestV2Schema.safeParse({ ...manifest, migrations: [{ from: '1.0.0', to: '2.0.0', script: 'migrations/001.mjs' }] }).success).toBe(false);
+    expect(moduleManifestV2Schema.safeParse({ ...manifest, dataStorageOwned: ['data/addons/.state/addon.example/'], migrations: [{ from: '1.0.0', to: '2.0.0', script: 'migrations/001.mjs' }] }).success).toBe(true);
   });
 
   it('keeps browser-overlay v2 free of companion event branches', () => {

@@ -44,6 +44,7 @@ export function projectBrowserOverlayEvent(event: NormalizedEvent, config?: Brow
   const alert = projectMultiAlert(event);
   const profile = alert === undefined ? undefined : config?.alerts.profiles[alert.alertType];
   if (alert !== undefined && profile?.enabled === false) return undefined;
+  if (alert !== undefined && profile !== undefined && profile.platforms.length > 0 && !profile.platforms.includes(alert.platform as (typeof profile.platforms)[number])) return undefined;
   if (alert !== undefined) {
     const subscription = subscriptionLifecycle(event, alert);
     const priority = profile?.priority ?? alertPriority(alert);

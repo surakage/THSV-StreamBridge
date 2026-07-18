@@ -25,6 +25,27 @@ The entrypoint exports either a default `FrameworkModule` object or an async `cr
 
 Use only exports under `bridge/contracts/v2/` and the documented `FrameworkModule` lifecycle. Do not import core implementation files, read another module's storage, mutate creator-owned Streamer.bot objects, open network listeners implicitly, or place secrets in the descriptor. Declare all capabilities, subscriptions, owned storage, install/remove steps, migrations, actions, commands, browser sources, and health checks honestly.
 
+`requiredCapabilities` is enforced against the supported capabilities of currently enabled input
+platforms. If any required capability is unavailable, the add-on and add-ons depending on it are
+rejected while core continues. Add-on-provided browser sources are reserved for a future hosting
+contract; `browserSourcesProvided` must remain empty in this preview rather than claiming an
+unserved route.
+
+## Data migrations
+
+Upgrade migrations execute only when replacing an already verified installation. A migration
+declares one unambiguous forward step (`from`, `to`, and a packaged `.js` or `.mjs` script) and
+exports either `migrate(context)` or a default function. The context contains `moduleId`,
+`fromVersion`, `toVersion`, `packageRoot`, and the dedicated `storageRoot` at
+`data/addons/.state/<module-id>/`. A migrating add-on must declare that exact directory in
+`dataStorageOwned`.
+
+StreamBridge snapshots the dedicated storage directory, runs each required step in order with a
+30-second bound, and swaps the new code only after every migration succeeds. A failure restores
+both the previous code and the storage snapshot. Migration code remains trusted add-on JavaScript
+with the same local permissions as StreamBridge; rollback guarantees cover only the supplied
+`storageRoot`, so a migration must not write elsewhere.
+
 ## Verify, install, and remove
 
 From a source checkout:
@@ -58,3 +79,7 @@ Restart StreamBridge after installing, upgrading, or removing an add-on. Removal
 ```
 
 Restore verifies every file before mutation, stops the bridge, creates a safety backup, stages replacements, and rolls back the current configuration/state/add-ons if the swap fails.
+
+Backup and restore cover THSV StreamBridge files only. They do not back up or recreate actions,
+commands, triggers, or other objects stored inside Streamer.bot's own database; use Streamer.bot's
+own export/backup tools for those objects.

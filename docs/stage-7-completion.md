@@ -6,8 +6,8 @@ Stage 7 is implementation-complete on `overhaul/v2-preview` for `2.0.0-preview.1
 
 - One normalized mapping for follow, subscription, membership, gift subscription, gift,
   donation, cheer, Super Chat, raid, and milestone alerts.
-- Wizard-managed per-type enablement, priority, duration, title/detail templates, local chime,
-  volume, and gift-quantity aggregation.
+- Wizard-managed per-type enablement, platform scope, priority, duration, title/detail templates,
+  local chime, volume, and gift-quantity aggregation.
 - Existing bounded queue behavior with `critical` priority, priority preemption, per-alert
   durations, and malformed-card isolation.
 - Server-rendered plain-text presentation fields. Templates accept only documented tokens,
@@ -25,12 +25,15 @@ Stage 7 is implementation-complete on `overhaul/v2-preview` for `2.0.0-preview.1
 
 ## Verification
 
-- Full automated suite: 49 files and 285 tests passed.
+- Current full automated suite after review hardening: 54 files and 309 tests passed.
 - Typecheck, lint, and `git diff --check` pass cleanly.
 - Configuration tests cover valid profiles, unknown template tokens, and the gift-only
   aggregation boundary.
 - Projection tests cover template rendering, critical priority, duration, local chime metadata,
-  and disabled-type suppression. Source review still enforces text-only DOM sinks.
+  disabled-type suppression, and platform-scoped suppression. Source review still enforces
+  text-only DOM sinks.
+- Browser queue regressions inject 200-alert gift storms to verify the capacity bound and queued
+  quantity aggregation, and verify that a high-priority raid preempts a lower-priority card.
 - Wizard transaction tests cover staged alert profiles, backed-up commit, and safe export.
 - Test helpers now isolate timed-action state per test, removing a parallel-suite file collision
   exposed during the full Stage 7 run.

@@ -2,6 +2,7 @@ import { readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Logger } from '../services/logger.js';
+import type { PlatformCapabilityId } from '../contracts/v2/capability.js';
 import { verifyAddOnPackage } from '../services/addon-package-manager.js';
 import { createBuiltinModules } from './builtin-modules.js';
 import { ModuleRegistry, type FrameworkModule } from './module-registry.js';
@@ -43,7 +44,7 @@ export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger): P
   return modules;
 }
 
-export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candidates: readonly FrameworkModule[], logger: Logger): readonly FrameworkModule[] {
+export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candidates: readonly FrameworkModule[], logger: Logger, availableCapabilities?: ReadonlySet<PlatformCapabilityId>): readonly FrameworkModule[] {
   const coreIds = new Set(builtins.map((module) => module.manifest.moduleId));
   const unique = new Map<string, FrameworkModule>();
   for (const candidate of candidates) {
@@ -78,6 +79,15 @@ export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candi
     logger.error('Optional add-on dependency cycle rejected', { moduleId });
   }
 
+  if (availableCapabilities !== undefined) {
+    for (const [moduleId, module] of unique) {
+      const missing = module.manifest.requiredCapabilities.find((capability) => !availableCapabilities.has(capability));
+      if (missing === undefined) continue;
+      unique.delete(moduleId);
+      logger.error('Optional add-on capability is unavailable; add-on rejected', { moduleId, capability: missing });
+    }
+  }
+
   let changed = true;
   while (changed) {
     changed = false;
@@ -92,8 +102,8 @@ export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candi
   return [...unique.values()];
 }
 
-export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons'): Promise<ModuleRegistry> {
+export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>): Promise<ModuleRegistry> {
   const builtins = createBuiltinModules();
   const installed = await loadInstalledAddOns(addOnsRoot, logger);
-  return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger)], logger);
+  return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger, availableCapabilities)], logger);
 }
