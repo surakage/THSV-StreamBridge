@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Bridge Launcher",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Launches the THSV StreamBridge process from a creator-configured install path. Bind to Streamer.bot's own startup trigger yourself so the bridge comes up automatically.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "name": "THSV StreamBridge - Launch Bridge",
+    "group": "THSV StreamBridge",
+    "id": "f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2",
+    "sourceSubActionId": "41fc98f8-ebb8-5650-acee-95d1f8222dff",
+    "source": "src/LaunchBridge.cs",
+    "importFile": "THSV-StreamBridge-Bridge-Launcher-1.0.0.sb"
+  },
+  "runtime": { "queue": "Default", "concurrent": true },
+  "requiredGlobalVariables": ["thsvBridgeInstallPath"],
+  "verificationStatus": "implementation complete; live Streamer.bot Alpha compilation pending"
+}
