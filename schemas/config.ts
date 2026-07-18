@@ -37,6 +37,10 @@ const commandsSchema = z
       aliases: z.array(commandNameSchema).max(20).default([]),
       minimumRole: z.enum(['viewer', 'subscriber', 'moderator', 'broadcaster']).default('viewer'),
       allowBots: z.boolean().default(false),
+      // 'manual' definitions are creator-authored and are never overwritten by a sync.
+      // 'synced' definitions are a mirror of a Streamer.bot-owned command and are
+      // replaced wholesale on each sync pass rather than hand-edited in place.
+      source: z.enum(['manual', 'synced']).default('manual'),
     }).strict()).max(200),
   })
   .strict()
@@ -246,6 +250,7 @@ export type BridgeConfig = z.infer<typeof bridgeConfigSchema>;
 export type PlatformConfig = z.infer<typeof platformSchema>;
 export type OutputConfig = z.infer<typeof outputSchema>;
 export type CommandsConfig = z.infer<typeof commandsSchema>;
+export type CommandDefinition = CommandsConfig['definitions'][number];
 export type TimedActionsConfig = z.infer<typeof timedActionsSchema>;
 export type TimedActionDefinition = TimedActionsConfig['definitions'][number];
 export type BrowserOverlayConfig = z.infer<typeof browserOverlaySchema>;

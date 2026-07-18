@@ -60,6 +60,20 @@ describe('bridge configuration', () => {
     expect(invalidPrefix.success).toBe(false);
   });
 
+  it('defaults command definitions to a manual source and keeps synced definitions distinct', async () => {
+    const config = await testConfig();
+    const manual = bridgeConfigSchema.parse({
+      ...config,
+      commands: { ...config.commands, definitions: [{ name: 'existing', aliases: [], minimumRole: 'viewer', allowBots: false }] },
+    });
+    expect(manual.commands.definitions[0]?.source).toBe('manual');
+    const synced = bridgeConfigSchema.parse({
+      ...config,
+      commands: { ...config.commands, definitions: [{ name: 'synced-command', aliases: [], minimumRole: 'viewer', allowBots: false, source: 'synced' }] },
+    });
+    expect(synced.commands.definitions[0]?.source).toBe('synced');
+  });
+
   it('keeps pre-0.5.1 configuration compatible with commands safely disabled', async () => {
     const config = await testConfig();
     const { commands: _commands, ...legacy } = config;
