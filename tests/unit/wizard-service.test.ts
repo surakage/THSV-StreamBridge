@@ -168,3 +168,59 @@ describe('Stage 5 step 4: Tier 2 command generation', () => {
     expect(result.error).toContain('command sync storage');
   });
 });
+
+describe('Tier 1 command administration dispatch', () => {
+  function inspectorWithAdministration(): { inspector: StreamerBotInspector; dispatched: Array<{ operation: string; commandId: string }> } {
+    const dispatched: Array<{ operation: string; commandId: string }> = [];
+    const inspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]),
+      inspectCommands: () => Promise.resolve([]),
+      inspectionRequests: () => [],
+      requestCommandAdministration: (request) => { dispatched.push({ operation: request.operation, commandId: request.commandId }); return Promise.resolve(); },
+    };
+    return { inspector, dispatched };
+  }
+
+  it('dispatches an approved enable request', async () => {
+    const { inspector: withAdmin, dispatched } = inspectorWithAdministration();
+    const service = new WizardService(withAdmin);
+    const result = await service.administerCommand({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: true });
+    expect(result).toMatchObject({ available: true, operation: 'enable', commandId: 'sb-command-1' });
+    expect(dispatched).toEqual([{ operation: 'enable', commandId: 'sb-command-1' }]);
+  });
+
+  it('reports administration as unavailable without throwing when the inspector has no dispatch method', async () => {
+    const service = new WizardService(inspector());
+    const result = await service.administerCommand({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: true });
+    expect(result).toMatchObject({ available: false });
+    expect(result.error).toContain('Streamer.bot output');
+  });
+
+  it('reports administration as unavailable without throwing when no inspector is configured', async () => {
+    const service = new WizardService(undefined);
+    const result = await service.administerCommand({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: true });
+    expect(result).toMatchObject({ available: false });
+  });
+
+  it('rejects a request missing creator approval without dispatching anything', async () => {
+    const { inspector: withAdmin, dispatched } = inspectorWithAdministration();
+    const service = new WizardService(withAdmin);
+    const result = await service.administerCommand({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: false });
+    expect(result.available).toBe(false);
+    expect(result.error).toContain('explicit creator approval');
+    expect(dispatched).toEqual([]);
+  });
+
+  it('reports a dispatch failure without throwing', async () => {
+    const inspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]),
+      inspectCommands: () => Promise.resolve([]),
+      inspectionRequests: () => [],
+      requestCommandAdministration: () => Promise.reject(new Error('Streamer.bot is unavailable')),
+    };
+    const service = new WizardService(inspector);
+    const result = await service.administerCommand({ operation: 'disable', commandId: 'sb-command-1', approvedByCreator: true });
+    expect(result.available).toBe(false);
+    expect(result.error).toBe('Streamer.bot is unavailable');
+  });
+});

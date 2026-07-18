@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCommandAdministrationRequest, InvalidCommandAdministrationError } from '../../bridge/core/command-administration.js';
+import { createCommandAdministrationRequest, parseCommandAdministrationInput, InvalidCommandAdministrationError } from '../../bridge/core/command-administration.js';
 
 describe('command administration contract', () => {
   it('creates a creator-approved enable request', () => {
@@ -40,5 +40,32 @@ describe('command administration contract', () => {
       .toThrow('bounded identifier');
     expect(() => createCommandAdministrationRequest({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: true, requestId: 'has spaces' }))
       .toThrow('bounded identifier');
+  });
+});
+
+describe('parseCommandAdministrationInput', () => {
+  it('accepts a well-formed body', () => {
+    expect(parseCommandAdministrationInput({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: true })).toEqual({
+      operation: 'enable', commandId: 'sb-command-1', approvedByCreator: true,
+    });
+  });
+
+  it('carries through an optional requestId', () => {
+    expect(parseCommandAdministrationInput({ operation: 'disable', commandId: 'sb-command-1', approvedByCreator: true, requestId: 'admin-001' }))
+      .toEqual({ operation: 'disable', commandId: 'sb-command-1', approvedByCreator: true, requestId: 'admin-001' });
+  });
+
+  it('rejects a non-object body', () => {
+    expect(() => parseCommandAdministrationInput(null)).toThrow('JSON object');
+    expect(() => parseCommandAdministrationInput('enable')).toThrow('JSON object');
+  });
+
+  it('rejects a missing or non-string operation or commandId', () => {
+    expect(() => parseCommandAdministrationInput({ commandId: 'sb-command-1', approvedByCreator: true })).toThrow('operation is required');
+    expect(() => parseCommandAdministrationInput({ operation: 'enable', approvedByCreator: true })).toThrow('commandId is required');
+  });
+
+  it('rejects a non-boolean approvedByCreator', () => {
+    expect(() => parseCommandAdministrationInput({ operation: 'enable', commandId: 'sb-command-1', approvedByCreator: 'yes' })).toThrow('approvedByCreator must be a boolean');
   });
 });

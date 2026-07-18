@@ -43,6 +43,23 @@ export function createCommandAdministrationRequest(input: CommandAdministrationI
   };
 }
 
+// The wizard HTTP boundary hands this raw, untrusted JSON — the same "unknown in, validated
+// domain type out" shape command-generation.ts's parseCommandDesignsInput() already uses for its
+// own request bodies.
+export function parseCommandAdministrationInput(value: unknown): CommandAdministrationInput {
+  if (typeof value !== 'object' || value === null) throw new InvalidCommandAdministrationError('Request body must be a JSON object.');
+  const record = value as Record<string, unknown>;
+  if (typeof record['operation'] !== 'string') throw new InvalidCommandAdministrationError('operation is required and must be a string.');
+  if (typeof record['commandId'] !== 'string') throw new InvalidCommandAdministrationError('commandId is required and must be a string.');
+  if (typeof record['approvedByCreator'] !== 'boolean') throw new InvalidCommandAdministrationError('approvedByCreator must be a boolean.');
+  return {
+    operation: record['operation'],
+    commandId: record['commandId'],
+    approvedByCreator: record['approvedByCreator'],
+    ...(typeof record['requestId'] === 'string' ? { requestId: record['requestId'] } : {}),
+  };
+}
+
 function normalizeRequestId(input: string): string {
   const value = input.trim();
   if (value.length === 0 || value.length > 128 || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(value)) {

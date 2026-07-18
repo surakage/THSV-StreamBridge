@@ -17,11 +17,21 @@ import {
   type BatchCommandCollision,
   type CommandDesign,
 } from '../core/command-generation.js';
+import {
+  createCommandAdministrationRequest,
+  parseCommandAdministrationInput,
+  type CommandAdministrationRequest,
+} from '../core/command-administration.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
   inspectCommands(): Promise<readonly StreamerBotCommandSummary[]>;
   inspectionRequests(): readonly StreamerBotInspectionAuditEntry[];
+  // Optional because only the real adapter (never the read-only test fakes most Stage 3/4 tests
+  // still use) actually dispatches Tier 1 requests — WizardService treats its absence the same
+  // as "Streamer.bot output is not configured" rather than requiring every caller to implement
+  // a method they have no way to exercise.
+  requestCommandAdministration?(request: CommandAdministrationRequest): Promise<void>;
 }
 
 export interface WizardOwnedObject {
@@ -81,6 +91,14 @@ export interface CommandVerificationResult {
   readonly verifiedCommandIds?: readonly string[];
   readonly notFoundCommandIds?: readonly string[];
   readonly commands?: readonly SyncedCommand[];
+  readonly error?: string;
+}
+
+export interface CommandAdministrationResult {
+  readonly requestedAt: string;
+  readonly available: boolean;
+  readonly operation?: 'enable' | 'disable';
+  readonly commandId?: string;
   readonly error?: string;
 }
 
@@ -271,6 +289,29 @@ export class WizardService {
       return { verifiedAt, available: true, verified: verifiedEntries.size > 0, verifiedCommandIds, notFoundCommandIds, commands };
     } catch (error) {
       return { verifiedAt, available: false, verified: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  // Tier 1: live enable/disable via the documented C# CPH.EnableCommand/DisableCommand methods,
+  // dispatched through the reviewed Command Administration package (see
+  // packages/streamerbot/command-administration). The creator-approval gate is enforced inside
+  // createCommandAdministrationRequest itself, before this ever reaches the adapter.
+  public async administerCommand(input: unknown): Promise<CommandAdministrationResult> {
+    const requestedAt = new Date().toISOString();
+    if (this.inspector === undefined || this.inspector.requestCommandAdministration === undefined) {
+      return { requestedAt, available: false, error: 'Command administration requires Streamer.bot output to be configured.' };
+    }
+    let request: CommandAdministrationRequest;
+    try {
+      request = createCommandAdministrationRequest(parseCommandAdministrationInput(input));
+    } catch (error) {
+      return { requestedAt, available: false, error: error instanceof Error ? error.message : String(error) };
+    }
+    try {
+      await this.inspector.requestCommandAdministration(request);
+      return { requestedAt, available: true, operation: request.operation, commandId: request.commandId };
+    } catch (error) {
+      return { requestedAt, available: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 

@@ -168,4 +168,37 @@ describe('wizard HTTP surface', () => {
     expect(verifiedBody.commands).toEqual([expect.objectContaining({ streamerBotId: soCommandId, source: 'wizard-generated' }) as unknown]);
     expect(saved?.commands).toEqual(verifiedBody.commands);
   });
+
+  it('dispatches a Tier 1 enable/disable request over HTTP and denies one missing creator approval', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const dispatched: Array<{ operation: string; commandId: string }> = [];
+    const inspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]),
+      inspectCommands: () => Promise.resolve([]),
+      inspectionRequests: () => [],
+      requestCommandAdministration: (request) => { dispatched.push({ operation: request.operation, commandId: request.commandId }); return Promise.resolve(); },
+    };
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(inspector));
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+
+    const denied = await fetch(`${baseUrl}/wizard/api/commands/administer`, {
+      method: 'POST', headers, body: JSON.stringify({ operation: 'disable', commandId: 'sb-command-1', approvedByCreator: false }),
+    });
+    expect(denied.status).toBe(200);
+    expect(await denied.json()).toMatchObject({ available: false, error: expect.stringContaining('explicit creator approval') as unknown });
+    expect(dispatched).toEqual([]);
+
+    const approved = await fetch(`${baseUrl}/wizard/api/commands/administer`, {
+      method: 'POST', headers, body: JSON.stringify({ operation: 'disable', commandId: 'sb-command-1', approvedByCreator: true }),
+    });
+    expect(approved.status).toBe(200);
+    expect(await approved.json()).toMatchObject({ available: true, operation: 'disable', commandId: 'sb-command-1' });
+    expect(dispatched).toEqual([{ operation: 'disable', commandId: 'sb-command-1' }]);
+  });
 });
