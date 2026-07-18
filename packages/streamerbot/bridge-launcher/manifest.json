@@ -1,18 +1,28 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Bridge Launcher",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "surakage",
-  "description": "Launches the THSV StreamBridge process from a creator-configured install path. Bind to Streamer.bot's own startup trigger yourself so the bridge comes up automatically.",
+  "description": "Launches and stops the THSV StreamBridge process from a creator-configured install path. Bind to Streamer.bot's own startup and stream-offline triggers yourself so the bridge comes up and shuts down automatically.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
-  "action": {
-    "name": "THSV StreamBridge - Launch Bridge",
-    "group": "THSV StreamBridge",
-    "id": "f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2",
-    "sourceSubActionId": "41fc98f8-ebb8-5650-acee-95d1f8222dff",
-    "source": "src/LaunchBridge.cs",
-    "importFile": "THSV-StreamBridge-Bridge-Launcher-1.0.0.sb"
-  },
+  "actions": [
+    {
+      "name": "THSV StreamBridge - Launch Bridge",
+      "group": "THSV StreamBridge",
+      "id": "f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2",
+      "sourceSubActionId": "41fc98f8-ebb8-5650-acee-95d1f8222dff",
+      "source": "src/LaunchBridge.cs",
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-1.1.0.sb"
+    },
+    {
+      "name": "THSV StreamBridge - Shutdown Bridge",
+      "group": "THSV StreamBridge",
+      "id": "8d8e3667-fd96-510f-b2ae-a8affe5b789a",
+      "sourceSubActionId": "80e6f5be-222e-5f2a-9755-da3d96531160",
+      "source": "src/ShutdownBridge.cs",
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-1.1.0.sb"
+    }
+  ],
   "runtime": { "queue": "Default", "concurrent": true },
   "requiredGlobalVariables": ["thsvBridgeInstallPath"],
   "verificationStatus": "implementation complete; live Streamer.bot Alpha compilation pending"
