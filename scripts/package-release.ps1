@@ -27,10 +27,10 @@ try {
     Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $checksum -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Path $staging | Out-Null
-    @('apps','bridge','dist','config','docs','overlays','wizard','schemas','scripts','tests','tools','package.json','package-lock.json','tsconfig.json','tsconfig.build.json','vitest.config.ts','eslint.config.mjs','README.md','CHANGELOG.md','LICENSE','THIRD-PARTY-NOTICES.md','.env.example','.gitignore','.gitattributes') | ForEach-Object {
+    @('apps','bridge','dist','config','docs','examples','overlays','wizard','schemas','scripts','tests','tools','package.json','package-lock.json','tsconfig.json','tsconfig.build.json','vitest.config.ts','eslint.config.mjs','README.md','CHANGELOG.md','LICENSE','THIRD-PARTY-NOTICES.md','.env.example','.gitignore','.gitattributes') | ForEach-Object {
         Copy-Item -LiteralPath (Join-Path $repo $_) -Destination $staging -Recurse
     }
-    @('data\runtime','data\state','data\logs','data\backups','packages') | ForEach-Object {
+    @('data\runtime','data\state','data\logs','data\backups','data\addons','packages') | ForEach-Object {
         New-Item -ItemType Directory -Path (Join-Path $staging $_) -Force | Out-Null
     }
     Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot') -Destination (Join-Path $staging 'packages\streamerbot') -Recurse

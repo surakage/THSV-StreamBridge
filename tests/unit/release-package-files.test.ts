@@ -18,10 +18,23 @@ describe('public release scripts', () => {
     expect(source).toContain('Get-FileHash -Algorithm SHA256');
     expect(source).toContain('release-manifest.json');
     expect(source).toContain("'wizard'");
+    expect(source).toContain("'examples'");
+    expect(source).toContain("'data\\addons'");
     expect(source).toContain('.sha256');
     for (const forbidden of ['bridge.local.json', 'control-token', 'streambridge.pid', 'state|logs|backups']) expect(source).toContain(forbidden);
     for (const archived of ['viewer-progression', 'companion-actions', 'speaker-orchestration', 'bloom-idle-sprite.png']) expect(source).toContain(archived);
     expect(source).not.toContain("Copy-Item -LiteralPath (Join-Path $repo 'archive')");
+  });
+
+  it('backs up add-ons and ships a verified approval-gated restore path', async () => {
+    const backup = await readFile('scripts/backup.ps1', 'utf8');
+    const restore = await readFile('scripts/restore.ps1', 'utf8');
+    expect(backup).toContain("data\\addons");
+    expect(backup).toContain('backup-manifest.json');
+    expect(backup).toContain('Get-FileHash -Algorithm SHA256');
+    expect(restore).toContain('[switch]$ApproveRestore');
+    expect(restore.indexOf('Get-FileHash -Algorithm SHA256')).toBeLessThan(restore.indexOf("& (Join-Path $repo 'scripts\\backup.ps1')"));
+    expect(restore).toContain('.restore-rollback-');
   });
 
   it('verifies before staging and preserves creator data during upgrades', async () => {

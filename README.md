@@ -117,6 +117,10 @@ Twitch, YouTube, and Kick use one native intake action per platform, each placed
 
 Stage 8 adds Twitch and Kick reward-redemption intake to those native actions. The separate triggerless `THSV StreamBridge - Reward Administration` package exposes only documented, creator-approved Twitch operations; Kick mutations are hidden and rejected until Streamer.bot documents them. See [Channel rewards](docs/rewards.md).
 
+## V2 add-on packages
+
+Stage 9 adds hash-verified, version-bounded optional module packages. Installed add-ons run with StreamBridge's local permissions, so installation and removal require explicit creator approval; hashes prove package integrity, not publisher trust. A failed or corrupted add-on is rejected without stopping required core modules. Start with the shipped `examples/addons/no-op/` reference and the [add-on developer guide](docs/add-on-development.md).
+
 ## Requirements
 
 - Windows 10 or later

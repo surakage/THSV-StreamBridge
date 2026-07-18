@@ -12,13 +12,17 @@ import { ModuleRegistry, type FrameworkModule } from './module-registry.js';
 const VERSION = '2.0.0-preview.1';
 
 export function createBuiltinModuleRegistry(logger: Logger): ModuleRegistry {
-  return new ModuleRegistry([
+  return new ModuleRegistry(createBuiltinModules(), logger);
+}
+
+export function createBuiltinModules(): readonly FrameworkModule[] {
+  return [
     projectionModule('core.chat', ['chat.message'], (event) => { projectMultiChatMessage(event); }),
     projectionModule('core.commands', ['command.received'], (event) => { projectMultiCommand(event); }),
     projectionModule('core.alerts', ['channel.follow', 'channel.subscription', 'channel.membership', 'channel.gift-subscription', 'engagement.gift', 'engagement.donation', 'engagement.cheer', 'engagement.super-chat', 'channel.raid', 'engagement.milestone'], (event) => { projectMultiAlert(event); }),
     projectionModule('core.timed-actions', ['system.timed'], (event) => { projectMultiTimedAction(event); }),
     projectionModule('core.rewards', ['reward.redemption'], (event) => { projectRewardRedemption(event); }),
-  ], logger);
+  ];
 }
 
 function projectionModule(moduleId: string, subscriptions: readonly string[], project: (event: NormalizedEvent) => void): FrameworkModule {

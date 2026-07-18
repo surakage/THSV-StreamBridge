@@ -7,7 +7,7 @@ import { StructuredLogger } from '../bridge/services/logger.js';
 import { FileDeduplicationStore, NoopDeduplicationStore } from '../bridge/services/deduplication-store.js';
 import { resolveControlToken } from '../bridge/services/control-token.js';
 import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
-import { createBuiltinModuleRegistry } from '../bridge/core/builtin-modules.js';
+import { createInstalledModuleRegistry } from '../bridge/core/installed-modules.js';
 import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
 import { WizardConfigurationGateway } from '../bridge/services/wizard-configuration.js';
@@ -28,7 +28,7 @@ const deduplicationStore = config.deduplication.persistAcrossRestarts
 const controlToken = await resolveControlToken(config.security.controlTokenEnv, config.security.controlTokenFile);
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
-const modules = createBuiltinModuleRegistry(logger);
+const modules = await createInstalledModuleRegistry(logger);
 const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, modules });
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
 const wizard = new WizardService(

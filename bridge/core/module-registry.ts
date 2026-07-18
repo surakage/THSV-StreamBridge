@@ -22,7 +22,7 @@ export class ModuleRegistry {
   private readonly states = new Map<string, ModuleRuntimeState>();
   private readonly order: readonly string[];
 
-  public constructor(modules: readonly FrameworkModule[], private readonly logger: Logger) {
+  public constructor(modules: readonly FrameworkModule[], private readonly logger: Logger, private readonly optionalModuleTimeoutMs = 5_000) {
     for (const module of modules) {
       const manifest = moduleManifestV2Schema.parse(module.manifest);
       if (this.states.has(manifest.moduleId)) throw new Error(`Module ${manifest.moduleId} is registered more than once.`);
@@ -43,7 +43,7 @@ export class ModuleRegistry {
         continue;
       }
       try {
-        await state.module.start?.();
+        await this.runWithIsolation(state.module, 'start', state.module.start?.bind(state.module));
         state.status = 'healthy';
         state.message = undefined;
         this.logger.info('Framework module started', { moduleId, version: state.module.manifest.version });
@@ -59,7 +59,7 @@ export class ModuleRegistry {
     for (const moduleId of [...this.order].reverse()) {
       const state = this.states.get(moduleId);
       if (state === undefined || state.status === 'stopped') continue;
-      try { await state.module.stop?.(); }
+      try { await this.runWithIsolation(state.module, 'stop', state.module.stop?.bind(state.module)); }
       catch (error) { this.logger.warn('Framework module stop failed', { moduleId, error }); }
       state.status = 'stopped';
       state.message = undefined;
@@ -72,7 +72,7 @@ export class ModuleRegistry {
       const state = this.states.get(moduleId);
       if (state?.status !== 'healthy' || state.module.onEvent === undefined) continue;
       if (!state.module.manifest.eventSubscriptions.includes(event.eventType)) continue;
-      try { await state.module.onEvent(event); }
+      try { await this.runWithIsolation(state.module, 'event handler', () => state.module.onEvent?.(event)); }
       catch (error) {
         state.status = 'failed';
         state.message = error instanceof Error ? error.message : String(error);
@@ -101,6 +101,19 @@ export class ModuleRegistry {
         ...(state.message === undefined ? {} : { message: state.message }),
       };
     });
+  }
+
+  private async runWithIsolation(module: FrameworkModule, operation: string, callback: (() => Promise<void> | undefined) | undefined): Promise<void> {
+    if (callback === undefined) return;
+    const pending = callback();
+    if (pending === undefined || module.required) { await pending; return; }
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      await Promise.race([
+        pending,
+        new Promise<never>((_resolve, reject) => { timer = setTimeout(() => { reject(new Error(`Optional module ${module.manifest.moduleId} ${operation} exceeded ${String(this.optionalModuleTimeoutMs)}ms.`)); }, this.optionalModuleTimeoutMs); }),
+      ]);
+    } finally { if (timer !== undefined) clearTimeout(timer); }
   }
 }
 

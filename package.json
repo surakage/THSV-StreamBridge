@@ -10,6 +10,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "addon:verify": "tsx tools/manage-addon.ts verify",
+    "addon:install": "tsx tools/manage-addon.ts install",
+    "addon:remove": "tsx tools/manage-addon.ts remove",
     "clean": "node tools/clean.mjs",
     "config:validate": "tsx tools/validate-config.ts",
     "dev": "tsx watch apps/bridge-service.ts",

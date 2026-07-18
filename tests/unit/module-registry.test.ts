@@ -71,6 +71,21 @@ describe('ModuleRegistry', () => {
     ]));
   });
 
+  it('times out a hung optional module without delaying healthy modules indefinitely', async () => {
+    const healthy = vi.fn();
+    const registry = new ModuleRegistry([
+      moduleDefinition('test.hung', { start: () => new Promise<void>(() => undefined) }),
+      moduleDefinition('test.after-hung', { start: async () => { healthy(); } }),
+    ], silentLogger, 10);
+    await registry.start();
+    expect(healthy).toHaveBeenCalledOnce();
+    expect(registry.ready()).toBe(true);
+    expect(registry.statuses()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ moduleId: 'test.hung', status: 'failed', message: expect.stringContaining('exceeded 10ms') as string }),
+      expect.objectContaining({ moduleId: 'test.after-hung', status: 'healthy' }),
+    ]));
+  });
+
   it('blocks readiness when a required module fails', async () => {
     const registry = new ModuleRegistry([
       moduleDefinition('test.required', { required: true, start: async () => { throw new Error('required failure'); } }),
