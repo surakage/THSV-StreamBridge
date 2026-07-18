@@ -2,9 +2,12 @@ import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import {
   createCommandDesign,
+  createCommandDesigns,
   findCommandCollision,
-  generateCommandPackage,
+  findAllCommandCollisions,
+  generateCommandsPackage,
   parseCommandDesignInput,
+  parseCommandDesignsInput,
   InvalidCommandDesignError,
 } from '../../bridge/core/command-generation.js';
 
@@ -105,14 +108,76 @@ describe('command collision detection', () => {
   });
 });
 
+describe('batch design validation', () => {
+  it('validates every design in the batch', () => {
+    expect(createCommandDesigns([
+      { name: 'so', approvedByCreator: true },
+      { name: 'greet', aliases: ['hi'], approvedByCreator: true },
+    ])).toEqual([
+      { name: 'so', aliases: [], minimumRole: 'viewer', note: '' },
+      { name: 'greet', aliases: ['hi'], minimumRole: 'viewer', note: '' },
+    ]);
+  });
+
+  it('rejects an empty batch', () => {
+    expect(() => createCommandDesigns([])).toThrow('At least one command design is required');
+  });
+
+  it('rejects a batch larger than the cap', () => {
+    const inputs = Array.from({ length: 21 }, (_, index) => ({ name: `cmd${String(index)}`, approvedByCreator: true }));
+    expect(() => createCommandDesigns(inputs)).toThrow('At most 20 commands');
+  });
+
+  it('rejects a name or alias reused across designs in the same batch', () => {
+    expect(() => createCommandDesigns([
+      { name: 'so', approvedByCreator: true },
+      { name: 'greet', aliases: ['so'], approvedByCreator: true },
+    ])).toThrow('used by both design 0 and design 1');
+  });
+});
+
+describe('parseCommandDesignsInput', () => {
+  it('accepts a well-formed batch body', () => {
+    expect(parseCommandDesignsInput({ designs: [{ name: 'so', approvedByCreator: true }] })).toEqual([
+      { name: 'so', approvedByCreator: true },
+    ]);
+  });
+
+  it('rejects a body without a designs array', () => {
+    expect(() => parseCommandDesignsInput({})).toThrow('designs is required');
+    expect(() => parseCommandDesignsInput({ designs: 'so' })).toThrow('designs is required');
+  });
+});
+
+describe('batch collision detection', () => {
+  it('checks every design against live inventory and tags each collision with its batch index', () => {
+    const designs = createCommandDesigns([
+      { name: 'so', approvedByCreator: true },
+      { name: 'greet', approvedByCreator: true },
+    ]);
+    expect(findAllCommandCollisions(designs, { actions: [], commands: [{ id: 'c1', name: 'greet' }] })).toEqual([
+      { kind: 'command', id: 'c1', name: 'greet', matchedOn: 'greet', designIndex: 1 },
+    ]);
+  });
+
+  it('reports no collisions when nothing in the batch matches live inventory', () => {
+    const designs = createCommandDesigns([{ name: 'so', approvedByCreator: true }]);
+    expect(findAllCommandCollisions(designs, { actions: [], commands: [] })).toEqual([]);
+  });
+});
+
 describe('command package generation', () => {
   it('produces a deterministic, reviewable, disabled-by-default command package with a real trigger binding', () => {
-    const design = createCommandDesign({ name: 'so', aliases: ['shoutout'], minimumRole: 'moderator', note: 'Reads a target argument.', approvedByCreator: true });
-    const generated = generateCommandPackage(design, '!');
+    const designs = createCommandDesigns([
+      { name: 'so', aliases: ['shoutout'], minimumRole: 'moderator', note: 'Reads a target argument.', approvedByCreator: true },
+    ]);
+    const generated = generateCommandsPackage(designs, '!');
     expect(generated.filename).toBe('thsv-generated-so.sb');
-    expect(generated.sourceCode).toContain('"!so"');
-    expect(generated.sourceCode).toContain('moderator');
-    expect(generated.sourceCode).not.toMatch(/token|password|authorization/i);
+    expect(generated.commands).toHaveLength(1);
+    const entry = generated.commands[0];
+    expect(entry?.sourceCode).toContain('"!so"');
+    expect(entry?.sourceCode).toContain('moderator');
+    expect(entry?.sourceCode).not.toMatch(/token|password|authorization/i);
 
     const decoded = Buffer.from(generated.contentBase64, 'base64');
     expect(decoded.subarray(0, 4).toString('ascii')).toBe('SBAE');
@@ -124,15 +189,15 @@ describe('command package generation', () => {
     };
     expect(exported.data.actions).toHaveLength(1);
     const action = exported.data.actions[0];
-    expect(action?.id).toBe(generated.actionId);
-    expect(Buffer.from(action?.subActions[0]?.byteCode ?? '', 'base64').toString('utf8')).toBe(generated.sourceCode);
+    expect(action?.id).toBe(entry?.actionId);
+    expect(Buffer.from(action?.subActions[0]?.byteCode ?? '', 'base64').toString('utf8')).toBe(entry?.sourceCode);
     // Confirmed against a real Streamer.bot v1.0.5-alpha.31 export: the binding lives on the
     // action's own triggers array, referencing the command by ID, type 401 ("Command Triggered").
-    expect(action?.triggers).toEqual([{ commandId: generated.commandId, id: expect.any(String) as string, type: 401, enabled: true, exclusions: [] }]);
+    expect(action?.triggers).toEqual([{ commandId: entry?.commandId, id: expect.any(String) as string, type: 401, enabled: true, exclusions: [] }]);
 
     expect(exported.data.commands).toHaveLength(1);
     const command = exported.data.commands[0];
-    expect(command?.id).toBe(generated.commandId);
+    expect(command?.id).toBe(entry?.commandId);
     expect(command?.name).toBe('so');
     expect(command?.command).toBe('!so');
     // Imports disabled on purpose: a handful of fields on the command object remain unverified,
@@ -140,22 +205,36 @@ describe('command package generation', () => {
     expect(command?.enabled).toBe(false);
   });
 
-  it('uses the configured prefix, falling back to "!" for an invalid one', () => {
-    const design = createCommandDesign({ name: 'so', approvedByCreator: true });
-    expect(generateCommandPackage(design, '?').sourceCode).toContain('"?so"');
-    expect(generateCommandPackage(design, '').sourceCode).toContain('"!so"');
-    expect(generateCommandPackage(design, 'ab').sourceCode).toContain('"!so"');
+  it('generates one package containing an action, command, and trigger per design in the batch', () => {
+    const designs = createCommandDesigns([
+      { name: 'so', approvedByCreator: true },
+      { name: 'greet', approvedByCreator: true },
+    ]);
+    const generated = generateCommandsPackage(designs, '!');
+    expect(generated.filename).toBe('thsv-generated-batch-2-commands.sb');
+    expect(generated.commands.map((entry) => entry.name)).toEqual(['so', 'greet']);
+    const decoded = Buffer.from(generated.contentBase64, 'base64');
+    const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: unknown[]; commands: unknown[] } };
+    expect(exported.data.actions).toHaveLength(2);
+    expect(exported.data.commands).toHaveLength(2);
   });
 
-  it('is deterministic for the same design and prefix', () => {
-    const design = createCommandDesign({ name: 'greet', approvedByCreator: true });
-    expect(generateCommandPackage(design, '!')).toEqual(generateCommandPackage(design, '!'));
+  it('uses the configured prefix, falling back to "!" for an invalid one', () => {
+    const designs = createCommandDesigns([{ name: 'so', approvedByCreator: true }]);
+    expect(generateCommandsPackage(designs, '?').commands[0]?.sourceCode).toContain('"?so"');
+    expect(generateCommandsPackage(designs, '').commands[0]?.sourceCode).toContain('"!so"');
+    expect(generateCommandsPackage(designs, 'ab').commands[0]?.sourceCode).toContain('"!so"');
+  });
+
+  it('is deterministic for the same batch and prefix', () => {
+    const designs = createCommandDesigns([{ name: 'greet', approvedByCreator: true }]);
+    expect(generateCommandsPackage(designs, '!')).toEqual(generateCommandsPackage(designs, '!'));
   });
 
   it('produces different IDs for different command names', () => {
-    const first = generateCommandPackage(createCommandDesign({ name: 'greet', approvedByCreator: true }), '!');
-    const second = generateCommandPackage(createCommandDesign({ name: 'wave', approvedByCreator: true }), '!');
-    expect(first.actionId).not.toBe(second.actionId);
-    expect(first.commandId).not.toBe(second.commandId);
+    const first = generateCommandsPackage(createCommandDesigns([{ name: 'greet', approvedByCreator: true }]), '!').commands[0];
+    const second = generateCommandsPackage(createCommandDesigns([{ name: 'wave', approvedByCreator: true }]), '!').commands[0];
+    expect(first?.actionId).not.toBe(second?.actionId);
+    expect(first?.commandId).not.toBe(second?.commandId);
   });
 });

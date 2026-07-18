@@ -122,12 +122,12 @@ export class DiagnosticsServer {
       if (request.method === 'POST' && request.url === '/wizard/api/commands/generate' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, await this.wizard.generateCommand(JSON.parse(body.text) as unknown));
+        return this.reply(response, 200, await this.wizard.generateCommands(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/commands/verify' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, await this.wizard.verifyGeneratedCommand(JSON.parse(body.text) as unknown));
+        return this.reply(response, 200, await this.wizard.verifyGeneratedCommands(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'GET' && request.url === '/wizard/api/diagnostics' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);

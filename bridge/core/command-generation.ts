@@ -1,4 +1,9 @@
-import { buildStreamerBotPackage, stableStreamerBotUuid } from '../services/streamerbot-package-builder.js';
+import {
+  buildStreamerBotPackage,
+  stableStreamerBotUuid,
+  type StreamerBotPackageActionInput,
+  type StreamerBotPackageCommandInput,
+} from '../services/streamerbot-package-builder.js';
 
 export const COMMAND_GENERATION_PACKAGE_VERSION = '1.0.0';
 
@@ -6,6 +11,7 @@ const NAME_PATTERN = /^[a-z][a-z0-9-]*$/u;
 const MAX_NAME_LENGTH = 64;
 const MAX_ALIASES = 20;
 const MAX_NOTE_LENGTH = 500;
+const MAX_BATCH_SIZE = 20;
 const ROLES = ['viewer', 'subscriber', 'moderator', 'broadcaster'] as const;
 
 export type CommandGenerationRole = typeof ROLES[number];
@@ -47,6 +53,27 @@ function isRole(value: string): value is CommandGenerationRole {
   return (ROLES as readonly string[]).includes(value);
 }
 
+// Validates a whole batch at once: each design individually (createCommandDesign), plus that no
+// two designs in the same submission share a name or alias — a duplicate within the batch is
+// just as much a problem as a duplicate against live Streamer.bot state, and catching it here
+// means the creator sees it before any collision check runs, not buried inside the results.
+export function createCommandDesigns(inputs: readonly CommandDesignInput[]): CommandDesign[] {
+  if (inputs.length === 0) throw new InvalidCommandDesignError('At least one command design is required.');
+  if (inputs.length > MAX_BATCH_SIZE) throw new InvalidCommandDesignError(`At most ${String(MAX_BATCH_SIZE)} commands can be generated in one batch.`);
+  const designs = inputs.map((input) => createCommandDesign(input));
+  const seen = new Map<string, number>();
+  for (const [index, design] of designs.entries()) {
+    for (const token of [design.name, ...design.aliases]) {
+      const previous = seen.get(token);
+      if (previous !== undefined) {
+        throw new InvalidCommandDesignError(`"${token}" is used by both design ${String(previous)} and design ${String(index)} in this batch.`);
+      }
+      seen.set(token, index);
+    }
+  }
+  return designs;
+}
+
 // The wizard HTTP boundary hands this raw, untrusted JSON — the same "unknown in, validated
 // domain type out" shape wizard-configuration.ts's stage()/stageImport() already use for their
 // own request bodies.
@@ -66,6 +93,14 @@ export function parseCommandDesignInput(value: unknown): CommandDesignInput {
     ...(typeof record['minimumRole'] === 'string' ? { minimumRole: record['minimumRole'] } : {}),
     ...(typeof record['note'] === 'string' ? { note: record['note'] } : {}),
   };
+}
+
+// Parses the wizard's batch request body: { designs: [...] }.
+export function parseCommandDesignsInput(value: unknown): CommandDesignInput[] {
+  if (typeof value !== 'object' || value === null) throw new InvalidCommandDesignError('Request body must be a JSON object.');
+  const designs = (value as Record<string, unknown>)['designs'];
+  if (!Array.isArray(designs)) throw new InvalidCommandDesignError('designs is required and must be an array.');
+  return designs.map((entry) => parseCommandDesignInput(entry));
 }
 
 function normalizeCommandToken(value: string, field: string): string {
@@ -99,6 +134,10 @@ export interface CommandCollision {
   readonly matchedOn: string;
 }
 
+export interface BatchCommandCollision extends CommandCollision {
+  readonly designIndex: number;
+}
+
 // Runs before generation, not after: every proposed name and alias is checked case-insensitively
 // against both live actions and live commands, regardless of whether the bridge owns the
 // colliding object. A creator's own unrelated object with the same name is just as much a
@@ -118,51 +157,67 @@ export function findCommandCollision(design: CommandDesign, live: LiveInventory)
   return undefined;
 }
 
+// Batch form of findCommandCollision: checks every design in the submitted batch against live
+// inventory and returns all collisions found (not just the first), each tagged with which design
+// in the batch it belongs to. createCommandDesigns() already rejects a name/alias reused across
+// designs in the same batch, so this only needs to check against live Streamer.bot state.
+export function findAllCommandCollisions(designs: readonly CommandDesign[], live: LiveInventory): BatchCommandCollision[] {
+  const collisions: BatchCommandCollision[] = [];
+  for (const [designIndex, design] of designs.entries()) {
+    const collision = findCommandCollision(design, live);
+    if (collision !== undefined) collisions.push({ ...collision, designIndex });
+  }
+  return collisions;
+}
+
 function matchToken(proposed: readonly string[], liveToken: string): string | undefined {
   const lowerLive = liveToken.toLowerCase();
   return proposed.find((token) => token.toLowerCase() === lowerLive);
 }
 
-export interface GeneratedCommandPackage {
-  readonly filename: string;
-  readonly contentBase64: string;
+export interface GeneratedCommandEntry {
+  readonly name: string;
   readonly actionId: string;
   readonly commandId: string;
   readonly sourceCode: string;
 }
 
+export interface GeneratedCommandsPackage {
+  readonly filename: string;
+  readonly contentBase64: string;
+  readonly commands: readonly GeneratedCommandEntry[];
+}
+
 const DEFAULT_PREFIX = '!';
 
-// Generates a package containing a minimal, fully reviewable stub action, a native Command
-// object, and the trigger on the action that binds them — all three confirmed necessary and
-// sufficient by decoding a real Streamer.bot v1.0.5-alpha.31 export (a manually created command
-// bound to a manually created action). That export also revealed the command's trigger phrase
-// is a single string (`command`, prefix included) rather than a list, so aliases designed here
-// are used only for the collision check, not embedded in the generated command — the stub
-// action's source tells the creator to add them through Streamer.bot's own Command(s) box after
-// import, the same well-understood native step every Streamer.bot user already knows. The
-// command still imports disabled: a handful of fields on it (bot/message filtering toggles,
-// exact `sources` bitmask beyond the one confirmed value) remain unverified, and importing
-// disabled keeps a wrong guess on those inert until the creator reviews and enables it.
-export function generateCommandPackage(design: CommandDesign, prefix: string): GeneratedCommandPackage {
+// Generates one package containing, for every design in the batch, a minimal fully-reviewable
+// stub action, a native Command object, and the trigger on the action that binds them — all
+// three confirmed necessary and sufficient by decoding a real Streamer.bot v1.0.5-alpha.31
+// export (a manually created command bound to a manually created action). That export also
+// revealed the command's trigger phrase is a single string (`command`, prefix included) rather
+// than a list, so aliases designed here are used only for the collision check, not embedded in
+// the generated command — each stub action's source tells the creator to add them through
+// Streamer.bot's own Command(s) box after import, the same well-understood native step every
+// Streamer.bot user already knows. Every command still imports disabled: a handful of fields on
+// it (bot/message filtering toggles, exact `sources` bitmask beyond the one confirmed value)
+// remain unverified, and importing disabled keeps a wrong guess on those inert until the creator
+// reviews and enables it. Multiple actions in one package is the same pattern
+// native-platform-intake already uses (one package, several independently-triggered actions).
+export function generateCommandsPackage(designs: readonly CommandDesign[], prefix: string): GeneratedCommandsPackage {
+  if (designs.length === 0) throw new InvalidCommandDesignError('At least one command design is required.');
   const normalizedPrefix = prefix.length === 1 && !/\s/u.test(prefix) ? prefix : DEFAULT_PREFIX;
-  const actionName = `THSV Generated - ${design.name}`;
-  const identitySeed = `wizard-generated:${design.name}`;
-  const actionId = stableStreamerBotUuid(`${identitySeed}:action`);
-  const commandId = stableStreamerBotUuid(`${identitySeed}:command`);
-  const triggerId = stableStreamerBotUuid(`${identitySeed}:trigger`);
-  const commandPhrase = `${normalizedPrefix}${design.name}`;
-  const sourceCode = generateCommandActionSource(design, commandPhrase);
-  const contentBase64 = buildStreamerBotPackage(
-    {
-      name: actionName,
-      author: 'THSV StreamBridge wizard',
-      version: COMMAND_GENERATION_PACKAGE_VERSION,
-      description: `Wizard-generated stub for the "${design.name}" command. Review the source before enabling.`,
-      minimumStreamerBotVersion: '1.0.0',
-      concurrent: true,
-    },
-    [{
+  const actionInputs: StreamerBotPackageActionInput[] = [];
+  const commandInputs: StreamerBotPackageCommandInput[] = [];
+  const commands: GeneratedCommandEntry[] = [];
+  for (const design of designs) {
+    const actionName = `THSV Generated - ${design.name}`;
+    const identitySeed = `wizard-generated:${design.name}`;
+    const actionId = stableStreamerBotUuid(`${identitySeed}:action`);
+    const commandId = stableStreamerBotUuid(`${identitySeed}:command`);
+    const triggerId = stableStreamerBotUuid(`${identitySeed}:trigger`);
+    const commandPhrase = `${normalizedPrefix}${design.name}`;
+    const sourceCode = generateCommandActionSource(design, commandPhrase);
+    actionInputs.push({
       name: actionName,
       group: 'THSV StreamBridge / Generated',
       id: actionId,
@@ -170,17 +225,36 @@ export function generateCommandPackage(design: CommandDesign, prefix: string): G
       sourceCode,
       stableIdentitySeed: identitySeed,
       triggers: [{ commandId, id: triggerId, stableIdentitySeed: identitySeed }],
-    }],
-    [{
+    });
+    commandInputs.push({
       id: commandId,
       name: design.name,
       command: commandPhrase,
       enabled: false,
       caseSensitive: false,
       stableIdentitySeed: identitySeed,
-    }],
+    });
+    commands.push({ name: design.name, actionId, commandId, sourceCode });
+  }
+  const firstName = designs[0]?.name ?? '';
+  const packageName = designs.length === 1 ? `THSV Generated - ${firstName}` : `THSV Generated - ${String(designs.length)} commands`;
+  const description = designs.length === 1
+    ? `Wizard-generated stub for the "${firstName}" command. Review the source before enabling.`
+    : `Wizard-generated stubs for ${String(designs.length)} commands (${designs.map((design) => design.name).join(', ')}). Review the source before enabling.`;
+  const filename = designs.length === 1 ? `thsv-generated-${firstName}.sb` : `thsv-generated-batch-${String(designs.length)}-commands.sb`;
+  const contentBase64 = buildStreamerBotPackage(
+    {
+      name: packageName,
+      author: 'THSV StreamBridge wizard',
+      version: COMMAND_GENERATION_PACKAGE_VERSION,
+      description,
+      minimumStreamerBotVersion: '1.0.0',
+      concurrent: true,
+    },
+    actionInputs,
+    commandInputs,
   );
-  return { filename: `thsv-generated-${design.name}.sb`, contentBase64, actionId, commandId, sourceCode };
+  return { filename, contentBase64, commands };
 }
 
 function generateCommandActionSource(design: CommandDesign, commandPhrase: string): string {

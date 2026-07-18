@@ -9,12 +9,12 @@ import { reconcileCommandSync, type CommandSyncStore } from './command-sync-stor
 import type { SyncedCommand } from '../contracts/v2/command-sync.js';
 import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
 import {
-  createCommandDesign,
-  findCommandCollision,
-  generateCommandPackage,
-  parseCommandDesignInput,
+  createCommandDesigns,
+  findAllCommandCollisions,
+  generateCommandsPackage,
+  parseCommandDesignsInput,
   InvalidCommandDesignError,
-  type CommandCollision,
+  type BatchCommandCollision,
   type CommandDesign,
 } from '../core/command-generation.js';
 
@@ -58,13 +58,17 @@ export interface CommandSyncResult {
 export interface CommandGenerationResult {
   readonly generatedAt: string;
   readonly available: boolean;
-  readonly design?: CommandDesign;
-  readonly collision?: CommandCollision;
-  readonly package?: { readonly filename: string; readonly contentBase64: string; readonly actionId: string; readonly commandId: string };
+  readonly designs?: readonly CommandDesign[];
+  readonly collisions?: readonly BatchCommandCollision[];
+  readonly package?: {
+    readonly filename: string;
+    readonly contentBase64: string;
+    readonly commands: readonly { readonly name: string; readonly actionId: string; readonly commandId: string; readonly sourceCode: string }[];
+  };
   readonly error?: string;
 }
 
-export interface CommandVerificationInput {
+export interface CommandVerificationEntryInput {
   readonly commandId: string;
   readonly name: string;
   readonly aliases?: readonly string[];
@@ -74,6 +78,8 @@ export interface CommandVerificationResult {
   readonly verifiedAt: string;
   readonly available: boolean;
   readonly verified: boolean;
+  readonly verifiedCommandIds?: readonly string[];
+  readonly notFoundCommandIds?: readonly string[];
   readonly commands?: readonly SyncedCommand[];
   readonly error?: string;
 }
@@ -180,16 +186,19 @@ export class WizardService {
 
   // Tier 2: generate-and-verify, for command creation and deletion that no documented
   // Streamer.bot API level (C# or WebSocket) supports. Always runs a fresh live collision check
-  // immediately before generating anything — a design is never generated against a stale
-  // inspection from an earlier call.
-  public async generateCommand(input: unknown): Promise<CommandGenerationResult> {
+  // immediately before generating anything — a batch is never generated against a stale
+  // inspection from an earlier call. The whole batch is rejected if any design collides (with
+  // live Streamer.bot state, or with another design in the same batch) — a partially-generated
+  // batch would be confusing to reason about, so the creator fixes the offending name(s) and
+  // resubmits the whole batch rather than getting a package with some designs silently dropped.
+  public async generateCommands(input: unknown): Promise<CommandGenerationResult> {
     const generatedAt = new Date().toISOString();
     if (this.inspector === undefined) {
       return { generatedAt, available: false, error: 'Command generation requires Streamer.bot output to be configured for a fresh collision check.' };
     }
-    let design: CommandDesign;
+    let designs: readonly CommandDesign[];
     try {
-      design = createCommandDesign(parseCommandDesignInput(input));
+      designs = createCommandDesigns(parseCommandDesignsInput(input));
     } catch (error) {
       return { generatedAt, available: false, error: error instanceof Error ? error.message : String(error) };
     }
@@ -199,14 +208,14 @@ export class WizardService {
         this.inspector.inspectCommands(),
         this.configuration?.commandPrefix() ?? Promise.resolve('!'),
       ]);
-      const collision = findCommandCollision(design, { actions, commands });
-      if (collision !== undefined) return { generatedAt, available: true, design, collision };
-      const generated = generateCommandPackage(design, prefix);
+      const collisions = findAllCommandCollisions(designs, { actions, commands });
+      if (collisions.length > 0) return { generatedAt, available: true, designs, collisions };
+      const generated = generateCommandsPackage(designs, prefix);
       return {
         generatedAt,
         available: true,
-        design,
-        package: { filename: generated.filename, contentBase64: generated.contentBase64, actionId: generated.actionId, commandId: generated.commandId },
+        designs,
+        package: { filename: generated.filename, contentBase64: generated.contentBase64, commands: generated.commands },
       };
     } catch (error) {
       return { generatedAt, available: false, error: error instanceof Error ? error.message : String(error) };
@@ -214,38 +223,50 @@ export class WizardService {
   }
 
   // The wizard never marks a generated command as owned or synced until this re-inspects and
-  // confirms the generated ID is actually present in Streamer.bot. If it is not, nothing is
-  // persisted — a rejected or malformed import leaves no trace in the sync mirror.
-  public async verifyGeneratedCommand(rawInput: unknown): Promise<CommandVerificationResult> {
+  // confirms the generated ID is actually present in Streamer.bot. Entries that aren't found yet
+  // are simply left unverified — nothing is persisted for them — so a partially-completed import
+  // (some commands bound and enabled, others not yet) is handled correctly: whatever is
+  // confirmed live gets tracked, whatever isn't stays untouched until the creator checks again.
+  public async verifyGeneratedCommands(rawInput: unknown): Promise<CommandVerificationResult> {
     const verifiedAt = new Date().toISOString();
     if (this.inspector === undefined || this.commandSyncStore === undefined) {
       return { verifiedAt, available: false, verified: false, error: 'Command verification requires both Streamer.bot output and command sync storage to be configured.' };
     }
-    let input: CommandVerificationInput;
+    let inputs: readonly CommandVerificationEntryInput[];
     try {
-      input = parseCommandVerificationInput(rawInput);
+      inputs = parseCommandVerificationInputs(rawInput);
     } catch (error) {
       return { verifiedAt, available: false, verified: false, error: error instanceof Error ? error.message : String(error) };
     }
     try {
       const observed = await this.inspector.inspectCommands();
-      const found = observed.find((command) => command.id === input.commandId);
-      if (found === undefined) return { verifiedAt, available: true, verified: false };
       const state = await this.commandSyncStore.load();
-      const entry: SyncedCommand = {
-        contractVersion: CORE_CONTRACT_VERSION,
-        streamerBotId: input.commandId,
-        name: found.name,
-        aliases: [...(input.aliases ?? [])],
-        source: 'wizard-generated',
-        lastSeenAt: verifiedAt,
-        driftStatus: found.name === input.name ? 'in-sync' : 'renamed',
-      };
-      const commands = [...state.commands.filter((existing) => existing.streamerBotId !== input.commandId), entry];
-      this.commandSyncStore.scheduleSave({ version: 1, commands });
-      const result: CommandSyncResult = { syncedAt: verifiedAt, available: true, commands };
-      this.lastCommandSync = result;
-      return { verifiedAt, available: true, verified: true, commands };
+      const verifiedCommandIds: string[] = [];
+      const notFoundCommandIds: string[] = [];
+      const verifiedEntries = new Map<string, SyncedCommand>();
+      for (const input of inputs) {
+        const found = observed.find((command) => command.id === input.commandId);
+        if (found === undefined) {
+          notFoundCommandIds.push(input.commandId);
+          continue;
+        }
+        verifiedCommandIds.push(input.commandId);
+        verifiedEntries.set(input.commandId, {
+          contractVersion: CORE_CONTRACT_VERSION,
+          streamerBotId: input.commandId,
+          name: found.name,
+          aliases: [...(input.aliases ?? [])],
+          source: 'wizard-generated',
+          lastSeenAt: verifiedAt,
+          driftStatus: found.name === input.name ? 'in-sync' : 'renamed',
+        });
+      }
+      const commands = [...state.commands.filter((existing) => !verifiedEntries.has(existing.streamerBotId)), ...verifiedEntries.values()];
+      if (verifiedEntries.size > 0) {
+        this.commandSyncStore.scheduleSave({ version: 1, commands });
+        this.lastCommandSync = { syncedAt: verifiedAt, available: true, commands };
+      }
+      return { verifiedAt, available: true, verified: verifiedEntries.size > 0, verifiedCommandIds, notFoundCommandIds, commands };
     } catch (error) {
       return { verifiedAt, available: false, verified: false, error: error instanceof Error ? error.message : String(error) };
     }
@@ -312,8 +333,15 @@ function isOwned(kind: WizardOwnedObject['kind'], id: string, name: string): boo
   return PACKAGE_OWNERSHIP.some((object) => object.kind === kind && object.id === id && object.name === name);
 }
 
-function parseCommandVerificationInput(value: unknown): CommandVerificationInput {
+function parseCommandVerificationInputs(value: unknown): CommandVerificationEntryInput[] {
   if (typeof value !== 'object' || value === null) throw new InvalidCommandDesignError('Request body must be a JSON object.');
+  const commands = (value as Record<string, unknown>)['commands'];
+  if (!Array.isArray(commands)) throw new InvalidCommandDesignError('commands is required and must be an array.');
+  return commands.map((entry) => parseCommandVerificationEntry(entry));
+}
+
+function parseCommandVerificationEntry(value: unknown): CommandVerificationEntryInput {
+  if (typeof value !== 'object' || value === null) throw new InvalidCommandDesignError('Each entry in commands must be a JSON object.');
   const record = value as Record<string, unknown>;
   if (typeof record['commandId'] !== 'string' || record['commandId'].trim().length === 0) {
     throw new InvalidCommandDesignError('commandId is required and must be a string.');

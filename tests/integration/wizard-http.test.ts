@@ -97,7 +97,7 @@ describe('wizard HTTP surface', () => {
     expect(saved?.commands[0]).toMatchObject({ driftStatus: 'renamed', name: 'shoutout-renamed' });
   });
 
-  it('generates a Tier 2 command package, refuses to sync it until import is confirmed, then verifies it', async () => {
+  it('generates a Tier 2 command package for a batch, refuses to sync until import is confirmed, then verifies what is live', async () => {
     const config = await testConfig();
     config.service.port = 0;
     let liveCommands: Array<{ id: string; name: string; enabled: boolean }> = [];
@@ -122,31 +122,50 @@ describe('wizard HTTP surface', () => {
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
 
     const generateResponse = await fetch(`${baseUrl}/wizard/api/commands/generate`, {
-      method: 'POST', headers, body: JSON.stringify({ name: 'so', aliases: ['shoutout'], approvedByCreator: true }),
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ designs: [{ name: 'so', aliases: ['shoutout'], approvedByCreator: true }, { name: 'greet', approvedByCreator: true }] }),
     });
     expect(generateResponse.status).toBe(200);
-    const generated = await generateResponse.json() as { available: boolean; package: { filename: string; contentBase64: string; commandId: string } };
+    const generated = await generateResponse.json() as {
+      available: boolean;
+      package: { filename: string; contentBase64: string; commands: Array<{ name: string; commandId: string }> };
+    };
     expect(generated.available).toBe(true);
-    expect(generated.package.filename).toBe('thsv-generated-so.sb');
+    expect(generated.package.filename).toBe('thsv-generated-batch-2-commands.sb');
+    expect(generated.package.commands.map((command) => command.name)).toEqual(['so', 'greet']);
+    const soCommandId = generated.package.commands.find((command) => command.name === 'so')?.commandId;
+    const greetCommandId = generated.package.commands.find((command) => command.name === 'greet')?.commandId;
 
     // Before the creator has actually imported the package into Streamer.bot, the generated
-    // command ID is not live yet — verification must refuse to mark it synced.
+    // command IDs are not live yet — verification must refuse to mark either one synced.
     const tooEarly = await fetch(`${baseUrl}/wizard/api/commands/verify`, {
-      method: 'POST', headers, body: JSON.stringify({ commandId: generated.package.commandId, name: 'so' }),
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ commands: [{ commandId: soCommandId, name: 'so' }, { commandId: greetCommandId, name: 'greet' }] }),
     });
     expect(tooEarly.status).toBe(200);
-    expect(await tooEarly.json()).toMatchObject({ available: true, verified: false });
+    expect(await tooEarly.json()).toMatchObject({ available: true, verified: false, verifiedCommandIds: [], notFoundCommandIds: [soCommandId, greetCommandId] });
     expect(saved).toBeUndefined();
 
-    // Simulate the creator having imported the package and Streamer.bot now reporting it live.
-    liveCommands = [{ id: generated.package.commandId, name: 'so', enabled: false }];
+    // Simulate the creator having imported and enabled only one of the two commands so far.
+    liveCommands = [{ id: soCommandId ?? '', name: 'so', enabled: true }];
     const verified = await fetch(`${baseUrl}/wizard/api/commands/verify`, {
-      method: 'POST', headers, body: JSON.stringify({ commandId: generated.package.commandId, name: 'so', aliases: ['shoutout'] }),
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ commands: [{ commandId: soCommandId, name: 'so', aliases: ['shoutout'] }, { commandId: greetCommandId, name: 'greet' }] }),
     });
     expect(verified.status).toBe(200);
-    const verifiedBody = await verified.json() as { verified: boolean; commands: Array<{ streamerBotId: string; source: string }> };
+    const verifiedBody = await verified.json() as {
+      verified: boolean;
+      verifiedCommandIds: string[];
+      notFoundCommandIds: string[];
+      commands: Array<{ streamerBotId: string; source: string }>;
+    };
     expect(verifiedBody.verified).toBe(true);
-    expect(verifiedBody.commands).toEqual([expect.objectContaining({ streamerBotId: generated.package.commandId, source: 'wizard-generated' }) as unknown]);
+    expect(verifiedBody.verifiedCommandIds).toEqual([soCommandId]);
+    expect(verifiedBody.notFoundCommandIds).toEqual([greetCommandId]);
+    expect(verifiedBody.commands).toEqual([expect.objectContaining({ streamerBotId: soCommandId, source: 'wizard-generated' }) as unknown]);
     expect(saved?.commands).toEqual(verifiedBody.commands);
   });
 });

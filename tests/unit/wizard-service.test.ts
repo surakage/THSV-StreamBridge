@@ -77,42 +77,59 @@ describe('Stage 3 wizard service', () => {
 describe('Stage 5 step 4: Tier 2 command generation', () => {
   it('generates a package after a fresh collision check finds no conflict', async () => {
     const service = new WizardService(inspector());
-    const result = await service.generateCommand({ name: 'so', aliases: ['shoutout'], approvedByCreator: true });
+    const result = await service.generateCommands({ designs: [{ name: 'so', aliases: ['shoutout'], approvedByCreator: true }] });
     expect(result.available).toBe(true);
-    expect(result.collision).toBeUndefined();
-    expect(result.design).toEqual({ name: 'so', aliases: ['shoutout'], minimumRole: 'viewer', note: '' });
+    expect(result.collisions).toBeUndefined();
+    expect(result.designs).toEqual([{ name: 'so', aliases: ['shoutout'], minimumRole: 'viewer', note: '' }]);
     expect(result.package?.filename).toBe('thsv-generated-so.sb');
+    expect(result.package?.commands).toEqual([{ name: 'so', actionId: expect.any(String) as string, commandId: expect.any(String) as string, sourceCode: expect.any(String) as string }]);
     expect(typeof result.package?.contentBase64).toBe('string');
   });
 
-  it('refuses to generate a design that collides with a live command, regardless of ownership', async () => {
+  it('generates one package for a batch of several designs', async () => {
+    const service = new WizardService(inspector());
+    const result = await service.generateCommands({
+      designs: [{ name: 'so', approvedByCreator: true }, { name: 'greet', approvedByCreator: true }],
+    });
+    expect(result.available).toBe(true);
+    expect(result.package?.commands.map((command) => command.name)).toEqual(['so', 'greet']);
+  });
+
+  it('refuses to generate a batch where any design collides with a live command, regardless of ownership', async () => {
     const creatorInspector: StreamerBotInspector = {
       inspectActions: () => Promise.resolve([]),
       inspectCommands: () => Promise.resolve([{ id: 'creator-command', name: 'hello', enabled: true }]),
       inspectionRequests: () => [],
     };
     const service = new WizardService(creatorInspector);
-    const result = await service.generateCommand({ name: 'hello', approvedByCreator: true });
+    const result = await service.generateCommands({ designs: [{ name: 'so', approvedByCreator: true }, { name: 'hello', approvedByCreator: true }] });
     expect(result.available).toBe(true);
     expect(result.package).toBeUndefined();
-    expect(result.collision).toMatchObject({ kind: 'command', id: 'creator-command', name: 'hello' });
+    expect(result.collisions).toEqual([{ kind: 'command', id: 'creator-command', name: 'hello', matchedOn: 'hello', designIndex: 1 }]);
   });
 
   it('reports generation as unavailable without throwing when no inspector is configured', async () => {
     const service = new WizardService(undefined);
-    const result = await service.generateCommand({ name: 'so', approvedByCreator: true });
+    const result = await service.generateCommands({ designs: [{ name: 'so', approvedByCreator: true }] });
     expect(result).toMatchObject({ available: false });
     expect(result.error).toContain('Streamer.bot output');
   });
 
   it('reports an invalid design without throwing', async () => {
     const service = new WizardService(inspector());
-    const result = await service.generateCommand({ name: 'So!', approvedByCreator: true });
+    const result = await service.generateCommands({ designs: [{ name: 'So!', approvedByCreator: true }] });
     expect(result.available).toBe(false);
     expect(result.error).toContain('letters, numbers, and hyphens');
   });
 
-  it('never marks a command synced until re-inspection confirms the generated ID is live', async () => {
+  it('rejects a name reused across designs in the same batch without throwing', async () => {
+    const service = new WizardService(inspector());
+    const result = await service.generateCommands({ designs: [{ name: 'so', approvedByCreator: true }, { name: 'so', approvedByCreator: true }] });
+    expect(result.available).toBe(false);
+    expect(result.error).toContain('used by both design 0 and design 1');
+  });
+
+  it('never marks a command synced until re-inspection confirms the generated ID is live, and handles a partial batch', async () => {
     let saved: CommandSyncState | undefined;
     const store: CommandSyncStore = {
       load: () => Promise.resolve({ version: 1, commands: [] }),
@@ -121,8 +138,8 @@ describe('Stage 5 step 4: Tier 2 command generation', () => {
       status: () => ({ enabled: true }),
     };
     const notYetImported = new WizardService(inspector(), undefined, store);
-    const missing = await notYetImported.verifyGeneratedCommand({ commandId: 'not-yet-imported', name: 'so' });
-    expect(missing).toMatchObject({ available: true, verified: false });
+    const missing = await notYetImported.verifyGeneratedCommands({ commands: [{ commandId: 'not-yet-imported', name: 'so' }] });
+    expect(missing).toMatchObject({ available: true, verified: false, verifiedCommandIds: [], notFoundCommandIds: ['not-yet-imported'] });
     expect(saved).toBeUndefined();
 
     const afterImportInspector: StreamerBotInspector = {
@@ -131,9 +148,13 @@ describe('Stage 5 step 4: Tier 2 command generation', () => {
       inspectionRequests: () => [],
     };
     const afterImport = new WizardService(afterImportInspector, undefined, store);
-    const verified = await afterImport.verifyGeneratedCommand({ commandId: 'generated-command-1', name: 'so', aliases: ['shoutout'] });
+    const verified = await afterImport.verifyGeneratedCommands({
+      commands: [{ commandId: 'generated-command-1', name: 'so', aliases: ['shoutout'] }, { commandId: 'still-not-imported', name: 'greet' }],
+    });
     expect(verified.available).toBe(true);
     expect(verified.verified).toBe(true);
+    expect(verified.verifiedCommandIds).toEqual(['generated-command-1']);
+    expect(verified.notFoundCommandIds).toEqual(['still-not-imported']);
     expect(verified.commands).toEqual([expect.objectContaining({
       streamerBotId: 'generated-command-1', name: 'so', aliases: ['shoutout'], source: 'wizard-generated', driftStatus: 'in-sync',
     }) as unknown]);
@@ -142,7 +163,7 @@ describe('Stage 5 step 4: Tier 2 command generation', () => {
 
   it('reports verification as unavailable rather than throwing when no store is configured', async () => {
     const service = new WizardService(inspector());
-    const result = await service.verifyGeneratedCommand({ commandId: 'x', name: 'so' });
+    const result = await service.verifyGeneratedCommands({ commands: [{ commandId: 'x', name: 'so' }] });
     expect(result).toMatchObject({ available: false, verified: false });
     expect(result.error).toContain('command sync storage');
   });
