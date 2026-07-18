@@ -97,7 +97,7 @@ export class DiagnosticsServer {
       if (stageMatch?.[1] !== undefined && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, this.wizard.stageTransaction(stageMatch[1], JSON.parse(body.text) as never));
+        return this.reply(response, 200, this.wizard.stageTransaction(stageMatch[1], JSON.parse(body.text) as unknown));
       }
       const importMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/import$/u.exec(request.url ?? '') : null;
       if (importMatch?.[1] !== undefined && this.wizard !== undefined) {

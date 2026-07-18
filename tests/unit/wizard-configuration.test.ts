@@ -17,6 +17,7 @@ describe('Stage 4 wizard configuration gateway', () => {
     const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
     const draft = await gateway.begin();
     await expect(gateway.begin()).rejects.toThrow('mutation lease');
+    expect(() => gateway.stage(draft.id, { kind: 'platform', platform: 'twitch', enabled: 'yes' })).toThrow('Staged configuration change is invalid');
     gateway.stage(draft.id, { kind: 'platform', platform: 'twitch', enabled: true, inputEnabled: true, outputEnabled: false });
     const committed = await gateway.commit(draft.id);
     expect(committed.status).toBe('committed');
