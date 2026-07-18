@@ -31,9 +31,17 @@ export class TimedActionsAdapter extends ManagedAdapter {
   private stopping = false;
   private readonly livePlatforms = new Set<string>();
   private readonly chatActivity: Array<{ at: number; platform: string }> = [];
+  private readonly activityRetentionMinutes: number;
   private currentScene: string | undefined;
 
-  public constructor(name: string, config: PlatformConfig, private readonly timedActions: TimedActionsConfig, private readonly random: () => number = Math.random) { super(name, config); }
+  public constructor(name: string, config: PlatformConfig, private readonly timedActions: TimedActionsConfig, private readonly random: () => number = Math.random) {
+    super(name, config);
+    // Activity is shared by all timers, so retain only the longest configured gate window.
+    // Timers without an activity gate do not cause chat timestamps to be retained.
+    this.activityRetentionMinutes = Math.max(0, ...timedActions.definitions
+      .filter((definition) => definition.gates.activity.minimumMessages > 0)
+      .map((definition) => definition.gates.activity.windowMinutes));
+  }
 
   public async start(context: AdapterContext): Promise<void> {
     if (!this.config.enabled || !this.config.inputEnabled) { this.state = 'disabled'; return; }
@@ -68,7 +76,10 @@ export class TimedActionsAdapter extends ManagedAdapter {
     } else if (operation === 'resume' && this.stateData.session.active && this.stateData.session.paused) {
       const shift = Date.now() - Date.parse(this.stateData.session.pausedAt ?? new Date().toISOString());
       this.stateData.session.startedAt = new Date(Date.parse(this.stateData.session.startedAt) + shift).toISOString();
-      for (const timer of Object.values(this.stateData.timers)) if (timer.lastScheduledAt !== undefined) timer.lastScheduledAt = new Date(Date.parse(timer.lastScheduledAt) + shift).toISOString();
+      for (const timer of Object.values(this.stateData.timers)) {
+        if (timer.lastScheduledAt !== undefined) timer.lastScheduledAt = new Date(Date.parse(timer.lastScheduledAt) + shift).toISOString();
+        if (timer.nextScheduledAt !== undefined) timer.nextScheduledAt = new Date(Date.parse(timer.nextScheduledAt) + shift).toISOString();
+      }
       this.stateData.session.paused = false; delete this.stateData.session.pausedAt; await this.persist();
       for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
     }
@@ -79,9 +90,9 @@ export class TimedActionsAdapter extends ManagedAdapter {
   public observe(event: NormalizedEvent): void {
     if (event.eventType === 'stream.online') this.livePlatforms.add(event.platform);
     if (event.eventType === 'stream.offline') this.livePlatforms.delete(event.platform);
-    if (event.eventType === 'chat.message') {
+    if (event.eventType === 'chat.message' && this.activityRetentionMinutes > 0) {
       this.chatActivity.push({ at: Date.parse(event.receivedAt), platform: event.platform });
-      this.pruneActivity(Date.now() - 1_440 * 60_000);
+      this.pruneActivity(Date.now() - this.activityRetentionMinutes * 60_000);
     }
     if (event.eventType === 'stream.scene-changed' && typeof event.payload['sceneName'] === 'string') this.currentScene = event.payload['sceneName'];
   }
@@ -96,7 +107,7 @@ export class TimedActionsAdapter extends ManagedAdapter {
   private clearTimers(): void { for (const timer of this.timers.values()) clearTimeout(timer); this.timers.clear(); }
 
   private async plan(definition: TimedActionDefinition): Promise<void> {
-    if (this.stopping) return;
+    if (this.stopping || !this.stateData.session.active || this.stateData.session.paused) return;
     const timer = this.timerState(definition.id);
     if (definition.intervalMode === 'random') {
       if (timer.nextScheduledAt === undefined) {
@@ -209,8 +220,7 @@ export class TimedActionsAdapter extends ManagedAdapter {
     const { minimumMessages, windowMinutes } = definition.gates.activity;
     if (minimumMessages > 0) {
       const threshold = Date.now() - windowMinutes * 60_000;
-      this.pruneActivity(threshold);
-      const count = this.chatActivity.filter((entry) => definition.gates.platforms.length === 0 || definition.gates.platforms.includes(entry.platform)).length;
+      const count = this.chatActivity.filter((entry) => entry.at >= threshold && (definition.gates.platforms.length === 0 || definition.gates.platforms.includes(entry.platform))).length;
       if (count < minimumMessages) return 'quiet-chat';
     }
     return undefined;

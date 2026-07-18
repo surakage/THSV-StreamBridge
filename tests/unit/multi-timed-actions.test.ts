@@ -104,6 +104,22 @@ describe('Multi-Timed Actions', () => {
     await adapter.stop();
   });
 
+  it('retains shared chat activity for the longest configured gate window', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-07-16T16:00:00.000Z');
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-activity-retention-'));
+    const timer = { ...defaultTimerPolicy, enabled: true, everyMinutes: 1, firstRunAfterMinutes: 0, missedRunPolicy: 'fire-once' as const, payload: {}, selection: { mode: 'fixed' as const } };
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [
+      { ...timer, id: 'short-window', name: 'Short window', gates: { ...defaultTimerPolicy.gates, activity: { minimumMessages: 1, windowMinutes: 5 } } },
+      { ...timer, id: 'long-window', name: 'Long window', gates: { ...defaultTimerPolicy.gates, activity: { minimumMessages: 1, windowMinutes: 30 } } },
+    ] };
+    const events: NormalizedEvent[] = []; const adapter = new TimedActionsAdapter('timers', platform, config);
+    await adapter.start({ logger: silentLogger, emit: (event) => { events.push(event as NormalizedEvent); return Promise.resolve({ accepted: true }); } });
+    const chat = await fixture(); adapter.observe({ ...chat, eventId: 'retained-activity', receivedAt: new Date().toISOString() });
+    await vi.advanceTimersByTimeAsync(20 * 60_000); await adapter.control('start'); await vi.advanceTimersByTimeAsync(0);
+    await vi.waitFor(() => expect(events).toHaveLength(1)); expect(events[0]?.payload['timerId']).toBe('long-window');
+    await adapter.control('stop'); await adapter.stop();
+  });
+
   it('tests a saved action as simulated without requiring the live gates', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'streambridge-test-timer-'));
     const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
@@ -146,6 +162,59 @@ describe('Multi-Timed Actions', () => {
     await adapter.control('start'); await vi.advanceTimersByTimeAsync(5 * 60_000); await adapter.control('pause');
     await vi.advanceTimersByTimeAsync(20 * 60_000); expect(events).toHaveLength(0);
     await adapter.control('resume'); await vi.advanceTimersByTimeAsync(5 * 60_000); await vi.waitFor(() => expect(events).toHaveLength(1));
+    await adapter.control('stop'); await adapter.stop();
+  });
+
+  it('preserves a random timer remaining interval across pause and resume', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-07-16T16:00:00.000Z');
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-random-pause-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
+      ...defaultTimerPolicy, id: 'random-pause', name: 'Random pause', enabled: true, intervalMode: 'random', everyMinutes: 10,
+      minimumMinutes: 10, maximumMinutes: 20, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' },
+    }] };
+    const events: NormalizedEvent[] = []; const adapter = new TimedActionsAdapter('timers', platform, config, () => 0);
+    await adapter.start({ logger: silentLogger, emit: (event) => { events.push(event as NormalizedEvent); return Promise.resolve({ accepted: true }); } });
+    await adapter.control('start');
+    await vi.advanceTimersByTimeAsync(5 * 60_000); await adapter.control('pause');
+    await vi.advanceTimersByTimeAsync(20 * 60_000); await adapter.control('resume');
+    expect(JSON.parse(await readFile(config.stateFile, 'utf8'))).toMatchObject({ timers: { 'random-pause': { nextScheduledAt: '2026-07-16T16:30:00.000Z' } } });
+    await vi.advanceTimersByTimeAsync(5 * 60_000 - 1); expect(events).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1); await vi.waitFor(() => expect(events).toHaveLength(1));
+    await adapter.control('stop'); await adapter.stop();
+  });
+
+  it('never overlaps a slow emission or rearms it after the session stops', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-07-16T16:00:00.000Z');
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-slow-emission-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
+      ...defaultTimerPolicy, id: 'slow-emission', name: 'Slow emission', enabled: true, everyMinutes: 1, firstRunAfterMinutes: 0,
+      missedRunPolicy: 'fire-once', payload: {}, selection: { mode: 'fixed' },
+    }] };
+    let active = 0; let maximumActive = 0; let starts = 0;
+    const adapter = new TimedActionsAdapter('timers', platform, config);
+    await adapter.start({ logger: silentLogger, emit: async () => {
+      starts += 1; active += 1; maximumActive = Math.max(maximumActive, active);
+      await new Promise<void>((resolve) => setTimeout(resolve, 90_000));
+      active -= 1; return { accepted: true };
+    } });
+    await adapter.control('start'); await vi.advanceTimersByTimeAsync(0); await vi.waitFor(() => expect(starts).toBe(1));
+    await vi.advanceTimersByTimeAsync(89_999); expect(starts).toBe(1);
+    await vi.advanceTimersByTimeAsync(1); await vi.advanceTimersByTimeAsync(0); await vi.waitFor(() => expect(starts).toBe(2)); expect(maximumActive).toBe(1);
+    await adapter.control('stop');
+    await vi.advanceTimersByTimeAsync(3 * 60_000); expect(starts).toBe(2); expect(adapter.controlStatus()).toMatchObject({ active: false, armedTimers: 0 });
+    await adapter.stop();
+  });
+
+  it('keeps UTC interval arithmetic stable across a daylight-saving transition', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-03-08T07:30:00.000Z');
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-dst-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
+      ...defaultTimerPolicy, id: 'dst-safe', name: 'DST safe', enabled: true, everyMinutes: 60, missedRunPolicy: 'fire-once', payload: {}, selection: { mode: 'fixed' },
+    }] };
+    const events: NormalizedEvent[] = []; const adapter = new TimedActionsAdapter('timers', platform, config);
+    await adapter.start({ logger: silentLogger, emit: (event) => { events.push(event as NormalizedEvent); return Promise.resolve({ accepted: true }); } });
+    await adapter.control('start'); await vi.advanceTimersByTimeAsync(60 * 60_000); await vi.waitFor(() => expect(events).toHaveLength(1));
+    expect(events[0]?.payload['scheduledAt']).toBe('2026-03-08T08:30:00.000Z');
     await adapter.control('stop'); await adapter.stop();
   });
 

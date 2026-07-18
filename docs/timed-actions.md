@@ -39,6 +39,10 @@ Streamer.bot chat APIs. TikTok uses TikFinity's `sendChatbotMessage` WebSocket a
 **Allow Streamer.bot to push messages to TikFinity** in TikFinity chatbot settings. Live-platform
 gates and delivery-platform switches are intentionally separate.
 
+Timed Message Output is the only THSV StreamBridge package that automatically posts messages to
+live channel chat. Enable only the delivery platforms where the configured messages should appear
+publicly. Wizard test executions are simulated and cannot send externally.
+
 ## Testing and configuration
 
 Use the wizard's Timed Actions page to stage changes. Commit creates a backup and applies the

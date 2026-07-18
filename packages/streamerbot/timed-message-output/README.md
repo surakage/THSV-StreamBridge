@@ -5,6 +5,9 @@ Multi-Timed Actions and dispatches it once to every creator-selected platform. T
 and Kick use their native Streamer.bot C# chat methods. TikTok uses TikFinity's documented
 `sendChatbotMessage` WebSocket broadcast.
 
+**This is the only THSV StreamBridge package that automatically posts messages to your live
+channel.** Select only platforms where you intend the configured messages to appear publicly.
+
 Import `THSV-StreamBridge-Timed-Message-Output-1.0.0.sb`, inspect Streamer.bot from the wizard,
 then choose **THSV StreamBridge - Send Timed Message** as the timer's execution action. Select
 one or more delivery-platform switches. The wizard's **Test saved** operation validates the full

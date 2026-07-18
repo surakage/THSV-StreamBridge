@@ -23,6 +23,7 @@ describe('Multi-Timed Actions Streamer.bot package', () => {
     for (const argument of [...manifest.contract.requiredInputArguments, ...manifest.contract.outputArguments]) expect(source).toContain(`"${argument}"`);
     expect(manifest.contract.executionSafety).toMatchObject({ runsCreatorActions: 'only-explicitly-approved-existing-action-by-id', writesGlobalVariables: false, directTriggers: false });
     expect(source).toContain('CPH.RunActionById(targetActionId, false)');
+    expect(source).toContain('if (!dispatched) CPH.LogWarn');
     expect(source).toContain('targetActionApproved');
     expect(source).toContain('targetActionId == ThisActionId');
     expect(source).not.toMatch(/CPH\.RunAction\(|CPH\.SetGlobalVar|Process\.Start|PowerShell|cmd\.exe|TtsSpeak|BroadcastUdp/);

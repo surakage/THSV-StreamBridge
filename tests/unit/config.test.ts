@@ -90,6 +90,13 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [definition, definition] } }).success).toBe(false);
   });
 
+  it('rejects timed-action intervals outside the documented one-day bounds', async () => {
+    const config = await testConfig();
+    const definition = { id: 'bounded', name: 'Bounded', enabled: true, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...definition, everyMinutes: 0 }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...definition, everyMinutes: 1_441 }] } }).success).toBe(false);
+  });
+
   it('validates random intervals, activity gates, and approved action targets', async () => {
     const config = await testConfig();
     const base = { id: 'random', name: 'Random', enabled: true, intervalMode: 'random', everyMinutes: 15, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' } };

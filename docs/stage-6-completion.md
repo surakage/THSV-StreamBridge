@@ -35,10 +35,12 @@ The wizard does not invent or call an undocumented timer CRUD request.
 
 ## Verification
 
-- Full automated suite: 49 files and 275 tests passed.
+- Full automated suite: 49 files and 280 tests passed.
 - Focused Stage 6 coverage includes random interval persistence, quiet-chat gating, simulated
   test execution, configuration validation, transaction-backed CRUD, package integrity, and
-  approved action-dispatch source review.
+  approved action-dispatch source review. Regression coverage also verifies interval bounds,
+  random pause/resume, non-overlapping slow emissions, stop-during-emission behavior, independent
+  activity windows, and UTC scheduling across a daylight-saving transition.
 - Lint and typecheck pass cleanly.
 - Live package metadata confirmed: `THSV StreamBridge - Multi-Timed Actions`, author `surakage`,
   export version `1.2.0`, and the expected package description. Timed Message Output 1.0.0 is
