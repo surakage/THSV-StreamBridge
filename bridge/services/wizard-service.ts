@@ -194,10 +194,14 @@ export class WizardService {
       return { generatedAt, available: false, error: error instanceof Error ? error.message : String(error) };
     }
     try {
-      const [actions, commands] = await Promise.all([this.inspector.inspectActions(), this.inspector.inspectCommands()]);
+      const [actions, commands, prefix] = await Promise.all([
+        this.inspector.inspectActions(),
+        this.inspector.inspectCommands(),
+        this.configuration?.commandPrefix() ?? Promise.resolve('!'),
+      ]);
       const collision = findCommandCollision(design, { actions, commands });
       if (collision !== undefined) return { generatedAt, available: true, design, collision };
-      const generated = generateCommandPackage(design);
+      const generated = generateCommandPackage(design, prefix);
       return {
         generatedAt,
         available: true,

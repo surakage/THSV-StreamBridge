@@ -56,6 +56,13 @@ export class WizardConfigurationGateway {
     private readonly backupDirectory = resolve(dirname(configPath), '..', 'backups', 'wizard'),
   ) {}
 
+  // Narrow accessor for Tier 2 command generation, which needs only the configured prefix to
+  // build a Streamer.bot-native trigger phrase — not the full snapshot() shape.
+  public async commandPrefix(): Promise<string> {
+    const config = await this.readConfig();
+    return config.commands.prefix;
+  }
+
   public async snapshot(): Promise<Readonly<Record<string, unknown>>> {
     const config = await this.readConfig();
     return {

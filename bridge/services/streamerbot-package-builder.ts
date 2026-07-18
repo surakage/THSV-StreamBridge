@@ -7,6 +7,16 @@ import { gzipSync } from 'node:zlib';
 // input, which tests/unit/*-package-files.test.ts already verify for every shipped package —
 // this module is the thing making that guarantee possible without duplicating the logic.
 
+// Confirmed against a real Streamer.bot v1.0.5-alpha.31 export (a manually created command bound
+// to a manually created action, decoded and inspected): the binding lives on the action's own
+// `triggers` array, not on the command. `type: 401` is Streamer.bot's internal value for
+// "Command Triggered" observed in that same export.
+export interface StreamerBotPackageTriggerInput {
+  readonly commandId: string;
+  readonly id?: string;
+  readonly stableIdentitySeed: string;
+}
+
 export interface StreamerBotPackageActionInput {
   readonly name: string;
   readonly group: string;
@@ -17,6 +27,7 @@ export interface StreamerBotPackageActionInput {
   // pass the same seed a legacy single-action manifest used (`manifest.name`) so an existing
   // package's already-pinned IDs remain reproducible if it ever drops its explicit pins.
   readonly stableIdentitySeed: string;
+  readonly triggers?: readonly StreamerBotPackageTriggerInput[];
 }
 
 export interface StreamerBotPackageMeta {
@@ -28,18 +39,21 @@ export interface StreamerBotPackageMeta {
   readonly concurrent: boolean;
 }
 
-// Field names (camelCase) follow the same convention every other field in this export format
-// uses; the set of fields themselves is inferred from Streamer.bot's own public CommandData
-// class (Id/Name/Enabled/Group/Mode/Commands/RegexCommand/CaseSensitive/Sources), not
-// independently confirmed against a live import. `mode` and `sources` are left at conservative
-// defaults for exactly that reason — see bridge/core/command-generation.ts for how callers are
-// expected to compensate (importing disabled, verifying after import).
+// Field names and shape confirmed against the same real export referenced above: `command` is a
+// single string (trigger phrase, prefix included, e.g. "!test"), not an array — Streamer.bot's
+// own public CommandData changelog documentation describes a different (older or aspirational)
+// shape than what v1.0.5-alpha.31 actually emits. That export also included five properties
+// with obfuscated names (unclear semantics, and liable to be renamed by whatever produced them
+// in a different build) which are deliberately omitted here; Streamer.bot's deserializer is
+// expected to apply its own defaults for anything this shape does not set. `sources: 1` is the
+// one bitmask value confirmed valid in that export (a single "Twitch Message" source); the
+// bit values for other platforms are unverified, which is fine given the command always imports
+// disabled — see bridge/core/command-generation.ts.
 export interface StreamerBotPackageCommandInput {
   readonly id?: string;
   readonly name: string;
-  readonly group: string;
+  readonly command: string;
   readonly enabled: boolean;
-  readonly commands: readonly string[];
   readonly caseSensitive: boolean;
   readonly stableIdentitySeed: string;
 }
@@ -71,7 +85,13 @@ export function buildStreamerBotPackage(
         alwaysRun: false,
         randomAction: false,
         concurrent: meta.concurrent,
-        triggers: [],
+        triggers: (action.triggers ?? []).map((trigger) => ({
+          commandId: trigger.commandId,
+          id: trigger.id ?? stableStreamerBotUuid(`${trigger.stableIdentitySeed}:trigger`),
+          type: 401,
+          enabled: true,
+          exclusions: [],
+        })),
         subActions: [{
           name: null,
           description: null,
@@ -95,12 +115,19 @@ export function buildStreamerBotPackage(
         id: command.id ?? stableStreamerBotUuid(`${command.stableIdentitySeed}:command`),
         name: command.name,
         enabled: command.enabled,
-        group: command.group,
+        include: false,
         mode: 0,
-        commands: [...command.commands],
-        regexCommand: null,
+        command: command.command,
+        location: 0,
+        ignoreBotAccount: true,
+        sources: 1,
+        persistCounter: false,
+        persistUserCounter: false,
         caseSensitive: command.caseSensitive,
-        sources: [],
+        globalCooldown: 0,
+        userCooldown: 0,
+        group: null,
+        grantType: 0,
       })),
       websocketServers: [],
       websocketClients: [],

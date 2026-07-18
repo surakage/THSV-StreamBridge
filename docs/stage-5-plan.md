@@ -207,25 +207,46 @@ A new `Commands` panel, matching the existing `Platforms`/`Blockers` panel patte
    and `POST /wizard/api/commands/generate` / `/verify`, plus a "Design a command" form and
    "Verify import" button in the wizard's Command Sync panel.
 
-   One deliberate scope decision: Streamer.bot's native Command JSON shape (the `commands` array
-   in a `.sb` export) is inferred from Streamer.bot's own public `CommandData` class fields
-   (`Id`/`Name`/`Enabled`/`Group`/`Mode`/`Commands`/`RegexCommand`/`CaseSensitive`/`Sources`,
-   camelCase to match every other field this export format already uses), not independently
-   confirmed against a live import — no verified schema for the command-to-action trigger binding
-   was found anywhere in Streamer.bot's documentation. The generated command therefore always
-   imports **disabled** and unbound; the stub action's source comments tell the creator exactly
-   what manual step remains (open the command, point it at the generated action, review, enable).
-   An incorrect guess here is inert. The verify-after-import step is what actually establishes
-   whether Streamer.bot's importer accepts this shape — that determination is part of the live
-   verification pass this step hands off to, not something claimed done here.
+   **Update after a first real import attempt.** The first version of this generated a
+   `commands` array shaped from Streamer.bot's public `CommandData` changelog fields and left the
+   action's `triggers` array empty. The creator tried importing it against a real Streamer.bot
+   v1.0.5-alpha.31 and it was rejected. They then manually built one throwaway command bound to
+   one throwaway action in the Streamer.bot GUI and exported it; decoding that export gave real
+   ground truth instead of another guess:
+   - The binding lives on the **action's** `triggers` array, not the command:
+     `triggers: [{ commandId, id, type: 401, enabled: true, exclusions: [] }]`. `401` is
+     Streamer.bot's internal value for "Command Triggered" observed directly in that export.
+   - A command's trigger phrase is a **single string field `command`** (e.g. `"!test"`, prefix
+     included), not the `Commands` list the public changelog describes — that version's
+     documentation doesn't match what v1.0.5-alpha.31 actually emits.
+   - The command object has several cleanly-named fields (`id`/`name`/`enabled`/`include`/`mode`/
+     `location`/`ignoreBotAccount`/`sources`/`persistCounter`/`persistUserCounter`/
+     `caseSensitive`/`globalCooldown`/`userCooldown`/`group`/`grantType`) plus five with
+     **obfuscated names** in that export. The obfuscated ones are omitted here rather than
+     hardcoded — they could plausibly be renamed by whatever produced them in a different build,
+     and Streamer.bot's own deserializer is expected to default anything this shape doesn't set.
+   - `sources: 1` is the one bitmask value confirmed valid (a single "Twitch Message" source);
+     other platforms' bit values are unverified, which is fine since the command still imports
+     disabled.
+   - Since `command` is a single string, aliases designed in the wizard form are used only for
+     the collision check now, not embedded in the generated package — the stub action's source
+     tells the creator to add them through Streamer.bot's own Command(s) box after import.
+   - The trigger phrase now uses the bridge's actually-configured command prefix
+     (`WizardConfigurationGateway.commandPrefix()`), not a hardcoded `!`.
+
+   `bridge/services/streamerbot-package-builder.ts` and `bridge/core/command-generation.ts` were
+   updated to this real shape; reproducibility re-verified byte-for-byte across all 9 existing
+   packages afterward (none of them pass `triggers`/`commands`, so their output is unaffected).
+   The command object still imports **disabled**: the obfuscated fields and the full `sources`
+   bit range remain unverified, so a wrong guess there stays inert until the creator reviews and
+   enables it. Whether *this* corrected shape imports cleanly is the next thing to confirm live.
 
 Live-verified end-to-end in Streamer.bot test mode (design → collision check → generation →
 download → verify-before-import-correctly-reports-not-found), confirming the wizard's HTTP
 surface, UI, and the "never marks a command synced without live confirmation" guarantee all work
-as wired. What test mode cannot confirm — because it never talks to a real Streamer.bot — is
-whether Streamer.bot's importer actually accepts the generated `.sb` file's `commands` array
-shape, and whether the Tier 1 package's `CPH.EnableCommand`/`CPH.DisableCommand` calls compile
-against a live Alpha build. Both remain open until that live pass happens.
+as wired. Test mode cannot confirm whether Streamer.bot's importer accepts the *corrected*
+`.sb` shape, or whether the Tier 1 package's `CPH.EnableCommand`/`CPH.DisableCommand` calls
+compile against a live Alpha build — both need a real import/compile attempt to close out.
 
 Each step should land with its own full quality gate pass (lint, typecheck, test, build), matching
 every prior stage in this project — no stage in this series has ever been merged as one large,
