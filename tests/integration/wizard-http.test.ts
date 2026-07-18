@@ -96,4 +96,57 @@ describe('wizard HTTP surface', () => {
     expect(result.commands).toEqual([expect.objectContaining({ driftStatus: 'renamed', name: 'shoutout-renamed' }) as unknown]);
     expect(saved?.commands[0]).toMatchObject({ driftStatus: 'renamed', name: 'shoutout-renamed' });
   });
+
+  it('generates a Tier 2 command package, refuses to sync it until import is confirmed, then verifies it', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    let liveCommands: Array<{ id: string; name: string; enabled: boolean }> = [];
+    const inspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]),
+      inspectCommands: () => Promise.resolve(liveCommands),
+      inspectionRequests: () => [],
+    };
+    let saved: CommandSyncState | undefined;
+    const store: CommandSyncStore = {
+      load: () => Promise.resolve(saved ?? { version: 1, commands: [] }),
+      scheduleSave: (state) => { saved = state; },
+      flush: () => Promise.resolve(),
+      status: () => ({ enabled: true }),
+    };
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(inspector, undefined, store));
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+
+    const generateResponse = await fetch(`${baseUrl}/wizard/api/commands/generate`, {
+      method: 'POST', headers, body: JSON.stringify({ name: 'so', aliases: ['shoutout'], approvedByCreator: true }),
+    });
+    expect(generateResponse.status).toBe(200);
+    const generated = await generateResponse.json() as { available: boolean; package: { filename: string; contentBase64: string; commandId: string } };
+    expect(generated.available).toBe(true);
+    expect(generated.package.filename).toBe('thsv-generated-so.sb');
+
+    // Before the creator has actually imported the package into Streamer.bot, the generated
+    // command ID is not live yet — verification must refuse to mark it synced.
+    const tooEarly = await fetch(`${baseUrl}/wizard/api/commands/verify`, {
+      method: 'POST', headers, body: JSON.stringify({ commandId: generated.package.commandId, name: 'so' }),
+    });
+    expect(tooEarly.status).toBe(200);
+    expect(await tooEarly.json()).toMatchObject({ available: true, verified: false });
+    expect(saved).toBeUndefined();
+
+    // Simulate the creator having imported the package and Streamer.bot now reporting it live.
+    liveCommands = [{ id: generated.package.commandId, name: 'so', enabled: false }];
+    const verified = await fetch(`${baseUrl}/wizard/api/commands/verify`, {
+      method: 'POST', headers, body: JSON.stringify({ commandId: generated.package.commandId, name: 'so', aliases: ['shoutout'] }),
+    });
+    expect(verified.status).toBe(200);
+    const verifiedBody = await verified.json() as { verified: boolean; commands: Array<{ streamerBotId: string; source: string }> };
+    expect(verifiedBody.verified).toBe(true);
+    expect(verifiedBody.commands).toEqual([expect.objectContaining({ streamerBotId: generated.package.commandId, source: 'wizard-generated' }) as unknown]);
+    expect(saved?.commands).toEqual(verifiedBody.commands);
+  });
 });

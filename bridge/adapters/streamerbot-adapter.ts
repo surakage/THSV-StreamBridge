@@ -35,6 +35,10 @@ export interface StreamerBotCommandSummary {
   readonly id: string;
   readonly name: string;
   readonly enabled: boolean;
+  // Trigger phrases beyond the primary name, when Streamer.bot's GetCommands response includes
+  // them. Optional because the exact response shape here has not been independently confirmed;
+  // collision checks fall back to name-only matching when this is absent.
+  readonly aliases?: readonly string[];
 }
 
 export interface StreamerBotInspectionAuditEntry {
@@ -336,7 +340,8 @@ function readCommands(data: unknown): readonly StreamerBotCommandSummary[] {
   if (!Array.isArray(payload['commands'])) throw new Error('Streamer.bot GetCommands response did not contain a commands array');
   return payload['commands'].flatMap((value): StreamerBotCommandSummary[] => {
     if (!isRecord(value) || typeof value['id'] !== 'string' || typeof value['name'] !== 'string') return [];
-    return [{ id: value['id'], name: value['name'], enabled: value['enabled'] !== false }];
+    const aliases = Array.isArray(value['commands']) ? value['commands'].filter((entry): entry is string => typeof entry === 'string') : undefined;
+    return [{ id: value['id'], name: value['name'], enabled: value['enabled'] !== false, ...(aliases === undefined ? {} : { aliases }) }];
   });
 }
 

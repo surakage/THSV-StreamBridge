@@ -139,6 +139,38 @@ describe('Streamer.bot adapter', () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
+  it('captures trigger-phrase aliases from GetCommands when present, without requiring them', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const adapter = new StreamerBotAdapter({
+      ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`,
+      reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+    }, silentLogger);
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => {
+        const request = JSON.parse(Buffer.from(data as Buffer).toString('utf8')) as { id: string; request: string };
+        if (request.request === 'GetCommands') {
+          socket.send(JSON.stringify({
+            id: request.id, status: 'ok',
+            commands: [
+              { id: 'command-1', name: 'so', enabled: true, commands: ['so', 'shoutout'] },
+              { id: 'command-2', name: 'hello', enabled: true },
+            ],
+          }));
+        }
+      });
+    });
+    await adapter.start();
+    expect(await adapter.inspectCommands()).toEqual([
+      { id: 'command-1', name: 'so', enabled: true, aliases: ['so', 'shoutout'] },
+      { id: 'command-2', name: 'hello', enabled: true },
+    ]);
+    await adapter.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
   it('dispatches an approved command administration request to its own action, separate from the receiver', async () => {
     const config = await testConfig();
     const port = await unusedPort();

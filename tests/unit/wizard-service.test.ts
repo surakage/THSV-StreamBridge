@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { WizardService, WizardTransactionError, type StreamerBotInspector } from '../../bridge/services/wizard-service.js';
 import { WizardConfigurationGateway } from '../../bridge/services/wizard-configuration.js';
+import type { CommandSyncStore } from '../../bridge/services/command-sync-store.js';
+import type { CommandSyncState } from '../../bridge/contracts/v2/command-sync.js';
 
 function inspector(): StreamerBotInspector {
   const requests: Array<{ request: 'GetActions' | 'GetCommands'; requestedAt: string }> = [];
@@ -69,5 +71,79 @@ describe('Stage 3 wizard service', () => {
     expect(result).toMatchObject({ available: false, commands: [] });
     expect(result.error).toContain('command sync storage');
     expect((await service.overview())['lastCommandSync']).toEqual(result);
+  });
+});
+
+describe('Stage 5 step 4: Tier 2 command generation', () => {
+  it('generates a package after a fresh collision check finds no conflict', async () => {
+    const service = new WizardService(inspector());
+    const result = await service.generateCommand({ name: 'so', aliases: ['shoutout'], approvedByCreator: true });
+    expect(result.available).toBe(true);
+    expect(result.collision).toBeUndefined();
+    expect(result.design).toEqual({ name: 'so', aliases: ['shoutout'], minimumRole: 'viewer', note: '' });
+    expect(result.package?.filename).toBe('thsv-generated-so.sb');
+    expect(typeof result.package?.contentBase64).toBe('string');
+  });
+
+  it('refuses to generate a design that collides with a live command, regardless of ownership', async () => {
+    const creatorInspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]),
+      inspectCommands: () => Promise.resolve([{ id: 'creator-command', name: 'hello', enabled: true }]),
+      inspectionRequests: () => [],
+    };
+    const service = new WizardService(creatorInspector);
+    const result = await service.generateCommand({ name: 'hello', approvedByCreator: true });
+    expect(result.available).toBe(true);
+    expect(result.package).toBeUndefined();
+    expect(result.collision).toMatchObject({ kind: 'command', id: 'creator-command', name: 'hello' });
+  });
+
+  it('reports generation as unavailable without throwing when no inspector is configured', async () => {
+    const service = new WizardService(undefined);
+    const result = await service.generateCommand({ name: 'so', approvedByCreator: true });
+    expect(result).toMatchObject({ available: false });
+    expect(result.error).toContain('Streamer.bot output');
+  });
+
+  it('reports an invalid design without throwing', async () => {
+    const service = new WizardService(inspector());
+    const result = await service.generateCommand({ name: 'So!', approvedByCreator: true });
+    expect(result.available).toBe(false);
+    expect(result.error).toContain('letters, numbers, and hyphens');
+  });
+
+  it('never marks a command synced until re-inspection confirms the generated ID is live', async () => {
+    let saved: CommandSyncState | undefined;
+    const store: CommandSyncStore = {
+      load: () => Promise.resolve({ version: 1, commands: [] }),
+      scheduleSave: (state) => { saved = state; },
+      flush: () => Promise.resolve(),
+      status: () => ({ enabled: true }),
+    };
+    const notYetImported = new WizardService(inspector(), undefined, store);
+    const missing = await notYetImported.verifyGeneratedCommand({ commandId: 'not-yet-imported', name: 'so' });
+    expect(missing).toMatchObject({ available: true, verified: false });
+    expect(saved).toBeUndefined();
+
+    const afterImportInspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]),
+      inspectCommands: () => Promise.resolve([{ id: 'generated-command-1', name: 'so', enabled: false }]),
+      inspectionRequests: () => [],
+    };
+    const afterImport = new WizardService(afterImportInspector, undefined, store);
+    const verified = await afterImport.verifyGeneratedCommand({ commandId: 'generated-command-1', name: 'so', aliases: ['shoutout'] });
+    expect(verified.available).toBe(true);
+    expect(verified.verified).toBe(true);
+    expect(verified.commands).toEqual([expect.objectContaining({
+      streamerBotId: 'generated-command-1', name: 'so', aliases: ['shoutout'], source: 'wizard-generated', driftStatus: 'in-sync',
+    }) as unknown]);
+    expect(saved?.commands).toEqual(verified.commands);
+  });
+
+  it('reports verification as unavailable rather than throwing when no store is configured', async () => {
+    const service = new WizardService(inspector());
+    const result = await service.verifyGeneratedCommand({ commandId: 'x', name: 'so' });
+    expect(result).toMatchObject({ available: false, verified: false });
+    expect(result.error).toContain('command sync storage');
   });
 });

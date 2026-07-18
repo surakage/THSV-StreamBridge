@@ -189,14 +189,43 @@ A new `Commands` panel, matching the existing `Platforms`/`Blockers` panel patte
 
 ## Suggested build order
 
-1. Contracts + `command-sync-store.ts` + schema `source` field — no behavior change yet, matches
-   Stage 2A's "contracts before code" discipline.
-2. Tier 1 package + live enable/disable/cooldown, since it's the smaller, fully-documented-API
-   surface and proves the `DoAction`-wrapped-C#-method pattern works before Tier 2 depends on it.
-3. Inspection-based sync + drift detection, independent of Tier 2, and immediately useful on its
-   own (a creator can see drift even before any generation feature exists).
-4. Collision detection + Tier 2 generation + verify-after-import loop, last, since it's the
-   riskiest and most novel piece and benefits most from 1–3 already being tested and stable.
+1. **Done.** Contracts + `command-sync-store.ts` + schema `source` field — no behavior change yet,
+   matches Stage 2A's "contracts before code" discipline.
+2. **Done.** Tier 1 package + live enable/disable/cooldown, since it's the smaller,
+   fully-documented-API surface and proves the `DoAction`-wrapped-C#-method pattern works before
+   Tier 2 depends on it. Cooldown was deliberately deferred — see open question 2.
+3. **Done.** Inspection-based sync + drift detection, independent of Tier 2, and immediately
+   useful on its own (a creator can see drift even before any generation feature exists).
+4. **Done.** Collision detection + Tier 2 generation + verify-after-import loop. Built on a
+   shared, refactored `bridge/services/streamerbot-package-builder.ts` (the same export pipeline
+   `tools/build-streamerbot-export.ts` already used for every shipped package, now importable by
+   both the CLI tool and the wizard — reproducibility re-verified byte-for-byte across all 9
+   existing packages after the refactor). `bridge/core/command-generation.ts` holds design
+   validation, live collision detection (`findCommandCollision`, checked against both `GetActions`
+   and `GetCommands` results, case-insensitive, regardless of ownership), and package generation
+   (`generateCommandPackage`). Wired into `WizardService.generateCommand`/`verifyGeneratedCommand`
+   and `POST /wizard/api/commands/generate` / `/verify`, plus a "Design a command" form and
+   "Verify import" button in the wizard's Command Sync panel.
+
+   One deliberate scope decision: Streamer.bot's native Command JSON shape (the `commands` array
+   in a `.sb` export) is inferred from Streamer.bot's own public `CommandData` class fields
+   (`Id`/`Name`/`Enabled`/`Group`/`Mode`/`Commands`/`RegexCommand`/`CaseSensitive`/`Sources`,
+   camelCase to match every other field this export format already uses), not independently
+   confirmed against a live import — no verified schema for the command-to-action trigger binding
+   was found anywhere in Streamer.bot's documentation. The generated command therefore always
+   imports **disabled** and unbound; the stub action's source comments tell the creator exactly
+   what manual step remains (open the command, point it at the generated action, review, enable).
+   An incorrect guess here is inert. The verify-after-import step is what actually establishes
+   whether Streamer.bot's importer accepts this shape — that determination is part of the live
+   verification pass this step hands off to, not something claimed done here.
+
+Live-verified end-to-end in Streamer.bot test mode (design → collision check → generation →
+download → verify-before-import-correctly-reports-not-found), confirming the wizard's HTTP
+surface, UI, and the "never marks a command synced without live confirmation" guarantee all work
+as wired. What test mode cannot confirm — because it never talks to a real Streamer.bot — is
+whether Streamer.bot's importer actually accepts the generated `.sb` file's `commands` array
+shape, and whether the Tier 1 package's `CPH.EnableCommand`/`CPH.DisableCommand` calls compile
+against a live Alpha build. Both remain open until that live pass happens.
 
 Each step should land with its own full quality gate pass (lint, typecheck, test, build), matching
 every prior stage in this project — no stage in this series has ever been merged as one large,
