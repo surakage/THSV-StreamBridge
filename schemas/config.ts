@@ -91,6 +91,41 @@ const browserOverlaySchema = z.object({
   showSimulated: z.boolean().default(true),
 }).strict();
 
+const filterRuleSchema = z.object({
+  id: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/),
+  name: z.string().min(1).max(100),
+  enabled: z.boolean(),
+  scope: z.enum(['display', 'command', 'module']),
+  moduleIds: z.array(z.string().min(3).max(128).regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/)).max(32).default([]),
+  platforms: z.array(z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/)).max(32).default([]),
+  actorTypes: z.array(z.enum(['human', 'bot', 'system'])).max(3).default([]),
+  target: z.enum(['message', 'user.name', 'user.displayName']),
+  match: z.object({
+    kind: z.enum(['contains', 'exact', 'regex']),
+    value: z.string().min(1).max(200),
+    caseSensitive: z.boolean().default(false),
+  }).strict(),
+}).strict().superRefine((rule, context) => {
+  if (rule.scope !== 'module' && rule.moduleIds.length > 0) {
+    context.addIssue({ code: 'custom', path: ['moduleIds'], message: 'moduleIds may only be set for module-scoped blocker rules.' });
+  }
+  if (rule.match.kind === 'regex') {
+    const reason = unsafeRegexReason(rule.match.value);
+    if (reason !== undefined) context.addIssue({ code: 'custom', path: ['match', 'value'], message: reason });
+  }
+});
+
+const filtersSchema = z.object({
+  enabled: z.boolean().default(true),
+  rules: z.array(filterRuleSchema).max(500).default([]),
+}).strict().superRefine((filters, context) => {
+  const seen = new Set<string>();
+  for (const [index, rule] of filters.rules.entries()) {
+    if (seen.has(rule.id)) context.addIssue({ code: 'custom', path: ['rules', index, 'id'], message: `Filter rule ID ${rule.id} is duplicated.` });
+    seen.add(rule.id);
+  }
+});
+
 export const platformSchema = z
   .object({
     enabled: z.boolean(),
@@ -154,6 +189,7 @@ const bridgeConfigObjectSchema = z
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({ enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true }),
+    filters: filtersSchema.default({ enabled: true, rules: [] }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
@@ -212,4 +248,17 @@ export type CommandsConfig = z.infer<typeof commandsSchema>;
 export type TimedActionsConfig = z.infer<typeof timedActionsSchema>;
 export type TimedActionDefinition = TimedActionsConfig['definitions'][number];
 export type BrowserOverlayConfig = z.infer<typeof browserOverlaySchema>;
+export type FiltersConfig = z.infer<typeof filtersSchema>;
+export type FilterRule = FiltersConfig['rules'][number];
 export type Capability = (typeof CAPABILITY_VALUES)[number];
+
+function unsafeRegexReason(pattern: string): string | undefined {
+  if (pattern.length > 200) return 'Regular expressions are limited to 200 characters.';
+  if (/\\[1-9]/u.test(pattern)) return 'Regular-expression backreferences are not allowed.';
+  if (/\(\?[=!<]/u.test(pattern)) return 'Regular-expression lookarounds are not allowed.';
+  if (/\([^)]*\|[^)]*\)[+*{]/u.test(pattern)) return 'Quantified alternation groups are not allowed.';
+  if (/\([^)]*[+*][^)]*\)[+*{]/u.test(pattern)) return 'Nested quantified groups are not allowed.';
+  if (/(?:\.[+*]|\[[^\]]+\][+*]|\\[dDsSwW][+*])[+*{]/u.test(pattern)) return 'Nested quantifiers are not allowed.';
+  try { new RegExp(pattern, 'u'); } catch { return 'Regular expression is invalid.'; }
+  return undefined;
+}

@@ -24,9 +24,9 @@ describe('Stage 3 wizard service', () => {
     expect(service.diagnostics()).toMatchObject({ documentedRequestsOnly: true, mutationRequestsSent: 0 });
   });
 
-  it('cancels a non-mutating draft transaction and rejects unknown ids', () => {
+  it('cancels a non-mutating draft transaction and rejects unknown ids', async () => {
     const service = new WizardService(undefined);
-    const draft = service.beginTransaction();
+    const draft = await service.beginTransaction();
     expect(draft).toMatchObject({ status: 'draft', stagedChanges: [] });
     expect(service.cancelTransaction(draft.id)).toMatchObject({ status: 'cancelled', stagedChanges: [] });
     expect(() => service.cancelTransaction('missing')).toThrow(WizardTransactionError);

@@ -10,6 +10,7 @@ import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
 import { createBuiltinModuleRegistry } from '../bridge/core/builtin-modules.js';
 import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
+import { WizardConfigurationGateway } from '../bridge/services/wizard-configuration.js';
 
 const configPath = process.env['THSV_STREAMBRIDGE_CONFIG'] ?? 'config/bridge.example.json';
 const loadedConfig = await loadConfigWithNotices(configPath);
@@ -29,7 +30,7 @@ logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
 const modules = createBuiltinModuleRegistry(logger);
 const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, modules });
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
-const wizard = new WizardService(streamerBotInspector);
+const wizard = new WizardService(streamerBotInspector, new WizardConfigurationGateway(configPath, (platforms) => registry.capabilityReports(platforms)));
 bridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;
 

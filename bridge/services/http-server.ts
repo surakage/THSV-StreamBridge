@@ -8,7 +8,7 @@ import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-ma
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
-import { WizardTransactionError } from './wizard-service.js';
+import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
 
 export interface DiagnosticsTarget {
@@ -83,7 +83,7 @@ export class DiagnosticsServer {
       }
       if (request.method === 'GET' && request.url === '/wizard/api/overview' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 200, this.wizard.overview());
+        return this.reply(response, 200, await this.wizard.overview());
       }
       if (request.method === 'POST' && request.url === '/wizard/api/inspect' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -91,7 +91,24 @@ export class DiagnosticsServer {
       }
       if (request.method === 'POST' && request.url === '/wizard/api/transactions' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 201, this.wizard.beginTransaction());
+        return this.reply(response, 201, await this.wizard.beginTransaction());
+      }
+      const stageMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/stage$/u.exec(request.url ?? '') : null;
+      if (stageMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, this.wizard.stageTransaction(stageMatch[1], JSON.parse(body.text) as never));
+      }
+      const importMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/import$/u.exec(request.url ?? '') : null;
+      if (importMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, this.wizard.stageImport(importMatch[1], JSON.parse(body.text) as unknown));
+      }
+      const commitMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/commit$/u.exec(request.url ?? '') : null;
+      if (commitMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.commitTransaction(commitMatch[1]));
       }
       const cancelMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/cancel$/u.exec(request.url ?? '') : null;
       if (cancelMatch?.[1] !== undefined && this.wizard !== undefined) {
@@ -101,6 +118,10 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/wizard/api/diagnostics' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.diagnostics());
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/configuration/export' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.exportConfiguration());
       }
       if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
@@ -127,6 +148,7 @@ export class DiagnosticsServer {
     } catch (error) {
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof WizardConfigurationError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
       if (error instanceof OutputCapacityError) return this.reply(response, 429, { error: error.message });

@@ -49,6 +49,10 @@
     "showBots": true,
     "showSimulated": true
   },
+  "filters": {
+    "enabled": true,
+    "rules": []
+  },
   "streamerbot": {
     "enabled": true,
     "url": "ws://127.0.0.1:8080/",

@@ -66,8 +66,9 @@ export class ModuleRegistry {
     }
   }
 
-  public async publish(event: NormalizedEvent): Promise<void> {
+  public async publish(event: NormalizedEvent, blockedModuleIds: ReadonlySet<string> = new Set()): Promise<void> {
     for (const moduleId of this.order) {
+      if (blockedModuleIds.has(moduleId)) continue;
       const state = this.states.get(moduleId);
       if (state?.status !== 'healthy' || state.module.onEvent === undefined) continue;
       if (!state.module.manifest.eventSubscriptions.includes(event.eventType)) continue;

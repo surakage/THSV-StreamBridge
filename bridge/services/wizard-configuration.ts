@@ -1,0 +1,184 @@
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { bridgeConfigSchema, type BridgeConfig } from '../../schemas/config.js';
+import type { PlatformCapabilityReport } from '../contracts/v2/capability.js';
+
+export type WizardConfigurationChange =
+  | { readonly kind: 'platform'; readonly platform: string; readonly enabled: boolean; readonly inputEnabled: boolean; readonly outputEnabled: boolean }
+  | { readonly kind: 'filters'; readonly filters: unknown };
+
+export interface WizardConfigurationDraft {
+  readonly id: string;
+  readonly status: 'draft' | 'cancelled' | 'committed' | 'failed';
+  readonly createdAt: string;
+  readonly finishedAt?: string;
+  readonly stagedChanges: readonly WizardConfigurationChange[];
+  readonly restartRequired: boolean;
+  readonly backupPath?: string;
+  readonly error?: string;
+}
+
+interface InternalDraft {
+  public: WizardConfigurationDraft;
+  sourceHash: string;
+  candidate: Record<string, unknown>;
+}
+
+export interface WizardConfigurationExport {
+  readonly format: 'thsv.streambridge.wizard-configuration';
+  readonly version: 1;
+  readonly exportedAt: string;
+  readonly platforms: Readonly<Record<string, Pick<BridgeConfig['platforms'][string], 'enabled' | 'inputEnabled' | 'outputEnabled'>>>;
+  readonly filters: BridgeConfig['filters'];
+}
+
+export class WizardConfigurationGateway {
+  private readonly drafts = new Map<string, InternalDraft>();
+  private mutationWrites = 0;
+  private rollbackWrites = 0;
+
+  public constructor(
+    private readonly configPath: string,
+    private readonly capabilitySource: (platforms: BridgeConfig['platforms']) => readonly PlatformCapabilityReport[],
+    private readonly backupDirectory = resolve(dirname(configPath), '..', 'backups', 'wizard'),
+  ) {}
+
+  public async snapshot(): Promise<Readonly<Record<string, unknown>>> {
+    const config = await this.readConfig();
+    return {
+      configPath: resolve(this.configPath),
+      restartRequiredAfterCommit: true,
+      platforms: Object.fromEntries(Object.entries(config.platforms).map(([id, value]) => [id, {
+        enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled, adapter: value.adapter,
+      }])),
+      filters: config.filters,
+      capabilities: this.capabilitySource(config.platforms),
+    };
+  }
+
+  public async begin(): Promise<WizardConfigurationDraft> {
+    if ([...this.drafts.values()].some((draft) => draft.public.status === 'draft')) throw new WizardConfigurationError(409, 'Another browser tab already holds the configuration mutation lease. Cancel or commit it first.');
+    const raw = await readFile(this.configPath, 'utf8');
+    const candidate = parseObject(raw);
+    bridgeConfigSchema.parse(candidate);
+    const publicDraft: WizardConfigurationDraft = { id: randomUUID(), status: 'draft', createdAt: new Date().toISOString(), stagedChanges: [], restartRequired: true };
+    this.drafts.set(publicDraft.id, { public: publicDraft, sourceHash: hash(raw), candidate });
+    return publicDraft;
+  }
+
+  public stage(id: string, change: WizardConfigurationChange): WizardConfigurationDraft {
+    const draft = this.requireDraft(id);
+    if (change.kind === 'platform') {
+      const validated = bridgeConfigSchema.parse(draft.candidate);
+      const current = validated.platforms[change.platform];
+      if (current === undefined) throw new WizardConfigurationError(400, `Unknown configured platform: ${change.platform}`);
+      const rawPlatforms = objectValue(draft.candidate['platforms']);
+      draft.candidate = { ...draft.candidate, platforms: { ...rawPlatforms, [change.platform]: { ...objectValue(rawPlatforms[change.platform]), enabled: change.enabled, inputEnabled: change.inputEnabled, outputEnabled: change.outputEnabled } } };
+    } else {
+      draft.candidate = { ...draft.candidate, filters: change.filters };
+    }
+    bridgeConfigSchema.parse(draft.candidate);
+    draft.public = { ...draft.public, stagedChanges: [...draft.public.stagedChanges.filter((existing) => existing.kind !== change.kind || (change.kind === 'platform' && existing.kind === 'platform' && existing.platform !== change.platform)), change] };
+    return draft.public;
+  }
+
+  public stageImport(id: string, input: unknown): WizardConfigurationDraft {
+    const imported = parseImport(input);
+    this.requireDraft(id);
+    for (const [platform, flags] of Object.entries(imported.platforms)) {
+      this.stage(id, { kind: 'platform', platform, ...flags });
+    }
+    return this.stage(id, { kind: 'filters', filters: imported.filters });
+  }
+
+  public async export(): Promise<WizardConfigurationExport> {
+    const config = await this.readConfig();
+    return {
+      format: 'thsv.streambridge.wizard-configuration', version: 1, exportedAt: new Date().toISOString(),
+      platforms: Object.fromEntries(Object.entries(config.platforms).map(([id, value]) => [id, { enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled }])),
+      filters: config.filters,
+    };
+  }
+
+  public cancel(id: string): WizardConfigurationDraft {
+    const draft = this.requireDraft(id);
+    draft.public = { ...draft.public, status: 'cancelled', finishedAt: new Date().toISOString(), stagedChanges: [] };
+    return draft.public;
+  }
+
+  public async commit(id: string): Promise<WizardConfigurationDraft> {
+    const draft = this.requireDraft(id);
+    const currentRaw = await readFile(this.configPath, 'utf8');
+    if (hash(currentRaw) !== draft.sourceHash) throw new WizardConfigurationError(409, 'Configuration changed after this draft began. No files were written; start a new draft.');
+    if (draft.public.stagedChanges.length === 0) throw new WizardConfigurationError(400, 'The draft has no staged changes.');
+    bridgeConfigSchema.parse(draft.candidate);
+    await mkdir(this.backupDirectory, { recursive: true });
+    const backupPath = join(this.backupDirectory, `${new Date().toISOString().replace(/[:.]/gu, '-')}-${id}.json`);
+    await writeFile(backupPath, currentRaw, { encoding: 'utf8', flag: 'wx' });
+    try {
+      await writeAtomic(this.configPath, `${JSON.stringify(draft.candidate, null, 2)}\n`);
+      this.mutationWrites += 1;
+      await this.readConfig();
+      draft.public = { ...draft.public, status: 'committed', finishedAt: new Date().toISOString(), backupPath: resolve(backupPath) };
+      return draft.public;
+    } catch (error) {
+      await writeAtomic(this.configPath, currentRaw);
+      this.rollbackWrites += 1;
+      draft.public = { ...draft.public, status: 'failed', finishedAt: new Date().toISOString(), backupPath: resolve(backupPath), error: error instanceof Error ? error.message : String(error) };
+      throw new WizardConfigurationError(500, 'Configuration commit failed and the pre-commit backup was restored.');
+    }
+  }
+
+  public diagnostics(): Readonly<Record<string, unknown>> {
+    return {
+      mutationWrites: this.mutationWrites,
+      rollbackWrites: this.rollbackWrites,
+      activeMutationLeases: [...this.drafts.values()].filter((draft) => draft.public.status === 'draft').length,
+      transactions: [...this.drafts.values()].map((draft) => draft.public),
+    };
+  }
+
+  private requireDraft(id: string): InternalDraft {
+    const draft = this.drafts.get(id);
+    if (draft === undefined) throw new WizardConfigurationError(404, 'Wizard transaction was not found.');
+    if (draft.public.status !== 'draft') throw new WizardConfigurationError(409, `Wizard transaction is already ${draft.public.status}.`);
+    return draft;
+  }
+
+  private async readConfig(): Promise<BridgeConfig> {
+    return bridgeConfigSchema.parse(JSON.parse(await readFile(this.configPath, 'utf8')) as unknown);
+  }
+}
+
+export class WizardConfigurationError extends Error {
+  public constructor(public readonly statusCode: number, message: string) { super(message); }
+}
+
+function parseImport(input: unknown): WizardConfigurationExport {
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) throw new WizardConfigurationError(400, 'Imported configuration must be an object.');
+  const record = input as Record<string, unknown>;
+  if (record['format'] !== 'thsv.streambridge.wizard-configuration' || record['version'] !== 1 || record['platforms'] === null || typeof record['platforms'] !== 'object' || Array.isArray(record['platforms'])) {
+    throw new WizardConfigurationError(400, 'Imported configuration format is not supported.');
+  }
+  return input as WizardConfigurationExport;
+}
+
+function hash(value: string): string { return createHash('sha256').update(value).digest('hex'); }
+
+function parseObject(raw: string): Record<string, unknown> {
+  const value = JSON.parse(raw) as unknown;
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new WizardConfigurationError(400, 'Configuration root must be an object.');
+  return value as Record<string, unknown>;
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+async function writeAtomic(path: string, value: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  const temporary = `${path}.${String(process.pid)}.${randomUUID()}.tmp`;
+  await writeFile(temporary, value, 'utf8');
+  await rename(temporary, path);
+}

@@ -1,4 +1,6 @@
-import type { BridgeConfig, OutputConfig, PlatformConfig } from '../../schemas/config.js';
+import type { BridgeConfig, Capability, OutputConfig, PlatformConfig } from '../../schemas/config.js';
+import { PLATFORM_CAPABILITY_IDS, type PlatformCapabilityId, type PlatformCapabilityReport } from '../contracts/v2/capability.js';
+import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
 import type { Logger } from '../services/logger.js';
 import type { InputAdapter, OutputAdapter } from './adapter.js';
 import { MockAdapter } from './mock-adapter.js';
@@ -12,13 +14,28 @@ import { StreamerBotNativeAdapter } from './streamerbot-native-adapter.js';
 export type InputAdapterFactory = (name: string, config: PlatformConfig) => InputAdapter;
 export type OutputAdapterFactory = (name: string, config: OutputConfig) => OutputAdapter;
 
+export interface InputProviderCapabilities {
+  readonly legacy: readonly Capability[];
+  readonly supported: readonly PlatformCapabilityId[];
+  readonly verification: 'verified' | 'unverified';
+  readonly limitations?: readonly string[];
+  readonly allowUnsupportedLegacyClaims?: true;
+}
+
+export type InputProviderDeclaration = (platform: string) => InputProviderCapabilities;
+
+interface RegisteredInputProvider {
+  readonly factory: InputAdapterFactory;
+  readonly declaration?: InputProviderDeclaration;
+}
+
 export class AdapterRegistry {
-  private readonly inputFactories = new Map<string, InputAdapterFactory>();
+  private readonly inputFactories = new Map<string, RegisteredInputProvider>();
   private readonly outputFactories = new Map<string, OutputAdapterFactory>();
 
-  public registerInput(provider: string, factory: InputAdapterFactory): this {
+  public registerInput(provider: string, factory: InputAdapterFactory, declaration?: InputProviderDeclaration): this {
     if (this.inputFactories.has(provider)) throw new Error(`Input adapter provider is already registered: ${provider}`);
-    this.inputFactories.set(provider, factory);
+    this.inputFactories.set(provider, { factory, ...(declaration === undefined ? {} : { declaration }) });
     return this;
   }
 
@@ -30,9 +47,35 @@ export class AdapterRegistry {
 
   public createInputs(platforms: Readonly<Record<string, PlatformConfig>>): InputAdapter[] {
     return Object.entries(platforms).map(([name, config]) => {
-      const factory = this.inputFactories.get(config.adapter);
-      if (factory === undefined) throw new Error(`No input adapter registered for provider ${config.adapter} (platform ${name})`);
-      return factory(name, config);
+      const provider = this.inputFactories.get(config.adapter);
+      if (provider === undefined) throw new Error(`No input adapter registered for provider ${config.adapter} (platform ${name})`);
+      const declared = provider.declaration?.(name);
+      if (declared !== undefined) {
+        const unsupportedClaims = config.capabilities.filter((capability) => !declared.legacy.includes(capability));
+        if (unsupportedClaims.length > 0 && declared.allowUnsupportedLegacyClaims !== true) throw new Error(`Platform ${name} claims capabilities not declared by provider ${config.adapter}: ${unsupportedClaims.join(', ')}`);
+      }
+      const authoritativeConfig = declared === undefined ? { ...config, enabled: config.enabled && config.inputEnabled } : { ...config, enabled: config.enabled && config.inputEnabled, capabilities: [...declared.legacy] };
+      return provider.factory(name, authoritativeConfig);
+    });
+  }
+
+  public capabilityReports(platforms: Readonly<Record<string, PlatformConfig>>): readonly PlatformCapabilityReport[] {
+    return Object.entries(platforms).map(([platform, config]) => {
+      const registered = this.inputFactories.get(config.adapter);
+      if (registered === undefined) throw new Error(`No input adapter registered for provider ${config.adapter} (platform ${platform})`);
+      const declaration = registered.declaration?.(platform);
+      const supported = new Set(declaration?.supported ?? []);
+      const verification = declaration?.verification ?? 'unverified';
+      return {
+        contractVersion: CORE_CONTRACT_VERSION,
+        platform,
+        adapterId: config.adapter,
+        reportedAt: new Date().toISOString(),
+        capabilities: Object.fromEntries(PLATFORM_CAPABILITY_IDS.map((id) => [id, supported.has(id)
+          ? { supported: true, verification }
+          : { supported: false, verification: 'unsupported', reason: 'The selected provider does not declare this capability.' }])) as PlatformCapabilityReport['capabilities'],
+        limitations: [...(declaration?.limitations ?? ['This third-party provider has not published an authoritative capability declaration.'])],
+      };
     });
   }
 
@@ -48,13 +91,39 @@ export class AdapterRegistry {
 export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logger): AdapterRegistry {
   const registry = new AdapterRegistry();
   const streamerBotEventRelay = new StreamerBotEventRelay();
-  registry.registerInput('mock', (name, platform) => new MockAdapter(name, platform));
-  registry.registerInput('timed-actions', (name, platform) => new TimedActionsAdapter(name, platform, config.timedActions));
-  registry.registerInput('tikfinity-streamerbot', (name, platform) => new TikfinityAdapter(name, platform, streamerBotEventRelay));
-  registry.registerInput('streamerbot-native', (name, platform) => new StreamerBotNativeAdapter(name, platform, streamerBotEventRelay));
+  registry.registerInput('mock', (name, platform) => new MockAdapter(name, platform), () => ({
+    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'raids', 'moderation', 'engagement', 'channelUpdates', 'timedActions'],
+    supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'raids', 'cheers', 'donations', 'gifts', 'moderation', 'stream-status'],
+    verification: 'verified', limitations: ['Verified simulator only; this is not a production platform transport.'],
+  }));
+  registry.registerInput('timed-actions', (name, platform) => new TimedActionsAdapter(name, platform, config.timedActions), () => ({
+    legacy: ['timedActions'], supported: [], verification: 'verified', limitations: ['Internal timer source; platform capability IDs do not apply.'],
+  }));
+  registry.registerInput('tikfinity-streamerbot', (name, platform) => new TikfinityAdapter(name, platform, streamerBotEventRelay), () => ({
+    legacy: ['chatInput', 'follows', 'gifts', 'engagement'], supported: ['chat.input', 'commands', 'follows', 'gifts'], verification: 'unverified',
+    limitations: ['TikFinity field mappings remain third-party and must be verified against the installed version.'],
+  }));
+  registry.registerInput('streamerbot-native', (name, platform) => new StreamerBotNativeAdapter(name, platform, streamerBotEventRelay), nativeCapabilities);
   for (const provider of ['twitch-placeholder', 'youtube-placeholder', 'kick-placeholder', 'tikfinity-placeholder']) {
-    registry.registerInput(provider, (name, platform) => new PlaceholderAdapter(name, platform, `${provider} has no production transport in Milestone 1.`));
+    registry.registerInput(provider, (name, platform) => new PlaceholderAdapter(name, platform, `${provider} has no production transport in Milestone 1.`), () => ({ legacy: [], supported: [], verification: 'unverified', limitations: ['Placeholder provider has no production transport.'], allowUnsupportedLegacyClaims: true }));
   }
   registry.registerOutput('streamerbot', (name) => new StreamerBotAdapter(config.streamerbot, logger, name, streamerBotEventRelay));
   return registry;
+}
+
+function nativeCapabilities(platform: string): InputProviderCapabilities {
+  if (platform === 'twitch') return {
+    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'raids', 'engagement'],
+    supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'raids', 'cheers'], verification: 'verified',
+    limitations: ['The legacy donations flag is retained for configuration compatibility; native Twitch intake reports cheers, not inferred donations.'],
+  };
+  if (platform === 'youtube') return {
+    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'engagement'],
+    supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'donations'], verification: 'verified',
+    limitations: ['YouTube Super Chat and Super Sticker are normalized as monetary alerts.'],
+  };
+  if (platform === 'kick') return {
+    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts'], supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions'], verification: 'verified', limitations: [],
+  };
+  return { legacy: [], supported: [], verification: 'unverified', limitations: [`Streamer.bot native intake is not implemented for ${platform}.`] };
 }
