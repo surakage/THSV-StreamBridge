@@ -36,6 +36,14 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(event).toMatchObject({ eventType: 'channel.gift-subscription', payload: { quantity: 10, tier: 'Tier 1' } });
   });
 
+  it.each([
+    ['twitch', 'TwitchRewardRedemption', ['fulfill', 'cancel']],
+    ['kick', 'KickRewardRedemption', []],
+  ] as const)('normalizes %s reward redemptions with honest operations', (platform, sourceEventType, supportedOperations) => {
+    const event = normalizeStreamerBotPlatformRelay(relay(platform, sourceEventType, { rewardId: 'reward-1', rewardTitle: 'Hydrate', rewardCost: '100', rewardRequiresInput: true, redemptionId: 'redeem-1', message: 'Water please' }));
+    expect(event).toMatchObject({ eventType: 'reward.redemption', payload: { rewardId: 'reward-1', rewardTitle: 'Hydrate', rewardCost: 100, requiresUserInput: true, redemptionId: 'redeem-1', input: 'Water please', supportedOperations, verifiedTransport: true } });
+  });
+
   it('marks generated fallback IDs as unverified', () => {
     const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchFollow', { sourceEventId: '' }));
     expect(event.metadata.unverifiedFields).toEqual(['source.eventId']);

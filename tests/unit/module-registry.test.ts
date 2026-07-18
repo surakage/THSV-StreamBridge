@@ -30,10 +30,10 @@ function moduleDefinition(moduleId: string, options: Partial<FrameworkModule> & 
 }
 
 describe('ModuleRegistry', () => {
-  it('registers the four required built-in core projections', async () => {
+  it('registers the five required built-in core projections', async () => {
     const registry = createBuiltinModuleRegistry(silentLogger);
     await registry.start();
-    expect(registry.statuses().map((status) => status.moduleId)).toEqual(['core.chat', 'core.commands', 'core.alerts', 'core.timed-actions']);
+    expect(registry.statuses().map((status) => status.moduleId)).toEqual(['core.chat', 'core.commands', 'core.alerts', 'core.timed-actions', 'core.rewards']);
     expect(registry.ready()).toBe(true);
     await registry.stop();
   });

@@ -19,6 +19,8 @@ The foundation sends a `DoAction` WebSocket request and waits for the correlated
 14. Enable the local config's `tiktok` entry with adapter `tikfinity-streamerbot`, restart StreamBridge, then use TikFinity's event simulator. Confirm Action History shows the intake action followed by `THSV StreamBridge - Receive Event` and that diagnostics show the `tiktok` adapter connected.
 15. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb`. It installs one intake action each for Twitch, YouTube, and Kick in separate platform groups.
 16. Add only the trigger types declared for each platform in `packages\streamerbot\native-platform-intake\manifest.json`, then enable the corresponding `streamerbot-native` platform entries in the local bridge configuration.
+17. For rewards, add `TwitchRewardRedemption` only to `THSV Twitch - Intake` and `KickRewardRedemption` only to `THSV Kick - Intake`.
+18. Import `packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-1.0.0.sb`. Review the custom C# source and keep `THSV StreamBridge - Reward Administration` triggerless. The wizard requires a separate confirmation and approval flag for every live Twitch operation. Kick mutations remain unavailable.
 
 The intake broadcasts only documented, allowlisted placeholder fields. It reuses StreamBridge's existing Streamer.bot WebSocket rather than opening another connection. Until live provenance is verified, events default to simulated and expose unverified transport/source-ID fields.
 11. Import `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-1.2.0.sb` and add it as another immediate receiver child action.
@@ -32,6 +34,8 @@ The intake broadcasts only documented, allowlisted placeholder fields. It reuses
 The import file is Base64-encoded and contains an `SBAE` header followed by gzip-compressed export JSON. Its readable source, manifest, and automated reproducibility test are stored beside it under `packages\streamerbot\core-receiver`.
 
 Multi-Chat, Multi-Commands, Multi-Alerts, Multi-Timed Actions, and Send Timed Message must not have direct triggers. Their trust boundary depends on running after a successful receiver invocation. Viewer Progression, Bloom Companion, and Speaker Orchestration are archived and must not be imported into the Stage 2 core chain.
+
+Reward Administration must also remain triggerless. See [Channel rewards](rewards.md) for the supported Twitch operations, Kick intake-only boundary, and safe test procedure.
 
 Official references:
 

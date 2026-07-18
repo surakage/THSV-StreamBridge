@@ -6,6 +6,7 @@ import type { Logger } from '../services/logger.js';
 import { buildStreamerBotEventArguments } from './streamerbot-package.js';
 import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 import type { CommandAdministrationRequest } from '../core/command-administration.js';
+import type { RewardAdministrationRequest } from '../core/reward-administration.js';
 
 interface PendingRequest {
   readonly resolve: (data: unknown) => void;
@@ -148,6 +149,17 @@ export class StreamerBotAdapter {
       },
     };
     await this.sendRequest(requestId, doAction);
+  }
+
+  public async requestRewardAdministration(request: RewardAdministrationRequest): Promise<void> {
+    if (!this.config.enabled) throw new Error('Streamer.bot output is disabled.');
+    if (this.config.testMode) { this.logger.info('Streamer.bot test mode accepted reward administration request', { operation: request.operation, rewardId: request.rewardId }); return; }
+    if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) throw new Error('Streamer.bot is unavailable');
+    const requestId = randomUUID();
+    await this.sendRequest(requestId, {
+      request: 'DoAction', id: requestId, action: { name: this.config.rewardAdministrationActionAlias },
+      args: { rewardAdminPlatform: request.platform, rewardAdminOperation: request.operation, rewardAdminRewardId: request.rewardId, rewardAdminApproved: true, ...(request.redemptionId === undefined ? {} : { rewardAdminRedemptionId: request.redemptionId }), ...(request.requestId === undefined ? {} : { rewardAdminRequestId: request.requestId }) },
+    });
   }
 
   public async inspectActions(): Promise<readonly StreamerBotActionSummary[]> {

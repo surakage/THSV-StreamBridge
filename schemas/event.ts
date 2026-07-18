@@ -27,6 +27,7 @@ export const EVENT_TYPE_VALUES = [
   'engagement.super-chat',
   'channel.raid',
   'engagement.milestone',
+  'reward.redemption',
   'moderation.action',
   'stream.online',
   'stream.offline',
@@ -114,7 +115,7 @@ export const normalizedEventSchema = z
   })
   .strict()
   .superRefine((event, context) => {
-    if ((PUBLIC_ALERT_EVENT_TYPE_VALUES as readonly string[]).includes(event.eventType) && event.source.eventId === undefined) {
+    if (((PUBLIC_ALERT_EVENT_TYPE_VALUES as readonly string[]).includes(event.eventType) || event.eventType === 'reward.redemption') && event.source.eventId === undefined) {
       context.addIssue({
         code: 'custom',
         path: ['source', 'eventId'],

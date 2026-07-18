@@ -43,6 +43,11 @@ public class CPHInline
             ["quantity"] = First(ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("giftCount")),
             ["tier"] = First(Read("tier"), Read("subTier"), Read("subscriptionTier")),
             ["itemName"] = First(Read("giftName"), Read("itemName"), Read("rewardName"), "Kick Gift"),
+            ["rewardId"] = First(Read("rewardId"), Read("reward.id")),
+            ["rewardTitle"] = First(Read("rewardName"), Read("reward.title")),
+            ["rewardCost"] = First(ReadInvariant("rewardCost"), ReadInvariant("reward.cost")),
+            ["rewardRequiresInput"] = ReadBoolean("requiresUserInput") || ReadBoolean("reward.requiresUserInput"),
+            ["redemptionId"] = Read("redemptionId"),
             ["channelId"] = First(Read("broadcastId"), Read("broadcasterUserId"), Read("broadcasterId")),
             ["channelName"] = First(Read("broadcastUserName"), Read("broadcasterUserName"), Read("broadcaster")),
             ["argumentKeys"] = argumentKeys
@@ -69,9 +74,9 @@ public class CPHInline
 
     private bool Supported(string platform, string eventType)
     {
-        if (platform == "twitch") return eventType == "TwitchChatMessage" || eventType == "TwitchFollow" || eventType == "TwitchCheer" || eventType == "TwitchSub" || eventType == "TwitchReSub" || eventType == "TwitchGiftSub" || eventType == "TwitchGiftBomb" || eventType == "TwitchRaid";
+        if (platform == "twitch") return eventType == "TwitchChatMessage" || eventType == "TwitchFollow" || eventType == "TwitchCheer" || eventType == "TwitchSub" || eventType == "TwitchReSub" || eventType == "TwitchGiftSub" || eventType == "TwitchGiftBomb" || eventType == "TwitchRaid" || eventType == "TwitchRewardRedemption";
         if (platform == "youtube") return eventType == "YouTubeMessage" || eventType == "YouTubeSuperChat" || eventType == "YouTubeSuperSticker" || eventType == "YouTubeNewSubscriber" || eventType == "YouTubeNewSponsor" || eventType == "YouTubeMemberMileStone" || eventType == "YouTubeMembershipGift";
-        if (platform == "kick") return eventType == "KickChatMessage" || eventType == "KickFollow" || eventType == "KickSubscription" || eventType == "KickResubscription" || eventType == "KickGiftSubscription" || eventType == "KickMassGiftSubscription" || eventType == "KickGifted";
+        if (platform == "kick") return eventType == "KickChatMessage" || eventType == "KickFollow" || eventType == "KickSubscription" || eventType == "KickResubscription" || eventType == "KickGiftSubscription" || eventType == "KickMassGiftSubscription" || eventType == "KickGifted" || eventType == "KickRewardRedemption";
         return false;
     }
 

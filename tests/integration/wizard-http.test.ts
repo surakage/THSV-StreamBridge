@@ -260,4 +260,39 @@ describe('wizard HTTP surface', () => {
     expect(observed[0]?.metadata.simulated).toBe(true);
     expect((await fetch(`${baseUrl}/wizard/api/alerts/not-real/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);
   });
+
+  it('authenticates reward administration and refuses unsupported Kick mutations', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const dispatched: Array<{ platform: string; operation: string; rewardId: string }> = [];
+    const inspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]),
+      inspectCommands: () => Promise.resolve([]),
+      inspectionRequests: () => [],
+      requestRewardAdministration: (request) => {
+        dispatched.push({ platform: request.platform, operation: request.operation, rewardId: request.rewardId });
+        return Promise.resolve();
+      },
+    };
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(inspector));
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    const twitchRequest = { platform: 'twitch', operation: 'pause', rewardId: 'reward-1', approvedByCreator: true };
+
+    expect((await fetch(`${baseUrl}/wizard/api/rewards/administer`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(twitchRequest) })).status).toBe(401);
+    const approved = await fetch(`${baseUrl}/wizard/api/rewards/administer`, { method: 'POST', headers, body: JSON.stringify(twitchRequest) });
+    expect(approved.status).toBe(200);
+    expect(await approved.json()).toMatchObject({ available: true, platform: 'twitch', operation: 'pause', rewardId: 'reward-1' });
+    expect(dispatched).toEqual([{ platform: 'twitch', operation: 'pause', rewardId: 'reward-1' }]);
+
+    const kick = await fetch(`${baseUrl}/wizard/api/rewards/administer`, {
+      method: 'POST', headers, body: JSON.stringify({ ...twitchRequest, platform: 'kick' }),
+    });
+    expect(kick.status).toBe(200);
+    expect(await kick.json()).toMatchObject({ available: false, error: expect.stringContaining('Kick reward mutation controls are unavailable') as unknown });
+    expect(dispatched).toHaveLength(1);
+  });
 });

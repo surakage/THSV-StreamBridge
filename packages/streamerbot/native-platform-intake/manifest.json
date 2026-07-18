@@ -12,8 +12,8 @@
   ],
   "runtime": { "queue": "Default", "concurrent": true },
   "triggerContract": {
-    "twitch": ["TwitchChatMessage", "TwitchFollow", "TwitchCheer", "TwitchSub", "TwitchReSub", "TwitchGiftSub", "TwitchGiftBomb", "TwitchRaid"],
+    "twitch": ["TwitchChatMessage", "TwitchFollow", "TwitchCheer", "TwitchSub", "TwitchReSub", "TwitchGiftSub", "TwitchGiftBomb", "TwitchRaid", "TwitchRewardRedemption"],
     "youtube": ["YouTubeMessage", "YouTubeSuperChat", "YouTubeSuperSticker", "YouTubeNewSubscriber", "YouTubeNewSponsor", "YouTubeMemberMileStone", "YouTubeMembershipGift"],
-    "kick": ["KickChatMessage", "KickFollow", "KickSubscription", "KickResubscription", "KickGiftSubscription", "KickMassGiftSubscription", "KickGifted"]
+    "kick": ["KickChatMessage", "KickFollow", "KickSubscription", "KickResubscription", "KickGiftSubscription", "KickMassGiftSubscription", "KickGifted", "KickRewardRedemption"]
   }
 }

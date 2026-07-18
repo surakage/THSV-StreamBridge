@@ -92,8 +92,8 @@ export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logge
   const registry = new AdapterRegistry();
   const streamerBotEventRelay = new StreamerBotEventRelay();
   registry.registerInput('mock', (name, platform) => new MockAdapter(name, platform), () => ({
-    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'raids', 'moderation', 'engagement', 'channelUpdates', 'timedActions'],
-    supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'raids', 'cheers', 'donations', 'gifts', 'moderation', 'stream-status'],
+    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'raids', 'moderation', 'engagement', 'channelUpdates', 'timedActions', 'rewards'],
+    supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'raids', 'cheers', 'donations', 'gifts', 'moderation', 'stream-status', 'channel-rewards.redemptions'],
     verification: 'verified', limitations: ['Verified simulator only; this is not a production platform transport.'],
   }));
   registry.registerInput('timed-actions', (name, platform) => new TimedActionsAdapter(name, platform, config.timedActions), () => ({
@@ -113,8 +113,8 @@ export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logge
 
 function nativeCapabilities(platform: string): InputProviderCapabilities {
   if (platform === 'twitch') return {
-    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'raids', 'engagement'],
-    supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'raids', 'cheers'], verification: 'verified',
+    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'raids', 'engagement', 'rewards'],
+    supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'raids', 'cheers', 'channel-rewards.read', 'channel-rewards.redemptions', 'channel-rewards.update', 'channel-rewards.fulfill', 'channel-rewards.cancel'], verification: 'verified',
     limitations: ['The legacy donations flag is retained for configuration compatibility; native Twitch intake reports cheers, not inferred donations.'],
   };
   if (platform === 'youtube') return {
@@ -123,7 +123,7 @@ function nativeCapabilities(platform: string): InputProviderCapabilities {
     limitations: ['YouTube Super Chat and Super Sticker are normalized as monetary alerts.'],
   };
   if (platform === 'kick') return {
-    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts'], supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions'], verification: 'verified', limitations: [],
+    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'rewards'], supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'channel-rewards.redemptions'], verification: 'verified', limitations: ['Kick reward redemption intake is documented in Streamer.bot 1.0.2+. Kick reward mutation controls remain hidden because their official documentation is missing.'],
   };
   return { legacy: [], supported: [], verification: 'unverified', limitations: [`Streamer.bot native intake is not implemented for ${platform}.`] };
 }

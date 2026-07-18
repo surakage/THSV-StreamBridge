@@ -138,6 +138,11 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.administerCommand(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/rewards/administer' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.administerReward(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/diagnostics' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.diagnostics());

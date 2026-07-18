@@ -259,3 +259,19 @@ describe('Tier 1 command administration dispatch', () => {
     expect(result.error).toBe('Streamer.bot is unavailable');
   });
 });
+
+describe('reward administration dispatch', () => {
+  it('dispatches approved Twitch operations and rejects every Kick mutation', async () => {
+    const dispatched: unknown[] = [];
+    const rewardInspector: StreamerBotInspector = {
+      inspectActions: () => Promise.resolve([]), inspectCommands: () => Promise.resolve([]), inspectionRequests: () => [],
+      requestRewardAdministration: (request) => { dispatched.push(request); return Promise.resolve(); },
+    };
+    const service = new WizardService(rewardInspector);
+    expect(await service.administerReward({ platform: 'twitch', operation: 'fulfill', rewardId: 'reward-1', redemptionId: 'redeem-1', approvedByCreator: true })).toMatchObject({ available: true, operation: 'fulfill', rewardId: 'reward-1' });
+    const kick = await service.administerReward({ platform: 'kick', operation: 'fulfill', rewardId: 'reward-1', redemptionId: 'redeem-1', approvedByCreator: true });
+    expect(kick.available).toBe(false);
+    expect(kick.error).toContain('Kick reward mutation controls are unavailable');
+    expect(dispatched).toHaveLength(1);
+  });
+});

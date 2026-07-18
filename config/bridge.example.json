@@ -63,6 +63,7 @@
     "passwordEnv": "STREAMERBOT_PASSWORD",
     "actionAlias": "THSV StreamBridge - Receive Event",
     "commandAdministrationActionAlias": "THSV StreamBridge - Command Administration",
+    "rewardAdministrationActionAlias": "THSV StreamBridge - Reward Administration",
     "acknowledgementTimeoutMs": 5000,
     "maxPendingRequests": 16,
     "deliveryQueueCapacity": 100,
@@ -77,11 +78,11 @@
     }
   },
   "platforms": {
-    "twitch": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "donations", "raids"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
+    "twitch": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "donations", "raids", "rewards"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
     "youtube": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "donations"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
-    "kick": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "gifts"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
+    "kick": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "rewards"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
     "tiktok": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "tikfinity-streamerbot", "capabilities": ["chatInput", "follows", "gifts", "engagement"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
-    "mock": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "mock", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "donations", "raids", "moderation", "engagement", "channelUpdates", "timedActions"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } },
+    "mock": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "mock", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "donations", "raids", "moderation", "engagement", "channelUpdates", "timedActions", "rewards"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } },
     "timers": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "timed-actions", "capabilities": ["timedActions"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } }
   },
   "outputs": {

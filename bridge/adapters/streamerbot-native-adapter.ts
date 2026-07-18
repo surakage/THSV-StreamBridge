@@ -27,6 +27,11 @@ const relaySchema = z.object({
   quantity: z.string().max(32).default(''),
   tier: z.string().max(100).default(''),
   itemName: z.string().max(500).default(''),
+  rewardId: z.string().max(256).default(''),
+  rewardTitle: z.string().max(256).default(''),
+  rewardCost: z.string().max(32).default(''),
+  rewardRequiresInput: z.boolean().default(false),
+  redemptionId: z.string().max(256).default(''),
   channelId: z.string().max(256).default(''),
   channelName: z.string().max(256).default(''),
   argumentKeys: z.array(z.string().max(100)).max(100).default([]),
@@ -124,6 +129,16 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     return { ...common, payload: { amount, currency, ...(clean(relay.message) === '' ? {} : { message: clean(relay.message) }) } };
   }
   if (eventType === 'engagement.gift') return { ...common, payload: { itemName: clean(relay.itemName) || 'Platform Gift', quantity: positiveInteger(relay.quantity, 1) } };
+  if (eventType === 'reward.redemption') {
+    const rewardId = clean(relay.rewardId);
+    const redemptionId = clean(relay.redemptionId) || relay.relayId;
+    if (rewardId === '') throw new Error(`${relay.sourceEventType} requires a reward ID.`);
+    return { ...common, payload: {
+      rewardId, rewardTitle: clean(relay.rewardTitle) || 'Untitled reward', rewardCost: nonnegativeInteger(relay.rewardCost),
+      requiresUserInput: relay.rewardRequiresInput, ...(clean(relay.message) === '' ? {} : { input: clean(relay.message) }), redemptionId,
+      supportedOperations: relay.platform === 'twitch' ? ['fulfill', 'cancel'] : [], verifiedTransport: true,
+    }, metadata: { ...common.metadata, ...(clean(relay.redemptionId) === '' ? { unverifiedFields: [...(common.metadata.unverifiedFields ?? []), 'payload.redemptionId'] } : {}) } };
+  }
   return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1) } };
 }
 
@@ -138,6 +153,7 @@ function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {
   if (['YouTubeSuperChat', 'YouTubeSuperSticker'].includes(type)) return 'engagement.super-chat';
   if (type === 'KickGifted') return 'engagement.gift';
   if (type === 'TwitchRaid') return 'channel.raid';
+  if ((relay.platform === 'twitch' && type === 'TwitchRewardRedemption') || (relay.platform === 'kick' && type === 'KickRewardRedemption')) return 'reward.redemption';
   throw new Error(`Unsupported native Streamer.bot event type: ${type}`);
 }
 
@@ -153,6 +169,7 @@ function normalizedRoles(relay: NativeRelay): string[] {
 
 function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim(); }
 function positiveInteger(value: string, fallback: number): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback; }
+function nonnegativeInteger(value: string): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= 2_147_483_647 ? parsed : 0; }
 function decimalString(value: string): string | undefined { const cleaned = clean(value); return /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/.test(cleaned) ? cleaned : undefined; }
 function currencyCode(value: string): string | undefined { const cleaned = clean(value).toUpperCase(); return /^[A-Z]{3}$/.test(cleaned) ? cleaned : undefined; }
 function validHttps(value: string): string | undefined { try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : undefined; } catch { return undefined; } }

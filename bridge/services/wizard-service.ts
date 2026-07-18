@@ -22,6 +22,7 @@ import {
   parseCommandAdministrationInput,
   type CommandAdministrationRequest,
 } from '../core/command-administration.js';
+import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -32,6 +33,7 @@ export interface StreamerBotInspector {
   // as "Streamer.bot output is not configured" rather than requiring every caller to implement
   // a method they have no way to exercise.
   requestCommandAdministration?(request: CommandAdministrationRequest): Promise<void>;
+  requestRewardAdministration?(request: RewardAdministrationRequest): Promise<void>;
 }
 
 export interface WizardOwnedObject {
@@ -102,6 +104,15 @@ export interface CommandAdministrationResult {
   readonly error?: string;
 }
 
+export interface RewardAdministrationResult {
+  readonly requestedAt: string;
+  readonly available: boolean;
+  readonly platform?: RewardAdministrationRequest['platform'];
+  readonly operation?: RewardAdministrationRequest['operation'];
+  readonly rewardId?: string;
+  readonly error?: string;
+}
+
 const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
   { kind: 'action', id: '143fce1d-c5b0-4108-b766-ee2d0249e2d4', name: 'THSV StreamBridge - Receive Event', packageId: 'core-receiver' },
   { kind: 'action', id: '99e202ab-0ee9-58d1-b22c-95b30fdc702e', name: 'THSV StreamBridge - Multi-Chat', packageId: 'multi-chat' },
@@ -118,6 +129,7 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
   { kind: 'action', id: 'b2ee7599-75b5-5c88-8ef2-4d715885c610', name: 'THSV TikTok - Like', packageId: 'tikfinity-intake' },
   { kind: 'action', id: '4e9f0946-f33d-5309-b376-a16df5612b32', name: 'THSV StreamBridge - Open Setup Wizard', packageId: 'wizard-launcher' },
   { kind: 'action', id: '04ca0087-578d-5c2e-9e06-249dc072e9f8', name: 'THSV StreamBridge - Command Administration', packageId: 'command-administration' },
+  { kind: 'action', id: 'c1d3a9e2-0f4b-4b78-91c2-7a65d8e309f1', name: 'THSV StreamBridge - Reward Administration', packageId: 'reward-administration' },
   { kind: 'action', id: 'f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2', name: 'THSV StreamBridge - Launch Bridge', packageId: 'bridge-launcher' },
   { kind: 'action', id: '8d8e3667-fd96-510f-b2ae-a8affe5b789a', name: 'THSV StreamBridge - Shutdown Bridge', packageId: 'bridge-launcher' },
 ];
@@ -136,11 +148,11 @@ export class WizardService {
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
     return {
       version: '2.0.0-preview.1',
-      stage: 7,
+      stage: 8,
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
       mutationSupport: this.configuration !== undefined,
-      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Alerts', 'Ownership', 'Diagnostics'],
+      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Alerts', 'Rewards', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
       transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
       lastInspection: this.lastInspection,
@@ -329,6 +341,19 @@ export class WizardService {
       }
       await this.inspector.requestCommandAdministration(request);
       return { requestedAt, available: true, operation: request.operation, commandId: request.commandId };
+    } catch (error) {
+      return { requestedAt, available: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  public async administerReward(input: unknown): Promise<RewardAdministrationResult> {
+    const requestedAt = new Date().toISOString();
+    if (this.inspector?.requestRewardAdministration === undefined) return { requestedAt, available: false, error: 'Reward administration requires Streamer.bot output and the reviewed Reward Administration package.' };
+    const parsed = rewardAdministrationRequestSchema.safeParse(input);
+    if (!parsed.success) return { requestedAt, available: false, error: parsed.error.issues.map((issue) => issue.message).join(' ') };
+    try {
+      await this.inspector.requestRewardAdministration(parsed.data);
+      return { requestedAt, available: true, platform: parsed.data.platform, operation: parsed.data.operation, rewardId: parsed.data.rewardId };
     } catch (error) {
       return { requestedAt, available: false, error: error instanceof Error ? error.message : String(error) };
     }

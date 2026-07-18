@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Reward Administration",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Creator-approved Twitch reward controls using documented Streamer.bot CPH methods; Kick mutations are intentionally unavailable.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": { "name": "THSV StreamBridge - Reward Administration", "group": "THSV StreamBridge", "id": "c1d3a9e2-0f4b-4b78-91c2-7a65d8e309f1", "sourceSubActionId": "8a2e1cb4-7d4f-42c6-90a1-5b7e3d9c602f", "source": "src/ProcessRewardAdministration.cs", "importFile": "THSV-StreamBridge-Reward-Administration-1.0.0.sb" },
+  "runtime": { "queue": "Default", "concurrent": true, "dependencies": ["Streamer.bot documented Twitch Channel Reward CPH methods"] },
+  "contract": { "version": "1.0.0", "operations": ["enable", "disable", "pause", "unpause", "fulfill", "cancel"], "requiredInputArguments": ["rewardAdminPlatform", "rewardAdminOperation", "rewardAdminRewardId", "rewardAdminApproved"], "conditionalInputArguments": ["rewardAdminRedemptionId", "rewardAdminRequestId"], "safety": { "requiresCreatorApproval": true, "directTriggers": false, "kickMutations": "hidden-until-documented" } }
+}
