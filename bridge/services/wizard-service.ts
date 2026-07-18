@@ -4,6 +4,7 @@ import type {
   StreamerBotCommandSummary,
   StreamerBotInspectionAuditEntry,
 } from '../adapters/streamerbot-adapter.js';
+import { WizardConfigurationError, type WizardConfigurationChange, type WizardConfigurationDraft, type WizardConfigurationExport, type WizardConfigurationGateway } from './wizard-configuration.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -55,19 +56,20 @@ export class WizardService {
   private readonly transactions = new Map<string, WizardTransaction>();
   private lastInspection: WizardInspection | undefined;
 
-  public constructor(private readonly inspector: StreamerBotInspector | undefined) {}
+  public constructor(private readonly inspector: StreamerBotInspector | undefined, private readonly configuration?: WizardConfigurationGateway) {}
 
-  public overview(): Readonly<Record<string, unknown>> {
+  public async overview(): Promise<Readonly<Record<string, unknown>>> {
     return {
       version: '2.0.0-preview.1',
-      stage: 3,
-      mode: 'read-only-inspection',
+      stage: 4,
+      mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
-      mutationSupport: false,
-      navigation: ['Overview', 'Streamer.bot', 'Ownership', 'Diagnostics'],
+      mutationSupport: this.configuration !== undefined,
+      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
       transactions: [...this.transactions.values()],
       lastInspection: this.lastInspection,
+      ...(this.configuration === undefined ? {} : { configuration: await this.configuration.snapshot() }),
     };
   }
 
@@ -99,13 +101,15 @@ export class WizardService {
     }
   }
 
-  public beginTransaction(): WizardTransaction {
+  public async beginTransaction(): Promise<WizardTransaction | WizardConfigurationDraft> {
+    if (this.configuration !== undefined) return this.configuration.begin();
     const transaction: WizardTransaction = { id: randomUUID(), status: 'draft', createdAt: new Date().toISOString(), stagedChanges: [] };
     this.transactions.set(transaction.id, transaction);
     return transaction;
   }
 
   public cancelTransaction(id: string): WizardTransaction {
+    if (this.configuration !== undefined) return this.configuration.cancel(id) as unknown as WizardTransaction;
     const current = this.transactions.get(id);
     if (current === undefined) throw new WizardTransactionError(404, 'Wizard transaction was not found.');
     if (current.status === 'cancelled') return current;
@@ -114,14 +118,35 @@ export class WizardService {
     return cancelled;
   }
 
+  public stageTransaction(id: string, change: WizardConfigurationChange): WizardConfigurationDraft {
+    if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration mutations are not available.');
+    return this.configuration.stage(id, change);
+  }
+
+  public stageImport(id: string, input: unknown): WizardConfigurationDraft {
+    if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration mutations are not available.');
+    return this.configuration.stageImport(id, input);
+  }
+
+  public async commitTransaction(id: string): Promise<WizardConfigurationDraft> {
+    if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration mutations are not available.');
+    return this.configuration.commit(id);
+  }
+
+  public async exportConfiguration(): Promise<WizardConfigurationExport> {
+    if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration export is not available.');
+    return this.configuration.export();
+  }
+
   public diagnostics(): Readonly<Record<string, unknown>> {
     return {
-      mode: 'read-only-inspection',
+      mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       documentedRequestsOnly: true,
       supportedRequests: ['GetActions', 'GetCommands'],
       mutationRequestsSent: 0,
       inspectionRequests: this.inspector?.inspectionRequests() ?? [],
       activeTransactions: [...this.transactions.values()].filter((transaction) => transaction.status === 'draft').length,
+      configuration: this.configuration?.diagnostics(),
     };
   }
 }
@@ -129,6 +154,8 @@ export class WizardService {
 export class WizardTransactionError extends Error {
   public constructor(public readonly statusCode: number, message: string) { super(message); }
 }
+
+export { WizardConfigurationError };
 
 function isOwned(kind: WizardOwnedObject['kind'], id: string, name: string): boolean {
   return PACKAGE_OWNERSHIP.some((object) => object.kind === kind && object.id === id && object.name === name);

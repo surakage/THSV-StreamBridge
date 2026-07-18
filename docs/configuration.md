@@ -6,9 +6,19 @@ Run `scripts\validate-config.ps1` before startup.
 
 ## Platforms
 
-Every platform entry preserves `enabled`, input/output flags, adapter provider, capabilities, and bounded reconnect settings even while disabled. Platform keys are open validated identifiers; providers are resolved through the adapter registry. Runtime diagnostics add connection state, last event time, last error, and reconnect attempts.
+Every platform entry preserves `enabled`, input/output flags, adapter provider, legacy compatibility requirements, and bounded reconnect settings even while disabled. Platform keys are open validated identifiers; providers are resolved through the adapter registry. Runtime diagnostics add connection state, last event time, last error, and reconnect attempts.
 
-Capabilities describe the adapter contract, not a promise that deferred transports are implemented.
+The selected provider is authoritative for runtime capabilities. Creator-editable legacy `capabilities` values cannot inflate a provider declaration; unsupported claims fail startup, while the runtime adapter receives the provider declaration. The wizard displays the v2 per-operation report and its verified, unverified, unsupported, and limitation states.
+
+## Scoped blockers
+
+`filters.enabled` controls bounded blocker evaluation. Each unique rule selects a `display`, `command`, or `module` scope; an optional platform and actor-type set; a message, username, or display-name target; and an exact, contains, or restricted-regex match.
+
+- `display` prevents a matching public chat event from reaching browser presentation subscribers but does not suppress command parsing, Streamer.bot delivery, or modules.
+- `command` prevents automatic chat-to-command derivation but does not hide the chat message.
+- `module` skips only the listed internal framework module IDs and does not hide presentation or disable command parsing.
+
+Regex patterns are capped at 200 characters and evaluated only against schema-bounded strings. Backreferences, lookarounds, nested quantified groups, and quantified alternations are rejected at configuration validation, before the rule can be enabled. Prefer exact or contains matching whenever possible.
 
 ## Secrets
 

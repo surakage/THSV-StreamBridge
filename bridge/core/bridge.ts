@@ -12,6 +12,7 @@ import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
 import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/timed-actions-adapter.js';
 import { ModuleRegistry } from './module-registry.js';
+import { EventFilterEngine, type FilterDecision } from './event-filters.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -46,6 +47,7 @@ export class StreamBridge {
   private readonly stateWriter: StateWriter;
   private readonly timedActions: TimedActionsAdapter | undefined;
   private readonly modules: ModuleRegistry;
+  private readonly filters: EventFilterEngine;
   private readonly livePlatforms = new Set<string>();
   private running = false;
   private startedAt: string | undefined;
@@ -76,6 +78,7 @@ export class StreamBridge {
     );
     this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
     this.modules = dependencies.modules ?? new ModuleRegistry([], logger);
+    this.filters = new EventFilterEngine(config.filters);
   }
 
   public subscribe(handler: Parameters<InternalEventBus['subscribe']>[0]): () => void { return this.bus.subscribe(handler); }
@@ -148,8 +151,16 @@ export class StreamBridge {
       if (this.livePlatforms.size === 0) await this.timedActions?.control('stop');
     }
 
+    const initialFilterDecision = this.filters.evaluate(validatedEvent);
+    if (initialFilterDecision.matchedRuleIds.length > 0) this.logger.info('Event blocker rules matched', {
+      eventId: validatedEvent.eventId,
+      ruleIds: initialFilterDecision.matchedRuleIds,
+      displayBlocked: initialFilterDecision.displayBlocked,
+      commandBlocked: initialFilterDecision.commandBlocked,
+      blockedModuleIds: [...initialFilterDecision.blockedModuleIds],
+    });
     let derivedCommand: NormalizedEvent | undefined;
-    try { derivedCommand = deriveCommandEvent(validatedEvent, this.config.commands); }
+    try { derivedCommand = initialFilterDecision.commandBlocked ? undefined : deriveCommandEvent(validatedEvent, this.config.commands); }
     catch (error) {
       this.deduplicator.forget(validatedEvent);
       if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
@@ -161,7 +172,7 @@ export class StreamBridge {
       events.push(derivedCommand);
     }
     try {
-      const outputs = await this.publishEvents(events);
+      const outputs = await this.publishEvents(events, initialFilterDecision);
       const lastEvent = events.at(-1);
       if (lastEvent === undefined) throw new Error('No accepted event was produced');
       const acceptedAt = new Date().toISOString();
@@ -216,10 +227,11 @@ export class StreamBridge {
     };
   }
 
-  private async publishEvents(events: readonly NormalizedEvent[]): Promise<readonly string[]> {
-    for (const event of events) {
-      await this.bus.publish(event);
-      await this.modules.publish(event);
+  private async publishEvents(events: readonly NormalizedEvent[], initialDecision: FilterDecision): Promise<readonly string[]> {
+    for (const [index, event] of events.entries()) {
+      const decision = index === 0 ? initialDecision : this.filters.evaluate(event);
+      if (!decision.displayBlocked) await this.bus.publish(event);
+      await this.modules.publish(event, decision.blockedModuleIds);
     }
     return this.delivery.enqueueBatch(events);
   }

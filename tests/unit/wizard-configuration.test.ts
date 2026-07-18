@@ -1,0 +1,48 @@
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { WizardConfigurationError, WizardConfigurationGateway } from '../../bridge/services/wizard-configuration.js';
+
+describe('Stage 4 wizard configuration gateway', () => {
+  it('uses a single lease, commits through a backup, and exports no secrets', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-'));
+    const path = join(directory, 'bridge.json');
+    const source = await readFile('config/bridge.example.json', 'utf8');
+    const sourceObject = JSON.parse(source) as Record<string, unknown>;
+    sourceObject['viewerIdentity'] = { enabled: true };
+    sourceObject['companion'] = { enabled: true };
+    const sourceWithArchivedState = `${JSON.stringify(sourceObject, null, 2)}\n`;
+    await writeFile(path, sourceWithArchivedState);
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const draft = await gateway.begin();
+    await expect(gateway.begin()).rejects.toThrow('mutation lease');
+    gateway.stage(draft.id, { kind: 'platform', platform: 'twitch', enabled: true, inputEnabled: true, outputEnabled: false });
+    const committed = await gateway.commit(draft.id);
+    expect(committed.status).toBe('committed');
+    expect(committed.backupPath).toBeDefined();
+    if (committed.backupPath === undefined) throw new Error('Commit did not return a backup path.');
+    expect(await readFile(committed.backupPath, 'utf8')).toBe(sourceWithArchivedState);
+    const committedText = await readFile(path, 'utf8');
+    expect(committedText).toContain('"viewerIdentity"');
+    expect(committedText).toContain('"companion"');
+    const exported = JSON.stringify(await gateway.export());
+    expect(exported).not.toContain('controlToken');
+    expect(exported).not.toContain('passwordEnv');
+    expect(gateway.diagnostics()).toMatchObject({ mutationWrites: 1, rollbackWrites: 0, activeMutationLeases: 0 });
+  });
+
+  it('rejects a stale draft without writing', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-stale-'));
+    const path = join(directory, 'bridge.json');
+    const source = await readFile('config/bridge.example.json', 'utf8');
+    await writeFile(path, source);
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const draft = await gateway.begin();
+    gateway.stage(draft.id, { kind: 'platform', platform: 'twitch', enabled: true, inputEnabled: true, outputEnabled: false });
+    await writeFile(path, `${source}\n`);
+    await expect(gateway.commit(draft.id)).rejects.toBeInstanceOf(WizardConfigurationError);
+    expect(await readFile(path, 'utf8')).toBe(`${source}\n`);
+    expect(gateway.diagnostics()).toMatchObject({ mutationWrites: 0, rollbackWrites: 0 });
+  });
+});

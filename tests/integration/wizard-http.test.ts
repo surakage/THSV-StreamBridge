@@ -28,7 +28,7 @@ describe('wizard HTTP surface', () => {
     expect(shell.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
     const shellMarkup = await shell.text();
     expect(shellMarkup).toContain('id="inspection-state" class="notice" role="status" aria-live="polite" aria-atomic="true"');
-    expect(shellMarkup).toContain('id="transaction" role="status" aria-live="polite" aria-atomic="true"');
+    expect(shellMarkup).toContain('id="transaction-state" class="notice" role="status" aria-live="polite" aria-atomic="true"');
     expect(shellMarkup).toContain('id="diagnostics" role="status" aria-live="polite" aria-atomic="true"');
     const theme = await fetch(`${baseUrl}/wizard/styles.css`).then((response) => response.text());
     expect(theme).toContain('color-scheme:light dark');
