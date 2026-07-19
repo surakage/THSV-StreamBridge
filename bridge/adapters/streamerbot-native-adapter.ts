@@ -17,10 +17,17 @@ const relaySchema = z.object({
   userName: z.string().max(256).default(''),
   displayName: z.string().max(256).default(''),
   profilePictureUrl: z.string().max(2_048).default(''),
+  nameColor: z.string().max(16).default(''),
+  badges: z.array(z.object({
+    id: z.string().max(64),
+    label: z.string().max(64),
+    iconUrl: z.string().max(2_048).default(''),
+  }).strict()).max(16).default([]),
   role: z.string().max(64).default(''),
   isModerator: z.boolean().default(false),
   isBroadcaster: z.boolean().default(false),
   isSubscribed: z.boolean().default(false),
+  isVip: z.boolean().default(false),
   message: z.string().max(2_000).default(''),
   amount: z.string().max(32).default(''),
   currency: z.string().max(8).default(''),
@@ -65,9 +72,10 @@ export class StreamerBotNativeAdapter extends ManagedAdapter {
     if (message['type'] !== 'thsv.platform' || this.context === undefined || message['platform'] !== this.name) return;
     try {
       const event = normalizeStreamerBotPlatformRelay(message, this.name);
-      await this.context.emit(event, Buffer.byteLength(JSON.stringify(message)));
+      const result = await this.context.emit(event, Buffer.byteLength(JSON.stringify(message)));
       this.lastEventAt = new Date().toISOString();
       this.lastError = undefined;
+      this.context.logger.info('Native Streamer.bot platform relay event accepted', { adapter: this.name, eventType: event.eventType, eventId: event.eventId, result });
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
       this.context.logger.warn('Native Streamer.bot platform relay event rejected', { adapter: this.name, error });
@@ -83,6 +91,8 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   const displayName = clean(relay.displayName) || name;
   const roles = normalizedRoles(relay);
   const avatarUrl = validHttps(relay.profilePictureUrl);
+  const nameColor = validNameColor(relay.nameColor);
+  const badges = normalizedBadges(relay, roles);
   const user = {
     ...(clean(relay.userId) === '' ? {} : { id: clean(relay.userId) }),
     name,
@@ -90,6 +100,8 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     actorType: 'human' as const,
     roles,
     ...(avatarUrl === undefined ? {} : { avatarUrl }),
+    ...(nameColor === undefined ? {} : { nameColor }),
+    ...(badges.length === 0 ? {} : { badges }),
   };
   const common = {
     schemaVersion: '1.0.0' as const,
@@ -164,7 +176,32 @@ function normalizedRoles(relay: NativeRelay): string[] {
   if (relay.isBroadcaster) roles.add('broadcaster');
   if (relay.isModerator) roles.add('moderator');
   if (relay.isSubscribed) roles.add('subscriber');
+  if (relay.isVip) roles.add('vip');
   return [...roles];
+}
+
+function normalizedBadges(relay: NativeRelay, roles: readonly string[]): { id: string; label: string; iconUrl?: string }[] {
+  const badges: { id: string; label: string; iconUrl?: string }[] = [];
+  const seen = new Set<string>();
+  for (const [index, badge] of relay.badges.entries()) {
+    const label = clean(badge.label);
+    const id = badgeId(badge.id, label, index);
+    if (label === '' || seen.has(id)) continue;
+    const iconUrl = validHttps(badge.iconUrl);
+    badges.push({ id, label, ...(iconUrl === undefined ? {} : { iconUrl }) });
+    seen.add(id);
+  }
+  for (const role of ['broadcaster', 'moderator', 'vip', 'subscriber']) {
+    if (!roles.includes(role) || seen.has(role)) continue;
+    badges.push({ id: role, label: role.charAt(0).toUpperCase() + role.slice(1) });
+    seen.add(role);
+  }
+  return badges.slice(0, 16);
+}
+
+function badgeId(rawId: string, label: string, index: number): string {
+  const candidate = (clean(rawId) || label).toLowerCase().replace(/[^a-z0-9-]+/gu, '-').replace(/^-+|-+$/gu, '').slice(0, 64);
+  return /^[a-z][a-z0-9-]*$/u.test(candidate) ? candidate : `badge-${String(index + 1)}`;
 }
 
 function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim(); }
@@ -173,3 +210,4 @@ function nonnegativeInteger(value: string): number { const parsed = Number(value
 function decimalString(value: string): string | undefined { const cleaned = clean(value); return /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/.test(cleaned) ? cleaned : undefined; }
 function currencyCode(value: string): string | undefined { const cleaned = clean(value).toUpperCase(); return /^[A-Z]{3}$/.test(cleaned) ? cleaned : undefined; }
 function validHttps(value: string): string | undefined { try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : undefined; } catch { return undefined; } }
+function validNameColor(value: string): string | undefined { const cleaned = clean(value); return /^#[0-9a-fA-F]{6}$/u.test(cleaned) ? cleaned : undefined; }

@@ -14,7 +14,7 @@ import {
 describe('command design validation', () => {
   it('creates a normalized design with defaults', () => {
     expect(createCommandDesign({ name: 'Shoutout', approvedByCreator: true })).toEqual({
-      name: 'shoutout', aliases: [], minimumRole: 'viewer', note: '',
+      name: 'shoutout', aliases: [], minimumRole: 'viewer', note: '', actionName: 'THSV Generated - shoutout', responseMessage: '', deliveryPlatforms: [],
     });
   });
 
@@ -22,7 +22,7 @@ describe('command design validation', () => {
     expect(createCommandDesign({
       name: 'so', aliases: ['Shoutout', 'SO2'], minimumRole: 'moderator', note: 'Reads a target username argument.', approvedByCreator: true,
     })).toEqual({
-      name: 'so', aliases: ['shoutout', 'so2'], minimumRole: 'moderator', note: 'Reads a target username argument.',
+      name: 'so', aliases: ['shoutout', 'so2'], minimumRole: 'moderator', note: 'Reads a target username argument.', actionName: 'THSV Generated - so', responseMessage: '', deliveryPlatforms: [],
     });
   });
 
@@ -120,8 +120,8 @@ describe('batch design validation', () => {
       { name: 'so', approvedByCreator: true },
       { name: 'greet', aliases: ['hi'], approvedByCreator: true },
     ])).toEqual([
-      { name: 'so', aliases: [], minimumRole: 'viewer', note: '' },
-      { name: 'greet', aliases: ['hi'], minimumRole: 'viewer', note: '' },
+      { name: 'so', aliases: [], minimumRole: 'viewer', note: '', actionName: 'THSV Generated - so', responseMessage: '', deliveryPlatforms: [] },
+      { name: 'greet', aliases: ['hi'], minimumRole: 'viewer', note: '', actionName: 'THSV Generated - greet', responseMessage: '', deliveryPlatforms: [] },
     ]);
   });
 
@@ -223,6 +223,24 @@ describe('command package generation', () => {
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: unknown[]; commands: unknown[] } };
     expect(exported.data.actions).toHaveLength(2);
     expect(exported.data.commands).toHaveLength(2);
+  });
+
+  it('generates a creator-named action with a stored response and selected platform send methods', () => {
+    const design = createCommandDesign({
+      name: 'hello', actionName: 'THSV Command - Hello', responseMessage: 'Hello "sloths"!',
+      deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], approvedByCreator: true,
+    });
+    const generated = generateCommandsPackage([design], '!');
+    const source = generated.commands[0]?.sourceCode ?? '';
+    expect(source).toContain('string responseMessage = "Hello \\"sloths\\"!";');
+    expect(source).toContain('generatedCommandResponseMessage');
+    expect(source).toContain('CPH.SendMessage(responseMessage, true, true)');
+    expect(source).toContain('CPH.SendYouTubeMessageToLatestMonitored(responseMessage, true, true)');
+    expect(source).toContain('CPH.SendKickMessage(responseMessage, true, true)');
+    expect(source).toContain('sendChatbotMessage');
+    const decoded = Buffer.from(generated.contentBase64, 'base64');
+    const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: Array<{ name: string }> } };
+    expect(exported.data.actions[0]?.name).toBe('THSV Command - Hello');
   });
 
   it('uses the configured prefix, falling back to "!" for an invalid one', () => {

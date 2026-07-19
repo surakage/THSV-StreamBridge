@@ -8,7 +8,7 @@
     "shutdownTimeoutMs": 5000
   },
   "security": {
-    "maxPayloadBytes": 262144,
+    "maxPayloadBytes": 2800000,
     "preserveRawPayloads": false,
     "controlTokenEnv": "THSV_STREAMBRIDGE_CONTROL_TOKEN",
     "controlTokenFile": "data/runtime/control-token",
@@ -47,10 +47,31 @@
     "maxAlertQueue": 20,
     "alertDurationMs": 7000,
     "showBots": true,
-      "showSimulated": true,
-      "alerts": {
-        "profiles": {}
+    "showSimulated": true,
+    "chat": {
+      "layout": "regular",
+      "fontFamily": "system",
+      "fontSizePx": 18,
+      "textColor": "#ffffff",
+      "backgroundMode": "transparent",
+      "backgroundColor": "#171120",
+      "backgroundOpacity": 0.9,
+      "messageBackgroundColor": "#171120",
+      "messageBackgroundOpacity": 0.96,
+      "showPlatformLabels": true,
+      "showProfilePictures": true,
+      "showBadges": true,
+      "ignoredNames": [],
+      "events": {
+        "enabled": true,
+        "platforms": { "twitch": true, "youtube": true, "kick": true, "tiktok": true },
+        "categories": { "rewards": true, "follows": true, "subscriptions": true, "gifts": true, "support": true, "raids": true, "milestones": true },
+        "characterLimits": { "twitch": 500, "youtube": 200, "kick": 500, "tiktok": 150 }
       }
+    },
+    "alerts": {
+      "profiles": {}
+    }
   },
   "filters": {
     "enabled": true,

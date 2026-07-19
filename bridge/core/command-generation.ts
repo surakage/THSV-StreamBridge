@@ -11,8 +11,11 @@ const NAME_PATTERN = /^[a-z][a-z0-9-]*$/u;
 const MAX_NAME_LENGTH = 64;
 const MAX_ALIASES = 20;
 const MAX_NOTE_LENGTH = 500;
+const MAX_ACTION_NAME_LENGTH = 200;
+const MAX_RESPONSE_LENGTH = 500;
 const MAX_BATCH_SIZE = 20;
 const ROLES = ['viewer', 'subscriber', 'moderator', 'broadcaster'] as const;
+const DELIVERY_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
 
 export type CommandGenerationRole = typeof ROLES[number];
 
@@ -21,6 +24,9 @@ export interface CommandDesignInput {
   readonly aliases?: readonly string[];
   readonly minimumRole?: string;
   readonly note?: string;
+  readonly actionName?: string;
+  readonly responseMessage?: string;
+  readonly deliveryPlatforms?: readonly string[];
   readonly approvedByCreator: boolean;
 }
 
@@ -29,6 +35,9 @@ export interface CommandDesign {
   readonly aliases: readonly string[];
   readonly minimumRole: CommandGenerationRole;
   readonly note: string;
+  readonly actionName: string;
+  readonly responseMessage: string;
+  readonly deliveryPlatforms: readonly (typeof DELIVERY_PLATFORMS)[number][];
 }
 
 export class InvalidCommandDesignError extends Error {}
@@ -46,7 +55,15 @@ export function createCommandDesign(input: CommandDesignInput): CommandDesign {
   if (!isRole(minimumRoleInput)) throw new InvalidCommandDesignError(`minimumRole must be one of ${ROLES.join(', ')}.`);
   const note = (input.note ?? '').trim().slice(0, MAX_NOTE_LENGTH);
   if (/[\r\n]/u.test(note)) throw new InvalidCommandDesignError('note must be a single line.');
-  return { name, aliases, minimumRole: minimumRoleInput, note };
+  const actionName = (input.actionName ?? `THSV Generated - ${name}`).trim();
+  if (actionName.length === 0 || actionName.length > MAX_ACTION_NAME_LENGTH || /[\r\n]/u.test(actionName)) throw new InvalidCommandDesignError(`actionName must be a single line of 1-${String(MAX_ACTION_NAME_LENGTH)} characters.`);
+  const responseMessage = (input.responseMessage ?? '').trim();
+  if (responseMessage.length > MAX_RESPONSE_LENGTH || /[\p{Cc}]/u.test(responseMessage)) throw new InvalidCommandDesignError(`responseMessage must be plain text of at most ${String(MAX_RESPONSE_LENGTH)} characters.`);
+  const rawPlatforms = input.deliveryPlatforms ?? [];
+  if (!rawPlatforms.every((platform): platform is (typeof DELIVERY_PLATFORMS)[number] => (DELIVERY_PLATFORMS as readonly string[]).includes(platform))) throw new InvalidCommandDesignError(`deliveryPlatforms must contain only ${DELIVERY_PLATFORMS.join(', ')}.`);
+  const deliveryPlatforms = [...new Set(rawPlatforms)] as (typeof DELIVERY_PLATFORMS)[number][];
+  if (responseMessage.length === 0 && deliveryPlatforms.length > 0) throw new InvalidCommandDesignError('responseMessage is required when delivery platforms are selected.');
+  return { name, aliases, minimumRole: minimumRoleInput, note, actionName, responseMessage, deliveryPlatforms };
 }
 
 function isRole(value: string): value is CommandGenerationRole {
@@ -92,6 +109,9 @@ export function parseCommandDesignInput(value: unknown): CommandDesignInput {
     ...(aliases === undefined ? {} : { aliases }),
     ...(typeof record['minimumRole'] === 'string' ? { minimumRole: record['minimumRole'] } : {}),
     ...(typeof record['note'] === 'string' ? { note: record['note'] } : {}),
+    ...(typeof record['actionName'] === 'string' ? { actionName: record['actionName'] } : {}),
+    ...(typeof record['responseMessage'] === 'string' ? { responseMessage: record['responseMessage'] } : {}),
+    ...(Array.isArray(record['deliveryPlatforms']) && record['deliveryPlatforms'].every((item) => typeof item === 'string') ? { deliveryPlatforms: record['deliveryPlatforms'] } : {}),
   };
 }
 
@@ -213,7 +233,7 @@ export function generateCommandsPackage(designs: readonly CommandDesign[], prefi
   const commandInputs: StreamerBotPackageCommandInput[] = [];
   const commands: GeneratedCommandEntry[] = [];
   for (const design of designs) {
-    const actionName = `THSV Generated - ${design.name}`;
+    const actionName = design.actionName;
     const identitySeed = `wizard-generated:${design.name}`;
     const actionId = stableStreamerBotUuid(`${identitySeed}:action`);
     const commandId = stableStreamerBotUuid(`${identitySeed}:command`);
@@ -263,6 +283,12 @@ export function generateCommandsPackage(designs: readonly CommandDesign[], prefi
 function generateCommandActionSource(design: CommandDesign, commandPhrase: string): string {
   const aliasList = design.aliases.length === 0 ? '(none — add these in Streamer.bot\'s Command(s) box after import)' : design.aliases.join(', ');
   const note = design.note.length === 0 ? '(none)' : design.note;
+  const sends = design.responseMessage.length === 0 ? '        // Add creator-owned sub-actions here.' : design.deliveryPlatforms.map((platform) => ({
+    twitch: '        CPH.SendMessage(responseMessage, true, true);',
+    youtube: '        CPH.SendYouTubeMessageToLatestMonitored(responseMessage, true, true);',
+    kick: '        CPH.SendKickMessage(responseMessage, true, true);',
+    tiktok: '        CPH.WebsocketBroadcastJson("{\\"action\\":\\"sendChatbotMessage\\",\\"args\\":{\\"message\\":" + Newtonsoft.Json.JsonConvert.ToString(responseMessage) + "}}");',
+  })[platform]).join('\n');
   return `using System;
 
 public class CPHInline
@@ -272,18 +298,24 @@ public class CPHInline
     // Minimum role: ${design.minimumRole}
     // Creator note: ${note}
     //
-    // This is a reviewable stub, not a finished response: it only exposes the command's
-    // identity as arguments. Add your own sub-actions after it to decide what actually happens
-    // (for example a native "Send Message" sub-action for your platform). The imported
+    // The response below is creator-authored and is sent only to the platforms selected in
+    // the wizard. It is also exposed as generatedCommandResponseMessage for later sub-actions. The imported
     // "${commandPhrase}" command starts disabled on purpose — open it in Streamer.bot, review
     // its settings (permissions, sources, aliases), and enable it once you are satisfied.
     public bool Execute()
     {
+        string responseMessage = "${escapeCSharpString(design.responseMessage)}";
         CPH.SetArgument("generatedCommandName", "${design.name}");
         CPH.SetArgument("generatedCommandPhrase", "${commandPhrase}");
         CPH.SetArgument("generatedCommandMinimumRole", "${design.minimumRole}");
+        CPH.SetArgument("generatedCommandResponseMessage", responseMessage);
+${sends}
         return true;
     }
 }
 `;
+}
+
+function escapeCSharpString(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\r', '\\r').replaceAll('\n', '\\n');
 }

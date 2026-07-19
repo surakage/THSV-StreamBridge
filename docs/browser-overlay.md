@@ -9,7 +9,7 @@ Milestone 8 serves transparent local browser overlays for combined, chat-only, a
 3. Choose one of these URLs:
    - Combined: `http://127.0.0.1:8787/overlay/` (normally 1920 by 1080)
    - Chat only: `http://127.0.0.1:8787/overlay/chat`
-   - Compact Chat for hosts that intentionally want the cards to fill a narrow source: `http://127.0.0.1:8787/overlay/chat?layout=compact` (a useful starting size is 500 by 700)
+   - Dock-friendly Chat: `http://127.0.0.1:8787/overlay/chat/dock`
    - Alerts only: `http://127.0.0.1:8787/overlay/alerts` (use a 1920 by 1080 source in Meld, then crop the transparent area)
 4. For independent placement, add Chat and Alerts as separate browser sources. Move, crop, resize, hide, or assign each source to scenes normally in the broadcasting app.
 5. Run a harmless simulated chat or alert fixture and confirm it appears.
@@ -30,7 +30,11 @@ The plain Chat URL is already configured for Meld's canvas behavior. It uses no 
 
 Do not stretch the cropped layer by changing width and height independently. Meld controls the Browser layer transform outside the webpage, so the overlay cannot correct a non-proportional host transform without distorting text in the opposite direction.
 
-OBS Studio and Streamlabs Desktop expose explicit browser-source width and height controls, so they may use `?layout=compact` directly without the Meld crop workflow.
+Choose **Regular cards** or **Compact feed** on the authenticated wizard's **Chat Overlay** page. The saved choice applies without adding query parameters to the browser URL.
+
+### Operator dock
+
+The wizard exposes a separate `/overlay/chat/dock` URL for an operator-facing panel. Add it to OBS through **View > Docks > Custom Browser Docks**, or to any host that accepts a local browser/web panel. This does not create a platform API connection: browser sections in the same compatible host share the existing overlay `SharedWorker`. If a streaming host does not support custom web docks, use the ordinary `/overlay/chat` URL as a Browser Source instead; the bridge cannot add a native dock to software that has no browser-dock extension point.
 
 Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser), OBS Studio's [Browser Source documentation](https://obsproject.com/kb/browser-source), and Streamlabs Desktop's [Browser Source instructions](https://streamlabs.com/content-hub/post/introducing-browser-source-interaction-for-streamlabs-desktop) all support a URL-based browser source. Meld's separate WebChannel API and OBS's separate WebSocket API are not required merely to render this overlay.
 
@@ -40,6 +44,8 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - Browser rendering uses DOM `textContent`; event text is never interpreted as HTML.
 - `moderation.action` events with a message-removal action and `targetEventId` remove the correlated chat entry.
 - The feed retains only `browserOverlay.maxChatMessages` in browser memory and stores no chat history. The default is eight visible messages; when a ninth arrives, the oldest card fades away from the top.
+- The wizard can save regular/compact layout, font family and size, text/card/canvas colors and opacity, transparent canvas mode, platform-label/profile-picture/badge visibility, and a case-insensitive ignored-name list. Ignored names are filtered before browser publication but do not block commands or alter Streamer.bot chat.
+- The Chat Overlay wizard can also place selected follows, subscriptions, gifts, support events, raids, milestones, and reward redemptions into the chat activity feed. A master switch, per-platform switches, and per-category switches are independent of the alert overlay. Platform-specific display caps shorten long activity text by Unicode code point and count the final ellipsis inside the configured limit, so emoji are never split.
 - Alerts use a bounded visual queue. The default holds at most 20 waiting alerts; when full, it discards the oldest alert from the lowest available priority so a gift storm cannot grow browser memory indefinitely. A malformed card is skipped without freezing later alerts. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. Creator profiles may override priority and duration, disable a type, restrict it to selected Twitch, YouTube, Kick, or TikTok sources, render bounded plain-text templates, play a local chime, or combine queued gift quantities inside a short window. An empty platform selection means all supported platforms. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
 - HTTPS avatar/badge URLs, validated hex name colors, and subscription renewal/upgrade/month/streak/gift provenance are supported when a verified adapter supplies them.
 - Simulated events remain visibly labeled and may be disabled through configuration.
@@ -61,6 +67,27 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
   "alertDurationMs": 7000,
   "showBots": true,
   "showSimulated": true,
+  "chat": {
+    "layout": "regular",
+    "fontFamily": "system",
+    "fontSizePx": 18,
+    "textColor": "#ffffff",
+    "backgroundMode": "transparent",
+    "backgroundColor": "#171120",
+    "backgroundOpacity": 0.9,
+    "messageBackgroundColor": "#171120",
+    "messageBackgroundOpacity": 0.96,
+    "showPlatformLabels": true,
+    "showProfilePictures": true,
+    "showBadges": true,
+    "ignoredNames": [],
+    "events": {
+      "enabled": true,
+      "platforms": { "twitch": true, "youtube": true, "kick": true, "tiktok": true },
+      "categories": { "rewards": true, "follows": true, "subscriptions": true, "gifts": true, "support": true, "raids": true, "milestones": true },
+      "characterLimits": { "twitch": 500, "youtube": 200, "kick": 500, "tiktok": 150 }
+    }
+  },
   "alerts": {
     "profiles": {
       "gift": {
@@ -77,7 +104,9 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
 }
 ```
 
-Use the authenticated wizard's **Alerts** page instead of editing this JSON by hand. Templates are normalized and rendered through `textContent`; unknown placeholders and control characters are rejected. Quantity aggregation is limited to gifts and gift subscriptions and combines only waiting cards, never an alert already on screen.
+Use the authenticated wizard's **Chat Overlay** and **Alerts** pages instead of editing this JSON by hand. Templates are normalized and rendered through `textContent`; unknown placeholders and control characters are rejected. Quantity aggregation is limited to gifts and gift subscriptions and combines only waiting cards, never an alert already on screen.
+
+The character-limit values are local overlay display caps, not claims about each platform's outbound chat API. The defaults are conservative and can be adjusted from 40 to 500 characters in the wizard. Disabling an event category in chat does not disable its alert card or stop Streamer.bot from receiving the normalized event.
 
 `brandLabel` changes the combined overlay heading without editing HTML; set it to an empty string to hide the label. Standalone Chat and Alerts keep the live badge hidden during normal operation and show a subtle **RECONNECTING** badge whenever the bridge connection is unavailable.
 
@@ -88,3 +117,6 @@ The deprecated `meldOverlay` configuration key from bridge `0.9.0` is migrated a
 ## Current boundary
 
 The browser hub is implemented, offline-testable, and live-verified in Meld Studio and OBS Studio. The project owner accepts that OBS verification as the Streamlabs Desktop compatibility gate because all three integrations consume the same standards-based fixed URLs; a separate Streamlabs execution is not claimed. Stage 2 core serves Combined, Chat, and Alerts only. Bloom Companion and Speaker.bot orchestration are archived optional add-on candidates and are not loaded or exposed by core.
+# Alert storm protection
+
+The browser alert controller applies event-specific safety defaults. TikTok likes are emitted by the intake adapter only when a new 100-like milestone is crossed. Cheers/bits are summed per viewer for five seconds, gifts per viewer and gift for three seconds, and gift subscriptions per gifter/tier for five seconds. Subscriptions and memberships remain individual and are paced at no faster than one card every four seconds. Follow events are not merged; at most five follow cards are accepted in a ten-second burst and excess cards are suppressed. Donations and Super Chats are never combined because merging monetary events or their messages could misrepresent the source events.

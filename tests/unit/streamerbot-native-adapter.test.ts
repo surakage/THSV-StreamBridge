@@ -5,8 +5,8 @@ function relay(platform: 'twitch' | 'youtube' | 'kick', sourceEventType: string,
   return {
     type: 'thsv.platform', version: '1.0.0', platform, sourceEventType, relayId: `relay-${platform}-${sourceEventType}`,
     sourceEventId: `source-${platform}-${sourceEventType}`, receivedAt: '2026-07-17T00:00:00.000Z', simulated: true,
-    userId: 'viewer-1', userName: 'viewer_login', displayName: 'Viewer Name', profilePictureUrl: '', role: 'Viewer',
-    isModerator: false, isBroadcaster: false, isSubscribed: false, message: '', amount: '', currency: '', quantity: '', tier: '', itemName: '',
+    userId: 'viewer-1', userName: 'viewer_login', displayName: 'Viewer Name', profilePictureUrl: '', nameColor: '', badges: [], role: 'Viewer',
+    isModerator: false, isBroadcaster: false, isSubscribed: false, isVip: false, message: '', amount: '', currency: '', quantity: '', tier: '', itemName: '',
     channelId: 'channel-1', channelName: 'Example Channel', argumentKeys: [], ...overrides,
   };
 }
@@ -24,6 +24,17 @@ describe('native Streamer.bot platform relay adapter', () => {
   it('normalizes Twitch roles and cheer quantity', () => {
     const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchCheer', { quantity: '250', isModerator: true, isSubscribed: true, message: 'Nice stream!' }));
     expect(event).toMatchObject({ eventType: 'engagement.cheer', user: { roles: ['viewer', 'moderator', 'subscriber'] }, payload: { quantity: 250, message: 'Nice stream!' } });
+  });
+
+  it('normalizes platform avatar, color, icon badges, and role badge fallbacks', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', {
+      message: 'Badge check', profilePictureUrl: 'https://example.com/viewer.png', nameColor: '#72efc2', isModerator: true,
+      badges: [{ id: 'moderator', label: 'Moderator', iconUrl: 'https://example.com/mod.png' }],
+    }));
+    expect(event.user).toMatchObject({
+      avatarUrl: 'https://example.com/viewer.png', nameColor: '#72efc2', roles: ['viewer', 'moderator'],
+      badges: [{ id: 'moderator', label: 'Moderator', iconUrl: 'https://example.com/mod.png' }],
+    });
   });
 
   it('normalizes exact YouTube Super Chat money strings', () => {

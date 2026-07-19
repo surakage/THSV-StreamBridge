@@ -105,14 +105,16 @@ describe('bridge HTTP integration', () => {
     await server.start();
     stops.push(async () => { await server.stop(); await bridge.stop(); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
-    for (const route of ['/overlay/', '/overlay/chat', '/overlay/alerts']) {
+    for (const route of ['/overlay/', '/overlay/chat', '/overlay/chat/dock', '/overlay/alerts']) {
       const response = await fetch(`${baseUrl}${route}`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
     }
-    const source = await fetch(`${baseUrl}/overlay/app-1.2.0.js`).then((response) => response.text());
+    const source = await fetch(`${baseUrl}/overlay/app-1.4.0.js`).then((response) => response.text());
     expect(source).not.toContain('companion');
-    expect((await fetch(`${baseUrl}/overlay/alert-queue-1.2.0.js`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/alert-queue-1.2.2.js`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/worker-1.3.0.js`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/styles-1.3.0.css`)).status).toBe(200);
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
   });
 });

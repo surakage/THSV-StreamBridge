@@ -1,9 +1,10 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { BridgeConfig } from '../../schemas/config.js';
-import { ALERT_PRESENTATION_TYPE_VALUES } from '../../schemas/config.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
+import { ALERT_PRESENTATION_TYPE_VALUES, alertPresentationSchema } from '../../schemas/config.js';
 import { buildNormalizedEvent } from '../adapters/normalization.js';
 import type { IngestResult } from '../core/bridge.js';
 import { InvalidEventError, PayloadTooLargeError } from '../core/bridge.js';
@@ -151,6 +152,30 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.exportConfiguration());
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/overlay-assets' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        const input = JSON.parse(body.text) as Record<string, unknown>;
+        const kind = input['kind']; const contentType = input['contentType']; const encoded = input['contentBase64'];
+        const allowed = kind === 'sound'
+          ? new Map([['audio/mpeg', 'mp3'], ['audio/wav', 'wav'], ['audio/x-wav', 'wav'], ['audio/ogg', 'ogg']])
+          : kind === 'background' ? new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]) : undefined;
+        if (allowed === undefined || typeof contentType !== 'string' || typeof encoded !== 'string' || !allowed.has(contentType)) return this.reply(response, 400, { error: 'Unsupported overlay asset type.' });
+        const bytes = Buffer.from(encoded, 'base64');
+        if (bytes.length === 0 || bytes.length > 2_000_000) return this.reply(response, 400, { error: 'Overlay assets must be between 1 byte and 2 MB.' });
+        const extension = allowed.get(contentType) ?? '';
+        const filename = `${createHash('sha256').update(bytes).digest('hex')}.${extension}`;
+        await mkdir('data/runtime/overlay-assets', { recursive: true });
+        await writeFile(`data/runtime/overlay-assets/${filename}`, bytes, { flag: 'wx' }).catch((error: unknown) => { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; });
+        return this.reply(response, 201, { url: `/overlay/assets/${filename}`, bytes: bytes.length, contentType });
+      }
+      const overlayAssetMatch = request.method === 'GET' ? /^\/overlay\/assets\/([a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp))$/u.exec(request.url ?? '') : null;
+      if (overlayAssetMatch?.[1] !== undefined) {
+        const extension = overlayAssetMatch[1].split('.').pop() ?? '';
+        const contentTypes: Readonly<Record<string, string>> = { mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
+        const body = await readFile(`data/runtime/overlay-assets/${overlayAssetMatch[1]}`);
+        response.statusCode = 200; response.setHeader('content-type', contentTypes[extension] ?? 'application/octet-stream'); response.setHeader('cache-control', 'public, max-age=31536000, immutable'); response.end(body); return;
+      }
       if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
@@ -188,6 +213,17 @@ export class DiagnosticsServer {
           contractVersion: '2.0.0-preview.1', accepted: result.accepted, simulated: true, alertType,
           visible: this.overlayHub?.clientConfig().showSimulated === true, delivery: result.delivery, outputs: result.outputs,
         });
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/alerts/preview' && this.wizard !== undefined && this.overlayHub !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        const input = JSON.parse(body.text) as Record<string, unknown>;
+        const alertType = typeof input['alertType'] === 'string' ? input['alertType'] : '';
+        if (!(ALERT_PRESENTATION_TYPE_VALUES as readonly string[]).includes(alertType)) return this.reply(response, 400, { error: 'Unknown alert preview type' });
+        const alerts = alertPresentationSchema.parse(input['alerts']);
+        const base = this.overlayHub.clientConfig();
+        const count = this.overlayHub.publishPreview(buildAlertPreview(alertType), { ...base, alerts, alertDurationMs: typeof input['alertDurationMs'] === 'number' ? Math.max(1_000, Math.min(60_000, Math.trunc(input['alertDurationMs']))) : base.alertDurationMs });
+        return this.reply(response, 202, { accepted: count > 0, simulated: true, alertType, overlayEvents: count });
       }
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {
@@ -240,7 +276,7 @@ export class DiagnosticsServer {
   }
 }
 
-function buildAlertPreview(alertType: string): unknown {
+function buildAlertPreview(alertType: string): NormalizedEvent {
   const eventTypes: Readonly<Record<string, string>> = {
     follow: 'channel.follow', subscription: 'channel.subscription', membership: 'channel.membership',
     'gift-subscription': 'channel.gift-subscription', gift: 'engagement.gift', donation: 'engagement.donation',
@@ -272,6 +308,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/chat': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/chat/dock': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/alerts': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-0.9.5.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
@@ -280,14 +317,17 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/app-0.9.9.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.0.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.1.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
-  '/overlay/app-1.2.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
-  '/overlay/alert-queue-1.2.0.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/app-1.2.1.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/app-1.3.1.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/app-1.4.0.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/alert-queue-1.2.2.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.8.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.9.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.0.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.1.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
-  '/overlay/worker-1.2.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker-1.2.1.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker-1.3.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.6.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
@@ -296,6 +336,8 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/styles-1.0.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.1.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.1.1.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/styles-1.2.1.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/styles-1.3.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }

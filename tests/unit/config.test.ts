@@ -128,6 +128,19 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { donation: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 5_000 } } } } } }).success).toBe(false);
   });
 
+  it('validates saved chat appearance and a case-insensitive ignored-name list', async () => {
+    const config = await testConfig();
+    const valid = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: {
+      ...config.browserOverlay.chat, layout: 'compact', fontFamily: 'rounded', fontSizePx: 24, backgroundMode: 'solid', ignoredNames: ['ExampleBot', 'Another Viewer'],
+    } } });
+    expect(valid.browserOverlay.chat).toMatchObject({ layout: 'compact', fontSizePx: 24, ignoredNames: ['ExampleBot', 'Another Viewer'] });
+    expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } });
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 60 } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, backgroundColor: 'red' } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, ignoredNames: ['ExampleBot', 'examplebot'] } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: { ...config.browserOverlay.chat.events, characterLimits: { ...config.browserOverlay.chat.events.characterLimits, youtube: 39 } } } } }).success).toBe(false);
+  });
+
   it('loads legacy viewer and companion configuration without reactivating archived add-ons', async () => {
     const config = await testConfig();
     const legacy = {

@@ -1,6 +1,6 @@
 # Configuration
 
-`config/bridge.example.json` is the runtime-validated example. Select another file with `THSV_STREAMBRIDGE_CONFIG` or `scripts\start.ps1 -Config <path>`.
+`config/bridge.example.json` is the runtime-validated example, not the normal creator runtime. `scripts\start.ps1` now reuses `data/runtime/active-config.txt`, then `data/runtime/bridge.local.json`, and falls back to the example only on a first run. Override it explicitly with `THSV_STREAMBRIDGE_CONFIG` or `scripts\start.ps1 -Config <path>`.
 
 Run `scripts\validate-config.ps1` before startup.
 
@@ -52,7 +52,7 @@ Timers do not arm merely because the bridge process is running. A normalized `st
 
 ## Browser overlay
 
-`browserOverlay.enabled` controls public browser-event broadcasting. `brandLabel` customizes or hides the combined-layout heading, `maxChatMessages` bounds browser-only chat retention, `maxAlertQueue` bounds waiting visual alerts with a lowest-priority/oldest-first discard policy, `alertDurationMs` controls visual display time, and `showBots`/`showSimulated` provide explicit presentation filters. These settings are non-secret and available to the local browser layer through `/overlay/config`. The deprecated `meldOverlay` key is automatically migrated for `0.9.0` configuration compatibility.
+`browserOverlay.enabled` controls public browser-event broadcasting. `brandLabel` customizes or hides the combined-layout heading, `maxChatMessages` bounds browser-only chat retention, `maxAlertQueue` bounds waiting visual alerts with a lowest-priority/oldest-first discard policy, `alertDurationMs` controls visual display time, and `showBots`/`showSimulated` provide explicit presentation filters. `browserOverlay.chat` saves regular/compact layout, bounded font size, approved font family, text/background/card colors and opacity, platform-label/profile-picture/badge visibility, and a case-insensitive ignored-name list. Its `events` block independently controls whether normalized activity also appears in chat, which platforms and categories are eligible, and a 40-to-500-character Unicode-safe display cap for each platform. These settings are non-secret and available to the local browser layer through `/overlay/config`. The deprecated `meldOverlay` key is automatically migrated for `0.9.0` configuration compatibility.
 
 User presentation metadata accepts HTTPS-only avatar and badge icon URLs, six-digit hex name colors, and at most 16 bounded badges. Subscription presentation accepts explicit new/renewal/upgrade, month, streak, gift, and gifter fields; values are never inferred from unrelated platform data.
 

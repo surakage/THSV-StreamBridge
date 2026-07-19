@@ -70,6 +70,22 @@ describe('Stage 4 wizard configuration gateway', () => {
     expect(await gateway.export()).toMatchObject({ alertSettings: { maxAlertQueue: 12, alerts: { profiles: { gift: { aggregation: { mode: 'sum-quantity' } } } } } });
   });
 
+  it('stages chat appearance and ignored names through the safe wizard transaction', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-chat-'));
+    const path = join(directory, 'bridge.json');
+    await writeFile(path, await readFile('config/bridge.example.json', 'utf8'));
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const snapshot = await gateway.snapshot() as { chatSettings: { brandLabel: string; maxChatMessages: number; showBots: boolean; chat: Record<string, unknown> } };
+    const draft = await gateway.begin();
+    const events = (snapshot.chatSettings.chat as { events: { enabled: boolean; platforms: Record<string, boolean>; categories: Record<string, boolean>; characterLimits: Record<string, number> } }).events;
+    const chatSettings = { ...snapshot.chatSettings, maxChatMessages: 12, chat: { ...snapshot.chatSettings.chat, layout: 'compact', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { ...events, categories: { ...events.categories, follows: false }, characterLimits: { ...events.characterLimits, youtube: 160 } } } };
+    const staged = gateway.stage(draft.id, { kind: 'chat-overlay', chatSettings });
+    expect(staged.stagedChanges).toEqual([expect.objectContaining({ kind: 'chat-overlay' })]);
+    await gateway.commit(draft.id);
+    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ browserOverlay: { maxChatMessages: 12, chat: { layout: 'compact', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { categories: { follows: false }, characterLimits: { youtube: 160 } } } } });
+    expect(await gateway.export()).toMatchObject({ chatSettings: { maxChatMessages: 12, chat: { ignoredNames: ['ExampleBot'], events: { categories: { follows: false }, characterLimits: { youtube: 160 } } } } });
+  });
+
   it('rejects a stale draft without writing', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-stale-'));
     const path = join(directory, 'bridge.json');

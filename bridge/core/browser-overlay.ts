@@ -3,7 +3,7 @@ import type { BrowserOverlayConfig } from '../../schemas/config.js';
 import { normalizeAlertPlainText, projectMultiAlert, type MultiAlert } from './multi-alerts.js';
 import { projectMultiChatMessage, type MultiChatMessage } from './multi-chat.js';
 
-export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.2.0';
+export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.3.0';
 
 export type OverlayAlertPriority = 'low' | 'normal' | 'high' | 'critical';
 export interface OverlayActorPresentation {
@@ -22,13 +22,27 @@ export interface OverlayAlertDisplay {
   readonly title: string;
   readonly detail?: string;
   readonly durationMs: number;
-  readonly sound: { readonly mode: 'none' | 'chime'; readonly volume: number };
+  readonly sound: { readonly mode: 'none' | 'chime' | 'soft-bell' | 'digital-pop' | 'celebration' | 'custom'; readonly volume: number; readonly customUrl?: string };
+  readonly card: { readonly backgroundColor: string; readonly fontFamily: 'system' | 'rounded' | 'serif' | 'monospace'; readonly backgroundImageUrl?: string };
   readonly aggregation?: { readonly key: string; readonly windowMs: number; readonly mode: 'sum-quantity' };
 }
 export type BrowserOverlayEvent =
   | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'chat.add'; readonly emittedAt: string; readonly payload: MultiChatMessage & { readonly presentation: OverlayActorPresentation } }
+  | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'chat.event'; readonly emittedAt: string; readonly payload: OverlayChatActivity }
   | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'chat.remove'; readonly emittedAt: string; readonly payload: { readonly eventId: string; readonly targetEventId: string; readonly reason?: string } }
   | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'alert.show'; readonly emittedAt: string; readonly payload: MultiAlert & { readonly priority: OverlayAlertPriority; readonly presentation?: OverlayActorPresentation; readonly subscription?: OverlaySubscriptionLifecycle; readonly display: OverlayAlertDisplay } };
+
+export interface OverlayChatActivity {
+  readonly eventId: string;
+  readonly sequence: number;
+  readonly platform: string;
+  readonly category: keyof BrowserOverlayConfig['chat']['events']['categories'];
+  readonly label: string;
+  readonly message: string;
+  readonly actor?: MultiAlert['actor'];
+  readonly presentation?: OverlayActorPresentation;
+  readonly simulated: boolean;
+}
 
 export class InvalidBrowserOverlayEventError extends Error {}
 
@@ -37,37 +51,42 @@ const NORMAL_PRIORITY_ALERTS = new Set(['subscription', 'membership', 'gift-subs
 const MESSAGE_REMOVAL_ACTIONS = new Set(['delete-message', 'message-delete', 'remove-message']);
 
 export function projectBrowserOverlayEvent(event: NormalizedEvent, config?: BrowserOverlayConfig): BrowserOverlayEvent | undefined {
+  return projectBrowserOverlayEvents(event, config)[0];
+}
+
+export function projectBrowserOverlayEvents(event: NormalizedEvent, config?: BrowserOverlayConfig): readonly BrowserOverlayEvent[] {
   const emittedAt = new Date().toISOString();
   const chat = projectMultiChatMessage(event);
-  if (chat !== undefined) return { contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'chat.add', emittedAt, payload: { ...chat, presentation: actorPresentation(event) } };
+  if (chat !== undefined) return [{ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'chat.add', emittedAt, payload: { ...chat, presentation: actorPresentation(event) } }];
 
   const alert = projectMultiAlert(event);
   const profile = alert === undefined ? undefined : config?.alerts.profiles[alert.alertType];
-  if (alert !== undefined && profile?.enabled === false) return undefined;
-  if (alert !== undefined && profile !== undefined && profile.platforms.length > 0 && !profile.platforms.includes(alert.platform as (typeof profile.platforms)[number])) return undefined;
   if (alert !== undefined) {
     const subscription = subscriptionLifecycle(event, alert);
     const priority = profile?.priority ?? alertPriority(alert);
-    return {
-    contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION,
-    kind: 'alert.show',
-    emittedAt,
-    payload: {
-      ...alert,
-      priority,
-      ...(event.user === undefined ? {} : { presentation: actorPresentation(event) }),
-      ...subscription,
-      display: alertDisplay(alert, subscription.subscription, profile, config?.alertDurationMs ?? 7_000),
-    },
-    };
+    const display = alertDisplay(alert, subscription.subscription, profile, config?.alertDurationMs ?? 7_000);
+    const results: BrowserOverlayEvent[] = [];
+    const alertEnabled = profile?.enabled !== false && (profile === undefined || profile.platforms.length === 0 || profile.platforms.includes(alert.platform as (typeof profile.platforms)[number]));
+    if (alertEnabled) results.push({
+      contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION,
+      kind: 'alert.show',
+      emittedAt,
+      payload: { ...alert, priority, ...(event.user === undefined ? {} : { presentation: actorPresentation(event) }), ...subscription, display },
+    });
+    const activity = projectChatActivity(event, alert, display, config);
+    if (activity !== undefined) results.push({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'chat.event', emittedAt, payload: activity });
+    return results;
   }
 
-  if (event.eventType !== 'moderation.action') return undefined;
+  const activity = projectChatActivity(event, undefined, undefined, config);
+  if (activity !== undefined) return [{ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'chat.event', emittedAt, payload: activity }];
+
+  if (event.eventType !== 'moderation.action') return [];
   const action = event.payload['action'];
   const targetEventId = event.payload['targetEventId'] ?? event.metadata.correlationId;
-  if (typeof action !== 'string' || !MESSAGE_REMOVAL_ACTIONS.has(action) || typeof targetEventId !== 'string' || targetEventId.length === 0) return undefined;
+  if (typeof action !== 'string' || !MESSAGE_REMOVAL_ACTIONS.has(action) || typeof targetEventId !== 'string' || targetEventId.length === 0) return [];
   const reason = event.payload['reason'];
-  return {
+  return [{
     contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION,
     kind: 'chat.remove',
     emittedAt,
@@ -76,7 +95,84 @@ export function projectBrowserOverlayEvent(event: NormalizedEvent, config?: Brow
       targetEventId,
       ...(typeof reason === 'string' && reason.length > 0 ? { reason } : {}),
     },
+  }];
+}
+
+function projectChatActivity(event: NormalizedEvent, alert: MultiAlert | undefined, display: OverlayAlertDisplay | undefined, config: BrowserOverlayConfig | undefined): OverlayChatActivity | undefined {
+  if (config === undefined || !config.chat.events.enabled) return undefined;
+  const platform = event.platform as keyof BrowserOverlayConfig['chat']['events']['platforms'];
+  if (!(platform in config.chat.events.platforms) || !config.chat.events.platforms[platform]) return undefined;
+  const category = chatActivityCategory(event.eventType);
+  if (category === undefined || !config.chat.events.categories[category] || !config.chat.events.platformCategories[platform][category]) return undefined;
+  if (event.user !== undefined && ignoredActor(event.user, config.chat.ignoredNames)) return undefined;
+  const sequence = event.metadata.bridgeSequence;
+  if (sequence === undefined) throw new InvalidBrowserOverlayEventError(`${event.eventType} requires a bridge-assigned sequence for chat activity.`);
+  const rawMessage = renderChatActivityTemplate(config.chat.events.templates[platform][category], event, alert, display);
+  if (rawMessage.length === 0) return undefined;
+  const actor = alert?.actor ?? (event.user === undefined || event.user.actorType === 'system' ? undefined : {
+    ...(event.user.id === undefined ? {} : { id: event.user.id }),
+    name: event.user.name,
+    displayName: event.user.displayName ?? event.user.name,
+    actorType: event.user.actorType,
+    roles: event.user.roles,
+  });
+  return {
+    eventId: event.eventId,
+    sequence,
+    platform: event.platform,
+    category,
+    label: chatActivityLabel(category),
+    message: truncateCodePoints(rawMessage, config.chat.events.characterLimits[platform]),
+    ...(actor === undefined ? {} : { actor }),
+    ...(event.user === undefined ? {} : { presentation: actorPresentation(event) }),
+    simulated: event.metadata.simulated,
   };
+}
+
+function renderChatActivityTemplate(template: string, event: NormalizedEvent, alert: MultiAlert | undefined, display: OverlayAlertDisplay | undefined): string {
+  const values: Readonly<Record<string, string>> = {
+    actor: event.user?.displayName ?? event.user?.name ?? alert?.actor?.displayName ?? 'The community', platform: event.platform, event: event.eventType,
+    rewardTitle: typeof event.payload['rewardTitle'] === 'string' ? event.payload['rewardTitle'] : '', input: typeof event.payload['input'] === 'string' ? event.payload['input'] : '',
+    amount: alert?.amount ?? '', currency: alert?.currency ?? '', quantity: alert?.quantity === undefined ? '' : String(alert.quantity), itemName: alert?.itemName ?? '',
+    tier: alert?.tier ?? '', message: alert?.message ?? '', metric: alert?.metric ?? '', value: alert?.value === undefined ? '' : String(alert.value),
+  };
+  const rendered = normalizeAlertPlainText(template.replace(/\{([a-z][a-zA-Z]*)\}/gu, (_match, token: string) => values[token] ?? ''));
+  return rendered.length > 0 ? rendered : alert === undefined ? rewardActivityMessage(event) : [display?.title, display?.detail].filter((value): value is string => typeof value === 'string' && value.length > 0).join(' · ');
+}
+
+function chatActivityCategory(eventType: string): OverlayChatActivity['category'] | undefined {
+  if (eventType === 'reward.redemption') return 'rewards';
+  if (eventType === 'channel.follow') return 'follows';
+  if (eventType === 'channel.subscription' || eventType === 'channel.membership' || eventType === 'channel.gift-subscription') return 'subscriptions';
+  if (eventType === 'engagement.gift') return 'gifts';
+  if (eventType === 'engagement.donation' || eventType === 'engagement.cheer' || eventType === 'engagement.super-chat') return 'support';
+  if (eventType === 'channel.raid') return 'raids';
+  if (eventType === 'engagement.milestone') return 'milestones';
+  return undefined;
+}
+
+function chatActivityLabel(category: OverlayChatActivity['category']): string {
+  return ({ rewards: 'REWARD', follows: 'FOLLOW', subscriptions: 'SUBSCRIPTION', gifts: 'GIFT', support: 'SUPPORT', raids: 'RAID', milestones: 'MILESTONE' })[category];
+}
+
+function rewardActivityMessage(event: NormalizedEvent): string {
+  if (event.eventType !== 'reward.redemption' || event.user === undefined) return '';
+  const title = event.payload['rewardTitle'];
+  const input = event.payload['input'];
+  if (typeof title !== 'string' || title.trim().length === 0) return '';
+  const actor = event.user.displayName ?? event.user.name;
+  return normalizeAlertPlainText(`${actor} redeemed ${title}${typeof input === 'string' && input.trim().length > 0 ? ` · ${input}` : ''}`);
+}
+
+function truncateCodePoints(value: string, maximum: number): string {
+  const points = Array.from(normalizeAlertPlainText(value));
+  if (points.length <= maximum) return points.join('');
+  return `${points.slice(0, Math.max(0, maximum - 1)).join('').trimEnd()}…`;
+}
+
+function ignoredActor(user: NonNullable<NormalizedEvent['user']>, ignoredNames: readonly string[]): boolean {
+  const ignored = new Set(ignoredNames.map((name) => name.trim().toLocaleLowerCase('en-US')));
+  return [user.name, user.displayName].some((name) => typeof name === 'string' && ignored.has(name.trim().toLocaleLowerCase('en-US')));
 }
 
 function actorPresentation(event: NormalizedEvent): OverlayActorPresentation {
@@ -132,16 +228,25 @@ function alertDisplay(
   const defaultDetail = alertDetail(alert, subscription);
   const title = renderTemplate(profile?.titleTemplate, values, defaultTitle, 200);
   const detail = renderTemplate(profile?.detailTemplate, values, defaultDetail, 500);
-  const aggregation = profile?.aggregation.mode === 'sum-quantity' && alert.quantity !== undefined
-    ? { mode: 'sum-quantity' as const, key: aggregationKey(alert), windowMs: profile.aggregation.windowMs }
+  const aggregationSettings = profile?.aggregation ?? automaticAggregation(alert);
+  const aggregation = aggregationSettings?.mode === 'sum-quantity' && alert.quantity !== undefined
+    ? { mode: 'sum-quantity' as const, key: aggregationKey(alert), windowMs: aggregationSettings.windowMs }
     : undefined;
   return {
     title,
     ...(detail.length === 0 ? {} : { detail }),
     durationMs: profile?.durationMs ?? defaultDurationMs,
-    sound: profile?.sound ?? { mode: 'none', volume: 0.35 },
+    sound: profile?.sound === undefined ? { mode: 'none', volume: 0.35 } : { mode: profile.sound.mode, volume: profile.sound.volume, ...(profile.sound.customUrl === undefined ? {} : { customUrl: profile.sound.customUrl }) },
+    card: profile?.card === undefined ? { backgroundColor: '#171120', fontFamily: 'system' } : { backgroundColor: profile.card.backgroundColor, fontFamily: profile.card.fontFamily, ...(profile.card.backgroundImageUrl === undefined ? {} : { backgroundImageUrl: profile.card.backgroundImageUrl }) },
     ...(aggregation === undefined ? {} : { aggregation }),
   };
+}
+
+function automaticAggregation(alert: MultiAlert): { readonly mode: 'sum-quantity'; readonly windowMs: number } | undefined {
+  if (alert.alertType === 'cheer') return { mode: 'sum-quantity', windowMs: 5_000 };
+  if (alert.alertType === 'gift-subscription') return { mode: 'sum-quantity', windowMs: 5_000 };
+  if (alert.alertType === 'gift') return { mode: 'sum-quantity', windowMs: 3_000 };
+  return undefined;
 }
 
 function alertTemplateValues(alert: MultiAlert): Readonly<Record<string, string>> {

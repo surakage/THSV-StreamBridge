@@ -3,6 +3,7 @@ import { TikfinityAdapter, normalizeTikfinityRelay } from '../../bridge/adapters
 import { StreamerBotEventRelay } from '../../bridge/adapters/streamerbot-event-relay.js';
 import { platformConfig, silentLogger } from '../helpers.js';
 import type { Capability } from '../../schemas/config.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
 
 function relay(kind: 'chat' | 'follow' | 'gift' | 'like', overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -36,6 +37,18 @@ describe('TikFinity Streamer.bot relay adapter', () => {
     eventRelay.publish(relay('follow'));
     await expect.poll(() => received.length).toBe(1);
     expect(received[0]).toMatchObject({ eventType: 'channel.follow', platform: 'tiktok' });
+    await adapter.stop();
+  });
+
+  it('emits TikTok like alerts only when a new 100-like milestone is crossed', async () => {
+    const eventRelay = new StreamerBotEventRelay();
+    const config = { ...platformConfig(true), capabilities: ['chatInput', 'follows', 'gifts', 'engagement'] as Capability[] };
+    const adapter = new TikfinityAdapter('tiktok', config, eventRelay);
+    const received: NormalizedEvent[] = [];
+    await adapter.start({ logger: silentLogger, emit: (event) => { received.push(event as NormalizedEvent); return Promise.resolve(); } });
+    for (const total of [1, 99, 100, 150, 200]) eventRelay.publish(relay('like', { relayId: `like-${String(total)}`, totalLikeCount: String(total) }));
+    await expect.poll(() => received.length).toBe(2);
+    expect(received.map((event) => event.payload['value'])).toEqual([100, 200]);
     await adapter.stop();
   });
 });

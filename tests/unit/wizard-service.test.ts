@@ -106,7 +106,7 @@ describe('Stage 5 step 4: Tier 2 command generation', () => {
     const result = await service.generateCommands({ designs: [{ name: 'so', aliases: ['shoutout'], approvedByCreator: true }] });
     expect(result.available).toBe(true);
     expect(result.collisions).toBeUndefined();
-    expect(result.designs).toEqual([{ name: 'so', aliases: ['shoutout'], minimumRole: 'viewer', note: '' }]);
+    expect(result.designs).toEqual([{ name: 'so', aliases: ['shoutout'], minimumRole: 'viewer', note: '', actionName: 'THSV Generated - so', responseMessage: '', deliveryPlatforms: [] }]);
     expect(result.package?.filename).toBe('thsv-generated-so.sb');
     expect(result.package?.commands).toEqual([{ name: 'so', actionId: expect.any(String) as string, commandId: expect.any(String) as string, sourceCode: expect.any(String) as string }]);
     expect(typeof result.package?.contentBase64).toBe('string');

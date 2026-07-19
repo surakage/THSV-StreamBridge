@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { StreamBridge } from '../bridge/core/bridge.js';
 import { createDefaultAdapterRegistry } from '../bridge/adapters/registry.js';
@@ -14,7 +15,7 @@ import { WizardConfigurationGateway } from '../bridge/services/wizard-configurat
 import { FileCommandSyncStore } from '../bridge/services/command-sync-store.js';
 import type { PlatformCapabilityId } from '../bridge/contracts/v2/capability.js';
 
-const configPath = process.env['THSV_STREAMBRIDGE_CONFIG'] ?? 'config/bridge.example.json';
+const configPath = await resolveRuntimeConfigPath();
 const loadedConfig = await loadConfigWithNotices(configPath);
 const config = loadedConfig.config;
 const logger = new StructuredLogger(config.logging.level, config.logging.directory, config.logging.maxFileBytes, config.logging.backups);
@@ -74,4 +75,17 @@ try {
   await bridge.stop().catch(() => undefined);
   await logger.flush();
   process.exitCode = 1;
+}
+
+async function resolveRuntimeConfigPath(): Promise<string> {
+  const explicit = process.env['THSV_STREAMBRIDGE_CONFIG']?.trim();
+  if (explicit !== undefined && explicit.length > 0) return explicit;
+  try {
+    const active = (await readFile('data/runtime/active-config.txt', 'utf8')).trim();
+    if (active.length > 0) return active;
+  } catch { /* A first run has no active-config marker yet. */ }
+  try {
+    await readFile('data/runtime/bridge.local.json', 'utf8');
+    return 'data/runtime/bridge.local.json';
+  } catch { return 'config/bridge.example.json'; }
 }

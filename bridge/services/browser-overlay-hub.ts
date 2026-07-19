@@ -3,7 +3,7 @@ import type { Duplex } from 'node:stream';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { BrowserOverlayConfig } from '../../schemas/config.js';
-import { BROWSER_OVERLAY_CONTRACT_VERSION, projectBrowserOverlayEvent } from '../core/browser-overlay.js';
+import { BROWSER_OVERLAY_CONTRACT_VERSION, projectBrowserOverlayEvents } from '../core/browser-overlay.js';
 import type { Logger } from './logger.js';
 
 export class BrowserOverlayHub {
@@ -32,11 +32,24 @@ export class BrowserOverlayHub {
 
   public publish(event: NormalizedEvent): void {
     if (!this.config.enabled || (!this.config.showSimulated && event.metadata.simulated) || (!this.config.showBots && event.eventType === 'chat.message' && event.user?.actorType === 'bot')) return;
-    const overlayEvent = projectBrowserOverlayEvent(event, this.config);
-    if (overlayEvent === undefined) return;
-    const message = JSON.stringify(overlayEvent);
-    for (const socket of this.sockets.clients) if (socket.readyState === WebSocket.OPEN) socket.send(message);
-    this.published += 1;
+    if (event.eventType === 'chat.message' && ignoredChatActor(event, this.config.chat.ignoredNames)) return;
+    const overlayEvents = projectBrowserOverlayEvents(event, this.config);
+    for (const overlayEvent of overlayEvents) {
+      const message = JSON.stringify(overlayEvent);
+      for (const socket of this.sockets.clients) if (socket.readyState === WebSocket.OPEN) socket.send(message);
+    }
+    if (overlayEvents.length > 0) this.published += 1;
+  }
+
+  public publishPreview(event: NormalizedEvent, override: BrowserOverlayConfig): number {
+    const previewEvent: NormalizedEvent = { ...event, metadata: { ...event.metadata, simulated: true, bridgeSequence: event.metadata.bridgeSequence ?? Number.MAX_SAFE_INTEGER } };
+    const overlayEvents = projectBrowserOverlayEvents(previewEvent, { ...override, showSimulated: true, chat: { ...override.chat, events: { ...override.chat.events, enabled: false } } });
+    for (const overlayEvent of overlayEvents) {
+      const message = JSON.stringify(overlayEvent);
+      for (const socket of this.sockets.clients) if (socket.readyState === WebSocket.OPEN) socket.send(message);
+    }
+    if (overlayEvents.length > 0) this.published += 1;
+    return overlayEvents.length;
   }
 
   public status(): Readonly<Record<string, unknown>> { return { enabled: this.config.enabled, clients: this.sockets.clients.size, published: this.published }; }
@@ -48,6 +61,12 @@ export class BrowserOverlayHub {
     for (const socket of this.sockets.clients) socket.close(1001, 'Bridge stopping');
     this.sockets.close();
   }
+}
+
+function ignoredChatActor(event: NormalizedEvent, ignoredNames: readonly string[]): boolean {
+  if (event.user === undefined || ignoredNames.length === 0) return false;
+  const ignored = new Set(ignoredNames.map((name) => name.trim().toLocaleLowerCase('en-US')));
+  return [event.user.name, event.user.displayName].some((name) => typeof name === 'string' && ignored.has(name.trim().toLocaleLowerCase('en-US')));
 }
 
 function isLoopback(address: string | undefined): boolean {

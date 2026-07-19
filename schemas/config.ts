@@ -135,16 +135,76 @@ const alertPresentationProfileSchema = z.object({
   durationMs: z.number().int().min(1_000).max(60_000).optional(),
   titleTemplate: alertTemplateSchema.min(1).optional(),
   detailTemplate: alertTemplateSchema.optional(),
-  sound: z.object({ mode: z.enum(['none', 'chime']).default('none'), volume: z.number().min(0).max(1).default(0.35) }).strict().default({ mode: 'none', volume: 0.35 }),
+  sound: z.object({
+    mode: z.enum(['none', 'chime', 'soft-bell', 'digital-pop', 'celebration', 'custom']).default('none'),
+    volume: z.number().min(0).max(1).default(0.35),
+    customUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:mp3|wav|ogg)$/u).optional(),
+  }).strict().superRefine((sound, context) => {
+    if (sound.mode === 'custom' && sound.customUrl === undefined) context.addIssue({ code: 'custom', path: ['customUrl'], message: 'Custom alert sound requires an uploaded local sound file.' });
+  }).default({ mode: 'none', volume: 0.35 }),
+  card: z.object({
+    backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#171120'),
+    fontFamily: z.enum(['system', 'rounded', 'serif', 'monospace']).default('system'),
+    backgroundImageUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:png|jpg|webp)$/u).optional(),
+  }).strict().default({ backgroundColor: '#171120', fontFamily: 'system' }),
   aggregation: z.object({ mode: z.enum(['none', 'sum-quantity']).default('none'), windowMs: z.number().int().min(500).max(30_000).default(5_000) }).strict().default({ mode: 'none', windowMs: 5_000 }),
 }).strict();
 export const alertPresentationSchema = z.object({
   profiles: z.partialRecord(z.enum(ALERT_PRESENTATION_TYPE_VALUES), alertPresentationProfileSchema).default({}),
 }).strict().superRefine((alerts, context) => {
   for (const [alertType, profile] of Object.entries(alerts.profiles)) {
-    if (profile.aggregation.mode === 'sum-quantity' && alertType !== 'gift' && alertType !== 'gift-subscription') {
-      context.addIssue({ code: 'custom', path: ['profiles', alertType, 'aggregation', 'mode'], message: 'Quantity aggregation is supported only for gift and gift-subscription alerts.' });
+    if (profile.aggregation.mode === 'sum-quantity' && !['gift', 'gift-subscription', 'cheer'].includes(alertType)) {
+      context.addIssue({ code: 'custom', path: ['profiles', alertType, 'aggregation', 'mode'], message: 'Quantity aggregation is supported only for gifts, gift subscriptions, and cheers/bits.' });
     }
+  }
+});
+
+const chatEventCategoriesSchema = z.object({ rewards: z.boolean(), follows: z.boolean(), subscriptions: z.boolean(), gifts: z.boolean(), support: z.boolean(), raids: z.boolean(), milestones: z.boolean() }).strict();
+const defaultChatEventCategories = { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true };
+const chatEventTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.test(value), 'Chat event templates cannot contain control characters.');
+const chatEventTemplatesSchema = z.object({ rewards: chatEventTemplateSchema, follows: chatEventTemplateSchema, subscriptions: chatEventTemplateSchema, gifts: chatEventTemplateSchema, support: chatEventTemplateSchema, raids: chatEventTemplateSchema, milestones: chatEventTemplateSchema }).strict();
+const defaultChatEventTemplates = { rewards: '{actor} redeemed {rewardTitle} · {input}', follows: '{actor} followed', subscriptions: '{actor} subscribed {tier}', gifts: '{actor} sent {quantity} {itemName}', support: '{actor} supported with {amount} {currency} {message}', raids: '{actor} raided with {quantity}', milestones: '{metric} reached {value}' };
+
+export const chatOverlaySchema = z.object({
+  layout: z.enum(['regular', 'compact']).default('regular'),
+  fontFamily: z.enum(['system', 'rounded', 'monospace']).default('system'),
+  fontSizePx: z.number().int().min(12).max(36).default(18),
+  textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#ffffff'),
+  backgroundMode: z.enum(['transparent', 'solid']).default('transparent'),
+  backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#171120'),
+  backgroundOpacity: z.number().min(0).max(1).default(0.9),
+  messageBackgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#171120'),
+  messageBackgroundOpacity: z.number().min(0).max(1).default(0.96),
+  showPlatformLabels: z.boolean().default(true),
+  showProfilePictures: z.boolean().default(true),
+  showBadges: z.boolean().default(true),
+  ignoredNames: z.array(z.string().trim().min(1).max(256)).max(500).default([]),
+  events: z.object({
+    enabled: z.boolean().default(true),
+    platforms: z.object({ twitch: z.boolean(), youtube: z.boolean(), kick: z.boolean(), tiktok: z.boolean() }).strict().default({ twitch: true, youtube: true, kick: true, tiktok: true }),
+    categories: chatEventCategoriesSchema.default(defaultChatEventCategories),
+    platformCategories: z.object({ twitch: chatEventCategoriesSchema, youtube: chatEventCategoriesSchema, kick: chatEventCategoriesSchema, tiktok: chatEventCategoriesSchema }).strict().default({ twitch: defaultChatEventCategories, youtube: defaultChatEventCategories, kick: defaultChatEventCategories, tiktok: defaultChatEventCategories }),
+    templates: z.object({ twitch: chatEventTemplatesSchema, youtube: chatEventTemplatesSchema, kick: chatEventTemplatesSchema, tiktok: chatEventTemplatesSchema }).strict().default({ twitch: defaultChatEventTemplates, youtube: defaultChatEventTemplates, kick: defaultChatEventTemplates, tiktok: defaultChatEventTemplates }),
+    characterLimits: z.object({
+      twitch: z.number().int().min(40).max(500).default(500),
+      youtube: z.number().int().min(40).max(500).default(200),
+      kick: z.number().int().min(40).max(500).default(500),
+      tiktok: z.number().int().min(40).max(500).default(150),
+    }).strict().default({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 }),
+  }).strict().default({
+    enabled: true,
+    platforms: { twitch: true, youtube: true, kick: true, tiktok: true },
+    categories: { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true },
+    platformCategories: { twitch: defaultChatEventCategories, youtube: defaultChatEventCategories, kick: defaultChatEventCategories, tiktok: defaultChatEventCategories },
+    templates: { twitch: defaultChatEventTemplates, youtube: defaultChatEventTemplates, kick: defaultChatEventTemplates, tiktok: defaultChatEventTemplates },
+    characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 },
+  }),
+}).strict().superRefine((chat, context) => {
+  const seen = new Set<string>();
+  for (const [index, name] of chat.ignoredNames.entries()) {
+    const normalized = name.toLocaleLowerCase('en-US');
+    if (seen.has(normalized)) context.addIssue({ code: 'custom', path: ['ignoredNames', index], message: `Ignored name ${name} is duplicated.` });
+    seen.add(normalized);
   }
 });
 
@@ -156,6 +216,11 @@ const browserOverlaySchema = z.object({
   alertDurationMs: z.number().int().min(1_000).max(60_000).default(7_000),
   showBots: z.boolean().default(true),
   showSimulated: z.boolean().default(true),
+  chat: chatOverlaySchema.default({
+    layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9,
+    messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [],
+    events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, categories: defaultChatEventCategories, platformCategories: { twitch: defaultChatEventCategories, youtube: defaultChatEventCategories, kick: defaultChatEventCategories, tiktok: defaultChatEventCategories }, templates: { twitch: defaultChatEventTemplates, youtube: defaultChatEventTemplates, kick: defaultChatEventTemplates, tiktok: defaultChatEventTemplates }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } },
+  }),
   alerts: alertPresentationSchema.default({ profiles: {} }),
 }).strict();
 
@@ -257,7 +322,11 @@ const bridgeConfigObjectSchema = z
       .strict(),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
-    browserOverlay: browserOverlaySchema.default({ enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true, alerts: { profiles: {} } }),
+    browserOverlay: browserOverlaySchema.default({
+      enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
+      chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, categories: defaultChatEventCategories, platformCategories: { twitch: defaultChatEventCategories, youtube: defaultChatEventCategories, kick: defaultChatEventCategories, tiktok: defaultChatEventCategories }, templates: { twitch: defaultChatEventTemplates, youtube: defaultChatEventTemplates, kick: defaultChatEventTemplates, tiktok: defaultChatEventTemplates }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } } },
+      alerts: { profiles: {} },
+    }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
     streamerbot: z
       .object({

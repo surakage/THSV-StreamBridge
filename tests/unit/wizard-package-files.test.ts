@@ -23,8 +23,8 @@ describe('wizard launcher package', () => {
     const shell = await readFile('wizard/browser/index.html', 'utf8');
     const styles = await readFile('wizard/browser/styles.css', 'utf8');
     const script = await readFile('wizard/browser/app.js', 'utf8');
-    expect(shell.match(/aria-live="polite"/g)).toHaveLength(11);
-    expect(shell.match(/role="status"/g)).toHaveLength(11);
+    expect(shell.match(/aria-live="polite"/g)).toHaveLength(12);
+    expect(shell.match(/role="status"/g)).toHaveLength(12);
     expect(styles).toContain('color-scheme:light dark');
     expect(styles).toContain('@media(prefers-color-scheme:light)');
     expect(script).toContain("status.setAttribute('aria-busy','true')");
@@ -35,5 +35,13 @@ describe('wizard launcher package', () => {
     expect(shell).toContain('Reference role (not enforced)');
     expect(shell).toContain('Configure the real permission in Streamer.bot after import.');
     expect(shell).toContain('defaults to Twitch chat as its source');
+    expect(shell).toContain('data-panel="chat-overlay"');
+    expect(shell).toContain('id="chat-dock-url"');
+    expect(script).toContain("kind:'chat-overlay'");
+    expect(script).toContain('showProfilePictures');
+    expect(shell).toContain('Events in chat');
+    expect(shell).toContain('Platform event limits');
+    expect(script).toContain('eventLimitYoutube');
+    expect(script).toContain("data.getAll('eventCategory')");
   });
 });

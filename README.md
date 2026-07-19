@@ -93,7 +93,7 @@ Browser Overlay Hub adds one local transparent browser source for Meld Studio, O
 - Loopback-only live WebSocket delivery and creator controls for duration, retention, bots, and simulated events
 - Independently movable Chat and Alerts browser sources that share one WebSocket when the host supports `SharedWorker`
 
-Use `http://127.0.0.1:8787/overlay/` for the combined canvas, or add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). Combined and separate-source rendering are live-verified in Meld Studio and OBS Studio; OBS is the accepted Streamlabs Browser Source compatibility gate.
+Use `http://127.0.0.1:8787/overlay/` for the combined canvas, add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources, or add `http://127.0.0.1:8787/overlay/chat/dock` to a compatible custom browser dock. Chat appearance and ignored names are saved from the authenticated wizard. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). Combined and separate-source rendering are live-verified in Meld Studio and OBS Studio; OBS is the accepted Streamlabs Browser Source compatibility gate.
 
 ## Archived future add-ons
 
@@ -113,7 +113,7 @@ TikFinity does not currently document a stable source-event ID or reliable simul
 
 ## Native Streamer.bot platform intake
 
-Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection and preserve Streamer.bot's test-event provenance.
+Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.1.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection and preserve Streamer.bot's test-event provenance.
 
 Stage 8 adds Twitch and Kick reward-redemption intake to those native actions. The separate triggerless `THSV StreamBridge - Reward Administration` package exposes only documented, creator-approved Twitch operations; Kick mutations are hidden and rejected until Streamer.bot documents them. See [Channel rewards](docs/rewards.md).
 

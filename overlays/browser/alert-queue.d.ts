@@ -28,6 +28,7 @@ export class AlertPresentationController {
   });
   public configure(capacity: number, defaultDurationMs: number): void;
   public enqueue(alert: QueuedAlert, queuedAt?: number): void;
+  private enqueueReady;
   public showNext(): void;
   public finish(): void;
 }

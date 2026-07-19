@@ -51,4 +51,52 @@ describe('browser alert presentation queue', () => {
     expect(clears).toBe(1);
     expect(rendered).toEqual([1, 2]);
   });
+
+  it('invokes browser timer callbacks without binding them to the controller', () => {
+    let scheduled: (() => void) | undefined;
+    const controller = new AlertPresentationController({
+      capacity: 20,
+      defaultDurationMs: 7000,
+      render: () => undefined,
+      clear: () => undefined,
+      playSound: () => undefined,
+      onError: (error) => { throw error; },
+      schedule: function (this: unknown, callback: () => void) {
+        expect(this).toBeUndefined();
+        scheduled = callback;
+        return 1 as unknown as NodeJS.Timeout;
+      },
+      cancel: function (this: unknown) { expect(this).toBeUndefined(); },
+    });
+    controller.enqueue(alert(1, 'low'));
+    controller.enqueue(alert(2, 'high'));
+    expect(scheduled).toBeTypeOf('function');
+  });
+
+  it('debounces quantity storms into one summed alert after the configured window', () => {
+    vi.useFakeTimers();
+    const rendered: QueuedAlert[] = [];
+    const controller = new AlertPresentationController({ capacity: 20, defaultDurationMs: 7000, render: (item) => rendered.push(item), clear: () => undefined, playSound: () => undefined, onError: (error) => { throw error; } });
+    const aggregation = { mode: 'sum-quantity' as const, key: 'cheer:twitch:viewer', windowMs: 5000 };
+    controller.enqueue({ ...alert(1), alertType: 'cheer', quantity: 100, display: { durationMs: 7000, aggregation } }, 1000);
+    controller.enqueue({ ...alert(2), alertType: 'cheer', quantity: 50, display: { durationMs: 7000, aggregation } }, 2000);
+    expect(rendered).toEqual([]);
+    vi.advanceTimersByTime(5000);
+    expect(rendered).toMatchObject([{ alertType: 'cheer', quantity: 150, aggregateCount: 2 }]);
+  });
+
+  it('shows at most five follows per ten-second burst', () => {
+    const rendered: QueuedAlert[] = [];
+    const controller = new AlertPresentationController({ capacity: 20, defaultDurationMs: 1, render: (item) => rendered.push(item), clear: () => undefined, playSound: () => undefined, onError: (error) => { throw error; }, schedule: () => 1 as unknown as NodeJS.Timeout });
+    for (let sequence = 1; sequence <= 20; sequence += 1) controller.enqueue({ ...alert(sequence, 'low'), alertType: 'follow' }, sequence);
+    controller.finish(); controller.finish(); controller.finish(); controller.finish();
+    expect(rendered).toHaveLength(5);
+  });
+
+  it('paces subscriptions for at least four seconds even with a shorter card duration', () => {
+    const delays: number[] = [];
+    const controller = new AlertPresentationController({ capacity: 20, defaultDurationMs: 1000, render: () => undefined, clear: () => undefined, playSound: () => undefined, onError: (error) => { throw error; }, schedule: (_callback, delay) => { delays.push(delay); return 1 as unknown as NodeJS.Timeout; } });
+    controller.enqueue({ ...alert(1), alertType: 'subscription', display: { durationMs: 1000 } });
+    expect(delays).toEqual([4000]);
+  });
 });

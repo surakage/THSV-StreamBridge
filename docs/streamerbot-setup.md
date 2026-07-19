@@ -17,7 +17,7 @@ The foundation sends a `DoAction` WebSocket request and waits for the correlated
 12. For TikTok through TikFinity, import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.0.0.sb`. It installs `THSV TikTok - Chat`, `THSV TikTok - Follow`, `THSV TikTok - Gift`, and `THSV TikTok - Like` in the `THSV StreamBridge - TikTok` group.
 13. In TikFinity, set Streamer.bot Address `127.0.0.1`, Port `8080`, Endpoint `/`, then run **Test Connection**. Map Chat, Follow, Gift, and Like events to the matching imported actions.
 14. Enable the local config's `tiktok` entry with adapter `tikfinity-streamerbot`, restart StreamBridge, then use TikFinity's event simulator. Confirm Action History shows the intake action followed by `THSV StreamBridge - Receive Event` and that diagnostics show the `tiktok` adapter connected.
-15. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb`. It installs one intake action each for Twitch, YouTube, and Kick in separate platform groups.
+15. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.1.0.sb`. It installs one intake action each for Twitch, YouTube, and Kick in separate platform groups.
 16. Add only the trigger types declared for each platform in `packages\streamerbot\native-platform-intake\manifest.json`, then enable the corresponding `streamerbot-native` platform entries in the local bridge configuration.
 17. For rewards, add `TwitchRewardRedemption` only to `THSV Twitch - Intake` and `KickRewardRedemption` only to `THSV Kick - Intake`.
 18. Import `packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-1.0.0.sb`. Review the custom C# source and keep `THSV StreamBridge - Reward Administration` triggerless. The wizard requires a separate confirmation and approval flag for every live Twitch operation. Kick mutations remain unavailable.
@@ -43,3 +43,9 @@ Official references:
 - <https://docs.streamer.bot/api/websocket/guide/authentication>
 - <https://docs.streamer.bot/api/websocket/requests>
 - <https://docs.streamer.bot/api/sub-actions/core/actions/run-action/>
+# Action wiring at a glance
+
+- Attach native Twitch, YouTube, and Kick triggers only to the matching actions in `THSV StreamBridge / Platform Intake`.
+- Do **not** attach platform triggers to Multi-Chat, Multi-Commands, or Multi-Alerts.
+- Keep Multi-Chat, Multi-Commands, and Multi-Alerts as immediate child actions under `THSV StreamBridge - Receive Event`. The bridge calls the receiver once; those projection actions read its validated `streamBridge*` arguments.
+- A successful intake now writes `Native Streamer.bot platform relay event accepted` to the structured bridge log. A rejection writes a readable warning. If neither appears, the intake action or active runtime configuration is not connected.

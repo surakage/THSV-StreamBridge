@@ -1,10 +1,21 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
+    private sealed class AvatarCacheEntry
+    {
+        public string Url;
+        public DateTimeOffset ExpiresAt;
+    }
+
+    private static readonly object AvatarCacheLock = new object();
+    private static readonly Dictionary<string, AvatarCacheEntry> AvatarCache = new Dictionary<string, AvatarCacheEntry>(StringComparer.OrdinalIgnoreCase);
+
     public bool Execute()
     {
         string platform = PlatformName();
@@ -19,6 +30,7 @@ public class CPHInline
         var argumentKeys = new JArray();
         foreach (string key in args.Keys) argumentKeys.Add(key);
         string relayId = Guid.NewGuid().ToString("N");
+        string userName = First(Read("userName"), Read("userLogin"), Read("fromUserName"));
         var message = new JObject
         {
             ["type"] = "thsv.platform",
@@ -30,13 +42,16 @@ public class CPHInline
             ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"),
             ["simulated"] = ReadBoolean("isTest") || ReadBoolean("isSimulated"),
             ["userId"] = First(Read("userId"), Read("fromUserId")),
-            ["userName"] = First(Read("userName"), Read("userLogin"), Read("fromUserName")),
+            ["userName"] = userName,
             ["displayName"] = First(Read("user"), Read("displayName"), Read("fromUser"), Read("userName")),
-            ["profilePictureUrl"] = First(Read("userProfilePicture"), Read("profilePicture"), Read("profileImageUrl")),
+            ["profilePictureUrl"] = ProfilePictureUrl(platform, userName),
+            ["nameColor"] = Read("color"),
+            ["badges"] = ReadBadges(platform),
             ["role"] = Read("role"),
             ["isModerator"] = ReadBoolean("isModerator"),
             ["isBroadcaster"] = ReadBoolean("isBroadcaster"),
             ["isSubscribed"] = ReadBoolean("isSubscribed") || ReadBoolean("subscribed"),
+            ["isVip"] = ReadBoolean("isVip"),
             ["message"] = First(Read("message"), Read("messageStripped"), Read("rawInput")),
             ["amount"] = First(ReadInvariant("amount"), ReadInvariant("donationAmount")),
             ["currency"] = First(Read("currency"), Read("currencyCode")),
@@ -84,6 +99,85 @@ public class CPHInline
     {
         object value;
         return args.TryGetValue(name, out value) && value != null ? Convert.ToString(value) ?? "" : "";
+    }
+
+    private object ReadObject(string name)
+    {
+        object value;
+        return args.TryGetValue(name, out value) ? value : null;
+    }
+
+    private string ProfilePictureUrl(string platform, string userName)
+    {
+        string direct = First(Read("userProfileUrl"), Read("userProfilePicture"), Read("profilePicture"), Read("profileImageUrl"), Read("targetUserProfileImageUrl"));
+        if (!String.IsNullOrWhiteSpace(direct) || platform != "twitch" || String.IsNullOrWhiteSpace(userName)) return direct;
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        lock (AvatarCacheLock)
+        {
+            AvatarCacheEntry cached;
+            if (AvatarCache.TryGetValue(userName, out cached) && cached.ExpiresAt > now) return cached.Url;
+        }
+
+        string resolved = "";
+        try
+        {
+            var userInfo = CPH.TwitchGetExtendedUserInfoByLogin(userName);
+            if (userInfo != null) resolved = userInfo.ProfileImageUrl ?? "";
+        }
+        catch (Exception error)
+        {
+            CPH.LogWarn("THSV StreamBridge could not resolve the Twitch avatar for " + userName + ": " + error.Message);
+        }
+
+        lock (AvatarCacheLock)
+        {
+            if (AvatarCache.Count >= 2000) AvatarCache.Clear();
+            AvatarCache[userName] = new AvatarCacheEntry { Url = resolved, ExpiresAt = now.AddHours(String.IsNullOrWhiteSpace(resolved) ? 1 : 6) };
+        }
+        return resolved;
+    }
+
+    private JArray ReadBadges(string platform)
+    {
+        var badges = new JArray();
+        object raw = platform == "kick" ? ReadObject("badge") : ReadObject("badges");
+        IEnumerable entries = raw as IEnumerable;
+        if (entries == null || raw is string) return badges;
+
+        foreach (object entry in entries)
+        {
+            if (entry == null || badges.Count >= 16) break;
+            try
+            {
+                JObject source = JObject.FromObject(entry);
+                string id = platform == "kick"
+                    ? First(ReadToken(source, "id"), ReadToken(source, "name"))
+                    : First(ReadToken(source, "Name"), ReadToken(source, "id"));
+                string label = platform == "kick"
+                    ? First(ReadToken(source, "name"), ReadToken(source, "id"))
+                    : First(ReadToken(source, "Name"), ReadToken(source, "id"));
+                string iconUrl = platform == "kick"
+                    ? First(ReadToken(source, "info"), ReadToken(source, "ImageUrl"))
+                    : First(ReadToken(source, "ImageUrl"), ReadToken(source, "imageUrl"));
+                if (String.IsNullOrWhiteSpace(label)) continue;
+                badges.Add(new JObject { ["id"] = id, ["label"] = label, ["iconUrl"] = iconUrl });
+            }
+            catch (Exception error)
+            {
+                CPH.LogWarn("THSV StreamBridge skipped an unreadable " + platform + " badge: " + error.Message);
+            }
+        }
+        return badges;
+    }
+
+    private string ReadToken(JObject source, string name)
+    {
+        foreach (JProperty property in source.Properties())
+        {
+            if (String.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)) return Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? "";
+        }
+        return "";
     }
 
     private string ReadInvariant(string name)
