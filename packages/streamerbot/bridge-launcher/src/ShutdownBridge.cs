@@ -1,54 +1,84 @@
+// Purpose: Stops THSV StreamBridge through its authenticated managed launcher or source lifecycle script.
+// Edit the Set Argument sub-action above this code to use a custom install folder.
+// References: mscorlib.dll and System.dll (standard .NET Framework references bundled with Windows).
 using System;
+using System.Diagnostics;
 using System.IO;
-using System.Net;
 
 public class CPHInline
 {
-    // Requests a graceful shutdown of the bridge via its own documented /shutdown endpoint,
-    // authenticated with the same control token the wizard itself uses. The token is read
-    // fresh from data/runtime/control-token under the install path every time this runs, so it
-    // stays correct even if the token is ever regenerated - never copy it into an argument or
-    // global variable by hand. Bind this to your platform's own "stream offline/ended" trigger.
-    private const string InstallPathVariable = "thsvBridgeInstallPath";
-    private const string DefaultPort = "8787";
+    private const string InstallPathArgument = "thsvBridgeInstallPath";
+    private const string DefaultInstallSelection = "Default Windows install";
 
     public bool Execute()
     {
-        string installPath = CPH.GetGlobalVar<string>(InstallPathVariable, true);
-        if (string.IsNullOrWhiteSpace(installPath))
-        {
-            CPH.LogError("THSV StreamBridge shutdown skipped: set the '" + InstallPathVariable + "' global variable to your StreamBridge install folder first.");
-            return false;
-        }
+        string installPath;
+        if (!TryResolveInstallPath(out installPath)) return false;
 
-        string tokenPath = Path.Combine(installPath, "data", "runtime", "control-token");
-        string token;
-        try
-        {
-            token = File.ReadAllText(tokenPath).Trim();
-        }
-        catch (Exception exception)
-        {
-            CPH.LogError("THSV StreamBridge shutdown skipped: could not read the control token at " + tokenPath + ": " + exception.Message);
-            return false;
-        }
+        // Use the managed launcher when installed; source checkouts retain the PowerShell path.
+        string managedNode = Path.Combine(installPath, "runtime", "node.exe");
+        string managedLauncher = Path.Combine(installPath, "launcher", "stop.mjs");
+        string sourceScript = Path.Combine(installPath, "scripts", "stop.ps1");
+        ProcessStartInfo startInfo;
+        if (File.Exists(managedNode) && File.Exists(managedLauncher))
+            startInfo = HiddenProcess(managedNode, "\"" + managedLauncher + "\"", installPath);
+        else if (File.Exists(sourceScript))
+            startInfo = HiddenProcess("powershell.exe", "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + sourceScript + "\"", installPath);
+        else
+            return Fail("no managed launcher or source shutdown script exists in the selected install folder.");
 
         try
         {
-            using (WebClient client = new WebClient())
-            {
-                client.Headers.Add("authorization", "Bearer " + token);
-                client.UploadString("http://127.0.0.1:" + DefaultPort + "/shutdown", "POST", "");
-            }
-            CPH.LogInfo("THSV StreamBridge shutdown requested.");
+            Process process = Process.Start(startInfo);
+            if (process == null) return Fail("PowerShell or the bundled runtime did not start.");
+            CPH.LogInfo("THSV StreamBridge shutdown requested through its authenticated lifecycle launcher.");
+            return true;
         }
         catch (Exception exception)
         {
-            // Most likely just means the bridge was not running - "make sure it is stopped" is
-            // inherently idempotent, so this is worth logging but not worth failing loudly over.
-            CPH.LogInfo("THSV StreamBridge shutdown request did not reach the bridge (it may already be stopped): " + exception.Message);
+            return Fail("launcher failed (" + exception.GetType().Name + ").");
         }
+    }
 
-        return true;
+    private bool TryResolveInstallPath(out string installPath)
+    {
+        string configured;
+        bool hasArgument = CPH.TryGetArg(InstallPathArgument, out configured) && !String.IsNullOrWhiteSpace(configured);
+        if (!hasArgument || configured.Trim().Equals(DefaultInstallSelection, StringComparison.OrdinalIgnoreCase))
+        {
+            string legacy = CPH.GetGlobalVar<string>(InstallPathArgument, true);
+            configured = String.IsNullOrWhiteSpace(legacy)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "THSV StreamBridge")
+                : legacy;
+        }
+        try
+        {
+            installPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(configured.Trim()));
+            return true;
+        }
+        catch (Exception exception)
+        {
+            installPath = String.Empty;
+            return Fail("install path is invalid (" + exception.GetType().Name + ").");
+        }
+    }
+
+    private static ProcessStartInfo HiddenProcess(string fileName, string arguments, string workingDirectory)
+    {
+        return new ProcessStartInfo
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            WorkingDirectory = workingDirectory,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden,
+        };
+    }
+
+    private bool Fail(string reason)
+    {
+        CPH.LogError("THSV StreamBridge shutdown failed: " + reason);
+        return false;
     }
 }

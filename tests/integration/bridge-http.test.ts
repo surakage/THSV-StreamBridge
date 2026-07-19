@@ -114,7 +114,7 @@ describe('bridge HTTP integration', () => {
     const source = await fetch(`${baseUrl}/overlay/app-1.4.0.js`).then((response) => response.text());
     expect(source).not.toContain('companion');
     expect((await fetch(`${baseUrl}/overlay/alert-queue-1.2.2.js`)).status).toBe(200);
-    expect((await fetch(`${baseUrl}/overlay/worker-1.3.0.js`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/worker-1.3.1.js`)).status).toBe(200);
     expect((await fetch(`${baseUrl}/overlay/styles-1.3.0.css`)).status).toBe(200);
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
     expect((await fetch(`${baseUrl}/overlay/addons/unknown.module`)).status).toBe(404);

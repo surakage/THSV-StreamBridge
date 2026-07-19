@@ -47,6 +47,30 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(event).toMatchObject({ eventType: 'channel.gift-subscription', payload: { quantity: 10, tier: 'Tier 1' } });
   });
 
+  it('keeps a free YouTube subscriber separate from a paid YouTube member', () => {
+    expect(normalizeStreamerBotPlatformRelay(relay('youtube', 'YouTubeNewSubscriber'))).toMatchObject({ eventType: 'channel.follow', source: { eventName: 'YouTubeNewSubscriber' } });
+    expect(normalizeStreamerBotPlatformRelay(relay('youtube', 'YouTubeNewSponsor', { tier: 'Village Member' }))).toMatchObject({ eventType: 'channel.membership', payload: { subscriptionKind: 'new', tier: 'Village Member' } });
+  });
+
+  it.each([
+    ['twitch', 'TwitchStreamOnline', 'stream.online'],
+    ['twitch', 'TwitchStreamOffline', 'stream.offline'],
+    ['youtube', 'YouTubeBroadcastStarted', 'stream.online'],
+    ['youtube', 'YouTubeBroadcastEnded', 'stream.offline'],
+    ['kick', 'KickStreamOnline', 'stream.online'],
+    ['kick', 'KickStreamOffline', 'stream.offline'],
+  ] as const)('normalizes %s lifecycle trigger %s', (platform, sourceEventType, eventType) => {
+    const event = normalizeStreamerBotPlatformRelay(relay(platform, sourceEventType));
+    expect(event).toMatchObject({ platform, eventType, payload: {} });
+    expect(event.user).toBeUndefined();
+  });
+
+  it('translates resubscription month variables into the normalized contract', () => {
+    expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchReSub', { quantity: '8', streakMonths: '5', tier: 'Tier 1' }))).toMatchObject({
+      eventType: 'channel.subscription', payload: { subscriptionKind: 'renewal', months: 8, streakMonths: 5, tier: 'Tier 1' },
+    });
+  });
+
   it.each([
     ['twitch', 'TwitchRewardRedemption', ['fulfill', 'cancel']],
     ['kick', 'KickRewardRedemption', []],

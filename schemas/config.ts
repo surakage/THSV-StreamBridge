@@ -167,11 +167,42 @@ export const alertPresentationSchema = z.object({
   }
 });
 
-const chatEventCategoriesSchema = z.object({ rewards: z.boolean(), follows: z.boolean(), subscriptions: z.boolean(), gifts: z.boolean(), support: z.boolean(), raids: z.boolean(), milestones: z.boolean() }).strict();
-const defaultChatEventCategories = { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true };
-const chatEventTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.test(value), 'Chat event templates cannot contain control characters.');
-const chatEventTemplatesSchema = z.object({ rewards: chatEventTemplateSchema, follows: chatEventTemplateSchema, subscriptions: chatEventTemplateSchema, gifts: chatEventTemplateSchema, support: chatEventTemplateSchema, raids: chatEventTemplateSchema, milestones: chatEventTemplateSchema }).strict();
-const defaultChatEventTemplates = { rewards: '{actor} redeemed {rewardTitle} · {input}', follows: '{actor} followed', subscriptions: '{actor} subscribed {tier}', gifts: '{actor} sent {quantity} {itemName}', support: '{actor} supported with {amount} {currency} {message}', raids: '{actor} raided with {quantity}', milestones: '{metric} reached {value}' };
+const CHAT_EVENT_TEMPLATE_TOKEN_VALUES = ['actor', 'rewardTitle', 'input', 'amount', 'currency', 'quantity', 'itemName', 'tier', 'message', 'metric', 'value', 'months', 'streakMonths'] as const;
+const chatEventTemplateTokens = new Set<string>(CHAT_EVENT_TEMPLATE_TOKEN_VALUES);
+const platformChatEventTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.test(value), 'Chat event templates cannot contain control characters.').superRefine((value, context) => {
+  for (const match of value.matchAll(/\{([a-z][a-zA-Z]*)\}/gu)) if (!chatEventTemplateTokens.has(match[1] ?? '')) context.addIssue({ code: 'custom', message: `Unknown chat event template token ${match[0]}.` });
+});
+const chatEventSettingSchema = z.object({ enabled: z.boolean(), template: platformChatEventTemplateSchema }).strict();
+export const DEFAULT_CHAT_PLATFORM_EVENTS = {
+  twitch: {
+    follow: { enabled: true, template: '{actor} followed' }, subscription: { enabled: true, template: '{actor} subscribed {tier}' },
+    resubscription: { enabled: true, template: '{actor} resubscribed for {months} months {tier}' }, 'gift-subscription': { enabled: true, template: '{actor} gifted a subscription {tier}' },
+    'gift-bomb': { enabled: true, template: '{actor} gifted {quantity} subscriptions {tier}' }, cheer: { enabled: true, template: '{actor} cheered {quantity} bits {message}' },
+    raid: { enabled: true, template: '{actor} raided with {quantity} viewers' }, 'reward-redemption': { enabled: true, template: '{actor} redeemed {rewardTitle} · {input}' },
+  },
+  youtube: {
+    subscriber: { enabled: true, template: '{actor} subscribed to the channel' }, member: { enabled: true, template: '{actor} became a paid member {tier}' },
+    'membership-gift': { enabled: true, template: '{actor} gifted {quantity} memberships' }, 'member-milestone': { enabled: true, template: '{actor} reached {months} months as a member' },
+    'super-chat': { enabled: true, template: '{actor} sent a Super Chat: {amount} {currency} {message}' }, 'super-sticker': { enabled: true, template: '{actor} sent a Super Sticker: {amount} {currency}' },
+  },
+  kick: {
+    follow: { enabled: true, template: '{actor} followed' }, subscription: { enabled: true, template: '{actor} subscribed {tier}' },
+    resubscription: { enabled: true, template: '{actor} resubscribed for {months} months {tier}' }, 'gift-subscription': { enabled: true, template: '{actor} gifted a subscription {tier}' },
+    'mass-gift-subscription': { enabled: true, template: '{actor} gifted {quantity} subscriptions {tier}' }, 'gifted-kicks': { enabled: true, template: '{actor} gifted {quantity} KICKs' },
+    'reward-redemption': { enabled: true, template: '{actor} redeemed {rewardTitle} · {input}' },
+  },
+  tiktok: {
+    follow: { enabled: true, template: '{actor} followed' }, gift: { enabled: true, template: '{actor} sent {quantity} {itemName}' },
+    subscription: { enabled: true, template: '{actor} subscribed for month {months}' }, likes: { enabled: true, template: 'TikTok reached {value} likes' },
+  },
+} as const;
+const chatPlatformEventsSchema = z.object({
+  twitch: z.object({ follow: chatEventSettingSchema, subscription: chatEventSettingSchema, resubscription: chatEventSettingSchema, 'gift-subscription': chatEventSettingSchema, 'gift-bomb': chatEventSettingSchema, cheer: chatEventSettingSchema, raid: chatEventSettingSchema, 'reward-redemption': chatEventSettingSchema }).strict(),
+  youtube: z.object({ subscriber: chatEventSettingSchema, member: chatEventSettingSchema, 'membership-gift': chatEventSettingSchema, 'member-milestone': chatEventSettingSchema, 'super-chat': chatEventSettingSchema, 'super-sticker': chatEventSettingSchema }).strict(),
+  kick: z.object({ follow: chatEventSettingSchema, subscription: chatEventSettingSchema, resubscription: chatEventSettingSchema, 'gift-subscription': chatEventSettingSchema, 'mass-gift-subscription': chatEventSettingSchema, 'gifted-kicks': chatEventSettingSchema, 'reward-redemption': chatEventSettingSchema }).strict(),
+  tiktok: z.object({ follow: chatEventSettingSchema, gift: chatEventSettingSchema, subscription: chatEventSettingSchema, likes: chatEventSettingSchema }).strict(),
+}).strict();
+export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31' } as const;
 
 export const chatOverlaySchema = z.object({
   layout: z.enum(['regular', 'compact']).default('regular'),
@@ -183,6 +214,8 @@ export const chatOverlaySchema = z.object({
   backgroundOpacity: z.number().min(0).max(1).default(0.9),
   messageBackgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#171120'),
   messageBackgroundOpacity: z.number().min(0).max(1).default(0.96),
+  messageColorMode: z.enum(['platform', 'single', 'transparent']).default('platform'),
+  platformMessageColors: z.object({ twitch: z.string().regex(/^#[0-9a-fA-F]{6}$/u), youtube: z.string().regex(/^#[0-9a-fA-F]{6}$/u), kick: z.string().regex(/^#[0-9a-fA-F]{6}$/u), tiktok: z.string().regex(/^#[0-9a-fA-F]{6}$/u) }).strict().default(DEFAULT_CHAT_PLATFORM_COLORS),
   showPlatformLabels: z.boolean().default(true),
   showProfilePictures: z.boolean().default(true),
   showBadges: z.boolean().default(true),
@@ -190,9 +223,7 @@ export const chatOverlaySchema = z.object({
   events: z.object({
     enabled: z.boolean().default(true),
     platforms: z.object({ twitch: z.boolean(), youtube: z.boolean(), kick: z.boolean(), tiktok: z.boolean() }).strict().default({ twitch: true, youtube: true, kick: true, tiktok: true }),
-    categories: chatEventCategoriesSchema.default(defaultChatEventCategories),
-    platformCategories: z.object({ twitch: chatEventCategoriesSchema, youtube: chatEventCategoriesSchema, kick: chatEventCategoriesSchema, tiktok: chatEventCategoriesSchema }).strict().default({ twitch: defaultChatEventCategories, youtube: defaultChatEventCategories, kick: defaultChatEventCategories, tiktok: defaultChatEventCategories }),
-    templates: z.object({ twitch: chatEventTemplatesSchema, youtube: chatEventTemplatesSchema, kick: chatEventTemplatesSchema, tiktok: chatEventTemplatesSchema }).strict().default({ twitch: defaultChatEventTemplates, youtube: defaultChatEventTemplates, kick: defaultChatEventTemplates, tiktok: defaultChatEventTemplates }),
+    platformEvents: chatPlatformEventsSchema.default(DEFAULT_CHAT_PLATFORM_EVENTS),
     characterLimits: z.object({
       twitch: z.number().int().min(40).max(500).default(500),
       youtube: z.number().int().min(40).max(500).default(200),
@@ -202,9 +233,7 @@ export const chatOverlaySchema = z.object({
   }).strict().default({
     enabled: true,
     platforms: { twitch: true, youtube: true, kick: true, tiktok: true },
-    categories: { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true },
-    platformCategories: { twitch: defaultChatEventCategories, youtube: defaultChatEventCategories, kick: defaultChatEventCategories, tiktok: defaultChatEventCategories },
-    templates: { twitch: defaultChatEventTemplates, youtube: defaultChatEventTemplates, kick: defaultChatEventTemplates, tiktok: defaultChatEventTemplates },
+    platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS,
     characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 },
   }),
 }).strict().superRefine((chat, context) => {
@@ -226,8 +255,8 @@ const browserOverlaySchema = z.object({
   showSimulated: z.boolean().default(true),
   chat: chatOverlaySchema.default({
     layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9,
-    messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [],
-    events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, categories: defaultChatEventCategories, platformCategories: { twitch: defaultChatEventCategories, youtube: defaultChatEventCategories, kick: defaultChatEventCategories, tiktok: defaultChatEventCategories }, templates: { twitch: defaultChatEventTemplates, youtube: defaultChatEventTemplates, kick: defaultChatEventTemplates, tiktok: defaultChatEventTemplates }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } },
+    messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [],
+    events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } },
   }),
   alerts: alertPresentationSchema.default({ profiles: {} }),
 }).strict();
@@ -332,7 +361,7 @@ const bridgeConfigObjectSchema = z
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({
       enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
-      chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, categories: defaultChatEventCategories, platformCategories: { twitch: defaultChatEventCategories, youtube: defaultChatEventCategories, kick: defaultChatEventCategories, tiktok: defaultChatEventCategories }, templates: { twitch: defaultChatEventTemplates, youtube: defaultChatEventTemplates, kick: defaultChatEventTemplates, tiktok: defaultChatEventTemplates }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } } },
+      chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } } },
       alerts: { profiles: {} },
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
@@ -389,6 +418,7 @@ export const bridgeConfigSchema = z.preprocess((input) => {
   if (migrated['browserOverlay'] !== null && typeof migrated['browserOverlay'] === 'object' && !Array.isArray(migrated['browserOverlay'])) {
     const overlay = { ...(migrated['browserOverlay'] as Record<string, unknown>) };
     delete overlay['maxCompanionQueue'];
+    migrateLegacyChatEventConfiguration(overlay);
     migrated['browserOverlay'] = overlay;
   }
   delete migrated['meldOverlay'];
@@ -396,6 +426,54 @@ export const bridgeConfigSchema = z.preprocess((input) => {
   delete migrated['companion'];
   return migrated;
 }, bridgeConfigObjectSchema);
+
+function migrateLegacyChatEventConfiguration(overlay: Record<string, unknown>): void {
+  if (overlay['chat'] === null || typeof overlay['chat'] !== 'object' || Array.isArray(overlay['chat'])) return;
+  const chat = { ...(overlay['chat'] as Record<string, unknown>) };
+  if (chat['events'] === null || typeof chat['events'] !== 'object' || Array.isArray(chat['events'])) { overlay['chat'] = chat; return; }
+  const events = { ...(chat['events'] as Record<string, unknown>) };
+  const categories = objectRecord(events['categories']);
+  const platformCategories = objectRecord(events['platformCategories']);
+  const templates = objectRecord(events['templates']);
+  if (events['platformEvents'] === undefined) {
+    const migratedPlatforms: Record<string, unknown> = {};
+    for (const [platform, definitions] of Object.entries(DEFAULT_CHAT_PLATFORM_EVENTS)) {
+      const migratedDefinitions: Record<string, unknown> = {};
+      const perPlatformCategories = objectRecord(platformCategories[platform]);
+      const perPlatformTemplates = objectRecord(templates[platform]);
+      for (const [eventId, setting] of Object.entries(definitions as Readonly<Record<string, { readonly template: string }>>)) {
+        const legacyCategory = legacyChatCategory(platform, eventId);
+        const template = perPlatformTemplates[legacyCategory];
+        migratedDefinitions[eventId] = {
+          enabled: categories[legacyCategory] !== false && perPlatformCategories[legacyCategory] !== false,
+          template: typeof template === 'string' ? template : setting.template,
+        };
+      }
+      migratedPlatforms[platform] = migratedDefinitions;
+    }
+    events['platformEvents'] = migratedPlatforms;
+  }
+  delete events['categories'];
+  delete events['platformCategories'];
+  delete events['templates'];
+  chat['events'] = events;
+  overlay['chat'] = chat;
+}
+
+function legacyChatCategory(platform: string, eventId: string): string {
+  if (eventId === 'reward-redemption') return 'rewards';
+  if (eventId === 'follow' || eventId === 'subscriber') return 'follows';
+  if (['subscription', 'resubscription', 'gift-subscription', 'gift-bomb', 'member', 'membership-gift', 'member-milestone', 'mass-gift-subscription'].includes(eventId)) return 'subscriptions';
+  if (eventId === 'gift' || eventId === 'gifted-kicks') return 'gifts';
+  if (eventId === 'cheer' || eventId === 'super-chat' || eventId === 'super-sticker') return 'support';
+  if (eventId === 'raid') return 'raids';
+  if (platform === 'tiktok' && eventId === 'likes') return 'milestones';
+  return 'milestones';
+}
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
 
 export type BridgeConfig = z.infer<typeof bridgeConfigSchema>;
 export type PlatformConfig = z.infer<typeof platformSchema>;

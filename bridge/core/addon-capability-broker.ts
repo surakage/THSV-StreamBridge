@@ -4,7 +4,7 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { CORE_RECEIVER_ACTION_ID, type AddOnActionArgumentsV2, type AddOnPrivateStateV2, type AddOnScheduledTaskV2, type ModuleRuntimeContextV2 } from '../contracts/v2/addon-capability.js';
+import { CORE_RECEIVER_ACTION_ID, type AddOnActionArgumentsV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnScheduledTaskV2, type ModuleRuntimeContextV2 } from '../contracts/v2/addon-capability.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { Logger } from '../services/logger.js';
 
@@ -20,6 +20,7 @@ const MAXIMUM_TIMERS_PER_MODULE = 16;
 const TASK_TIMEOUT_MS = 5_000;
 const MAXIMUM_PENDING_ACTIONS_PER_MODULE = 2;
 const MAXIMUM_ACTIONS_PER_MINUTE = 30;
+const MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE = 10;
 const jsonRecordSchema = z.record(z.string().min(1).max(100), jsonValueV2Schema);
 
 export interface ModuleCapabilityGrant {
@@ -31,6 +32,8 @@ export interface ModuleCapabilityGrant {
 export interface AddOnCapabilityBrokerDependencies {
   readonly runStreamerBotAction?: (actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>;
   readonly publishOverlay?: (moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>) => Promise<void>;
+  readonly subscribeOverlayLifecycle?: (moduleId: string, listener: (event: AddOnOverlayLifecycleV2) => void) => () => void;
+  readonly routeOutboundMessage?: (request: AddOnOutboundMessageRequestV2, signal: AbortSignal) => Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
 }
 
 interface CapabilityAudit {
@@ -44,6 +47,7 @@ interface CapabilityAudit {
 
 interface ScheduledEntry { readonly moduleId: string; readonly timer: NodeJS.Timeout }
 interface ActionActivity { pending: number; readonly startedAt: number[]; readonly controllers: Set<AbortController> }
+interface OutboundActivity { pending: number; readonly startedAt: number[]; readonly controllers: Set<AbortController> }
 
 export class CapabilityDeniedError extends Error {
   public constructor(public readonly moduleId: string, public readonly permission: AddOnPermissionV2, message: string) {
@@ -55,6 +59,8 @@ export class AddOnCapabilityBroker {
   private readonly audits = new Map<string, CapabilityAudit>();
   private readonly scheduled = new Map<string, ScheduledEntry>();
   private readonly actionActivity = new Map<string, ActionActivity>();
+  private readonly overlaySubscriptions = new Map<string, Set<() => void>>();
+  private readonly outboundActivity = new Map<string, OutboundActivity>();
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {}
 
@@ -81,7 +87,9 @@ export class AddOnCapabilityBroker {
       }),
       overlay: Object.freeze({
         publish: (topic: string, payload: Readonly<Record<string, z.infer<typeof jsonValueV2Schema>>>) => this.publishOverlay(grant, topic, payload),
+        onLifecycle: (listener: (event: AddOnOverlayLifecycleV2) => void) => this.subscribeOverlayLifecycle(grant, listener),
       }),
+      chat: Object.freeze({ send: (request: AddOnOutboundMessageRequestV2) => this.sendChat(grant, request) }),
     };
     return Object.freeze(context);
   }
@@ -96,6 +104,11 @@ export class AddOnCapabilityBroker {
       for (const controller of activity.controllers) controller.abort(new Error(`Add-on ${moduleId} stopped before its Streamer.bot action completed.`));
       this.actionActivity.delete(moduleId);
     }
+    for (const unsubscribe of this.overlaySubscriptions.get(moduleId) ?? []) unsubscribe();
+    this.overlaySubscriptions.delete(moduleId);
+    const outbound = this.outboundActivity.get(moduleId);
+    if (outbound !== undefined) for (const controller of outbound.controllers) controller.abort(new Error(`Add-on ${moduleId} stopped before its outbound chat request completed.`));
+    this.outboundActivity.delete(moduleId);
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
@@ -103,7 +116,8 @@ export class AddOnCapabilityBroker {
       stateRoot: resolve(this.stateRoot),
       scheduledTasks: this.scheduled.size,
       actionRequests: Object.fromEntries([...this.actionActivity.entries()].map(([moduleId, activity]) => [moduleId, { pending: activity.pending, startsInCurrentWindow: activity.startedAt.filter((startedAt) => startedAt >= Date.now() - 60_000).length }])),
-      limits: { maximumJsonBytes: MAXIMUM_JSON_BYTES, maximumRecordKeys: MAXIMUM_RECORD_KEYS, maximumArguments: MAXIMUM_ARGUMENTS, minimumDelayMs: MINIMUM_DELAY_MS, maximumDelayMs: MAXIMUM_DELAY_MS, maximumTimersPerModule: MAXIMUM_TIMERS_PER_MODULE, taskTimeoutMs: TASK_TIMEOUT_MS, maximumPendingActionsPerModule: MAXIMUM_PENDING_ACTIONS_PER_MODULE, maximumActionsPerMinute: MAXIMUM_ACTIONS_PER_MINUTE },
+      outboundRequests: Object.fromEntries([...this.outboundActivity.entries()].map(([moduleId, activity]) => [moduleId, { pending: activity.pending, startsInCurrentWindow: activity.startedAt.filter((time) => time >= Date.now() - 60_000).length }])),
+      limits: { maximumJsonBytes: MAXIMUM_JSON_BYTES, maximumRecordKeys: MAXIMUM_RECORD_KEYS, maximumArguments: MAXIMUM_ARGUMENTS, minimumDelayMs: MINIMUM_DELAY_MS, maximumDelayMs: MAXIMUM_DELAY_MS, maximumTimersPerModule: MAXIMUM_TIMERS_PER_MODULE, taskTimeoutMs: TASK_TIMEOUT_MS, maximumPendingActionsPerModule: MAXIMUM_PENDING_ACTIONS_PER_MODULE, maximumActionsPerMinute: MAXIMUM_ACTIONS_PER_MINUTE, maximumOutboundRequestsPerMinute: MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE },
       modules: Object.fromEntries([...this.audits.entries()].map(([moduleId, audit]) => [moduleId, { ...audit }])),
     };
   }
@@ -196,6 +210,32 @@ export class AddOnCapabilityBroker {
     if (this.dependencies.publishOverlay === undefined) return this.deny(grant.moduleId, 'overlay.publish', 'overlay.publish', 'The hosted add-on overlay contract is not available yet.');
     try { await this.dependencies.publishOverlay(grant.moduleId, topic, parsed); this.record(grant.moduleId, 'overlay.publish', 'granted'); }
     catch (error) { this.record(grant.moduleId, 'overlay.publish', 'failed'); throw error; }
+  }
+
+  private subscribeOverlayLifecycle(grant: ModuleCapabilityGrant, listener: (event: AddOnOverlayLifecycleV2) => void): () => void {
+    this.require(grant, 'overlay.publish', 'overlay.lifecycle.subscribe');
+    if (typeof listener !== 'function') throw new Error('Overlay lifecycle listener must be a function.');
+    if (this.dependencies.subscribeOverlayLifecycle === undefined) return this.deny(grant.moduleId, 'overlay.publish', 'overlay.lifecycle.subscribe', 'Overlay lifecycle reports are unavailable.');
+    const unsubscribeDependency = this.dependencies.subscribeOverlayLifecycle(grant.moduleId, listener);
+    const subscriptions = this.overlaySubscriptions.get(grant.moduleId) ?? new Set<() => void>();
+    let active = true;
+    const unsubscribe = (): void => { if (!active) return; active = false; unsubscribeDependency(); subscriptions.delete(unsubscribe); };
+    subscriptions.add(unsubscribe); this.overlaySubscriptions.set(grant.moduleId, subscriptions); this.record(grant.moduleId, 'overlay.lifecycle.subscribe', 'granted');
+    return unsubscribe;
+  }
+
+  private async sendChat(grant: ModuleCapabilityGrant, request: AddOnOutboundMessageRequestV2): Promise<readonly AddOnOutboundMessageDeliveryV2[]> {
+    this.require(grant, 'chat.send', 'chat.send');
+    if (this.dependencies.routeOutboundMessage === undefined) return this.deny(grant.moduleId, 'chat.send', 'chat.send', 'Outbound chat routing is unavailable.');
+    const activity = this.outboundActivity.get(grant.moduleId) ?? { pending: 0, startedAt: [], controllers: new Set<AbortController>() };
+    const cutoff = Date.now() - 60_000;
+    while ((activity.startedAt[0] ?? Number.POSITIVE_INFINITY) < cutoff) activity.startedAt.shift();
+    if (activity.pending >= MAXIMUM_PENDING_ACTIONS_PER_MODULE) return this.deny(grant.moduleId, 'chat.send', 'chat.send', `The add-on already has ${String(MAXIMUM_PENDING_ACTIONS_PER_MODULE)} pending outbound message requests.`);
+    if (activity.startedAt.length >= MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE) return this.deny(grant.moduleId, 'chat.send', 'chat.send', `The add-on exceeded ${String(MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE)} outbound message requests per minute.`);
+    const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.outboundActivity.set(grant.moduleId, activity);
+    try { const result = await this.dependencies.routeOutboundMessage(request, controller.signal); this.record(grant.moduleId, 'chat.send', 'granted'); return result; }
+    catch (error) { this.record(grant.moduleId, 'chat.send', 'failed'); throw error; }
+    finally { activity.pending -= 1; activity.controllers.delete(controller); }
   }
 
   private statePath(moduleId: string): string {

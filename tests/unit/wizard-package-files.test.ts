@@ -24,8 +24,8 @@ describe('wizard launcher package', () => {
     const styles = await readFile('wizard/browser/styles.css', 'utf8');
     const script = await readFile('wizard/browser/app.js', 'utf8');
     const addOnScript = await readFile('wizard/browser/addons.js', 'utf8');
-    expect(shell.match(/aria-live="polite"/g)).toHaveLength(13);
-    expect(shell.match(/role="status"/g)).toHaveLength(13);
+    expect(shell.match(/aria-live="polite"/g)).toHaveLength(14);
+    expect(shell.match(/role="status"/g)).toHaveLength(14);
     expect(styles).toContain('color-scheme:light dark');
     expect(styles).toContain('@media(prefers-color-scheme:light)');
     expect(script).toContain("status.setAttribute('aria-busy','true')");
@@ -43,7 +43,10 @@ describe('wizard launcher package', () => {
     expect(shell).toContain('Events in chat');
     expect(shell).toContain('Platform event limits');
     expect(script).toContain('eventLimitYoutube');
-    expect(script).toContain("data.getAll('eventCategory')");
+    expect(script).toContain('chatPlatformEventDefinitions');
+    expect(script).toContain('events.platformEvents[platform]');
+    expect(script).not.toContain("data.getAll('eventCategory')");
+    expect(shell).not.toContain('Bits, donations, and Super Chats');
     expect(shell).toContain('data-panel="addons"');
     expect(addOnScript).toContain('/wizard/api/addons');
     expect(addOnScript).toContain('not an operating-system sandbox');

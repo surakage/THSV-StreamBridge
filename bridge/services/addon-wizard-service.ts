@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, resolve, sep } from 'node:path';
+import { lstat, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve, sep } from 'node:path';
 import {
   AddOnPackageError,
   installAddOnArchive,
+  inspectAddOnArchive,
   listInstalledAddOnPackages,
   removeAddOnPackage,
   setAddOnApprovedActionIds,
@@ -23,8 +24,25 @@ export interface WizardAddOnSummary extends InstalledAddOnSummary {
   readonly settings: Readonly<Record<string, unknown>>;
 }
 
+export interface DiscoveredAddOnSummary {
+  readonly filename: string;
+  readonly size: number;
+  readonly health: 'available' | 'rejected';
+  readonly moduleId?: string;
+  readonly name?: string;
+  readonly version?: string;
+  readonly author?: string;
+  readonly description?: string;
+  readonly packageKind?: 'declarative' | 'executable';
+  readonly permissions?: readonly string[];
+  readonly minimumCoreVersion?: string;
+  readonly maximumTestedCoreVersion?: string;
+  readonly trust: 'integrity-only';
+  readonly error?: string;
+}
+
 export class AddOnWizardService {
-  public constructor(private readonly packagesRoot: string, private readonly stateRoot: string) {}
+  public constructor(private readonly packagesRoot: string, private readonly stateRoot: string, private readonly inboxRoot = join(resolve(packagesRoot), 'inbox')) {}
 
   public async list(): Promise<readonly WizardAddOnSummary[]> {
     const installed = await listInstalledAddOnPackages(this.packagesRoot);
@@ -46,6 +64,36 @@ export class AddOnWizardService {
     try {
       const installed = await installAddOnArchive(archive, this.packagesRoot, true);
       return { installed: true, moduleId: installed.descriptor.manifest.moduleId, version: installed.descriptor.manifest.version, restartRequired: true };
+    } catch (error) { throw asWizardError(error); }
+  }
+
+  public async discover(): Promise<readonly DiscoveredAddOnSummary[]> {
+    await mkdir(this.inboxRoot, { recursive: true, mode: 0o700 });
+    const entries = (await readdir(this.inboxRoot, { withFileTypes: true })).filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.thsv-addon')).sort((left, right) => left.name.localeCompare(right.name)).slice(0, 100);
+    return Promise.all(entries.map(async (entry): Promise<DiscoveredAddOnSummary> => {
+      const filename = entry.name;
+      try {
+        assertInboxFilename(filename);
+        const path = join(this.inboxRoot, filename);
+        const information = await lstat(path);
+        if (!information.isFile() || information.isSymbolicLink() || information.size < 1 || information.size > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(400, `Package must be a regular file from 1 through ${String(MAXIMUM_ARCHIVE_BYTES)} bytes.`);
+        const descriptor = await inspectAddOnArchive(await readFile(path), this.packagesRoot);
+        return { filename, size: information.size, health: 'available', moduleId: descriptor.manifest.moduleId, name: descriptor.manifest.name, version: descriptor.manifest.version, author: descriptor.author, description: descriptor.description, packageKind: descriptor.packageKind, permissions: descriptor.permissions, minimumCoreVersion: descriptor.manifest.minimumCoreVersion, maximumTestedCoreVersion: descriptor.manifest.maximumTestedCoreVersion, trust: 'integrity-only' };
+      } catch (error) { return { filename, size: 0, health: 'rejected', trust: 'integrity-only', error: error instanceof Error ? error.message : String(error) }; }
+    }));
+  }
+
+  public async installDiscovered(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const body = objectInput(input);
+    const filename = stringInput(body['filename'], 'filename', 250);
+    assertInboxFilename(filename);
+    if (body['approvedByCreator'] !== true) throw new AddOnWizardError(403, 'Installing a discovered add-on requires explicit creator approval.');
+    const path = join(this.inboxRoot, filename);
+    const information = await lstat(path).catch((error: unknown) => { throw new AddOnWizardError((error as NodeJS.ErrnoException).code === 'ENOENT' ? 404 : 500, 'The discovered add-on package is unavailable.'); });
+    if (!information.isFile() || information.isSymbolicLink() || information.size < 1 || information.size > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(400, 'The discovered package is not a safe regular add-on file.');
+    try {
+      const installed = await installAddOnArchive(await readFile(path), this.packagesRoot, true);
+      return { installed: true, source: 'inbox', filename, moduleId: installed.descriptor.manifest.moduleId, version: installed.descriptor.manifest.version, restartRequired: true };
     } catch (error) { throw asWizardError(error); }
   }
 
@@ -97,7 +145,7 @@ export class AddOnWizardService {
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
-    return { packagesRoot: resolve(this.packagesRoot), stateRoot: resolve(this.stateRoot), archiveLimitBytes: MAXIMUM_ARCHIVE_BYTES, settingsLimitBytes: MAXIMUM_SETTINGS_BYTES };
+    return { packagesRoot: resolve(this.packagesRoot), stateRoot: resolve(this.stateRoot), inboxRoot: resolve(this.inboxRoot), archiveLimitBytes: MAXIMUM_ARCHIVE_BYTES, settingsLimitBytes: MAXIMUM_SETTINGS_BYTES };
   }
 
   private async readSettings(moduleId: string, schema: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -111,6 +159,10 @@ export class AddOnWizardService {
       throw error;
     }
   }
+}
+
+function assertInboxFilename(value: string): void {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,249}\.thsv-addon$/iu.test(value)) throw new AddOnWizardError(400, 'Discovered add-on filename is invalid.');
 }
 
 function settingsPath(root: string, moduleId: string): string {
@@ -181,6 +233,18 @@ function validateSettingValue(key: string, schema: Record<string, unknown>, valu
       if (value.length < minimum || value.length > maximum) throw new AddOnWizardError(400, `${key} must contain from ${String(minimum)} through ${String(maximum)} characters.`);
       return value;
     }
+    case 'array': {
+      if (!Array.isArray(value) || !value.every((entry) => typeof entry === 'string')) throw new AddOnWizardError(400, `${key} must be a list of text values.`);
+      const minimumItems = boundedInteger(schema['minItems'], 0, 100, 0); const maximumItems = boundedInteger(schema['maxItems'], minimumItems, 100, 25);
+      if (value.length < minimumItems || value.length > maximumItems) throw new AddOnWizardError(400, `${key} must contain from ${String(minimumItems)} through ${String(maximumItems)} items.`);
+      const itemSchema = objectInput(schema['items'] ?? { type: 'string' });
+      if (itemSchema['type'] !== 'string') throw new AddOnWizardError(400, `${key} supports only text list items.`);
+      const minimumLength = boundedInteger(itemSchema['minLength'], 0, 2_000, 0); const maximumLength = boundedInteger(itemSchema['maxLength'], minimumLength, 2_000, 200);
+      const normalized = value.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+      if (normalized.length !== value.length || normalized.some((entry) => entry.length < minimumLength || entry.length > maximumLength)) throw new AddOnWizardError(400, `${key} contains an empty or incorrectly sized item.`);
+      if (new Set(normalized).size !== normalized.length) throw new AddOnWizardError(400, `${key} must not contain duplicate items.`);
+      return normalized;
+    }
     case 'number': case 'integer': {
       if (typeof value !== 'number' || !Number.isFinite(value) || (schema['type'] === 'integer' && !Number.isInteger(value))) throw new AddOnWizardError(400, `${key} must be a finite ${schema['type']}.`);
       const minimum = boundedNumber(schema['minimum'], -1_000_000_000, 1_000_000_000, -1_000_000_000); const maximum = boundedNumber(schema['maximum'], minimum, 1_000_000_000, 1_000_000_000);
@@ -188,7 +252,7 @@ function validateSettingValue(key: string, schema: Record<string, unknown>, valu
       return value;
     }
     case 'boolean': if (typeof value !== 'boolean') throw new AddOnWizardError(400, `${key} must be true or false.`); return value;
-    default: throw new AddOnWizardError(400, `${key} uses an unsupported setting type. Only string, number, integer, boolean, and scalar enums are accepted.`);
+    default: throw new AddOnWizardError(400, `${key} uses an unsupported setting type. Only string, text lists, number, integer, boolean, and scalar enums are accepted.`);
   }
 }
 

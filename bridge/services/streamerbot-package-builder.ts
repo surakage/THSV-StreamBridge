@@ -24,11 +24,20 @@ export interface StreamerBotPackageActionInput {
   readonly sourceSubActionId?: string;
   readonly sourceCode: string;
   readonly references?: readonly string[];
+  readonly arguments?: readonly StreamerBotPackageArgumentInput[];
   // Used only when id/sourceSubActionId are not pinned. Callers with a single action should
   // pass the same seed a legacy single-action manifest used (`manifest.name`) so an existing
   // package's already-pinned IDs remain reproducible if it ever drops its explicit pins.
   readonly stableIdentitySeed: string;
   readonly triggers?: readonly StreamerBotPackageTriggerInput[];
+}
+
+export interface StreamerBotPackageArgumentInput {
+  readonly name: string;
+  readonly value: string;
+  readonly autoType?: boolean;
+  readonly id?: string;
+  readonly stableIdentitySeed: string;
 }
 
 export interface StreamerBotPackageMeta {
@@ -98,10 +107,22 @@ export function buildStreamerBotPackage(
           enabled: true,
           exclusions: [],
         })),
-        subActions: [{
+        subActions: [
+          ...(action.arguments ?? []).map((argument, index) => ({
+            variableName: argument.name,
+            value: argument.value,
+            autoType: argument.autoType ?? false,
+            id: argument.id ?? stableStreamerBotUuid(`${argument.stableIdentitySeed}:argument`),
+            weight: 0,
+            type: 123,
+            parentId: null,
+            enabled: true,
+            index,
+          })),
+          {
           name: null,
           description: null,
-          references: action.references ?? ['C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll'],
+          references: action.references ?? defaultCompilerReferences(action.sourceCode),
           byteCode: Buffer.from(action.sourceCode, 'utf8').toString('base64'),
           precompile: false,
           delayStart: false,
@@ -112,7 +133,7 @@ export function buildStreamerBotPackage(
           type: 99_999,
           parentId: null,
           enabled: true,
-          index: 0,
+          index: action.arguments?.length ?? 0,
         }],
         collapsedGroups: [],
       })),
@@ -147,6 +168,15 @@ export function buildStreamerBotPackage(
   const header = Buffer.from('SBAE', 'ascii');
   const compressed = gzipSync(Buffer.from(JSON.stringify(exported)), { level: 9 });
   return Buffer.concat([header, compressed]).toString('base64');
+}
+
+function defaultCompilerReferences(sourceCode: string): string[] {
+  const references = [
+    'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll',
+    'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll',
+  ];
+  if (sourceCode.includes('Newtonsoft.Json')) references.push('.\\Newtonsoft.Json.dll');
+  return references;
 }
 
 export function stableStreamerBotUuid(input: string): string {

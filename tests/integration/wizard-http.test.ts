@@ -27,7 +27,7 @@ describe('wizard HTTP surface', () => {
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
     const inventory = await fetch(`${baseUrl}/wizard/api/addons`, { headers });
     expect(inventory.status).toBe(200);
-    expect(await inventory.json()).toEqual({ addOns: [] });
+    expect(await inventory.json()).toEqual({ addOns: [], discovered: [] });
     const install = await fetch(`${baseUrl}/wizard/api/addons/install`, { method: 'POST', headers, body: JSON.stringify({ filename: 'sample.thsv-addon', contentBase64: Buffer.from('not a zip').toString('base64'), approvedByCreator: false }) });
     expect(install.status).toBe(403);
     expect(await install.text()).toContain('approve');

@@ -25,7 +25,13 @@ describe('public release scripts', () => {
     expect(source).toContain('Get-FileHash -Algorithm SHA256');
     expect(source).toContain('release-manifest.json');
     expect(source).toContain("'wizard'");
-    expect(source).toContain("'examples'");
+    expect(source).toContain('$releaseDocs');
+    expect(source).toContain("'streamerbot-csharp-references.md'");
+    expect(source).toContain("Get-ChildItem -LiteralPath $_.FullName -Filter '*.sb'");
+    expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'package-lock.json')");
+    expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'node_modules\\.package-lock.json')");
+    expect(source).toContain("'app\\examples'");
+    expect(source).toContain("'app\\docs\\stage-2-completion.md'");
     expect(source).toContain('.sha256');
     for (const forbidden of ['bridge.local.json', 'control-token', 'streambridge.pid', 'state|logs|backups']) expect(source).toContain(forbidden);
     for (const archived of ['viewer-progression', 'companion-actions', 'speaker-orchestration', 'bloom-idle-sprite.png']) expect(source).toContain(archived);

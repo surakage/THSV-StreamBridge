@@ -148,11 +148,36 @@ describe('bridge configuration', () => {
       ...config.browserOverlay.chat, layout: 'compact', fontFamily: 'rounded', fontSizePx: 24, backgroundMode: 'solid', ignoredNames: ['ExampleBot', 'Another Viewer'],
     } } });
     expect(valid.browserOverlay.chat).toMatchObject({ layout: 'compact', fontSizePx: 24, ignoredNames: ['ExampleBot', 'Another Viewer'] });
-    expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } });
+    expect(valid.browserOverlay.chat).toMatchObject({ messageColorMode: 'platform', platformMessageColors: { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31' } });
+    expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, platformEvents: { youtube: { subscriber: { enabled: true }, member: { enabled: true } }, tiktok: { likes: { enabled: true }, subscription: { enabled: true } } }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } });
+    expect(valid.browserOverlay.chat.events).not.toHaveProperty('categories');
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 60 } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, backgroundColor: 'red' } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, ignoredNames: ['ExampleBot', 'examplebot'] } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: { ...config.browserOverlay.chat.events, characterLimits: { ...config.browserOverlay.chat.events.characterLimits, youtube: 39 } } } } }).success).toBe(false);
+    const invalidEvents = structuredClone(config.browserOverlay.chat.events);
+    invalidEvents.platformEvents.youtube.subscriber.template = '{rawStreamerBotVariable}';
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: invalidEvents } } }).success).toBe(false);
+  });
+
+  it('migrates legacy grouped chat events into separate platform events', async () => {
+    const config = await testConfig();
+    const input = structuredClone(config) as unknown as Record<string, unknown>;
+    const overlay = input['browserOverlay'] as Record<string, unknown>;
+    const chat = overlay['chat'] as Record<string, unknown>;
+    chat['events'] = {
+      enabled: true,
+      platforms: { twitch: true, youtube: true, kick: true, tiktok: true },
+      categories: { rewards: true, follows: true, subscriptions: false, gifts: true, support: true, raids: true, milestones: true },
+      templates: { youtube: { follows: '{actor} found the channel' } },
+      characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 },
+    };
+    const migrated = bridgeConfigSchema.parse(input).browserOverlay.chat.events;
+    expect(migrated.platformEvents.youtube.subscriber).toEqual({ enabled: true, template: '{actor} found the channel' });
+    expect(migrated.platformEvents.youtube.member.enabled).toBe(false);
+    expect(migrated.platformEvents.tiktok.subscription.enabled).toBe(false);
+    expect(migrated).not.toHaveProperty('categories');
+    expect(migrated).not.toHaveProperty('templates');
   });
 
   it('loads legacy viewer and companion configuration without reactivating archived add-ons', async () => {

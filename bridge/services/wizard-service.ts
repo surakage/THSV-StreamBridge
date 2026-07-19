@@ -23,7 +23,8 @@ import {
   type CommandAdministrationRequest,
 } from '../core/command-administration.js';
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
-import type { AddOnWizardService, WizardAddOnSummary } from './addon-wizard-service.js';
+import type { AddOnWizardService, DiscoveredAddOnSummary, WizardAddOnSummary } from './addon-wizard-service.js';
+import type { ReleaseUpdateService, ReleaseUpdateStatus } from './release-update-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -128,6 +129,7 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
   { kind: 'action', id: 'ab0e5f0a-e714-516c-82ee-1f476a516f7e', name: 'THSV TikTok - Follow', packageId: 'tikfinity-intake' },
   { kind: 'action', id: '6bd402de-117e-56f4-8855-308e2894e66c', name: 'THSV TikTok - Gift', packageId: 'tikfinity-intake' },
   { kind: 'action', id: 'b2ee7599-75b5-5c88-8ef2-4d715885c610', name: 'THSV TikTok - Like', packageId: 'tikfinity-intake' },
+  { kind: 'action', id: '23332128-445d-52ee-837a-0c79579e3c04', name: 'THSV TikTok - Subscription', packageId: 'tikfinity-intake' },
   { kind: 'action', id: '4e9f0946-f33d-5309-b376-a16df5612b32', name: 'THSV StreamBridge - Open Setup Wizard', packageId: 'wizard-launcher' },
   { kind: 'action', id: '04ca0087-578d-5c2e-9e06-249dc072e9f8', name: 'THSV StreamBridge - Command Administration', packageId: 'command-administration' },
   { kind: 'action', id: 'c1d3a9e2-0f4b-4b78-91c2-7a65d8e309f1', name: 'THSV StreamBridge - Reward Administration', packageId: 'reward-administration' },
@@ -145,6 +147,7 @@ export class WizardService {
     private readonly configuration?: WizardConfigurationGateway,
     private readonly commandSyncStore?: CommandSyncStore,
     private readonly addOns?: AddOnWizardService,
+    private readonly updates?: ReleaseUpdateService,
   ) {}
 
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
@@ -403,6 +406,21 @@ export class WizardService {
     return this.addOns.list();
   }
 
+  public async discoverAddOns(): Promise<readonly DiscoveredAddOnSummary[]> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.discover();
+  }
+
+  public async installDiscoveredAddOn(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.installDiscovered(input);
+  }
+
+  public async checkForUpdates(): Promise<ReleaseUpdateStatus> {
+    if (this.updates === undefined) throw new WizardTransactionError(503, 'Release update checks are not configured.');
+    return this.updates.check();
+  }
+
   public async installAddOn(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.install(input);
@@ -439,6 +457,7 @@ export class WizardService {
       configuration: this.configuration?.diagnostics(),
       commandSync: this.commandSyncStore?.status(),
       addOns: this.addOns?.diagnostics(),
+      updates: { configured: this.updates !== undefined },
     };
   }
 }

@@ -16,7 +16,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   const chatFadeMs = 240;
   let clientConfig = {
     brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
-    chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, categories: { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } } },
+    chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } } },
   };
   brandLabel.textContent = clientConfig.brandLabel;
   const alertController = new AlertPresentationController({
@@ -65,7 +65,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-1.3.0.js', 'thsv-browser-overlay-1.3.0');
+        const worker = new SharedWorker('/overlay/worker-1.3.1.js', 'thsv-browser-overlay-1.3.1');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
@@ -80,6 +80,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
 
   function addChat(message) {
     const item = element('li', `message platform-${safeClass(message.platform)}`);
+    item.style.setProperty('--message-platform-bg', messageBackground(message.platform));
     item.dataset.eventId = message.eventId;
     const identity = element('div', 'identity');
     if (clientConfig.chat.showProfilePictures) identity.append(buildAvatar(message.user, message.presentation, message.platform, 'chat-avatar'));
@@ -121,6 +122,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
 
   function addEventMessage(activity) {
     const item = element('li', `message event-message category-${safeClass(activity.category)} platform-${safeClass(activity.platform)}`);
+    item.style.setProperty('--message-platform-bg', messageBackground(activity.platform));
     item.dataset.eventId = activity.eventId;
     const identity = element('div', 'identity');
     if (clientConfig.chat.showProfilePictures && activity.actor) identity.append(buildAvatar(activity.actor, activity.presentation || {}, activity.platform, 'chat-avatar'));
@@ -215,6 +217,13 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   }
 
   function safeClass(value) { return String(value).toLowerCase().replace(/[^a-z0-9-]/g, ''); }
+
+  function messageBackground(platform) {
+    const chatConfig = clientConfig.chat;
+    if (chatConfig.messageColorMode === 'transparent') return 'transparent';
+    const color = chatConfig.messageColorMode === 'platform' ? chatConfig.platformMessageColors[platform] || chatConfig.messageBackgroundColor : chatConfig.messageBackgroundColor;
+    return rgba(color, chatConfig.messageBackgroundOpacity);
+  }
 
   function applyChatAppearance() {
     const chatConfig = clientConfig.chat;

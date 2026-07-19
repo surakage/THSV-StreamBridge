@@ -4,7 +4,7 @@ import { buildStreamerBotPackage, stableStreamerBotUuid } from '../../bridge/ser
 
 interface DecodedPackage {
   readonly data: {
-    readonly actions: ReadonlyArray<{ readonly id: string; readonly subActions: ReadonlyArray<{ readonly id: string }>; readonly triggers: ReadonlyArray<{ readonly id: string; readonly commandId: string }> }>;
+    readonly actions: ReadonlyArray<{ readonly id: string; readonly subActions: ReadonlyArray<{ readonly id: string; readonly type: number; readonly index: number; readonly variableName?: string; readonly value?: string; readonly autoType?: boolean; readonly references?: readonly string[] }>; readonly triggers: ReadonlyArray<{ readonly id: string; readonly commandId: string }> }>;
     readonly commands: ReadonlyArray<{ readonly id: string; readonly sources?: number; readonly globalCooldown?: number; readonly userCooldown?: number; readonly ignoreBotAccount?: boolean; readonly ignoreInternal?: boolean }>;
   };
 }
@@ -41,6 +41,17 @@ describe('Streamer.bot package builder', () => {
     }], [{ id: 'command-id', name: 'test', command: '!test', enabled: false, caseSensitive: false, stableIdentitySeed: 'ignored-command' }]));
     expect(decoded.data.actions[0]).toMatchObject({ id: 'action-id', subActions: [{ id: 'source-id' }], triggers: [{ id: 'trigger-id', commandId: 'command-id' }] });
     expect(decoded.data.commands[0]?.id).toBe('command-id');
+  });
+
+  it('places editable Set Argument sub-actions before C# and includes required compiler references', () => {
+    const decoded = decode(buildStreamerBotPackage(meta, [{
+      name: 'Launcher', group: 'Tests', sourceCode: 'using Newtonsoft.Json; return true;', stableIdentitySeed: 'launcher',
+      arguments: [{ name: 'installPath', value: 'Default Windows install', autoType: false, id: 'argument-id', stableIdentitySeed: 'launcher-path' }],
+    }]));
+    expect(decoded.data.actions[0]?.subActions[0]).toMatchObject({ id: 'argument-id', type: 123, index: 0, variableName: 'installPath', value: 'Default Windows install', autoType: false });
+    const code = decoded.data.actions[0]?.subActions[1];
+    expect(code).toMatchObject({ type: 99_999, index: 1 });
+    expect(code?.references).toContain('.\\Newtonsoft.Json.dll');
   });
 
   it('rejects an empty package', () => {

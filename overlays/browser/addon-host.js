@@ -12,6 +12,9 @@
   const status = document.getElementById('status');
   let cardTimer;
   let mediaTimer;
+  let heartbeatTimer;
+  let activePlaybackId = '';
+  let sendTransport = () => undefined;
 
   function safeUrl(value) {
     if (typeof value !== 'string' || value.length === 0 || value.length > 4_096) return undefined;
@@ -46,21 +49,33 @@
     cardTimer = setTimeout(hideCard, boundedDuration(payload.durationMs, 8_000));
   }
 
-  function stopMedia() {
+  function reportLifecycle(phase, error) {
+    if (!activePlaybackId) return;
+    sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId, playbackId: activePlaybackId, phase, currentTime: Number.isFinite(media.currentTime) ? media.currentTime : 0, duration: Number.isFinite(media.duration) ? media.duration : 0, ...(error ? { error: String(error).slice(0, 300) } : {}) });
+  }
+
+  function clearMedia(phase) {
     clearTimeout(mediaTimer);
+    clearInterval(heartbeatTimer);
+    if (phase) reportLifecycle(phase);
     media.pause();
     media.removeAttribute('src');
     media.load();
     mediaTitle.textContent = '';
     mediaTitle.classList.add('hidden');
     mediaShell.classList.add('hidden');
+    activePlaybackId = '';
   }
+
+  function stopMedia() { clearMedia('stopped'); }
 
   function playMedia(payload) {
     const url = safeUrl(payload.url);
-    if (!url) return;
-    stopMedia();
+    const playbackId = typeof payload.playbackId === 'string' && /^[A-Za-z0-9._:-]{1,100}$/u.test(payload.playbackId) ? payload.playbackId : '';
+    if (!url || !playbackId) return;
+    clearMedia(activePlaybackId ? 'stopped' : undefined);
     hideCard();
+    activePlaybackId = playbackId;
     media.src = url;
     media.muted = payload.muted !== false;
     media.volume = typeof payload.volume === 'number' && Number.isFinite(payload.volume) ? Math.max(0, Math.min(1, payload.volume)) : 1;
@@ -70,9 +85,14 @@
     mediaTitle.textContent = title;
     mediaTitle.classList.toggle('hidden', title.length === 0);
     mediaShell.classList.remove('hidden');
-    void media.play().catch(() => { status.textContent = 'PLAYBACK BLOCKED'; status.dataset.state = 'error'; });
-    if (payload.durationMs !== undefined) mediaTimer = setTimeout(stopMedia, boundedDuration(payload.durationMs, 60_000));
+    reportLifecycle('loading');
+    void media.play().catch((error) => { status.textContent = 'PLAYBACK BLOCKED'; status.dataset.state = 'error'; reportLifecycle('failed', error?.message || 'Playback blocked'); clearMedia(); });
+    if (payload.durationMs !== undefined) mediaTimer = setTimeout(() => clearMedia('timeout'), boundedDuration(payload.durationMs, 60_000));
   }
+
+  media.addEventListener('playing', () => { reportLifecycle('started'); clearInterval(heartbeatTimer); heartbeatTimer = setInterval(() => reportLifecycle('heartbeat'), 10_000); });
+  media.addEventListener('ended', () => clearMedia('ended'));
+  media.addEventListener('error', () => { reportLifecycle('failed', media.error?.message || `Media error ${media.error?.code || 0}`); clearMedia(); });
 
   function receive(event) {
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
@@ -91,6 +111,7 @@
   function connectDirectly() {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(`${protocol}//${location.host}/overlay/events`);
+    sendTransport = (payload) => { if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload)); };
     socket.addEventListener('open', () => transportState('live'));
     socket.addEventListener('message', (message) => { try { receive(JSON.parse(message.data)); } catch { /* Ignore malformed transport data. */ } });
     socket.addEventListener('close', () => { transportState('reconnecting'); setTimeout(connectDirectly, 1_500); });
@@ -98,7 +119,8 @@
 
   if ('SharedWorker' in window) {
     try {
-      const worker = new SharedWorker('/overlay/worker-1.3.0.js', 'thsv-browser-overlay-1.3.0');
+      const worker = new SharedWorker('/overlay/worker-1.3.1.js', 'thsv-browser-overlay-1.3.1');
+      sendTransport = (payload) => worker.port.postMessage({ kind: 'transport.send', payload });
       worker.port.addEventListener('message', (message) => message.data?.kind === 'transport.status' ? transportState(message.data.state) : receive(message.data));
       worker.port.start();
       addEventListener('pagehide', () => worker.port.postMessage({ kind: 'disconnect' }), { once: true });

@@ -3,7 +3,7 @@ import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
 describe('TikFinity intake package', () => {
-  it('exports four reviewed concurrent relay actions with metadata', async () => {
+  it('exports five reviewed concurrent relay actions with metadata', async () => {
     const root = 'packages/streamerbot/tikfinity-intake';
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as { name: string; version: string; author: string; description: string; actions: Array<{ name: string; source: string; importFile: string }> };
     const decoded = Buffer.from((await readFile(`${root}/${manifest.actions[0]?.importFile ?? ''}`, 'utf8')).trim(), 'base64');

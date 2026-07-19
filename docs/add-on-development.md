@@ -13,10 +13,11 @@ Supported permission declarations are:
 - `events.subscribe`
 - `streamerbot.run-approved-action`
 - `overlay.publish`
+- `chat.send`
 - `schedule.bounded`
 - `state.private`
 
-The capability broker turns these declarations into frozen, narrowly scoped runtime handles for private state, bounded scheduling, exact creator-approved Streamer.bot action IDs, and namespaced publication to a core-hosted add-on overlay. Executable event subscribers must declare `events.subscribe`. See [Add-on capability broker](add-on-capabilities.md).
+The capability broker turns these declarations into frozen, narrowly scoped runtime handles for private state, bounded scheduling, exact creator-approved Streamer.bot action IDs, source/selected-platform outbound messages, and namespaced publication to a core-hosted add-on overlay. Executable event subscribers must declare `events.subscribe`. See [Add-on capability broker](add-on-capabilities.md).
 
 The broker is a supported least-privilege API, not an operating-system sandbox: executable packages remain a full-trust expert path and should undergo source review. Public third-party add-ons should prefer the declarative tier.
 
@@ -39,8 +40,9 @@ Packages are version-bounded with `minimumCoreVersion` and `maximumTestedCoreVer
 The wizard accepts a deliberately small, predictable JSON Schema subset:
 
 - a root object with at most 100 properties;
-- scalar `string`, `number`, `integer`, and `boolean` fields;
+- `string`, `number`, `integer`, and `boolean` fields plus bounded, unique lists of strings;
 - scalar enums, defaults, required fields, text lengths, and numeric minimum/maximum bounds;
+- `format: "multiline"` and `format: "color"` presentation hints plus deterministic field ordering through `ui/settings.json`;
 - no unknown saved properties and no executable validation expressions.
 
 Settings are limited to 64 KiB and written atomically under `addons/state/<module-id>/settings.json`. Uninstall removes package code but preserves this private state. The public release installer preserves both `data/` and `addons/state/` across upgrades and default uninstall.
@@ -54,7 +56,11 @@ npm run addon:verify -- examples/addons/declarative-settings
 npm run addon:package -- examples/addons/declarative-settings
 ```
 
-The packager writes `dist/addons/<module-id>-<version>.thsv-addon`. Install it through the wizard's Add-ons page to exercise the same authenticated, archive-bounded, private-staging path creators use. The source-oriented expert CLI remains available for reviewed executable packages:
+The packager writes `dist/addons/<module-id>-<version>.thsv-addon`. Install it through the wizard's Add-ons page to exercise the same authenticated, archive-bounded, private-staging path creators use.
+
+Creators may also place a `.thsv-addon` archive in `data/addons/inbox/`. StreamBridge inspects bounded regular files there and lists valid or rejected packages in the wizard, but it never installs them automatically. The creator must select the package, review its publisher text and permissions, and explicitly approve installation. An adjacent hash authenticates bytes only when it came from a separately trusted channel; it does not establish publisher identity.
+
+The source-oriented expert CLI remains available for reviewed executable packages:
 
 ```powershell
 npm run addon:install -- examples/addons/no-op data/addons --approve

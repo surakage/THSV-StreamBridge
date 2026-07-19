@@ -1,3 +1,6 @@
+// Purpose: Relays bounded Twitch, YouTube, or Kick trigger arguments to the local bridge WebSocket.
+// Trust boundary: limits key count and value size; the Core Receiver still validates the normalized event.
+// References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,6 +10,18 @@ using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
+    private const int MaximumArgumentKeys = 100;
+    private const int MaximumTextLength = 2000;
+    private static readonly string[] KnownArguments = {
+        "actionName", "userName", "userLogin", "fromUserName", "messageId", "msgId", "eventId", "isTest", "isSimulated",
+        "userId", "fromUserId", "user", "displayName", "fromUser", "userProfileUrl", "userProfilePicture", "profilePicture",
+        "profileImageUrl", "targetUserProfileImageUrl", "color", "badges", "badge", "role", "isModerator", "isBroadcaster",
+        "isSubscribed", "subscribed", "isVip", "message", "messageStripped", "rawInput", "amount", "donationAmount", "currency",
+        "currencyCode", "count", "bits", "viewers", "monthsSubscribed", "months", "cumulative", "gifts", "giftCount", "monthStreak",
+        "streakMonths", "tier", "subTier", "subscriptionTier", "giftName", "itemName", "rewardName", "rewardId", "reward.id",
+        "reward.title", "rewardCost", "reward.cost", "requiresUserInput", "reward.requiresUserInput", "redemptionId", "broadcastId",
+        "broadcasterUserId", "broadcasterId", "broadcastUserName", "broadcasterUserName", "broadcaster"
+    };
     private sealed class AvatarCacheEntry
     {
         public string Url;
@@ -18,8 +33,9 @@ public class CPHInline
 
     public bool Execute()
     {
+        // Snapshot only a bounded number of trigger arguments for the bridge adapter to normalize.
         string platform = PlatformName();
-        string sourceEventType = First(Read("sourceEventType"), CPH.GetEventType().ToString());
+        string sourceEventType = CPH.GetEventType().ToString();
         if (String.IsNullOrWhiteSpace(platform) || !Supported(platform, sourceEventType))
         {
             CPH.SetArgument("platformRelayValid", false);
@@ -28,7 +44,12 @@ public class CPHInline
         }
 
         var argumentKeys = new JArray();
-        foreach (string key in args.Keys) argumentKeys.Add(key);
+        foreach (string key in KnownArguments)
+        {
+            if (argumentKeys.Count >= MaximumArgumentKeys) break;
+            object ignored;
+            if (CPH.TryGetArg(key, out ignored)) argumentKeys.Add(key);
+        }
         string relayId = Guid.NewGuid().ToString("N");
         string userName = First(Read("userName"), Read("userLogin"), Read("fromUserName"));
         var message = new JObject
@@ -52,10 +73,11 @@ public class CPHInline
             ["isBroadcaster"] = ReadBoolean("isBroadcaster"),
             ["isSubscribed"] = ReadBoolean("isSubscribed") || ReadBoolean("subscribed"),
             ["isVip"] = ReadBoolean("isVip"),
-            ["message"] = First(Read("message"), Read("messageStripped"), Read("rawInput")),
+            ["message"] = Bounded(First(Read("message"), Read("messageStripped"), Read("rawInput")), MaximumTextLength),
             ["amount"] = First(ReadInvariant("amount"), ReadInvariant("donationAmount")),
             ["currency"] = First(Read("currency"), Read("currencyCode")),
-            ["quantity"] = First(ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("giftCount")),
+            ["quantity"] = First(ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("months"), ReadInvariant("cumulative"), ReadInvariant("gifts"), ReadInvariant("giftCount"), ReadInvariant("amount")),
+            ["streakMonths"] = First(ReadInvariant("monthStreak"), ReadInvariant("streakMonths")),
             ["tier"] = First(Read("tier"), Read("subTier"), Read("subscriptionTier")),
             ["itemName"] = First(Read("giftName"), Read("itemName"), Read("rewardName"), "Kick Gift"),
             ["rewardId"] = First(Read("rewardId"), Read("reward.id")),
@@ -67,7 +89,14 @@ public class CPHInline
             ["channelName"] = First(Read("broadcastUserName"), Read("broadcasterUserName"), Read("broadcaster")),
             ["argumentKeys"] = argumentKeys
         };
-        CPH.WebsocketBroadcastJson(message.ToString(Formatting.None));
+        try { CPH.WebsocketBroadcastJson(message.ToString(Formatting.None)); }
+        catch (Exception error)
+        {
+            CPH.SetArgument("platformRelayValid", false);
+            CPH.SetArgument("platformRelayError", "The validated platform event could not be relayed.");
+            CPH.LogError("THSV native intake relay failed (" + error.GetType().Name + ").");
+            return false;
+        }
         CPH.SetArgument("platformRelayValid", true);
         CPH.SetArgument("platformRelayError", "");
         CPH.SetArgument("platformRelayPlatform", platform);
@@ -78,8 +107,6 @@ public class CPHInline
 
     private string PlatformName()
     {
-        string requested = Read("relayPlatform").ToLowerInvariant();
-        if (requested == "twitch" || requested == "youtube" || requested == "kick") return requested;
         string actionName = Read("actionName");
         if (actionName == "THSV Twitch - Intake") return "twitch";
         if (actionName == "THSV YouTube - Intake") return "youtube";
@@ -89,22 +116,22 @@ public class CPHInline
 
     private bool Supported(string platform, string eventType)
     {
-        if (platform == "twitch") return eventType == "TwitchChatMessage" || eventType == "TwitchFollow" || eventType == "TwitchCheer" || eventType == "TwitchSub" || eventType == "TwitchReSub" || eventType == "TwitchGiftSub" || eventType == "TwitchGiftBomb" || eventType == "TwitchRaid" || eventType == "TwitchRewardRedemption";
-        if (platform == "youtube") return eventType == "YouTubeMessage" || eventType == "YouTubeSuperChat" || eventType == "YouTubeSuperSticker" || eventType == "YouTubeNewSubscriber" || eventType == "YouTubeNewSponsor" || eventType == "YouTubeMemberMileStone" || eventType == "YouTubeMembershipGift";
-        if (platform == "kick") return eventType == "KickChatMessage" || eventType == "KickFollow" || eventType == "KickSubscription" || eventType == "KickResubscription" || eventType == "KickGiftSubscription" || eventType == "KickMassGiftSubscription" || eventType == "KickGifted" || eventType == "KickRewardRedemption";
+        if (platform == "twitch") return eventType == "TwitchChatMessage" || eventType == "TwitchFollow" || eventType == "TwitchCheer" || eventType == "TwitchSub" || eventType == "TwitchReSub" || eventType == "TwitchGiftSub" || eventType == "TwitchGiftBomb" || eventType == "TwitchRaid" || eventType == "TwitchRewardRedemption" || eventType == "TwitchStreamOnline" || eventType == "TwitchStreamOffline";
+        if (platform == "youtube") return eventType == "YouTubeMessage" || eventType == "YouTubeSuperChat" || eventType == "YouTubeSuperSticker" || eventType == "YouTubeNewSubscriber" || eventType == "YouTubeNewSponsor" || eventType == "YouTubeMemberMileStone" || eventType == "YouTubeMembershipGift" || eventType == "YouTubeBroadcastStarted" || eventType == "YouTubeBroadcastEnded";
+        if (platform == "kick") return eventType == "KickChatMessage" || eventType == "KickFollow" || eventType == "KickSubscription" || eventType == "KickResubscription" || eventType == "KickGiftSubscription" || eventType == "KickMassGiftSubscription" || eventType == "KickGifted" || eventType == "KickRewardRedemption" || eventType == "KickStreamOnline" || eventType == "KickStreamOffline";
         return false;
     }
 
     private string Read(string name)
     {
         object value;
-        return args.TryGetValue(name, out value) && value != null ? Convert.ToString(value) ?? "" : "";
+        return CPH.TryGetArg(name, out value) && value != null ? Bounded(Convert.ToString(value) ?? "", MaximumTextLength) : "";
     }
 
     private object ReadObject(string name)
     {
         object value;
-        return args.TryGetValue(name, out value) ? value : null;
+        return CPH.TryGetArg(name, out value) ? value : null;
     }
 
     private string ProfilePictureUrl(string platform, string userName)
@@ -127,7 +154,7 @@ public class CPHInline
         }
         catch (Exception error)
         {
-            CPH.LogWarn("THSV StreamBridge could not resolve the Twitch avatar for " + userName + ": " + error.Message);
+            CPH.LogWarn("THSV StreamBridge could not resolve a Twitch avatar (" + error.GetType().Name + ").");
         }
 
         lock (AvatarCacheLock)
@@ -165,7 +192,7 @@ public class CPHInline
             }
             catch (Exception error)
             {
-                CPH.LogWarn("THSV StreamBridge skipped an unreadable " + platform + " badge: " + error.Message);
+                CPH.LogWarn("THSV StreamBridge skipped an unreadable " + platform + " badge (" + error.GetType().Name + ").");
             }
         }
         return badges;
@@ -175,7 +202,7 @@ public class CPHInline
     {
         foreach (JProperty property in source.Properties())
         {
-            if (String.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)) return Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? "";
+            if (String.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)) return Bounded(Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? "", 2048);
         }
         return "";
     }
@@ -183,13 +210,13 @@ public class CPHInline
     private string ReadInvariant(string name)
     {
         object value;
-        return args.TryGetValue(name, out value) && value != null ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? "" : "";
+        return CPH.TryGetArg(name, out value) && value != null ? Bounded(Convert.ToString(value, CultureInfo.InvariantCulture) ?? "", 64) : "";
     }
 
     private bool ReadBoolean(string name)
     {
         object value;
-        if (!args.TryGetValue(name, out value) || value == null) return false;
+        if (!CPH.TryGetArg(name, out value) || value == null) return false;
         bool parsed;
         return Boolean.TryParse(Convert.ToString(value), out parsed) && parsed;
     }
@@ -198,5 +225,11 @@ public class CPHInline
     {
         foreach (string value in values) if (!String.IsNullOrWhiteSpace(value)) return value;
         return "";
+    }
+
+    private static string Bounded(string value, int maximum)
+    {
+        if (String.IsNullOrEmpty(value)) return "";
+        return value.Length <= maximum ? value : value.Substring(0, maximum);
     }
 }

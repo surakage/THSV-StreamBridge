@@ -45,7 +45,7 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - `moderation.action` events with a message-removal action and `targetEventId` remove the correlated chat entry.
 - The feed retains only `browserOverlay.maxChatMessages` in browser memory and stores no chat history. The default is eight visible messages; when a ninth arrives, the oldest card fades away from the top.
 - The wizard can save regular/compact layout, font family and size, text/card/canvas colors and opacity, transparent canvas mode, platform-label/profile-picture/badge visibility, and a case-insensitive ignored-name list. Ignored names are filtered before browser publication but do not block commands or alter Streamer.bot chat.
-- The Chat Overlay wizard can also place selected follows, subscriptions, gifts, support events, raids, milestones, and reward redemptions into the chat activity feed. A master switch, per-platform switches, and per-category switches are independent of the alert overlay. Platform-specific display caps shorten long activity text by Unicode code point and count the final ellipsis inside the configured limit, so emoji are never split.
+- The Chat Overlay wizard can place selected platform events into the chat activity feed. Each platform shows only its own event types: for example, YouTube exposes free **New Subscriber** separately from paid **New Member**, while TikTok exposes follow, gift, subscription, and 100-like milestones. Twitch and Kick subscription, gift, reward, and support variants remain separate instead of being collapsed into universal categories. These controls are independent of the alert overlay. Platform-specific display caps shorten long activity text by Unicode code point and count the final ellipsis inside the configured limit, so emoji are never split.
 - Alerts use a bounded visual queue. The default holds at most 20 waiting alerts; when full, it discards the oldest alert from the lowest available priority so a gift storm cannot grow browser memory indefinitely. A malformed card is skipped without freezing later alerts. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. Creator profiles may override priority and duration, disable a type, restrict it to selected Twitch, YouTube, Kick, or TikTok sources, render bounded plain-text templates, play a local chime, or combine queued gift quantities inside a short window. An empty platform selection means all supported platforms. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
 - HTTPS avatar/badge URLs, validated hex name colors, and subscription renewal/upgrade/month/streak/gift provenance are supported when a verified adapter supplies them.
 - Simulated events remain visibly labeled and may be disabled through configuration.
@@ -77,6 +77,13 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
     "backgroundOpacity": 0.9,
     "messageBackgroundColor": "#171120",
     "messageBackgroundOpacity": 0.96,
+    "messageColorMode": "platform",
+    "platformMessageColors": {
+      "twitch": "#4b267b",
+      "youtube": "#7d1717",
+      "kick": "#245c18",
+      "tiktok": "#172b31"
+    },
     "showPlatformLabels": true,
     "showProfilePictures": true,
     "showBadges": true,
@@ -84,7 +91,41 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
     "events": {
       "enabled": true,
       "platforms": { "twitch": true, "youtube": true, "kick": true, "tiktok": true },
-      "categories": { "rewards": true, "follows": true, "subscriptions": true, "gifts": true, "support": true, "raids": true, "milestones": true },
+      "platformEvents": {
+        "twitch": {
+          "follow": { "enabled": true, "template": "{actor} followed" },
+          "subscription": { "enabled": true, "template": "{actor} subscribed {tier}" },
+          "resubscription": { "enabled": true, "template": "{actor} resubscribed for {months} months" },
+          "gift-subscription": { "enabled": true, "template": "{actor} gifted a subscription" },
+          "gift-bomb": { "enabled": true, "template": "{actor} gifted {quantity} subscriptions" },
+          "cheer": { "enabled": true, "template": "{actor} cheered {quantity} bits: {message}" },
+          "raid": { "enabled": true, "template": "{actor} raided with {quantity}" },
+          "reward-redemption": { "enabled": true, "template": "{actor} redeemed {rewardTitle}: {input}" }
+        },
+        "youtube": {
+          "subscriber": { "enabled": true, "template": "{actor} subscribed to the channel" },
+          "member": { "enabled": true, "template": "{actor} became a member {tier}" },
+          "membership-gift": { "enabled": true, "template": "{actor} gifted {quantity} memberships" },
+          "member-milestone": { "enabled": true, "template": "{actor} reached {months} months as a member" },
+          "super-chat": { "enabled": true, "template": "{actor} sent {amount} {currency}: {message}" },
+          "super-sticker": { "enabled": true, "template": "{actor} sent a Super Sticker worth {amount} {currency}" }
+        },
+        "kick": {
+          "follow": { "enabled": true, "template": "{actor} followed" },
+          "subscription": { "enabled": true, "template": "{actor} subscribed {tier}" },
+          "resubscription": { "enabled": true, "template": "{actor} resubscribed for {months} months" },
+          "gift-subscription": { "enabled": true, "template": "{actor} gifted a subscription" },
+          "mass-gift-subscription": { "enabled": true, "template": "{actor} gifted {quantity} subscriptions" },
+          "gifted-kicks": { "enabled": true, "template": "{actor} gifted {quantity} KICKs: {message}" },
+          "reward-redemption": { "enabled": true, "template": "{actor} redeemed {rewardTitle}: {input}" }
+        },
+        "tiktok": {
+          "follow": { "enabled": true, "template": "{actor} followed" },
+          "gift": { "enabled": true, "template": "{actor} sent {quantity} {itemName}" },
+          "subscription": { "enabled": true, "template": "{actor} subscribed for {months} months" },
+          "likes": { "enabled": true, "template": "{actor} helped the stream reach {value} likes" }
+        }
+      },
       "characterLimits": { "twitch": 500, "youtube": 200, "kick": 500, "tiktok": 150 }
     }
   },
@@ -106,7 +147,7 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
 
 Use the authenticated wizard's **Chat Overlay** and **Alerts** pages instead of editing this JSON by hand. Templates are normalized and rendered through `textContent`; unknown placeholders and control characters are rejected. Quantity aggregation is limited to gifts and gift subscriptions and combines only waiting cards, never an alert already on screen.
 
-The character-limit values are local overlay display caps, not claims about each platform's outbound chat API. The defaults are conservative and can be adjusted from 40 to 500 characters in the wizard. Disabling an event category in chat does not disable its alert card or stop Streamer.bot from receiving the normalized event.
+The character-limit values are local overlay display caps, not claims about each platform's outbound chat API. The defaults are conservative and can be adjusted from 40 to 500 characters in the wizard. Disabling a platform event in chat does not disable its alert card or stop Streamer.bot from receiving the normalized event. Donations are not exposed as native platform choices: Streamlabs and Ko-fi intake providers remain future add-ons and require verified source IDs before they can enter the alert/chat pipeline.
 
 `brandLabel` changes the combined overlay heading without editing HTML; set it to an empty string to hide the label. Standalone Chat and Alerts keep the live badge hidden during normal operation and show a subtle **RECONNECTING** badge whenever the bridge connection is unavailable.
 
@@ -126,4 +167,4 @@ Media URLs must use HTTPS or the bridge's same origin. Text is assigned through 
 
 ## Alert storm protection
 
-The browser alert controller applies event-specific safety defaults. TikTok likes are emitted by the intake adapter only when a new 100-like milestone is crossed. Cheers/bits are summed per viewer for five seconds, gifts per viewer and gift for three seconds, and gift subscriptions per gifter/tier for five seconds. Subscriptions and memberships remain individual and are paced at no faster than one card every four seconds. Follow events are not merged; at most five follow cards are accepted in a ten-second burst and excess cards are suppressed. Donations and Super Chats are never combined because merging monetary events or their messages could misrepresent the source events.
+The browser alert controller applies event-specific safety defaults. TikTok likes are emitted by the intake adapter only when a new 100-like milestone is crossed. Cheers/bits are summed per viewer for five seconds, gifts per viewer and gift for three seconds, and gift subscriptions per gifter/tier for five seconds. Subscriptions and memberships remain individual and are paced at no faster than one card every four seconds. Follow events are not merged; at most five follow cards are accepted in a ten-second burst and excess cards are suppressed. Native Super Chats are never combined because merging monetary events or their messages could misrepresent the source events. Streamlabs and Ko-fi donations remain deferred until their own verified intake providers are implemented.

@@ -5,11 +5,11 @@ import { platformConfig, silentLogger } from '../helpers.js';
 import type { Capability } from '../../schemas/config.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 
-function relay(kind: 'chat' | 'follow' | 'gift' | 'like', overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function relay(kind: 'chat' | 'follow' | 'gift' | 'like' | 'subscription', overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     type: 'thsv.tikfinity', version: '1.0.0', kind, relayId: `relay-${kind}`, receivedAt: '2026-07-16T20:00:00.000Z', simulated: true,
     userId: '12345', username: 'slothviewer', nickname: 'Sloth Viewer', profilePictureUrl: 'https://example.com/avatar.png', commandParams: '',
-    giftId: '', giftName: '', coins: '', repeatCount: '', likeCount: '', totalLikeCount: '', argumentKeys: ['userId', 'username'], ...overrides,
+    giftId: '', giftName: '', coins: '', repeatCount: '', likeCount: '', totalLikeCount: '', subMonth: '', argumentKeys: ['userId', 'username'], ...overrides,
   };
 }
 
@@ -27,9 +27,13 @@ describe('TikFinity Streamer.bot relay adapter', () => {
     expect(event.metadata.unverifiedFields).toContain('metadata.simulated');
   });
 
+  it('keeps TikTok subscriptions distinct and translates subMonth', () => {
+    expect(normalizeTikfinityRelay(relay('subscription', { subMonth: '4' }))).toMatchObject({ eventType: 'channel.subscription', payload: { subscriptionKind: 'new', months: 4 } });
+  });
+
   it('emits only matching broadcasts while enabled', async () => {
     const eventRelay = new StreamerBotEventRelay();
-    const config = { ...platformConfig(true), capabilities: ['chatInput', 'follows', 'gifts', 'engagement'] as Capability[] };
+    const config = { ...platformConfig(true), capabilities: ['chatInput', 'follows', 'subscriptions', 'gifts', 'engagement'] as Capability[] };
     const adapter = new TikfinityAdapter('tiktok', config, eventRelay);
     const received: unknown[] = [];
     await adapter.start({ logger: silentLogger, emit: (event) => { received.push(event); return Promise.resolve(); } });

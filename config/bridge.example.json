@@ -58,6 +58,8 @@
       "backgroundOpacity": 0.9,
       "messageBackgroundColor": "#171120",
       "messageBackgroundOpacity": 0.96,
+      "messageColorMode": "platform",
+      "platformMessageColors": { "twitch": "#4b267b", "youtube": "#7d1717", "kick": "#245c18", "tiktok": "#172b31" },
       "showPlatformLabels": true,
       "showProfilePictures": true,
       "showBadges": true,
@@ -65,7 +67,41 @@
       "events": {
         "enabled": true,
         "platforms": { "twitch": true, "youtube": true, "kick": true, "tiktok": true },
-        "categories": { "rewards": true, "follows": true, "subscriptions": true, "gifts": true, "support": true, "raids": true, "milestones": true },
+        "platformEvents": {
+          "twitch": {
+            "follow": { "enabled": true, "template": "{actor} followed" },
+            "subscription": { "enabled": true, "template": "{actor} subscribed {tier}" },
+            "resubscription": { "enabled": true, "template": "{actor} resubscribed for {months} months {tier}" },
+            "gift-subscription": { "enabled": true, "template": "{actor} gifted a subscription {tier}" },
+            "gift-bomb": { "enabled": true, "template": "{actor} gifted {quantity} subscriptions {tier}" },
+            "cheer": { "enabled": true, "template": "{actor} cheered {quantity} bits {message}" },
+            "raid": { "enabled": true, "template": "{actor} raided with {quantity} viewers" },
+            "reward-redemption": { "enabled": true, "template": "{actor} redeemed {rewardTitle} · {input}" }
+          },
+          "youtube": {
+            "subscriber": { "enabled": true, "template": "{actor} subscribed to the channel" },
+            "member": { "enabled": true, "template": "{actor} became a paid member {tier}" },
+            "membership-gift": { "enabled": true, "template": "{actor} gifted {quantity} memberships" },
+            "member-milestone": { "enabled": true, "template": "{actor} reached {months} months as a member" },
+            "super-chat": { "enabled": true, "template": "{actor} sent a Super Chat: {amount} {currency} {message}" },
+            "super-sticker": { "enabled": true, "template": "{actor} sent a Super Sticker: {amount} {currency}" }
+          },
+          "kick": {
+            "follow": { "enabled": true, "template": "{actor} followed" },
+            "subscription": { "enabled": true, "template": "{actor} subscribed {tier}" },
+            "resubscription": { "enabled": true, "template": "{actor} resubscribed for {months} months {tier}" },
+            "gift-subscription": { "enabled": true, "template": "{actor} gifted a subscription {tier}" },
+            "mass-gift-subscription": { "enabled": true, "template": "{actor} gifted {quantity} subscriptions {tier}" },
+            "gifted-kicks": { "enabled": true, "template": "{actor} gifted {quantity} KICKs" },
+            "reward-redemption": { "enabled": true, "template": "{actor} redeemed {rewardTitle} · {input}" }
+          },
+          "tiktok": {
+            "follow": { "enabled": true, "template": "{actor} followed" },
+            "gift": { "enabled": true, "template": "{actor} sent {quantity} {itemName}" },
+            "subscription": { "enabled": true, "template": "{actor} subscribed for month {months}" },
+            "likes": { "enabled": true, "template": "TikTok reached {value} likes" }
+          }
+        },
         "characterLimits": { "twitch": 500, "youtube": 200, "kick": 500, "tiktok": 150 }
       }
     },
@@ -107,7 +143,7 @@
     "twitch": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "donations", "raids", "rewards"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
     "youtube": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "donations"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
     "kick": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "rewards"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
-    "tiktok": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "tikfinity-streamerbot", "capabilities": ["chatInput", "follows", "gifts", "engagement"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
+    "tiktok": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "tikfinity-streamerbot", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "engagement"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
     "mock": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "mock", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "donations", "raids", "moderation", "engagement", "channelUpdates", "timedActions", "rewards"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } },
     "timers": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "timed-actions", "capabilities": ["timedActions"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } }
   },

@@ -7,7 +7,7 @@ import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 const relaySchema = z.object({
   type: z.literal('thsv.tikfinity'),
   version: z.literal('1.0.0'),
-  kind: z.enum(['chat', 'follow', 'gift', 'like']),
+  kind: z.enum(['chat', 'follow', 'gift', 'like', 'subscription']),
   relayId: z.string().min(1).max(256),
   receivedAt: z.iso.datetime({ offset: true }),
   simulated: z.boolean(),
@@ -22,6 +22,7 @@ const relaySchema = z.object({
   repeatCount: z.string().max(32).default(''),
   likeCount: z.string().max(32).default(''),
   totalLikeCount: z.string().max(32).default(''),
+  subMonth: z.string().max(32).default(''),
   argumentKeys: z.array(z.string().max(100)).max(100).default([]),
 }).strict();
 
@@ -118,6 +119,7 @@ export function normalizeTikfinityRelay(input: unknown, channelName = 'tiktok'):
     const coins = nonNegativeInteger(relay.coins);
     return { ...common, eventType: 'engagement.gift', payload: { itemName, quantity: positiveInteger(relay.repeatCount, 1), ...(coins === undefined ? {} : { coins }) } };
   }
+  if (relay.kind === 'subscription') return { ...common, eventType: 'channel.subscription', payload: { subscriptionKind: 'new', months: positiveInteger(relay.subMonth, 1) } };
   return { ...common, eventType: 'engagement.milestone', payload: { metric: 'likes', value: nonNegativeInteger(relay.totalLikeCount) ?? nonNegativeInteger(relay.likeCount) ?? 0 } };
 }
 

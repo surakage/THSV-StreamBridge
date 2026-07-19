@@ -9,7 +9,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByRole('button', { name: 'Unlock' }).click();
   await expect(page.getByText('Authenticated', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Add-ons' }).click();
-  await expect(page.getByRole('heading', { name: 'Add-ons' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
   await expect(page.getByText('No add-ons are installed')).toBeVisible();
 
   const root = 'examples/addons/declarative-settings';
@@ -21,7 +21,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Add-on package').setInputFiles({ name: 'settings.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(archive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
-  await expect(page.getByText('Declarative Settings Example 1.0.0')).toBeVisible();
+  await expect(page.getByRole('article').getByText('Declarative Settings Example 1.0.0', { exact: true })).toBeVisible();
   await expect(page.getByText('THSV StreamBridge Project', { exact: false })).toBeVisible();
   await expect(page.getByText('state.private', { exact: false })).toBeVisible();
 
@@ -43,7 +43,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Add-on package').setInputFiles({ name: 'no-op.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(executableArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
-  await expect(page.getByText('Sample No-Op Add-On 1.0.0')).toBeVisible();
+  await expect(page.getByRole('article').getByText('Sample No-Op Add-On 1.0.0', { exact: true })).toBeVisible();
   await expect(page.getByText('Use Streamer.bot → Inspect now first.')).toBeVisible();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Save action grants' }).click();

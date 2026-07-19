@@ -68,6 +68,23 @@ describe('Browser Overlay Hub contract', () => {
     hub.stop();
   });
 
+  it('accepts lifecycle reports only for playback IDs published by the owning add-on', async () => {
+    const config = await testConfig();
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const observed: unknown[] = [];
+    hub.subscribeAddOnLifecycle('sample.clips', (event) => observed.push(event));
+    const receive = (hub as unknown as { receiveClientMessage(raw: string): void }).receiveClientMessage.bind(hub);
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'unknown', phase: 'ended' }));
+    expect(observed).toEqual([]);
+    hub.publishAddOn('sample.clips', 'sample.clips.media.play', { playbackId: 'clip-17', url: 'https://clips.example/video.mp4' });
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'clip-17', phase: 'started', currentTime: 0 }));
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'clip-17', phase: 'ended', currentTime: 8, duration: 8 }));
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'clip-17', phase: 'ended' }));
+    expect(observed).toMatchObject([{ playbackId: 'clip-17', phase: 'started' }, { playbackId: 'clip-17', phase: 'ended' }]);
+    expect(hub.status()).toMatchObject({ addOnLifecycleReports: 2, lifecycleSubscribers: 1 });
+    hub.stop();
+  });
+
   it('adds enabled platform activity to chat and truncates it within the Unicode-safe platform cap', async () => {
     const source = await fixture('youtube-super-chat.json');
     const config = await testConfig();
@@ -79,11 +96,11 @@ describe('Browser Overlay Hub contract', () => {
     if (activity?.kind !== 'chat.event') throw new Error('Expected a chat activity event.');
     expect(Array.from(activity.payload.message).length).toBeLessThanOrEqual(40);
     expect(activity.payload.message.endsWith('…')).toBe(true);
-    expect(activity.payload).toMatchObject({ platform: 'youtube', category: 'support', label: 'SUPPORT' });
+    expect(activity.payload).toMatchObject({ platform: 'youtube', category: 'super-chat', label: 'SUPER CHAT' });
 
-    config.browserOverlay.chat.events.categories.support = false;
+    config.browserOverlay.chat.events.platformEvents.youtube['super-chat'].enabled = false;
     expect(projectBrowserOverlayEvents(event, config.browserOverlay).map((entry) => entry.kind)).toEqual(['alert.show']);
-    config.browserOverlay.chat.events.categories.support = true;
+    config.browserOverlay.chat.events.platformEvents.youtube['super-chat'].enabled = true;
     config.browserOverlay.chat.events.platforms.youtube = false;
     expect(projectBrowserOverlayEvents(event, config.browserOverlay).map((entry) => entry.kind)).toEqual(['alert.show']);
   });
@@ -98,14 +115,14 @@ describe('Browser Overlay Hub contract', () => {
       payload: { rewardId: 'reward-1', rewardTitle: 'Hydrate', rewardCost: 100, requiresUserInput: true, input: 'Please drink some water', redemptionId: 'redemption-1' },
       metadata: { ...source.metadata, bridgeSequence: 23 },
     };
-    expect(projectBrowserOverlayEvents(event, config.browserOverlay)).toMatchObject([{ kind: 'chat.event', payload: { category: 'rewards', message: 'Example Viewer redeemed Hydrate · Please drink some water' } }]);
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay)).toMatchObject([{ kind: 'chat.event', payload: { category: 'reward-redemption', message: 'Example Viewer redeemed Hydrate · Please drink some water' } }]);
   });
 
   it('uses text-only DOM sinks in the reviewed browser source', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.0.js', 'thsv-browser-overlay-1.3.0'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.1.js', 'thsv-browser-overlay-1.3.1'");
     expect(source).toContain("oldest.classList.add('message-expiring')");
     expect(source).toContain('new AlertPresentationController({');
     expect(source).toContain('alertController.enqueue(alert)');
@@ -129,8 +146,7 @@ describe('Browser Overlay Hub contract', () => {
   it('applies plain-text alert profiles and suppresses disabled alert types', async () => {
     const source = await fixture('youtube-super-chat.json');
     const config: BrowserOverlayConfig = {
-      enabled: true, brandLabel: '', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
-      chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, categories: { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true }, platformCategories: { twitch: { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true }, youtube: { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true }, kick: { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true }, tiktok: { rewards: true, follows: true, subscriptions: true, gifts: true, support: true, raids: true, milestones: true } }, templates: { twitch: { rewards: '', follows: '', subscriptions: '', gifts: '', support: '', raids: '', milestones: '' }, youtube: { rewards: '', follows: '', subscriptions: '', gifts: '', support: '', raids: '', milestones: '' }, kick: { rewards: '', follows: '', subscriptions: '', gifts: '', support: '', raids: '', milestones: '' }, tiktok: { rewards: '', follows: '', subscriptions: '', gifts: '', support: '', raids: '', milestones: '' } }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } } },
+      ...(await testConfig()).browserOverlay, brandLabel: '',
       alerts: { profiles: { 'super-chat': { enabled: true, platforms: ['youtube'], priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system' }, aggregation: { mode: 'none', windowMs: 5_000 } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
@@ -154,7 +170,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).not.toContain('verticalScale');
     expect(styles).not.toMatch(/body\[data-mode="chat"\][^{]*\{[^}]*scaleY/u);
     expect(styles).toContain('width: min(540px, calc(100vw - 32px))');
-    expect(styles).toContain('background: var(--chat-message-bg);');
+    expect(styles).toContain('background: var(--message-platform-bg, var(--chat-message-bg));');
+    expect(source).toContain("chatConfig.messageColorMode === 'platform'");
     expect(styles).toContain('font-size: var(--chat-font-size)');
     expect(styles).toContain('font-family: var(--chat-font-family)');
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .overlay { display: flex; flex-direction: column; justify-content: flex-end; }');

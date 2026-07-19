@@ -1,3 +1,6 @@
+// Purpose: Performs creator-approved enable or disable operations on one known Streamer.bot command.
+// Trust boundary: validates approval, operation, and command UUID before calling a mutation method.
+// References: mscorlib.dll and System.dll; no third-party compiler references are required.
 using System;
 
 public class CPHInline
@@ -8,6 +11,7 @@ public class CPHInline
 
     public bool Execute()
     {
+        // Initialize every result so downstream actions never inherit stale values.
         InitializeOutputs();
         string operation = ReadString("commandAdminOperation").ToLowerInvariant();
         if (operation != "enable" && operation != "disable")
@@ -18,11 +22,13 @@ public class CPHInline
             return Fail("Command administration operations require explicit creator approval.");
 
         string commandId = ReadString("commandAdminCommandId");
-        if (commandId.Length == 0 || commandId.Length > MaximumCommandIdLength)
-            return Fail("commandAdminCommandId must be a non-empty, bounded Streamer.bot command ID.");
+        Guid parsedCommandId;
+        if (commandId.Length == 0 || commandId.Length > MaximumCommandIdLength || !Guid.TryParse(commandId, out parsedCommandId))
+            return Fail("commandAdminCommandId must be a valid Streamer.bot command GUID.");
 
         string requestId = ReadString("commandAdminRequestId");
         if (requestId.Length == 0) requestId = Guid.NewGuid().ToString("N");
+        if (requestId.Length > 128) return Fail("commandAdminRequestId exceeds the bounded request identifier length.");
 
         CPH.SetArgument("commandAdminRequestId", requestId);
         CPH.SetArgument("commandAdminOperationResult", operation);
@@ -43,7 +49,8 @@ public class CPHInline
         }
         catch (Exception error)
         {
-            return Fail("Command administration dispatch failed: " + error.Message);
+            CPH.LogError("THSV Command Administration dispatch failed (" + error.GetType().Name + ").");
+            return Fail("Command administration dispatch failed.");
         }
 
         CPH.SetArgument("commandAdminValid", true);

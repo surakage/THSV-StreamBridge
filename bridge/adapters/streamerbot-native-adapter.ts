@@ -32,6 +32,7 @@ const relaySchema = z.object({
   amount: z.string().max(32).default(''),
   currency: z.string().max(8).default(''),
   quantity: z.string().max(32).default(''),
+  streakMonths: z.string().max(32).default(''),
   tier: z.string().max(100).default(''),
   itemName: z.string().max(500).default(''),
   rewardId: z.string().max(256).default(''),
@@ -136,8 +137,12 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     return { ...common, payload: { message } };
   }
   if (eventType === 'channel.follow') return { ...common, payload: {} };
+  if (eventType === 'stream.online' || eventType === 'stream.offline') return { ...common, user: undefined, payload: {} };
   if (eventType === 'channel.subscription' || eventType === 'channel.membership') {
-    return { ...common, payload: { ...(clean(relay.tier) === '' ? {} : { tier: clean(relay.tier) }) } };
+    const months = optionalPositiveInteger(relay.quantity);
+    const streakMonths = optionalPositiveInteger(relay.streakMonths);
+    const renewal = ['TwitchReSub', 'KickResubscription', 'YouTubeMemberMileStone'].includes(relay.sourceEventType);
+    return { ...common, payload: { ...(clean(relay.tier) === '' ? {} : { tier: clean(relay.tier) }), subscriptionKind: renewal ? 'renewal' : 'new', ...(months === undefined ? {} : { months }), ...(streakMonths === undefined ? {} : { streakMonths }) } };
   }
   if (eventType === 'channel.gift-subscription') {
     return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1), ...(clean(relay.tier) === '' ? {} : { tier: clean(relay.tier) }) } };
@@ -167,6 +172,8 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
 function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {
   const type = relay.sourceEventType;
   if (['TwitchChatMessage', 'YouTubeMessage', 'KickChatMessage'].includes(type)) return 'chat.message';
+  if (['TwitchStreamOnline', 'YouTubeBroadcastStarted', 'KickStreamOnline'].includes(type)) return 'stream.online';
+  if (['TwitchStreamOffline', 'YouTubeBroadcastEnded', 'KickStreamOffline'].includes(type)) return 'stream.offline';
   if (['TwitchFollow', 'YouTubeNewSubscriber', 'KickFollow'].includes(type)) return 'channel.follow';
   if (['TwitchSub', 'TwitchReSub', 'KickSubscription', 'KickResubscription'].includes(type)) return 'channel.subscription';
   if (['YouTubeNewSponsor', 'YouTubeMemberMileStone'].includes(type)) return 'channel.membership';
@@ -216,6 +223,7 @@ function badgeId(rawId: string, label: string, index: number): string {
 
 function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim(); }
 function positiveInteger(value: string, fallback: number): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback; }
+function optionalPositiveInteger(value: string): number | undefined { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined; }
 function nonnegativeInteger(value: string): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= 2_147_483_647 ? parsed : 0; }
 function decimalString(value: string): string | undefined { const cleaned = clean(value); return /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/.test(cleaned) ? cleaned : undefined; }
 function currencyCode(value: string): string | undefined { const cleaned = clean(value).toUpperCase(); return /^[A-Z]{3}$/.test(cleaned) ? cleaned : undefined; }

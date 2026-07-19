@@ -100,7 +100,7 @@ export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logge
     legacy: ['timedActions'], supported: [], verification: 'verified', limitations: ['Internal timer source; platform capability IDs do not apply.'],
   }));
   registry.registerInput('tikfinity-streamerbot', (name, platform) => new TikfinityAdapter(name, platform, streamerBotEventRelay), () => ({
-    legacy: ['chatInput', 'follows', 'gifts', 'engagement'], supported: ['chat.input', 'commands', 'follows', 'gifts'], verification: 'unverified',
+    legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'engagement'], supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gifts'], verification: 'unverified',
     limitations: ['TikFinity field mappings remain third-party and must be verified against the installed version.'],
   }));
   registry.registerInput('streamerbot-native', (name, platform) => new StreamerBotNativeAdapter(name, platform, streamerBotEventRelay), nativeCapabilities);

@@ -1,3 +1,6 @@
+// Purpose: Sends one validated timed message to the creator-selected live-chat platforms.
+// Trust boundary: simulated events never send externally; platform text and lengths are revalidated here.
+// References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -7,9 +10,11 @@ using Newtonsoft.Json.Linq;
 public class CPHInline
 {
     private const string PackageVersion = "1.1.0";
+    private const int MaximumPlatformMessageJsonLength = 4096;
 
     public bool Execute()
     {
+        // Consume only the Multi-Timed Actions contract and initialize explicit delivery results.
         InitializeOutputs();
         if (!CPH.TryGetArg("multiTimedValid", out bool valid) || !valid) return Fail("Multi-Timed Actions did not validate this execution.");
         CPH.SetArgument("timedMessageHandled", true);
@@ -17,13 +22,15 @@ public class CPHInline
         string rawMessage;
         CPH.TryGetArg("multiTimedSelectedMessage", out rawMessage);
         string message = Normalize(rawMessage);
-        if (message.Length > 500) return Fail("multiTimedSelectedMessage must contain no more than 500 creator-authored plain-text characters.");
+        if (CharacterCount(message) > 500) return Fail("multiTimedSelectedMessage must contain no more than 500 creator-authored plain-text characters.");
         Dictionary<string, string> platformMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string selectedMessagesJson;
         if (CPH.TryGetArg("multiTimedSelectedMessages", out selectedMessagesJson) && !String.IsNullOrWhiteSpace(selectedMessagesJson))
         {
-            try { foreach (JProperty property in JObject.Parse(selectedMessagesJson).Properties()) platformMessages[property.Name] = Normalize(property.Value.ToString()); }
+            if (selectedMessagesJson.Length > MaximumPlatformMessageJsonLength) return Fail("multiTimedSelectedMessages exceeds the bounded input size.");
+            try { platformMessages = ParsePlatformMessages(selectedMessagesJson); }
             catch (JsonException) { return Fail("multiTimedSelectedMessages is not a valid JSON object."); }
+            catch (ArgumentException error) { return Fail(error.Message); }
         }
         if (message.Length == 0 && platformMessages.Count == 0) return Fail("No shared or platform-specific timed message was selected.");
 
@@ -55,14 +62,14 @@ public class CPHInline
             {
                 string platformMessage = platformMessages.ContainsKey(platform) ? platformMessages[platform] : message;
                 int maximum = platform == "youtube" ? 200 : platform == "tiktok" ? 150 : 500;
-                if (platformMessage.Length == 0 || platformMessage.Length > maximum) throw new ArgumentException(platform + " message must contain 1-" + maximum + " characters.");
+                if (platformMessage.Length == 0 || CharacterCount(platformMessage) > maximum) throw new ArgumentException(platform + " message must contain 1-" + maximum + " characters.");
                 Send(platform, platformMessage);
                 dispatched.Add(platform);
             }
             catch (Exception error)
             {
                 failed.Add(platform);
-                CPH.LogError("THSV Timed Message Output could not dispatch to " + platform + ": " + error.Message);
+                CPH.LogError("THSV Timed Message Output could not dispatch to " + platform + " (" + error.GetType().Name + ").");
             }
         }
         CPH.SetArgument("timedMessageDispatchedPlatforms", JsonConvert.SerializeObject(dispatched));
@@ -102,6 +109,24 @@ public class CPHInline
         return result;
     }
 
+    private static Dictionary<string, string> ParsePlatformMessages(string input)
+    {
+        JObject source = JObject.Parse(input);
+        if (source.Count > 4) throw new ArgumentException("multiTimedSelectedMessages may contain no more than four platforms.");
+        Dictionary<string, string> result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (JProperty property in source.Properties())
+        {
+            string platform = property.Name.ToLowerInvariant();
+            if (platform != "twitch" && platform != "youtube" && platform != "kick" && platform != "tiktok") throw new ArgumentException("multiTimedSelectedMessages contains an unsupported platform.");
+            if (property.Value.Type != JTokenType.String) throw new ArgumentException("Each platform-specific timed message must be a string.");
+            string message = Normalize(property.Value.ToString());
+            int maximum = platform == "youtube" ? 200 : platform == "tiktok" ? 150 : 500;
+            if (message.Length == 0 || CharacterCount(message) > maximum) throw new ArgumentException(platform + " message must contain 1-" + maximum + " characters.");
+            result.Add(platform, message);
+        }
+        return result;
+    }
+
     private void InitializeOutputs()
     {
         CPH.SetArgument("timedMessageHandled", false); CPH.SetArgument("timedMessageValid", false); CPH.SetArgument("timedMessageValidationError", string.Empty);
@@ -118,5 +143,16 @@ public class CPHInline
         StringBuilder result = new StringBuilder(input.Length); bool space = false;
         foreach (char item in input) { if (char.IsControl(item) || char.IsWhiteSpace(item)) { space = result.Length > 0; continue; } if (space) { result.Append(' '); space = false; } result.Append(item); }
         return result.ToString();
+    }
+
+    private static int CharacterCount(string input)
+    {
+        int count = 0;
+        for (int index = 0; index < input.Length; index++)
+        {
+            if (Char.IsHighSurrogate(input[index]) && index + 1 < input.Length && Char.IsLowSurrogate(input[index + 1])) index++;
+            count++;
+        }
+        return count;
     }
 }

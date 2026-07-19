@@ -15,6 +15,9 @@ describe('native platform intake package', () => {
     ]);
     expect(Object.keys(manifest.triggerContract)).toEqual(['twitch', 'youtube', 'kick']);
     expect(manifest.triggerContract.twitch).toContain('TwitchRewardRedemption');
+    expect(manifest.triggerContract.twitch).toEqual(expect.arrayContaining(['TwitchStreamOnline', 'TwitchStreamOffline']));
+    expect(manifest.triggerContract.youtube).toEqual(expect.arrayContaining(['YouTubeBroadcastStarted', 'YouTubeBroadcastEnded']));
+    expect(manifest.triggerContract.kick).toEqual(expect.arrayContaining(['KickStreamOnline', 'KickStreamOffline']));
     expect(manifest.triggerContract.kick).toContain('KickRewardRedemption');
   });
 

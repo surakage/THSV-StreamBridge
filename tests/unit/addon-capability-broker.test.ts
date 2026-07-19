@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AddOnCapabilityBroker, CapabilityDeniedError } from '../../bridge/core/addon-capability-broker.js';
-import type { AddOnActionArgumentsV2 } from '../../bridge/contracts/v2/addon-capability.js';
+import type { AddOnActionArgumentsV2, AddOnOverlayLifecycleV2 } from '../../bridge/contracts/v2/addon-capability.js';
 import { silentLogger } from '../helpers.js';
 
 const ACTION_ONE = '11111111-1111-4111-8111-111111111111';
@@ -82,6 +82,27 @@ describe('AddOnCapabilityBroker', () => {
     await expect(context.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toThrow('30 Streamer.bot actions per minute');
   });
 
+  it('routes outbound chat through one permission-gated shared dependency and rate-limits add-ons', async () => {
+    const route = vi.fn().mockResolvedValue([{ platform: 'youtube', accepted: true, parts: 1 }]);
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { routeOutboundMessage: route });
+    const denied = broker.contextFor({ moduleId: 'sample.chat-denied', permissions: [], approvedActionIds: [] });
+    await expect(denied.chat.send({ message: 'hello', routing: 'source', sourcePlatform: 'youtube' })).rejects.toBeInstanceOf(CapabilityDeniedError);
+    const context = broker.contextFor({ moduleId: 'sample.chat', permissions: ['chat.send'], approvedActionIds: [] });
+    await expect(context.chat.send({ message: 'hello', routing: 'source', sourcePlatform: 'youtube' })).resolves.toEqual([{ platform: 'youtube', accepted: true, parts: 1 }]);
+    expect(route).toHaveBeenCalledWith({ message: 'hello', routing: 'source', sourcePlatform: 'youtube' }, expect.any(AbortSignal));
+    for (let index = 1; index < 10; index += 1) await context.chat.send({ message: `message ${String(index)}`, routing: 'selected', selectedPlatforms: ['twitch'] });
+    await expect(context.chat.send({ message: 'too many', routing: 'selected', selectedPlatforms: ['twitch'] })).rejects.toThrow('10 outbound message requests per minute');
+  });
+
+  it('cancels pending outbound chat when its add-on stops', async () => {
+    const route = vi.fn((_request, signal: AbortSignal) => new Promise<readonly []>((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason instanceof Error ? signal.reason : new Error('outbound request cancelled')), { once: true })));
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { routeOutboundMessage: route });
+    const context = broker.contextFor({ moduleId: 'sample.chat-cancel', permissions: ['chat.send'], approvedActionIds: [] });
+    const pending = context.chat.send({ message: 'hello', routing: 'selected', selectedPlatforms: ['kick'] });
+    broker.cleanup('sample.chat-cancel');
+    await expect(pending).rejects.toThrow('stopped before its outbound chat request completed');
+  });
+
   it('bounds schedules, scopes cancellation, and clears outstanding tasks on module cleanup', async () => {
     vi.useFakeTimers();
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
@@ -109,5 +130,20 @@ describe('AddOnCapabilityBroker', () => {
     const context = broker.contextFor({ moduleId: 'sample.overlay-live', permissions: ['overlay.publish'], approvedActionIds: [] });
     await context.overlay.publish('sample.overlay-live.card.show', { title: 'Safe title', durationMs: 5_000 });
     expect(publish).toHaveBeenCalledWith('sample.overlay-live', 'sample.overlay-live.card.show', { title: 'Safe title', durationMs: 5_000 });
+  });
+
+  it('subscribes to scoped overlay lifecycle reports and removes listeners during cleanup', async () => {
+    let listener: ((event: AddOnOverlayLifecycleV2) => void) | undefined;
+    const unsubscribe = vi.fn();
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { subscribeOverlayLifecycle: (_moduleId, received) => { listener = received; return unsubscribe; } });
+    const context = broker.contextFor({ moduleId: 'sample.media', permissions: ['overlay.publish'], approvedActionIds: [] });
+    const received = vi.fn();
+    const remove = context.overlay.onLifecycle(received);
+    listener?.({ playbackId: 'clip-1', phase: 'ended', occurredAt: '2026-07-19T00:00:00.000Z' });
+    expect(received).toHaveBeenCalledWith(expect.objectContaining({ playbackId: 'clip-1', phase: 'ended' }));
+    remove();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    broker.cleanup('sample.media');
+    expect(unsubscribe).toHaveBeenCalledOnce();
   });
 });

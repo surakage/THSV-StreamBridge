@@ -17,6 +17,11 @@ import type { PlatformCapabilityId } from '../bridge/contracts/v2/capability.js'
 import { FileDeliveryOutboxStore } from '../bridge/services/delivery-outbox-store.js';
 import { AddOnWizardService } from '../bridge/services/addon-wizard-service.js';
 import { AddOnCapabilityBroker } from '../bridge/core/addon-capability-broker.js';
+import { ReleaseUpdateService } from '../bridge/services/release-update-service.js';
+import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
+import { OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
+
+const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
 const configPath = await resolveRuntimeConfigPath();
 const dataRoot = resolve(process.env['THSV_STREAMBRIDGE_DATA_ROOT']?.trim() || 'data');
@@ -40,9 +45,21 @@ const enabledPlatformIds = new Set(Object.entries(config.platforms).filter(([, p
 const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
+const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
+  if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is not configured.');
+  await streamerBotInspector.runApprovedAction(TIMED_MESSAGE_OUTPUT_ACTION_ID, {
+    multiTimedValid: true,
+    multiTimedSelectedMessage: message,
+    multiTimedSelectedMessages: '{}',
+    multiTimedDeliveryPlatforms: JSON.stringify([platform]),
+    multiTimedSimulated: config.streamerbot.testMode,
+  }, signal);
+} });
 const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   ...(streamerBotInspector === undefined ? {} : { runStreamerBotAction: (actionId, argumentsValue, signal) => streamerBotInspector.runApprovedAction(actionId, argumentsValue, signal) }),
   publishOverlay: async (moduleId, topic, payload) => overlayHub.publishAddOn(moduleId, topic, payload),
+  subscribeOverlayLifecycle: (moduleId, listener) => overlayHub.subscribeAddOnLifecycle(moduleId, listener),
+  routeOutboundMessage: (request, signal) => outboundRouter.route(request, signal),
 });
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
@@ -52,6 +69,7 @@ const wizard = new WizardService(
   new WizardConfigurationGateway(configPath, (platforms) => registry.capabilityReports(platforms)),
   new FileCommandSyncStore(join(dataRoot, 'state', 'command-sync.json'), logger),
   new AddOnWizardService(addOnsRoot, addOnStateRoot),
+  new ReleaseUpdateService(CORE_CONTRACT_VERSION),
 );
 bridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;

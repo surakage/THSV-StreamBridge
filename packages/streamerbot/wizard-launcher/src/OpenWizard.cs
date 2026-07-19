@@ -1,3 +1,6 @@
+// Purpose: Opens the authenticated local THSV StreamBridge setup wizard in the default browser.
+// Security: opens only the fixed loopback URL and does not read or expose local credentials.
+// References: mscorlib.dll and System.dll; no third-party compiler references are required.
 using System;
 using System.Diagnostics;
 
@@ -7,6 +10,7 @@ public class CPHInline
 
     public bool Execute()
     {
+        // Use the Windows shell only for the fixed localhost URL.
         try
         {
             Process.Start(new ProcessStartInfo
@@ -19,7 +23,7 @@ public class CPHInline
         }
         catch (Exception exception)
         {
-            CPH.LogError("Unable to open the THSV StreamBridge setup wizard: " + exception.Message);
+            CPH.LogError("Unable to open the local THSV StreamBridge setup wizard (" + exception.GetType().Name + ").");
             return false;
         }
     }

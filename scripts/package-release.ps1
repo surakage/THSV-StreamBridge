@@ -37,16 +37,38 @@ try {
     $launcherRoot = Join-Path $staging 'launcher'
     New-Item -ItemType Directory -Path $appRoot, $runtimeRoot, $installerRoot, $launcherRoot | Out-Null
 
-    @('dist','config','docs','examples','overlays','wizard','package.json','package-lock.json') | ForEach-Object {
+    @('dist','overlays','wizard','package.json','package-lock.json') | ForEach-Object {
         Copy-Item -LiteralPath (Join-Path $repo $_) -Destination $appRoot -Recurse
+    }
+    New-Item -ItemType Directory -Path (Join-Path $appRoot 'config'), (Join-Path $appRoot 'docs') | Out-Null
+    Copy-Item -LiteralPath (Join-Path $repo 'config\bridge.example.json') -Destination (Join-Path $appRoot 'config')
+    $releaseDocs = @(
+        'add-on-capabilities.md', 'add-on-development.md', 'architecture.md', 'browser-overlay.md',
+        'compatibility.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
+        'production-readiness.md', 'release.md', 'rewards.md', 'security.md', 'setup.md',
+        'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
+        'testing.md', 'timed-actions.md', 'troubleshooting.md'
+    )
+    foreach ($document in $releaseDocs) {
+        Copy-Item -LiteralPath (Join-Path $repo "docs\$document") -Destination (Join-Path $appRoot 'docs')
     }
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'packages') | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot') -Destination (Join-Path $appRoot 'packages\streamerbot') -Recurse
+    # Keep only the import file named by each package manifest; stale generated imports are not runtime assets.
+    Get-ChildItem -LiteralPath (Join-Path $appRoot 'packages\streamerbot') -Directory | ForEach-Object {
+        $manifestPath = Join-Path $_.FullName 'manifest.json'
+        if (-not (Test-Path -LiteralPath $manifestPath)) { return }
+        $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+        $currentImports = @($manifest.action.importFile) + @($manifest.actions | ForEach-Object { $_.importFile }) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+        Get-ChildItem -LiteralPath $_.FullName -Filter '*.sb' -File | Where-Object { $_.Name -notin $currentImports } | Remove-Item -Force
+    }
     Push-Location $appRoot
     try {
         npm.cmd ci --omit=dev --ignore-scripts
         if ($LASTEXITCODE -ne 0) { throw 'Production dependency installation failed.' }
     } finally { Pop-Location }
+    Remove-Item -LiteralPath (Join-Path $appRoot 'package-lock.json') -Force
+    Remove-Item -LiteralPath (Join-Path $appRoot 'node_modules\.package-lock.json') -Force -ErrorAction SilentlyContinue
 
     Copy-Item -LiteralPath (Join-Path $repo 'installer\install.mjs') -Destination $installerRoot
     Copy-Item -LiteralPath (Join-Path $repo 'installer\Install THSV StreamBridge.cmd') -Destination $installerRoot
@@ -73,6 +95,9 @@ try {
 
     @('archive','app\packages\streamerbot\viewer-progression','app\packages\streamerbot\companion-actions','app\packages\streamerbot\speaker-orchestration','app\overlays\browser\bloom-idle-sprite.png') | ForEach-Object {
         if (Test-Path -LiteralPath (Join-Path $staging $_)) { throw "Release staging contains archived add-on content: $_" }
+    }
+    foreach ($unnecessary in @('app\examples', 'app\docs\milestones.md', 'app\docs\stage-2-completion.md', 'app\package-lock.json', 'app\node_modules\.package-lock.json')) {
+        if (Test-Path -LiteralPath (Join-Path $staging $unnecessary)) { throw "Release staging contains a development-only file: $unnecessary" }
     }
     $forbiddenReleaseFiles = Get-ChildItem -LiteralPath $staging -File -Recurse | Where-Object {
         $_.Name -in @('.env', 'bridge.local.json', 'control-token', 'streambridge.pid') -or

@@ -174,12 +174,21 @@ export class DiagnosticsServer {
       }
       if (request.method === 'GET' && request.url === '/wizard/api/addons' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 200, { addOns: await this.wizard.listAddOns() });
+        return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), discovered: await this.wizard.discoverAddOns() });
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/updates/check' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.checkForUpdates());
       }
       if (request.method === 'POST' && request.url === '/wizard/api/addons/install' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, Math.max(this.config.maxPayloadBytes, 10_000_000));
         return this.reply(response, 201, await this.wizard.installAddOn(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/install-discovered' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 201, await this.wizard.installDiscoveredAddOn(JSON.parse(body.text) as unknown));
       }
       const addOnEnabledMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/enabled$/u.exec(request.url ?? '') : null;
       if (addOnEnabledMatch?.[1] !== undefined && this.wizard !== undefined) {
@@ -398,7 +407,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/worker-1.0.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.1.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.2.1.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
-  '/overlay/worker-1.3.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker-1.3.1.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.6.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },

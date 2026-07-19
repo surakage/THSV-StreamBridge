@@ -267,7 +267,7 @@ export async function listInstalledAddOnPackages(addOnsRoot: string): Promise<re
   try { entries = await readdir(root, { withFileTypes: true }); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []; throw error; }
   const result: InstalledAddOnSummary[] = [];
-  for (const entry of entries.filter((candidate) => candidate.isDirectory() && !candidate.name.startsWith('.')).sort((left, right) => left.name.localeCompare(right.name))) {
+  for (const entry of entries.filter((candidate) => candidate.isDirectory() && !candidate.name.startsWith('.') && candidate.name !== 'inbox').sort((left, right) => left.name.localeCompare(right.name))) {
     try {
       const verified = await verifyAddOnPackage(join(root, entry.name), undefined, true);
       const record = JSON.parse(await readFile(safeChild(verified.root, 'installed-package.json'), 'utf8')) as InstalledPackageRecord;
@@ -326,11 +326,37 @@ export function validateInstalledActionIds(value: unknown): readonly string[] {
   return [...value];
 }
 
+export async function inspectAddOnArchive(archive: Uint8Array, scratchRoot: string, limits: { readonly maximumFiles?: number; readonly maximumUncompressedBytes?: number } = {}): Promise<AddOnPackageV2> {
+  const extracted = unpackAddOnArchive(archive, limits);
+  const root = resolve(scratchRoot); await mkdir(root, { recursive: true });
+  const extraction = await mkdtemp(join(root, '.inspect-'));
+  try {
+    await chmod(extraction, 0o700);
+    for (const [path, content] of Object.entries(extracted)) {
+      const target = safeChild(extraction, path); await mkdir(dirname(target), { recursive: true }); await writeFile(target, content, { mode: 0o600 });
+    }
+    return (await verifyAddOnPackage(extraction)).descriptor;
+  } finally { await rm(extraction, { recursive: true, force: true }); }
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry: unknown): entry is string => typeof entry === 'string');
 }
 
 export async function installAddOnArchive(archive: Uint8Array, addOnsRoot: string, approvedByCreator: boolean, limits: { readonly maximumFiles?: number; readonly maximumUncompressedBytes?: number } = {}): Promise<VerifiedAddOnPackage> {
+  const extracted = unpackAddOnArchive(archive, limits);
+  const root = resolve(addOnsRoot); await mkdir(root, { recursive: true });
+  const extraction = await mkdtemp(join(root, '.archive-'));
+  try {
+    await chmod(extraction, 0o700);
+    for (const [path, content] of Object.entries(extracted)) {
+      const target = safeChild(extraction, path); await mkdir(dirname(target), { recursive: true }); await writeFile(target, content, { mode: 0o600 });
+    }
+    return await installAddOnPackage(extraction, root, approvedByCreator);
+  } finally { await rm(extraction, { recursive: true, force: true }); }
+}
+
+function unpackAddOnArchive(archive: Uint8Array, limits: { readonly maximumFiles?: number; readonly maximumUncompressedBytes?: number }): Record<string, Uint8Array> {
   const maximumFiles = limits.maximumFiles ?? 10_000;
   const maximumUncompressedBytes = limits.maximumUncompressedBytes ?? 100 * 1_024 * 1_024;
   let files = 0; let totalBytes = 0; const names = new Set<string>();
@@ -347,15 +373,7 @@ export async function installAddOnArchive(archive: Uint8Array, addOnsRoot: strin
     },
   });
   if (extracted[DESCRIPTOR_FILE] === undefined) throw new AddOnPackageError(`${DESCRIPTOR_FILE} must be at the root of the .thsv-addon archive.`);
-  const root = resolve(addOnsRoot); await mkdir(root, { recursive: true });
-  const extraction = await mkdtemp(join(root, '.archive-'));
-  try {
-    await chmod(extraction, 0o700);
-    for (const [path, content] of Object.entries(extracted)) {
-      const target = safeChild(extraction, path); await mkdir(dirname(target), { recursive: true }); await writeFile(target, content, { mode: 0o600 });
-    }
-    return await installAddOnPackage(extraction, root, approvedByCreator);
-  } finally { await rm(extraction, { recursive: true, force: true }); }
+  return extracted;
 }
 
 export async function removeAddOnPackage(moduleId: string, addOnsRoot: string, approvedByCreator: boolean): Promise<void> {

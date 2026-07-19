@@ -55,6 +55,33 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(page.locator('[data-timed-count="youtube-0"]')).toHaveText('56/200');
 });
 
+test('wizard shows only the selected platform events and exposes platform color modes', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await page.locator('[data-view="chat-overlay"]').click();
+
+  const form = page.locator('#chat-overlay-form');
+  await expect(form.locator('[name="eventCategory"]')).toHaveCount(0);
+  await expect(form.locator('[name="messageColorMode"]')).toHaveValue('platform');
+  await expect(form.locator('[name="platformColorTwitch"]')).toHaveValue('#4b267b');
+  await expect(form.locator('[name="platformColorYoutube"]')).toHaveValue('#7d1717');
+  await expect(form.locator('[name="platformColorKick"]')).toHaveValue('#245c18');
+  await expect(form.locator('[name="platformColorTiktok"]')).toHaveValue('#172b31');
+
+  await page.locator('#chat-event-platform').selectOption('youtube');
+  await expect(page.locator('[data-platform-event]')).toHaveCount(6);
+  await expect(page.locator('#chat-event-template-editor')).toContainText('New subscriber (free)');
+  await expect(page.locator('#chat-event-template-editor')).toContainText('New paid member');
+  await expect(page.locator('#chat-event-template-editor')).not.toContainText('Raid');
+
+  await page.locator('#chat-event-platform').selectOption('tiktok');
+  await expect(page.locator('[data-platform-event]')).toHaveCount(4);
+  await expect(page.locator('#chat-event-template-editor')).toContainText('Like milestone (every 100)');
+  await expect(page.locator('#chat-event-template-editor')).toContainText('%subMonth%');
+  await expect(page.locator('#chat-event-template-editor [disabled]')).toHaveCount(0);
+});
+
 test('wizard automatically stages safe configuration imports and provides a real JSON download', async ({ page }) => {
   await page.goto('/wizard/');
   await page.locator('#token').fill(token);

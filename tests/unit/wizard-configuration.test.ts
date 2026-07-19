@@ -77,13 +77,16 @@ describe('Stage 4 wizard configuration gateway', () => {
     const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
     const snapshot = await gateway.snapshot() as { chatSettings: { brandLabel: string; maxChatMessages: number; showBots: boolean; chat: Record<string, unknown> } };
     const draft = await gateway.begin();
-    const events = (snapshot.chatSettings.chat as { events: { enabled: boolean; platforms: Record<string, boolean>; categories: Record<string, boolean>; characterLimits: Record<string, number> } }).events;
-    const chatSettings = { ...snapshot.chatSettings, maxChatMessages: 12, chat: { ...snapshot.chatSettings.chat, layout: 'compact', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { ...events, categories: { ...events.categories, follows: false }, characterLimits: { ...events.characterLimits, youtube: 160 } } } };
+    const events = (snapshot.chatSettings.chat as { events: { enabled: boolean; platforms: Record<string, boolean>; platformEvents: Record<string, Record<string, { enabled: boolean; template: string }>>; characterLimits: Record<string, number> } }).events;
+    const subscriber = events.platformEvents['youtube']?.['subscriber'];
+    if (subscriber === undefined) throw new Error('YouTube subscriber event settings are required.');
+    subscriber.enabled = false;
+    const chatSettings = { ...snapshot.chatSettings, maxChatMessages: 12, chat: { ...snapshot.chatSettings.chat, layout: 'compact', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { ...events, characterLimits: { ...events.characterLimits, youtube: 160 } } } };
     const staged = gateway.stage(draft.id, { kind: 'chat-overlay', chatSettings });
     expect(staged.stagedChanges).toEqual([expect.objectContaining({ kind: 'chat-overlay' })]);
     await gateway.commit(draft.id);
-    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ browserOverlay: { maxChatMessages: 12, chat: { layout: 'compact', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { categories: { follows: false }, characterLimits: { youtube: 160 } } } } });
-    expect(await gateway.export()).toMatchObject({ chatSettings: { maxChatMessages: 12, chat: { ignoredNames: ['ExampleBot'], events: { categories: { follows: false }, characterLimits: { youtube: 160 } } } } });
+    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ browserOverlay: { maxChatMessages: 12, chat: { layout: 'compact', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { platformEvents: { youtube: { subscriber: { enabled: false } } }, characterLimits: { youtube: 160 } } } } });
+    expect(await gateway.export()).toMatchObject({ chatSettings: { maxChatMessages: 12, chat: { ignoredNames: ['ExampleBot'], events: { platformEvents: { youtube: { subscriber: { enabled: false } } }, characterLimits: { youtube: 160 } } } } });
   });
 
   it('rejects a stale draft without writing', async () => {

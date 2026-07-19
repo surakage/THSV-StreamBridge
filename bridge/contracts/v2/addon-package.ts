@@ -17,6 +17,7 @@ export const ADD_ON_PERMISSION_VALUES = [
   'events.subscribe',
   'streamerbot.run-approved-action',
   'overlay.publish',
+  'chat.send',
   'schedule.bounded',
   'state.private',
 ] as const;

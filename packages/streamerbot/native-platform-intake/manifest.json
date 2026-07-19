@@ -12,8 +12,14 @@
   ],
   "runtime": { "queue": "Default", "concurrent": true },
   "triggerContract": {
-    "twitch": ["TwitchChatMessage", "TwitchFollow", "TwitchCheer", "TwitchSub", "TwitchReSub", "TwitchGiftSub", "TwitchGiftBomb", "TwitchRaid", "TwitchRewardRedemption"],
-    "youtube": ["YouTubeMessage", "YouTubeSuperChat", "YouTubeSuperSticker", "YouTubeNewSubscriber", "YouTubeNewSponsor", "YouTubeMemberMileStone", "YouTubeMembershipGift"],
-    "kick": ["KickChatMessage", "KickFollow", "KickSubscription", "KickResubscription", "KickGiftSubscription", "KickMassGiftSubscription", "KickGifted", "KickRewardRedemption"]
-  }
+    "twitch": ["TwitchChatMessage", "TwitchFollow", "TwitchCheer", "TwitchSub", "TwitchReSub", "TwitchGiftSub", "TwitchGiftBomb", "TwitchRaid", "TwitchRewardRedemption", "TwitchStreamOnline", "TwitchStreamOffline"],
+    "youtube": ["YouTubeMessage", "YouTubeSuperChat", "YouTubeSuperSticker", "YouTubeNewSubscriber", "YouTubeNewSponsor", "YouTubeMemberMileStone", "YouTubeMembershipGift", "YouTubeBroadcastStarted", "YouTubeBroadcastEnded"],
+    "kick": ["KickChatMessage", "KickFollow", "KickSubscription", "KickResubscription", "KickGiftSubscription", "KickMassGiftSubscription", "KickGifted", "KickRewardRedemption", "KickStreamOnline", "KickStreamOffline"]
+  },
+  "manualTriggerSetup": {
+    "twitch": ["Chat > Message", "Channel > Follow", "Chat > Cheer", "Subscriptions > Subscription", "Subscriptions > Resubscription", "Subscriptions > Gift Subscription", "Subscriptions > Gift Bomb", "Raid > Raid", "Channel Reward > Reward Redemption", "Channel > Stream Online", "Channel > Stream Offline"],
+    "youtube": ["Chat > Message", "Chat > Super Chat", "Chat > Super Sticker", "General > New Subscriber", "General > New Sponsor", "Membership > Member Milestone", "Membership > Gift", "Broadcast > Started", "Broadcast > Ended"],
+    "kick": ["Chat > Message", "Channel > Follow", "Subscriptions > Subscription", "Subscriptions > Resubscription", "Subscriptions > Gift Subscription", "Subscriptions > Mass Gift Subscription", "Kicks > Gifted", "Channel Reward > Reward Redemption", "Channel > Stream Online", "Channel > Stream Offline"]
+  },
+  "triggerSafety": "Attach only the listed triggers to the matching platform intake action. Internal receiver, projection, administration, timed-output, and wizard actions intentionally remain triggerless."
 }

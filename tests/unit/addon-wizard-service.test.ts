@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
@@ -17,6 +17,7 @@ function declarativeArchive(): Uint8Array {
       interval: { type: 'integer', minimum: 5, maximum: 120, default: 30 },
       enabled: { type: 'boolean', default: true },
       color: { type: 'string', enum: ['purple', 'green'], default: 'purple' },
+      labels: { type: 'array', title: 'Rotation labels', items: { type: 'string', minLength: 1, maxLength: 20 }, minItems: 1, maxItems: 3, default: ['one'] },
     },
   }, null, 2)}\n`;
   const descriptor = {
@@ -43,11 +44,14 @@ describe('wizard add-on management', () => {
     await expect(service.install({ filename: 'status-card.thsv-addon', contentBase64: Buffer.from(archive).toString('base64'), approvedByCreator: false })).rejects.toThrow('approve');
     await expect(service.install({ filename: 'status-card.zip', contentBase64: Buffer.from(archive).toString('base64'), approvedByCreator: true })).rejects.toThrow('.thsv-addon');
     await expect(service.install({ filename: 'status-card.thsv-addon', contentBase64: Buffer.from(archive).toString('base64'), approvedByCreator: true })).resolves.toMatchObject({ installed: true, moduleId: 'sample.status-card', restartRequired: true });
-    await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.status-card', packageKind: 'declarative', enabled: true, settings: { label: 'Hello, stream!', interval: 30, enabled: true, color: 'purple' } })]);
+    await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.status-card', packageKind: 'declarative', enabled: true, settings: { label: 'Hello, stream!', interval: 30, enabled: true, color: 'purple', labels: ['one'] } })]);
 
     await expect(service.saveSettings('sample.status-card', { label: '', interval: 30, enabled: true, color: 'purple' })).rejects.toThrow('from 1 through 40');
     await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', surprise: true })).rejects.toThrow('Unknown add-on setting');
     await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green' })).resolves.toMatchObject({ saved: true });
+    await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', labels: ['one', 'one'] })).rejects.toThrow('duplicate items');
+    await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', labels: ['one', 'two', 'three', 'four'] })).rejects.toThrow('from 1 through 3 items');
+    await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', labels: ['first', 'second'] })).resolves.toMatchObject({ saved: true });
     await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Live now');
 
     await expect(service.setEnabled('sample.status-card', { enabled: false, approvedByCreator: true })).resolves.toMatchObject({ enabled: false });
@@ -67,4 +71,23 @@ describe('wizard add-on management', () => {
     const service = new AddOnWizardService(join(root, 'packages'), join(root, 'state'));
     await expect(service.install({ filename: 'unsafe.thsv-addon', contentBase64: Buffer.from(archive).toString('base64'), approvedByCreator: true })).rejects.toThrow('Unsafe archive path');
   });
+
+  it('discovers inbox packages without installing them and requires approval', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-addon-inbox-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state'); const inbox = join(root, 'inbox');
+    await mkdir(inbox, { recursive: true });
+    await writeFile(join(inbox, 'status-card.thsv-addon'), declarativeArchive());
+    await writeFile(join(inbox, 'damaged.thsv-addon'), 'not a package');
+    const service = new AddOnWizardService(packages, state, inbox);
+    await expect(service.list()).resolves.toEqual([]);
+    await expect(service.discover()).resolves.toEqual([
+      expect.objectContaining({ filename: 'damaged.thsv-addon', health: 'rejected', trust: 'integrity-only' }),
+      expect.objectContaining({ filename: 'status-card.thsv-addon', health: 'available', moduleId: 'sample.status-card', trust: 'integrity-only' }),
+    ]);
+    await expect(service.installDiscovered({ filename: 'status-card.thsv-addon', approvedByCreator: false })).rejects.toThrow('explicit creator approval');
+    await expect(service.installDiscovered({ filename: '../status-card.thsv-addon', approvedByCreator: true })).rejects.toThrow('filename is invalid');
+    await expect(service.installDiscovered({ filename: 'status-card.thsv-addon', approvedByCreator: true })).resolves.toMatchObject({ installed: true, source: 'inbox', moduleId: 'sample.status-card' });
+    await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.status-card' })]);
+  });
+
 });

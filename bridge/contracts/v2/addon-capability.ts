@@ -23,6 +23,37 @@ export interface AddOnScheduleCapabilityV2 {
 
 export interface AddOnOverlayCapabilityV2 {
   publish(topic: string, payload: Readonly<Record<string, JsonValueV2>>): Promise<void>;
+  onLifecycle(listener: (event: AddOnOverlayLifecycleV2) => void): () => void;
+}
+
+export interface AddOnOverlayLifecycleV2 {
+  readonly playbackId: string;
+  readonly phase: 'loading' | 'started' | 'heartbeat' | 'ended' | 'stopped' | 'failed' | 'timeout';
+  readonly occurredAt: string;
+  readonly currentTime?: number;
+  readonly duration?: number;
+  readonly error?: string;
+}
+
+export type AddOnOutboundPlatformV2 = 'twitch' | 'youtube' | 'kick' | 'tiktok';
+
+export interface AddOnOutboundMessageRequestV2 {
+  readonly message: string;
+  readonly routing: 'source' | 'selected';
+  readonly sourcePlatform?: AddOnOutboundPlatformV2;
+  readonly selectedPlatforms?: readonly AddOnOutboundPlatformV2[];
+  readonly overflow?: 'reject' | 'split';
+}
+
+export interface AddOnOutboundMessageDeliveryV2 {
+  readonly platform: AddOnOutboundPlatformV2;
+  readonly accepted: boolean;
+  readonly parts: number;
+  readonly error?: string;
+}
+
+export interface AddOnChatCapabilityV2 {
+  send(request: AddOnOutboundMessageRequestV2): Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
 }
 
 export interface ModuleRuntimeContextV2 {
@@ -34,4 +65,5 @@ export interface ModuleRuntimeContextV2 {
   readonly streamerbot: AddOnStreamerBotCapabilityV2;
   readonly schedule: AddOnScheduleCapabilityV2;
   readonly overlay: AddOnOverlayCapabilityV2;
+  readonly chat: AddOnChatCapabilityV2;
 }

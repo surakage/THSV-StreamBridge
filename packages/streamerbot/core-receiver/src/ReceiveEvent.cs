@@ -1,3 +1,6 @@
+// Purpose: Validates one normalized bridge event and exposes its safe fields as Streamer.bot arguments.
+// Trust boundary: all downstream THSV actions must consume these validated streamBridge* arguments.
+// References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
 using System.Globalization;
 using System.IO;
@@ -9,13 +12,18 @@ public class CPHInline
     private const string ContractVersion = "2.0.0-preview.1";
     private const string PackageVersion = "2.0.0-preview.1";
     private const string SupportedSchemaVersion = "1.0.0";
+    private const int MaximumEventJsonLength = 2800000;
+    private const int MaximumJsonDepth = 32;
 
     public bool Execute()
     {
+        // Clear outputs before parsing so rejected input cannot reuse values from an earlier run.
         InitializeOutputs();
 
         if (!CPH.TryGetArg("streamBridgeEvent", out string eventJson) || string.IsNullOrWhiteSpace(eventJson))
             return Fail("Missing required streamBridgeEvent JSON argument.");
+        if (eventJson.Length > MaximumEventJsonLength)
+            return Fail("streamBridgeEvent exceeds the receiver input limit.");
 
         JObject envelope;
         try
@@ -24,7 +32,9 @@ public class CPHInline
             using (JsonTextReader jsonReader = new JsonTextReader(stringReader))
             {
                 jsonReader.DateParseHandling = DateParseHandling.None;
+                jsonReader.MaxDepth = MaximumJsonDepth;
                 envelope = JObject.Load(jsonReader);
+                if (jsonReader.Read()) return Fail("streamBridgeEvent must contain exactly one JSON object.");
             }
         }
         catch (JsonException)

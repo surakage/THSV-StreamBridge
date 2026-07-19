@@ -1,50 +1,92 @@
+// Purpose: Starts THSV StreamBridge from either the managed Windows installation or a source checkout.
+// Edit the Set Argument sub-action above this code to use a custom install folder.
+// References: mscorlib.dll and System.dll (standard .NET Framework references bundled with Windows).
 using System;
 using System.Diagnostics;
+using System.IO;
 
 public class CPHInline
 {
-    // Launches the THSV StreamBridge bridge process if it is not already running. Bind this
-    // action to Streamer.bot's own "Streamer.bot Started" trigger yourself (Add > find it in
-    // your trigger list - the exact category/wording varies by build) so the bridge comes up
-    // automatically whenever Streamer.bot does. This package does not attempt to add that
-    // trigger itself: no confirmed schema for it was found anywhere in Streamer.bot's public
-    // documentation, and picking it from Streamer.bot's own trigger list needs no guess at all.
-    //
-    // Set the "thsvBridgeInstallPath" global variable to your StreamBridge checkout or install
-    // folder (Streamer.bot > Global Variables) before enabling this action. No code edit is
-    // needed to point this at a different machine or folder.
-    //
-    // No "is it already running?" check: if the bridge is already up, the new process's own
-    // HTTP server just fails to bind the port and exits - harmless, the running instance is
-    // untouched.
-    private const string InstallPathVariable = "thsvBridgeInstallPath";
+    private const string InstallPathArgument = "thsvBridgeInstallPath";
+    private const string DefaultInstallSelection = "Default Windows install";
 
     public bool Execute()
     {
-        string installPath = CPH.GetGlobalVar<string>(InstallPathVariable, true);
-        if (string.IsNullOrWhiteSpace(installPath))
+        string installPath;
+        if (!TryResolveInstallPath(out installPath)) return false;
+
+        // Prefer the self-contained public launcher; retain source-checkout support for developers.
+        string managedNode = Path.Combine(installPath, "runtime", "node.exe");
+        string managedLauncher = Path.Combine(installPath, "launcher", "start.mjs");
+        string sourceScript = Path.Combine(installPath, "scripts", "start.ps1");
+        ProcessStartInfo startInfo;
+        if (File.Exists(managedNode) && File.Exists(managedLauncher))
         {
-            CPH.LogError("THSV StreamBridge launch skipped: set the '" + InstallPathVariable + "' global variable to your StreamBridge install folder first.");
+            startInfo = HiddenProcess(managedNode, "\"" + managedLauncher + "\" --wait", installPath);
+        }
+        else if (File.Exists(sourceScript))
+        {
+            startInfo = HiddenProcess("powershell.exe", "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + sourceScript + "\"", installPath);
+        }
+        else
+        {
+            CPH.LogError("THSV StreamBridge launch skipped: no managed launcher or source startup script exists in the selected install folder.");
             return false;
         }
 
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "cmd.exe",
-                Arguments = "/c npm run dev",
-                WorkingDirectory = installPath,
-                UseShellExecute = true,
-                CreateNoWindow = false,
-            });
-            CPH.LogInfo("THSV StreamBridge launch requested from " + installPath);
+            Process process = Process.Start(startInfo);
+            if (process == null) return Fail("PowerShell or the bundled runtime did not start.");
+            CPH.LogInfo("THSV StreamBridge launch requested through its validated lifecycle launcher.");
             return true;
         }
         catch (Exception exception)
         {
-            CPH.LogError("Failed to launch THSV StreamBridge: " + exception.Message);
-            return false;
+            return Fail("launcher failed (" + exception.GetType().Name + ").");
         }
+    }
+
+    // Resolve the editable action argument first, then preserve the legacy global as a migration fallback.
+    private bool TryResolveInstallPath(out string installPath)
+    {
+        string configured;
+        bool hasArgument = CPH.TryGetArg(InstallPathArgument, out configured) && !String.IsNullOrWhiteSpace(configured);
+        if (!hasArgument || configured.Trim().Equals(DefaultInstallSelection, StringComparison.OrdinalIgnoreCase))
+        {
+            string legacy = CPH.GetGlobalVar<string>(InstallPathArgument, true);
+            configured = String.IsNullOrWhiteSpace(legacy)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "THSV StreamBridge")
+                : legacy;
+        }
+        try
+        {
+            installPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(configured.Trim()));
+            return true;
+        }
+        catch (Exception exception)
+        {
+            installPath = String.Empty;
+            return Fail("install path is invalid (" + exception.GetType().Name + ").");
+        }
+    }
+
+    private static ProcessStartInfo HiddenProcess(string fileName, string arguments, string workingDirectory)
+    {
+        return new ProcessStartInfo
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            WorkingDirectory = workingDirectory,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden,
+        };
+    }
+
+    private bool Fail(string reason)
+    {
+        CPH.LogError("THSV StreamBridge launch failed: " + reason);
+        return false;
     }
 }

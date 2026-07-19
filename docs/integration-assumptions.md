@@ -13,7 +13,7 @@
 - Live review probes verified public message identity/time/sequence, bot provenance, and private-message bypass through the inline receiver-to-Multi-Chat action chain.
 - Core Receiver `1.0.4`, Multi-Commands `1.1.0`, and Viewer Progression `1.0.0` import with populated author/description metadata in Streamer.bot `1.0.5-alpha.31`. A rebuilt immediate receiver chain completed both a linked simulated Twitch chat and its derived progression delivery; the source envelope exposed the bridge-resolved viewer ID and receiver contract `1.2.0`.
 - Streamer.bot `1.0.5-alpha.31` currently reports all eight configured connections active. Twitch has connected broadcaster and bot accounts, YouTube has connected broadcaster and bot accounts, and Kick has a linked broadcaster account. This verifies account availability for native-variable probes; it does not verify any StreamBridge production input transport.
-- TikFinity successfully established a loopback WebSocket connection to Streamer.bot `1.0.5-alpha.31` at `127.0.0.1:8080/`. Its adopted profile already maps Chat, Follow, Gift, and Like events to the four action names shipped by the TikFinity Intake package.
+- TikFinity successfully established a loopback WebSocket connection to Streamer.bot `1.0.5-alpha.31` at `127.0.0.1:8080/`. The adopted profile maps Chat, Follow, Gift, and Like events. TikFinity Intake `1.1.0` adds a fifth Subscription action; creators must map that event explicitly after importing the updated package.
 - Meld Studio, OBS Studio, and Streamlabs Desktop officially support URL-based Chromium/CEF Browser layers/sources; the local THSV overlay assets and loopback WebSocket are integration-tested in Chrome-compatible semantics.
 
 ## Explicitly unverified or deferred

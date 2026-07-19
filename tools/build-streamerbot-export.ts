@@ -22,6 +22,15 @@ interface ExportAction {
     readonly sourceSubActionId?: string;
     readonly source: string;
     readonly importFile: string;
+    readonly references?: readonly string[];
+    readonly arguments?: readonly ExportArgument[];
+}
+
+interface ExportArgument {
+    readonly name: string;
+    readonly value: string;
+    readonly autoType?: boolean;
+    readonly id?: string;
 }
 
 const packageArgument = process.argv[2];
@@ -51,6 +60,16 @@ const encoded = buildStreamerBotPackage(
     group: action.group,
     ...(action.id === undefined ? {} : { id: action.id }),
     ...(action.sourceSubActionId === undefined ? {} : { sourceSubActionId: action.sourceSubActionId }),
+    ...(action.references === undefined ? {} : { references: action.references }),
+    ...(action.arguments === undefined ? {} : {
+      arguments: action.arguments.map((argument) => ({
+        name: argument.name,
+        value: argument.value,
+        ...(argument.autoType === undefined ? {} : { autoType: argument.autoType }),
+        ...(argument.id === undefined ? {} : { id: argument.id }),
+        stableIdentitySeed: `${manifest.name}:${action.name}:${argument.name}`,
+      })),
+    }),
     sourceCode: (await readFile(resolve(packageDirectory, action.source))).toString('utf8'),
     stableIdentitySeed: legacySingleAction ? manifest.name : `${manifest.name}:${action.name}`,
   }))),
