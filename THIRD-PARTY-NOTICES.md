@@ -12,7 +12,7 @@ Bloom and SlothBloom project names may function as source identifiers. The MIT L
 
 ## Bundled runtime and production npm dependencies
 
-The portable Windows archive bundles the official 64-bit Node.js 22 runtime and exact lockfile-resolved production dependencies so installation does not run npm or download executable code. The release builder verifies the Node archive against Node.js's published SHA-256 list before copying `node.exe` and its license. Version `2.0.0-preview.1` uses:
+The portable Windows archive bundles the official 64-bit Node.js 22 runtime and exact lockfile-resolved production dependencies so installation does not run npm or download executable code. The release builder verifies the Node archive against Node.js's published SHA-256 list before copying `node.exe` and its license. Version `2.0.0-rc.1` uses:
 
 | Package | Version | License | Project |
 |---|---:|---|---|

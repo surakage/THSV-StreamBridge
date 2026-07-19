@@ -35,7 +35,7 @@ export async function loadConfigWithNotices(path = 'config/bridge.example.json')
 
   let value: unknown;
   try {
-    value = JSON.parse(content) as unknown;
+    value = JSON.parse(stripUtf8Bom(content)) as unknown;
   } catch (error) {
     throw new ConfigurationError(`Configuration is not valid JSON: ${absolutePath}`, [formatError(error)]);
   }
@@ -46,6 +46,10 @@ export async function loadConfigWithNotices(path = 'config/bridge.example.json')
     throw new ConfigurationError(`Configuration validation failed: ${absolutePath}`, details);
   }
   return { config: result.data, notices: legacyConfigNotices(value) };
+}
+
+export function stripUtf8Bom(value: string): string {
+  return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
 }
 
 function legacyConfigNotices(value: unknown): readonly ConfigLoadNotice[] {

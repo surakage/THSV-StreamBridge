@@ -16,6 +16,14 @@ describe('loadConfig', () => {
     await expect(loadConfig(path)).rejects.toMatchObject({ name: 'ConfigurationError' });
   });
 
+  it('accepts a valid configuration saved with a UTF-8 byte-order mark', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-config-bom-'));
+    const path = join(directory, 'bridge.local.json');
+    const source = await readFile('config/bridge.example.json', 'utf8');
+    await writeFile(path, `\ufeff${source}`, 'utf8');
+    await expect(loadConfig(path)).resolves.toMatchObject({ service: { host: '127.0.0.1' } });
+  });
+
   it('reports archived configuration keys while loading the core configuration safely', async () => {
     const source = JSON.parse(await readFile('config/bridge.example.json', 'utf8')) as Record<string, unknown>;
     const directory = await mkdtemp(join(tmpdir(), 'streambridge-config-legacy-'));

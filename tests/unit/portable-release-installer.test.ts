@@ -83,11 +83,13 @@ describe('portable Windows release installer', () => {
     const secondToken = (await readFile(join(secondInstall, 'data', 'secrets', 'control-token'), 'utf8')).trim();
     expect(secondToken).not.toBe(firstToken);
 
-    const uninstall = spawnSync(process.execPath, [join(firstInstall, 'launcher', 'uninstall.mjs'), '--install-root', firstInstall], { encoding: 'utf8', timeout: 30_000 });
+    const uninstall = spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/c', 'call', 'Uninstall THSV StreamBridge.cmd'], { cwd: firstInstall, encoding: 'utf8', timeout: 30_000, input: '\n' });
     expect(uninstall.status, processOutput(uninstall)).toBe(0);
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_500));
     expect(await readFile(join(firstInstall, 'data', 'state', 'creator-state.json'), 'utf8')).toContain('preserved');
     expect(await readFile(join(firstInstall, 'addons', 'state', 'creator-addon.json'), 'utf8')).toContain('preserved');
     await expect(stat(join(firstInstall, 'app'))).rejects.toThrow();
+    await expect(stat(join(firstInstall, 'Uninstall THSV StreamBridge.cmd'))).rejects.toThrow();
   }, 120_000);
 
   it('rejects tampered release contents before creating an installation', async () => {

@@ -51,6 +51,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: powershell
         run: |
-          gh release create $env:GITHUB_REF_NAME --draft --verify-tag --generate-notes
+          $isPrerelease = $env:GITHUB_REF_NAME -match '-(?:alpha|beta|preview|rc)(?:\.|-|$)'
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $notesFile = "docs/releases/$version.md"
+          $releaseFlags = @('--draft', '--verify-tag')
+          if (Test-Path -LiteralPath $notesFile) {
+            $releaseFlags += @('--notes-file', $notesFile)
+          } else {
+            $releaseFlags += '--generate-notes'
+          }
+          if ($isPrerelease) { $releaseFlags += '--prerelease' }
+          gh release create $env:GITHUB_REF_NAME @releaseFlags
           gh release upload $env:GITHUB_REF_NAME "${{ steps.assets.outputs.archive }}" "${{ steps.assets.outputs.checksum }}" "THSV-StreamBridge-$env:GITHUB_REF_NAME.cdx.json"
-          gh release edit $env:GITHUB_REF_NAME --draft=false --latest
+          if ($isPrerelease) {
+            gh release edit $env:GITHUB_REF_NAME --draft=false
+          } else {
+            gh release edit $env:GITHUB_REF_NAME --draft=false --latest
+          }

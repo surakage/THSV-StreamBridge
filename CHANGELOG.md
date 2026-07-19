@@ -6,11 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-rc.1] - 2026-07-19
+
 ### Added
 
 - Stage 9 v2 add-on descriptors with complete SHA-256 file manifests, compatibility bounds, safe-path validation, atomic creator-approved install/remove operations, and runtime manifest matching.
 - A verified no-op reference add-on, optional-module discovery, failure isolation, public developer documentation, and add-on install/remove tests.
 - Hashed backups that include installed add-ons plus an approval-gated, verified, staged restore workflow with rollback.
+
+### Changed
+
+- Promoted the v2 Windows distribution to a public release candidate with a self-contained installer, SHA-256 manifest verification, SBOM generation, and GitHub artifact attestations.
+- Preview and release-candidate tags now publish as GitHub prereleases and cannot replace the latest stable release.
+- Updated public documentation to reflect the durable output outbox, restart replay, bounded retry, and dead-letter behavior that is now implemented.
+- Windows launchers and the setup wizard now accept valid JSON configuration files saved with a UTF-8 byte-order mark by common Windows editors.
+- The public Windows uninstaller now normalizes its trailing installation-path separator before handing the path to Node, preventing a quoted-path failure during removal.
+
+### Safety
+
+- High-impact provider events still require provider-stable event IDs; unverified TikFinity financial and progression use remains blocked during RC acceptance.
 
 ## [2.0.0-preview.1] - 2026-07-17
 

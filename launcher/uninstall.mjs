@@ -12,7 +12,9 @@ if (record.product !== 'THSV StreamBridge' || resolve(record.installRoot) !== in
 const deleteEverything = process.argv.includes('--delete-user-data');
 if (deleteEverything && !process.argv.includes('--confirm-delete-everything')) throw new Error('Deleting creator data requires both --delete-user-data and --confirm-delete-everything.');
 spawnSync(process.execPath, [join(installRoot, 'launcher', 'stop.mjs')], { stdio: 'inherit', timeout: 10_000 });
-for (const entry of ['app', 'runtime', 'launcher', 'Install THSV StreamBridge.cmd', 'Start THSV StreamBridge.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Uninstall THSV StreamBridge.cmd']) await rm(join(installRoot, entry), { recursive: true, force: true });
+// The public uninstall wrapper removes itself after this process exits. Deleting the
+// currently executing batch file here makes cmd.exe report a false failure on return.
+for (const entry of ['app', 'runtime', 'launcher', 'Install THSV StreamBridge.cmd', 'Start THSV StreamBridge.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd']) await rm(join(installRoot, entry), { recursive: true, force: true });
 if (deleteEverything) {
   await rm(installRoot, { recursive: true, force: true });
   process.stdout.write('THSV StreamBridge and all creator data were removed.\n');

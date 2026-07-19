@@ -22,7 +22,7 @@
 - Live rendering, sizing, transparency, and reconnect behavior in installed Meld Studio, OBS Studio, and Streamlabs Desktop builds. THSV does not yet control application scenes, layers/sources, or audio through their separate control APIs.
 - Live Speaker.bot connection, installed voice aliases, speech playback, and queue-control delivery. Official request shapes and Streamer.bot integration methods are implemented, but live verification remains pending.
 - Native Twitch, YouTube, and Kick trigger-variable capture and production StreamBridge transports. Connected Streamer.bot accounts are available for this work, but no native event contract has been claimed or implemented yet.
-- Crash-recoverable output delivery. The current delivery queue is memory-only; production financial adapters must not be enabled until a durable outbox and replay test exist.
+- Durable output delivery is implemented and covered by restart replay, bounded retry, corruption fail-closed, and dead-letter tests. Delivery remains at least once: downstream high-impact actions must use the stable source event ID as their idempotency key because a crash after downstream acknowledgement but before outbox removal can replay an event.
 - Platform gift-spree aggregation. Adapters must preserve a platform-provided bundle quantity, but unbundled gift events are not coalesced yet.
 
 Third-party platform and output providers must still be explicitly registered by trusted application composition code. The framework does not dynamically execute arbitrary packages named by untrusted configuration.

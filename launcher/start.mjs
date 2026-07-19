@@ -14,11 +14,11 @@ const tokenPath = join(dataRoot, 'secrets', 'control-token');
 const openWizard = process.argv.includes('--open-wizard');
 const waitOnly = process.argv.includes('--wait');
 
-const record = JSON.parse(await readFile(recordPath, 'utf8'));
+const record = JSON.parse(stripUtf8Bom(await readFile(recordPath, 'utf8')));
 if (record.product !== 'THSV StreamBridge' || typeof record.activeVersion !== 'string') throw new Error('The installation record is missing or invalid. Run the official installer again.');
 const appRoot = join(installRoot, 'app', record.activeVersion);
 const entrypoint = join(appRoot, 'dist', 'apps', 'bridge-service.js');
-const config = JSON.parse(await readFile(configPath, 'utf8'));
+const config = JSON.parse(stripUtf8Bom(await readFile(configPath, 'utf8')));
 const host = ['0.0.0.0', '::', '[::]'].includes(config.service.host) ? '127.0.0.1' : config.service.host;
 const healthHost = host === '::1' ? '[::1]' : host;
 const baseUrl = `http://${healthHost}:${String(config.service.port)}`;
@@ -85,3 +85,4 @@ async function waitForHealth(url, pid, timeoutMs) {
 
 function isAlive(pid) { try { process.kill(pid, 0); return true; } catch { return false; } }
 function delay(ms) { return new Promise((resolveDelay) => setTimeout(resolveDelay, ms)); }
+function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value; }

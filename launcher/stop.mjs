@@ -10,7 +10,7 @@ const tokenPath = join(dataRoot, 'secrets', 'control-token');
 let pid;
 try { pid = Number((await readFile(pidPath, 'utf8')).trim()); } catch { process.stdout.write('THSV StreamBridge is not running.\n'); process.exit(0); }
 if (!Number.isInteger(pid) || pid < 1 || !isAlive(pid)) { await rm(pidPath, { force: true }); process.stdout.write('Removed a stale StreamBridge process record.\n'); process.exit(0); }
-const config = JSON.parse(await readFile(configPath, 'utf8'));
+const config = JSON.parse(stripUtf8Bom(await readFile(configPath, 'utf8')));
 const host = ['0.0.0.0', '::', '[::]'].includes(config.service.host) ? '127.0.0.1' : config.service.host;
 const baseUrl = `http://${host === '::1' ? '[::1]' : host}:${String(config.service.port)}`;
 const token = (await readFile(tokenPath, 'utf8')).trim();
@@ -22,3 +22,4 @@ if (isAlive(pid)) throw new Error('StreamBridge did not stop within seven second
 await rm(pidPath, { force: true });
 process.stdout.write('THSV StreamBridge stopped.\n');
 function isAlive(value) { try { process.kill(value, 0); return true; } catch { return false; } }
+function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value; }

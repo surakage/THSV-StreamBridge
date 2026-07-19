@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
 import { alertPresentationSchema, bridgeConfigSchema, chatOverlaySchema, filtersSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
 import type { PlatformCapabilityReport } from '../contracts/v2/capability.js';
+import { stripUtf8Bom } from './config-loader.js';
 
 const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('platform'), platform: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/), enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict(),
@@ -204,7 +205,7 @@ export class WizardConfigurationGateway {
   }
 
   private async readConfig(): Promise<BridgeConfig> {
-    return bridgeConfigSchema.parse(JSON.parse(await readFile(this.configPath, 'utf8')) as unknown);
+    return bridgeConfigSchema.parse(JSON.parse(stripUtf8Bom(await readFile(this.configPath, 'utf8'))) as unknown);
   }
 }
 
@@ -237,7 +238,7 @@ function pickChatSettings(config: BridgeConfig): WizardConfigurationExport['chat
 }
 
 function parseObject(raw: string): Record<string, unknown> {
-  const value = JSON.parse(raw) as unknown;
+  const value = JSON.parse(stripUtf8Bom(raw)) as unknown;
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new WizardConfigurationError(400, 'Configuration root must be an object.');
   return value as Record<string, unknown>;
 }
