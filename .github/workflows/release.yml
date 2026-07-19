@@ -28,7 +28,11 @@ jobs:
         run: .\scripts\package-release.ps1
       - name: Generate production SBOM
         shell: powershell
-        run: npm sbom --omit=dev --sbom-format cyclonedx | Set-Content -Encoding utf8 THSV-StreamBridge-${{ github.ref_name }}.cdx.json
+        run: |
+          $sbom = npm sbom --omit=dev --sbom-format cyclonedx | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'SBOM generation failed.' }
+          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+          [System.IO.File]::WriteAllText("THSV-StreamBridge-${{ github.ref_name }}.cdx.json", $sbom, $utf8NoBom)
       - name: Resolve release asset paths
         id: assets
         shell: powershell
