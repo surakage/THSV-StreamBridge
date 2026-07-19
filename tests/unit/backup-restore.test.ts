@@ -5,10 +5,12 @@ import { spawnSync } from 'node:child_process';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const temporary: string[] = [];
+const windowsPowerShellEnvironment = { ...process.env };
+delete windowsPowerShellEnvironment['PSModulePath'];
 afterEach(async () => { await Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))); });
 
 function run(script: string, args: readonly string[] = []): string {
-  const result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, ...args], { encoding: 'utf8', timeout: 20_000 });
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, ...args], { encoding: 'utf8', timeout: 20_000, env: windowsPowerShellEnvironment });
   if (result.status !== 0) throw new Error(`${result.stdout}\n${result.stderr}`);
   return result.stdout;
 }
@@ -28,6 +30,7 @@ async function fixture(): Promise<string> {
 
 describe('backup and restore scripts', () => {
   it('hashes configuration, state, and add-ons, then restores them through the staged approval path', async () => {
+    if (process.platform !== 'win32') return;
     const root = await fixture();
     run(join(root, 'scripts', 'backup.ps1'));
     const backups = (await readdir(join(root, 'data', 'backups'))).filter((name) => !name.startsWith('.'));
@@ -47,13 +50,14 @@ describe('backup and restore scripts', () => {
   });
 
   it('rejects unapproved and tampered restores before changing current data', async () => {
+    if (process.platform !== 'win32') return;
     const root = await fixture(); run(join(root, 'scripts', 'backup.ps1'));
     const backup = join(root, 'data', 'backups', (await readdir(join(root, 'data', 'backups')))[0] as string);
-    const unapproved = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'scripts', 'restore.ps1'), '-BackupPath', backup], { encoding: 'utf8' });
+    const unapproved = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'scripts', 'restore.ps1'), '-BackupPath', backup], { encoding: 'utf8', env: windowsPowerShellEnvironment });
     expect(unapproved.status).not.toBe(0);
     await writeFile(join(backup, 'state', 'state.json'), '{"tampered":true}\n');
     await writeFile(join(root, 'data', 'state', 'state.json'), '{"current":true}\n');
-    const tampered = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'scripts', 'restore.ps1'), '-BackupPath', backup, '-ApproveRestore'], { encoding: 'utf8' });
+    const tampered = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'scripts', 'restore.ps1'), '-BackupPath', backup, '-ApproveRestore'], { encoding: 'utf8', env: windowsPowerShellEnvironment });
     expect(tampered.status).not.toBe(0);
     await expect(readFile(join(root, 'data', 'state', 'state.json'), 'utf8')).resolves.toContain('current');
   });

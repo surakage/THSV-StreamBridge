@@ -7,6 +7,9 @@ import { describe, expect, it } from 'vitest';
 
 interface ReleaseEntry { readonly path: string; readonly size: number; readonly sha256: string }
 
+const windowsPowerShellEnvironment = { ...process.env };
+delete windowsPowerShellEnvironment['PSModulePath'];
+
 async function writeRelease(source: string, version: string, appText: string): Promise<void> {
   await mkdir(join(source, 'scripts'), { recursive: true });
   await mkdir(join(source, 'config'), { recursive: true });
@@ -26,7 +29,7 @@ async function writeRelease(source: string, version: string, appText: string): P
 }
 
 function runPowerShell(script: string, args: string[]): string {
-  const result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, ...args], { encoding: 'utf8', timeout: 20_000 });
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, ...args], { encoding: 'utf8', timeout: 20_000, env: windowsPowerShellEnvironment });
   if (result.status !== 0) throw new Error(`PowerShell failed (${String(result.status)}):\n${result.stdout}\n${result.stderr}`);
   return result.stdout;
 }
@@ -54,7 +57,7 @@ describe('Windows release installer', () => {
       expect(await readFile(join(install, 'data', 'state', 'companion.json'), 'utf8')).toContain('true');
 
       await writeRelease(source, '0.13.0-test.1', 'downgraded release\n');
-      const downgrade = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(source, 'scripts', 'install-release.ps1'), '-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall'], { encoding: 'utf8', timeout: 20_000 });
+      const downgrade = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(source, 'scripts', 'install-release.ps1'), '-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall'], { encoding: 'utf8', timeout: 20_000, env: windowsPowerShellEnvironment });
       expect(downgrade.status).not.toBe(0);
       expect(`${downgrade.stdout}${downgrade.stderr}`).toContain('Refusing to downgrade THSV StreamBridge');
       expect(await readFile(join(install, 'dist', 'app.js'), 'utf8')).toBe('second release\n');
@@ -82,7 +85,7 @@ describe('Windows release installer', () => {
     try {
       await writeRelease(source, '0.13.0-test.1', 'trusted\n');
       await writeFile(join(source, 'dist', 'app.js'), 'tampered\n');
-      const result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(source, 'scripts', 'install-release.ps1'), '-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall'], { encoding: 'utf8', timeout: 20_000 });
+      const result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(source, 'scripts', 'install-release.ps1'), '-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall'], { encoding: 'utf8', timeout: 20_000, env: windowsPowerShellEnvironment });
       expect(result.status).not.toBe(0);
       expect(`${result.stdout}${result.stderr}`).toMatch(/size mismatch|hash mismatch/u);
       await expect(stat(install)).rejects.toThrow();
