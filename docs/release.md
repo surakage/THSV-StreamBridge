@@ -1,66 +1,68 @@
-# Installer and public release
+# Portable Windows release
 
-Milestone 11 packages THSV StreamBridge as a checksummed Windows release archive. The installer supports paths containing spaces, verifies every packaged file before changing an installation, installs production Node dependencies in a staging directory, and swaps the staged installation into place only after validation succeeds.
+THSV StreamBridge is distributed as a self-contained Windows x64 ZIP from the official GitHub Releases page. It includes the compiled bridge, exact production dependencies, launchers, documentation, reviewed Streamer.bot packages, and a pinned Node.js 22 runtime. Installation does not run npm, require administrator access, or require a globally installed Node.js.
 
-## Prerequisites
+## Verify the download
 
-- Windows 10 or later
-- 64-bit Node.js 22 or later, including `npm.cmd`
-- Windows PowerShell 5.1 or later
-- Streamer.bot `1.0.5-alpha.31` for the currently verified automation packages
+Download the versioned `THSV-StreamBridge-<version>-windows-x64.zip` and adjacent `.sha256` file from the same official release. Follow the commands in [`RELEASE-VERIFICATION.md`](../RELEASE-VERIFICATION.md) to check both the SHA-256 digest and GitHub Actions artifact attestation. The checksum detects corruption; the GitHub attestation authenticates that the archive came from this repository's release workflow without requiring a paid Windows code-signing certificate.
+
+The release builder downloads the pinned Node runtime from nodejs.org and verifies it against Node.js's published `SHASUMS256.txt` before packaging it. Every file inside the release is then listed with its size and SHA-256 hash in `release-manifest.json`. The installer verifies the entire manifest before creating or changing an installation, copies into creator-private staging, and verifies it again before activation.
 
 ## Install
 
-1. Download the versioned `.zip` and adjacent `.sha256` file from the official GitHub release.
-2. Verify the archive in PowerShell: `Get-FileHash .\THSV-StreamBridge-<version>.zip -Algorithm SHA256`.
-3. Extract the archive to a temporary directory.
-4. Review the included `LICENSE`, `CHANGELOG.md`, and `release-manifest.json`.
-5. Run:
+1. Extract the verified ZIP to a temporary folder.
+2. Review `README.md`, `CHANGELOG.md`, and `release-manifest.json` if desired.
+3. Double-click `Install THSV StreamBridge.cmd`.
 
-```powershell
-.\scripts\install-release.ps1
+The default destination is `%LOCALAPPDATA%\THSV StreamBridge`. The installer creates this layout:
+
+```text
+THSV StreamBridge/
+  app/<version>/        versioned release-owned application files
+  runtime/              bundled Node.js runtime
+  launcher/             stable start, stop, wizard, and uninstall launchers
+  data/                 creator configuration, secrets, state, logs, backups
+  addons/packages/      verified installed add-on packages
+  addons/state/         private add-on settings and state
 ```
 
-The default installation directory is `%LOCALAPPDATA%\THSV StreamBridge`. Use `-InstallRoot 'D:\Apps\THSV StreamBridge'` to choose another safe directory. The installer creates `data\runtime\bridge.local.json` without changing the checked-in example. It does not start the service unless `-StartBridge` is supplied.
+The installer generates a random 256-bit control token for a new installation, restricts the installation to the current Windows user where supported, starts the bridge, waits for its loopback health endpoint, and opens the authenticated setup wizard. A different installation receives a different token. Upgrading preserves the existing installation's token so saved local setup continues working.
 
-After configuring Streamer.bot or explicitly enabling its reported test mode in the local configuration, verify the installation without development dependencies:
+If automatic launch is not wanted, run the extracted installer from a terminal with `--no-start`. `--install-root <path>` selects a safe alternative destination. These switches are primarily for managed or test installations; the normal public flow is the root install command.
 
-```powershell
-& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\start.ps1" -Config 'data/runtime/bridge.local.json'
-& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\health.ps1"
-& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\simulate.ps1"
-& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\stop.ps1"
-```
+## Start, stop, and open setup
 
-## Upgrade and rollback safety
+Use the shortcuts in the installed `launcher` directory:
 
-Run the newer extracted release's `install-release.ps1` against the existing installation directory. Before the swap, the installer stops the managed bridge, runs the existing backup script, and carries the complete `data` directory into the new installation. That preserves creator configuration, the private control token, archived viewer-progression and companion state, timer state, logs, and backups. Preserved add-on state is not loaded by core and remains until the creator explicitly removes user data. Release-file hashes and production dependencies are validated in a staging directory before the existing installation is moved.
+- `Start THSV StreamBridge.cmd`
+- `Stop THSV StreamBridge.cmd`
+- `Open THSV Setup Wizard.cmd`
+- `Uninstall THSV StreamBridge.cmd`
 
-If the final directory swap fails, the installer restores the previous installation. A release never imports `.env`, runtime data, credentials, or state from its archive.
+Starting a second managed instance first requests authenticated shutdown of the recorded instance, waits for it to exit, and then starts the active version. The launcher passes explicit data, add-on package, and add-on-state roots so release upgrades cannot overwrite creator files.
 
-To repair corrupted or missing release files, rerun the same version's extracted
-`scripts\install-release.ps1` against the managed installation. The installer re-verifies and
-replaces release-owned files while preserving creator `data/`, which is the supported repair path;
-no separate repair script is required.
+## Upgrade and rollback
 
-### Downgrades
+Run the newer release's root installer. It refuses a downgrade by default, stages and re-verifies the new release, keeps the current version as `previousVersion`, activates the new version, and runs a health check. If startup health fails, the activation record is restored to the previous version.
 
-The installer refuses to replace a newer installed SemVer with an older release because older code may not understand newer state schemas. If a downgrade is deliberately required, first make and retain an external copy of the entire `data` directory, review the target release's state compatibility, and then pass `-AllowDowngrade`. This explicit switch removes the version guard; it does not migrate newer state backward.
+Creator-owned `data/` and `addons/state/` directories are not part of a version swap. Old application versions beyond the active and previous versions are cleaned after a successful installation. A deliberate downgrade requires `--allow-downgrade` and should be preceded by an external copy of both creator-owned directories because older code may not understand newer state.
 
-## Uninstall
+## Uninstall and privacy
 
-Run the installed script:
+Run `launcher\Uninstall THSV StreamBridge.cmd`. By default it removes application, runtime, and launcher files while preserving `data/` and `addons/` so an accidental uninstall does not destroy configuration or locally stored state.
 
-```powershell
-& "$env:LOCALAPPDATA\THSV StreamBridge\scripts\uninstall-release.ps1"
-```
+Permanent deletion requires both `--delete-user-data` and `--confirm-delete-everything` when invoking `uninstall.mjs` directly. This double confirmation is intentional. StreamBridge does not store Twitch, YouTube, Kick, or TikTok account credentials; those remain owned by Streamer.bot or TikFinity. Configuration exports omit control tokens, passwords, connection URLs, uploaded media, and runtime history.
 
-Uninstall preserves the complete `data` directory by default. Use `-RemoveUserData` only when creator configuration, private tokens, logs, archived add-on state, timers, and backups should also be permanently removed.
+## Add-ons
 
-## Public-release boundary
+Install `.thsv-addon` files from the authenticated wizard's Add-ons page. The wizard displays publisher, version, description, package kind, compatibility, and requested permissions before approval. It verifies archive paths, expanded size, the descriptor, every declared file, hashes, and core-version bounds in private staging.
 
-The archive is not a claim that every platform transport is production-complete. Twitch, YouTube, and Kick intake currently depends on the verified Streamer.bot relay package; TikTok/TikFinity provenance limitations remain documented. Facebook is not supported. Review [integration assumptions](integration-assumptions.md) before enabling progression, financial alerts, or speech.
+Declarative add-ons contain schemas and settings only and do not execute add-on code. Executable add-ons receive scoped framework handles for supported operations, including exact creator-approved Streamer.bot action IDs, but still run under the same Windows account as StreamBridge; the broker is not an operating-system sandbox. Install executable packages only from a trusted publisher after source review. Corrupt add-ons are rejected independently and cannot make core unavailable. Disable, upgrade, repair, and uninstall operations are scoped to the selected module ID; uninstall preserves its private state.
 
-THSV StreamBridge is distributed under the permissive MIT License. Every public archive includes the license text. The final release candidate must still pass installation, upgrade, uninstall, checksum, secret-scan, and live-service acceptance before publication.
+An add-on requesting `overlay.publish` receives a copyable `/overlay/addons/<module-id>` browser-source URL and preview button in the wizard. The renderer is owned by core, accepts only namespaced bounded card/media payloads, and does not execute package browser code.
 
-Archived Bloom asset provenance and direct production dependency licenses remain documented in [Asset and third-party notices](../THIRD-PARTY-NOTICES.md).
+## Release pipeline
+
+Tagged releases build on a Windows GitHub Actions runner, install from the lockfile, run build/lint/typecheck/tests/config validation, create an npm CycloneDX SBOM, build the portable archive, attest its build provenance and SBOM, and publish the archive, checksum, and SBOM to a GitHub Release. Repository administrators should enable GitHub immutable releases before public v2 publication.
+
+The archive is not a claim that every platform transport is production-complete. Review [integration assumptions](integration-assumptions.md) before using unverified high-impact events for financial, reward, or destructive automation.

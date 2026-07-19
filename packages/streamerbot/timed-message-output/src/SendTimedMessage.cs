@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
-    private const string PackageVersion = "1.0.0";
+    private const string PackageVersion = "1.1.0";
 
     public bool Execute()
     {
@@ -14,9 +14,18 @@ public class CPHInline
         if (!CPH.TryGetArg("multiTimedValid", out bool valid) || !valid) return Fail("Multi-Timed Actions did not validate this execution.");
         CPH.SetArgument("timedMessageHandled", true);
 
-        if (!CPH.TryGetArg("multiTimedSelectedMessage", out string rawMessage)) return Fail("Missing multiTimedSelectedMessage.");
+        string rawMessage;
+        CPH.TryGetArg("multiTimedSelectedMessage", out rawMessage);
         string message = Normalize(rawMessage);
-        if (message.Length == 0 || message.Length > 500) return Fail("multiTimedSelectedMessage must contain 1-500 creator-authored plain-text characters.");
+        if (message.Length > 500) return Fail("multiTimedSelectedMessage must contain no more than 500 creator-authored plain-text characters.");
+        Dictionary<string, string> platformMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string selectedMessagesJson;
+        if (CPH.TryGetArg("multiTimedSelectedMessages", out selectedMessagesJson) && !String.IsNullOrWhiteSpace(selectedMessagesJson))
+        {
+            try { foreach (JProperty property in JObject.Parse(selectedMessagesJson).Properties()) platformMessages[property.Name] = Normalize(property.Value.ToString()); }
+            catch (JsonException) { return Fail("multiTimedSelectedMessages is not a valid JSON object."); }
+        }
+        if (message.Length == 0 && platformMessages.Count == 0) return Fail("No shared or platform-specific timed message was selected.");
 
         if (!CPH.TryGetArg("multiTimedDeliveryPlatforms", out string platformsJson) || string.IsNullOrWhiteSpace(platformsJson)) return Fail("Missing multiTimedDeliveryPlatforms.");
         List<string> platforms;
@@ -44,7 +53,10 @@ public class CPHInline
         {
             try
             {
-                Send(platform, message);
+                string platformMessage = platformMessages.ContainsKey(platform) ? platformMessages[platform] : message;
+                int maximum = platform == "youtube" ? 200 : platform == "tiktok" ? 150 : 500;
+                if (platformMessage.Length == 0 || platformMessage.Length > maximum) throw new ArgumentException(platform + " message must contain 1-" + maximum + " characters.");
+                Send(platform, platformMessage);
                 dispatched.Add(platform);
             }
             catch (Exception error)

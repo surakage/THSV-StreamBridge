@@ -3,6 +3,7 @@ import { CORE_CONTRACT_VERSION } from '../../bridge/contracts/v2/common.js';
 import type { ModuleManifestV2 } from '../../bridge/contracts/v2/module-manifest.js';
 import { ModuleRegistry, type FrameworkModule } from '../../bridge/core/module-registry.js';
 import { createBuiltinModuleRegistry } from '../../bridge/core/builtin-modules.js';
+import { AddOnCapabilityBroker } from '../../bridge/core/addon-capability-broker.js';
 import { fixture, silentLogger } from '../helpers.js';
 
 function moduleDefinition(moduleId: string, options: Partial<FrameworkModule> & { dependencies?: readonly string[] } = {}): FrameworkModule {
@@ -26,6 +27,7 @@ function moduleDefinition(moduleId: string, options: Partial<FrameworkModule> & 
     ...(options.start === undefined ? {} : { start: options.start }),
     ...(options.stop === undefined ? {} : { stop: options.stop }),
     ...(options.onEvent === undefined ? {} : { onEvent: options.onEvent }),
+    ...(options.capabilityGrant === undefined ? {} : { capabilityGrant: options.capabilityGrant }),
   };
 }
 
@@ -69,6 +71,25 @@ describe('ModuleRegistry', () => {
       expect.objectContaining({ moduleId: 'test.event-failure', status: 'failed' }),
       expect.objectContaining({ moduleId: 'test.healthy', status: 'healthy' }),
     ]));
+  });
+
+  it('passes a loader-owned scoped context through start, events, and stop', async () => {
+    const contexts: unknown[] = [];
+    const broker = new AddOnCapabilityBroker(silentLogger, 'data/addons/.state-test');
+    const registry = new ModuleRegistry([
+      moduleDefinition('test.scoped', {
+        capabilityGrant: { moduleId: 'test.scoped', permissions: ['schedule.bounded'], approvedActionIds: [] },
+        start: async (context) => { contexts.push(context); expect(context.has('schedule.bounded')).toBe(true); },
+        onEvent: async (_event, context) => { contexts.push(context); },
+        stop: async (context) => { contexts.push(context); },
+      }),
+    ], silentLogger, 5_000, broker);
+    await registry.start();
+    await registry.publish({ ...(await fixture()), metadata: { simulated: true, bridgeSequence: 1 } });
+    await registry.stop();
+    expect(contexts).toHaveLength(3);
+    expect(contexts[0]).toBe(contexts[1]);
+    expect(contexts[1]).toBe(contexts[2]);
   });
 
   it('times out a hung optional module without delaying healthy modules indefinitely', async () => {

@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "addon:verify": "tsx tools/manage-addon.ts verify",
     "addon:install": "tsx tools/manage-addon.ts install",
+    "addon:package": "tsx tools/package-addon.ts",
     "addon:remove": "tsx tools/manage-addon.ts remove",
     "clean": "node tools/clean.mjs",
     "config:validate": "tsx tools/validate-config.ts",
@@ -22,16 +23,19 @@
     "simulate:burst": "tsx tools/simulate-burst.ts",
     "start": "node dist/apps/bridge-service.js",
     "test": "vitest run",
+    "test:browser": "playwright test",
     "test:integration": "vitest run tests/integration",
     "test:unit": "vitest run tests/unit",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "fflate": "0.8.3",
     "ws": "^8.21.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "eslint": "^10.7.0",

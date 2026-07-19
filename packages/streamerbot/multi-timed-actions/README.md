@@ -1,10 +1,10 @@
 # THSV StreamBridge Multi-Timed Actions
 
-This package projects receiver-validated `system.timed` events into one stable Streamer.bot argument contract. For the reviewed `run-existing-action` provider it can dispatch one creator-selected Streamer.bot action by stable ID using the documented `CPH.RunActionById(id, false)` method. The target must have been explicitly selected and approved in the wizard; event-only timers remain projection-only. Version 1.2.0 also exposes the separately validated `multiTimedDeliveryPlatforms` JSON array for the triggerless Timed Message Output action.
+This package projects receiver-validated `system.timed` events into one stable Streamer.bot argument contract. For the reviewed `run-existing-action` provider it can dispatch one creator-selected Streamer.bot action by stable ID using the documented `CPH.RunActionById(id, false)` method. The target must have been explicitly selected and approved in the wizard; event-only timers remain projection-only. Version 1.3.0 exposes both the validated `multiTimedDeliveryPlatforms` JSON array and the independently selected `multiTimedSelectedMessages` JSON object for the triggerless Timed Message Output action.
 
 ## Scheduling model
 
-Schedules live in `timedActions.definitions`. Each definition can use a fixed interval or a persisted random range, measured from session start, with optional `firstRunAfterMinutes`. Choose fixed selection for ordinary payloads or `shuffle-container` for a random creator-authored message with no repetition until all messages are used.
+Schedules live in `timedActions.definitions`. Each definition can use a fixed interval or a persisted random range, measured from session start, with optional `firstRunAfterMinutes`. Choose fixed selection for ordinary payloads, legacy `shuffle-container` for one shared list, or recommended `platform-shuffle` for separate Twitch, YouTube, Kick, and TikTok lists. Every platform bag completes before it repeats and persists independently across restarts.
 
 The bridge supports live-state, target-platform, recent-chat-activity, and scene gates. Scene gates fail closed until a provider emits a normalized `stream.scene-changed` event. Activity state retains timestamps and platform IDs only, never chat text or viewer identity.
 

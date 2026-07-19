@@ -1,11 +1,12 @@
-import { readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Logger } from '../services/logger.js';
 import type { PlatformCapabilityId } from '../contracts/v2/capability.js';
-import { verifyAddOnPackage } from '../services/addon-package-manager.js';
+import { validateInstalledActionIds, verifyAddOnPackage } from '../services/addon-package-manager.js';
 import { createBuiltinModules } from './builtin-modules.js';
 import { ModuleRegistry, type FrameworkModule } from './module-registry.js';
+import type { AddOnCapabilityBroker } from './addon-capability-broker.js';
 
 type ModuleFactory = () => FrameworkModule | Promise<FrameworkModule>;
 
@@ -29,13 +30,30 @@ export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger): P
   for (const directory of directories) {
     try {
       const verified = await verifyAddOnPackage(join(root, directory), undefined, true);
+      const installRecord = JSON.parse(await readFile(join(verified.root, 'installed-package.json'), 'utf8')) as { enabled?: boolean; approvedActionIds?: readonly string[] };
+      if (installRecord.enabled === false) { logger.info('Installed add-on is disabled', { moduleId: verified.descriptor.manifest.moduleId }); continue; }
+      if (verified.descriptor.packageKind === 'declarative') {
+        modules.push({ manifest: verified.descriptor.manifest, required: false });
+        logger.info('Verified declarative add-on loaded', { moduleId: verified.descriptor.manifest.moduleId, version: verified.descriptor.manifest.version });
+        continue;
+      }
+      if (verified.descriptor.entrypoint === undefined) throw new Error('Executable add-on entrypoint is missing after validation.');
+      if (verified.descriptor.manifest.eventSubscriptions.length > 0 && !verified.descriptor.permissions.includes('events.subscribe')) throw new Error('Executable add-ons with event subscriptions must request events.subscribe permission.');
       const url = pathToFileURL(join(verified.root, ...verified.descriptor.entrypoint.split('/')));
       url.searchParams.set('integrity', verified.descriptor.files.find((file) => file.path === verified.descriptor.entrypoint)?.sha256 ?? 'unknown');
       const imported = await import(url.href) as { default?: unknown; createModule?: ModuleFactory };
       const candidate = imported.createModule === undefined ? imported.default : await imported.createModule();
       if (!isFrameworkModule(candidate)) throw new Error('The entrypoint must export a FrameworkModule as default or through createModule().');
       if (JSON.stringify(candidate.manifest) !== JSON.stringify(verified.descriptor.manifest)) throw new Error('The runtime manifest does not exactly match module-package.json.');
-      modules.push({ ...candidate, required: false });
+      modules.push({
+        ...candidate,
+        required: false,
+        capabilityGrant: {
+          moduleId: verified.descriptor.manifest.moduleId,
+          permissions: verified.descriptor.permissions,
+          approvedActionIds: validateInstalledActionIds(installRecord.approvedActionIds),
+        },
+      });
       logger.info('Verified add-on loaded', { moduleId: candidate.manifest.moduleId, version: candidate.manifest.version });
     } catch (error) {
       logger.error('Installed add-on was rejected; other modules remain available', { directory, error });
@@ -102,8 +120,8 @@ export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candi
   return [...unique.values()];
 }
 
-export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>): Promise<ModuleRegistry> {
+export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker): Promise<ModuleRegistry> {
   const builtins = createBuiltinModules();
   const installed = await loadInstalledAddOns(addOnsRoot, logger);
-  return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger, availableCapabilities)], logger);
+  return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger, availableCapabilities)], logger, 5_000, broker);
 }

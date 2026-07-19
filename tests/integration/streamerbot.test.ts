@@ -16,6 +16,47 @@ async function unusedPort(): Promise<number> {
 }
 
 describe('Streamer.bot adapter', () => {
+  it('rejects a challenge-free Hello when a peer password is configured', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const previous = process.env[config.streamerbot.passwordEnv];
+    process.env[config.streamerbot.passwordEnv] = 'configured-peer-password';
+    const observed: string[] = [];
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => observed.push(Buffer.from(data as Buffer).toString('utf8')));
+    });
+    const adapter = new StreamerBotAdapter({
+      ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`,
+      acknowledgementTimeoutMs: 250, reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+    }, silentLogger);
+    try {
+      await adapter.start();
+      await expect.poll(() => adapter.status()['state']).toBe('error');
+      expect(adapter.status()['lastError']).toContain('challenge-free Hello');
+      expect(observed).toEqual([]);
+    } finally {
+      await adapter.stop();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      if (previous === undefined) Reflect.deleteProperty(process.env, config.streamerbot.passwordEnv); else process.env[config.streamerbot.passwordEnv] = previous;
+    }
+  });
+
+  it('isolates a synchronous relay subscriber failure from the adapter process', async () => {
+    const config = await testConfig();
+    const relay = new StreamerBotEventRelay();
+    relay.subscribe(() => { throw new Error('subscriber failed'); });
+    const warnings: Array<{ readonly message: string; readonly fields?: Readonly<Record<string, unknown>> }> = [];
+    const warn = (message: string, fields?: Readonly<Record<string, unknown>>): void => { warnings.push({ message, ...(fields === undefined ? {} : { fields }) }); };
+    const adapter = new StreamerBotAdapter(config.streamerbot, { ...silentLogger, warn }, 'streamerbot', relay);
+    const handleMessage = (adapter as unknown as { handleMessage(raw: string): void }).handleMessage.bind(adapter);
+    expect(() => handleMessage(JSON.stringify({ type: 'thsv.platform', platform: 'twitch' }))).not.toThrow();
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]?.message).toBe('Ignored Streamer.bot relay subscriber failure');
+    expect(warnings[0]?.fields?.['error']).toBeInstanceOf(Error);
+  });
+
   it('fails safely when Streamer.bot is unavailable', async () => {
     const config = await testConfig();
     const port = await unusedPort();
@@ -50,6 +91,46 @@ describe('Streamer.bot adapter', () => {
     expect(doAction?.action?.name).toBe(config.streamerbot.actionAlias);
     expect(Object.keys(doAction?.args ?? {})).toEqual(['streamBridgeEvent']);
     expect(JSON.parse(String(doAction?.args?.['streamBridgeEvent']))).toEqual(event);
+    await adapter.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('dispatches a broker-approved action by exact ID with only the supplied JSON arguments', async () => {
+    const config = await testConfig(); const port = await unusedPort();
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    let requestValue: { action?: { id?: string; name?: string }; args?: Record<string, unknown> } | undefined;
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => {
+        const request = JSON.parse(Buffer.from(data as Buffer).toString('utf8')) as { id: string; request: string; action?: { id?: string; name?: string }; args?: Record<string, unknown> };
+        if (request.request !== 'DoAction') return;
+        requestValue = request;
+        socket.send(JSON.stringify({ id: request.id, status: 'ok' }));
+      });
+    });
+    const adapter = new StreamerBotAdapter({ ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, acknowledgementTimeoutMs: 500, reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 } }, silentLogger);
+    await adapter.start();
+    await expect.poll(() => adapter.status()['state'], { timeout: 2_000 }).toBe('connected');
+    const actionId = '11111111-1111-4111-8111-111111111111';
+    await adapter.runApprovedAction(actionId, { clipId: 'clip-123', sequence: 4 });
+    expect(requestValue).toEqual(expect.objectContaining({ action: { id: actionId }, args: { clipId: 'clip-123', sequence: 4 } }));
+    expect(requestValue?.action?.name).toBeUndefined();
+    await adapter.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('cancels a pending approved action request without closing the shared WebSocket', async () => {
+    const config = await testConfig(); const port = await unusedPort();
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => socket.send(JSON.stringify({ request: 'Hello', info: {} })));
+    const adapter = new StreamerBotAdapter({ ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, acknowledgementTimeoutMs: 2_000, reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 } }, silentLogger);
+    await adapter.start();
+    await expect.poll(() => adapter.status()['state'], { timeout: 2_000 }).toBe('connected');
+    const controller = new AbortController();
+    const pending = adapter.runApprovedAction('11111111-1111-4111-8111-111111111111', {}, controller.signal);
+    controller.abort(new Error('cancelled by test'));
+    await expect(pending).rejects.toThrow('cancelled by test');
+    expect(adapter.status()).toMatchObject({ state: 'connected', pendingRequests: 0 });
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });

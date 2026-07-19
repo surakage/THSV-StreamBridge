@@ -7,11 +7,13 @@ import { buildStreamerBotEventArguments } from './streamerbot-package.js';
 import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 import type { CommandAdministrationRequest } from '../core/command-administration.js';
 import type { RewardAdministrationRequest } from '../core/reward-administration.js';
+import type { AddOnActionArgumentsV2 } from '../contracts/v2/addon-capability.js';
 
 interface PendingRequest {
   readonly resolve: (data: unknown) => void;
   readonly reject: (error: Error) => void;
   readonly timer: NodeJS.Timeout;
+  readonly cleanup: () => void;
 }
 
 interface StreamerBotMessage {
@@ -87,6 +89,7 @@ export class StreamerBotAdapter {
     this.reconnectTimer = undefined;
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer);
+      pending.cleanup();
       pending.reject(new Error('Streamer.bot adapter stopped'));
     }
     this.pending.clear();
@@ -127,6 +130,18 @@ export class StreamerBotAdapter {
     };
     await this.sendRequest(requestId, request);
     this.lastEventAt = new Date().toISOString();
+  }
+
+  /** Dispatches only the exact action ID already approved by the creator and broker. */
+  public async runApprovedAction(actionId: string, argumentsValue: AddOnActionArgumentsV2 = {}, signal?: AbortSignal): Promise<void> {
+    if (!this.config.enabled) throw new Error('Streamer.bot output is disabled.');
+    if (this.config.testMode) {
+      this.logger.info('Streamer.bot test mode accepted approved add-on action', { actionId, argumentCount: Object.keys(argumentsValue).length });
+      return;
+    }
+    if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) throw new Error('Streamer.bot is unavailable');
+    const requestId = randomUUID();
+    await this.sendRequest(requestId, { request: 'DoAction', id: requestId, action: { id: actionId }, args: argumentsValue }, signal);
   }
 
   public async requestCommandAdministration(request: CommandAdministrationRequest): Promise<void> {
@@ -241,10 +256,17 @@ export class StreamerBotAdapter {
           this.lastError = error instanceof Error ? error.message : String(error);
           this.socket?.close();
         });
-      } else void this.completeHandshake().catch((error: unknown) => {
-        this.lastError = error instanceof Error ? error.message : String(error);
-        this.socket?.close();
-      });
+      } else {
+        const configuredPassword = process.env[this.config.passwordEnv];
+        if (configuredPassword !== undefined && configuredPassword.length > 0) {
+          this.lastError = 'Streamer.bot returned a challenge-free Hello while peer authentication is configured';
+          this.logger.warn('Rejected unauthenticated Streamer.bot Hello because a password is configured');
+          this.socket?.close(1008, 'Authentication challenge required');
+        } else void this.completeHandshake().catch((error: unknown) => {
+          this.lastError = error instanceof Error ? error.message : String(error);
+          this.socket?.close();
+        });
+      }
       return;
     }
 
@@ -252,13 +274,17 @@ export class StreamerBotAdapter {
       const pending = this.pending.get(message.id);
       if (pending !== undefined) {
         clearTimeout(pending.timer);
+        pending.cleanup();
         this.pending.delete(message.id);
         if (message.status === 'ok') pending.resolve(message);
         else pending.reject(new Error(`Streamer.bot request ${message.id} failed`));
       }
     }
     const relayMessage = extractInboundRelay(message);
-    if (relayMessage !== undefined) this.eventRelay?.publish(relayMessage);
+    if (relayMessage !== undefined) {
+      try { this.eventRelay?.publish(relayMessage); }
+      catch (error) { this.logger.warn('Ignored Streamer.bot relay subscriber failure', { error }); }
+    }
   }
 
   private async completeHandshake(): Promise<void> {
@@ -276,18 +302,29 @@ export class StreamerBotAdapter {
     this.lastError = undefined;
   }
 
-  private sendRequest(id: string, value: unknown): Promise<unknown> {
+  private sendRequest(id: string, value: unknown, signal?: AbortSignal): Promise<unknown> {
     if (this.socket?.readyState !== WebSocket.OPEN) return Promise.reject(new Error('Streamer.bot socket is not open'));
     if (this.pending.size >= this.config.maxPendingRequests) return Promise.reject(new Error('Streamer.bot pending request capacity reached'));
+    if (signal?.aborted === true) return Promise.reject(signal.reason instanceof Error ? signal.reason : new Error('Streamer.bot request was cancelled.'));
     return new Promise<unknown>((resolve, reject) => {
+      const cleanup = (): void => signal?.removeEventListener('abort', onAbort);
+      const onAbort = (): void => {
+        const pending = this.pending.get(id);
+        if (pending === undefined) return;
+        clearTimeout(pending.timer); pending.cleanup(); this.pending.delete(id);
+        reject(signal?.reason instanceof Error ? signal.reason : new Error('Streamer.bot request was cancelled.'));
+      };
       const timer = setTimeout(() => {
         this.pending.delete(id);
+        cleanup();
         reject(new Error(`Streamer.bot acknowledgement timed out for request ${id}`));
       }, this.config.acknowledgementTimeoutMs);
-      this.pending.set(id, { resolve, reject, timer });
+      this.pending.set(id, { resolve, reject, timer, cleanup });
+      signal?.addEventListener('abort', onAbort, { once: true });
       try { this.socket?.send(JSON.stringify(value)); }
       catch (error) {
         clearTimeout(timer);
+        cleanup();
         this.pending.delete(id);
         reject(error instanceof Error ? error : new Error(String(error)));
       }

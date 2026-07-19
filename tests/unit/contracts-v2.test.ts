@@ -8,6 +8,7 @@ import {
   platformCapabilityReportSchema,
   rewardRedemptionV2Schema,
 } from '../../bridge/contracts/v2/index.js';
+import { coreConfigV2Schema } from '../../schemas/config-v2.js';
 
 const baseEvent = {
   schemaVersion: CORE_CONTRACT_VERSION,
@@ -23,6 +24,24 @@ const baseEvent = {
 };
 
 describe('v2 preview contracts', () => {
+  it('applies safe defaults when parsing a directly authored partial v2 configuration', () => {
+    const config = coreConfigV2Schema.parse({
+      configVersion: CORE_CONTRACT_VERSION,
+      service: { name: 'THSV StreamBridge', host: '127.0.0.1', port: 8787, allowNetworkAccess: false, shutdownTimeoutMs: 5_000 },
+      security: { maxPayloadBytes: 262_144, preserveRawPayloads: false },
+      logging: { level: 'info', directory: 'data/logs', maxFileBytes: 10_485_760, backups: 5 },
+      deduplication: { ttlMs: 300_000, maxEntries: 10_000, persistAcrossRestarts: true, stateFile: 'data/state/deduplication.json' },
+      streamerbot: {
+        enabled: true, url: 'ws://127.0.0.1:8080/', passwordEnv: 'STREAMERBOT_PASSWORD', actionAlias: 'Receiver',
+        acknowledgementTimeoutMs: 5_000, testMode: true, reconnect: { enabled: true, initialDelayMs: 250, maxDelayMs: 10_000, maxAttempts: 10 },
+      },
+      platforms: {}, outputs: {},
+    });
+    expect(config.security).toMatchObject({ controlTokenEnv: 'THSV_STREAMBRIDGE_CONTROL_TOKEN', controlTokenFile: 'data/runtime/control-token', allowedOrigins: [], maxRequestsPerMinute: 60, maxConcurrentRequests: 4 });
+    expect(config.streamerbot).toMatchObject({ allowRemote: false, maxPendingRequests: 16, deliveryQueueCapacity: 100, deliveryConcurrency: 2, deliveryFailureThreshold: 3 });
+    expect(config.modules).toEqual({});
+  });
+
   it('accepts a core event without viewer profiles and rejects excluded core event types', () => {
     expect(normalizedEventV2Schema.safeParse(baseEvent).success).toBe(true);
     expect(normalizedEventV2Schema.safeParse({ ...baseEvent, eventType: 'viewer.progression' }).success).toBe(false);

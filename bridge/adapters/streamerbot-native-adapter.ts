@@ -45,6 +45,11 @@ const relaySchema = z.object({
 }).strict();
 
 type NativeRelay = z.infer<typeof relaySchema>;
+const STABLE_ID_REQUIRED_EVENT_TYPES = new Set<NormalizedEvent['eventType']>([
+  'channel.subscription', 'channel.membership', 'channel.gift-subscription',
+  'engagement.gift', 'engagement.donation', 'engagement.cheer', 'engagement.super-chat',
+  'reward.redemption',
+]);
 
 export class StreamerBotNativeAdapter extends ManagedAdapter {
   private unsubscribe: (() => void) | undefined;
@@ -86,7 +91,11 @@ export class StreamerBotNativeAdapter extends ManagedAdapter {
 export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: string): NormalizedEvent {
   const relay = relaySchema.parse(input);
   const eventType = normalizedEventType(relay);
-  const sourceId = clean(relay.sourceEventId) || relay.relayId;
+  const providerSourceId = clean(relay.sourceEventId);
+  if (providerSourceId === '' && STABLE_ID_REQUIRED_EVENT_TYPES.has(eventType)) {
+    throw new Error(`${relay.sourceEventType} requires a provider-stable source event ID before it can reach automation.`);
+  }
+  const sourceId = providerSourceId || relay.relayId;
   const name = clean(relay.userName) || clean(relay.displayName) || `unknown-${relay.platform}-user`;
   const displayName = clean(relay.displayName) || name;
   const roles = normalizedRoles(relay);
@@ -143,13 +152,14 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   if (eventType === 'engagement.gift') return { ...common, payload: { itemName: clean(relay.itemName) || 'Platform Gift', quantity: positiveInteger(relay.quantity, 1) } };
   if (eventType === 'reward.redemption') {
     const rewardId = clean(relay.rewardId);
-    const redemptionId = clean(relay.redemptionId) || relay.relayId;
+    const redemptionId = clean(relay.redemptionId);
     if (rewardId === '') throw new Error(`${relay.sourceEventType} requires a reward ID.`);
+    if (redemptionId === '') throw new Error(`${relay.sourceEventType} requires a provider-stable redemption ID before it can be administered.`);
     return { ...common, payload: {
       rewardId, rewardTitle: clean(relay.rewardTitle) || 'Untitled reward', rewardCost: nonnegativeInteger(relay.rewardCost),
       requiresUserInput: relay.rewardRequiresInput, ...(clean(relay.message) === '' ? {} : { input: clean(relay.message) }), redemptionId,
       supportedOperations: relay.platform === 'twitch' ? ['fulfill', 'cancel'] : [], verifiedTransport: true,
-    }, metadata: { ...common.metadata, ...(clean(relay.redemptionId) === '' ? { unverifiedFields: [...(common.metadata.unverifiedFields ?? []), 'payload.redemptionId'] } : {}) } };
+    } };
   }
   return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1) } };
 }

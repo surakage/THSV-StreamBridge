@@ -2,7 +2,7 @@
 
 THSV StreamBridge is a modular, local-first livestream automation foundation. It validates and normalizes events before routing them to Streamer.bot or future adapters without exposing downstream code to platform-specific payloads.
 
-The `overhaul/v2-preview` branch is the isolated `2.0.0-preview.1` development line for the approved revised core scope. Stable `1.x` remains on `main`. Stages 2 through 8 are implemented: v2 contracts, compatibility migration preview, excluded-feature extraction, the module host, the authenticated setup wizard, provider-authoritative capability reports, platform controls, scoped blocker rules, Streamer.bot command design and synchronization, session-relative timed actions, configurable browser alerts, and documented channel-reward intake and administration. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Stage 4 completion](docs/stage-4-completion.md), [Stage 5 completion](docs/stage-5-completion.md), [Stage 6 completion](docs/stage-6-completion.md), [Stage 7 completion](docs/stage-7-completion.md), [Channel rewards](docs/rewards.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
+The `overhaul/v2-preview` branch is the isolated `2.0.0-preview.1` development line for the approved revised core scope. Stable `1.x` remains on `main`. Stages 2 through 9 are implemented: v2 contracts, compatibility migration preview, excluded-feature extraction, the module host, the authenticated setup wizard, provider-authoritative capability reports, platform controls, scoped blocker rules, Streamer.bot command design and synchronization, session-relative timed actions, configurable browser alerts, documented channel-reward intake and administration, packaging, and the add-on API. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Stage 4 completion](docs/stage-4-completion.md), [Stage 5 completion](docs/stage-5-completion.md), [Stage 6 completion](docs/stage-6-completion.md), [Stage 7 completion](docs/stage-7-completion.md), [Stage 8 completion](docs/stage-8-completion.md), [Stage 9 completion](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
 
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
@@ -14,7 +14,7 @@ Bridge Core includes:
 - Bounded TTL deduplication and an internal event bus
 - Independently enabled platform adapters with honest capability reporting
 - A deterministic mock adapter and event simulator
-- A Streamer.bot output adapter with authentication, acknowledgements, bounded reconnects, action aliases, bounded asynchronous delivery, and explicit test mode
+- A Streamer.bot output adapter with challenge authentication, durable at-least-once delivery, restart replay, bounded retries/dead letters, ordered lanes, acknowledgements, and explicit test mode
 - Structured redacted logs, bounded log rotation, atomic local state, and graceful lifecycle handling
 - Token-protected loopback HTTP controls plus health, readiness, diagnostics, and simulation endpoints
 - Deterministic unit and integration tests that need no accounts or live stream
@@ -101,7 +101,7 @@ The former Viewer Identity and Progression, Bloom Companion, and Speaker.bot Orc
 
 ## V2 preview setup wizard
 
-Stages 3 through 6 provide an authenticated loopback wizard at `http://127.0.0.1:8787/wizard/`. Unlock it with the installation token in `data/runtime/control-token`, or import and run the reviewed [Streamer.bot wizard launcher](packages/streamerbot/wizard-launcher/README.md).
+Stages 3 through 9 provide an authenticated loopback wizard at `http://127.0.0.1:8787/wizard/`. A portable installation keeps its unique token under `data/secrets/control-token`; a source checkout uses the path configured by `security.controlTokenFile`. The token stays local and is never included in configuration exports.
 
 Streamer.bot inspection sends only documented `GetActions` and `GetCommands` requests. Creator-approved command administration is limited to commands already tracked by THSV StreamBridge; unrelated commands remain read-only. Configuration drafts cover platform switches, scoped blockers, command settings, and timed actions. One tab holds the mutation lease; commit rechecks the source file hash, validates the complete candidate, creates a backup, writes atomically, verifies the result, and restores the backup on failure. Safe exports omit secrets. Restart StreamBridge after committing configuration.
 
@@ -119,17 +119,20 @@ Stage 8 adds Twitch and Kick reward-redemption intake to those native actions. T
 
 ## V2 add-on packages
 
-Stage 9 adds hash-verified, version-bounded optional module packages. Installed add-ons run with StreamBridge's local permissions, so installation and removal require explicit creator approval; hashes prove package integrity, not publisher trust. A failed or corrupted add-on is rejected without stopping required core modules. Start with the shipped `examples/addons/no-op/` reference and the [add-on developer guide](docs/add-on-development.md).
+Stage 9 adds hash-verified, version-bounded optional module packages plus an authenticated Add-ons page in the local wizard. A declarative package can expose schema-validated settings without executing add-on code. Executable packages receive scoped handles for private state, bounded scheduling, exact creator-approved Streamer.bot actions through the bridge's single connection, and core-hosted namespaced card/media overlays. They still run with StreamBridge's Windows-account permissions, so the broker is not an operating-system sandbox and installation requires explicit creator approval. A failed or corrupted add-on is shown as rejected without stopping required core modules. Start with `examples/addons/declarative-settings/`, the [add-on developer guide](docs/add-on-development.md), and the [capability broker reference](docs/add-on-capabilities.md).
 
 ## Requirements
 
 - Windows 10 or later
-- Node.js 22 or later
 - PowerShell 5.1 or later
 
-Docker and a database are not required.
+The public portable Windows package includes its own verified Node.js 22 runtime and production dependencies. A separate Node.js installation is needed only for source development. Docker and a database are not required.
 
 ## Install and run
+
+For the public package, download the Windows x64 ZIP and checksum from the official GitHub release, verify it as described in [RELEASE-VERIFICATION.md](RELEASE-VERIFICATION.md), extract it, and double-click `Install THSV StreamBridge.cmd`. The installer creates a unique 256-bit local control token, preserves creator data during upgrades, starts the bridge, checks health, and opens the setup wizard. No npm command or global Node installation is required.
+
+For source development:
 
 ```powershell
 Set-Location 'F:\The Hidden Sloth Village\THSV StreamBridge'
@@ -144,7 +147,7 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See the [Stage 2 completion record](docs/stage-2-completion.md), [Stage 3 completion record](docs/stage-3-completion.md), [Stage 4 completion record](docs/stage-4-completion.md), [Stage 5 completion record](docs/stage-5-completion.md), [Stage 6 completion record](docs/stage-6-completion.md), [Stage 7 completion record](docs/stage-7-completion.md), [Channel rewards](docs/rewards.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and [Future add-ons](docs/future-add-ons.md).
+See the [Stage 2 completion record](docs/stage-2-completion.md), [Stage 3 completion record](docs/stage-3-completion.md), [Stage 4 completion record](docs/stage-4-completion.md), [Stage 5 completion record](docs/stage-5-completion.md), [Stage 6 completion record](docs/stage-6-completion.md), [Stage 7 completion record](docs/stage-7-completion.md), [Stage 8 completion record](docs/stage-8-completion.md), [Stage 9 completion record](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and [Future add-ons](docs/future-add-ons.md).
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 

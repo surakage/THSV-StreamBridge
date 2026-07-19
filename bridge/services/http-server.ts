@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import type { BridgeConfig } from '../../schemas/config.js';
@@ -14,6 +14,7 @@ import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
+import { AddOnWizardError } from './addon-wizard-service.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -23,6 +24,9 @@ export interface DiagnosticsTarget {
   controlTimedActions(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>>;
   testTimedAction?(id: string): Promise<Readonly<Record<string, unknown>>>;
 }
+
+class UnsupportedContentEncodingError extends Error {}
+class OverlayAssetError extends Error {}
 
 export class DiagnosticsServer {
   private server: Server | undefined;
@@ -77,14 +81,30 @@ export class DiagnosticsServer {
     const requestPath = request.url?.split('?', 1)[0];
     let release: (() => void) | undefined;
     try {
-      if (request.method === 'GET' && request.url === '/health') return this.reply(response, 200, this.target.health());
+      if (request.method === 'GET' && request.url === '/health') {
+        this.guard.assertLoopback(request);
+        return this.reply(response, 200, this.target.health());
+      }
       if (request.method === 'GET' && request.url === '/ready') {
+        this.guard.assertLoopback(request);
         const readiness = this.target.readiness();
         return this.reply(response, readiness['ready'] === true ? 200 : 503, readiness);
       }
-      if (request.method === 'GET' && request.url === '/diagnostics') return this.reply(response, 200, { ...this.target.diagnostics(), browserOverlay: this.overlayHub?.status() });
+      if (request.method === 'GET' && request.url === '/diagnostics') {
+        this.guard.assertLoopback(request);
+        return this.reply(response, 200, { ...this.target.diagnostics(), browserOverlay: this.overlayHub?.status() });
+      }
       if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) {
+        this.guard.assertLoopback(request);
         return this.reply(response, 200, this.overlayHub.clientConfig());
+      }
+      if (request.method === 'GET' && requestPath !== undefined && ['/overlay/addons/host.js', '/overlay/addons/host.css'].includes(requestPath)) return await this.overlayAsset(response, requestPath);
+      const addOnOverlayMatch = request.method === 'GET' ? /^\/overlay\/addons\/([a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+)$/u.exec(requestPath ?? '') : null;
+      if (addOnOverlayMatch?.[1] !== undefined && this.overlayHub !== undefined && this.wizard !== undefined) {
+        this.guard.assertLoopback(request);
+        const addOn = (await this.wizard.listAddOns()).find((candidate) => candidate.moduleId === addOnOverlayMatch[1]);
+        if (!this.overlayHub.clientConfig().enabled || addOn === undefined || addOn.health !== 'installed' || !addOn.enabled || !addOn.permissions.includes('overlay.publish')) return this.reply(response, 404, { error: 'Add-on overlay not found' });
+        return await this.addOnOverlayAsset(response, 'addon-host.html');
       }
       if (request.method === 'GET' && request.url === '/wizard/api/overview' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -152,6 +172,48 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.exportConfiguration());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/addons' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { addOns: await this.wizard.listAddOns() });
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/install' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, Math.max(this.config.maxPayloadBytes, 10_000_000));
+        return this.reply(response, 201, await this.wizard.installAddOn(JSON.parse(body.text) as unknown));
+      }
+      const addOnEnabledMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/enabled$/u.exec(request.url ?? '') : null;
+      if (addOnEnabledMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.setAddOnEnabled(decodeURIComponent(addOnEnabledMatch[1]), JSON.parse(body.text) as unknown));
+      }
+      const addOnActionGrantsMatch = request.method === 'PUT' ? /^\/wizard\/api\/addons\/([^/]+)\/action-grants$/u.exec(request.url ?? '') : null;
+      if (addOnActionGrantsMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.setAddOnApprovedActions(decodeURIComponent(addOnActionGrantsMatch[1]), JSON.parse(body.text) as unknown));
+      }
+      const addOnOverlayPreviewMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/overlay-preview$/u.exec(request.url ?? '') : null;
+      if (addOnOverlayPreviewMatch?.[1] !== undefined && this.wizard !== undefined && this.overlayHub !== undefined) {
+        release = this.guard.acquire(request, true);
+        const moduleId = decodeURIComponent(addOnOverlayPreviewMatch[1]);
+        const addOn = (await this.wizard.listAddOns()).find((candidate) => candidate.moduleId === moduleId);
+        if (!this.overlayHub.clientConfig().enabled || addOn === undefined || addOn.health !== 'installed' || !addOn.enabled || !addOn.permissions.includes('overlay.publish')) return this.reply(response, 404, { error: 'Enabled add-on overlay not found' });
+        this.overlayHub.publishAddOn(moduleId, `${moduleId}.card.show`, { title: addOn.name, text: 'Overlay connection and scoped publication are working.', durationMs: 5_000, preview: true });
+        return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic: `${moduleId}.card.show` });
+      }
+      const addOnRemoveMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/remove$/u.exec(request.url ?? '') : null;
+      if (addOnRemoveMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.removeAddOn(decodeURIComponent(addOnRemoveMatch[1]), JSON.parse(body.text) as unknown));
+      }
+      const addOnSettingsMatch = request.method === 'PUT' ? /^\/wizard\/api\/addons\/([^/]+)\/settings$/u.exec(request.url ?? '') : null;
+      if (addOnSettingsMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.saveAddOnSettings(decodeURIComponent(addOnSettingsMatch[1]), JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/overlay-assets' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
@@ -161,12 +223,8 @@ export class DiagnosticsServer {
           ? new Map([['audio/mpeg', 'mp3'], ['audio/wav', 'wav'], ['audio/x-wav', 'wav'], ['audio/ogg', 'ogg']])
           : kind === 'background' ? new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]) : undefined;
         if (allowed === undefined || typeof contentType !== 'string' || typeof encoded !== 'string' || !allowed.has(contentType)) return this.reply(response, 400, { error: 'Unsupported overlay asset type.' });
-        const bytes = Buffer.from(encoded, 'base64');
-        if (bytes.length === 0 || bytes.length > 2_000_000) return this.reply(response, 400, { error: 'Overlay assets must be between 1 byte and 2 MB.' });
         const extension = allowed.get(contentType) ?? '';
-        const filename = `${createHash('sha256').update(bytes).digest('hex')}.${extension}`;
-        await mkdir('data/runtime/overlay-assets', { recursive: true });
-        await writeFile(`data/runtime/overlay-assets/${filename}`, bytes, { flag: 'wx' }).catch((error: unknown) => { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; });
+        const { filename, bytes } = await storeOverlayAsset(encoded, contentType, extension);
         return this.reply(response, 201, { url: `/overlay/assets/${filename}`, bytes: bytes.length, contentType });
       }
       const overlayAssetMatch = request.method === 'GET' ? /^\/overlay\/assets\/([a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp))$/u.exec(request.url ?? '') : null;
@@ -230,10 +288,13 @@ export class DiagnosticsServer {
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardConfigurationError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof AddOnWizardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
       if (error instanceof OutputCapacityError) return this.reply(response, 429, { error: error.message });
       if (error instanceof OutputUnavailableError) return this.reply(response, 503, { error: error.message });
+      if (error instanceof UnsupportedContentEncodingError) return this.reply(response, 415, { error: error.message });
+      if (error instanceof OverlayAssetError) return this.reply(response, 400, { error: error.message });
       if (error instanceof SyntaxError || isValidationError(error)) return this.reply(response, 400, { error: 'Request body is not a valid normalized event' });
       this.logger.error('HTTP request failed', { method: request.method, url: request.url, error });
       return this.reply(response, 500, { error: 'Internal bridge error' });
@@ -261,6 +322,15 @@ export class DiagnosticsServer {
     response.setHeader('content-type', asset.contentType);
     response.setHeader('cache-control', 'no-store');
     response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:");
+    response.end(body);
+  }
+
+  private async addOnOverlayAsset(response: ServerResponse, file: string): Promise<void> {
+    const body = await readFile(resolve(process.cwd(), 'overlays', 'browser', file));
+    response.statusCode = 200;
+    response.setHeader('content-type', file.endsWith('.html') ? 'text/html; charset=utf-8' : file.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+    response.setHeader('cache-control', 'no-store');
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:; media-src 'self' https:; base-uri 'none'; form-action 'none'");
     response.end(body);
   }
 
@@ -301,6 +371,7 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/addons.js': { file: 'addons.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
 };
 
@@ -338,11 +409,15 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/styles-1.1.1.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.2.1.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.3.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/addons/host.js': { file: 'addon-host.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/addons/host.css': { file: 'addon-host.css', contentType: 'text/css; charset=utf-8' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }
 
 async function readBody(request: IncomingMessage, maximumBytes: number): Promise<RequestBody> {
+  const contentEncoding = (request.headers['content-encoding'] ?? 'identity').trim().toLowerCase();
+  if (contentEncoding !== '' && contentEncoding !== 'identity') throw new UnsupportedContentEncodingError('Compressed request bodies are not accepted; send identity-encoded JSON.');
   const length = Number(request.headers['content-length'] ?? 0);
   if (Number.isFinite(length) && length > maximumBytes) throw new PayloadTooLargeError(`Payload exceeds ${String(maximumBytes)} bytes`);
   const chunks: Buffer[] = [];
@@ -354,6 +429,50 @@ async function readBody(request: IncomingMessage, maximumBytes: number): Promise
     chunks.push(buffer);
   }
   return { text: Buffer.concat(chunks).toString('utf8'), bytes: total };
+}
+
+const OVERLAY_ASSET_DIRECTORY = 'data/runtime/overlay-assets';
+const MAX_OVERLAY_ASSET_BYTES = 2_000_000;
+const MAX_OVERLAY_ASSET_FILES = 100;
+const MAX_OVERLAY_ASSET_TOTAL_BYTES = 50_000_000;
+let overlayAssetWriteChain: Promise<void> = Promise.resolve();
+
+async function storeOverlayAsset(encoded: string, contentType: string, extension: string): Promise<{ filename: string; bytes: Buffer }> {
+  if (encoded.length > Math.ceil(MAX_OVERLAY_ASSET_BYTES / 3) * 4 || !isCanonicalBase64(encoded)) throw new OverlayAssetError('Overlay asset data is not valid canonical base64.');
+  const bytes = Buffer.from(encoded, 'base64');
+  if (bytes.length === 0 || bytes.length > MAX_OVERLAY_ASSET_BYTES) throw new OverlayAssetError('Overlay assets must be between 1 byte and 2 MB.');
+  if (!matchesDeclaredAssetType(bytes, contentType)) throw new OverlayAssetError('Overlay asset content does not match its declared media type.');
+  const filename = `${createHash('sha256').update(bytes).digest('hex')}.${extension}`;
+  let release!: () => void;
+  const previous = overlayAssetWriteChain;
+  overlayAssetWriteChain = new Promise<void>((resolveWrite) => { release = resolveWrite; });
+  await previous;
+  try {
+    await mkdir(OVERLAY_ASSET_DIRECTORY, { recursive: true });
+    const target = `${OVERLAY_ASSET_DIRECTORY}/${filename}`;
+    try { await stat(target); return { filename, bytes }; }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+    const entries = (await readdir(OVERLAY_ASSET_DIRECTORY, { withFileTypes: true })).filter((entry) => entry.isFile() && /^[a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp)$/u.test(entry.name));
+    if (entries.length >= MAX_OVERLAY_ASSET_FILES) throw new OverlayAssetError(`Overlay asset storage is limited to ${String(MAX_OVERLAY_ASSET_FILES)} files.`);
+    const sizes = await Promise.all(entries.map(async (entry) => (await stat(`${OVERLAY_ASSET_DIRECTORY}/${entry.name}`)).size));
+    if (sizes.reduce((sum, size) => sum + size, 0) + bytes.length > MAX_OVERLAY_ASSET_TOTAL_BYTES) throw new OverlayAssetError('Overlay asset storage is limited to 50 MB.');
+    await writeFile(target, bytes, { flag: 'wx', mode: 0o600 });
+    return { filename, bytes };
+  } finally { release(); }
+}
+
+function isCanonicalBase64(value: string): boolean {
+  return value.length > 0 && value.length % 4 === 0 && /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value);
+}
+
+function matchesDeclaredAssetType(bytes: Buffer, contentType: string): boolean {
+  if (contentType === 'image/png') return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (contentType === 'image/jpeg') return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (contentType === 'image/webp') return bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+  if (contentType === 'audio/wav' || contentType === 'audio/x-wav') return bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WAVE';
+  if (contentType === 'audio/ogg') return bytes.length >= 4 && bytes.subarray(0, 4).toString('ascii') === 'OggS';
+  if (contentType === 'audio/mpeg') return bytes.length >= 3 && (bytes.subarray(0, 3).toString('ascii') === 'ID3' || (bytes[0] === 0xff && (bytes[1] ?? 0) >= 0xe0));
+  return false;
 }
 
 function isValidationError(error: unknown): boolean {

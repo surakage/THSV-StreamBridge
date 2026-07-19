@@ -12,12 +12,18 @@ const MAX_NAME_LENGTH = 64;
 const MAX_ALIASES = 20;
 const MAX_NOTE_LENGTH = 500;
 const MAX_ACTION_NAME_LENGTH = 200;
-const MAX_RESPONSE_LENGTH = 500;
+const MAX_CUSTOM_SCRIPT_LENGTH = 20_000;
 const MAX_BATCH_SIZE = 20;
 const ROLES = ['viewer', 'subscriber', 'moderator', 'broadcaster'] as const;
-const DELIVERY_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
+const COMMAND_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
+const NATIVE_COMMAND_PLATFORMS = ['twitch', 'youtube', 'kick'] as const;
+export const COMMAND_PLATFORM_LIMITS = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } as const;
+const COMMAND_SOURCE_BITS = { twitch: 1, youtube: 1_024, kick: 2_097_152 } as const;
 
 export type CommandGenerationRole = typeof ROLES[number];
+export type CommandPlatform = typeof COMMAND_PLATFORMS[number];
+export type CommandResponseMode = 'none' | 'platform-message' | 'custom-script';
+export type CommandPlatformMessages = Readonly<Partial<Record<CommandPlatform, string>>>;
 
 export interface CommandDesignInput {
   readonly name: string;
@@ -25,6 +31,15 @@ export interface CommandDesignInput {
   readonly minimumRole?: string;
   readonly note?: string;
   readonly actionName?: string;
+  readonly responseMode?: string;
+  readonly commandSources?: readonly string[];
+  readonly platformMessages?: Readonly<Record<string, unknown>>;
+  readonly customScript?: string;
+  readonly globalCooldown?: number;
+  readonly userCooldown?: number;
+  readonly ignoreBotAccount?: boolean;
+  readonly ignoreInternal?: boolean;
+  // v1 wizard compatibility. New clients send platformMessages and commandSources.
   readonly responseMessage?: string;
   readonly deliveryPlatforms?: readonly string[];
   readonly approvedByCreator: boolean;
@@ -36,8 +51,14 @@ export interface CommandDesign {
   readonly minimumRole: CommandGenerationRole;
   readonly note: string;
   readonly actionName: string;
-  readonly responseMessage: string;
-  readonly deliveryPlatforms: readonly (typeof DELIVERY_PLATFORMS)[number][];
+  readonly responseMode: CommandResponseMode;
+  readonly commandSources: readonly CommandPlatform[];
+  readonly platformMessages: CommandPlatformMessages;
+  readonly customScript: string;
+  readonly globalCooldown: number;
+  readonly userCooldown: number;
+  readonly ignoreBotAccount: boolean;
+  readonly ignoreInternal: boolean;
 }
 
 export class InvalidCommandDesignError extends Error {}
@@ -55,19 +76,51 @@ export function createCommandDesign(input: CommandDesignInput): CommandDesign {
   if (!isRole(minimumRoleInput)) throw new InvalidCommandDesignError(`minimumRole must be one of ${ROLES.join(', ')}.`);
   const note = (input.note ?? '').trim().slice(0, MAX_NOTE_LENGTH);
   if (/[\r\n]/u.test(note)) throw new InvalidCommandDesignError('note must be a single line.');
-  const actionName = (input.actionName ?? `THSV Generated - ${name}`).trim();
+  const actionName = (input.actionName ?? `THSV Command - ${titleCaseCommand(name)}`).trim();
   if (actionName.length === 0 || actionName.length > MAX_ACTION_NAME_LENGTH || /[\r\n]/u.test(actionName)) throw new InvalidCommandDesignError(`actionName must be a single line of 1-${String(MAX_ACTION_NAME_LENGTH)} characters.`);
-  const responseMessage = (input.responseMessage ?? '').trim();
-  if (responseMessage.length > MAX_RESPONSE_LENGTH || /[\p{Cc}]/u.test(responseMessage)) throw new InvalidCommandDesignError(`responseMessage must be plain text of at most ${String(MAX_RESPONSE_LENGTH)} characters.`);
-  const rawPlatforms = input.deliveryPlatforms ?? [];
-  if (!rawPlatforms.every((platform): platform is (typeof DELIVERY_PLATFORMS)[number] => (DELIVERY_PLATFORMS as readonly string[]).includes(platform))) throw new InvalidCommandDesignError(`deliveryPlatforms must contain only ${DELIVERY_PLATFORMS.join(', ')}.`);
-  const deliveryPlatforms = [...new Set(rawPlatforms)] as (typeof DELIVERY_PLATFORMS)[number][];
-  if (responseMessage.length === 0 && deliveryPlatforms.length > 0) throw new InvalidCommandDesignError('responseMessage is required when delivery platforms are selected.');
-  return { name, aliases, minimumRole: minimumRoleInput, note, actionName, responseMessage, deliveryPlatforms };
+  const legacyPlatforms = input.deliveryPlatforms ?? [];
+  const rawSources = input.commandSources ?? legacyPlatforms;
+  if (!rawSources.every((platform): platform is CommandPlatform => (COMMAND_PLATFORMS as readonly string[]).includes(platform))) throw new InvalidCommandDesignError(`commandSources must contain only ${COMMAND_PLATFORMS.join(', ')}.`);
+  const commandSources = [...new Set(rawSources)] as CommandPlatform[];
+  const legacyMessage = (input.responseMessage ?? '').trim();
+  const rawMessages = input.platformMessages ?? Object.fromEntries(commandSources.map((platform) => [platform, legacyMessage]));
+  const platformMessages: Partial<Record<CommandPlatform, string>> = {};
+  for (const platform of COMMAND_PLATFORMS) {
+    const value = rawMessages[platform];
+    if (value === undefined || value === '') continue;
+    if (typeof value !== 'string') throw new InvalidCommandDesignError(`${platform} response must be a string.`);
+    const message = value.trim();
+    if (message.length === 0 || message.length > COMMAND_PLATFORM_LIMITS[platform] || /[\p{Cc}]/u.test(message)) throw new InvalidCommandDesignError(`${platform} response must be single-line plain text of 1-${String(COMMAND_PLATFORM_LIMITS[platform])} characters.`);
+    platformMessages[platform] = message;
+  }
+  const inferredMode = input.responseMode ?? (legacyMessage.length > 0 ? 'platform-message' : 'none');
+  if (!isResponseMode(inferredMode)) throw new InvalidCommandDesignError('responseMode must be none, platform-message, or custom-script.');
+  const customScript = (input.customScript ?? '').trim();
+  if (customScript.length > MAX_CUSTOM_SCRIPT_LENGTH || customScript.includes('\0')) throw new InvalidCommandDesignError(`customScript must contain at most ${String(MAX_CUSTOM_SCRIPT_LENGTH)} characters and no null bytes.`);
+  if (inferredMode === 'platform-message') {
+    if (commandSources.length === 0) throw new InvalidCommandDesignError('Select at least one command source for a platform response.');
+    for (const platform of commandSources) if (platformMessages[platform] === undefined) throw new InvalidCommandDesignError(`Enter a ${platform} response or remove that command source.`);
+  }
+  if (inferredMode === 'custom-script' && customScript.length === 0) throw new InvalidCommandDesignError('customScript is required for custom-script mode.');
+  const globalCooldown = boundedCooldown(input.globalCooldown, 'globalCooldown');
+  const userCooldown = boundedCooldown(input.userCooldown, 'userCooldown');
+  return {
+    name, aliases, minimumRole: minimumRoleInput, note, actionName, responseMode: inferredMode,
+    commandSources, platformMessages, customScript, globalCooldown, userCooldown,
+    ignoreBotAccount: input.ignoreBotAccount ?? true, ignoreInternal: input.ignoreInternal ?? true,
+  };
 }
 
 function isRole(value: string): value is CommandGenerationRole {
   return (ROLES as readonly string[]).includes(value);
+}
+
+function isResponseMode(value: string): value is CommandResponseMode { return value === 'none' || value === 'platform-message' || value === 'custom-script'; }
+function titleCaseCommand(value: string): string { return value.split('-').map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`).join(' '); }
+function boundedCooldown(value: number | undefined, field: string): number {
+  const result = value ?? 0;
+  if (!Number.isInteger(result) || result < 0 || result > 86_400) throw new InvalidCommandDesignError(`${field} must be a whole number from 0 to 86400 seconds.`);
+  return result;
 }
 
 // Validates a whole batch at once: each design individually (createCommandDesign), plus that no
@@ -103,6 +156,10 @@ export function parseCommandDesignInput(value: unknown): CommandDesignInput {
   if (aliases !== undefined && (!Array.isArray(aliases) || !aliases.every((item) => typeof item === 'string'))) {
     throw new InvalidCommandDesignError('aliases must be an array of strings.');
   }
+  const platformMessages = record['platformMessages'];
+  if (platformMessages !== undefined && (typeof platformMessages !== 'object' || platformMessages === null || Array.isArray(platformMessages))) throw new InvalidCommandDesignError('platformMessages must be a JSON object.');
+  if (record['commandSources'] !== undefined && (!Array.isArray(record['commandSources']) || !record['commandSources'].every((item) => typeof item === 'string'))) throw new InvalidCommandDesignError('commandSources must be an array of strings.');
+  for (const field of ['globalCooldown', 'userCooldown']) if (record[field] !== undefined && typeof record[field] !== 'number') throw new InvalidCommandDesignError(`${field} must be a number.`);
   return {
     name: record['name'],
     approvedByCreator: record['approvedByCreator'],
@@ -110,6 +167,14 @@ export function parseCommandDesignInput(value: unknown): CommandDesignInput {
     ...(typeof record['minimumRole'] === 'string' ? { minimumRole: record['minimumRole'] } : {}),
     ...(typeof record['note'] === 'string' ? { note: record['note'] } : {}),
     ...(typeof record['actionName'] === 'string' ? { actionName: record['actionName'] } : {}),
+    ...(typeof record['responseMode'] === 'string' ? { responseMode: record['responseMode'] } : {}),
+    ...(Array.isArray(record['commandSources']) && record['commandSources'].every((item) => typeof item === 'string') ? { commandSources: record['commandSources'] } : {}),
+    ...(platformMessages === undefined ? {} : { platformMessages: platformMessages as Record<string, unknown> }),
+    ...(typeof record['customScript'] === 'string' ? { customScript: record['customScript'] } : {}),
+    ...(typeof record['globalCooldown'] === 'number' ? { globalCooldown: record['globalCooldown'] } : {}),
+    ...(typeof record['userCooldown'] === 'number' ? { userCooldown: record['userCooldown'] } : {}),
+    ...(typeof record['ignoreBotAccount'] === 'boolean' ? { ignoreBotAccount: record['ignoreBotAccount'] } : {}),
+    ...(typeof record['ignoreInternal'] === 'boolean' ? { ignoreInternal: record['ignoreInternal'] } : {}),
     ...(typeof record['responseMessage'] === 'string' ? { responseMessage: record['responseMessage'] } : {}),
     ...(Array.isArray(record['deliveryPlatforms']) && record['deliveryPlatforms'].every((item) => typeof item === 'string') ? { deliveryPlatforms: record['deliveryPlatforms'] } : {}),
   };
@@ -216,15 +281,11 @@ const DEFAULT_PREFIX = '!';
 // Generates one package containing, for every design in the batch, a minimal fully-reviewable
 // stub action, a native Command object, and the trigger on the action that binds them — all
 // three confirmed necessary and sufficient by decoding a real Streamer.bot v1.0.5-alpha.31
-// export (a manually created command bound to a manually created action). That export also
-// revealed the command's trigger phrase is a single string (`command`, prefix included) rather
-// than a list, so aliases designed here are used only for the collision check, not embedded in
-// the generated command — each stub action's source tells the creator to add them through
-// Streamer.bot's own Command(s) box after import, the same well-understood native step every
-// Streamer.bot user already knows. Every command still imports disabled: a handful of fields on
-// it (bot/message filtering toggles, exact `sources` bitmask beyond the one confirmed value)
-// remain unverified, and importing disabled keeps a wrong guess on those inert until the creator
-// reviews and enables it. Multiple actions in one package is the same pattern
+// export (a manually created command bound to a manually created action). Streamer.bot stores its
+// multi-line Command(s) editor in one `command` string, so the primary phrase and every alias are
+// embedded one per line. Every command still imports disabled so the creator can review
+// its permissions, selected platform sources, cooldowns, and generated action before enabling it.
+// Multiple actions in one package is the same pattern
 // native-platform-intake already uses (one package, several independently-triggered actions).
 export function generateCommandsPackage(designs: readonly CommandDesign[], prefix: string): GeneratedCommandsPackage {
   if (designs.length === 0) throw new InvalidCommandDesignError('At least one command design is required.');
@@ -239,22 +300,33 @@ export function generateCommandsPackage(designs: readonly CommandDesign[], prefi
     const commandId = stableStreamerBotUuid(`${identitySeed}:command`);
     const triggerId = stableStreamerBotUuid(`${identitySeed}:trigger`);
     const commandPhrase = `${normalizedPrefix}${design.name}`;
+    const commandPhrases = [commandPhrase, ...design.aliases.map((alias) => `${normalizedPrefix}${alias}`)].join('\n');
     const sourceCode = generateCommandActionSource(design, commandPhrase);
     actionInputs.push({
       name: actionName,
-      group: 'THSV StreamBridge / Generated',
+      group: 'THSV Bridge - Commands',
       id: actionId,
       sourceSubActionId: stableStreamerBotUuid(`${identitySeed}:source`),
       sourceCode,
+      ...(design.responseMode === 'custom-script' ? { references: [
+        'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll',
+        'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll',
+        'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll',
+      ] } : {}),
       stableIdentitySeed: identitySeed,
       triggers: [{ commandId, id: triggerId, stableIdentitySeed: identitySeed }],
     });
     commandInputs.push({
       id: commandId,
       name: design.name,
-      command: commandPhrase,
+      command: commandPhrases,
       enabled: false,
       caseSensitive: false,
+      sources: commandSourceMask(design.commandSources),
+      ignoreBotAccount: design.ignoreBotAccount,
+      ignoreInternal: design.ignoreInternal,
+      globalCooldown: design.globalCooldown,
+      userCooldown: design.userCooldown,
       stableIdentitySeed: identitySeed,
     });
     commands.push({ name: design.name, actionId, commandId, sourceCode });
@@ -281,40 +353,90 @@ export function generateCommandsPackage(designs: readonly CommandDesign[], prefi
 }
 
 function generateCommandActionSource(design: CommandDesign, commandPhrase: string): string {
-  const aliasList = design.aliases.length === 0 ? '(none — add these in Streamer.bot\'s Command(s) box after import)' : design.aliases.join(', ');
+  const aliasList = design.aliases.length === 0 ? '(none)' : design.aliases.join(', ');
   const note = design.note.length === 0 ? '(none)' : design.note;
-  const sends = design.responseMessage.length === 0 ? '        // Add creator-owned sub-actions here.' : design.deliveryPlatforms.map((platform) => ({
-    twitch: '        CPH.SendMessage(responseMessage, true, true);',
-    youtube: '        CPH.SendYouTubeMessageToLatestMonitored(responseMessage, true, true);',
-    kick: '        CPH.SendKickMessage(responseMessage, true, true);',
-    tiktok: '        CPH.WebsocketBroadcastJson("{\\"action\\":\\"sendChatbotMessage\\",\\"args\\":{\\"message\\":" + Newtonsoft.Json.JsonConvert.ToString(responseMessage) + "}}");',
-  })[platform]).join('\n');
+  const allowedSources = design.commandSources.map((platform) => `"${platform}"`).join(', ');
+  const messageDeclarations = COMMAND_PLATFORMS.map((platform) => `        string ${platform}Message = ExpandTemplate("${escapeCSharpString(design.platformMessages[platform] ?? '')}", userName, target, rawInput, channelName);`).join('\n');
+  const execution = design.responseMode === 'platform-message' ? `        string responseMessage;
+        if (commandSource == "twitch") responseMessage = twitchMessage;
+        else if (commandSource == "youtube") responseMessage = youtubeMessage;
+        else if (commandSource == "kick") responseMessage = kickMessage;
+        else if (commandSource == "tiktok") responseMessage = tiktokMessage;
+        else return true;
+        if (String.IsNullOrWhiteSpace(responseMessage)) return true;
+        CPH.SetArgument("generatedCommandResponseMessage", responseMessage);
+        if (commandSource == "twitch") CPH.SendMessage(responseMessage, true, true);
+        else if (commandSource == "youtube") CPH.SendYouTubeMessageToLatestMonitored(responseMessage, true, true);
+        else if (commandSource == "kick") CPH.SendKickMessage(responseMessage, true, true);
+        else if (commandSource == "tiktok") SendToTikFinity(responseMessage);`
+    : design.responseMode === 'custom-script' ? indentCustomScript(design.customScript) : '        // No automatic response was selected. Add creator-owned sub-actions here.';
   return `using System;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 
 public class CPHInline
 {
     // Generated by the THSV StreamBridge setup wizard for the "${commandPhrase}" command.
-    // Aliases (not embedded in the import — add them yourself): ${aliasList}
-    // Minimum role: ${design.minimumRole}
+    // Aliases: ${aliasList}
+    // Minimum role reference: ${design.minimumRole}
     // Creator note: ${note}
-    //
-    // The response below is creator-authored and is sent only to the platforms selected in
-    // the wizard. It is also exposed as generatedCommandResponseMessage for later sub-actions. The imported
-    // "${commandPhrase}" command starts disabled on purpose — open it in Streamer.bot, review
-    // its settings (permissions, sources, aliases), and enable it once you are satisfied.
+    // Allowed command sources: ${allowedSources || '(none)'}
     public bool Execute()
     {
-        string responseMessage = "${escapeCSharpString(design.responseMessage)}";
+        string commandSource = Read("commandSource").Trim().ToLowerInvariant();
+        if (commandSource.Length == 0 && (Has("commandParams") || Has("nickname") || Has("username"))) commandSource = "tiktok";
+        var allowedSources = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ${allowedSources} };
+        if (!allowedSources.Contains(commandSource)) return true;
+        string rawInput = First(Read("rawInput"), Read("commandParams")).Trim();
+        string target = First(Read("input0"), FirstWord(rawInput)).Trim();
+        string userName = First(Read("nickname"), Read("username"), Read("user"), Read("userName"), Read("displayName"));
+        string channelName = First(Read("broadcastUserName"), Read("broadcasterUserName"), Read("channelName"));
+${messageDeclarations}
         CPH.SetArgument("generatedCommandName", "${design.name}");
         CPH.SetArgument("generatedCommandPhrase", "${commandPhrase}");
         CPH.SetArgument("generatedCommandMinimumRole", "${design.minimumRole}");
-        CPH.SetArgument("generatedCommandResponseMessage", responseMessage);
-${sends}
+        CPH.SetArgument("generatedCommandSource", commandSource);
+        CPH.SetArgument("generatedCommandRawInput", rawInput);
+        CPH.SetArgument("generatedCommandTarget", target);
+        CPH.SetArgument("generatedCommandTwitchMessage", twitchMessage);
+        CPH.SetArgument("generatedCommandYouTubeMessage", youtubeMessage);
+        CPH.SetArgument("generatedCommandKickMessage", kickMessage);
+        CPH.SetArgument("generatedCommandTikTokMessage", tiktokMessage);
+${execution}
         return true;
+    }
+
+    private bool Has(string name) { return args.ContainsKey(name); }
+    private string Read(string name) { object value; return args.TryGetValue(name, out value) && value != null ? Convert.ToString(value) ?? "" : ""; }
+    private string First(params string[] values) { foreach (string value in values) if (!String.IsNullOrWhiteSpace(value)) return value; return ""; }
+    private string FirstWord(string value) { if (String.IsNullOrWhiteSpace(value)) return ""; string[] parts = value.Trim().Split(new[] { ' ' }, 2); return parts[0]; }
+    private string ExpandTemplate(string template, string user, string target, string input, string channel)
+    {
+        return (template ?? "").Replace("{user}", user ?? "").Replace("{target}", target ?? "").Replace("{input}", input ?? "").Replace("{channel}", channel ?? "");
+    }
+    private void SendToSource(string source, string message)
+    {
+        if (String.IsNullOrWhiteSpace(message)) return;
+        CPH.SetArgument("generatedCommandResponseMessage", message);
+        if (source == "twitch") CPH.SendMessage(message, true, true);
+        else if (source == "youtube") CPH.SendYouTubeMessageToLatestMonitored(message, true, true);
+        else if (source == "kick") CPH.SendKickMessage(message, true, true);
+        else if (source == "tiktok") SendToTikFinity(message);
+    }
+    private void SendToTikFinity(string message)
+    {
+        CPH.SetArgument("message", message);
+        args["message"] = message;
+        CPH.WebsocketBroadcastJson(JsonConvert.SerializeObject(new { action = "sendChatbotMessage", args = args }));
     }
 }
 `;
 }
+
+function commandSourceMask(platforms: readonly CommandPlatform[]): number {
+  return platforms.reduce((result, platform) => (NATIVE_COMMAND_PLATFORMS as readonly string[]).includes(platform) ? result | COMMAND_SOURCE_BITS[platform as keyof typeof COMMAND_SOURCE_BITS] : result, 0);
+}
+function indentCustomScript(value: string): string { return value.split(/\r?\n/u).map((line) => `        ${line}`).join('\n'); }
 
 function escapeCSharpString(value: string): string {
   return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\r', '\\r').replaceAll('\n', '\\n');

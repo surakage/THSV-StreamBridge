@@ -26,6 +26,8 @@ describe('Multi-Timed Actions Streamer.bot package', () => {
     expect(source).toContain('if (!dispatched) CPH.LogWarn');
     expect(source).toContain('targetActionApproved');
     expect(source).toContain('targetActionId == ThisActionId');
+    expect(source).toContain('multiTimedSelectedMessages');
+    expect(source).toContain('selectionMode != "platform-shuffle"');
     expect(source).not.toMatch(/CPH\.RunAction\(|CPH\.SetGlobalVar|Process\.Start|PowerShell|cmd\.exe|TtsSpeak|BroadcastUdp/);
     expect(source).toContain('reader.DateParseHandling = DateParseHandling.None');
   });

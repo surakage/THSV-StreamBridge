@@ -90,6 +90,11 @@
     "deliveryQueueCapacity": 100,
     "deliveryConcurrency": 2,
     "deliveryFailureThreshold": 3,
+    "deliveryStateFile": "data/state/delivery-outbox.json",
+    "deliveryMaxAttempts": 8,
+    "deliveryRetryInitialDelayMs": 500,
+    "deliveryRetryMaxDelayMs": 30000,
+    "deliveryDeadLetterCapacity": 1000,
     "testMode": false,
     "reconnect": {
       "enabled": true,

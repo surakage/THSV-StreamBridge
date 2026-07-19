@@ -14,7 +14,7 @@ import {
 describe('command design validation', () => {
   it('creates a normalized design with defaults', () => {
     expect(createCommandDesign({ name: 'Shoutout', approvedByCreator: true })).toEqual({
-      name: 'shoutout', aliases: [], minimumRole: 'viewer', note: '', actionName: 'THSV Generated - shoutout', responseMessage: '', deliveryPlatforms: [],
+      name: 'shoutout', aliases: [], minimumRole: 'viewer', note: '', actionName: 'THSV Command - Shoutout', responseMode: 'none', commandSources: [], platformMessages: {}, customScript: '', globalCooldown: 0, userCooldown: 0, ignoreBotAccount: true, ignoreInternal: true,
     });
   });
 
@@ -22,7 +22,7 @@ describe('command design validation', () => {
     expect(createCommandDesign({
       name: 'so', aliases: ['Shoutout', 'SO2'], minimumRole: 'moderator', note: 'Reads a target username argument.', approvedByCreator: true,
     })).toEqual({
-      name: 'so', aliases: ['shoutout', 'so2'], minimumRole: 'moderator', note: 'Reads a target username argument.', actionName: 'THSV Generated - so', responseMessage: '', deliveryPlatforms: [],
+      name: 'so', aliases: ['shoutout', 'so2'], minimumRole: 'moderator', note: 'Reads a target username argument.', actionName: 'THSV Command - So', responseMode: 'none', commandSources: [], platformMessages: {}, customScript: '', globalCooldown: 0, userCooldown: 0, ignoreBotAccount: true, ignoreInternal: true,
     });
   });
 
@@ -120,8 +120,8 @@ describe('batch design validation', () => {
       { name: 'so', approvedByCreator: true },
       { name: 'greet', aliases: ['hi'], approvedByCreator: true },
     ])).toEqual([
-      { name: 'so', aliases: [], minimumRole: 'viewer', note: '', actionName: 'THSV Generated - so', responseMessage: '', deliveryPlatforms: [] },
-      { name: 'greet', aliases: ['hi'], minimumRole: 'viewer', note: '', actionName: 'THSV Generated - greet', responseMessage: '', deliveryPlatforms: [] },
+      { name: 'so', aliases: [], minimumRole: 'viewer', note: '', actionName: 'THSV Command - So', responseMode: 'none', commandSources: [], platformMessages: {}, customScript: '', globalCooldown: 0, userCooldown: 0, ignoreBotAccount: true, ignoreInternal: true },
+      { name: 'greet', aliases: ['hi'], minimumRole: 'viewer', note: '', actionName: 'THSV Command - Greet', responseMode: 'none', commandSources: [], platformMessages: {}, customScript: '', globalCooldown: 0, userCooldown: 0, ignoreBotAccount: true, ignoreInternal: true },
     ]);
   });
 
@@ -189,13 +189,14 @@ describe('command package generation', () => {
     expect(decoded.subarray(0, 4).toString('ascii')).toBe('SBAE');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as {
       data: {
-        actions: Array<{ id: string; name: string; triggers: Array<{ commandId: string; type: number; enabled: boolean }>; subActions: Array<{ byteCode: string }> }>;
+        actions: Array<{ id: string; name: string; group: string; triggers: Array<{ commandId: string; type: number; enabled: boolean }>; subActions: Array<{ byteCode: string }> }>;
         commands: Array<{ id: string; name: string; command: string; enabled: boolean; caseSensitive: boolean }>;
       };
     };
     expect(exported.data.actions).toHaveLength(1);
     const action = exported.data.actions[0];
     expect(action?.id).toBe(entry?.actionId);
+    expect(action?.group).toBe('THSV Bridge - Commands');
     expect(Buffer.from(action?.subActions[0]?.byteCode ?? '', 'base64').toString('utf8')).toBe(entry?.sourceCode);
     // Confirmed against a real Streamer.bot v1.0.5-alpha.31 export: the binding lives on the
     // action's own triggers array, referencing the command by ID, type 401 ("Command Triggered").
@@ -205,9 +206,9 @@ describe('command package generation', () => {
     const command = exported.data.commands[0];
     expect(command?.id).toBe(entry?.commandId);
     expect(command?.name).toBe('so');
-    expect(command?.command).toBe('!so');
-    // Imports disabled on purpose: a handful of fields on the command object remain unverified,
-    // so a wrong guess there is inert until a creator reviews and enables it themselves.
+    expect(command?.command).toBe('!so\n!shoutout');
+    // Imports remain disabled so the creator reviews the generated action, permissions, sources,
+    // aliases, and cooldowns before enabling it.
     expect(command?.enabled).toBe(false);
   });
 
@@ -225,22 +226,54 @@ describe('command package generation', () => {
     expect(exported.data.commands).toHaveLength(2);
   });
 
-  it('generates a creator-named action with a stored response and selected platform send methods', () => {
+  it('generates a creator-named action with source-gated platform messages and command settings', () => {
     const design = createCommandDesign({
-      name: 'hello', actionName: 'THSV Command - Hello', responseMessage: 'Hello "sloths"!',
-      deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], approvedByCreator: true,
+      name: 'hello', actionName: 'THSV Command - Hello', responseMode: 'platform-message',
+      commandSources: ['twitch', 'youtube', 'kick'], platformMessages: { twitch: 'Hello Twitch!', youtube: 'Hello YouTube!', kick: 'Hello Kick!' },
+      globalCooldown: 10, userCooldown: 30, approvedByCreator: true,
     });
     const generated = generateCommandsPackage([design], '!');
     const source = generated.commands[0]?.sourceCode ?? '';
-    expect(source).toContain('string responseMessage = "Hello \\"sloths\\"!";');
+    expect(source).toContain('string commandSource = Read("commandSource")');
     expect(source).toContain('generatedCommandResponseMessage');
+    expect(source).toContain('if (commandSource == "twitch")');
     expect(source).toContain('CPH.SendMessage(responseMessage, true, true)');
     expect(source).toContain('CPH.SendYouTubeMessageToLatestMonitored(responseMessage, true, true)');
     expect(source).toContain('CPH.SendKickMessage(responseMessage, true, true)');
-    expect(source).toContain('sendChatbotMessage');
     const decoded = Buffer.from(generated.contentBase64, 'base64');
-    const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: Array<{ name: string }> } };
+    const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: Array<{ name: string }>; commands: Array<{ sources: number; globalCooldown: number; userCooldown: number }> } };
     expect(exported.data.actions[0]?.name).toBe('THSV Command - Hello');
+    expect(exported.data.commands[0]).toMatchObject({ sources: 2_098_177, globalCooldown: 10, userCooldown: 30 });
+  });
+
+  it('enforces the platform-specific response limits', () => {
+    expect(() => createCommandDesign({ name: 'long-youtube', responseMode: 'platform-message', commandSources: ['youtube'], platformMessages: { youtube: 'x'.repeat(201) }, approvedByCreator: true })).toThrow('1-200');
+    expect(() => createCommandDesign({ name: 'long-twitch', responseMode: 'platform-message', commandSources: ['twitch'], platformMessages: { twitch: 'x'.repeat(501) }, approvedByCreator: true })).toThrow('1-500');
+    expect(() => createCommandDesign({ name: 'long-tiktok', responseMode: 'platform-message', commandSources: ['tiktok'], platformMessages: { tiktok: 'x'.repeat(151) }, approvedByCreator: true })).toThrow('1-150');
+  });
+
+  it('generates a TikFinity-gated response without enabling an unrelated native command source', () => {
+    const design = createCommandDesign({
+      name: 'lurk', responseMode: 'platform-message', commandSources: ['tiktok'],
+      platformMessages: { tiktok: 'Thanks for lurking, {user}!' }, approvedByCreator: true,
+    });
+    const generated = generateCommandsPackage([design], '!');
+    const source = generated.commands[0]?.sourceCode ?? '';
+    expect(source).toContain('Has("commandParams")');
+    expect(source).toContain('Read("nickname")');
+    expect(source).toContain('action = "sendChatbotMessage"');
+    expect(source).toContain('JsonConvert.SerializeObject');
+    expect(source).toContain('generatedCommandTikTokMessage');
+    const decoded = Buffer.from(generated.contentBase64, 'base64');
+    const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { commands: Array<{ sources: number }> } };
+    expect(exported.data.commands[0]?.sources).toBe(0);
+  });
+
+  it('embeds a custom script inside the same source gate', () => {
+    const design = createCommandDesign({ name: 'custom-script', responseMode: 'custom-script', commandSources: ['youtube'], customScript: 'SendToSource(commandSource, rawInput);', approvedByCreator: true });
+    const source = generateCommandsPackage([design], '!').commands[0]?.sourceCode ?? '';
+    expect(source).toContain('allowedSources.Contains(commandSource)');
+    expect(source).toContain('SendToSource(commandSource, rawInput);');
   });
 
   it('uses the configured prefix, falling back to "!" for an invalid one', () => {

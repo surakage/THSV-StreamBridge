@@ -6,6 +6,7 @@ import { isSimulationAdapter } from '../adapters/adapter.js';
 import type { Logger } from '../services/logger.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { DeduplicationStore } from '../services/deduplication-store.js';
+import type { DeliveryOutboxStore } from '../services/delivery-outbox-store.js';
 import { EventDeduplicator } from './deduplicator.js';
 import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
@@ -19,6 +20,7 @@ export type IngestResult = {
   readonly duplicate: boolean;
   readonly eventId: string;
   readonly delivery: 'queued' | 'none';
+  readonly deliveryStatus: 'duplicate-ignored' | 'not-required' | 'durably-queued';
   readonly outputs: readonly string[];
   readonly derivedEventIds?: readonly string[];
 };
@@ -34,6 +36,7 @@ export interface StreamBridgeDependencies {
   readonly inputs: readonly InputAdapter[];
   readonly outputs: readonly OutputAdapter[];
   readonly deduplicationStore: DeduplicationStore;
+  readonly deliveryOutboxStore?: DeliveryOutboxStore;
   readonly stateWriter?: StateWriter;
   readonly modules?: ModuleRegistry;
 }
@@ -75,6 +78,13 @@ export class StreamBridge {
       config.streamerbot.deliveryConcurrency,
       config.streamerbot.deliveryFailureThreshold,
       logger,
+      {
+        ...(dependencies.deliveryOutboxStore === undefined ? {} : { store: dependencies.deliveryOutboxStore }),
+        maximumAttempts: config.streamerbot.deliveryMaxAttempts,
+        initialRetryDelayMs: config.streamerbot.deliveryRetryInitialDelayMs,
+        maximumRetryDelayMs: config.streamerbot.deliveryRetryMaxDelayMs,
+        deadLetterCapacity: config.streamerbot.deliveryDeadLetterCapacity,
+      },
     );
     this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
     this.modules = dependencies.modules ?? new ModuleRegistry([], logger);
@@ -145,7 +155,7 @@ export class StreamBridge {
     const validatedEvent = withoutCallerControlledMetadata(parsed.data, this.config.security.preserveRawPayloads);
     if (this.deduplicator.isDuplicate(validatedEvent)) {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
-      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', outputs: [] };
+      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
     this.timedActions?.observe(validatedEvent);
     if (validatedEvent.eventType === 'stream.online') {
@@ -195,6 +205,7 @@ export class StreamBridge {
         duplicate: false,
         eventId: validatedEvent.eventId,
         delivery: outputs.length === 0 ? 'none' : 'queued',
+        deliveryStatus: outputs.length === 0 ? 'not-required' : 'durably-queued',
         outputs,
         ...(events.length <= 1 ? {} : { derivedEventIds: events.slice(1).map((event) => event.eventId) }),
       };
@@ -210,7 +221,7 @@ export class StreamBridge {
       service: this.config.service.name,
       startedAt: this.startedAt,
       lastAcceptedEventAt: this.lastAcceptedEventAt,
-      ...(this.statePersistenceError === undefined ? {} : { statePersistenceError: this.statePersistenceError }),
+      ...(this.statePersistenceError === undefined ? {} : { statePersistenceError: 'Bridge status persistence is unavailable.' }),
     };
   }
 
@@ -230,16 +241,23 @@ export class StreamBridge {
       deduplicationPersistence: this.dependencies.deduplicationStore.status(),
       timedActions: this.timedActions?.controlStatus(),
       modules: this.modules.statuses(),
+      addOnCapabilities: this.modules.capabilityDiagnostics(),
     };
   }
 
   private async publishEvents(events: readonly NormalizedEvent[], initialDecision: FilterDecision): Promise<readonly string[]> {
+    // Persist the external-delivery obligation before any fallible local projection. Once
+    // this resolves, a crash can replay the event and the ingest response may safely say queued.
+    const outputs = await this.delivery.enqueueBatch(events);
     for (const [index, event] of events.entries()) {
       const decision = index === 0 ? initialDecision : this.filters.evaluate(event);
-      if (!decision.displayBlocked) await this.bus.publish(event);
+      if (!decision.displayBlocked) {
+        try { await this.bus.publish(event); }
+        catch (error) { this.logger.warn('Local event subscriber failed after durable queueing; external delivery continues', { eventId: event.eventId, error }); }
+      }
       await this.modules.publish(event, decision.blockedModuleIds);
     }
-    return this.delivery.enqueueBatch(events);
+    return outputs;
   }
 
   private adapterStatuses(): AdapterStatus[] { return this.inputs.map((adapter) => adapter.status()); }

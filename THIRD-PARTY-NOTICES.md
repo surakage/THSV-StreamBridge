@@ -10,13 +10,14 @@ To the extent the THSV StreamBridge owner holds copyright or other licensable ri
 
 Bloom and SlothBloom project names may function as source identifiers. The MIT License grants rights in the shipped software and licensable assets; it does not grant trademark rights or imply endorsement of a fork or derivative project.
 
-## Production npm dependencies
+## Bundled runtime and production npm dependencies
 
-The public archive does not bundle `node_modules`; the installer retrieves exact lockfile-resolved production dependencies from npm. Version `1.0.1` uses:
+The portable Windows archive bundles the official 64-bit Node.js 22 runtime and exact lockfile-resolved production dependencies so installation does not run npm or download executable code. The release builder verifies the Node archive against Node.js's published SHA-256 list before copying `node.exe` and its license. Version `2.0.0-preview.1` uses:
 
 | Package | Version | License | Project |
 |---|---:|---|---|
+| `fflate` | `0.8.3` | MIT | <https://github.com/101arrowz/fflate> |
 | `ws` | `8.21.1` | MIT | <https://github.com/websockets/ws> |
 | `zod` | `4.4.3` | MIT | <https://zod.dev> |
 
-Their complete license texts are installed within their respective package directories by npm. This file is a convenience notice and does not replace those license texts.
+Their complete license texts remain in their bundled package directories. The Node.js license is included as `runtime/NODE-LICENSE.txt`. This file is a convenience notice and does not replace those license texts.

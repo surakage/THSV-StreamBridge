@@ -23,6 +23,7 @@ export interface StreamerBotPackageActionInput {
   readonly id?: string;
   readonly sourceSubActionId?: string;
   readonly sourceCode: string;
+  readonly references?: readonly string[];
   // Used only when id/sourceSubActionId are not pinned. Callers with a single action should
   // pass the same seed a legacy single-action manifest used (`manifest.name`) so an existing
   // package's already-pinned IDs remain reproducible if it ever drops its explicit pins.
@@ -40,21 +41,26 @@ export interface StreamerBotPackageMeta {
 }
 
 // Field names and shape confirmed against the same real export referenced above: `command` is a
-// single string (trigger phrase, prefix included, e.g. "!test"), not an array — Streamer.bot's
+// single string, not an array. Streamer.bot's multi-line Command(s) editor stores each prefixed
+// trigger phrase on its own line (for example "!test\n!testing"). Streamer.bot's
 // own public CommandData changelog documentation describes a different (older or aspirational)
 // shape than what v1.0.5-alpha.31 actually emits. That export also included five properties
 // with obfuscated names (unclear semantics, and liable to be renamed by whatever produced them
 // in a different build) which are deliberately omitted here; Streamer.bot's deserializer is
-// expected to apply its own defaults for anything this shape does not set. `sources: 1` is the
-// one bitmask value confirmed valid in that export (a single "Twitch Message" source); the
-// bit values for other platforms are unverified, which is fine given the command always imports
-// disabled — see bridge/core/command-generation.ts.
+// expected to apply its own defaults for anything this shape does not set. The Twitch, YouTube,
+// and Kick source bits are verified against the installed Streamer.bot CommandSource enum; the
+// generated command still imports disabled for deliberate creator review.
 export interface StreamerBotPackageCommandInput {
   readonly id?: string;
   readonly name: string;
   readonly command: string;
   readonly enabled: boolean;
   readonly caseSensitive: boolean;
+  readonly sources?: number;
+  readonly ignoreBotAccount?: boolean;
+  readonly ignoreInternal?: boolean;
+  readonly globalCooldown?: number;
+  readonly userCooldown?: number;
   readonly stableIdentitySeed: string;
 }
 
@@ -95,7 +101,7 @@ export function buildStreamerBotPackage(
         subActions: [{
           name: null,
           description: null,
-          references: ['C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll'],
+          references: action.references ?? ['C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll'],
           byteCode: Buffer.from(action.sourceCode, 'utf8').toString('base64'),
           precompile: false,
           delayStart: false,
@@ -119,13 +125,14 @@ export function buildStreamerBotPackage(
         mode: 0,
         command: command.command,
         location: 0,
-        ignoreBotAccount: true,
-        sources: 1,
+        ignoreBotAccount: command.ignoreBotAccount ?? true,
+        ignoreInternal: command.ignoreInternal ?? true,
+        sources: command.sources ?? 1,
         persistCounter: false,
         persistUserCounter: false,
         caseSensitive: command.caseSensitive,
-        globalCooldown: 0,
-        userCooldown: 0,
+        globalCooldown: command.globalCooldown ?? 0,
+        userCooldown: command.userCooldown ?? 0,
         group: null,
         grantType: 0,
       })),

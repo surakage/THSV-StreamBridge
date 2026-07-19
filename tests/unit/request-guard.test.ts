@@ -19,6 +19,8 @@ describe('MutableRequestGuard', () => {
 
   it('rejects non-loopback callers and unapproved browser origins', () => {
     const guard = new MutableRequestGuard(TEST_CONTROL_TOKEN, [], 10, 1);
+    expect(() => guard.assertLoopback(request({}, '192.168.1.10'))).toThrow('loopback-only');
+    expect(() => guard.assertLoopback(request())).not.toThrow();
     expect(() => guard.acquire(request({ authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, '192.168.1.10'), false)).toThrow('loopback-only');
     expect(() => guard.acquire(request({ authorization: `Bearer ${TEST_CONTROL_TOKEN}`, origin: 'https://attacker.example' }), false)).toThrow('origin');
   });

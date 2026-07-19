@@ -5,11 +5,56 @@ import type { CommandSyncStore } from '../../bridge/services/command-sync-store.
 import type { CommandSyncState } from '../../bridge/contracts/v2/command-sync.js';
 import { createTestBridge, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
+import { AddOnWizardService } from '../../bridge/services/addon-wizard-service.js';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
 
 describe('wizard HTTP surface', () => {
+  it('protects the add-on inventory and mutation API with the local control token and creator approval', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-addon-http-'));
+    const config = await testConfig(); config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const addOns = new AddOnWizardService(join(root, 'packages'), join(root, 'state'));
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined, undefined, undefined, addOns));
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    expect((await fetch(`${baseUrl}/wizard/api/addons`)).status).toBe(401);
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    const inventory = await fetch(`${baseUrl}/wizard/api/addons`, { headers });
+    expect(inventory.status).toBe(200);
+    expect(await inventory.json()).toEqual({ addOns: [] });
+    const install = await fetch(`${baseUrl}/wizard/api/addons/install`, { method: 'POST', headers, body: JSON.stringify({ filename: 'sample.thsv-addon', contentBase64: Buffer.from('not a zip').toString('base64'), approvedByCreator: false }) });
+    expect(install.status).toBe(403);
+    expect(await install.text()).toContain('approve');
+    expect((await fetch(`${baseUrl}/wizard/api/addons/sample.missing/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds: [], approvedByCreator: true }) })).status).toBe(401);
+    const grant = await fetch(`${baseUrl}/wizard/api/addons/sample.missing/action-grants`, { method: 'PUT', headers, body: JSON.stringify({ actionIds: [], approvedByCreator: false }) });
+    expect(grant.status).toBe(403);
+    expect(await grant.text()).toContain('explicit creator approval');
+  });
+
+  it('rejects non-canonical or content-type-confused overlay uploads before writing files', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined));
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    const malformed = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'background', contentType: 'image/png', contentBase64: '%%%%' }) });
+    expect(malformed.status).toBe(400);
+    expect(await malformed.text()).toContain('canonical base64');
+    const disguised = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'background', contentType: 'image/png', contentBase64: Buffer.from('not a png').toString('base64') }) });
+    expect(disguised.status).toBe(400);
+    expect(await disguised.text()).toContain('does not match');
+  });
+
   it('serves a locked shell and authenticates every wizard API request', async () => {
     const config = await testConfig();
     config.service.port = 0;
@@ -33,6 +78,11 @@ describe('wizard HTTP surface', () => {
     expect(shellMarkup).toContain('id="inspection-state" class="notice" role="status" aria-live="polite" aria-atomic="true"');
     expect(shellMarkup).toContain('id="transaction-state" class="notice" role="status" aria-live="polite" aria-atomic="true"');
     expect(shellMarkup).toContain('id="diagnostics" role="status" aria-live="polite" aria-atomic="true"');
+    expect(shellMarkup).toContain('data-panel="addons"');
+    expect(shellMarkup).toContain('/wizard/addons.js');
+    const addOnClient = await fetch(`${baseUrl}/wizard/addons.js`);
+    expect(addOnClient.status).toBe(200);
+    expect(await addOnClient.text()).toContain('/wizard/api/addons');
     const theme = await fetch(`${baseUrl}/wizard/styles.css`).then((response) => response.text());
     expect(theme).toContain('color-scheme:light dark');
     expect(theme).toContain('@media(prefers-color-scheme:light)');

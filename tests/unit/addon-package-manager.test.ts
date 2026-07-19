@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { installAddOnPackage, removeAddOnPackage, verifyAddOnPackage } from '../../bridge/services/addon-package-manager.js';
+import { installAddOnPackage, listInstalledAddOnPackages, removeAddOnPackage, setAddOnApprovedActionIds, verifyAddOnPackage } from '../../bridge/services/addon-package-manager.js';
 import { loadInstalledAddOns } from '../../bridge/core/installed-modules.js';
 import { filterLoadableAddOns } from '../../bridge/core/installed-modules.js';
 import type { FrameworkModule } from '../../bridge/core/module-registry.js';
@@ -64,6 +64,33 @@ describe('Stage 9 add-on packages', () => {
     await expect(readFile(join(state, 'creator.json'), 'utf8')).resolves.toContain('kept');
   });
 
+  it('persists exact creator-approved action IDs and preserves them across package upgrades', async () => {
+    const root = await workspace(); const source = join(root, 'source'); const addOns = join(root, 'addons');
+    await cp('examples/addons/no-op', source, { recursive: true });
+    const descriptorPath = join(source, 'module-package.json');
+    const descriptor = JSON.parse(await readFile(descriptorPath, 'utf8')) as { permissions: string[] };
+    descriptor.permissions.push('streamerbot.run-approved-action');
+    await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
+    await installAddOnPackage(source, addOns, true);
+    const actionId = '11111111-1111-4111-8111-111111111111';
+    await expect(setAddOnApprovedActionIds('sample.no-op', addOns, [actionId], false)).rejects.toThrow('explicit creator approval');
+    await setAddOnApprovedActionIds('sample.no-op', addOns, [actionId], true);
+    await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.no-op', approvedActionIds: [actionId] })]);
+    await installAddOnPackage(source, addOns, true);
+    await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([expect.objectContaining({ approvedActionIds: [actionId] })]);
+    await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['not-an-id'], true)).rejects.toThrow('valid UUIDs');
+    await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['143fce1d-c5b0-4108-b766-ee2d0249e2d4'], true)).rejects.toThrow('Core Receiver');
+  });
+
+  it('re-verifies the creator-private staging copy before any add-on code can execute', async () => {
+    const root = await workspace();
+    const addOns = join(root, 'addons');
+    await expect(installAddOnPackage('examples/addons/no-op', addOns, true, {
+      stagePreparedHook: async (stage) => writeFile(join(stage, 'dist', 'index.js'), 'tampered after source verification\n'),
+    })).rejects.toThrow('size mismatch');
+    await expect(readFile(join(addOns, 'sample.no-op', 'installed-package.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('runs ordered add-on data migrations and rolls code and state back when a later migration fails', async () => {
     const root = await workspace(); const addOns = join(root, 'data', 'addons');
     const v1 = join(root, 'v1'); await mkdir(v1); await migrationPackage(v1, '1.0.0', []);
@@ -96,6 +123,17 @@ describe('Stage 9 add-on packages', () => {
     await writeFile(join(addOns, 'broken.module', 'dist', 'index.js'), 'broken\n');
     const modules = await loadInstalledAddOns(addOns, silentLogger);
     expect(modules.map((module) => module.manifest.moduleId)).toEqual(['sample.no-op']);
+  });
+
+  it('rejects an executable event subscriber that did not request events.subscribe', async () => {
+    const root = await workspace(); const source = join(root, 'source'); const addOns = join(root, 'addons');
+    await cp('examples/addons/no-op', source, { recursive: true });
+    const descriptorPath = join(source, 'module-package.json');
+    const descriptor = JSON.parse(await readFile(descriptorPath, 'utf8')) as { permissions: string[] };
+    descriptor.permissions = [];
+    await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
+    await installAddOnPackage(source, addOns, true);
+    await expect(loadInstalledAddOns(addOns, silentLogger)).resolves.toEqual([]);
   });
 
   it('filters duplicate, missing, and cyclic optional dependencies while keeping healthy neighbors', () => {

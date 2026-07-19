@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Declarative Settings Example",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["heading"],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable example",
+      "default": true
+    },
+    "heading": {
+      "type": "string",
+      "title": "Heading",
+      "description": "A creator-owned label used only to demonstrate safe settings storage.",
+      "minLength": 1,
+      "maxLength": 80,
+      "default": "Welcome to the stream"
+    },
+    "accent": {
+      "type": "string",
+      "title": "Accent",
+      "enum": ["purple", "green", "blue"],
+      "default": "purple"
+    }
+  }
+}

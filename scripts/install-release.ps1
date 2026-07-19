@@ -42,6 +42,34 @@ function Remove-SafeTree([string]$Path, [string]$ParentRoot) {
     Remove-Item -LiteralPath $resolved -Recurse -Force
 }
 
+function Protect-PrivateStage([string]$Path) {
+    $security = New-Object System.Security.AccessControl.DirectorySecurity
+    $security.SetAccessRuleProtection($true, $false)
+    $inheritance = [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+    $propagation = [System.Security.AccessControl.PropagationFlags]::None
+    $allow = [System.Security.AccessControl.AccessControlType]::Allow
+    $fullControl = [System.Security.AccessControl.FileSystemRights]::FullControl
+    $identities = @(
+        [System.Security.Principal.WindowsIdentity]::GetCurrent().User,
+        (New-Object System.Security.Principal.SecurityIdentifier('S-1-5-18')),
+        (New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544'))
+    )
+    foreach ($identity in $identities) {
+        $security.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($identity, $fullControl, $inheritance, $propagation, $allow)))
+    }
+    Set-Acl -LiteralPath $Path -AclObject $security
+}
+
+function Assert-ManifestFiles([string]$Root, $Manifest) {
+    foreach ($file in $Manifest.files) {
+        $candidate = Resolve-ManifestPath $Root ([string]$file.path)
+        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { throw "Release file is missing: $($file.path)" }
+        if ((Get-Item -LiteralPath $candidate).Length -ne [long]$file.size) { throw "Release file size mismatch: $($file.path)" }
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $candidate).Hash.ToLowerInvariant()
+        if ($actualHash -ne ([string]$file.sha256).ToLowerInvariant()) { throw "Release file hash mismatch: $($file.path)" }
+    }
+}
+
 function Convert-SemVer([string]$Value) {
     $match = [regex]::Match($Value, '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$')
     if (-not $match.Success) { throw "Release version is not valid SemVer: $Value" }
@@ -111,14 +139,7 @@ if (Test-Path -LiteralPath $existingRecordPath -PathType Leaf) {
     }
 }
 
-foreach ($file in $manifest.files) {
-    $sourceFile = Resolve-ManifestPath $source ([string]$file.path)
-    if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) { throw "Release file is missing: $($file.path)" }
-    $actualSize = (Get-Item -LiteralPath $sourceFile).Length
-    if ($actualSize -ne [long]$file.size) { throw "Release file size mismatch: $($file.path)" }
-    $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceFile).Hash.ToLowerInvariant()
-    if ($actualHash -ne ([string]$file.sha256).ToLowerInvariant()) { throw "Release file hash mismatch: $($file.path)" }
-}
+Assert-ManifestFiles $source $manifest
 
 $parent = Split-Path -Parent $destination
 New-Item -ItemType Directory -Path $parent -Force | Out-Null
@@ -128,6 +149,7 @@ $destinationMoved = $false
 
 try {
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
+    Protect-PrivateStage $stage
     foreach ($file in $manifest.files) {
         $sourceFile = Resolve-ManifestPath $source ([string]$file.path)
         $stageFile = Resolve-ManifestPath $stage ([string]$file.path)
@@ -135,6 +157,12 @@ try {
         Copy-Item -LiteralPath $sourceFile -Destination $stageFile -Force
     }
     Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $stage 'release-manifest.json') -Force
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $manifestPath).Hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $stage 'release-manifest.json')).Hash) {
+        throw 'Release manifest changed while it was copied into private staging.'
+    }
+    # Trust only the creator-private copy from this point forward. This closes the
+    # verification-to-copy window for archives extracted into a shared directory.
+    Assert-ManifestFiles $stage $manifest
     @('data\runtime', 'data\state', 'data\logs', 'data\backups') | ForEach-Object {
         New-Item -ItemType Directory -Path (Join-Path $stage $_) -Force | Out-Null
     }

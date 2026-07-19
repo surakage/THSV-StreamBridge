@@ -19,7 +19,7 @@ export class MutableRequestGuard {
   ) {}
 
   public acquire(request: IncomingMessage, requireJson: boolean): () => void {
-    if (!isLoopback(request.socket.remoteAddress)) throw new RequestGuardError(403, 'Mutable endpoints are loopback-only');
+    this.assertLoopback(request);
     const origin = request.headers.origin;
     if (origin !== undefined && !this.allowedOrigins.includes(origin) && !isSameOrigin(origin, request.headers.host)) throw new RequestGuardError(403, 'Browser origin is not allowed');
     if (requireJson && !isJsonContentType(request.headers['content-type'])) throw new RequestGuardError(415, 'Content-Type must be application/json');
@@ -40,6 +40,10 @@ export class MutableRequestGuard {
       released = true;
       this.activeRequests = Math.max(0, this.activeRequests - 1);
     };
+  }
+
+  public assertLoopback(request: IncomingMessage): void {
+    if (!isLoopback(request.socket.remoteAddress)) throw new RequestGuardError(403, 'This endpoint is loopback-only');
   }
 
   private authorized(header: string | undefined): boolean {

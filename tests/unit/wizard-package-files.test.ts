@@ -23,8 +23,9 @@ describe('wizard launcher package', () => {
     const shell = await readFile('wizard/browser/index.html', 'utf8');
     const styles = await readFile('wizard/browser/styles.css', 'utf8');
     const script = await readFile('wizard/browser/app.js', 'utf8');
-    expect(shell.match(/aria-live="polite"/g)).toHaveLength(12);
-    expect(shell.match(/role="status"/g)).toHaveLength(12);
+    const addOnScript = await readFile('wizard/browser/addons.js', 'utf8');
+    expect(shell.match(/aria-live="polite"/g)).toHaveLength(13);
+    expect(shell.match(/role="status"/g)).toHaveLength(13);
     expect(styles).toContain('color-scheme:light dark');
     expect(styles).toContain('@media(prefers-color-scheme:light)');
     expect(script).toContain("status.setAttribute('aria-busy','true')");
@@ -43,5 +44,24 @@ describe('wizard launcher package', () => {
     expect(shell).toContain('Platform event limits');
     expect(script).toContain('eventLimitYoutube');
     expect(script).toContain("data.getAll('eventCategory')");
+    expect(shell).toContain('data-panel="addons"');
+    expect(addOnScript).toContain('/wizard/api/addons');
+    expect(addOnScript).toContain('not an operating-system sandbox');
+    expect(addOnScript).toContain('/action-grants');
+    expect(addOnScript).toContain('/overlay-preview');
+  });
+
+  it('hosts add-on card and media overlays without package-controlled markup or unsafe URL protocols', async () => {
+    const shell = await readFile('overlays/browser/addon-host.html', 'utf8');
+    const script = await readFile('overlays/browser/addon-host.js', 'utf8');
+    const styles = await readFile('overlays/browser/addon-host.css', 'utf8');
+    expect(shell).toContain('/overlay/addons/host.js');
+    expect(shell).toContain('/overlay/addons/host.css');
+    expect(script).toContain("event?.contractVersion !== 'thsv-addon-overlay-v1'");
+    expect(script).toContain("url.protocol === 'https:' || url.origin === location.origin");
+    expect(script).toContain("`${moduleId}.media.play`");
+    expect(script).toContain('textContent');
+    expect(script).not.toMatch(/innerHTML|insertAdjacentHTML|eval\(|new Function/u);
+    expect(styles).toContain('object-fit: contain');
   });
 });

@@ -52,6 +52,7 @@ describe('bridge HTTP integration', () => {
     expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers, body: JSON.stringify({ padding: 'x'.repeat(2_000) }) })).status).toBe(413);
     expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(await fixture()) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { ...headers, origin: 'https://attacker.example' }, body: JSON.stringify(await fixture()) })).status).toBe(403);
+    expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { ...headers, 'content-encoding': 'gzip' }, body: '{}' })).status).toBe(415);
   });
 
   it('forces simulation provenance instead of trusting caller metadata', async () => {
@@ -94,7 +95,7 @@ describe('bridge HTTP integration', () => {
     expect((await fetch(`${baseUrl}/overlay/companion`)).status).toBe(404);
   });
 
-  it('serves only the combined, chat, and alert browser surfaces', async () => {
+  it('serves the core browser surfaces and keeps unknown add-on overlays closed', async () => {
     const config = await testConfig();
     config.service.port = 0;
     const bridge = createTestBridge(config);
@@ -116,5 +117,8 @@ describe('bridge HTTP integration', () => {
     expect((await fetch(`${baseUrl}/overlay/worker-1.3.0.js`)).status).toBe(200);
     expect((await fetch(`${baseUrl}/overlay/styles-1.3.0.css`)).status).toBe(200);
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
+    expect((await fetch(`${baseUrl}/overlay/addons/unknown.module`)).status).toBe(404);
+    expect((await fetch(`${baseUrl}/overlay/addons/host.js`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/addons/host.css`)).status).toBe(200);
   });
 });

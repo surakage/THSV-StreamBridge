@@ -12,6 +12,8 @@ Module IDs are stable namespaced identifiers. A module cannot depend on itself. 
 
 `ModuleRegistry` validates manifests before startup, rejects duplicate IDs, missing dependencies, self-dependencies, and dependency cycles, and starts modules in dependency order. It stops them in reverse order and publishes only subscribed event types. A module startup or event-handler failure is isolated and appears in module health; an optional failure does not block core readiness, while a required built-in failure does.
 
+The verified add-on loader—not add-on code—assigns each executable module's capability grant. The registry passes one frozen context through startup, subscribed events, and shutdown, then cancels broker-owned timers and pending action requests if that module stops or fails. See [Add-on capabilities](add-on-capabilities.md).
+
 The built-in Chat, Commands, Alerts, and Timed Actions projections are registered through this host. Dynamic execution of arbitrary paths from untrusted configuration is not allowed. Files under `archive/` are inert and never discovered or loaded.
 
 Archived Viewer Progression, Bloom Companion, and Speaker.bot code is not a module merely because it is moved under `archive/`. Each requires a valid manifest, contract migration, isolated storage, tests, and explicit creator installation before it can return as an add-on.

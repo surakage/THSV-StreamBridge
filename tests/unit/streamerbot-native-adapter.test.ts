@@ -55,9 +55,26 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(event).toMatchObject({ eventType: 'reward.redemption', payload: { rewardId: 'reward-1', rewardTitle: 'Hydrate', rewardCost: 100, requiresUserInput: true, redemptionId: 'redeem-1', input: 'Water please', supportedOperations, verifiedTransport: true } });
   });
 
-  it('marks generated fallback IDs as unverified', () => {
+  it('keeps generated relay IDs only for low-impact events', () => {
     const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchFollow', { sourceEventId: '' }));
     expect(event.metadata.unverifiedFields).toEqual(['source.eventId']);
+  });
+
+  it.each([
+    ['twitch', 'TwitchCheer'],
+    ['youtube', 'YouTubeSuperChat'],
+    ['kick', 'KickMassGiftSubscription'],
+    ['twitch', 'TwitchRewardRedemption'],
+  ] as const)('rejects high-impact %s %s events without provider-stable source IDs', (platform, sourceEventType) => {
+    expect(() => normalizeStreamerBotPlatformRelay(relay(platform, sourceEventType, {
+      sourceEventId: '', amount: '5.00', currency: 'USD', rewardId: 'reward-1', redemptionId: 'redeem-1',
+    }))).toThrow('provider-stable source event ID');
+  });
+
+  it('rejects reward administration without a provider-stable redemption ID', () => {
+    expect(() => normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchRewardRedemption', {
+      rewardId: 'reward-1', redemptionId: '',
+    }))).toThrow('provider-stable redemption ID');
   });
 
   it('rejects unsupported trigger types', () => {

@@ -26,11 +26,15 @@ Configuration stores only environment-variable names. Put the Streamer.bot passw
 
 ## Output delivery
 
-`outputs` is an open registry-backed record. Streamer.bot's queue capacity, delivery concurrency, pending acknowledgements, acknowledgement timeout, and failure threshold are bounded in configuration. Accepted HTTP simulation means the event was validated and queued; delivery completion or failure appears in diagnostics.
+`outputs` is an open registry-backed record. Streamer.bot's queue capacity, delivery concurrency, pending acknowledgements, acknowledgement timeout, failure threshold, retry bounds, and dead-letter capacity are bounded in configuration. Before an ingestion call returns `accepted`, every required output obligation is written atomically to `streamerbot.deliveryStateFile`. Pending records are replayed after restart, retried with bounded exponential backoff, and moved into a bounded dead-letter queue after `deliveryMaxAttempts`.
 
-The current output queue is memory-only. A process crash after acceptance but before delivery can lose an in-flight event; production financial adapters remain blocked until a durable outbox is implemented and restart replay is tested. Input adapters must retry bounded capacity responses with backoff rather than silently discarding them.
+Delivery is at least once, not exactly once. A crash after Streamer.bot acknowledges an action but before the acknowledgement is persisted can replay that action; downstream actions must remain idempotent using the stable event ID. Per-platform/channel lanes preserve accepted order while allowing unrelated lanes to progress concurrently. Diagnostics distinguish durable queueing, Streamer.bot acknowledgement, failed attempts, and dead letters; an acknowledgement does not prove a later platform action completed successfully.
+
+`deliveryStatus` values returned by ingestion are `durably-queued`, `not-required`, or `duplicate-ignored`. A persistence error rejects ingestion instead of publishing the event only to in-process consumers. Input adapters must retry bounded-capacity or unavailable responses with backoff rather than silently discarding them.
 
 `streamerbot.testMode=true` is non-live: it performs no WebSocket connection and no action execution. Remote Streamer.bot URLs require `allowRemote=true`, and remote connections must use `wss://`. URLs containing credentials or query parameters are rejected; secrets belong in environment variables.
+
+When a Streamer.bot password is configured, its WebSocket `Hello` must contain the documented salt and challenge. A challenge-free local peer is rejected instead of being trusted merely because it occupies the expected loopback port.
 
 ## Commands
 
@@ -72,3 +76,5 @@ Stage 2 core has no `viewerIdentity`, `companion`, or `browserOverlay.maxCompani
 | Streamer.bot WebSocket | 8080 | `127.0.0.1` | Outbound action delivery |
 
 Non-loopback bridge binding requires the explicit `allowNetworkAccess` opt-in. A port conflict fails startup with the host and port in the error.
+
+Even when the HTTP listener is deliberately bound to a LAN interface, `/health`, `/ready`, `/diagnostics`, and `/overlay/config` remain loopback-only. This prevents adapter state, module health, local persistence details, and creator presentation settings from becoming unauthenticated network disclosures. Browser overlays are intended to run on the same streaming machine as StreamBridge.

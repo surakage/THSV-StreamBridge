@@ -15,13 +15,18 @@ interface TimerState {
   lastSelected?: number;
   cycle?: number;
   pending?: { scheduledAt: string; index: number };
+  platformBags?: Record<string, { remaining: number[]; lastSelected?: number; cycle: number; pending?: { scheduledAt: string; index: number } }>;
 }
 interface TimedActionState {
   session: { active: boolean; paused: boolean; startedAt: string; pausedAt?: string };
   timers: Record<string, TimerState>;
 }
-interface Selection { mode: 'fixed' | 'shuffle-container'; message: string; index?: number; cycle: number; position: number; size: number }
+interface Selection {
+  mode: 'fixed' | 'shuffle-container' | 'platform-shuffle'; message: string; messages: Readonly<Record<string, string>>;
+  index?: number; platformIndexes?: Readonly<Record<string, number>>; cycle: number; position: number; size: number;
+}
 const MAX_TIMEOUT_MS = 2_147_000_000;
+const MAX_CHAT_ACTIVITY_ENTRIES = 10_000;
 
 export class TimedActionsAdapter extends ManagedAdapter {
   private context: AdapterContext | undefined;
@@ -31,6 +36,7 @@ export class TimedActionsAdapter extends ManagedAdapter {
   private stopping = false;
   private readonly livePlatforms = new Set<string>();
   private readonly chatActivity: Array<{ at: number; platform: string }> = [];
+  private chatActivityHead = 0;
   private readonly activityRetentionMinutes: number;
   private currentScene: string | undefined;
 
@@ -86,13 +92,17 @@ export class TimedActionsAdapter extends ManagedAdapter {
     return this.controlStatus();
   }
 
-  public controlStatus(): Readonly<Record<string, unknown>> { return { ...this.stateData.session, armedTimers: this.timers.size }; }
+  public controlStatus(): Readonly<Record<string, unknown>> { return { ...this.stateData.session, armedTimers: this.timers.size, activityEntries: this.chatActivity.length - this.chatActivityHead }; }
   public observe(event: NormalizedEvent): void {
     if (event.eventType === 'stream.online') this.livePlatforms.add(event.platform);
     if (event.eventType === 'stream.offline') this.livePlatforms.delete(event.platform);
     if (event.eventType === 'chat.message' && this.activityRetentionMinutes > 0) {
-      this.chatActivity.push({ at: Date.parse(event.receivedAt), platform: event.platform });
-      this.pruneActivity(Date.now() - this.activityRetentionMinutes * 60_000);
+      const now = Date.now();
+      this.chatActivity.push({ at: now, platform: event.platform });
+      this.pruneActivity(now - this.activityRetentionMinutes * 60_000);
+      const excess = this.chatActivity.length - this.chatActivityHead - MAX_CHAT_ACTIVITY_ENTRIES;
+      if (excess > 0) this.chatActivityHead += excess;
+      this.compactActivity();
     }
     if (event.eventType === 'stream.scene-changed' && typeof event.payload['sceneName'] === 'string') this.currentScene = event.payload['sceneName'];
   }
@@ -189,7 +199,7 @@ export class TimedActionsAdapter extends ManagedAdapter {
       eventType: 'system.timed', platform: 'system', adapter: this.name, sourceEventName: simulated ? 'timed-action.test' : 'timed-action.fired', sourceEventId: `${definition.id}:${scheduledAt}:${simulated ? 'test' : 'live'}`,
       receivedAt: firedAt, channel: { id: 'local', name: 'local' }, payload: {
         timerId: definition.id, timerName: definition.name, scheduleType: 'session-interval', scheduledAt, firedAt, occurrence, missedRuns,
-        lateByMs: Math.max(0, Date.parse(firedAt) - Date.parse(scheduledAt)), selectionMode: selection.mode, selectedMessage: selection.message,
+        lateByMs: Math.max(0, Date.parse(firedAt) - Date.parse(scheduledAt)), selectionMode: selection.mode, selectedMessage: selection.message, selectedMessages: selection.messages,
         containerCycle: selection.cycle, containerPosition: selection.position, containerSize: selection.size, creatorPayload: definition.payload,
         targetProvider: definition.target.provider,
         ...(definition.target.provider === 'run-existing-action' ? {
@@ -204,6 +214,10 @@ export class TimedActionsAdapter extends ManagedAdapter {
     this.lastEventAt = firedAt; this.lastError = undefined; this.state = 'connected';
     const timer = this.timerState(definition.id);
     if (selection.index !== undefined && !simulated) { timer.remaining = (timer.remaining ?? []).filter((index) => index !== selection.index); timer.lastSelected = selection.index; delete timer.pending; }
+    if (selection.platformIndexes !== undefined && !simulated) for (const [platform, index] of Object.entries(selection.platformIndexes)) {
+      const bag = timer.platformBags?.[platform]; if (bag === undefined) continue;
+      bag.remaining = bag.remaining.filter((candidate) => candidate !== index); bag.lastSelected = index; delete bag.pending;
+    }
   }
 
   private intervalMinutes(definition: TimedActionDefinition): number {
@@ -220,18 +234,30 @@ export class TimedActionsAdapter extends ManagedAdapter {
     const { minimumMessages, windowMinutes } = definition.gates.activity;
     if (minimumMessages > 0) {
       const threshold = Date.now() - windowMinutes * 60_000;
-      const count = this.chatActivity.filter((entry) => entry.at >= threshold && (definition.gates.platforms.length === 0 || definition.gates.platforms.includes(entry.platform))).length;
+      let count = 0;
+      for (let index = this.chatActivityHead; index < this.chatActivity.length && count < minimumMessages; index += 1) {
+        const entry = this.chatActivity[index];
+        if (entry !== undefined && entry.at >= threshold && (definition.gates.platforms.length === 0 || definition.gates.platforms.includes(entry.platform))) count += 1;
+      }
       if (count < minimumMessages) return 'quiet-chat';
     }
     return undefined;
   }
 
   private pruneActivity(threshold: number): void {
-    while ((this.chatActivity[0]?.at ?? Number.POSITIVE_INFINITY) < threshold) this.chatActivity.shift();
+    while ((this.chatActivity[this.chatActivityHead]?.at ?? Number.POSITIVE_INFINITY) < threshold) this.chatActivityHead += 1;
+    this.compactActivity();
+  }
+
+  private compactActivity(): void {
+    if (this.chatActivityHead < 1_024 && this.chatActivityHead * 2 < this.chatActivity.length) return;
+    if (this.chatActivityHead > 0) this.chatActivity.splice(0, this.chatActivityHead);
+    this.chatActivityHead = 0;
   }
 
   private async select(definition: TimedActionDefinition, scheduledAt: string): Promise<Selection> {
-    if (definition.selection.mode === 'fixed') return { mode: 'fixed', message: '', cycle: 0, position: 0, size: 0 };
+    if (definition.selection.mode === 'fixed') return { mode: 'fixed', message: '', messages: {}, cycle: 0, position: 0, size: 0 };
+    if (definition.selection.mode === 'platform-shuffle') return this.selectPlatformMessages(definition, scheduledAt);
     const timer = this.timerState(definition.id); const messages = definition.selection.messages;
     if (timer.remaining === undefined || timer.remaining.length === 0) {
       timer.remaining = messages.map((_, index) => index); timer.cycle = (timer.cycle ?? 0) + 1;
@@ -242,7 +268,29 @@ export class TimedActionsAdapter extends ManagedAdapter {
       index = candidates[Math.min(candidates.length - 1, Math.floor(this.random() * candidates.length))] ?? timer.remaining[0] ?? 0;
       timer.pending = { scheduledAt, index }; await this.persist();
     }
-    return { mode: 'shuffle-container', message: messages[index] ?? '', index, cycle: timer.cycle ?? 1, position: messages.length - timer.remaining.length + 1, size: messages.length };
+    return { mode: 'shuffle-container', message: messages[index] ?? '', messages: {}, index, cycle: timer.cycle ?? 1, position: messages.length - timer.remaining.length + 1, size: messages.length };
+  }
+
+  private async selectPlatformMessages(definition: TimedActionDefinition, scheduledAt: string): Promise<Selection> {
+    if (definition.selection.mode !== 'platform-shuffle') throw new Error('Platform message selection requires platform-shuffle mode.');
+    const timer = this.timerState(definition.id); timer.platformBags ??= {};
+    const selectedMessages: Record<string, string> = {}; const platformIndexes: Record<string, number> = {};
+    let firstCycle = 0; let firstPosition = 0; let firstSize = 0;
+    for (const [platform, messages] of Object.entries(definition.selection.messagesByPlatform)) {
+      if (messages === undefined || messages.length === 0) continue;
+      const bag = timer.platformBags[platform] ??= { remaining: [], cycle: 0 };
+      if (bag.remaining.length === 0 || bag.remaining.some((index) => index >= messages.length)) { bag.remaining = messages.map((_, index) => index); bag.cycle += 1; }
+      let index = bag.pending?.scheduledAt === scheduledAt ? bag.pending.index : -1;
+      if (!bag.remaining.includes(index)) {
+        const candidates = bag.remaining.length > 1 && bag.lastSelected !== undefined ? bag.remaining.filter((candidate) => candidate !== bag.lastSelected) : bag.remaining;
+        index = candidates[Math.min(candidates.length - 1, Math.floor(this.random() * candidates.length))] ?? bag.remaining[0] ?? 0;
+        bag.pending = { scheduledAt, index };
+      }
+      selectedMessages[platform] = messages[index] ?? ''; platformIndexes[platform] = index;
+      if (firstSize === 0) { firstCycle = bag.cycle; firstPosition = messages.length - bag.remaining.length + 1; firstSize = messages.length; }
+    }
+    await this.persist();
+    return { mode: 'platform-shuffle', message: Object.values(selectedMessages)[0] ?? '', messages: selectedMessages, platformIndexes, cycle: firstCycle, position: firstPosition, size: firstSize };
   }
 
   private timerState(id: string): TimerState { return this.stateData.timers[id] ??= {}; }

@@ -116,6 +116,20 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['facebook'] } }] } }).success).toBe(false);
   });
 
+  it('validates independent per-platform timed-message rotations and character limits', async () => {
+    const config = await testConfig();
+    const definition = {
+      id: 'platform-rotation', name: 'Platform rotation', enabled: true, everyMinutes: 15, missedRunPolicy: 'skip', payload: {},
+      selection: { mode: 'platform-shuffle', messagesByPlatform: { twitch: ['Twitch one', 'Twitch two'], youtube: ['YouTube one', 'YouTube two'], tiktok: ['TikTok one', 'TikTok two'] } },
+    };
+    const parsed = bridgeConfigSchema.parse({ ...config, timedActions: { ...config.timedActions, definitions: [definition] } });
+    expect(parsed.timedActions.definitions[0]?.selection).toMatchObject({ mode: 'platform-shuffle', messagesByPlatform: { twitch: ['Twitch one', 'Twitch two'] } });
+    const tooLongYouTube = { ...definition, selection: { mode: 'platform-shuffle', messagesByPlatform: { youtube: ['x'.repeat(201), 'valid'] } } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [tooLongYouTube] } }).success).toBe(false);
+    const onlyOne = { ...definition, selection: { mode: 'platform-shuffle', messagesByPlatform: { kick: ['Only one'] } } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [onlyOne] } }).success).toBe(false);
+  });
+
   it('validates alert presentation templates, bounds, and gift-only aggregation', async () => {
     const config = await testConfig();
     const valid = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {

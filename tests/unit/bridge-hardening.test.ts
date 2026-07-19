@@ -4,14 +4,36 @@ import type { OutputAdapter } from '../../bridge/adapters/adapter.js';
 import { createDefaultAdapterRegistry } from '../../bridge/adapters/registry.js';
 import { StreamBridge } from '../../bridge/core/bridge.js';
 import { NoopDeduplicationStore } from '../../bridge/services/deduplication-store.js';
+import type { DeliveryOutboxStore } from '../../bridge/services/delivery-outbox-store.js';
 
 describe('StreamBridge hardening', () => {
+  it('does not report acceptance or publish locally until the delivery obligation is durable', async () => {
+    const config = await testConfig();
+    const registry = createDefaultAdapterRegistry(config, silentLogger);
+    const store: DeliveryOutboxStore = {
+      load: () => Promise.resolve({ version: 1, pending: [], deadLetters: [] }),
+      save: () => Promise.reject(new Error('outbox disk full')),
+      status: () => ({ enabled: true, durable: true }),
+    };
+    const bridge = new StreamBridge(config, silentLogger, {
+      inputs: registry.createInputs(config.platforms), outputs: registry.createOutputs(config.outputs),
+      deduplicationStore: new NoopDeduplicationStore(), deliveryOutboxStore: store,
+    });
+    let published = false;
+    bridge.subscribe(() => { published = true; });
+    await bridge.start();
+    await expect(bridge.ingest(await fixture())).rejects.toThrow('could not be persisted safely');
+    expect(published).toBe(false);
+    await bridge.stop();
+  });
+
   it('reports an accepted event even when post-acceptance state persistence fails', async () => {
     const config = await testConfig();
     const bridge = createTestBridge(config, () => Promise.reject(new Error('disk full')));
     await bridge.start();
     await expect(bridge.ingest(await fixture())).resolves.toMatchObject({ accepted: true, duplicate: false, delivery: 'queued' });
-    expect(bridge.health()['statePersistenceError']).toBe('disk full');
+    expect(bridge.health()['statePersistenceError']).toBe('Bridge status persistence is unavailable.');
+    expect(JSON.stringify(bridge.diagnostics())).not.toContain('disk full');
     await bridge.stop();
   });
 

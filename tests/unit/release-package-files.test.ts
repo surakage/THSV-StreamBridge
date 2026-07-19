@@ -12,14 +12,20 @@ describe('public release scripts', () => {
     expect(license).toContain('THE SOFTWARE IS PROVIDED "AS IS"');
   });
 
-  it('creates manifests, archive checksums, and rejects private runtime files', async () => {
+  it('creates a self-contained Windows archive with a verified bundled runtime and no private data', async () => {
     const source = await readFile('scripts/package-release.ps1', 'utf8');
     expect(source).toContain("product = 'THSV StreamBridge'");
+    expect(source).toContain('layoutVersion = 2');
+    expect(source).toContain('-windows-x64');
+    expect(source).toContain('node.exe');
+    expect(source).toContain('SHASUMS256.txt');
+    expect(source).toContain('official SHA-256 verification');
+    expect(source).toContain('npm.cmd ci --omit=dev --ignore-scripts');
+    expect(source).toContain('Install THSV StreamBridge.cmd');
     expect(source).toContain('Get-FileHash -Algorithm SHA256');
     expect(source).toContain('release-manifest.json');
     expect(source).toContain("'wizard'");
     expect(source).toContain("'examples'");
-    expect(source).toContain("'data\\addons'");
     expect(source).toContain('.sha256');
     for (const forbidden of ['bridge.local.json', 'control-token', 'streambridge.pid', 'state|logs|backups']) expect(source).toContain(forbidden);
     for (const archived of ['viewer-progression', 'companion-actions', 'speaker-orchestration', 'bloom-idle-sprite.png']) expect(source).toContain(archived);
@@ -37,25 +43,26 @@ describe('public release scripts', () => {
     expect(restore).toContain('.restore-rollback-');
   });
 
-  it('verifies before staging and preserves creator data during upgrades', async () => {
-    const source = await readFile('scripts/install-release.ps1', 'utf8');
-    expect(source.indexOf('Get-FileHash -Algorithm SHA256')).toBeLessThan(source.indexOf("New-Item -ItemType Directory -Path $stage"));
-    expect(source).toContain('npm.cmd ci --omit=dev --ignore-scripts');
-    expect(source).toContain("Copy-Item -LiteralPath $existingData -Destination $stage -Recurse -Force");
-    expect(source).toContain("Move-Item -LiteralPath $destination -Destination $rollback");
-    expect(source).toContain("Move-Item -LiteralPath $rollback -Destination $destination");
-    expect(source).toContain('[switch]$AllowDowngrade');
-    expect(source).toContain('Compare-SemVer');
-    expect(source).toContain('Refusing to downgrade THSV StreamBridge');
-    expect(source).not.toMatch(/Invoke-Expression|Start-Process|DownloadString|WebClient/u);
+  it('verifies before private staging and preserves creator data in versioned installations', async () => {
+    const source = await readFile('installer/install.mjs', 'utf8');
+    expect(source.indexOf('await verifyRelease(sourceRoot, manifest)')).toBeLessThan(source.indexOf('await mkdir(installRoot'));
+    expect(source).toContain("join(installRoot, 'app', manifest.version)");
+    expect(source).toContain("join(destination, 'addons', 'packages')");
+    expect(source).toContain("join(root, 'secrets', 'control-token')");
+    expect(source).toContain('randomBytes(32).toString');
+    expect(source).toContain('previousVersion');
+    expect(source).toContain('failed its health check and was rolled back');
+    expect(source).toContain('compareVersions');
+    expect(source).toContain('Refusing to downgrade ${PRODUCT}');
+    expect(source).not.toMatch(/Invoke-Expression|DownloadString|WebClient|npm\.cmd/u);
   });
 
   it('requires an explicit switch before deleting creator data', async () => {
-    const source = await readFile('scripts/uninstall-release.ps1', 'utf8');
-    expect(source).toContain('[switch]$RemoveUserData');
-    expect(source).toContain("if (-not $RemoveUserData)");
-    expect(source).toContain('The data directory was preserved');
-    expect(source).toContain("record.product -ne 'THSV StreamBridge'");
+    const source = await readFile('launcher/uninstall.mjs', 'utf8');
+    expect(source).toContain("process.argv.includes('--delete-user-data')");
+    expect(source).toContain("process.argv.includes('--confirm-delete-everything')");
+    expect(source).toContain('Creator configuration, add-ons, state, logs, backups, and secrets were preserved');
+    expect(source).toContain("record.product !== 'THSV StreamBridge'");
   });
 
   it('ships an authenticated simulation helper without development tooling', async () => {
@@ -70,8 +77,8 @@ describe('public release scripts', () => {
     const packageSource = await readFile('scripts/package-release.ps1', 'utf8');
     const notices = await readFile('THIRD-PARTY-NOTICES.md', 'utf8');
     expect(packageSource).toContain("'THIRD-PARTY-NOTICES.md'");
-    expect(packageSource).toContain("Where-Object Name -eq '__pycache__'");
-    expect(packageSource).toContain("Where-Object Extension -in @('.pyc', '.pyo')");
+    expect(packageSource).toContain('npm.cmd ci --omit=dev --ignore-scripts');
+    expect(packageSource).toContain('NODE-LICENSE.txt');
     expect(notices).toContain("OpenAI's built-in image-generation service");
     expect(notices).toContain('To the extent the THSV StreamBridge owner holds copyright or other licensable rights');
     expect(notices).toContain('| `ws` | `8.21.1` | MIT |');

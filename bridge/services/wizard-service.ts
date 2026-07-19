@@ -23,6 +23,7 @@ import {
   type CommandAdministrationRequest,
 } from '../core/command-administration.js';
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
+import type { AddOnWizardService, WizardAddOnSummary } from './addon-wizard-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -143,6 +144,7 @@ export class WizardService {
     private readonly inspector: StreamerBotInspector | undefined,
     private readonly configuration?: WizardConfigurationGateway,
     private readonly commandSyncStore?: CommandSyncStore,
+    private readonly addOns?: AddOnWizardService,
   ) {}
 
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
@@ -152,7 +154,7 @@ export class WizardService {
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
       mutationSupport: this.configuration !== undefined,
-      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Chat Overlay', 'Alerts', 'Rewards', 'Ownership', 'Diagnostics'],
+      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Chat Overlay', 'Alerts', 'Rewards', 'Add-ons', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
       transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
       lastInspection: this.lastInspection,
@@ -396,6 +398,36 @@ export class WizardService {
     return this.configuration.export();
   }
 
+  public async listAddOns(): Promise<readonly WizardAddOnSummary[]> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.list();
+  }
+
+  public async installAddOn(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.install(input);
+  }
+
+  public async setAddOnEnabled(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.setEnabled(moduleId, input);
+  }
+
+  public async setAddOnApprovedActions(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.setApprovedActions(moduleId, input);
+  }
+
+  public async removeAddOn(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.remove(moduleId, input);
+  }
+
+  public async saveAddOnSettings(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.saveSettings(moduleId, input);
+  }
+
   public diagnostics(): Readonly<Record<string, unknown>> {
     return {
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
@@ -406,6 +438,7 @@ export class WizardService {
       activeTransactions: [...this.transactions.values()].filter((transaction) => transaction.status === 'draft').length,
       configuration: this.configuration?.diagnostics(),
       commandSync: this.commandSyncStore?.status(),
+      addOns: this.addOns?.diagnostics(),
     };
   }
 }

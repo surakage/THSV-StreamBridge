@@ -18,8 +18,9 @@ export interface MultiTimedAction {
   readonly occurrence: number;
   readonly missedRuns: number;
   readonly lateByMs: number;
-  readonly selectionMode: 'fixed' | 'shuffle-container';
+  readonly selectionMode: 'fixed' | 'shuffle-container' | 'platform-shuffle';
   readonly selectedMessage: string;
+  readonly selectedMessages: Readonly<Record<string, string>>;
   readonly containerCycle: number;
   readonly containerPosition: number;
   readonly containerSize: number;
@@ -48,8 +49,9 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
   if (!isRecord(creatorPayload)) throw new InvalidMultiTimedActionError('creatorPayload must be an object.');
   const lateByMs = Math.max(0, Date.parse(firedAt) - Date.parse(scheduledAt));
   const selectionMode = event.payload['selectionMode'];
-  if (selectionMode !== 'fixed' && selectionMode !== 'shuffle-container') throw new InvalidMultiTimedActionError('selectionMode must be fixed or shuffle-container.');
-  const selectedMessage = selectionMode === 'shuffle-container' ? boundedText(event.payload['selectedMessage'], 'selectedMessage', 500) : '';
+  if (selectionMode !== 'fixed' && selectionMode !== 'shuffle-container' && selectionMode !== 'platform-shuffle') throw new InvalidMultiTimedActionError('selectionMode must be fixed, shuffle-container, or platform-shuffle.');
+  const selectedMessage = selectionMode === 'fixed' ? '' : boundedText(event.payload['selectedMessage'], 'selectedMessage', 500);
+  const selectedMessages = selectionMode === 'platform-shuffle' ? platformMessages(event.payload['selectedMessages']) : {};
   const containerCycle = safeInteger(event.payload['containerCycle'], 'containerCycle', 0);
   const containerPosition = safeInteger(event.payload['containerPosition'], 'containerPosition', 0);
   const containerSize = safeInteger(event.payload['containerSize'], 'containerSize', 0);
@@ -78,6 +80,7 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
     lateByMs,
     selectionMode,
     selectedMessage,
+    selectedMessages,
     containerCycle,
     containerPosition,
     containerSize,
@@ -89,6 +92,19 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
     targetPlatforms,
     deliveryPlatforms,
   };
+}
+
+function platformMessages(value: JsonValue | undefined): Record<string, string> {
+  if (!isRecord(value)) throw new InvalidMultiTimedActionError('selectedMessages must be an object for platform-shuffle mode.');
+  const limits: Readonly<Record<string, number>> = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 };
+  const result: Record<string, string> = {};
+  for (const [platform, message] of Object.entries(value)) {
+    const limit = limits[platform];
+    if (limit === undefined || typeof message !== 'string') throw new InvalidMultiTimedActionError('selectedMessages contains an unsupported platform or non-text message.');
+    result[platform] = boundedText(message, `selectedMessages.${platform}`, limit);
+  }
+  if (Object.keys(result).length === 0) throw new InvalidMultiTimedActionError('selectedMessages must contain at least one platform message.');
+  return result;
 }
 
 function boundedIdentifier(value: JsonValue | undefined, field: string, maximum: number): string {

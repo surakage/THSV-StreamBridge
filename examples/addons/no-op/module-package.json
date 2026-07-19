@@ -1,5 +1,10 @@
 {
   "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "A harmless reference add-on that demonstrates the verified executable package format.",
+  "changelog": "",
+  "permissions": ["events.subscribe"],
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "sample.no-op",

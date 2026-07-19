@@ -10,6 +10,7 @@ export class BrowserOverlayHub {
   private readonly sockets = new WebSocketServer({ noServer: true, maxPayload: 1_048_576 });
   private attachedServer: Server | undefined;
   private published = 0;
+  private addOnPublished = 0;
   private readonly upgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
     if (request.url !== '/overlay/events' || !isLoopback(request.socket.remoteAddress)) { socket.destroy(); return; }
     this.sockets.handleUpgrade(request, socket, head, (client) => this.sockets.emit('connection', client, request));
@@ -52,7 +53,21 @@ export class BrowserOverlayHub {
     return overlayEvents.length;
   }
 
-  public status(): Readonly<Record<string, unknown>> { return { enabled: this.config.enabled, clients: this.sockets.clients.size, published: this.published }; }
+  public publishAddOn(moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>): void {
+    if (!this.config.enabled) throw new Error('Browser overlays are disabled.');
+    const message = JSON.stringify({
+      contractVersion: 'thsv-addon-overlay-v1',
+      kind: 'addon.publish',
+      moduleId,
+      topic,
+      emittedAt: new Date().toISOString(),
+      payload,
+    });
+    for (const socket of this.sockets.clients) if (socket.readyState === WebSocket.OPEN) socket.send(message);
+    this.addOnPublished += 1;
+  }
+
+  public status(): Readonly<Record<string, unknown>> { return { enabled: this.config.enabled, clients: this.sockets.clients.size, published: this.published, addOnPublished: this.addOnPublished }; }
   public clientConfig(): BrowserOverlayConfig { return { ...this.config }; }
 
   public stop(): void {

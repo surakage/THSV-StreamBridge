@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 public class CPHInline
 {
     private const string ContractVersion = "1.0.0";
-    private const string PackageVersion = "1.2.0";
+    private const string PackageVersion = "1.3.0";
     private const string ThisActionId = "f021d77f-7eb8-55d8-87dd-d681c439dfef";
     private const long MaximumSafeInteger = 9007199254740991L;
 
@@ -51,9 +51,11 @@ public class CPHInline
         JObject creatorPayload = payload["creatorPayload"] as JObject;
         if (creatorPayload == null) return Fail("payload.creatorPayload must be an object.");
         string selectionMode = ReadString(payload, "selectionMode");
-        if (selectionMode != "fixed" && selectionMode != "shuffle-container") return Fail("payload.selectionMode must be fixed or shuffle-container.");
+        if (selectionMode != "fixed" && selectionMode != "shuffle-container" && selectionMode != "platform-shuffle") return Fail("payload.selectionMode must be fixed, shuffle-container, or platform-shuffle.");
         string selectedMessage = string.Empty;
-        if (selectionMode == "shuffle-container" && !ReadText(payload, "selectedMessage", 500, out selectedMessage)) return Fail("payload.selectedMessage must contain 1-500 creator-authored plain-text characters.");
+        if (selectionMode != "fixed" && !ReadText(payload, "selectedMessage", 500, out selectedMessage)) return Fail("payload.selectedMessage must contain 1-500 creator-authored plain-text characters.");
+        JObject selectedMessages = payload["selectedMessages"] as JObject ?? new JObject();
+        if (selectionMode == "platform-shuffle" && !ReadPlatformMessages(selectedMessages)) return Fail("payload.selectedMessages must contain bounded messages for supported platforms.");
         long containerCycle, containerPosition, containerSize;
         if (!ReadInteger(payload, "containerCycle", 0, out containerCycle) || !ReadInteger(payload, "containerPosition", 0, out containerPosition) || !ReadInteger(payload, "containerSize", 0, out containerSize)) return Fail("payload container counters must be non-negative safe integers.");
         string targetProvider = ReadString(payload, "targetProvider");
@@ -90,6 +92,7 @@ public class CPHInline
         CPH.SetArgument("multiTimedLateByMs", lateByMs);
         CPH.SetArgument("multiTimedSelectionMode", selectionMode);
         CPH.SetArgument("multiTimedSelectedMessage", selectedMessage);
+        CPH.SetArgument("multiTimedSelectedMessages", selectedMessages.ToString(Formatting.None));
         CPH.SetArgument("multiTimedContainerCycle", containerCycle);
         CPH.SetArgument("multiTimedContainerPosition", containerPosition);
         CPH.SetArgument("multiTimedContainerSize", containerSize);
@@ -118,7 +121,7 @@ public class CPHInline
         CPH.SetArgument("multiTimedTimerName", string.Empty); CPH.SetArgument("multiTimedScheduleType", string.Empty); CPH.SetArgument("multiTimedScheduledAt", string.Empty);
         CPH.SetArgument("multiTimedFiredAt", string.Empty); CPH.SetArgument("multiTimedOccurrence", 0L); CPH.SetArgument("multiTimedMissedRuns", 0L);
         CPH.SetArgument("multiTimedLateByMs", 0L); CPH.SetArgument("multiTimedSimulated", false); CPH.SetArgument("multiTimedCreatorPayload", "{}");
-        CPH.SetArgument("multiTimedSelectionMode", string.Empty); CPH.SetArgument("multiTimedSelectedMessage", string.Empty); CPH.SetArgument("multiTimedContainerCycle", 0L);
+        CPH.SetArgument("multiTimedSelectionMode", string.Empty); CPH.SetArgument("multiTimedSelectedMessage", string.Empty); CPH.SetArgument("multiTimedSelectedMessages", "{}"); CPH.SetArgument("multiTimedContainerCycle", 0L);
         CPH.SetArgument("multiTimedContainerPosition", 0L); CPH.SetArgument("multiTimedContainerSize", 0L);
         CPH.SetArgument("multiTimedTargetProvider", string.Empty); CPH.SetArgument("multiTimedTargetActionId", string.Empty); CPH.SetArgument("multiTimedTargetActionName", string.Empty);
         CPH.SetArgument("multiTimedDeliveryPlatforms", "[]");
@@ -158,6 +161,19 @@ public class CPHInline
             if (platform != "twitch" && platform != "youtube" && platform != "kick" && platform != "tiktok") return false;
             if (seen.Contains(platform)) return false;
             seen.Add(platform);
+        }
+        return true;
+    }
+
+    private static bool ReadPlatformMessages(JObject value)
+    {
+        if (value == null || value.Count == 0 || value.Count > 4) return false;
+        foreach (JProperty property in value.Properties())
+        {
+            int maximum = property.Name == "youtube" ? 200 : property.Name == "tiktok" ? 150 : property.Name == "twitch" || property.Name == "kick" ? 500 : 0;
+            if (maximum == 0 || property.Value.Type != JTokenType.String) return false;
+            string input = property.Value.ToString(); if (input.Length == 0 || input.Length > maximum) return false;
+            foreach (char item in input) if (char.IsControl(item)) return false;
         }
         return true;
     }

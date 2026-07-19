@@ -24,6 +24,9 @@ describe('Timed Message Output Streamer.bot package', () => {
     expect(source).toContain('CPH.SendYouTubeMessageToLatestMonitored(message, true, true)');
     expect(source).toContain('CPH.SendKickMessage(message, true, true)');
     expect(source).toContain('CPH.WebsocketBroadcastJson');
+    expect(source).toContain('multiTimedSelectedMessages');
+    expect(source).toContain('platformMessages.ContainsKey(platform)');
+    expect(source).toContain('platform == "youtube" ? 200 : platform == "tiktok" ? 150 : 500');
     expect(source).toContain('if (simulated)');
     expect(manifest.contract.executionSafety).toMatchObject({ directTriggers: false, writesGlobalVariables: false, simulatedEventsSendExternally: false });
     expect(source).not.toMatch(/CPH\.SetGlobalVar|Process\.Start|PowerShell|cmd\.exe|TtsSpeak|BroadcastUdp/);

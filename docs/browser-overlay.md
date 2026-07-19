@@ -116,7 +116,14 @@ The deprecated `meldOverlay` configuration key from bridge `0.9.0` is migrated a
 
 ## Current boundary
 
-The browser hub is implemented, offline-testable, and live-verified in Meld Studio and OBS Studio. The project owner accepts that OBS verification as the Streamlabs Desktop compatibility gate because all three integrations consume the same standards-based fixed URLs; a separate Streamlabs execution is not claimed. Stage 2 core serves Combined, Chat, and Alerts only. Bloom Companion and Speaker.bot orchestration are archived optional add-on candidates and are not loaded or exposed by core.
-# Alert storm protection
+The browser hub is implemented, offline-testable, and live-verified in Meld Studio and OBS Studio. The project owner accepts that OBS verification as the Streamlabs Desktop compatibility gate because all three integrations consume the same standards-based fixed URLs; a separate Streamlabs execution is not claimed. Core serves Combined, Chat, Alerts, and the fixed permission-gated add-on host described below. Bloom Companion and Speaker.bot orchestration are archived optional add-on candidates and are not loaded or exposed by core.
+
+## Hosted add-on overlays
+
+Enabled installed add-ons that declare `overlay.publish` receive `/overlay/addons/<module-id>`. The wizard shows the exact copyable URL and can send a five-second preview card. The page shares the existing overlay `SharedWorker` and WebSocket when supported, filters every envelope to its own module ID, and renders only core-defined card and media commands. Add-on packages cannot supply HTML, CSS, or JavaScript to this route.
+
+Media URLs must use HTTPS or the bridge's same origin. Text is assigned through `textContent`, lengths and timing are clamped, and the page's Content Security Policy permits only same-origin code plus HTTPS images/media. An isolated streaming application process may still need one direct WebSocket for its browser source; the add-on never creates or owns that connection itself.
+
+## Alert storm protection
 
 The browser alert controller applies event-specific safety defaults. TikTok likes are emitted by the intake adapter only when a new 100-like milestone is crossed. Cheers/bits are summed per viewer for five seconds, gifts per viewer and gift for three seconds, and gift subscriptions per gifter/tier for five seconds. Subscriptions and memberships remain individual and are paced at no faster than one card every four seconds. Follow events are not merged; at most five follow cards are accepted in a ten-second burst and excess cards are suppressed. Donations and Super Chats are never combined because merging monetary events or their messages could misrepresent the source events.

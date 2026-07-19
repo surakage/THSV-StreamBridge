@@ -1,85 +1,77 @@
 # V2 add-on development
 
-Stage 9 makes optional modules installable without adding their implementation to core. Core imports only the public contracts and `FrameworkModule` shape. Installed add-ons live under `data/addons/<module-id>/`, are verified before loading, and are always optional: an add-on failure cannot make required core modules unready.
+Optional features install as `.thsv-addon` archives and use the existing StreamBridge process, event normalization, state roots, and single Streamer.bot WebSocket connection. An add-on must not ship its own copy of StreamBridge or silently start another service.
 
-## Security boundary
+## Choose the package kind
 
-An add-on is executable JavaScript with the same local permissions as StreamBridge. SHA-256 verification proves that installed files match `module-package.json`; it does **not** prove who authored them or that they are safe. Review the source and publisher, keep a backup, and use the required `--approve` flag only when you trust the package. StreamBridge rejects symbolic links, traversal paths, unlisted files, missing files, hash/size changes, incompatible core versions, runtime/descriptor manifest drift, and duplicate module IDs.
+Use `packageKind: "declarative"` whenever settings and framework-owned behavior are sufficient. Declarative packages have no JavaScript entrypoint or migrations. Their JSON configuration schema is validated server-side and rendered by the authenticated wizard with native controls; package HTML and scripts are never injected into the wizard.
+
+Use `packageKind: "executable"` only when code is genuinely required. Executable add-ons run with the same Windows-account permissions as StreamBridge. The `permissions` list is mandatory disclosure for creator review, not an operating-system sandbox. Hashes prove installed bytes match the descriptor; they do not prove the identity or safety of the publisher.
+
+Supported permission declarations are:
+
+- `events.subscribe`
+- `streamerbot.run-approved-action`
+- `overlay.publish`
+- `schedule.bounded`
+- `state.private`
+
+The capability broker turns these declarations into frozen, narrowly scoped runtime handles for private state, bounded scheduling, exact creator-approved Streamer.bot action IDs, and namespaced publication to a core-hosted add-on overlay. Executable event subscribers must declare `events.subscribe`. See [Add-on capability broker](add-on-capabilities.md).
+
+The broker is a supported least-privilege API, not an operating-system sandbox: executable packages remain a full-trust expert path and should undergo source review. Public third-party add-ons should prefer the declarative tier.
 
 ## Package layout
 
 ```text
 my-addon/
   module-package.json
-  dist/index.js
   schemas/config.json
+  ui/settings.json       optional declarative UI ordering metadata
+  dist/index.js          executable packages only
 ```
 
-`module-package.json` uses `packageFormat: "thsv-addon-v2"` and contains:
+`module-package.json` uses `packageFormat: "thsv-addon-v2"` and contains the package kind, author, description, changelog, permissions, complete v2 module manifest, optional executable entrypoint, optional settings UI schema, and the exact byte size and lowercase SHA-256 hash of every shipped file.
 
-- the complete v2 module manifest;
-- one safe relative JavaScript `entrypoint`;
-- every shipped file with its exact byte size and lowercase SHA-256 hash.
+Packages are version-bounded with `minimumCoreVersion` and `maximumTestedCoreVersion`. They declare dependencies, required platform capabilities, event subscriptions, provided commands/actions, owned state, installation/removal instructions, and health checks. Add-ons requesting `overlay.publish` receive the fixed core route `/overlay/addons/<module-id>`; they cannot inject custom browser HTML or JavaScript. `browserSourcesProvided` remains reserved for a future declarative route manifest and must stay empty in this preview.
 
-The entrypoint exports either a default `FrameworkModule` object or an async `createModule()` function. Its manifest must exactly match the verified descriptor. Add-ons are loaded after the five required core modules, dependency order is resolved before startup, and lifecycle/event-handler errors are isolated and reported in module diagnostics.
+## Settings contract
 
-Use only exports under `bridge/contracts/v2/` and the documented `FrameworkModule` lifecycle. Do not import core implementation files, read another module's storage, mutate creator-owned Streamer.bot objects, open network listeners implicitly, or place secrets in the descriptor. Declare all capabilities, subscriptions, owned storage, install/remove steps, migrations, actions, commands, browser sources, and health checks honestly.
+The wizard accepts a deliberately small, predictable JSON Schema subset:
 
-`requiredCapabilities` is enforced against the supported capabilities of currently enabled input
-platforms. If any required capability is unavailable, the add-on and add-ons depending on it are
-rejected while core continues. Add-on-provided browser sources are reserved for a future hosting
-contract; `browserSourcesProvided` must remain empty in this preview rather than claiming an
-unserved route.
+- a root object with at most 100 properties;
+- scalar `string`, `number`, `integer`, and `boolean` fields;
+- scalar enums, defaults, required fields, text lengths, and numeric minimum/maximum bounds;
+- no unknown saved properties and no executable validation expressions.
 
-## Data migrations
+Settings are limited to 64 KiB and written atomically under `addons/state/<module-id>/settings.json`. Uninstall removes package code but preserves this private state. The public release installer preserves both `data/` and `addons/state/` across upgrades and default uninstall.
 
-Upgrade migrations execute only when replacing an already verified installation. A migration
-declares one unambiguous forward step (`from`, `to`, and a packaged `.js` or `.mjs` script) and
-exports either `migrate(context)` or a default function. The context contains `moduleId`,
-`fromVersion`, `toVersion`, `packageRoot`, and the dedicated `storageRoot` at
-`data/addons/.state/<module-id>/`. A migrating add-on must declare that exact directory in
-`dataStorageOwned`.
-
-StreamBridge snapshots the dedicated storage directory, runs each required step in order with a
-30-second bound, and swaps the new code only after every migration succeeds. A failure restores
-both the previous code and the storage snapshot. Migration code remains trusted add-on JavaScript
-with the same local permissions as StreamBridge; rollback guarantees cover only the supplied
-`storageRoot`, so a migration must not write elsewhere.
-
-## Verify, install, and remove
+## Build and test
 
 From a source checkout:
 
 ```powershell
-npm run addon:verify -- examples/addons/no-op
+npm run addon:verify -- examples/addons/declarative-settings
+npm run addon:package -- examples/addons/declarative-settings
+```
+
+The packager writes `dist/addons/<module-id>-<version>.thsv-addon`. Install it through the wizard's Add-ons page to exercise the same authenticated, archive-bounded, private-staging path creators use. The source-oriented expert CLI remains available for reviewed executable packages:
+
+```powershell
 npm run addon:install -- examples/addons/no-op data/addons --approve
 npm run addon:remove -- sample.no-op data/addons --approve
 ```
 
-From an extracted release, use the compiled tool:
+Restart StreamBridge after install, update, enable/disable, or removal. A corrupt or incompatible package is shown as rejected and is not loaded; other add-ons and required core modules continue.
 
-```powershell
-node dist/tools/manage-addon.js verify examples/addons/no-op
-node dist/tools/manage-addon.js install examples/addons/no-op data/addons --approve
-node dist/tools/manage-addon.js remove sample.no-op data/addons --approve
-```
+## Executable entrypoints and migrations
 
-Restart StreamBridge after installing, upgrading, or removing an add-on. Removal deletes only the installed code directory. Storage declared in `dataStorageOwned` remains preserved until the creator explicitly removes it.
+An executable entrypoint exports either a default `FrameworkModule` object or `createModule()`. Its runtime manifest must exactly match the verified descriptor. Module IDs cannot conflict with built-ins or other add-ons, dependencies must be available and acyclic, and required capabilities must exist on enabled input platforms. `start(context)`, `onEvent(event, context)`, and `stop(context)` receive the loader-owned capability context. Do not open another Streamer.bot WebSocket.
 
-## Reference package
+Executable upgrade migrations declare one unambiguous forward step and run in a bounded worker against the dedicated state root. StreamBridge snapshots that root, runs ordered migrations, re-verifies the private staged package after code execution, and restores code and state if migration fails. A migration still has full process-user permissions; rollback covers only the supplied state root.
 
-`examples/addons/no-op/` is the canonical minimal package. It subscribes to a harmless event, performs no I/O or state mutation, and demonstrates the exact descriptor/runtime-manifest match. Copy its structure, choose a globally distinct dotted module ID, update every declared path, then recalculate sizes and SHA-256 values after the final build.
+## Reference packages
 
-## Backup and recovery
+- `examples/addons/declarative-settings/` is the preferred harmless public reference. It demonstrates wizard-rendered settings without executable add-on code.
+- `examples/addons/no-op/` is the minimal executable lifecycle reference for expert review and testing.
 
-`scripts/backup.ps1` includes configuration, local configuration, state, and installed add-on code in a hashed backup manifest. Restore only a reviewed backup:
-
-```powershell
-.\scripts\restore.ps1 -BackupPath 'data\backups\20260718-120000' -ApproveRestore
-```
-
-Restore verifies every file before mutation, stops the bridge, creates a safety backup, stages replacements, and rolls back the current configuration/state/add-ons if the swap fails.
-
-Backup and restore cover THSV StreamBridge files only. They do not back up or recreate actions,
-commands, triggers, or other objects stored inside Streamer.bot's own database; use Streamer.bot's
-own export/backup tools for those objects.
+The planned Random Clip Player can now build on the completed capability broker and hosted browser-source contract. It should request only approved Streamer.bot action dispatch, bounded scheduling, private state, and overlay publication; it must reuse the bridge's one WebSocket connection rather than creating its own.

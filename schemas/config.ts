@@ -59,12 +59,20 @@ const commandsSchema = z
 
 const timedActionIdSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
 export const TIMED_CHAT_PLATFORM_VALUES = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
+export const TIMED_MESSAGE_CHARACTER_LIMITS = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } as const;
+const platformMessageListsSchema = z.object({
+  twitch: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.twitch)).min(2).max(200).optional(),
+  youtube: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.youtube)).min(2).max(200).optional(),
+  kick: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.kick)).min(2).max(200).optional(),
+  tiktok: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.tiktok)).min(2).max(200).optional(),
+}).strict().refine((lists) => Object.values(lists).some((messages) => messages !== undefined && messages.length >= 2), 'Platform message rotation requires at least one platform with two messages.');
 const timedActionSelectionSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('fixed') }).strict(),
   z.object({
     mode: z.literal('shuffle-container'),
     messages: z.array(z.string().min(1).max(500)).min(2).max(200),
   }).strict(),
+  z.object({ mode: z.literal('platform-shuffle'), messagesByPlatform: platformMessageListsSchema }).strict(),
 ]);
 
 const timedActionTargetSchema = z.discriminatedUnion('provider', [
@@ -345,6 +353,11 @@ const bridgeConfigObjectSchema = z
         deliveryQueueCapacity: z.number().int().min(1).max(100_000).default(100),
         deliveryConcurrency: z.number().int().min(1).max(32).default(2),
         deliveryFailureThreshold: z.number().int().min(1).max(100).default(3),
+        deliveryStateFile: z.string().min(1).default('data/state/delivery-outbox.json'),
+        deliveryMaxAttempts: z.number().int().min(1).max(100).default(8),
+        deliveryRetryInitialDelayMs: z.number().int().min(10).max(60_000).default(500),
+        deliveryRetryMaxDelayMs: z.number().int().min(10).max(600_000).default(30_000),
+        deliveryDeadLetterCapacity: z.number().int().min(1).max(100_000).default(1_000),
         testMode: z.boolean(),
         reconnect: reconnectSchema,
       })
@@ -356,6 +369,7 @@ const bridgeConfigObjectSchema = z
         if (url.username.length > 0 || url.password.length > 0 || url.search.length > 0) context.addIssue({ code: 'custom', path: ['url'], message: 'URL must not contain credentials or query parameters; use environment variables for secrets' });
         if (!loopback && !streamerbot.allowRemote) context.addIssue({ code: 'custom', path: ['url'], message: 'Remote Streamer.bot URLs require allowRemote=true' });
         if (!loopback && url.protocol !== 'wss:') context.addIssue({ code: 'custom', path: ['url'], message: 'Remote Streamer.bot URLs must use wss://' });
+        if (streamerbot.deliveryRetryMaxDelayMs < streamerbot.deliveryRetryInitialDelayMs) context.addIssue({ code: 'custom', path: ['deliveryRetryMaxDelayMs'], message: 'Maximum delivery retry delay must be at least the initial delay' });
       }),
     platforms: z.record(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), platformSchema),
     outputs: z.record(z.string().regex(/^[a-z][a-z0-9-]{0,63}$/), outputSchema).default({

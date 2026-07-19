@@ -1,0 +1,41 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "declarative",
+  "author": "THSV StreamBridge Project",
+  "description": "A harmless reference package that demonstrates wizard-rendered settings without executing add-on code.",
+  "changelog": "Initial reference package for the public add-on contract.",
+  "permissions": ["state.private"],
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "sample.declarative-settings",
+    "name": "Declarative Settings Example",
+    "version": "1.0.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": ["addons/state/sample.declarative-settings/"],
+    "installationSteps": ["Open Add-ons in the local wizard, choose this .thsv-addon file, review the metadata, and approve installation."],
+    "uninstallationSteps": ["Uninstall it from Add-ons. Creator settings remain preserved until deliberately deleted."],
+    "migrations": [],
+    "healthChecks": []
+  },
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "schemas/config.json",
+      "size": 708,
+      "sha256": "fd825a01ea74ccecc47f29b3c8872fcfcba7452cb194382d1b6d9315606454aa"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 64,
+      "sha256": "f28122a3714b59ca57befee0ba4b8282a8d2e34312f3a4c0de8d4e0336dda877"
+    }
+  ]
+}

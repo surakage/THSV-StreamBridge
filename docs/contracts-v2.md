@@ -2,6 +2,8 @@
 
 Stage 2 introduces `2.0.0-preview.1` contracts on the preview branch while stable `1.x` remains on `main`. The service now starts its built-in projections through the module registry, and the Streamer.bot Core Receiver/Multi-Commands preview packages no longer expose progression identity.
 
+The v2 contract directory is a staged preview, not a second live event pipeline. Production adapters and ingestion still use `schemas/event.ts`; only the reward, add-on package, command-sync, module-manifest, and capability contracts currently have production consumers. The remaining chat, alert, command, configuration-extension, health, and timed-execution schemas are forward contract candidates and must not be treated as load-bearing until a producer and consumer are wired together.
+
 ## Published preview contracts
 
 `bridge/contracts/v2/` contains schemas and inferred TypeScript types for:

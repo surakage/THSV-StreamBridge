@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build and validate release archive
+        shell: powershell
+        run: .\scripts\package-release.ps1
+      - name: Generate production SBOM
+        shell: powershell
+        run: npm sbom --omit=dev --sbom-format cyclonedx | Set-Content -Encoding utf8 THSV-StreamBridge-${{ github.ref_name }}.cdx.json
+      - name: Resolve release asset paths
+        id: assets
+        shell: powershell
+        run: |
+          $archive = Get-ChildItem packages\THSV-StreamBridge-*.zip | Select-Object -First 1
+          if ($null -eq $archive) { throw 'Release archive was not produced.' }
+          "archive=$($archive.FullName)" >> $env:GITHUB_OUTPUT
+          "checksum=$($archive.FullName).sha256" >> $env:GITHUB_OUTPUT
+      - name: Attest release provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.assets.outputs.archive }}
+      - name: Attest software bill of materials
+        uses: actions/attest-sbom@v2
+        with:
+          subject-path: ${{ steps.assets.outputs.archive }}
+          sbom-path: THSV-StreamBridge-${{ github.ref_name }}.cdx.json
+      - name: Publish immutable-ready GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: powershell
+        run: |
+          gh release create $env:GITHUB_REF_NAME --draft --verify-tag --generate-notes
+          gh release upload $env:GITHUB_REF_NAME "${{ steps.assets.outputs.archive }}" "${{ steps.assets.outputs.checksum }}" "THSV-StreamBridge-$env:GITHUB_REF_NAME.cdx.json"
+          gh release edit $env:GITHUB_REF_NAME --draft=false --latest

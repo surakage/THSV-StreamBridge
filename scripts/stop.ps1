@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$BaseUrl = 'http://127.0.0.1:8787',
-    [string]$Config = 'config/bridge.example.json'
+    [string]$BaseUrl = '',
+    [string]$Config = ''
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -16,11 +16,18 @@ if ($null -eq $process) {
     Write-Output 'Removed stale PID file.'
     exit 0
 }
-if ($Config -eq 'config/bridge.example.json' -and (Test-Path -LiteralPath $activeConfigFile)) {
+if ([string]::IsNullOrWhiteSpace($Config) -and (Test-Path -LiteralPath $activeConfigFile)) {
     $Config = (Get-Content -Raw -LiteralPath $activeConfigFile).Trim()
 }
+if ([string]::IsNullOrWhiteSpace($Config)) { $Config = 'config/bridge.example.json' }
 $configPath = Join-Path $repo $Config
 $settings = Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+    $controlHost = [string]$settings.service.host
+    if ($controlHost -in @('0.0.0.0', '::', '[::]')) { $controlHost = '127.0.0.1' }
+    if ($controlHost -eq '::1') { $controlHost = '[::1]' }
+    $BaseUrl = "http://${controlHost}:$([int]$settings.service.port)"
+}
 $tokenEnvironment = if ($settings.security.controlTokenEnv) { $settings.security.controlTokenEnv } else { 'THSV_STREAMBRIDGE_CONTROL_TOKEN' }
 $token = [Environment]::GetEnvironmentVariable($tokenEnvironment)
 if ([string]::IsNullOrWhiteSpace($token)) {

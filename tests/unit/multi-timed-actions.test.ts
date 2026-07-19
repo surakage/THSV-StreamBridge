@@ -13,6 +13,19 @@ const defaultTimerPolicy = { intervalMode: 'fixed' as const, gates: { requireLiv
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Multi-Timed Actions', () => {
+  it('bounds retained chat activity while preserving the maximum documented gate count', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-timed-bounded-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
+      ...defaultTimerPolicy, id: 'bounded-chat', name: 'Bounded Chat', enabled: true, everyMinutes: 10,
+      missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' },
+      gates: { ...defaultTimerPolicy.gates, activity: { minimumMessages: 10_000, windowMinutes: 5 } },
+    }] };
+    const adapter = new TimedActionsAdapter('timers', platform, config, () => 0);
+    const chat = await fixture();
+    for (let index = 0; index < 20_000; index += 1) adapter.observe({ ...chat, eventId: `bounded-${String(index)}` });
+    expect(adapter.controlStatus()['activityEntries']).toBe(10_000);
+  });
+
   it('projects session timing and shuffle-container selection', async () => {
     const event = JSON.parse(await readFile('tests/fixtures/system-timed.json', 'utf8')) as NormalizedEvent;
     expect(projectMultiTimedAction({ ...event, metadata: { ...event.metadata, bridgeSequence: 9 } })).toMatchObject({
@@ -47,6 +60,29 @@ describe('Multi-Timed Actions', () => {
     expect(new Set(events.slice(0, 3).map((event) => event.payload['selectedMessage'])).size).toBe(3);
     await adapter.control('stop'); await adapter.stop();
     expect(JSON.parse(await readFile(config.stateFile, 'utf8'))).toMatchObject({ session: { active: false }, timers: { rotation: { lastSelected: 0, cycle: 2 } } });
+  });
+
+  it('shuffles each platform message list independently without repeats', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-07-16T16:00:00.000Z');
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-platform-shuffle-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
+      ...defaultTimerPolicy, id: 'platform-rotation', name: 'Platform rotation', enabled: true, everyMinutes: 1, firstRunAfterMinutes: 0, missedRunPolicy: 'fire-once', payload: {},
+      selection: { mode: 'platform-shuffle', messagesByPlatform: { twitch: ['T1', 'T2'], youtube: ['Y1', 'Y2', 'Y3'] } },
+    }] };
+    const events: NormalizedEvent[] = [];
+    const adapter = new TimedActionsAdapter('timers', platform, config, () => 0);
+    await adapter.start({ logger: silentLogger, emit: (event) => { events.push(event as NormalizedEvent); return Promise.resolve({ accepted: true }); } });
+    await adapter.control('start');
+    for (let index = 0; index < 4; index += 1) { await vi.advanceTimersByTimeAsync(index === 0 ? 0 : 60_000); await vi.waitFor(() => expect(events).toHaveLength(index + 1)); }
+    const selected = events.map((event) => event.payload['selectedMessages'] as Record<string, string>);
+    expect(selected.map((value) => value.twitch)).toEqual(['T1', 'T2', 'T1', 'T2']);
+    expect(selected.map((value) => value.youtube)).toEqual(['Y1', 'Y2', 'Y3', 'Y1']);
+    expect(projectMultiTimedAction(events[0] as NormalizedEvent)).toMatchObject({ selectionMode: 'platform-shuffle', selectedMessages: { twitch: 'T1', youtube: 'Y1' } });
+    // Stop flushes the current occurrence and cancels the next arm. vi.waitFor advances fake
+    // timers while polling and can accidentally fire extra one-minute occurrences here.
+    await adapter.control('stop'); await adapter.stop();
+    const persisted = JSON.parse(await readFile(config.stateFile, 'utf8')) as Record<string, unknown>;
+    expect(persisted).toMatchObject({ timers: { 'platform-rotation': { platformBags: { twitch: { cycle: 2, lastSelected: 1 }, youtube: { cycle: 2, lastSelected: 0 } } } } });
   });
 
   it('lets independent fixed and container timers use different minute intervals', async () => {
