@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Updated public documentation to reflect the durable output outbox, restart replay, bounded retry, and dead-letter behavior that is now implemented.
 - Windows launchers and the setup wizard now accept valid JSON configuration files saved with a UTF-8 byte-order mark by common Windows editors.
 - The public Windows uninstaller now normalizes its trailing installation-path separator before handing the path to Node, preventing a quoted-path failure during removal.
+- JavaScript release assets are pinned to LF checkout semantics so add-on manifest sizes and hashes remain reproducible on Windows GitHub runners.
 
 ### Safety
 
