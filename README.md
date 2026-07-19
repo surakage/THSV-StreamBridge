@@ -143,6 +143,8 @@ npm run simulate
 .\scripts\stop.ps1
 ```
 
+Use `npm run dev` when editing source and you want automatic restarts. Development mode participates in the same authenticated single-instance lifecycle as the normal launcher: it waits for any in-progress launch, shuts down an existing local Bridge, and then starts the watcher. A second `npm run dev` therefore replaces the first instead of failing on port 8787; the earlier command returns to its prompt without forcibly closing the PowerShell window itself.
+
 The checked-in example uses live Streamer.bot delivery and will report not-ready until Streamer.bot's WebSocket server is available. For a network-free check, copy the configuration and explicitly set `streamerbot.testMode` to `true`. Test mode is clearly reported as non-live in diagnostics and never contacts Streamer.bot.
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.

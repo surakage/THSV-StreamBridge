@@ -20,7 +20,7 @@ if ([string]::IsNullOrWhiteSpace($Config) -and (Test-Path -LiteralPath $activeCo
     $Config = (Get-Content -Raw -LiteralPath $activeConfigFile).Trim()
 }
 if ([string]::IsNullOrWhiteSpace($Config)) { $Config = 'config/bridge.example.json' }
-$configPath = Join-Path $repo $Config
+$configPath = if ([IO.Path]::IsPathRooted($Config)) { $Config } else { Join-Path $repo $Config }
 $settings = Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
 if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
     $controlHost = [string]$settings.service.host

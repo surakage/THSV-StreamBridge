@@ -6,7 +6,7 @@ Facebook is not supported. Twitch, YouTube, and Kick require the included Stream
 
 ## Startup reports a port conflict
 
-Another process owns the configured diagnostics port. Run `Get-NetTCPConnection -LocalPort 8787` or change `service.port`.
+The normal launcher and `npm run dev` safely replace another tracked THSV StreamBridge instance before binding. If the conflict remains, an unrelated or untracked process owns the configured diagnostics port. Run `Get-NetTCPConnection -LocalPort 8787`, stop that application yourself, or change `service.port`; StreamBridge deliberately will not kill an unidentified process.
 
 ## Readiness is not ready
 

@@ -8,7 +8,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs'] },
+        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'tools/dev.mjs'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -19,11 +19,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['installer/**/*.mjs', 'launcher/**/*.mjs'],
+    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'tools/dev.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       ...tseslint.configs.disableTypeChecked.languageOptions,
-      globals: { AbortSignal: 'readonly', fetch: 'readonly', process: 'readonly', setTimeout: 'readonly' },
+      globals: { AbortSignal: 'readonly', clearInterval: 'readonly', fetch: 'readonly', process: 'readonly', setInterval: 'readonly', setTimeout: 'readonly' },
     },
   },
 );

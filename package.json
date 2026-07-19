@@ -16,7 +16,7 @@
     "addon:remove": "tsx tools/manage-addon.ts remove",
     "clean": "node tools/clean.mjs",
     "config:validate": "tsx tools/validate-config.ts",
-    "dev": "tsx watch apps/bridge-service.ts",
+    "dev": "node tools/dev.mjs",
     "lint": "eslint .",
     "package:streamerbot": "tsx tools/build-streamerbot-export.ts",
     "simulate": "tsx tools/simulate-event.ts",

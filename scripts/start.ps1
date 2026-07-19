@@ -9,7 +9,8 @@ if ([string]::IsNullOrWhiteSpace($Config)) {
     if ([string]::IsNullOrWhiteSpace($Config) -and (Test-Path -LiteralPath (Join-Path $repo 'data\runtime\bridge.local.json'))) { $Config = 'data/runtime/bridge.local.json' }
     if ([string]::IsNullOrWhiteSpace($Config)) { $Config = 'config/bridge.example.json' }
 }
-if (-not (Test-Path -LiteralPath (Join-Path $repo $Config))) { throw "Configuration file not found: $Config" }
+$requestedConfigPath = if ([IO.Path]::IsPathRooted($Config)) { $Config } else { Join-Path $repo $Config }
+if (-not (Test-Path -LiteralPath $requestedConfigPath)) { throw "Configuration file not found: $Config" }
 if (Test-Path -LiteralPath $pidFile) {
     $existingPid = [int](Get-Content -Raw -LiteralPath $pidFile)
     if (Get-Process -Id $existingPid -ErrorAction SilentlyContinue) {
@@ -21,7 +22,6 @@ if (Test-Path -LiteralPath $pidFile) {
         Remove-Item -LiteralPath $pidFile -Force
     }
 }
-$requestedConfigPath = Join-Path $repo $Config
 $requestedConfig = Get-Content -Raw -LiteralPath $requestedConfigPath | ConvertFrom-Json
 $requestedPort = [int]$requestedConfig.service.port
 $listener = Get-NetTCPConnection -LocalPort $requestedPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
