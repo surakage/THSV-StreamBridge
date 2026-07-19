@@ -14,7 +14,7 @@
       "arguments": [
         {
           "name": "thsvBridgeInstallPath",
-          "value": "Default Windows install",
+          "value": "%LOCALAPPDATA%\\THSV StreamBridge",
           "autoType": false,
           "id": "871b010c-523d-52f2-aaad-5dc15a61539f"
         }
@@ -34,7 +34,7 @@
       "arguments": [
         {
           "name": "thsvBridgeInstallPath",
-          "value": "Default Windows install",
+          "value": "%LOCALAPPDATA%\\THSV StreamBridge",
           "autoType": false,
           "id": "6ab6ab1c-00be-553a-8efd-28d0498b8d90"
         }

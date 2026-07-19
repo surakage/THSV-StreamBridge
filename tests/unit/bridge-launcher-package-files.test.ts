@@ -43,7 +43,7 @@ describe('Bridge Launcher Streamer.bot package', () => {
       expect(action).toMatchObject({ name: manifestAction.name, group: manifestAction.group, concurrent: true, triggers: [] });
 
       const setting = action?.subActions.find((item) => item.type === 123 && item.enabled);
-      expect(setting).toMatchObject({ index: 0, variableName: 'thsvBridgeInstallPath', value: 'Default Windows install' });
+      expect(setting).toMatchObject({ index: 0, variableName: 'thsvBridgeInstallPath', value: '%LOCALAPPDATA%\\THSV StreamBridge' });
 
       const code = action?.subActions.find((item) => item.type === 99_999 && item.enabled);
       expect(code?.index).toBe(1);
@@ -56,6 +56,8 @@ describe('Bridge Launcher Streamer.bot package', () => {
         expect(reviewedSource).toContain(`"${variable}"`);
         expect(reviewedSource).toContain('CPH.TryGetArg');
       }
+      expect(reviewedSource).not.toContain('Default Windows install');
+      expect(reviewedSource).toContain('Environment.ExpandEnvironmentVariables');
       // The whole point of this package: the install path must never be a literal path baked
       // into source, or every creator would need to edit and recompile the C# themselves.
       expect(reviewedSource).not.toMatch(/[A-Za-z]:\\[^"]*StreamBridge/);

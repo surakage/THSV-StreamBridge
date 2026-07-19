@@ -4,7 +4,7 @@ The foundation sends a `DoAction` WebSocket request and waits for the correlated
 
 ## Manual setup
 
-Before the core imports, you may import `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-1.2.0.sb` and `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-2.0.0-preview.1.sb`. Each bridge lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave it at **Default Windows install**, or edit that sub-action for a custom path; do not edit the C#. Only Launch Bridge may receive **Core > Streamer.bot > Streamer.bot Started**; keep Shutdown Bridge and Open Setup Wizard manual.
+Before the core imports, you may import `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-1.2.0.sb` and `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-2.0.0-preview.1.sb`. Each bridge lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave its default `%LOCALAPPDATA%\THSV StreamBridge` path unchanged, or edit that sub-action for a custom path; do not edit the C#. Only Launch Bridge may receive **Core > Streamer.bot > Streamer.bot Started**; keep Shutdown Bridge and Open Setup Wizard manual.
 
 1. In Streamer.bot, open **Servers/Clients > WebSocket Server**.
 2. Keep the address at `127.0.0.1`, port `8080`, and endpoint `/`, or update the bridge URL to match.

@@ -8,7 +8,6 @@ using System.IO;
 public class CPHInline
 {
     private const string InstallPathArgument = "thsvBridgeInstallPath";
-    private const string DefaultInstallSelection = "Default Windows install";
 
     public bool Execute()
     {
@@ -52,7 +51,7 @@ public class CPHInline
     {
         string configured;
         bool hasArgument = CPH.TryGetArg(InstallPathArgument, out configured) && !String.IsNullOrWhiteSpace(configured);
-        if (!hasArgument || configured.Trim().Equals(DefaultInstallSelection, StringComparison.OrdinalIgnoreCase))
+        if (!hasArgument)
         {
             string legacy = CPH.GetGlobalVar<string>(InstallPathArgument, true);
             configured = String.IsNullOrWhiteSpace(legacy)

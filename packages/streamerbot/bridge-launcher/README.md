@@ -2,7 +2,7 @@
 
 This package installs **THSV StreamBridge - Launch Bridge** and **THSV StreamBridge - Shutdown Bridge**.
 
-Each action begins with an editable **Set Argument** named `thsvBridgeInstallPath`. Leave its value as **Default Windows install** to use `%LOCALAPPDATA%\THSV StreamBridge`, or edit that sub-action to point at a custom managed installation or source checkout. The C# reads it with the documented `CPH.TryGetArg()` method. A legacy persisted global with the same name is read only as a migration fallback; new installations do not need that global.
+Each action begins with an editable **Set Argument** named `thsvBridgeInstallPath`. Its default value is the actual expandable path `%LOCALAPPDATA%\THSV StreamBridge`; edit that sub-action only when using a custom managed installation or source checkout. The C# reads it with the documented `CPH.TryGetArg()` method and expands Windows environment variables. A legacy persisted global with the same name is read only when the argument is missing, so new installations do not need that global.
 
 ## Trigger setup
 
