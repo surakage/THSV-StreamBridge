@@ -1,14 +1,19 @@
 import { spawnSync } from 'node:child_process';
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const requestedRootIndex = process.argv.indexOf('--install-root');
 const requestedRoot = requestedRootIndex >= 0 ? process.argv[requestedRootIndex + 1] : undefined;
-const installRoot = requestedRoot ? resolve(requestedRoot) : resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const installRoot = await realpath(requestedRoot ? resolve(requestedRoot) : resolve(dirname(fileURLToPath(import.meta.url)), '..'));
 const recordPath = join(installRoot, 'data', 'runtime', 'install-manifest.json');
 const record = JSON.parse(await readFile(recordPath, 'utf8'));
-if (record.product !== 'THSV StreamBridge' || resolve(record.installRoot) !== installRoot) throw new Error('This directory is not a managed THSV StreamBridge installation.');
+// Windows can report the same directory in either its short (8.3) or long form depending on how a
+// caller reached it (e.g. an environment variable set to the short form vs. a batch file's own
+// %~dp0 resolving to the long form). Comparing realpath() output on both sides, rather than a plain
+// string resolve(), avoids a false "not a managed installation" rejection for the identical folder.
+const recordedRoot = await realpath(record.installRoot).catch(() => resolve(record.installRoot));
+if (record.product !== 'THSV StreamBridge' || recordedRoot !== installRoot) throw new Error('This directory is not a managed THSV StreamBridge installation.');
 const deleteEverything = process.argv.includes('--delete-user-data');
 if (deleteEverything && !process.argv.includes('--confirm-delete-everything')) throw new Error('Deleting creator data requires both --delete-user-data and --confirm-delete-everything.');
 const deferredCleanup = new Set();
