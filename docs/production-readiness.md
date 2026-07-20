@@ -1,6 +1,6 @@
 # Production-readiness gate
 
-`2.0.0-rc.3` is suitable for public release-candidate testing. It is not marked stable until every item below has evidence from the exact release archive.
+`2.0.0` is the published stable release. The automated, clean-machine, and visual gates below pass; the live-runtime items listed under "Remaining live verification" are still in progress. Publishing stable was a deliberate maintainer decision: the runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
 
 ## Automated gate
 
@@ -36,7 +36,7 @@
 - Alert storms and high-volume chat stay within configured queues and do not grow memory without a bound
 - Slow Streamer.bot delivery demonstrates retry, restart replay, dead-letter handling, and no duplicate high-impact action
 
-## Current preview limitations
+## Remaining live verification
 
 - Twitch, YouTube, and Kick trigger field names and provider-stable identifiers have been captured and corrected against real Streamer.bot Action History argument dumps for most high-impact events (see the platform matrix in [integration assumptions](integration-assumptions.md)); Kick Mass Gift Subscription is the one exception, confirmed only against Streamer.bot's published variable reference because its live test trigger crashes Streamer.bot. None of the three has a genuine live-stream, real-viewer soak test yet.
 - TikFinity does not document a stable event ID or trustworthy simulation marker; TikTok financial/progression use remains unsuitable.
@@ -44,4 +44,4 @@
 - GitHub release publishing and attestations require an authenticated maintainer session.
 - A paid Windows executable certificate is not used. Users verify the SHA-256 file and GitHub artifact attestation instead.
 
-Do not describe the build as production-ready until this file's clean-machine and live-runtime sections have dated evidence in the release notes.
+Do not describe unverified high-impact events as production-ready for financial, reward, or destructive automation until the remaining live-verification items above have dated evidence in the release notes.

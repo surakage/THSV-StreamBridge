@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-20
+
+- Promotes `2.0.0-rc.4` to the stable v2 release with no code changes. The automated, clean-machine, and visual gates pass; a genuine live-stream, real-viewer soak of the high-impact provider-event matrix is still in progress, and high-impact operations without verified provider-stable IDs remain blocked at runtime regardless (see [production-readiness](docs/production-readiness.md)).
+
 ## [2.0.0-rc.4] - 2026-07-20
 
 - Changed: the release archive is now named `THSV-StreamBridge-<version>.zip`, dropping the `-windows-x64` suffix for a shorter download name. Windows x64 remains the only supported target, and the in-app update checker accepts both the new and the old asset names.
