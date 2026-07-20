@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The public Windows uninstaller now normalizes its trailing installation-path separator before handing the path to Node, preventing a quoted-path failure during removal.
 - JavaScript release assets are pinned to LF checkout semantics so add-on manifest sizes and hashes remain reproducible on Windows GitHub runners.
 - CycloneDX release SBOMs are written as BOM-free UTF-8 JSON for GitHub attestation compatibility on Windows PowerShell 5.1.
-- Windows-only PowerShell acceptance tests now skip on Linux and launch Windows PowerShell with its native module path instead of inheriting PowerShell 7's runner-specific path.
+- Windows-only PowerShell acceptance tests now skip on Linux, and the Windows CI matrix runs them under Windows PowerShell 5.1 so its native cmdlet/module environment matches supported installations.
 
 ### Safety
 

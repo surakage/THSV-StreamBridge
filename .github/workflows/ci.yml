@@ -30,6 +30,11 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Test
+        if: runner.os != 'Windows'
+        run: npm test
+      - name: Test with Windows PowerShell
+        if: runner.os == 'Windows'
+        shell: powershell
         run: npm test
       - name: Build
         run: npm run build
