@@ -133,13 +133,14 @@ describe('bridge configuration', () => {
   it('validates alert presentation templates, bounds, and gift-only aggregation', async () => {
     const config = await testConfig();
     const valid = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
-      donation: { enabled: true, platforms: ['twitch', 'youtube'], priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} donated {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.4 }, aggregation: { mode: 'none', windowMs: 5_000 } },
-      gift: { enabled: true, sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 4_000 } },
+      twitch: { cheer: { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} cheered {quantity} bits', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.4 }, aggregation: { mode: 'none', windowMs: 5_000 } } },
+      kick: { gift: { enabled: true, sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 4_000 } } },
     } } } });
-    expect(valid.browserOverlay.alerts.profiles.donation).toMatchObject({ platforms: ['twitch', 'youtube'], priority: 'critical', durationMs: 9_000 });
-    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { donation: { platforms: ['twitch', 'twitch'] } } } } }).success).toBe(false);
-    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { donation: { titleTemplate: '{unknown}', sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 } } } } } }).success).toBe(false);
-    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { donation: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 5_000 } } } } } }).success).toBe(false);
+    expect(valid.browserOverlay.alerts.profiles.twitch?.cheer).toMatchObject({ priority: 'critical', durationMs: 9_000 });
+    // A platform that never produces a given alert type is rejected, not silently accepted.
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { twitch: { 'super-chat': { enabled: true, sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 } } } } } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { twitch: { cheer: { titleTemplate: '{unknown}', sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 } } } } } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 5_000 } } } } } } }).success).toBe(false);
   });
 
   it('validates saved chat appearance and a case-insensitive ignored-name list', async () => {

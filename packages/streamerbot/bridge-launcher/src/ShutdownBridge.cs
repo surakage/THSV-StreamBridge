@@ -30,7 +30,12 @@ public class CPHInline
         {
             Process process = Process.Start(startInfo);
             if (process == null) return Fail("PowerShell or the bundled runtime did not start.");
-            CPH.LogInfo("THSV StreamBridge shutdown requested through its authenticated lifecycle launcher.");
+            // The launcher blocks until the bridge confirms it stopped or gives up; without
+            // waiting here this action would report success the instant a process handle exists,
+            // even if the authenticated shutdown then failed and the bridge kept running.
+            if (!process.WaitForExit(ShutdownTimeoutMs)) return Fail("the launcher did not finish within the expected time.");
+            if (process.ExitCode != 0) return Fail("the launcher reported a failure (exit code " + process.ExitCode + ").");
+            CPH.LogInfo("THSV StreamBridge shutdown completed through its authenticated lifecycle launcher.");
             return true;
         }
         catch (Exception exception)
@@ -38,6 +43,8 @@ public class CPHInline
             return Fail("launcher failed (" + exception.GetType().Name + ").");
         }
     }
+
+    private const int ShutdownTimeoutMs = 20_000;
 
     private bool TryResolveInstallPath(out string installPath)
     {

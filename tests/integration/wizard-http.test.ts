@@ -6,7 +6,7 @@ import type { CommandSyncState } from '../../bridge/contracts/v2/command-sync.js
 import { createTestBridge, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { AddOnWizardService } from '../../bridge/services/addon-wizard-service.js';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -53,6 +53,29 @@ describe('wizard HTTP surface', () => {
     const disguised = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'background', contentType: 'image/png', contentBase64: Buffer.from('not a png').toString('base64') }) });
     expect(disguised.status).toBe(400);
     expect(await disguised.text()).toContain('does not match');
+  });
+
+  it('stores uploaded overlay assets under the configured data root, not the process working directory', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-overlay-assets-'));
+    const config = await testConfig();
+    config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined), root);
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    const png = Buffer.from('89504e470d0a1a0a', 'hex');
+    const upload = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'background', contentType: 'image/png', contentBase64: png.toString('base64') }) });
+    expect(upload.status).toBe(201);
+    const { url } = await upload.json() as { url: string };
+    const stored = await stat(join(root, 'runtime', 'overlay-assets', url.split('/').pop() ?? ''));
+    expect(stored.isFile()).toBe(true);
+    await expect(stat(join('data', 'runtime', 'overlay-assets', url.split('/').pop() ?? ''))).rejects.toThrow();
+    const fetched = await fetch(`${baseUrl}${url}`);
+    expect(fetched.status).toBe(200);
+    expect(Buffer.from(await fetched.arrayBuffer())).toEqual(png);
   });
 
   it('serves a locked shell and authenticates every wizard API request', async () => {
@@ -300,15 +323,18 @@ describe('wizard HTTP surface', () => {
     await bridge.start(); await server.start();
     stops.push(async () => { await server.stop(); await bridge.stop(); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
-    expect((await fetch(`${baseUrl}/wizard/api/alerts/donation/preview`, { method: 'POST' })).status).toBe(401);
-    const response = await fetch(`${baseUrl}/wizard/api/alerts/donation/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect((await fetch(`${baseUrl}/wizard/api/alerts/twitch/follow/preview`, { method: 'POST' })).status).toBe(401);
+    const response = await fetch(`${baseUrl}/wizard/api/alerts/twitch/follow/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
     expect(response.status).toBe(202);
-    expect(await response.json()).toMatchObject({ contractVersion: '2.0.0-preview.1', accepted: true, simulated: true, alertType: 'donation', visible: false });
-    expect(observed[0]?.eventType).toBe('engagement.donation');
+    expect(await response.json()).toMatchObject({ contractVersion: '2.0.0-preview.1', accepted: true, simulated: true, platform: 'twitch', alertType: 'follow', visible: false });
+    expect(observed[0]?.eventType).toBe('channel.follow');
+    expect(observed[0]?.platform).toBe('twitch');
     expect(observed[0]?.source.adapter).toBe('mock');
     expect(observed[0]?.source.eventId).toMatch(/^wizard-/u);
     expect(observed[0]?.metadata.simulated).toBe(true);
-    expect((await fetch(`${baseUrl}/wizard/api/alerts/not-real/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);
+    // A platform that never produces a given alert type is rejected, not silently defaulted.
+    expect((await fetch(`${baseUrl}/wizard/api/alerts/twitch/super-chat/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);
+    expect((await fetch(`${baseUrl}/wizard/api/alerts/not-real/follow/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);
   });
 
   it('authenticates reward administration and refuses unsupported Kick mutations', async () => {

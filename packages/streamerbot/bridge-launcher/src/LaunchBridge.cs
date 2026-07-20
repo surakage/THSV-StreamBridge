@@ -37,7 +37,12 @@ public class CPHInline
         {
             Process process = Process.Start(startInfo);
             if (process == null) return Fail("PowerShell or the bundled runtime did not start.");
-            CPH.LogInfo("THSV StreamBridge launch requested through its validated lifecycle launcher.");
+            // The launcher itself blocks until the bridge reports healthy or gives up; without
+            // waiting here this action would report success the instant a process handle exists,
+            // even if the bridge then failed its own health check and exited.
+            if (!process.WaitForExit(LaunchTimeoutMs)) return Fail("the launcher did not finish within the expected time.");
+            if (process.ExitCode != 0) return Fail("the launcher reported a failure (exit code " + process.ExitCode + ").");
+            CPH.LogInfo("THSV StreamBridge launch completed through its validated lifecycle launcher.");
             return true;
         }
         catch (Exception exception)
@@ -45,6 +50,8 @@ public class CPHInline
             return Fail("launcher failed (" + exception.GetType().Name + ").");
         }
     }
+
+    private const int LaunchTimeoutMs = 30_000;
 
     // Resolve the editable action argument first, then preserve the legacy global as a migration fallback.
     private bool TryResolveInstallPath(out string installPath)

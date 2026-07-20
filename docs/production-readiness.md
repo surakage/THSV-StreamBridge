@@ -38,7 +38,7 @@
 
 ## Current preview limitations
 
-- Live trigger field names and provider-stable identifiers still need final capture evidence for every high-impact provider event.
+- Twitch, YouTube, and Kick trigger field names and provider-stable identifiers have been captured and corrected against real Streamer.bot Action History argument dumps for most high-impact events (see the platform matrix in [integration assumptions](integration-assumptions.md)); Kick Mass Gift Subscription is the one exception, confirmed only against Streamer.bot's published variable reference because its live test trigger crashes Streamer.bot. None of the three has a genuine live-stream, real-viewer soak test yet.
 - TikFinity does not document a stable event ID or trustworthy simulation marker; TikTok financial/progression use remains unsuitable.
 - Kick reward mutations remain disabled because Streamer.bot does not document them.
 - GitHub release publishing and attestations require an authenticated maintainer session.

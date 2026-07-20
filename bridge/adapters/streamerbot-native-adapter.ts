@@ -96,6 +96,10 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   if (providerSourceId === '' && STABLE_ID_REQUIRED_EVENT_TYPES.has(eventType)) {
     throw new Error(`${relay.sourceEventType} requires a provider-stable source event ID before it can reach automation.`);
   }
+  // Some Twitch triggers (Sub, ReSub, Gift Sub, Gift Bomb) expose no platform ID at all. The relay
+  // builds a deterministic ID from data that cannot repeat for a genuinely new event, prefixed so
+  // it is never mistaken for a platform-verified identity even though it satisfies the requirement above.
+  const isSyntheticSourceId = providerSourceId.startsWith('synthetic:');
   const sourceId = providerSourceId || relay.relayId;
   const name = clean(relay.userName) || clean(relay.displayName) || `unknown-${relay.platform}-user`;
   const displayName = clean(relay.displayName) || name;
@@ -127,7 +131,7 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     user,
     metadata: {
       simulated: relay.simulated,
-      ...(clean(relay.sourceEventId) === '' ? { unverifiedFields: ['source.eventId'] } : {}),
+      ...(providerSourceId === '' || isSyntheticSourceId ? { unverifiedFields: ['source.eventId'] } : {}),
     },
   };
 
@@ -180,7 +184,7 @@ function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {
   if (['TwitchGiftSub', 'TwitchGiftBomb', 'YouTubeMembershipGift', 'KickGiftSubscription', 'KickMassGiftSubscription'].includes(type)) return 'channel.gift-subscription';
   if (type === 'TwitchCheer') return 'engagement.cheer';
   if (['YouTubeSuperChat', 'YouTubeSuperSticker'].includes(type)) return 'engagement.super-chat';
-  if (type === 'KickGifted') return 'engagement.gift';
+  if (type === 'KickKicksGifted') return 'engagement.gift';
   if (type === 'TwitchRaid') return 'channel.raid';
   if ((relay.platform === 'twitch' && type === 'TwitchRewardRedemption') || (relay.platform === 'kick' && type === 'KickRewardRedemption')) return 'reward.redemption';
   throw new Error(`Unsupported native Streamer.bot event type: ${type}`);

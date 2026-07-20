@@ -138,7 +138,6 @@ const alertTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.t
 });
 const alertPresentationProfileSchema = z.object({
   enabled: z.boolean().default(true),
-  platforms: z.array(z.enum(TIMED_CHAT_PLATFORM_VALUES)).max(TIMED_CHAT_PLATFORM_VALUES.length).refine((platforms) => new Set(platforms).size === platforms.length, 'alert platforms must be unique').default([]),
   priority: z.enum(['low', 'normal', 'high', 'critical']).optional(),
   durationMs: z.number().int().min(1_000).max(60_000).optional(),
   titleTemplate: alertTemplateSchema.min(1).optional(),
@@ -157,12 +156,29 @@ const alertPresentationProfileSchema = z.object({
   }).strict().default({ backgroundColor: '#171120', fontFamily: 'system' }),
   aggregation: z.object({ mode: z.enum(['none', 'sum-quantity']).default('none'), windowMs: z.number().int().min(500).max(30_000).default(5_000) }).strict().default({ mode: 'none', windowMs: 5_000 }),
 }).strict();
+// Only these alert types are ever produced per platform (cross-checked against
+// bridge/adapters/streamerbot-native-adapter.ts and tikfinity-adapter.ts's own event-type
+// mappings). "donation" is intentionally absent everywhere: no provider produces it yet.
+export const PLATFORM_ALERT_TYPES: Readonly<Record<(typeof TIMED_CHAT_PLATFORM_VALUES)[number], readonly (typeof ALERT_PRESENTATION_TYPE_VALUES)[number][]>> = {
+  twitch: ['follow', 'subscription', 'gift-subscription', 'cheer', 'raid'],
+  youtube: ['follow', 'membership', 'gift-subscription', 'super-chat'],
+  kick: ['follow', 'subscription', 'gift-subscription', 'gift'],
+  tiktok: ['follow', 'subscription', 'gift', 'milestone'],
+};
 export const alertPresentationSchema = z.object({
-  profiles: z.partialRecord(z.enum(ALERT_PRESENTATION_TYPE_VALUES), alertPresentationProfileSchema).default({}),
+  profiles: z.partialRecord(
+    z.enum(TIMED_CHAT_PLATFORM_VALUES),
+    z.partialRecord(z.enum(ALERT_PRESENTATION_TYPE_VALUES), alertPresentationProfileSchema).default({}),
+  ).default({}),
 }).strict().superRefine((alerts, context) => {
-  for (const [alertType, profile] of Object.entries(alerts.profiles)) {
-    if (profile.aggregation.mode === 'sum-quantity' && !['gift', 'gift-subscription', 'cheer'].includes(alertType)) {
-      context.addIssue({ code: 'custom', path: ['profiles', alertType, 'aggregation', 'mode'], message: 'Quantity aggregation is supported only for gifts, gift subscriptions, and cheers/bits.' });
+  for (const [platform, platformProfiles] of Object.entries(alerts.profiles)) {
+    for (const [alertType, profile] of Object.entries(platformProfiles)) {
+      if (profile.aggregation.mode === 'sum-quantity' && !['gift', 'gift-subscription', 'cheer'].includes(alertType)) {
+        context.addIssue({ code: 'custom', path: ['profiles', platform, alertType, 'aggregation', 'mode'], message: 'Quantity aggregation is supported only for gifts, gift subscriptions, and cheers/bits.' });
+      }
+      if (!(PLATFORM_ALERT_TYPES[platform as (typeof TIMED_CHAT_PLATFORM_VALUES)[number]] as readonly string[]).includes(alertType)) {
+        context.addIssue({ code: 'custom', path: ['profiles', platform, alertType], message: `${platform} never produces ${alertType} alerts.` });
+      }
     }
   }
 });

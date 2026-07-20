@@ -44,7 +44,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   await expect(page.getByRole('article').getByText('Sample No-Op Add-On 1.0.0', { exact: true })).toBeVisible();
-  await expect(page.getByText('Use Streamer.bot → Inspect now first.')).toBeVisible();
+  await expect(page.getByText('Use Streamer.bot → Inspect first.')).toBeVisible();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Save action grants' }).click();
   await expect(page.getByText('Action grants saved for sample.no-op')).toBeVisible();

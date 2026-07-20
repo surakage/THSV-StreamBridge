@@ -20,7 +20,9 @@ public class CPHInline
         "currencyCode", "count", "bits", "viewers", "monthsSubscribed", "months", "cumulative", "gifts", "giftCount", "monthStreak",
         "streakMonths", "tier", "subTier", "subscriptionTier", "giftName", "itemName", "rewardName", "rewardId", "reward.id",
         "reward.title", "rewardCost", "reward.cost", "requiresUserInput", "reward.requiresUserInput", "redemptionId", "broadcastId",
-        "broadcasterUserId", "broadcasterId", "broadcastUserName", "broadcasterUserName", "broadcaster"
+        "broadcasterUserId", "broadcasterId", "broadcastUserName", "broadcasterUserName", "broadcaster",
+        "recipientId", "cumulativeMonths", "totalGifts", "totalSubsGifted", "id",
+        "recipient.userId", "subscribedAt", "expiresAt", "kicks.amount", "kicks.name", "microAmount"
     };
     private sealed class AvatarCacheEntry
     {
@@ -59,7 +61,7 @@ public class CPHInline
             ["platform"] = platform,
             ["sourceEventType"] = sourceEventType,
             ["relayId"] = relayId,
-            ["sourceEventId"] = First(Read("messageId"), Read("msgId"), Read("eventId")),
+            ["sourceEventId"] = SourceEventId(sourceEventType, First(Read("messageId"), Read("msgId"), Read("eventId"), Read("redemptionId"), Read("id"))),
             ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"),
             ["simulated"] = ReadBoolean("isTest") || ReadBoolean("isSimulated"),
             ["userId"] = First(Read("userId"), Read("fromUserId")),
@@ -74,12 +76,12 @@ public class CPHInline
             ["isSubscribed"] = ReadBoolean("isSubscribed") || ReadBoolean("subscribed"),
             ["isVip"] = ReadBoolean("isVip"),
             ["message"] = Bounded(First(Read("message"), Read("messageStripped"), Read("rawInput")), MaximumTextLength),
-            ["amount"] = First(ReadInvariant("amount"), ReadInvariant("donationAmount")),
+            ["amount"] = First(MicroAmountToDecimal(ReadInvariant("microAmount")), StripCurrencySymbol(First(ReadInvariant("amount"), ReadInvariant("donationAmount")))),
             ["currency"] = First(Read("currency"), Read("currencyCode")),
-            ["quantity"] = First(ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("months"), ReadInvariant("cumulative"), ReadInvariant("gifts"), ReadInvariant("giftCount"), ReadInvariant("amount")),
+            ["quantity"] = First(ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("months"), ReadInvariant("cumulative"), ReadInvariant("gifts"), ReadInvariant("giftCount"), ReadInvariant("kicks.amount")),
             ["streakMonths"] = First(ReadInvariant("monthStreak"), ReadInvariant("streakMonths")),
             ["tier"] = First(Read("tier"), Read("subTier"), Read("subscriptionTier")),
-            ["itemName"] = First(Read("giftName"), Read("itemName"), Read("rewardName"), "Kick Gift"),
+            ["itemName"] = First(Read("giftName"), Read("itemName"), Read("rewardName"), Read("kicks.name")),
             ["rewardId"] = First(Read("rewardId"), Read("reward.id")),
             ["rewardTitle"] = First(Read("rewardName"), Read("reward.title")),
             ["rewardCost"] = First(ReadInvariant("rewardCost"), ReadInvariant("reward.cost")),
@@ -118,8 +120,61 @@ public class CPHInline
     {
         if (platform == "twitch") return eventType == "TwitchChatMessage" || eventType == "TwitchFollow" || eventType == "TwitchCheer" || eventType == "TwitchSub" || eventType == "TwitchReSub" || eventType == "TwitchGiftSub" || eventType == "TwitchGiftBomb" || eventType == "TwitchRaid" || eventType == "TwitchRewardRedemption" || eventType == "TwitchStreamOnline" || eventType == "TwitchStreamOffline";
         if (platform == "youtube") return eventType == "YouTubeMessage" || eventType == "YouTubeSuperChat" || eventType == "YouTubeSuperSticker" || eventType == "YouTubeNewSubscriber" || eventType == "YouTubeNewSponsor" || eventType == "YouTubeMemberMileStone" || eventType == "YouTubeMembershipGift" || eventType == "YouTubeBroadcastStarted" || eventType == "YouTubeBroadcastEnded";
-        if (platform == "kick") return eventType == "KickChatMessage" || eventType == "KickFollow" || eventType == "KickSubscription" || eventType == "KickResubscription" || eventType == "KickGiftSubscription" || eventType == "KickMassGiftSubscription" || eventType == "KickGifted" || eventType == "KickRewardRedemption" || eventType == "KickStreamOnline" || eventType == "KickStreamOffline";
+        if (platform == "kick") return eventType == "KickChatMessage" || eventType == "KickFollow" || eventType == "KickSubscription" || eventType == "KickResubscription" || eventType == "KickGiftSubscription" || eventType == "KickMassGiftSubscription" || eventType == "KickKicksGifted" || eventType == "KickRewardRedemption" || eventType == "KickStreamOnline" || eventType == "KickStreamOffline";
         return false;
+    }
+
+    // Neither Twitch nor Kick exposes any message/event ID for their Subscription, Resubscription,
+    // Gift Subscription, Mass Gift Subscription, or (Twitch only) Gift Bomb triggers -- confirmed
+    // against live Action History argument dumps and Streamer.bot's own published variable
+    // reference, not guessed. Rather than blocking these alerts outright, build a deterministic ID
+    // from fields that cannot repeat for a genuinely new event (a monotonically increasing or
+    // per-event-unique value), so a real redelivery of the same event reproduces the same ID while
+    // two independent events cannot. Every synthetic ID is prefixed so the bridge can still mark it
+    // unverified rather than treating it as a platform-native identity.
+    // Kick Mass Gift Subscription's recipients are indexed arrays (recipient.0.userId,
+    // recipient.1.userId, ...), unlike single Gift Subscription's unindexed recipient.userId -- the
+    // fallback here deliberately uses only the gifter's own userId plus the shared subscribedAt
+    // timestamp, never a recipient field, since the recipient count varies per event.
+    private string SourceEventId(string sourceEventType, string realId)
+    {
+        if (realId.Length > 0) return realId;
+        string userId = Read("userId");
+        if (userId.Length == 0) return "";
+        if (sourceEventType == "TwitchSub" || sourceEventType == "KickSubscription") return "synthetic:" + sourceEventType + ":" + userId;
+        if (sourceEventType == "TwitchReSub")
+        {
+            string cumulative = First(ReadInvariant("cumulative"), ReadInvariant("monthStreak"));
+            return cumulative.Length == 0 ? "" : "synthetic:" + sourceEventType + ":" + userId + ":" + cumulative;
+        }
+        if (sourceEventType == "KickResubscription")
+        {
+            string expiresAt = Read("expiresAt");
+            return expiresAt.Length == 0 ? "" : "synthetic:" + sourceEventType + ":" + userId + ":" + expiresAt;
+        }
+        if (sourceEventType == "TwitchGiftSub")
+        {
+            string recipientId = Read("recipientId");
+            string cumulativeMonths = ReadInvariant("cumulativeMonths");
+            return recipientId.Length == 0 || cumulativeMonths.Length == 0 ? "" : "synthetic:" + sourceEventType + ":" + recipientId + ":" + cumulativeMonths;
+        }
+        if (sourceEventType == "TwitchGiftBomb")
+        {
+            string totalGifts = First(ReadInvariant("totalGifts"), ReadInvariant("totalSubsGifted"));
+            return totalGifts.Length == 0 ? "" : "synthetic:" + sourceEventType + ":" + userId + ":" + totalGifts;
+        }
+        if (sourceEventType == "KickGiftSubscription")
+        {
+            string recipientId = Read("recipient.userId");
+            string subscribedAt = Read("subscribedAt");
+            return recipientId.Length == 0 || subscribedAt.Length == 0 ? "" : "synthetic:" + sourceEventType + ":" + recipientId + ":" + subscribedAt;
+        }
+        if (sourceEventType == "KickMassGiftSubscription")
+        {
+            string subscribedAt = Read("subscribedAt");
+            return subscribedAt.Length == 0 ? "" : "synthetic:" + sourceEventType + ":" + userId + ":" + subscribedAt;
+        }
+        return "";
     }
 
     private string Read(string name)
@@ -231,5 +286,29 @@ public class CPHInline
     {
         if (String.IsNullOrEmpty(value)) return "";
         return value.Length <= maximum ? value : value.Substring(0, maximum);
+    }
+
+    // Some platform triggers (e.g. YouTube Super Chat/Super Sticker) hand over a pre-formatted
+    // currency string like "$42.00" rather than a bare number. The bridge's wire contract requires
+    // a plain decimal string, so strip any leading currency symbol before it leaves this relay.
+    private static string StripCurrencySymbol(string value)
+    {
+        int start = 0;
+        while (start < value.Length && !Char.IsDigit(value[start])) start++;
+        return start < value.Length ? value.Substring(start) : "";
+    }
+
+    // YouTube also exposes the same monetary value as a whole-number micro-units integer (one
+    // millionth of the currency unit), which is preferred over the pre-formatted string when present:
+    // it cannot carry a thousands-separator comma or currency symbol that would fail the bridge's
+    // decimal-string validation, and converting it uses only integer arithmetic, never floating point.
+    private static string MicroAmountToDecimal(string microAmount)
+    {
+        long micros;
+        if (microAmount.Length == 0 || !Int64.TryParse(microAmount, NumberStyles.Integer, CultureInfo.InvariantCulture, out micros) || micros < 0) return "";
+        long whole = micros / 1_000_000L;
+        long fraction = micros % 1_000_000L;
+        string fractionText = fraction.ToString("D6", CultureInfo.InvariantCulture).TrimEnd('0');
+        return fractionText.Length == 0 ? whole.ToString(CultureInfo.InvariantCulture) : whole.ToString(CultureInfo.InvariantCulture) + "." + fractionText;
     }
 }

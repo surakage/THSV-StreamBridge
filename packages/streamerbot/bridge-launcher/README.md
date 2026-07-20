@@ -19,6 +19,8 @@ For a public installation, Shutdown Bridge runs `launcher\stop.mjs`; for a sourc
 
 Both actions verify the selected install folder and required launcher files before starting anything. Exceptions are logged by type without exposing creator paths or command output.
 
+Both actions wait for the launcher process to finish and check its exit code before reporting success — Launch Bridge allows up to 30 seconds (matching the launcher's own health-check window) and Shutdown Bridge up to 20 seconds. An action that only confirmed a process handle existed, without waiting for the launcher's own result, could report success even when the bridge failed to become healthy or failed to stop.
+
 Neither action creates, edits, deletes, enables, disables, or otherwise mutates another Streamer.bot object.
 
 ## Verification status

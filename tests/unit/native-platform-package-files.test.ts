@@ -30,10 +30,67 @@ describe('native platform intake package', () => {
     expect(source).not.toMatch(/Process\.Start|PowerShell|cmd\.exe/);
   });
 
+  it('never leaks a hardcoded item name into unrelated events', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).not.toContain('"Kick Gift"');
+  });
+
+  it('uses redemptionId and id as stable-ID fallbacks alongside the standard message/event ID fields', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toMatch(/SourceEventId\(sourceEventType, First\(Read\("messageId"\), Read\("msgId"\), Read\("eventId"\), Read\("redemptionId"\), Read\("id"\)\)\)/);
+  });
+
+  it('supports the real Streamer.bot event name for Kicks Gifted, not the documented-but-wrong one', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('"KickKicksGifted"');
+    expect(source).not.toContain('"KickGifted"');
+  });
+
+  it('maps Kick-specific gift fields onto the generic item name and quantity contract', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    const itemNameLine = source.split('\n').find((line) => line.includes('["itemName"] ='));
+    const quantityLine = source.split('\n').find((line) => line.includes('["quantity"] ='));
+    expect(itemNameLine).toContain('Read("kicks.name")');
+    expect(quantityLine).toContain('ReadInvariant("kicks.amount")');
+  });
+
+  it('prefers YouTube\'s integer micro-amount over its pre-formatted currency string, using only integer arithmetic', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('First(MicroAmountToDecimal(ReadInvariant("microAmount")), StripCurrencySymbol(');
+    expect(source).toContain('private static string MicroAmountToDecimal(string microAmount)');
+    expect(source).not.toMatch(/MicroAmountToDecimal[\s\S]{0,400}\bdouble\b/u);
+    expect(source).not.toMatch(/MicroAmountToDecimal[\s\S]{0,400}\bfloat\b/u);
+  });
+
+  it('never lets a monetary amount silently become an item quantity', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    const quantityLine = source.split('\n').find((line) => line.includes('["quantity"] ='));
+    expect(quantityLine).toBeDefined();
+    expect(quantityLine).not.toContain('ReadInvariant("amount")');
+  });
+
+  it('strips currency symbols from monetary amounts before they leave the relay', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('StripCurrencySymbol(First(ReadInvariant("amount"), ReadInvariant("donationAmount")))');
+    expect(source).toContain('private static string StripCurrencySymbol(string value)');
+  });
+
+  it('builds a deterministic, honestly-flagged fallback ID for Twitch and Kick triggers with no platform ID', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('private string SourceEventId(string sourceEventType, string realId)');
+    for (const eventType of ['TwitchSub', 'TwitchReSub', 'TwitchGiftSub', 'TwitchGiftBomb', 'KickSubscription', 'KickResubscription', 'KickGiftSubscription', 'KickMassGiftSubscription']) {
+      expect(source).toContain(`"${eventType}"`);
+    }
+    expect(source).toContain('"synthetic:" + sourceEventType');
+    expect(source).toContain('Read("recipient.userId")');
+    expect(source).toContain('Read("subscribedAt")');
+    expect(source).toContain('Read("expiresAt")');
+  });
+
   it('packages the current reviewed relay source into all three actions', async () => {
     const root = 'packages/streamerbot/native-platform-intake';
     const reviewed = (await readFile(`${root}/src/RelayPlatform.cs`, 'utf8')).replaceAll('\r\n', '\n').trimEnd();
-    const decoded = Buffer.from((await readFile(`${root}/THSV-StreamBridge-Native-Platform-Intake-1.1.0.sb`, 'utf8')).trim(), 'base64');
+    const decoded = Buffer.from((await readFile(`${root}/THSV-StreamBridge-Native-Platform-Intake-1.4.0.sb`, 'utf8')).trim(), 'base64');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as {
       data: { actions: Array<{ subActions: Array<{ type: number; enabled: boolean; byteCode?: string }> }> };
     };

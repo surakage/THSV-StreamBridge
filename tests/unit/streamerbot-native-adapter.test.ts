@@ -47,6 +47,11 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(event).toMatchObject({ eventType: 'channel.gift-subscription', payload: { quantity: 10, tier: 'Tier 1' } });
   });
 
+  it('normalizes Kick Kicks Gifted using its real Streamer.bot event name, not the documented-but-wrong one', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('kick', 'KickKicksGifted', { itemName: 'The Answer', quantity: '42' }));
+    expect(event).toMatchObject({ eventType: 'engagement.gift', payload: { itemName: 'The Answer', quantity: 42 } });
+  });
+
   it('keeps a free YouTube subscriber separate from a paid YouTube member', () => {
     expect(normalizeStreamerBotPlatformRelay(relay('youtube', 'YouTubeNewSubscriber'))).toMatchObject({ eventType: 'channel.follow', source: { eventName: 'YouTubeNewSubscriber' } });
     expect(normalizeStreamerBotPlatformRelay(relay('youtube', 'YouTubeNewSponsor', { tier: 'Village Member' }))).toMatchObject({ eventType: 'channel.membership', payload: { subscriptionKind: 'new', tier: 'Village Member' } });
@@ -93,6 +98,24 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(() => normalizeStreamerBotPlatformRelay(relay(platform, sourceEventType, {
       sourceEventId: '', amount: '5.00', currency: 'USD', rewardId: 'reward-1', redemptionId: 'redeem-1',
     }))).toThrow('provider-stable source event ID');
+  });
+
+  it('accepts a relay-synthesized deterministic ID for Kick Mass Gift Subscription, whose recipients are indexed arrays with no single stable ID', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('kick', 'KickMassGiftSubscription', {
+      sourceEventId: 'synthetic:KickMassGiftSubscription:gifter-1:2026-07-20T05:47:40.000Z', quantity: '10', tier: 'Tier 1',
+    }));
+    expect(event.eventType).toBe('channel.gift-subscription');
+    expect(event.source).toMatchObject({ eventId: 'synthetic:KickMassGiftSubscription:gifter-1:2026-07-20T05:47:40.000Z' });
+    expect(event.metadata.unverifiedFields).toEqual(['source.eventId']);
+  });
+
+  it('accepts a relay-synthesized deterministic ID for triggers with no platform-provided ID, but still marks it unverified', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchGiftBomb', {
+      sourceEventId: 'synthetic:TwitchGiftBomb:viewer-1:420', tier: 'tier 1', quantity: '42',
+    }));
+    expect(event.eventType).toBe('channel.gift-subscription');
+    expect(event.source).toMatchObject({ eventId: 'synthetic:TwitchGiftBomb:viewer-1:420' });
+    expect(event.metadata.unverifiedFields).toEqual(['source.eventId']);
   });
 
   it('rejects reward administration without a provider-stable redemption ID', () => {

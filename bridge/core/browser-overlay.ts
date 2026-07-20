@@ -1,6 +1,6 @@
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { BrowserOverlayConfig } from '../../schemas/config.js';
-import { normalizeAlertPlainText, projectMultiAlert, type MultiAlert } from './multi-alerts.js';
+import { normalizeAlertPlainText, projectMultiAlert, type MultiAlert, type MultiAlertType } from './multi-alerts.js';
 import { projectMultiChatMessage, type MultiChatMessage } from './multi-chat.js';
 
 export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.3.0';
@@ -58,19 +58,27 @@ export function projectBrowserOverlayEvent(event: NormalizedEvent, config?: Brow
   return projectBrowserOverlayEvents(event, config)[0];
 }
 
+type AlertProfiles = BrowserOverlayConfig['alerts']['profiles'];
+type AlertProfile = NonNullable<NonNullable<AlertProfiles[keyof AlertProfiles]>[MultiAlertType]>;
+
+function alertProfileFor(config: BrowserOverlayConfig | undefined, platform: string, alertType: MultiAlertType): AlertProfile | undefined {
+  const platformProfiles = config?.alerts.profiles[platform as keyof AlertProfiles];
+  return platformProfiles?.[alertType];
+}
+
 export function projectBrowserOverlayEvents(event: NormalizedEvent, config?: BrowserOverlayConfig): readonly BrowserOverlayEvent[] {
   const emittedAt = new Date().toISOString();
   const chat = projectMultiChatMessage(event);
   if (chat !== undefined) return [{ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'chat.add', emittedAt, payload: { ...chat, presentation: actorPresentation(event) } }];
 
   const alert = projectMultiAlert(event);
-  const profile = alert === undefined ? undefined : config?.alerts.profiles[alert.alertType];
+  const profile = alert === undefined ? undefined : alertProfileFor(config, alert.platform, alert.alertType);
   if (alert !== undefined) {
     const subscription = subscriptionLifecycle(event, alert);
     const priority = profile?.priority ?? alertPriority(alert);
     const display = alertDisplay(alert, subscription.subscription, profile, config?.alertDurationMs ?? 7_000);
     const results: BrowserOverlayEvent[] = [];
-    const alertEnabled = profile?.enabled !== false && (profile === undefined || profile.platforms.length === 0 || profile.platforms.includes(alert.platform as (typeof profile.platforms)[number]));
+    const alertEnabled = profile?.enabled !== false;
     if (alertEnabled) results.push({
       contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION,
       kind: 'alert.show',
@@ -153,7 +161,7 @@ function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | unde
   const exact: Readonly<Record<string, ChatPlatformEventId>> = {
     TwitchFollow: 'follow', TwitchSub: 'subscription', TwitchReSub: 'resubscription', TwitchGiftSub: 'gift-subscription', TwitchGiftBomb: 'gift-bomb', TwitchCheer: 'cheer', TwitchRaid: 'raid', TwitchRewardRedemption: 'reward-redemption',
     YouTubeNewSubscriber: 'subscriber', YouTubeNewSponsor: 'member', YouTubeMembershipGift: 'membership-gift', YouTubeMemberMileStone: 'member-milestone', YouTubeSuperChat: 'super-chat', YouTubeSuperSticker: 'super-sticker',
-    KickFollow: 'follow', KickSubscription: 'subscription', KickResubscription: 'resubscription', KickGiftSubscription: 'gift-subscription', KickMassGiftSubscription: 'mass-gift-subscription', KickGifted: 'gifted-kicks', KickRewardRedemption: 'reward-redemption',
+    KickFollow: 'follow', KickSubscription: 'subscription', KickResubscription: 'resubscription', KickGiftSubscription: 'gift-subscription', KickMassGiftSubscription: 'mass-gift-subscription', KickKicksGifted: 'gifted-kicks', KickRewardRedemption: 'reward-redemption',
     'TikFinity.follow': 'follow', 'TikFinity.gift': 'gift', 'TikFinity.subscription': 'subscription', 'TikFinity.like': 'likes',
   };
   const matched = exact[source];
@@ -239,7 +247,7 @@ function alertPriority(alert: MultiAlert): OverlayAlertPriority {
 function alertDisplay(
   alert: MultiAlert,
   subscription: OverlaySubscriptionLifecycle | undefined,
-  profile: BrowserOverlayConfig['alerts']['profiles'][keyof BrowserOverlayConfig['alerts']['profiles']],
+  profile: AlertProfile | undefined,
   defaultDurationMs: number,
 ): OverlayAlertDisplay {
   const values = alertTemplateValues(alert);

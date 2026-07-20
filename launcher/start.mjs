@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { closeSync, mkdirSync, openSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -59,14 +59,32 @@ async function stopExisting(url) {
   let existingPid;
   try { existingPid = Number((await readFile(pidPath, 'utf8')).trim()); } catch { return; }
   if (!Number.isInteger(existingPid) || existingPid < 1 || !isAlive(existingPid)) { await rm(pidPath, { force: true }); return; }
+  if (!isOurRuntimeProcess(existingPid)) {
+    // A live process exists at the recorded PID, but Windows did not assign it to our own
+    // bundled node.exe -- the PID was almost certainly recycled for an unrelated process after
+    // an earlier unclean shutdown (crash, forced power-off, a Windows Update reboot). Never
+    // signal a process we have not verified is our own: only drop the stale record. If the
+    // configured port really is still held by a previous bridge, the new instance's own startup
+    // will fail cleanly with a port-conflict error instead of us guessing what to terminate.
+    await rm(pidPath, { force: true });
+    return;
+  }
   try {
     const token = (await readFile(tokenPath, 'utf8')).trim();
     await fetch(`${url}/shutdown`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5_000) });
   } catch { /* The verified installed process is force-closed below if graceful shutdown fails. */ }
   const deadline = Date.now() + 6_000;
   while (Date.now() < deadline && isAlive(existingPid)) await delay(100);
-  if (isAlive(existingPid)) process.kill(existingPid, 'SIGTERM');
+  if (isAlive(existingPid) && isOurRuntimeProcess(existingPid)) process.kill(existingPid, 'SIGTERM');
   await rm(pidPath, { force: true });
+}
+
+function isOurRuntimeProcess(pid) {
+  try {
+    const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `(Get-Process -Id ${String(pid)} -ErrorAction SilentlyContinue).Path`], { encoding: 'utf8', timeout: 5_000, windowsHide: true });
+    const reportedPath = (result.stdout ?? '').trim();
+    return reportedPath.length > 0 && resolve(reportedPath).toLowerCase() === resolve(process.execPath).toLowerCase();
+  } catch { return false; }
 }
 
 async function waitForHealth(url, pid, timeoutMs) {

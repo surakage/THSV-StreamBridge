@@ -24,6 +24,7 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(page.locator('#workspace')).toBeVisible();
 
   await page.locator('[data-view="command-sync"]').click();
+  await page.locator('#new-command-batch-entry').click();
   const commandForm = page.locator('#design-command');
   await expect(commandForm.locator('[name="actionName"]')).toBeVisible();
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
@@ -42,6 +43,7 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
 
   await page.locator('[data-view="timed-actions"]').click();
+  await page.locator('#new-timed-action-entry').click();
   const timedForm = page.locator('#timed-action-form');
   await timedForm.locator('[name="selectionMode"]').selectOption('platform-shuffle');
   await expect(page.locator('#timed-platform-message-editor')).toBeVisible();
@@ -69,6 +71,7 @@ test('wizard shows only the selected platform events and exposes platform color 
   await expect(form.locator('[name="platformColorKick"]')).toHaveValue('#245c18');
   await expect(form.locator('[name="platformColorTiktok"]')).toHaveValue('#172b31');
 
+  await page.getByText('Chat events', { exact: true }).click();
   await page.locator('#chat-event-platform').selectOption('youtube');
   await expect(page.locator('[data-platform-event]')).toHaveCount(6);
   await expect(page.locator('#chat-event-template-editor')).toContainText('New subscriber (free)');

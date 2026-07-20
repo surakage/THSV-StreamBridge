@@ -147,17 +147,19 @@ describe('Browser Overlay Hub contract', () => {
     const source = await fixture('youtube-super-chat.json');
     const config: BrowserOverlayConfig = {
       ...(await testConfig()).browserOverlay, brandLabel: '',
-      alerts: { profiles: { 'super-chat': { enabled: true, platforms: ['youtube'], priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system' }, aggregation: { mode: 'none', windowMs: 5_000 } } } },
+      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system' }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
       kind: 'alert.show', payload: { priority: 'critical', display: { title: 'example_member supported with 5.00 USD', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
     });
-    const profile = config.alerts.profiles['super-chat'];
+    const profile = config.alerts.profiles.youtube?.['super-chat'];
     if (profile === undefined) throw new Error('Test profile is required');
-    const disabled: BrowserOverlayConfig = { ...config, alerts: { profiles: { 'super-chat': { ...profile, enabled: false } } } };
+    const disabled: BrowserOverlayConfig = { ...config, alerts: { profiles: { youtube: { 'super-chat': { ...profile, enabled: false } } } } };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 14 } }, disabled)).toMatchObject({ kind: 'chat.event' });
-    const wrongPlatform: BrowserOverlayConfig = { ...config, alerts: { profiles: { 'super-chat': { ...profile, platforms: ['twitch'] } } } };
-    expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 15 } }, wrongPlatform)).toMatchObject({ kind: 'chat.event' });
+    // A profile configured for a different platform must never affect this platform's rendering:
+    // the youtube event still falls back to its own automatic defaults, not the twitch profile.
+    const otherPlatformOnly: BrowserOverlayConfig = { ...config, alerts: { profiles: { twitch: { follow: { ...profile, enabled: false } } } } };
+    expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 15 } }, otherPlatformOnly)).toMatchObject({ kind: 'alert.show' });
   });
 
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {

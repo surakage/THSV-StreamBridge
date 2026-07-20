@@ -21,7 +21,7 @@
 - TikFinity stable source-event IDs and simulator provenance. The documented placeholders are allowlisted, but production rewards/statistics remain blocked until a real live event is compared with a simulator event and replay behavior is verified.
 - Live rendering, sizing, transparency, and reconnect behavior in installed Meld Studio, OBS Studio, and Streamlabs Desktop builds. THSV does not yet control application scenes, layers/sources, or audio through their separate control APIs.
 - Live Speaker.bot connection, installed voice aliases, speech playback, and queue-control delivery. Official request shapes and Streamer.bot integration methods are implemented, but live verification remains pending.
-- Native Twitch, YouTube, and Kick trigger-variable capture and production StreamBridge transports. Connected Streamer.bot accounts are available for this work, but no native event contract has been claimed or implemented yet.
+- Genuine live-stream, real-viewer end-to-end verification of the native Twitch, YouTube, and Kick transports below (reconnect behavior, sustained volume, and replay under real network conditions). Field-level trigger-variable mapping has been captured and corrected against real Streamer.bot Action History argument dumps (see the platform alert matrix below), but that is test-trigger capture, not a live-audience soak test.
 - Durable output delivery is implemented and covered by restart replay, bounded retry, corruption fail-closed, and dead-letter tests. Delivery remains at least once: downstream high-impact actions must use the stable source event ID as their idempotency key because a crash after downstream acknowledgement but before outbox removal can replay an event.
 - Platform gift-spree aggregation. Adapters must preserve a platform-provided bundle quantity, but unbundled gift events are not coalesced yet.
 
@@ -33,13 +33,13 @@ Speaker.bot executes speech decisions made by Streamer.bot; it does not decide w
 
 ## Production platform alert matrix
 
-All five first-party platform entries currently use placeholder transports. The generic contract and offline fixtures prove routing only; they do not prove that a live platform exposes each event type.
+Twitch, YouTube, and Kick use native Streamer.bot relay intake (`packages/streamerbot/native-platform-intake/src/RelayPlatform.cs`), not a placeholder transport. Their event field/ID mappings below were corrected against real Streamer.bot Action History argument dumps from actual trigger executions — not assumed from documentation — with one noted exception. This confirms mapping correctness, not full production readiness: none of the three has had a genuine live-stream, real-viewer soak test (reconnect under real network conditions, sustained volume, replay), which remains the open item tracked above.
 
-| Platform | Live transport | Verified alert types |
-| --- | --- | --- |
-| Twitch | Placeholder | None |
-| YouTube | Placeholder | None |
-| Kick | Placeholder | None |
-| TikTok/TikFinity | Streamer.bot relay intake; simulator acceptance pending | Chat, follow, gift, and like shapes implemented but transport fields explicitly unverified |
+| Platform | Live transport | Alert types with corrected, Action-History-verified field mapping | Known gaps |
+| --- | --- | --- | --- |
+| Twitch | Native Streamer.bot relay intake | Follow, Subscription, Resubscription, Gift Subscription, Gift Bomb, Cheer/Bits, Raid, channel reward redemption | Subscription-family events expose no native message/event ID, so they use a documented deterministic fallback ID (`synthetic:` prefixed, flagged in `metadata.unverifiedFields`) instead of a platform-native one |
+| YouTube | Native Streamer.bot relay intake | Subscriber (follow), Membership, Membership Gift, Super Chat, Super Sticker | Same fallback-ID treatment as Twitch subscriptions where no native ID is exposed |
+| Kick | Native Streamer.bot relay intake | Follow, Subscription, Resubscription, Gift Subscription, Kicks Gifted, channel reward redemption | Mass Gift Subscription's field mapping is confirmed against Streamer.bot's own published variable reference, not a live Action History capture — its test trigger currently crashes Streamer.bot before any data can be captured. Kick reward mutation controls remain disabled; Streamer.bot does not document that contract. Same fallback-ID treatment as Twitch/YouTube where no native ID is exposed |
+| TikTok/TikFinity | Streamer.bot relay intake; simulator acceptance pending | Chat, follow, gift, and like shapes implemented but transport fields explicitly unverified | Stable source-event ID and simulator provenance remain unverified; production rewards/statistics use is blocked until a real live event is compared against a simulator event |
 
-Each production adapter must replace its row with a source-backed capability matrix, stable source-ID guarantee, reconnect/replay behavior, retry policy for HTTP 429/output capacity, and unsupported-event list before it can be enabled by default.
+Each production adapter must still have a genuine live-stream verification pass — reconnect/replay behavior under real network conditions, sustained event volume, and retry policy for HTTP 429/output capacity — before this table can claim more than corrected field mapping.

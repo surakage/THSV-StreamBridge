@@ -1,10 +1,10 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import type { BridgeConfig } from '../../schemas/config.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
-import { ALERT_PRESENTATION_TYPE_VALUES, alertPresentationSchema } from '../../schemas/config.js';
+import { PLATFORM_ALERT_TYPES, TIMED_CHAT_PLATFORM_VALUES, alertPresentationSchema } from '../../schemas/config.js';
 import { buildNormalizedEvent } from '../adapters/normalization.js';
 import type { IngestResult } from '../core/bridge.js';
 import { InvalidEventError, PayloadTooLargeError } from '../core/bridge.js';
@@ -31,6 +31,7 @@ class OverlayAssetError extends Error {}
 export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
+  private readonly overlayAssetDirectory: string;
 
   public constructor(
     private readonly config: BridgeConfig['service'] & BridgeConfig['security'],
@@ -40,8 +41,14 @@ export class DiagnosticsServer {
     private readonly requestShutdown?: () => void,
     private readonly overlayHub?: BrowserOverlayHub,
     private readonly wizard?: WizardService,
+    dataRoot = 'data',
   ) {
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
+    // Must be derived from the configured data root, not a bare relative literal: the portable
+    // Windows installer runs the bridge with its working directory inside the versioned, disposable
+    // app/<version>/ folder, which is deleted on every upgrade. Anything meant to outlive an upgrade
+    // has to be anchored to dataRoot, the one directory the installer promises to preserve.
+    this.overlayAssetDirectory = join(dataRoot, 'runtime', 'overlay-assets');
   }
 
   public async start(): Promise<void> {
@@ -233,14 +240,14 @@ export class DiagnosticsServer {
           : kind === 'background' ? new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]) : undefined;
         if (allowed === undefined || typeof contentType !== 'string' || typeof encoded !== 'string' || !allowed.has(contentType)) return this.reply(response, 400, { error: 'Unsupported overlay asset type.' });
         const extension = allowed.get(contentType) ?? '';
-        const { filename, bytes } = await storeOverlayAsset(encoded, contentType, extension);
+        const { filename, bytes } = await storeOverlayAsset(encoded, contentType, extension, this.overlayAssetDirectory);
         return this.reply(response, 201, { url: `/overlay/assets/${filename}`, bytes: bytes.length, contentType });
       }
       const overlayAssetMatch = request.method === 'GET' ? /^\/overlay\/assets\/([a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp))$/u.exec(request.url ?? '') : null;
       if (overlayAssetMatch?.[1] !== undefined) {
         const extension = overlayAssetMatch[1].split('.').pop() ?? '';
         const contentTypes: Readonly<Record<string, string>> = { mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
-        const body = await readFile(`data/runtime/overlay-assets/${overlayAssetMatch[1]}`);
+        const body = await readFile(join(this.overlayAssetDirectory, overlayAssetMatch[1]));
         response.statusCode = 200; response.setHeader('content-type', contentTypes[extension] ?? 'application/octet-stream'); response.setHeader('cache-control', 'public, max-age=31536000, immutable'); response.end(body); return;
       }
       if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
@@ -270,14 +277,15 @@ export class DiagnosticsServer {
         if (this.target.testTimedAction === undefined) return this.reply(response, 503, { error: 'Timed-action testing is unavailable.' });
         return this.reply(response, 202, await this.target.testTimedAction(decodeURIComponent(timedTestMatch[1])));
       }
-      const alertPreviewMatch = request.method === 'POST' ? /^\/wizard\/api\/alerts\/([^/]+)\/preview$/u.exec(request.url ?? '') : null;
-      if (alertPreviewMatch?.[1] !== undefined && this.wizard !== undefined) {
+      const alertPreviewMatch = request.method === 'POST' ? /^\/wizard\/api\/alerts\/([^/]+)\/([^/]+)\/preview$/u.exec(request.url ?? '') : null;
+      if (alertPreviewMatch?.[1] !== undefined && alertPreviewMatch[2] !== undefined && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        const alertType = decodeURIComponent(alertPreviewMatch[1]);
-        if (!(ALERT_PRESENTATION_TYPE_VALUES as readonly string[]).includes(alertType)) return this.reply(response, 400, { error: 'Unknown alert preview type' });
-        const result = await this.target.simulate(buildAlertPreview(alertType));
+        const platform = decodeURIComponent(alertPreviewMatch[1]);
+        const alertType = decodeURIComponent(alertPreviewMatch[2]);
+        if (!isValidPlatformAlertType(platform, alertType)) return this.reply(response, 400, { error: 'Unknown platform or alert type for that platform' });
+        const result = await this.target.simulate(buildAlertPreview(platform, alertType));
         return this.reply(response, 202, {
-          contractVersion: '2.0.0-preview.1', accepted: result.accepted, simulated: true, alertType,
+          contractVersion: '2.0.0-preview.1', accepted: result.accepted, simulated: true, platform, alertType,
           visible: this.overlayHub?.clientConfig().showSimulated === true, delivery: result.delivery, outputs: result.outputs,
         });
       }
@@ -285,12 +293,13 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
         const input = JSON.parse(body.text) as Record<string, unknown>;
+        const platform = typeof input['platform'] === 'string' ? input['platform'] : '';
         const alertType = typeof input['alertType'] === 'string' ? input['alertType'] : '';
-        if (!(ALERT_PRESENTATION_TYPE_VALUES as readonly string[]).includes(alertType)) return this.reply(response, 400, { error: 'Unknown alert preview type' });
+        if (!isValidPlatformAlertType(platform, alertType)) return this.reply(response, 400, { error: 'Unknown platform or alert type for that platform' });
         const alerts = alertPresentationSchema.parse(input['alerts']);
         const base = this.overlayHub.clientConfig();
-        const count = this.overlayHub.publishPreview(buildAlertPreview(alertType), { ...base, alerts, alertDurationMs: typeof input['alertDurationMs'] === 'number' ? Math.max(1_000, Math.min(60_000, Math.trunc(input['alertDurationMs']))) : base.alertDurationMs });
-        return this.reply(response, 202, { accepted: count > 0, simulated: true, alertType, overlayEvents: count });
+        const count = this.overlayHub.publishPreview(buildAlertPreview(platform, alertType), { ...base, alerts, alertDurationMs: typeof input['alertDurationMs'] === 'number' ? Math.max(1_000, Math.min(60_000, Math.trunc(input['alertDurationMs']))) : base.alertDurationMs });
+        return this.reply(response, 202, { accepted: count > 0, simulated: true, platform, alertType, overlayEvents: count });
       }
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {
@@ -355,7 +364,12 @@ export class DiagnosticsServer {
   }
 }
 
-function buildAlertPreview(alertType: string): NormalizedEvent {
+function isValidPlatformAlertType(platform: string, alertType: string): boolean {
+  if (!(TIMED_CHAT_PLATFORM_VALUES as readonly string[]).includes(platform)) return false;
+  return (PLATFORM_ALERT_TYPES[platform as (typeof TIMED_CHAT_PLATFORM_VALUES)[number]] as readonly string[]).includes(alertType);
+}
+
+function buildAlertPreview(platform: string, alertType: string): NormalizedEvent {
   const eventTypes: Readonly<Record<string, string>> = {
     follow: 'channel.follow', subscription: 'channel.subscription', membership: 'channel.membership',
     'gift-subscription': 'channel.gift-subscription', gift: 'engagement.gift', donation: 'engagement.donation',
@@ -369,8 +383,8 @@ function buildAlertPreview(alertType: string): NormalizedEvent {
     milestone: { metric: 'followers', value: 1000 },
   };
   return buildNormalizedEvent({
-    eventType: eventTypes[alertType] ?? 'engagement.milestone', platform: alertType === 'super-chat' || alertType === 'membership' ? 'youtube' : 'twitch',
-    adapter: 'wizard-preview', sourceEventName: `Wizard ${alertType} preview`, sourceEventId: `wizard-${randomUUID()}`,
+    eventType: eventTypes[alertType] ?? 'engagement.milestone', platform,
+    adapter: 'wizard-preview', sourceEventName: `Wizard ${platform} ${alertType} preview`, sourceEventId: `wizard-${randomUUID()}`,
     channel: { name: 'Preview Channel' }, ...(alertType === 'milestone' ? {} : { user: { name: 'preview_viewer', displayName: 'Preview Viewer', actorType: 'human' as const, roles: [] } }),
     payload: payloads[alertType] ?? {}, simulated: true,
   });
@@ -440,13 +454,12 @@ async function readBody(request: IncomingMessage, maximumBytes: number): Promise
   return { text: Buffer.concat(chunks).toString('utf8'), bytes: total };
 }
 
-const OVERLAY_ASSET_DIRECTORY = 'data/runtime/overlay-assets';
 const MAX_OVERLAY_ASSET_BYTES = 2_000_000;
 const MAX_OVERLAY_ASSET_FILES = 100;
 const MAX_OVERLAY_ASSET_TOTAL_BYTES = 50_000_000;
 let overlayAssetWriteChain: Promise<void> = Promise.resolve();
 
-async function storeOverlayAsset(encoded: string, contentType: string, extension: string): Promise<{ filename: string; bytes: Buffer }> {
+async function storeOverlayAsset(encoded: string, contentType: string, extension: string, directory: string): Promise<{ filename: string; bytes: Buffer }> {
   if (encoded.length > Math.ceil(MAX_OVERLAY_ASSET_BYTES / 3) * 4 || !isCanonicalBase64(encoded)) throw new OverlayAssetError('Overlay asset data is not valid canonical base64.');
   const bytes = Buffer.from(encoded, 'base64');
   if (bytes.length === 0 || bytes.length > MAX_OVERLAY_ASSET_BYTES) throw new OverlayAssetError('Overlay assets must be between 1 byte and 2 MB.');
@@ -457,13 +470,13 @@ async function storeOverlayAsset(encoded: string, contentType: string, extension
   overlayAssetWriteChain = new Promise<void>((resolveWrite) => { release = resolveWrite; });
   await previous;
   try {
-    await mkdir(OVERLAY_ASSET_DIRECTORY, { recursive: true });
-    const target = `${OVERLAY_ASSET_DIRECTORY}/${filename}`;
+    await mkdir(directory, { recursive: true });
+    const target = join(directory, filename);
     try { await stat(target); return { filename, bytes }; }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-    const entries = (await readdir(OVERLAY_ASSET_DIRECTORY, { withFileTypes: true })).filter((entry) => entry.isFile() && /^[a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp)$/u.test(entry.name));
+    const entries = (await readdir(directory, { withFileTypes: true })).filter((entry) => entry.isFile() && /^[a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp)$/u.test(entry.name));
     if (entries.length >= MAX_OVERLAY_ASSET_FILES) throw new OverlayAssetError(`Overlay asset storage is limited to ${String(MAX_OVERLAY_ASSET_FILES)} files.`);
-    const sizes = await Promise.all(entries.map(async (entry) => (await stat(`${OVERLAY_ASSET_DIRECTORY}/${entry.name}`)).size));
+    const sizes = await Promise.all(entries.map(async (entry) => (await stat(join(directory, entry.name))).size));
     if (sizes.reduce((sum, size) => sum + size, 0) + bytes.length > MAX_OVERLAY_ASSET_TOTAL_BYTES) throw new OverlayAssetError('Overlay asset storage is limited to 50 MB.');
     await writeFile(target, bytes, { flag: 'wx', mode: 0o600 });
     return { filename, bytes };

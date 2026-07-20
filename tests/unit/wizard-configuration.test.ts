@@ -61,13 +61,13 @@ describe('Stage 4 wizard configuration gateway', () => {
     const draft = await gateway.begin();
     const alertSettings = {
       maxAlertQueue: 12, alertDurationMs: 8_000, showSimulated: true,
-      alerts: { profiles: { gift: { enabled: true, priority: 'high', durationMs: 6_000, titleTemplate: '{actor} sent {quantity} {itemName}', sound: { mode: 'chime', volume: 0.25 }, aggregation: { mode: 'sum-quantity', windowMs: 4_000 } } } },
+      alerts: { profiles: { kick: { gift: { enabled: true, priority: 'high', durationMs: 6_000, titleTemplate: '{actor} sent {quantity} {itemName}', sound: { mode: 'chime', volume: 0.25 }, aggregation: { mode: 'sum-quantity', windowMs: 4_000 } } } } },
     };
     const staged = gateway.stage(draft.id, { kind: 'alerts', alertSettings });
     expect(staged.stagedChanges).toEqual([expect.objectContaining({ kind: 'alerts' })]);
     await gateway.commit(draft.id);
-    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ browserOverlay: { maxAlertQueue: 12, alerts: { profiles: { gift: { priority: 'high' } } } } });
-    expect(await gateway.export()).toMatchObject({ alertSettings: { maxAlertQueue: 12, alerts: { profiles: { gift: { aggregation: { mode: 'sum-quantity' } } } } } });
+    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ browserOverlay: { maxAlertQueue: 12, alerts: { profiles: { kick: { gift: { priority: 'high' } } } } } });
+    expect(await gateway.export()).toMatchObject({ alertSettings: { maxAlertQueue: 12, alerts: { profiles: { kick: { gift: { aggregation: { mode: 'sum-quantity' } } } } } } });
   });
 
   it('stages chat appearance and ignored names through the safe wizard transaction', async () => {

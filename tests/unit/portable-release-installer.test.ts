@@ -85,7 +85,12 @@ describe('portable Windows release installer', () => {
     const secondToken = (await readFile(join(secondInstall, 'data', 'secrets', 'control-token'), 'utf8')).trim();
     expect(secondToken).not.toBe(firstToken);
 
-    const uninstall = spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/c', 'call', 'Uninstall THSV StreamBridge.cmd'], { cwd: firstInstall, encoding: 'utf8', timeout: 30_000, input: '\n' });
+    // cmd.exe's own `/c` argument parsing has an undocumented failure mode for some multi-word
+    // quoted paths (it mis-splits the token on whitespace instead of resolving the file), so the
+    // uninstaller is launched through PowerShell's `&` call operator instead, which handles a
+    // quoted path with spaces correctly and is what a real double-click (via Explorer's own file
+    // association) also ultimately resolves to.
+    const uninstall = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', "& '.\\Uninstall THSV StreamBridge.cmd'"], { cwd: firstInstall, encoding: 'utf8', timeout: 30_000, input: '\n' });
     expect(uninstall.status, processOutput(uninstall)).toBe(0);
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_500));
     expect(await readFile(join(firstInstall, 'data', 'state', 'creator-state.json'), 'utf8')).toContain('preserved');

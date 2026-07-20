@@ -100,7 +100,7 @@ function renderAddOnActionGrant(addOn) {
   const actions = [...state.liveActions.filter((action) => !prohibited.has(action.id.toLowerCase())), ...(addOn.approvedActionIds || []).filter((id) => !liveById.has(id) && !prohibited.has(id.toLowerCase())).map((id) => ({ id, name: 'Previously approved action (not in latest inspection)', enabled: false }))];
   const choices = actions.length
     ? actions.map((action) => `<label class="check"><input type="checkbox" name="actionId" value="${safe(action.id)}" ${approved.has(action.id) ? 'checked' : ''}> ${safe(action.name)} <small>${safe(action.id)}${action.enabled === false ? ' · disabled or missing' : ''}</small></label>`).join('')
-    : '<p class="notice full-row">Use Streamer.bot → Inspect now first. No action can be granted by name or guessed ID.</p>';
+    : '<p class="notice full-row">Use Streamer.bot → Inspect first. No action can be granted by name or guessed ID.</p>';
   return `<form class="filter-form addon-action-grants" data-addon-action-grants="${safe(addOn.moduleId)}"><div class="full-row"><strong>Approved Streamer.bot actions</strong><p>Choose the exact action IDs this add-on may dispatch. It cannot run any other action through the capability broker.</p></div>${choices}<button type="submit">Save action grants</button></form>`;
 }
 
