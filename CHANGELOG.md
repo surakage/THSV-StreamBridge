@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0-rc.3] - 2026-07-19
+
+### Changed
+
+- The public Windows installer now explains its local verification and privacy behavior, displays an unmistakable success or failure summary, and waits for the creator before closing.
+- The public Windows uninstaller now explains exactly what is removed and preserved, displays an unmistakable success or failure summary, and waits for the creator before closing and removing its own wrapper.
+
 ## [2.0.0-rc.2] - 2026-07-19
 
 ### Changed

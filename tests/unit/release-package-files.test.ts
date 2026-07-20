@@ -63,6 +63,25 @@ describe('public release scripts', () => {
     expect(source).not.toMatch(/Invoke-Expression|DownloadString|WebClient|npm\.cmd/u);
   });
 
+  it('keeps the public installer visible with an explicit success or failure result', async () => {
+    const source = await readFile('installer/Install THSV StreamBridge.cmd', 'utf8');
+    expect(source).toContain('The window will stay open so you can review the final result.');
+    expect(source).toContain('[SUCCESS] THSV StreamBridge installation completed.');
+    expect(source).toContain('[FAILED] THSV StreamBridge was not installed successfully.');
+    expect(source).toContain('pause >nul');
+    expect(source).toContain('exit /b %THSV_INSTALL_EXIT%');
+  });
+
+  it('keeps the public uninstaller visible and explains preserved creator data', async () => {
+    const source = await readFile('launcher/Uninstall THSV StreamBridge.cmd', 'utf8');
+    expect(source).toContain('The window will stay open so you can review the final result.');
+    expect(source).toContain('[SUCCESS] THSV StreamBridge was removed successfully.');
+    expect(source).toContain('[FAILED] THSV StreamBridge could not be removed completely.');
+    expect(source).toContain('Reinstalling later will reuse this preserved configuration.');
+    expect(source).toContain('pause >nul');
+    expect(source).toContain('Remove-Item -LiteralPath $env:THSV_UNINSTALL_SELF -Force');
+  });
+
   it('requires an explicit switch before deleting creator data', async () => {
     const source = await readFile('launcher/uninstall.mjs', 'utf8');
     expect(source).toContain("process.argv.includes('--delete-user-data')");
