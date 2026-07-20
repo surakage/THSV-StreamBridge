@@ -6,7 +6,7 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Release status:** `2.0.0-rc.3` is the current v2 release candidate. Its automated suites and packaged Windows installer acceptance pass, while the final live high-impact provider-event matrix remains required before a stable v2 production release. High-impact operations without verified provider-stable IDs remain blocked. See the [production-readiness gate](docs/production-readiness.md). Stable `1.x` remains available from the official releases page.
+> **Release status:** `2.0.0-rc.4` is the current v2 release candidate. Its automated suites and packaged Windows installer acceptance pass, while the final live high-impact provider-event matrix remains required before a stable v2 production release. High-impact operations without verified provider-stable IDs remain blocked. See the [production-readiness gate](docs/production-readiness.md). Stable `1.x` remains available from the official releases page.
 
 ## What it does
 
