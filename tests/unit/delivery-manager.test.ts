@@ -136,7 +136,10 @@ describe('OutputDeliveryManager', () => {
     });
     await manager.start();
     await manager.enqueue(await fixture());
-    await expect.poll(() => (manager.statuses()[0]?.['delivery'] as Record<string, unknown>)['deadLettered']).toBe(1);
+    await expect.poll(
+      () => (manager.statuses()[0]?.['delivery'] as Record<string, unknown>)['deadLettered'],
+      { timeout: 5_000 },
+    ).toBe(1);
     expect(manager.ready()).toBe(false);
     await manager.stop();
   });

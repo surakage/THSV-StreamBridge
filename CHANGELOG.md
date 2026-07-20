@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Windows-only PowerShell acceptance tests now skip on Linux, and the Windows CI matrix runs them under Windows PowerShell 5.1 so its native cmdlet/module environment matches supported installations.
 - Real PowerShell backup/restore integration tests have an explicit hosted-runner time budget without weakening their assertions.
 - Safety backups now combine a readable timestamp with a random suffix so an immediate restore cannot collide with a backup created in the same second.
+- Durable-delivery retry assertions now tolerate hosted-runner scheduling delays while still requiring the event to reach the dead-letter queue.
+- GitHub-hosted CI and release workflows now use the current Node 24-based checkout, setup-node, and artifact-upload actions.
 
 ### Safety
 
