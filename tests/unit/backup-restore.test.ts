@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const temporary: string[] = [];
 const windowsPowerShellEnvironment = { ...process.env };
-delete windowsPowerShellEnvironment['PSModulePath'];
+windowsPowerShellEnvironment['PSModulePath'] = join(process.env['WINDIR'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'Modules');
 afterEach(async () => { await Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))); });
 
 function run(script: string, args: readonly string[] = []): string {

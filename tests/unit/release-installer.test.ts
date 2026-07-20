@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 interface ReleaseEntry { readonly path: string; readonly size: number; readonly sha256: string }
 
 const windowsPowerShellEnvironment = { ...process.env };
-delete windowsPowerShellEnvironment['PSModulePath'];
+windowsPowerShellEnvironment['PSModulePath'] = join(process.env['WINDIR'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'Modules');
 
 async function writeRelease(source: string, version: string, appText: string): Promise<void> {
   await mkdir(join(source, 'scripts'), { recursive: true });
