@@ -25,3 +25,15 @@ Inspect `data/logs/service.stderr.log` and `data/logs/streambridge.log`. Run con
 ## Stale PID file
 
 `stop.ps1` removes a stale PID file. It refuses to stop a live process unless its command line identifies the Bridge service.
+
+## Meld Studio cannot reach the overlay or wizard
+
+Meld Studio is distributed as an MSIX/UWP app. Windows sandboxes MSIX apps with loopback isolation on by default, which silently blocks any request to `127.0.0.1`/`localhost` — including the Chat, Alerts, and combined overlay URLs, and the setup wizard if opened from inside Meld's own browser layer. This is a Windows app-sandboxing restriction, not a StreamBridge bug, and the same restriction can affect other MSIX-packaged broadcasting apps.
+
+Fix it by granting Meld Studio a loopback exemption, once, from an elevated (Administrator) PowerShell or Command Prompt:
+
+1. Find Meld Studio's package family name: `Get-AppxPackage | Where-Object { $_.Name -like '*Meld*' } | Select-Object PackageFamilyName`
+2. Grant the exemption: `CheckNetIsolation.exe LoopbackExempt -a -n="<PackageFamilyName>"` (substitute the value from step 1)
+3. Restart Meld Studio and reload the overlay/wizard source
+
+No StreamBridge restart is required. This only needs to be done once per machine per app; reinstalling or updating Meld Studio through the Microsoft Store can reset it and require re-running the exemption.

@@ -17,6 +17,8 @@ This matrix records tested versions, not speculative compatibility ranges. A new
 
 Do not infer a version range from a single verified Alpha/build. When adopting another Streamer.bot Alpha, re-import and compile every used `.sb` package, repeat relay tests, verify Action History fields, and update this matrix.
 
+Meld Studio is distributed as an MSIX/UWP app, which Windows sandboxes with loopback isolation by default; this blocks access to the local overlay and wizard URLs until an exemption is granted once per machine. See [Troubleshooting](troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard) for the fix. The same restriction can affect other MSIX-packaged broadcasting apps.
+
 ## Platform transports
 
 | Platform | Intake path | Production claim |
