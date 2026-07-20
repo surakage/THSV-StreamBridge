@@ -1,6 +1,6 @@
 # Production-readiness gate
 
-`2.0.0-rc.1` is suitable for public release-candidate testing. It is not marked stable until every item below has evidence from the exact release archive.
+`2.0.0-rc.2` is suitable for public release-candidate testing. It is not marked stable until every item below has evidence from the exact release archive.
 
 ## Automated gate
 
