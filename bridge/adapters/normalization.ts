@@ -55,6 +55,7 @@ function capabilityForEvent(eventType: EventType): Capability | undefined {
   if (eventType === 'channel.raid') return 'raids';
   if (eventType === 'moderation.action') return 'moderation';
   if (eventType === 'engagement.milestone') return 'engagement';
+  if (eventType === 'reward.redemption') return 'rewards';
   if (['stream.online', 'stream.offline'].includes(eventType)) return 'channelUpdates';
   if (eventType === 'system.timed') return 'timedActions';
   return undefined;

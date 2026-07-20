@@ -1,4 +1,8 @@
+// Purpose: Projects a receiver-validated public chat event into the shared Multi-Chat contract.
+// Trust boundary: accepts chat.message only and leaves contextual escaping to the final renderer.
+// References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
+using System.IO;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -8,9 +12,11 @@ public class CPHInline
     private const string ContractVersion = "1.1.0";
     private const string PackageVersion = "1.1.1";
     private const int MaximumMessageLength = 2000;
+    private const int MaximumPayloadLength = 16384;
 
     public bool Execute()
     {
+        // Reset outputs and require the receiver's validation marker before reading content.
         InitializeOutputs();
 
         if (!CPH.TryGetArg("streamBridgeValid", out bool receiverValid) || !receiverValid)
@@ -39,11 +45,17 @@ public class CPHInline
             return Fail("System messages must use chat.system-message, not public chat.message.");
         if (!CPH.TryGetArg("streamBridgePayload", out string payloadJson) || string.IsNullOrWhiteSpace(payloadJson))
             return Fail("Missing validated streamBridgePayload.");
+        if (payloadJson.Length > MaximumPayloadLength) return Fail("streamBridgePayload exceeds the Multi-Chat input limit.");
 
         JObject payload;
         try
         {
-            payload = JObject.Parse(payloadJson);
+            using (JsonTextReader reader = new JsonTextReader(new StringReader(payloadJson)))
+            {
+                reader.DateParseHandling = DateParseHandling.None;
+                reader.MaxDepth = 16;
+                payload = JObject.Load(reader);
+            }
         }
         catch (JsonException)
         {

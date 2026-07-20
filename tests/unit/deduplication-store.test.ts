@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -15,5 +15,16 @@ describe('FileDeduplicationStore', () => {
     await store.flush();
     expect(JSON.parse(await readFile(path, 'utf8'))).toEqual(entries);
     await expect(store.load()).resolves.toEqual(entries);
+  });
+
+  it('fails closed to an empty cache when persisted state is corrupted', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-dedup-corrupt-'));
+    const path = join(directory, 'dedup.json');
+    await writeFile(path, '{not-json', 'utf8');
+    const store = new FileDeduplicationStore(path, silentLogger, 0);
+    await expect(store.load()).resolves.toEqual([]);
+    const status = store.status();
+    expect(status['enabled']).toBe(true);
+    expect(typeof status['lastError']).toBe('string');
   });
 });

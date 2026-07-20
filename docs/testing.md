@@ -58,6 +58,7 @@ For a no-wait Multi-Timed Actions contract check, run:
 
 ```powershell
 npm run simulate -- tests/fixtures/system-timed.json
+npm run simulate -- tests/fixtures/system-timed-message-output.json
 ```
 
 This proves validation, delivery, and Streamer.bot projection only. To test the scheduler itself, copy the example configuration and add a harmless definition with `everyMinutes: 1`, `firstRunAfterMinutes: 0`, and either fixed or shuffle-container selection. The deterministic suite verifies independent intervals, container exhaustion before repetition, persisted bag state, catch-up, and skip behavior without waiting on wall-clock time.
@@ -68,4 +69,4 @@ For an offline Browser Overlay Hub check, open `http://127.0.0.1:8787/overlay/`,
 
 Live acceptance requires adding the selected URL(s) as Browser layers/sources in each adopted broadcasting application and confirming transparent rendering, independent movement/sizing, reconnect, and expected client count. This is a presentation check only; offline fixtures do not prove production platform transports.
 
-For Viewer Identity and Progression, automated tests cover explicit Twitch/YouTube linking, stable platform-scoped pseudonyms, cross-platform chat cooldown enforcement, replay suppression, simulated/bot exclusion, absence of names/messages/raw IDs in stored state, corrupted-state refusal, caller viewer-ID spoof replacement, and Streamer.bot export/source integrity. For a manual simulated check, use a temporary private config with `viewerIdentity.enabled=true`, `includeSimulated=true`, and a link for fixture user `fixture-user`; restore `includeSimulated=false` before production use.
+Stage 2 acceptance verifies that legacy Viewer Identity and Companion configuration loads without reactivation, the migration preview enumerates their preserved state files without mutating input, archived HTTP/browser routes return 404, the core receiver contract contains no viewer identity, and optional module failures do not stop required built-ins. Archived add-on tests remain under `archive/future-add-ons/` as historical evidence and are not part of the active core suite.

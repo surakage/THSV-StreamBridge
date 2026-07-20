@@ -1,4 +1,8 @@
+// Purpose: Projects a receiver-validated public event into one platform-neutral alert contract.
+// Trust boundary: ignores unrelated events and never renders, speaks, sends chat, or mutates state.
+// References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
+using System.IO;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -9,9 +13,11 @@ public class CPHInline
     private const string PackageVersion = "1.0.1";
     private const int MaximumTextLength = 500;
     private const long MaximumSafeInteger = 9007199254740991L;
+    private const int MaximumPayloadLength = 32768;
 
     public bool Execute()
     {
+        // Only trust the Core Receiver's validated argument contract.
         InitializeOutputs();
         if (!CPH.TryGetArg("streamBridgeValid", out bool receiverValid) || !receiverValid)
             return Fail("The StreamBridge receiver did not validate this event.");
@@ -26,9 +32,18 @@ public class CPHInline
         if (!CPH.TryGetArg("streamBridgePlatform", out string platform) || string.IsNullOrWhiteSpace(platform)) return Fail("Missing validated streamBridgePlatform.");
         if (!CPH.TryGetArg("streamBridgeChannelName", out string channelName) || string.IsNullOrWhiteSpace(channelName)) return Fail("Missing validated streamBridgeChannelName.");
         if (!CPH.TryGetArg("streamBridgePayload", out string payloadJson) || string.IsNullOrWhiteSpace(payloadJson)) return Fail("Missing validated streamBridgePayload.");
+        if (payloadJson.Length > MaximumPayloadLength) return Fail("streamBridgePayload exceeds the Multi-Alerts input limit.");
 
         JObject payload;
-        try { payload = JObject.Parse(payloadJson); }
+        try
+        {
+            using (JsonTextReader reader = new JsonTextReader(new StringReader(payloadJson)))
+            {
+                reader.DateParseHandling = DateParseHandling.None;
+                reader.MaxDepth = 16;
+                payload = JObject.Load(reader);
+            }
+        }
         catch (JsonException) { return Fail("streamBridgePayload is not valid JSON."); }
 
         string userName = ReadOptionalArgument("streamBridgeUserName");
@@ -154,14 +169,15 @@ public class CPHInline
     {
         fields = new JArray();
         string metadataJson = ReadOptionalArgument("streamBridgeMetadata", "{}");
+        if (metadataJson.Length > 32768) return false;
         try
         {
             JObject metadata = JObject.Parse(metadataJson);
             JToken token = metadata["unverifiedFields"];
             if (token == null) return true;
             JArray array = token as JArray;
-            if (array == null) return false;
-            foreach (JToken item in array) if (item.Type != JTokenType.String) return false;
+            if (array == null || array.Count > 100) return false;
+            foreach (JToken item in array) if (item.Type != JTokenType.String || item.ToString().Length > 100) return false;
             fields = array;
             return true;
         }

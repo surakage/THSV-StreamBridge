@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build and validate release archive
+        shell: powershell
+        run: .\scripts\package-release.ps1
+      - name: Generate production SBOM
+        shell: powershell
+        run: |
+          $sbom = npm sbom --omit=dev --sbom-format cyclonedx | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'SBOM generation failed.' }
+          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+          [System.IO.File]::WriteAllText("THSV-StreamBridge-${{ github.ref_name }}.cdx.json", $sbom, $utf8NoBom)
+      - name: Resolve release asset paths
+        id: assets
+        shell: powershell
+        run: |
+          $archive = Get-ChildItem packages\THSV-StreamBridge-*.zip | Select-Object -First 1
+          if ($null -eq $archive) { throw 'Release archive was not produced.' }
+          "archive=$($archive.FullName)" >> $env:GITHUB_OUTPUT
+          "checksum=$($archive.FullName).sha256" >> $env:GITHUB_OUTPUT
+      - name: Attest release provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.assets.outputs.archive }}
+      - name: Attest software bill of materials
+        uses: actions/attest-sbom@v2
+        with:
+          subject-path: ${{ steps.assets.outputs.archive }}
+          sbom-path: THSV-StreamBridge-${{ github.ref_name }}.cdx.json
+      - name: Publish immutable-ready GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: powershell
+        run: |
+          $isPrerelease = $env:GITHUB_REF_NAME -match '-(?:alpha|beta|preview|rc)(?:\.|-|$)'
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $notesFile = "docs/releases/$version.md"
+          $releaseFlags = @('--draft', '--verify-tag')
+          if (Test-Path -LiteralPath $notesFile) {
+            $releaseFlags += @('--notes-file', $notesFile)
+          } else {
+            $releaseFlags += '--generate-notes'
+          }
+          if ($isPrerelease) { $releaseFlags += '--prerelease' }
+          gh release create $env:GITHUB_REF_NAME @releaseFlags
+          gh release upload $env:GITHUB_REF_NAME "${{ steps.assets.outputs.archive }}" "${{ steps.assets.outputs.checksum }}" "THSV-StreamBridge-$env:GITHUB_REF_NAME.cdx.json"
+          if ($isPrerelease) {
+            gh release edit $env:GITHUB_REF_NAME --draft=false
+          } else {
+            gh release edit $env:GITHUB_REF_NAME --draft=false --latest
+          }

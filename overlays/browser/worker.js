@@ -10,6 +10,10 @@ self.onconnect = (connection) => {
   port.start();
   port.postMessage({ kind: 'transport.status', state: transportState });
   port.addEventListener('message', (message) => {
+    if (message.data?.kind === 'transport.send') {
+      if (socket?.readyState === WebSocket.OPEN && typeof message.data.payload === 'object') socket.send(JSON.stringify(message.data.payload));
+      return;
+    }
     if (message.data?.kind !== 'disconnect') return;
     ports.delete(port);
     port.close();

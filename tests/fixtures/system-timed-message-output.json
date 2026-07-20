@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "sim-system-timed-message-output-004",
+  "eventType": "system.timed",
+  "platform": "system",
+  "source": { "adapter": "fixture", "eventId": "fixture-system-timed-message-output-004", "eventName": "timed-action.fired" },
+  "receivedAt": "2026-07-18T16:00:00.250Z",
+  "channel": { "id": "local", "name": "local" },
+  "payload": {
+    "timerId": "timed-message-output-test",
+    "timerName": "Timed Message Output Test",
+    "scheduleType": "session-interval",
+    "scheduledAt": "2026-07-18T16:00:00.000Z",
+    "firedAt": "2026-07-18T16:00:00.250Z",
+    "occurrence": 1,
+    "missedRuns": 0,
+    "lateByMs": 250,
+    "selectionMode": "shuffle-container",
+    "selectedMessage": "THSV simulated timed-message delivery test",
+    "containerCycle": 1,
+    "containerPosition": 1,
+    "containerSize": 2,
+    "creatorPayload": { "category": "acceptance-test" },
+    "targetProvider": "run-existing-action",
+    "targetActionId": "7d107c29-1127-5bb1-ae8b-6f04d89a71d4",
+    "targetActionName": "THSV StreamBridge - Send Timed Message",
+    "targetActionApproved": true,
+    "targetPlatforms": [],
+    "deliveryPlatforms": ["twitch", "youtube", "kick", "tiktok"]
+  },
+  "metadata": { "simulated": true }
+}

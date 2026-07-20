@@ -8,7 +8,7 @@
     "shutdownTimeoutMs": 5000
   },
   "security": {
-    "maxPayloadBytes": 262144,
+    "maxPayloadBytes": 2800000,
     "preserveRawPayloads": false,
     "controlTokenEnv": "THSV_STREAMBRIDGE_CONTROL_TOKEN",
     "controlTokenFile": "data/runtime/control-token",
@@ -33,12 +33,7 @@
     "prefix": "!",
     "definitions": [
       { "name": "ping", "aliases": ["p"], "minimumRole": "viewer", "allowBots": false },
-      { "name": "shoutout", "aliases": ["so"], "minimumRole": "moderator", "allowBots": false },
-      { "name": "bloom-wave", "aliases": [], "minimumRole": "viewer", "allowBots": false },
-      { "name": "bloom-feed", "aliases": [], "minimumRole": "viewer", "allowBots": false },
-      { "name": "bloom-rest", "aliases": [], "minimumRole": "viewer", "allowBots": false },
-      { "name": "bloom-wake", "aliases": [], "minimumRole": "viewer", "allowBots": false },
-      { "name": "bloom-celebrate", "aliases": [], "minimumRole": "viewer", "allowBots": false }
+      { "name": "shoutout", "aliases": ["so"], "minimumRole": "moderator", "allowBots": false }
     ]
   },
   "timedActions": {
@@ -50,51 +45,73 @@
     "brandLabel": "THE HIDDEN SLOTH VILLAGE",
     "maxChatMessages": 8,
     "maxAlertQueue": 20,
-    "maxCompanionQueue": 20,
     "alertDurationMs": 7000,
     "showBots": true,
-    "showSimulated": true
-  },
-  "viewerIdentity": {
-    "enabled": false,
-    "stateFile": "data/state/viewer-progression.json",
-    "includeSimulated": false,
-    "processedEventTtlMs": 86400000,
-    "maxProcessedEvents": 10000,
-    "links": [],
-    "progression": {
-      "enabled": true,
-      "points": {
-        "chat.message": 1,
-        "channel.follow": 10,
-        "channel.subscription": 25,
-        "channel.membership": 25,
-        "channel.gift-subscription": 25,
-        "engagement.gift": 5,
-        "engagement.donation": 20,
-        "engagement.cheer": 10,
-        "engagement.super-chat": 20,
-        "channel.raid": 25,
-        "engagement.milestone": 5
-      },
-      "cooldownsMs": { "chat.message": 60000 },
-      "levelThresholds": [0, 100, 250, 500, 1000]
+    "showSimulated": true,
+    "chat": {
+      "layout": "regular",
+      "fontFamily": "system",
+      "fontSizePx": 18,
+      "textColor": "#ffffff",
+      "backgroundMode": "transparent",
+      "backgroundColor": "#171120",
+      "backgroundOpacity": 0.9,
+      "messageBackgroundColor": "#171120",
+      "messageBackgroundOpacity": 0.96,
+      "messageColorMode": "platform",
+      "platformMessageColors": { "twitch": "#4b267b", "youtube": "#7d1717", "kick": "#245c18", "tiktok": "#172b31" },
+      "showPlatformLabels": true,
+      "showProfilePictures": true,
+      "showBadges": true,
+      "ignoredNames": [],
+      "events": {
+        "enabled": true,
+        "platforms": { "twitch": true, "youtube": true, "kick": true, "tiktok": true },
+        "platformEvents": {
+          "twitch": {
+            "follow": { "enabled": true, "template": "{actor} followed" },
+            "subscription": { "enabled": true, "template": "{actor} subscribed {tier}" },
+            "resubscription": { "enabled": true, "template": "{actor} resubscribed for {months} months {tier}" },
+            "gift-subscription": { "enabled": true, "template": "{actor} gifted a subscription {tier}" },
+            "gift-bomb": { "enabled": true, "template": "{actor} gifted {quantity} subscriptions {tier}" },
+            "cheer": { "enabled": true, "template": "{actor} cheered {quantity} bits {message}" },
+            "raid": { "enabled": true, "template": "{actor} raided with {quantity} viewers" },
+            "reward-redemption": { "enabled": true, "template": "{actor} redeemed {rewardTitle} · {input}" }
+          },
+          "youtube": {
+            "subscriber": { "enabled": true, "template": "{actor} subscribed to the channel" },
+            "member": { "enabled": true, "template": "{actor} became a paid member {tier}" },
+            "membership-gift": { "enabled": true, "template": "{actor} gifted {quantity} memberships" },
+            "member-milestone": { "enabled": true, "template": "{actor} reached {months} months as a member" },
+            "super-chat": { "enabled": true, "template": "{actor} sent a Super Chat: {amount} {currency} {message}" },
+            "super-sticker": { "enabled": true, "template": "{actor} sent a Super Sticker: {amount} {currency}" }
+          },
+          "kick": {
+            "follow": { "enabled": true, "template": "{actor} followed" },
+            "subscription": { "enabled": true, "template": "{actor} subscribed {tier}" },
+            "resubscription": { "enabled": true, "template": "{actor} resubscribed for {months} months {tier}" },
+            "gift-subscription": { "enabled": true, "template": "{actor} gifted a subscription {tier}" },
+            "mass-gift-subscription": { "enabled": true, "template": "{actor} gifted {quantity} subscriptions {tier}" },
+            "gifted-kicks": { "enabled": true, "template": "{actor} gifted {quantity} KICKs" },
+            "reward-redemption": { "enabled": true, "template": "{actor} redeemed {rewardTitle} · {input}" }
+          },
+          "tiktok": {
+            "follow": { "enabled": true, "template": "{actor} followed" },
+            "gift": { "enabled": true, "template": "{actor} sent {quantity} {itemName}" },
+            "subscription": { "enabled": true, "template": "{actor} subscribed for month {months}" },
+            "likes": { "enabled": true, "template": "TikTok reached {value} likes" }
+          }
+        },
+        "characterLimits": { "twitch": 500, "youtube": 200, "kick": 500, "tiktok": 150 }
+      }
+    },
+    "alerts": {
+      "profiles": {}
     }
   },
-  "companion": {
-    "enabled": false,
-    "stateFile": "data/state/companion.json",
-    "includeSimulated": false,
-    "minimumActionIntervalMs": 1000,
-    "maxTrackedCooldowns": 10000,
-    "initialState": { "happiness": 75, "fullness": 75, "energy": 75 },
-    "rewards": {
-      "wave": { "enabled": true, "command": "bloom-wave", "cost": 0, "cooldownMs": 10000, "happiness": 2, "fullness": 0, "energy": 0 },
-      "eat": { "enabled": true, "command": "bloom-feed", "cost": 25, "cooldownMs": 30000, "happiness": 3, "fullness": 15, "energy": 2 },
-      "sleep": { "enabled": true, "command": "bloom-rest", "cost": 10, "cooldownMs": 60000, "happiness": 2, "fullness": -2, "energy": 20 },
-      "wake": { "enabled": true, "command": "bloom-wake", "cost": 0, "cooldownMs": 5000, "happiness": 0, "fullness": 0, "energy": 0 },
-      "celebrate": { "enabled": true, "command": "bloom-celebrate", "cost": 50, "cooldownMs": 60000, "happiness": 15, "fullness": -3, "energy": -5 }
-    }
+  "filters": {
+    "enabled": true,
+    "rules": []
   },
   "streamerbot": {
     "enabled": true,
@@ -102,11 +119,18 @@
     "allowRemote": false,
     "passwordEnv": "STREAMERBOT_PASSWORD",
     "actionAlias": "THSV StreamBridge - Receive Event",
+    "commandAdministrationActionAlias": "THSV StreamBridge - Command Administration",
+    "rewardAdministrationActionAlias": "THSV StreamBridge - Reward Administration",
     "acknowledgementTimeoutMs": 5000,
     "maxPendingRequests": 16,
     "deliveryQueueCapacity": 100,
     "deliveryConcurrency": 2,
     "deliveryFailureThreshold": 3,
+    "deliveryStateFile": "data/state/delivery-outbox.json",
+    "deliveryMaxAttempts": 8,
+    "deliveryRetryInitialDelayMs": 500,
+    "deliveryRetryMaxDelayMs": 30000,
+    "deliveryDeadLetterCapacity": 1000,
     "testMode": false,
     "reconnect": {
       "enabled": true,
@@ -116,11 +140,11 @@
     }
   },
   "platforms": {
-    "twitch": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "donations", "raids"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
+    "twitch": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "donations", "raids", "rewards"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
     "youtube": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "donations"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
-    "kick": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "gifts"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
-    "tiktok": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "tikfinity-streamerbot", "capabilities": ["chatInput", "follows", "gifts", "engagement"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
-    "mock": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "mock", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "donations", "raids", "moderation", "engagement", "channelUpdates", "timedActions"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } },
+    "kick": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "streamerbot-native", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "rewards"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
+    "tiktok": { "enabled": false, "inputEnabled": true, "outputEnabled": false, "adapter": "tikfinity-streamerbot", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "engagement"], "reconnect": { "enabled": true, "initialDelayMs": 500, "maxDelayMs": 30000, "maxAttempts": 8 } },
+    "mock": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "mock", "capabilities": ["chatInput", "follows", "subscriptions", "gifts", "donations", "raids", "moderation", "engagement", "channelUpdates", "timedActions", "rewards"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } },
     "timers": { "enabled": true, "inputEnabled": true, "outputEnabled": false, "adapter": "timed-actions", "capabilities": ["timedActions"], "reconnect": { "enabled": false, "initialDelayMs": 10, "maxDelayMs": 10, "maxAttempts": 0 } }
   },
   "outputs": {

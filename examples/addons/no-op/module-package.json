@@ -1,0 +1,33 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "A harmless reference add-on that demonstrates the verified executable package format.",
+  "changelog": "",
+  "permissions": ["events.subscribe"],
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "sample.no-op",
+    "name": "Sample No-Op Add-On",
+    "version": "1.0.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": ["system.health"],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": ["data/addons/sample.no-op/"],
+    "installationSteps": ["Review the source and install with explicit creator approval."],
+    "uninstallationSteps": ["Remove the add-on package; its separately owned data remains preserved."],
+    "migrations": [],
+    "healthChecks": [{ "id": "sample.no-op.runtime", "description": "Confirms the sample add-on starts without affecting core." }]
+  },
+  "entrypoint": "dist/index.js",
+  "files": [
+    { "path": "dist/index.js", "size": 933, "sha256": "6e74a831862b17baa44264ecbaa880a20e681c97badcad3a7fb6133f3531d3b8" },
+    { "path": "schemas/config.json", "size": 165, "sha256": "df9434bede768caf4225549b0e6e07c534b2ef8bbb4eb239bfe8f002a2891b03" }
+  ]
+}

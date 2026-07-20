@@ -60,6 +60,20 @@ describe('bridge configuration', () => {
     expect(invalidPrefix.success).toBe(false);
   });
 
+  it('defaults command definitions to a manual source and keeps synced definitions distinct', async () => {
+    const config = await testConfig();
+    const manual = bridgeConfigSchema.parse({
+      ...config,
+      commands: { ...config.commands, definitions: [{ name: 'existing', aliases: [], minimumRole: 'viewer', allowBots: false }] },
+    });
+    expect(manual.commands.definitions[0]?.source).toBe('manual');
+    const synced = bridgeConfigSchema.parse({
+      ...config,
+      commands: { ...config.commands, definitions: [{ name: 'synced-command', aliases: [], minimumRole: 'viewer', allowBots: false, source: 'synced' }] },
+    });
+    expect(synced.commands.definitions[0]?.source).toBe('synced');
+  });
+
   it('keeps pre-0.5.1 configuration compatible with commands safely disabled', async () => {
     const config = await testConfig();
     const { commands: _commands, ...legacy } = config;
@@ -76,23 +90,108 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [definition, definition] } }).success).toBe(false);
   });
 
-  it('keeps earlier configuration compatible with viewer identity safely disabled', async () => {
+  it('rejects timed-action intervals outside the documented one-day bounds', async () => {
     const config = await testConfig();
-    const { viewerIdentity: _viewerIdentity, ...legacy } = config;
-    void _viewerIdentity;
-    const parsed = bridgeConfigSchema.parse(legacy).viewerIdentity;
-    expect(parsed).toMatchObject({ enabled: false, includeSimulated: false, links: [], progression: { enabled: true, cooldownsMs: { 'chat.message': 60_000 } } });
-    expect(parsed.progression.points['chat.message']).toBe(1);
+    const definition = { id: 'bounded', name: 'Bounded', enabled: true, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...definition, everyMinutes: 0 }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...definition, everyMinutes: 1_441 }] } }).success).toBe(false);
   });
 
-  it('requires viewer identity and unique registered commands when the companion is enabled', async () => {
+  it('validates random intervals, activity gates, and approved action targets', async () => {
     const config = await testConfig();
-    expect(config.companion).toMatchObject({ enabled: false, includeSimulated: false, initialState: { happiness: 75, fullness: 75, energy: 75 } });
-    const missingIdentity = bridgeConfigSchema.safeParse({ ...config, companion: { ...config.companion, enabled: true } });
-    expect(missingIdentity.success).toBe(false);
-    const missingCommand = bridgeConfigSchema.safeParse({ ...config, viewerIdentity: { ...config.viewerIdentity, enabled: true }, commands: { ...config.commands, definitions: config.commands.definitions.filter((definition) => definition.name !== 'bloom-feed') }, companion: { ...config.companion, enabled: true } });
-    expect(missingCommand.success).toBe(false);
-    const enabled = bridgeConfigSchema.safeParse({ ...config, viewerIdentity: { ...config.viewerIdentity, enabled: true }, companion: { ...config.companion, enabled: true } });
-    expect(enabled.success).toBe(true);
+    const base = { id: 'random', name: 'Random', enabled: true, intervalMode: 'random', everyMinutes: 15, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, minimumMinutes: 20, maximumMinutes: 10 }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, minimumMinutes: 10, maximumMinutes: 20, target: { provider: 'run-existing-action', actionId: '11111111-1111-4111-8111-111111111111', actionName: 'Creator Action', approvedByCreator: false } }] } }).success).toBe(false);
+    const parsed = bridgeConfigSchema.parse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, minimumMinutes: 10, maximumMinutes: 20 }] } });
+    expect(parsed.timedActions.definitions[0]).toMatchObject({ intervalMode: 'random', gates: { requireLive: true, activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { provider: 'event-only' } });
+  });
+
+  it('validates unique timed-message delivery platforms independently from live gates', async () => {
+    const config = await testConfig();
+    const base = { id: 'delivery', name: 'Delivery', enabled: true, everyMinutes: 15, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'shuffle-container', messages: ['One', 'Two'] } };
+    const action = { provider: 'run-existing-action', actionId: '7d107c29-1127-5bb1-ae8b-6f04d89a71d4', actionName: 'THSV StreamBridge - Send Timed Message', approvedByCreator: true };
+    const valid = bridgeConfigSchema.parse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, gates: { requireLive: true, platforms: ['twitch'], scenes: [], activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { ...action, deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } }] } });
+    expect(valid.timedActions.definitions[0]).toMatchObject({ gates: { platforms: ['twitch'] }, target: { deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } });
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['twitch', 'twitch'] } }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['facebook'] } }] } }).success).toBe(false);
+  });
+
+  it('validates independent per-platform timed-message rotations and character limits', async () => {
+    const config = await testConfig();
+    const definition = {
+      id: 'platform-rotation', name: 'Platform rotation', enabled: true, everyMinutes: 15, missedRunPolicy: 'skip', payload: {},
+      selection: { mode: 'platform-shuffle', messagesByPlatform: { twitch: ['Twitch one', 'Twitch two'], youtube: ['YouTube one', 'YouTube two'], tiktok: ['TikTok one', 'TikTok two'] } },
+    };
+    const parsed = bridgeConfigSchema.parse({ ...config, timedActions: { ...config.timedActions, definitions: [definition] } });
+    expect(parsed.timedActions.definitions[0]?.selection).toMatchObject({ mode: 'platform-shuffle', messagesByPlatform: { twitch: ['Twitch one', 'Twitch two'] } });
+    const tooLongYouTube = { ...definition, selection: { mode: 'platform-shuffle', messagesByPlatform: { youtube: ['x'.repeat(201), 'valid'] } } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [tooLongYouTube] } }).success).toBe(false);
+    const onlyOne = { ...definition, selection: { mode: 'platform-shuffle', messagesByPlatform: { kick: ['Only one'] } } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [onlyOne] } }).success).toBe(false);
+  });
+
+  it('validates alert presentation templates, bounds, and gift-only aggregation', async () => {
+    const config = await testConfig();
+    const valid = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { cheer: { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} cheered {quantity} bits', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.4 }, aggregation: { mode: 'none', windowMs: 5_000 } } },
+      kick: { gift: { enabled: true, sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 4_000 } } },
+    } } } });
+    expect(valid.browserOverlay.alerts.profiles.twitch?.cheer).toMatchObject({ priority: 'critical', durationMs: 9_000 });
+    // A platform that never produces a given alert type is rejected, not silently accepted.
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { twitch: { 'super-chat': { enabled: true, sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 } } } } } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { twitch: { cheer: { titleTemplate: '{unknown}', sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 } } } } } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 5_000 } } } } } } }).success).toBe(false);
+  });
+
+  it('validates saved chat appearance and a case-insensitive ignored-name list', async () => {
+    const config = await testConfig();
+    const valid = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: {
+      ...config.browserOverlay.chat, layout: 'compact', fontFamily: 'rounded', fontSizePx: 24, backgroundMode: 'solid', ignoredNames: ['ExampleBot', 'Another Viewer'],
+    } } });
+    expect(valid.browserOverlay.chat).toMatchObject({ layout: 'compact', fontSizePx: 24, ignoredNames: ['ExampleBot', 'Another Viewer'] });
+    expect(valid.browserOverlay.chat).toMatchObject({ messageColorMode: 'platform', platformMessageColors: { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31' } });
+    expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, platformEvents: { youtube: { subscriber: { enabled: true }, member: { enabled: true } }, tiktok: { likes: { enabled: true }, subscription: { enabled: true } } }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } });
+    expect(valid.browserOverlay.chat.events).not.toHaveProperty('categories');
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 60 } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, backgroundColor: 'red' } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, ignoredNames: ['ExampleBot', 'examplebot'] } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: { ...config.browserOverlay.chat.events, characterLimits: { ...config.browserOverlay.chat.events.characterLimits, youtube: 39 } } } } }).success).toBe(false);
+    const invalidEvents = structuredClone(config.browserOverlay.chat.events);
+    invalidEvents.platformEvents.youtube.subscriber.template = '{rawStreamerBotVariable}';
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: invalidEvents } } }).success).toBe(false);
+  });
+
+  it('migrates legacy grouped chat events into separate platform events', async () => {
+    const config = await testConfig();
+    const input = structuredClone(config) as unknown as Record<string, unknown>;
+    const overlay = input['browserOverlay'] as Record<string, unknown>;
+    const chat = overlay['chat'] as Record<string, unknown>;
+    chat['events'] = {
+      enabled: true,
+      platforms: { twitch: true, youtube: true, kick: true, tiktok: true },
+      categories: { rewards: true, follows: true, subscriptions: false, gifts: true, support: true, raids: true, milestones: true },
+      templates: { youtube: { follows: '{actor} found the channel' } },
+      characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 },
+    };
+    const migrated = bridgeConfigSchema.parse(input).browserOverlay.chat.events;
+    expect(migrated.platformEvents.youtube.subscriber).toEqual({ enabled: true, template: '{actor} found the channel' });
+    expect(migrated.platformEvents.youtube.member.enabled).toBe(false);
+    expect(migrated.platformEvents.tiktok.subscription.enabled).toBe(false);
+    expect(migrated).not.toHaveProperty('categories');
+    expect(migrated).not.toHaveProperty('templates');
+  });
+
+  it('loads legacy viewer and companion configuration without reactivating archived add-ons', async () => {
+    const config = await testConfig();
+    const legacy = {
+      ...config,
+      browserOverlay: { ...config.browserOverlay, maxCompanionQueue: 20 },
+      viewerIdentity: { enabled: true, stateFile: 'data/state/viewer-progression.json' },
+      companion: { enabled: true, stateFile: 'data/state/companion.json' },
+    };
+    const parsed = bridgeConfigSchema.parse(legacy);
+    expect(parsed).not.toHaveProperty('viewerIdentity');
+    expect(parsed).not.toHaveProperty('companion');
+    expect(parsed.browserOverlay).not.toHaveProperty('maxCompanionQueue');
   });
 });

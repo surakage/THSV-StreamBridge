@@ -1,3 +1,6 @@
+// Purpose: Validates one normalized bridge event and exposes its safe fields as Streamer.bot arguments.
+// Trust boundary: all downstream THSV actions must consume these validated streamBridge* arguments.
+// References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
 using System.Globalization;
 using System.IO;
@@ -6,16 +9,21 @@ using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
-    private const string ContractVersion = "1.2.0";
-    private const string PackageVersion = "1.0.4";
+    private const string ContractVersion = "2.0.0-preview.1";
+    private const string PackageVersion = "2.0.0-preview.1";
     private const string SupportedSchemaVersion = "1.0.0";
+    private const int MaximumEventJsonLength = 2800000;
+    private const int MaximumJsonDepth = 32;
 
     public bool Execute()
     {
+        // Clear outputs before parsing so rejected input cannot reuse values from an earlier run.
         InitializeOutputs();
 
         if (!CPH.TryGetArg("streamBridgeEvent", out string eventJson) || string.IsNullOrWhiteSpace(eventJson))
             return Fail("Missing required streamBridgeEvent JSON argument.");
+        if (eventJson.Length > MaximumEventJsonLength)
+            return Fail("streamBridgeEvent exceeds the receiver input limit.");
 
         JObject envelope;
         try
@@ -24,7 +32,9 @@ public class CPHInline
             using (JsonTextReader jsonReader = new JsonTextReader(stringReader))
             {
                 jsonReader.DateParseHandling = DateParseHandling.None;
+                jsonReader.MaxDepth = MaximumJsonDepth;
                 envelope = JObject.Load(jsonReader);
+                if (jsonReader.Read()) return Fail("streamBridgeEvent must contain exactly one JSON object.");
             }
         }
         catch (JsonException)
@@ -60,8 +70,6 @@ public class CPHInline
             return Fail("Invalid metadata.correlationId.");
         if (!IsOptionalPositiveInteger(metadata, "bridgeSequence"))
             return Fail("Invalid metadata.bridgeSequence.");
-        if (!IsOptionalViewerId(metadata, "viewerId"))
-            return Fail("Invalid metadata.viewerId.");
 
         JObject user = envelope["user"] as JObject;
         string userName = user == null ? string.Empty : ReadRequiredString(user, "name", 256);
@@ -87,7 +95,6 @@ public class CPHInline
         CPH.SetArgument("streamBridgeMetadata", metadata.ToString(Formatting.None));
         CPH.SetArgument("streamBridgeCorrelationId", ReadOptionalString(metadata, "correlationId"));
         CPH.SetArgument("streamBridgeSimulated", metadata.Value<bool>("simulated"));
-        CPH.SetArgument("streamBridgeViewerId", ReadOptionalString(metadata, "viewerId"));
         CPH.SetArgument("streamBridgeValid", true);
         CPH.LogDebug("THSV StreamBridge accepted " + eventType + " event " + eventId + " from " + platform + ".");
         return true;
@@ -117,7 +124,6 @@ public class CPHInline
         CPH.SetArgument("streamBridgeMetadata", "{}");
         CPH.SetArgument("streamBridgeCorrelationId", string.Empty);
         CPH.SetArgument("streamBridgeSimulated", false);
-        CPH.SetArgument("streamBridgeViewerId", string.Empty);
     }
 
     private bool Fail(string message)
@@ -159,15 +165,6 @@ public class CPHInline
             if (!IsIdentifierCharacter(value[index])) return false;
         }
         return true;
-    }
-
-    private static bool IsOptionalViewerId(JObject value, string property)
-    {
-        JToken token = value[property];
-        if (token == null) return true;
-        if (token.Type != JTokenType.String) return false;
-        string viewerId = token.ToString();
-        return IsPlatform(viewerId);
     }
 
     private static bool IsIdentifierCharacter(char character)

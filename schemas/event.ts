@@ -27,13 +27,12 @@ export const EVENT_TYPE_VALUES = [
   'engagement.super-chat',
   'channel.raid',
   'engagement.milestone',
+  'reward.redemption',
   'moderation.action',
   'stream.online',
   'stream.offline',
   'system.custom',
   'system.timed',
-  'viewer.progression',
-  'companion.action',
 ] as const;
 
 export const PUBLIC_ALERT_EVENT_TYPE_VALUES = [
@@ -51,7 +50,11 @@ export const PUBLIC_ALERT_EVENT_TYPE_VALUES = [
 
 const namespacedIdentifierSchema = z.string().min(3).max(128).regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/);
 export const platformSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
-export const eventTypeSchema = z.union([z.enum(EVENT_TYPE_VALUES), namespacedIdentifierSchema]);
+const excludedCoreEventTypes = new Set(['viewer.progression', 'companion.action']);
+export const eventTypeSchema = z.union([z.enum(EVENT_TYPE_VALUES), namespacedIdentifierSchema]).refine(
+  (value) => !excludedCoreEventTypes.has(value),
+  'This event type belongs to an archived optional add-on and is not part of StreamBridge core.',
+);
 
 const jsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 export type JsonValue = z.infer<typeof jsonPrimitiveSchema> | JsonValue[] | { [key: string]: JsonValue };
@@ -104,7 +107,6 @@ export const normalizedEventSchema = z
       .object({
         correlationId: z.string().max(256).optional(),
         bridgeSequence: z.number().int().positive().optional(),
-        viewerId: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/).optional(),
         simulated: z.boolean().default(false),
         unverifiedFields: z.array(z.string().max(256)).max(100).optional(),
         rawPayload: jsonValueSchema.optional(),
@@ -113,7 +115,7 @@ export const normalizedEventSchema = z
   })
   .strict()
   .superRefine((event, context) => {
-    if ((PUBLIC_ALERT_EVENT_TYPE_VALUES as readonly string[]).includes(event.eventType) && event.source.eventId === undefined) {
+    if (((PUBLIC_ALERT_EVENT_TYPE_VALUES as readonly string[]).includes(event.eventType) || event.eventType === 'reward.redemption') && event.source.eventId === undefined) {
       context.addIssue({
         code: 'custom',
         path: ['source', 'eventId'],

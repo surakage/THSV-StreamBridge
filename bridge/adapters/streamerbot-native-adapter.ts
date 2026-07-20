@@ -17,22 +17,40 @@ const relaySchema = z.object({
   userName: z.string().max(256).default(''),
   displayName: z.string().max(256).default(''),
   profilePictureUrl: z.string().max(2_048).default(''),
+  nameColor: z.string().max(16).default(''),
+  badges: z.array(z.object({
+    id: z.string().max(64),
+    label: z.string().max(64),
+    iconUrl: z.string().max(2_048).default(''),
+  }).strict()).max(16).default([]),
   role: z.string().max(64).default(''),
   isModerator: z.boolean().default(false),
   isBroadcaster: z.boolean().default(false),
   isSubscribed: z.boolean().default(false),
+  isVip: z.boolean().default(false),
   message: z.string().max(2_000).default(''),
   amount: z.string().max(32).default(''),
   currency: z.string().max(8).default(''),
   quantity: z.string().max(32).default(''),
+  streakMonths: z.string().max(32).default(''),
   tier: z.string().max(100).default(''),
   itemName: z.string().max(500).default(''),
+  rewardId: z.string().max(256).default(''),
+  rewardTitle: z.string().max(256).default(''),
+  rewardCost: z.string().max(32).default(''),
+  rewardRequiresInput: z.boolean().default(false),
+  redemptionId: z.string().max(256).default(''),
   channelId: z.string().max(256).default(''),
   channelName: z.string().max(256).default(''),
   argumentKeys: z.array(z.string().max(100)).max(100).default([]),
 }).strict();
 
 type NativeRelay = z.infer<typeof relaySchema>;
+const STABLE_ID_REQUIRED_EVENT_TYPES = new Set<NormalizedEvent['eventType']>([
+  'channel.subscription', 'channel.membership', 'channel.gift-subscription',
+  'engagement.gift', 'engagement.donation', 'engagement.cheer', 'engagement.super-chat',
+  'reward.redemption',
+]);
 
 export class StreamerBotNativeAdapter extends ManagedAdapter {
   private unsubscribe: (() => void) | undefined;
@@ -60,9 +78,10 @@ export class StreamerBotNativeAdapter extends ManagedAdapter {
     if (message['type'] !== 'thsv.platform' || this.context === undefined || message['platform'] !== this.name) return;
     try {
       const event = normalizeStreamerBotPlatformRelay(message, this.name);
-      await this.context.emit(event, Buffer.byteLength(JSON.stringify(message)));
+      const result = await this.context.emit(event, Buffer.byteLength(JSON.stringify(message)));
       this.lastEventAt = new Date().toISOString();
       this.lastError = undefined;
+      this.context.logger.info('Native Streamer.bot platform relay event accepted', { adapter: this.name, eventType: event.eventType, eventId: event.eventId, result });
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
       this.context.logger.warn('Native Streamer.bot platform relay event rejected', { adapter: this.name, error });
@@ -73,11 +92,21 @@ export class StreamerBotNativeAdapter extends ManagedAdapter {
 export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: string): NormalizedEvent {
   const relay = relaySchema.parse(input);
   const eventType = normalizedEventType(relay);
-  const sourceId = clean(relay.sourceEventId) || relay.relayId;
+  const providerSourceId = clean(relay.sourceEventId);
+  if (providerSourceId === '' && STABLE_ID_REQUIRED_EVENT_TYPES.has(eventType)) {
+    throw new Error(`${relay.sourceEventType} requires a provider-stable source event ID before it can reach automation.`);
+  }
+  // Some Twitch triggers (Sub, ReSub, Gift Sub, Gift Bomb) expose no platform ID at all. The relay
+  // builds a deterministic ID from data that cannot repeat for a genuinely new event, prefixed so
+  // it is never mistaken for a platform-verified identity even though it satisfies the requirement above.
+  const isSyntheticSourceId = providerSourceId.startsWith('synthetic:');
+  const sourceId = providerSourceId || relay.relayId;
   const name = clean(relay.userName) || clean(relay.displayName) || `unknown-${relay.platform}-user`;
   const displayName = clean(relay.displayName) || name;
   const roles = normalizedRoles(relay);
   const avatarUrl = validHttps(relay.profilePictureUrl);
+  const nameColor = validNameColor(relay.nameColor);
+  const badges = normalizedBadges(relay, roles);
   const user = {
     ...(clean(relay.userId) === '' ? {} : { id: clean(relay.userId) }),
     name,
@@ -85,6 +114,8 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     actorType: 'human' as const,
     roles,
     ...(avatarUrl === undefined ? {} : { avatarUrl }),
+    ...(nameColor === undefined ? {} : { nameColor }),
+    ...(badges.length === 0 ? {} : { badges }),
   };
   const common = {
     schemaVersion: '1.0.0' as const,
@@ -100,7 +131,7 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     user,
     metadata: {
       simulated: relay.simulated,
-      ...(clean(relay.sourceEventId) === '' ? { unverifiedFields: ['source.eventId'] } : {}),
+      ...(providerSourceId === '' || isSyntheticSourceId ? { unverifiedFields: ['source.eventId'] } : {}),
     },
   };
 
@@ -110,8 +141,12 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     return { ...common, payload: { message } };
   }
   if (eventType === 'channel.follow') return { ...common, payload: {} };
+  if (eventType === 'stream.online' || eventType === 'stream.offline') return { ...common, user: undefined, payload: {} };
   if (eventType === 'channel.subscription' || eventType === 'channel.membership') {
-    return { ...common, payload: { ...(clean(relay.tier) === '' ? {} : { tier: clean(relay.tier) }) } };
+    const months = optionalPositiveInteger(relay.quantity);
+    const streakMonths = optionalPositiveInteger(relay.streakMonths);
+    const renewal = ['TwitchReSub', 'KickResubscription', 'YouTubeMemberMileStone'].includes(relay.sourceEventType);
+    return { ...common, payload: { ...(clean(relay.tier) === '' ? {} : { tier: clean(relay.tier) }), subscriptionKind: renewal ? 'renewal' : 'new', ...(months === undefined ? {} : { months }), ...(streakMonths === undefined ? {} : { streakMonths }) } };
   }
   if (eventType === 'channel.gift-subscription') {
     return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1), ...(clean(relay.tier) === '' ? {} : { tier: clean(relay.tier) }) } };
@@ -124,20 +159,34 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     return { ...common, payload: { amount, currency, ...(clean(relay.message) === '' ? {} : { message: clean(relay.message) }) } };
   }
   if (eventType === 'engagement.gift') return { ...common, payload: { itemName: clean(relay.itemName) || 'Platform Gift', quantity: positiveInteger(relay.quantity, 1) } };
+  if (eventType === 'reward.redemption') {
+    const rewardId = clean(relay.rewardId);
+    const redemptionId = clean(relay.redemptionId);
+    if (rewardId === '') throw new Error(`${relay.sourceEventType} requires a reward ID.`);
+    if (redemptionId === '') throw new Error(`${relay.sourceEventType} requires a provider-stable redemption ID before it can be administered.`);
+    return { ...common, payload: {
+      rewardId, rewardTitle: clean(relay.rewardTitle) || 'Untitled reward', rewardCost: nonnegativeInteger(relay.rewardCost),
+      requiresUserInput: relay.rewardRequiresInput, ...(clean(relay.message) === '' ? {} : { input: clean(relay.message) }), redemptionId,
+      supportedOperations: relay.platform === 'twitch' ? ['fulfill', 'cancel'] : [], verifiedTransport: true,
+    } };
+  }
   return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1) } };
 }
 
 function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {
   const type = relay.sourceEventType;
   if (['TwitchChatMessage', 'YouTubeMessage', 'KickChatMessage'].includes(type)) return 'chat.message';
+  if (['TwitchStreamOnline', 'YouTubeBroadcastStarted', 'KickStreamOnline'].includes(type)) return 'stream.online';
+  if (['TwitchStreamOffline', 'YouTubeBroadcastEnded', 'KickStreamOffline'].includes(type)) return 'stream.offline';
   if (['TwitchFollow', 'YouTubeNewSubscriber', 'KickFollow'].includes(type)) return 'channel.follow';
   if (['TwitchSub', 'TwitchReSub', 'KickSubscription', 'KickResubscription'].includes(type)) return 'channel.subscription';
   if (['YouTubeNewSponsor', 'YouTubeMemberMileStone'].includes(type)) return 'channel.membership';
   if (['TwitchGiftSub', 'TwitchGiftBomb', 'YouTubeMembershipGift', 'KickGiftSubscription', 'KickMassGiftSubscription'].includes(type)) return 'channel.gift-subscription';
   if (type === 'TwitchCheer') return 'engagement.cheer';
   if (['YouTubeSuperChat', 'YouTubeSuperSticker'].includes(type)) return 'engagement.super-chat';
-  if (type === 'KickGifted') return 'engagement.gift';
+  if (type === 'KickKicksGifted') return 'engagement.gift';
   if (type === 'TwitchRaid') return 'channel.raid';
+  if ((relay.platform === 'twitch' && type === 'TwitchRewardRedemption') || (relay.platform === 'kick' && type === 'KickRewardRedemption')) return 'reward.redemption';
   throw new Error(`Unsupported native Streamer.bot event type: ${type}`);
 }
 
@@ -148,11 +197,39 @@ function normalizedRoles(relay: NativeRelay): string[] {
   if (relay.isBroadcaster) roles.add('broadcaster');
   if (relay.isModerator) roles.add('moderator');
   if (relay.isSubscribed) roles.add('subscriber');
+  if (relay.isVip) roles.add('vip');
   return [...roles];
+}
+
+function normalizedBadges(relay: NativeRelay, roles: readonly string[]): { id: string; label: string; iconUrl?: string }[] {
+  const badges: { id: string; label: string; iconUrl?: string }[] = [];
+  const seen = new Set<string>();
+  for (const [index, badge] of relay.badges.entries()) {
+    const label = clean(badge.label);
+    const id = badgeId(badge.id, label, index);
+    if (label === '' || seen.has(id)) continue;
+    const iconUrl = validHttps(badge.iconUrl);
+    badges.push({ id, label, ...(iconUrl === undefined ? {} : { iconUrl }) });
+    seen.add(id);
+  }
+  for (const role of ['broadcaster', 'moderator', 'vip', 'subscriber']) {
+    if (!roles.includes(role) || seen.has(role)) continue;
+    badges.push({ id: role, label: role.charAt(0).toUpperCase() + role.slice(1) });
+    seen.add(role);
+  }
+  return badges.slice(0, 16);
+}
+
+function badgeId(rawId: string, label: string, index: number): string {
+  const candidate = (clean(rawId) || label).toLowerCase().replace(/[^a-z0-9-]+/gu, '-').replace(/^-+|-+$/gu, '').slice(0, 64);
+  return /^[a-z][a-z0-9-]*$/u.test(candidate) ? candidate : `badge-${String(index + 1)}`;
 }
 
 function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim(); }
 function positiveInteger(value: string, fallback: number): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback; }
+function optionalPositiveInteger(value: string): number | undefined { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined; }
+function nonnegativeInteger(value: string): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= 2_147_483_647 ? parsed : 0; }
 function decimalString(value: string): string | undefined { const cleaned = clean(value); return /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/.test(cleaned) ? cleaned : undefined; }
 function currencyCode(value: string): string | undefined { const cleaned = clean(value).toUpperCase(); return /^[A-Z]{3}$/.test(cleaned) ? cleaned : undefined; }
 function validHttps(value: string): string | undefined { try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : undefined; } catch { return undefined; } }
+function validNameColor(value: string): string | undefined { const cleaned = clean(value); return /^#[0-9a-fA-F]{6}$/u.test(cleaned) ? cleaned : undefined; }

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sample No-Op Add-On Configuration",
+  "type": "object",
+  "additionalProperties": false
+}

@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        if: runner.os != 'Windows'
+        run: npm test
+      - name: Test with Windows PowerShell
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Windows lifecycle acceptance
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\tests\windows\lifecycle.tests.ps1
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser overlay acceptance
+        run: npm run test:browser
+      - name: Upload browser artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-overlay-results
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore

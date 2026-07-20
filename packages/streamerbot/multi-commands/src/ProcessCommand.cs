@@ -1,17 +1,23 @@
+// Purpose: Projects and authorizes a receiver-validated public command without executing creator logic.
+// Trust boundary: private/operator events bypass this action; command text remains inert data.
+// References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
+using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
-    private const string ContractVersion = "1.1.0";
-    private const string PackageVersion = "1.1.0";
+    private const string ContractVersion = "2.0.0-preview.1";
+    private const string PackageVersion = "2.0.0-preview.1";
     private const int MaximumInputLength = 500;
     private const int MaximumArguments = 32;
     private const int MaximumArgumentLength = 256;
+    private const int MaximumPayloadLength = 32768;
 
     public bool Execute()
     {
+        // Require the Core Receiver contract before parsing command-specific payload fields.
         InitializeOutputs();
         if (!CPH.TryGetArg("streamBridgeValid", out bool receiverValid) || !receiverValid)
             return Fail("The StreamBridge receiver did not validate this event.");
@@ -27,9 +33,18 @@ public class CPHInline
         if (!CPH.TryGetArg("streamBridgeUserName", out string userName) || string.IsNullOrWhiteSpace(userName)) return Fail("A command.received event requires a validated streamBridgeUserName.");
         if (!CPH.TryGetArg("streamBridgeUserActorType", out string actorType) || (actorType != "human" && actorType != "bot")) return Fail("Public commands require a human or bot actor.");
         if (!CPH.TryGetArg("streamBridgePayload", out string payloadJson) || string.IsNullOrWhiteSpace(payloadJson)) return Fail("Missing validated streamBridgePayload.");
+        if (payloadJson.Length > MaximumPayloadLength) return Fail("streamBridgePayload exceeds the Multi-Commands input limit.");
 
         JObject payload;
-        try { payload = JObject.Parse(payloadJson); }
+        try
+        {
+            using (JsonTextReader reader = new JsonTextReader(new StringReader(payloadJson)))
+            {
+                reader.DateParseHandling = DateParseHandling.None;
+                reader.MaxDepth = 16;
+                payload = JObject.Load(reader);
+            }
+        }
         catch (JsonException) { return Fail("streamBridgePayload is not valid JSON."); }
 
         string command;
@@ -70,7 +85,6 @@ public class CPHInline
         CPH.SetArgument("multiCommandChannelId", ReadOptionalArgument("streamBridgeChannelId"));
         CPH.SetArgument("multiCommandChannelName", channelName);
         CPH.SetArgument("multiCommandUserId", ReadOptionalArgument("streamBridgeUserId"));
-        CPH.SetArgument("multiCommandViewerId", ReadOptionalArgument("streamBridgeViewerId"));
         CPH.SetArgument("multiCommandUserName", userName);
         CPH.SetArgument("multiCommandUserDisplayName", ReadOptionalArgument("streamBridgeUserDisplayName", userName));
         CPH.SetArgument("multiCommandActorType", actorType);
@@ -106,7 +120,6 @@ public class CPHInline
         CPH.SetArgument("multiCommandChannelId", string.Empty);
         CPH.SetArgument("multiCommandChannelName", string.Empty);
         CPH.SetArgument("multiCommandUserId", string.Empty);
-        CPH.SetArgument("multiCommandViewerId", string.Empty);
         CPH.SetArgument("multiCommandUserName", string.Empty);
         CPH.SetArgument("multiCommandUserDisplayName", string.Empty);
         CPH.SetArgument("multiCommandActorType", string.Empty);

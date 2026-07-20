@@ -7,7 +7,7 @@ import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 const relaySchema = z.object({
   type: z.literal('thsv.tikfinity'),
   version: z.literal('1.0.0'),
-  kind: z.enum(['chat', 'follow', 'gift', 'like']),
+  kind: z.enum(['chat', 'follow', 'gift', 'like', 'subscription']),
   relayId: z.string().min(1).max(256),
   receivedAt: z.iso.datetime({ offset: true }),
   simulated: z.boolean(),
@@ -22,12 +22,15 @@ const relaySchema = z.object({
   repeatCount: z.string().max(32).default(''),
   likeCount: z.string().max(32).default(''),
   totalLikeCount: z.string().max(32).default(''),
+  subMonth: z.string().max(32).default(''),
   argumentKeys: z.array(z.string().max(100)).max(100).default([]),
 }).strict();
 
 export class TikfinityAdapter extends ManagedAdapter {
   private unsubscribe: (() => void) | undefined;
   private context: AdapterContext | undefined;
+  private likeTotal = 0;
+  private lastLikeMilestone = 0;
 
   public constructor(name: string, config: ManagedAdapter['config'], private readonly relay: StreamerBotEventRelay) { super(name, config); }
 
@@ -44,13 +47,17 @@ export class TikfinityAdapter extends ManagedAdapter {
     this.unsubscribe?.();
     this.unsubscribe = undefined;
     this.context = undefined;
+    this.likeTotal = 0;
+    this.lastLikeMilestone = 0;
     this.state = 'stopped';
   }
 
   private async receive(message: Readonly<Record<string, unknown>>): Promise<void> {
     if (message['type'] !== 'thsv.tikfinity' || this.context === undefined) return;
     try {
-      const event = normalizeTikfinityRelay(message, this.name);
+      const normalized = normalizeTikfinityRelay(message, this.name);
+      const event = normalized.eventType === 'engagement.milestone' && normalized.payload['metric'] === 'likes' ? this.likeMilestone(normalized, message) : normalized;
+      if (event === undefined) return;
       await this.context.emit(event, Buffer.byteLength(JSON.stringify(message)));
       this.lastEventAt = new Date().toISOString();
       this.lastError = undefined;
@@ -58,6 +65,20 @@ export class TikfinityAdapter extends ManagedAdapter {
       this.lastError = error instanceof Error ? error.message : String(error);
       this.context.logger.warn('TikFinity relay event rejected', { adapter: this.name, error });
     }
+  }
+
+  private likeMilestone(event: NormalizedEvent, message: Readonly<Record<string, unknown>>): NormalizedEvent | undefined {
+    const absolute = boundedNonNegative(message['totalLikeCount']);
+    if (absolute !== undefined) {
+      if (absolute < this.likeTotal) this.lastLikeMilestone = 0;
+      this.likeTotal = absolute;
+    } else {
+      this.likeTotal += boundedPositive(message['likeCount']) ?? 1;
+    }
+    const milestone = Math.floor(this.likeTotal / 100) * 100;
+    if (milestone < 100 || milestone <= this.lastLikeMilestone) return undefined;
+    this.lastLikeMilestone = milestone;
+    return { ...event, payload: { ...event.payload, value: milestone } };
   }
 }
 
@@ -98,10 +119,13 @@ export function normalizeTikfinityRelay(input: unknown, channelName = 'tiktok'):
     const coins = nonNegativeInteger(relay.coins);
     return { ...common, eventType: 'engagement.gift', payload: { itemName, quantity: positiveInteger(relay.repeatCount, 1), ...(coins === undefined ? {} : { coins }) } };
   }
+  if (relay.kind === 'subscription') return { ...common, eventType: 'channel.subscription', payload: { subscriptionKind: 'new', months: positiveInteger(relay.subMonth, 1) } };
   return { ...common, eventType: 'engagement.milestone', payload: { metric: 'likes', value: nonNegativeInteger(relay.totalLikeCount) ?? nonNegativeInteger(relay.likeCount) ?? 0 } };
 }
 
 function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim(); }
 function positiveInteger(value: string, fallback: number): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback; }
 function nonNegativeInteger(value: string): number | undefined { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : undefined; }
+function boundedNonNegative(value: unknown): number | undefined { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : undefined; }
+function boundedPositive(value: unknown): number | undefined { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined; }
 function validHttps(value: string): string | undefined { try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : undefined; } catch { return undefined; } }

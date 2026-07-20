@@ -1,9 +1,9 @@
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { OutputAdapter } from '../adapters/adapter.js';
 import type { Logger } from '../services/logger.js';
+import { OutputCapacityError, OutputUnavailableError } from './delivery-errors.js';
 
-export class OutputCapacityError extends Error {}
-export class OutputUnavailableError extends Error {}
+export { OutputCapacityError, OutputUnavailableError } from './delivery-errors.js';
 
 interface DeliveryMetrics {
   enqueued: number;
@@ -22,7 +22,7 @@ interface OutputRuntime {
   readonly metrics: DeliveryMetrics;
 }
 
-export class OutputDeliveryManager {
+export class LegacyInMemoryOutputDeliveryManager {
   private readonly runtimes: OutputRuntime[];
   private stopping = false;
   private drainWaiters: Array<() => void> = [];
@@ -136,6 +136,8 @@ export class OutputDeliveryManager {
     for (const resolve of this.drainWaiters.splice(0)) resolve();
   }
 }
+
+export { DurableOutputDeliveryManager as OutputDeliveryManager } from './durable-delivery-manager.js';
 
 function isDeliveryDegraded(status: Readonly<Record<string, unknown>>): boolean {
   const delivery = status['delivery'];

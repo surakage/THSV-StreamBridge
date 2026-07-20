@@ -17,7 +17,7 @@
     "queue": "Default",
     "concurrent": true,
     "dependencies": [
-      "THSV StreamBridge - Core Receiver 1.0.3 or later",
+      "THSV StreamBridge - Core Receiver 2.0.0-preview.1",
       "Streamer.bot CPH API",
       "Newtonsoft.Json/JObject default C# reference"
     ]

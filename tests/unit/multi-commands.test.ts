@@ -11,8 +11,8 @@ import {
 import { fixture } from '../helpers.js';
 
 const definitions = [
-  { name: 'shoutout', aliases: ['so'], minimumRole: 'moderator' as const, allowBots: false },
-  { name: 'ping', aliases: ['p'], minimumRole: 'viewer' as const, allowBots: false },
+  { name: 'shoutout', aliases: ['so'], minimumRole: 'moderator' as const, allowBots: false, source: 'manual' as const },
+  { name: 'ping', aliases: ['p'], minimumRole: 'viewer' as const, allowBots: false, source: 'manual' as const },
 ];
 
 describe('Multi-Commands contract', () => {

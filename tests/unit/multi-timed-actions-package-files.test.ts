@@ -3,7 +3,7 @@ import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
 describe('Multi-Timed Actions Streamer.bot package', () => {
-  it('contains a reproducible triggerless concurrent projection with no execution side effects', async () => {
+  it('contains a reproducible triggerless concurrent projection with one approved action provider', async () => {
     const root = 'packages/streamerbot/multi-timed-actions';
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as {
       name: string; version: string;
@@ -21,8 +21,14 @@ describe('Multi-Timed Actions Streamer.bot package', () => {
     const packaged = Buffer.from(action?.subActions.find((item) => item.type === 99_999 && item.enabled)?.byteCode ?? '', 'base64').toString('utf8').replaceAll('\r\n', '\n').trimEnd();
     expect(packaged).toBe(source);
     for (const argument of [...manifest.contract.requiredInputArguments, ...manifest.contract.outputArguments]) expect(source).toContain(`"${argument}"`);
-    expect(manifest.contract.executionSafety).toMatchObject({ runsCreatorActions: false, writesGlobalVariables: false, directTriggers: false });
-    expect(source).not.toMatch(/CPH\.RunAction|CPH\.SetGlobalVar|Process\.Start|PowerShell|cmd\.exe|TtsSpeak|BroadcastUdp/);
+    expect(manifest.contract.executionSafety).toMatchObject({ runsCreatorActions: 'only-explicitly-approved-existing-action-by-id', writesGlobalVariables: false, directTriggers: false });
+    expect(source).toContain('CPH.RunActionById(targetActionId, false)');
+    expect(source).toContain('if (!dispatched) CPH.LogWarn');
+    expect(source).toContain('targetActionApproved');
+    expect(source).toContain('targetActionId == ThisActionId');
+    expect(source).toContain('multiTimedSelectedMessages');
+    expect(source).toContain('selectionMode != "platform-shuffle"');
+    expect(source).not.toMatch(/CPH\.RunAction\(|CPH\.SetGlobalVar|Process\.Start|PowerShell|cmd\.exe|TtsSpeak|BroadcastUdp/);
     expect(source).toContain('reader.DateParseHandling = DateParseHandling.None');
   });
 });

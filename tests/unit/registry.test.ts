@@ -11,6 +11,17 @@ describe('AdapterRegistry', () => {
     expect(adapter?.name).toBe('new-platform');
   });
 
+  it('uses provider declarations as the authoritative capability source', () => {
+    const registry = new AdapterRegistry().registerInput('declared', (name, config) => new MockAdapter(name, config), () => ({
+      legacy: ['chatInput'], supported: ['chat.input'], verification: 'verified', limitations: [],
+    }));
+    const config = platformConfig();
+    const adapter = registry.createInputs({ twitch: { ...config, adapter: 'declared', capabilities: [] } })[0];
+    expect(adapter?.status().capabilities).toEqual(['chatInput']);
+    expect(registry.capabilityReports({ twitch: { ...config, adapter: 'declared' } })[0]?.capabilities['chat.input']).toMatchObject({ supported: true, verification: 'verified' });
+    expect(() => registry.createInputs({ twitch: { ...config, adapter: 'declared', capabilities: ['follows'] } })).toThrow('not declared');
+  });
+
   it('rejects duplicate and missing providers clearly', () => {
     const registry = new AdapterRegistry().registerInput('provider', (name, config) => new MockAdapter(name, config));
     expect(() => registry.registerInput('provider', (name, config) => new MockAdapter(name, config))).toThrow('already registered');

@@ -6,22 +6,21 @@ import { isSimulationAdapter } from '../adapters/adapter.js';
 import type { Logger } from '../services/logger.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { DeduplicationStore } from '../services/deduplication-store.js';
+import type { DeliveryOutboxStore } from '../services/delivery-outbox-store.js';
 import { EventDeduplicator } from './deduplicator.js';
 import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
 import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/timed-actions-adapter.js';
-import { ViewerProgressionEngine, type ViewerProgressionAdjustment, type ViewerProgressionAdjustmentResult, type ViewerDeletionResult } from './viewer-progression.js';
-import { NoopViewerProgressionStore } from '../services/viewer-progression-store.js';
-import { NoopViewerLinkStore, type ViewerLinkStore } from '../services/viewer-link-store.js';
-import { CompanionEngine, type CompanionAdministrativeAction, type CompanionProcessResult } from './companion.js';
-import { NoopCompanionStore } from '../services/companion-store.js';
+import { ModuleRegistry } from './module-registry.js';
+import { EventFilterEngine, type FilterDecision } from './event-filters.js';
 
 export type IngestResult = {
   readonly accepted: true;
   readonly duplicate: boolean;
   readonly eventId: string;
   readonly delivery: 'queued' | 'none';
+  readonly deliveryStatus: 'duplicate-ignored' | 'not-required' | 'durably-queued';
   readonly outputs: readonly string[];
   readonly derivedEventIds?: readonly string[];
 };
@@ -37,10 +36,9 @@ export interface StreamBridgeDependencies {
   readonly inputs: readonly InputAdapter[];
   readonly outputs: readonly OutputAdapter[];
   readonly deduplicationStore: DeduplicationStore;
+  readonly deliveryOutboxStore?: DeliveryOutboxStore;
   readonly stateWriter?: StateWriter;
-  readonly viewerProgression?: ViewerProgressionEngine;
-  readonly viewerLinkStore?: ViewerLinkStore;
-  readonly companion?: CompanionEngine;
+  readonly modules?: ModuleRegistry;
 }
 
 export class StreamBridge {
@@ -51,9 +49,8 @@ export class StreamBridge {
   private readonly delivery: OutputDeliveryManager;
   private readonly stateWriter: StateWriter;
   private readonly timedActions: TimedActionsAdapter | undefined;
-  private readonly viewerProgression: ViewerProgressionEngine;
-  private readonly viewerLinkStore: ViewerLinkStore;
-  private readonly companion: CompanionEngine;
+  private readonly modules: ModuleRegistry;
+  private readonly filters: EventFilterEngine;
   private readonly livePlatforms = new Set<string>();
   private running = false;
   private startedAt: string | undefined;
@@ -81,11 +78,17 @@ export class StreamBridge {
       config.streamerbot.deliveryConcurrency,
       config.streamerbot.deliveryFailureThreshold,
       logger,
+      {
+        ...(dependencies.deliveryOutboxStore === undefined ? {} : { store: dependencies.deliveryOutboxStore }),
+        maximumAttempts: config.streamerbot.deliveryMaxAttempts,
+        initialRetryDelayMs: config.streamerbot.deliveryRetryInitialDelayMs,
+        maximumRetryDelayMs: config.streamerbot.deliveryRetryMaxDelayMs,
+        deadLetterCapacity: config.streamerbot.deliveryDeadLetterCapacity,
+      },
     );
     this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
-    this.viewerProgression = dependencies.viewerProgression ?? new ViewerProgressionEngine(config.viewerIdentity, new NoopViewerProgressionStore());
-    this.viewerLinkStore = dependencies.viewerLinkStore ?? new NoopViewerLinkStore();
-    this.companion = dependencies.companion ?? new CompanionEngine(config.companion, new NoopCompanionStore(), this.viewerProgression);
+    this.modules = dependencies.modules ?? new ModuleRegistry([], logger);
+    this.filters = new EventFilterEngine(config.filters);
   }
 
   public subscribe(handler: Parameters<InternalEventBus['subscribe']>[0]): () => void { return this.bus.subscribe(handler); }
@@ -93,16 +96,7 @@ export class StreamBridge {
   public async start(): Promise<void> {
     if (this.running) return;
     this.deduplicator.restore(await this.dependencies.deduplicationStore.load());
-    try { await this.viewerProgression.start(); }
-    catch (error) {
-      this.viewerProgression.degrade(error);
-      this.logger.error('Viewer progression startup failed; bridge remains active', { error });
-    }
-    try { await this.companion.start(); }
-    catch (error) {
-      this.companion.degrade(error);
-      this.logger.error('Companion startup failed; bridge remains active', { error });
-    }
+    await this.modules.start();
     this.startedAt = new Date().toISOString();
     this.running = true;
     await this.delivery.start();
@@ -122,8 +116,7 @@ export class StreamBridge {
       ...this.inputs.map((adapter) => adapter.stop(controller.signal)),
       this.delivery.stop(controller.signal),
       this.dependencies.deduplicationStore.flush(),
-      this.viewerProgression.stop(),
-      this.companion.stop(),
+      this.modules.stop(),
     ];
     const completion = Promise.allSettled(operations).then(() => 'complete' as const);
     let timer: NodeJS.Timeout | undefined;
@@ -149,23 +142,9 @@ export class StreamBridge {
     return this.timedActions.control(operation);
   }
 
-  public async adjustViewerProgression(input: ViewerProgressionAdjustment): Promise<ViewerProgressionAdjustmentResult> {
-    const result = await this.viewerProgression.adjust(input);
-    this.logger.info('Viewer progression adjusted', { ...result, performedBy: input.performedBy, reason: input.reason });
-    return result;
-  }
-
-  public async deleteViewerProgression(viewerId: string, performedBy: string, reason: string): Promise<ViewerDeletionResult> {
-    const result = await this.viewerProgression.deleteViewer(viewerId, () => this.viewerLinkStore.remove(viewerId));
-    this.logger.info('Viewer progression deleted', { ...result, performedBy, reason });
-    return result;
-  }
-
-  public async controlCompanion(input: CompanionAdministrativeAction): Promise<IngestResult> {
-    const event = withBridgeSequence(await this.companion.triggerAdministrative(input), ++this.nextSequence);
-    const outputs = await this.publishEvents([event]);
-    this.logger.info('Companion action triggered administratively', { action: input.action, performedBy: input.performedBy, reason: input.reason, eventId: event.eventId, outputs });
-    return { accepted: true, duplicate: false, eventId: event.eventId, delivery: outputs.length === 0 ? 'none' : 'queued', outputs };
+  public async testTimedAction(id: string): Promise<Readonly<Record<string, unknown>>> {
+    if (this.timedActions === undefined) throw new Error('Timed actions adapter is not configured');
+    return this.timedActions.test(id);
   }
 
   public async ingest(input: unknown, byteLength?: number): Promise<IngestResult> {
@@ -176,8 +155,9 @@ export class StreamBridge {
     const validatedEvent = withoutCallerControlledMetadata(parsed.data, this.config.security.preserveRawPayloads);
     if (this.deduplicator.isDuplicate(validatedEvent)) {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
-      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', outputs: [] };
+      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
+    this.timedActions?.observe(validatedEvent);
     if (validatedEvent.eventType === 'stream.online') {
       const wasOffline = this.livePlatforms.size === 0;
       this.livePlatforms.add(validatedEvent.platform);
@@ -187,45 +167,28 @@ export class StreamBridge {
       if (this.livePlatforms.size === 0) await this.timedActions?.control('stop');
     }
 
+    const initialFilterDecision = this.filters.evaluate(validatedEvent);
+    if (initialFilterDecision.matchedRuleIds.length > 0) this.logger.info('Event blocker rules matched', {
+      eventId: validatedEvent.eventId,
+      ruleIds: initialFilterDecision.matchedRuleIds,
+      displayBlocked: initialFilterDecision.displayBlocked,
+      commandBlocked: initialFilterDecision.commandBlocked,
+      blockedModuleIds: [...initialFilterDecision.blockedModuleIds],
+    });
     let derivedCommand: NormalizedEvent | undefined;
-    let progression: Awaited<ReturnType<ViewerProgressionEngine['process']>>;
-    try { derivedCommand = deriveCommandEvent(validatedEvent, this.config.commands); }
+    try { derivedCommand = initialFilterDecision.commandBlocked ? undefined : deriveCommandEvent(validatedEvent, this.config.commands); }
     catch (error) {
       this.deduplicator.forget(validatedEvent);
       if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
       throw error;
     }
-    try { progression = await this.viewerProgression.process(validatedEvent); }
-    catch (error) {
-      this.viewerProgression.degrade(error);
-      this.logger.error('Viewer progression failed; event will continue without identity or award', {
-        eventId: validatedEvent.eventId,
-        eventType: validatedEvent.eventType,
-        platform: validatedEvent.platform,
-        error,
-      });
-    }
-    const attributedEvent = progression === undefined ? validatedEvent : withViewerId(validatedEvent, progression.viewerId);
-    if (derivedCommand !== undefined && progression !== undefined) derivedCommand = withViewerId(derivedCommand, progression.viewerId);
-    const events = [withBridgeSequence(attributedEvent, ++this.nextSequence)];
+    const events = [withBridgeSequence(validatedEvent, ++this.nextSequence)];
     if (derivedCommand !== undefined) {
       derivedCommand = withBridgeSequence(derivedCommand, ++this.nextSequence);
       events.push(derivedCommand);
     }
-    let companion: CompanionProcessResult | undefined;
-    if (derivedCommand !== undefined) {
-      try { companion = await this.companion.process(derivedCommand); }
-      catch (error) {
-        this.companion.degrade(error);
-        this.logger.error('Companion action failed; source event will continue', { eventId: derivedCommand.eventId, error });
-      }
-      if (companion?.status === 'rejected') this.logger.info('Companion action rejected', { eventId: derivedCommand.eventId, action: companion.action, code: companion.code, message: companion.message });
-    }
-    if (progression?.progressionEvent !== undefined) events.push(withBridgeSequence(progression.progressionEvent, ++this.nextSequence));
-    if (companion?.status === 'accepted') events.push(withBridgeSequence(companion.event, ++this.nextSequence));
-
     try {
-      const outputs = await this.publishEvents(events);
+      const outputs = await this.publishEvents(events, initialFilterDecision);
       const lastEvent = events.at(-1);
       if (lastEvent === undefined) throw new Error('No accepted event was produced');
       const acceptedAt = new Date().toISOString();
@@ -242,6 +205,7 @@ export class StreamBridge {
         duplicate: false,
         eventId: validatedEvent.eventId,
         delivery: outputs.length === 0 ? 'none' : 'queued',
+        deliveryStatus: outputs.length === 0 ? 'not-required' : 'durably-queued',
         outputs,
         ...(events.length <= 1 ? {} : { derivedEventIds: events.slice(1).map((event) => event.eventId) }),
       };
@@ -257,15 +221,15 @@ export class StreamBridge {
       service: this.config.service.name,
       startedAt: this.startedAt,
       lastAcceptedEventAt: this.lastAcceptedEventAt,
-      ...(this.statePersistenceError === undefined ? {} : { statePersistenceError: this.statePersistenceError }),
+      ...(this.statePersistenceError === undefined ? {} : { statePersistenceError: 'Bridge status persistence is unavailable.' }),
     };
   }
 
   public readiness(): Readonly<Record<string, unknown>> {
     const adapterStatuses = this.adapterStatuses();
     const blocking = adapterStatuses.filter((adapter) => adapter.state !== 'connected' && adapter.state !== 'disabled');
-    const ready = this.running && blocking.length === 0 && this.delivery.ready();
-    return { status: ready ? 'ready' : 'not-ready', ready, adapters: adapterStatuses, outputs: this.delivery.statuses() };
+    const ready = this.running && blocking.length === 0 && this.delivery.ready() && this.modules.ready();
+    return { status: ready ? 'ready' : 'not-ready', ready, adapters: adapterStatuses, outputs: this.delivery.statuses(), modules: this.modules.statuses() };
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
@@ -276,14 +240,24 @@ export class StreamBridge {
       lastBridgeSequence: this.nextSequence,
       deduplicationPersistence: this.dependencies.deduplicationStore.status(),
       timedActions: this.timedActions?.controlStatus(),
-      viewerIdentity: this.viewerProgression.status(),
-      companion: this.companion.status(),
+      modules: this.modules.statuses(),
+      addOnCapabilities: this.modules.capabilityDiagnostics(),
     };
   }
 
-  private async publishEvents(events: readonly NormalizedEvent[]): Promise<readonly string[]> {
-    for (const event of events) await this.bus.publish(event);
-    return this.delivery.enqueueBatch(events);
+  private async publishEvents(events: readonly NormalizedEvent[], initialDecision: FilterDecision): Promise<readonly string[]> {
+    // Persist the external-delivery obligation before any fallible local projection. Once
+    // this resolves, a crash can replay the event and the ingest response may safely say queued.
+    const outputs = await this.delivery.enqueueBatch(events);
+    for (const [index, event] of events.entries()) {
+      const decision = index === 0 ? initialDecision : this.filters.evaluate(event);
+      if (!decision.displayBlocked) {
+        try { await this.bus.publish(event); }
+        catch (error) { this.logger.warn('Local event subscriber failed after durable queueing; external delivery continues', { eventId: event.eventId, error }); }
+      }
+      await this.modules.publish(event, decision.blockedModuleIds);
+    }
+    return outputs;
   }
 
   private adapterStatuses(): AdapterStatus[] { return this.inputs.map((adapter) => adapter.status()); }
@@ -312,15 +286,11 @@ function isIngestResult(value: unknown): value is IngestResult {
 }
 
 function withoutCallerControlledMetadata(event: NormalizedEvent, preserveRawPayload: boolean): NormalizedEvent {
-  const { bridgeSequence: _sequence, viewerId: _viewerId, rawPayload, ...metadata } = event.metadata;
-  void _sequence; void _viewerId;
+  const { bridgeSequence: _sequence, rawPayload, ...metadata } = event.metadata;
+  void _sequence;
   return { ...event, metadata: { ...metadata, ...(preserveRawPayload && rawPayload !== undefined ? { rawPayload } : {}) } };
 }
 
 function withBridgeSequence(event: NormalizedEvent, bridgeSequence: number): NormalizedEvent {
   return { ...event, metadata: { ...event.metadata, bridgeSequence } };
-}
-
-function withViewerId(event: NormalizedEvent, viewerId: string): NormalizedEvent {
-  return { ...event, metadata: { ...event.metadata, viewerId } };
 }

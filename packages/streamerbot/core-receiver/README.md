@@ -7,7 +7,7 @@ The action validates the normalized event envelope supplied in `streamBridgeEven
 ## Install
 
 1. Open Streamer.bot and select **Import**.
-2. Drag `THSV-StreamBridge-Core-Receiver-1.0.4.sb` into the import field, or paste the file contents.
+2. Drag `THSV-StreamBridge-Core-Receiver-2.0.0-preview.1.sb` into the import field, or paste the file contents.
 3. Confirm the package metadata and import the `THSV StreamBridge - Receive Event` action.
 4. Keep the bridge configuration `streamerbot.actionAlias` set to that exact action name.
 5. Enable the Streamer.bot WebSocket server, start the bridge, and run `npm run simulate`.
@@ -22,7 +22,7 @@ Future feature sub-actions must run only after `streamBridgeValid` is true. They
 
 ## Execution and dependencies
 
-The exported action uses Streamer.bot's non-blocking **Default** queue with **Concurrent** enabled. Each invocation remains stateless, and its immediate child chain still runs in declared order; separate events no longer share one global serial execution slot. The bridge controls bounded ingress and delivery concurrency. The C# source depends on the bundled CPH API and Streamer.bot's default Newtonsoft.Json/JObject reference. Package `1.0.4` adds the bridge-validated optional `streamBridgeViewerId` output.
+The exported action uses Streamer.bot's non-blocking **Default** queue with **Concurrent** enabled. Each invocation remains stateless, and its immediate child chain still runs in declared order; separate events no longer share one global serial execution slot. The bridge controls bounded ingress and delivery concurrency. Preview package `2.0.0-preview.1` removes progression identity from the core trust-boundary contract; viewer profiles belong in optional add-ons.
 
 Contract `1.2.0` retains receive time, bridge sequence, and actor type while adding the optional unified viewer identity. The bridge overwrites caller-supplied sequence and viewer identity values after validation; sequence numbers are process-local and may contain gaps after rejected delivery attempts.
 

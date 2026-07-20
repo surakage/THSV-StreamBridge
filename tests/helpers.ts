@@ -1,4 +1,7 @@
 import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { BridgeConfig, PlatformConfig } from '../schemas/config.js';
 import { bridgeConfigSchema } from '../schemas/config.js';
 import type { Logger } from '../bridge/services/logger.js';
@@ -19,6 +22,7 @@ export async function testConfig(): Promise<BridgeConfig> {
   const config = bridgeConfigSchema.parse(input);
   config.deduplication.persistAcrossRestarts = false;
   config.streamerbot.testMode = true;
+  config.timedActions.stateFile = join(tmpdir(), `thsv-timed-actions-${randomUUID()}.json`);
   return config;
 }
 

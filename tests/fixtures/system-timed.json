@@ -20,7 +20,10 @@
     "containerCycle": 1,
     "containerPosition": 3,
     "containerSize": 4,
-    "creatorPayload": { "category": "wellness", "messageKey": "hydrate" }
+    "creatorPayload": { "category": "wellness", "messageKey": "hydrate" },
+    "targetProvider": "event-only",
+    "targetPlatforms": [],
+    "deliveryPlatforms": []
   },
   "metadata": { "simulated": true }
 }

@@ -18,13 +18,19 @@ export interface MultiTimedAction {
   readonly occurrence: number;
   readonly missedRuns: number;
   readonly lateByMs: number;
-  readonly selectionMode: 'fixed' | 'shuffle-container';
+  readonly selectionMode: 'fixed' | 'shuffle-container' | 'platform-shuffle';
   readonly selectedMessage: string;
+  readonly selectedMessages: Readonly<Record<string, string>>;
   readonly containerCycle: number;
   readonly containerPosition: number;
   readonly containerSize: number;
   readonly simulated: boolean;
   readonly creatorPayload: Readonly<Record<string, JsonValue>>;
+  readonly targetProvider: 'event-only' | 'run-existing-action';
+  readonly targetActionId?: string;
+  readonly targetActionName?: string;
+  readonly targetPlatforms: readonly string[];
+  readonly deliveryPlatforms: readonly string[];
 }
 
 export class InvalidMultiTimedActionError extends Error {}
@@ -43,11 +49,20 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
   if (!isRecord(creatorPayload)) throw new InvalidMultiTimedActionError('creatorPayload must be an object.');
   const lateByMs = Math.max(0, Date.parse(firedAt) - Date.parse(scheduledAt));
   const selectionMode = event.payload['selectionMode'];
-  if (selectionMode !== 'fixed' && selectionMode !== 'shuffle-container') throw new InvalidMultiTimedActionError('selectionMode must be fixed or shuffle-container.');
-  const selectedMessage = selectionMode === 'shuffle-container' ? boundedText(event.payload['selectedMessage'], 'selectedMessage', 500) : '';
+  if (selectionMode !== 'fixed' && selectionMode !== 'shuffle-container' && selectionMode !== 'platform-shuffle') throw new InvalidMultiTimedActionError('selectionMode must be fixed, shuffle-container, or platform-shuffle.');
+  const selectedMessage = selectionMode === 'fixed' ? '' : boundedText(event.payload['selectedMessage'], 'selectedMessage', 500);
+  const selectedMessages = selectionMode === 'platform-shuffle' ? platformMessages(event.payload['selectedMessages']) : {};
   const containerCycle = safeInteger(event.payload['containerCycle'], 'containerCycle', 0);
   const containerPosition = safeInteger(event.payload['containerPosition'], 'containerPosition', 0);
   const containerSize = safeInteger(event.payload['containerSize'], 'containerSize', 0);
+  const targetProvider = event.payload['targetProvider'];
+  if (targetProvider !== 'event-only' && targetProvider !== 'run-existing-action') throw new InvalidMultiTimedActionError('targetProvider must be event-only or run-existing-action.');
+  const targetActionId = targetProvider === 'run-existing-action' ? boundedUuid(event.payload['targetActionId'], 'targetActionId') : undefined;
+  const targetActionName = targetProvider === 'run-existing-action' ? boundedText(event.payload['targetActionName'], 'targetActionName', 200) : undefined;
+  if (targetProvider === 'run-existing-action' && event.payload['targetActionApproved'] !== true) throw new InvalidMultiTimedActionError('targetActionApproved must be true for run-existing-action.');
+  const targetPlatforms = stringArray(event.payload['targetPlatforms'], 'targetPlatforms', 16, 64);
+  const deliveryPlatforms = stringArray(event.payload['deliveryPlatforms'], 'deliveryPlatforms', 4, 64);
+  if (!deliveryPlatforms.every((platform) => ['twitch', 'youtube', 'kick', 'tiktok'].includes(platform))) throw new InvalidMultiTimedActionError('deliveryPlatforms contains an unsupported chat platform.');
   return {
     contractVersion: MULTI_TIMED_ACTIONS_CONTRACT_VERSION,
     eventId: event.eventId,
@@ -65,12 +80,31 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
     lateByMs,
     selectionMode,
     selectedMessage,
+    selectedMessages,
     containerCycle,
     containerPosition,
     containerSize,
     simulated: event.metadata.simulated,
     creatorPayload,
+    targetProvider,
+    ...(targetActionId === undefined ? {} : { targetActionId }),
+    ...(targetActionName === undefined ? {} : { targetActionName }),
+    targetPlatforms,
+    deliveryPlatforms,
   };
+}
+
+function platformMessages(value: JsonValue | undefined): Record<string, string> {
+  if (!isRecord(value)) throw new InvalidMultiTimedActionError('selectedMessages must be an object for platform-shuffle mode.');
+  const limits: Readonly<Record<string, number>> = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 };
+  const result: Record<string, string> = {};
+  for (const [platform, message] of Object.entries(value)) {
+    const limit = limits[platform];
+    if (limit === undefined || typeof message !== 'string') throw new InvalidMultiTimedActionError('selectedMessages contains an unsupported platform or non-text message.');
+    result[platform] = boundedText(message, `selectedMessages.${platform}`, limit);
+  }
+  if (Object.keys(result).length === 0) throw new InvalidMultiTimedActionError('selectedMessages must contain at least one platform message.');
+  return result;
 }
 
 function boundedIdentifier(value: JsonValue | undefined, field: string, maximum: number): string {
@@ -85,6 +119,16 @@ function boundedText(value: JsonValue | undefined, field: string, maximum: numbe
   const normalized = value.replace(/[\p{Cc}\s]+/gu, ' ').trim();
   if (normalized.length === 0 || normalized.length > maximum) throw new InvalidMultiTimedActionError(`${field} must contain 1-${String(maximum)} characters.`);
   return normalized;
+}
+
+function boundedUuid(value: JsonValue | undefined, field: string): string {
+  if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value)) throw new InvalidMultiTimedActionError(`${field} must be a UUID.`);
+  return value;
+}
+
+function stringArray(value: JsonValue | undefined, field: string, maximumItems: number, maximumLength: number): string[] {
+  if (!Array.isArray(value) || value.length > maximumItems || !value.every((item) => typeof item === 'string' && item.length > 0 && item.length <= maximumLength)) throw new InvalidMultiTimedActionError(`${field} must be a bounded string array.`);
+  return value as string[];
 }
 
 function timestamp(value: JsonValue | undefined, field: string): string {

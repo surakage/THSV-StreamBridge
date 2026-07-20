@@ -1,3 +1,5 @@
+import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
+
 // Compatible with standard Chromium/CEF browser sources.
 (() => {
   'use strict';
@@ -5,56 +7,39 @@
   const alerts = document.getElementById('alerts');
   const status = document.getElementById('status');
   const brandLabel = document.getElementById('brand-label');
-  const companion = document.getElementById('companion');
-  const companionBloom = document.getElementById('companion-bloom');
-  const companionNotice = document.getElementById('companion-notice');
-  const mode = location.pathname.endsWith('/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : location.pathname.endsWith('/companion') ? 'companion' : 'combined';
-  const search = new URLSearchParams(location.search);
-  const requestedLayout = search.get('layout');
-  const layout = requestedLayout === 'compact' ? 'compact' : 'canvas';
+  const dockMode = location.pathname.endsWith('/dock');
+  const mode = location.pathname.startsWith('/overlay/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
+  const requestedLayout = new URLSearchParams(location.search).get('layout');
   document.body.dataset.mode = mode;
-  document.body.dataset.layout = layout;
-  const alertQueue = [];
-  const priorityRank = { low: 1, normal: 2, high: 3 };
-  let activeAlert;
-  let alertTimer;
-  const chatFadeMs = 240;
-  const companionQueue = [];
-  const companionDurations = { wave: 2300, eat: 3400, sleep: 5200, wake: 5200, celebrate: 2800 };
-  const companionFramePositions = Array.from({ length: 8 }, (_, index) => {
-    const x = ['0%', '33.3333%', '66.6667%', '100%'][index % 4];
-    const y = index < 4 ? '0%' : '100%';
-    return [x, y];
-  });
-  const companionFrames = {
-    idle: [0, 1, 2, 3, 4, 5, 6, 7],
-    wave: [0, 1, 2, 3, 4, 5, 6, 7],
-    eat: [0, 1, 2, 3, 4, 5, 6, 7],
-    sleep: [0, 1, 2, 3, 4, 5, 6, 7],
-    wake: [7, 6, 5, 4, 3, 2, 1, 0],
-    celebrate: [0, 1, 2, 3, 4, 5, 6, 7],
-  };
-  const companionFrameIntervals = { wave: 260, eat: 400, sleep: 650, wake: 650, celebrate: 300 };
-  let activeCompanion;
-  let companionTimer;
-  let companionFrameTimer;
-  let companionBlinkTimer;
-  let companionSleeping = false;
-  let clientConfig = { brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, maxCompanionQueue: 20, alertDurationMs: 7000, companionSleeping: false };
-  brandLabel.textContent = clientConfig.brandLabel;
+  document.body.dataset.dock = dockMode ? 'true' : 'false';
 
-  function element(tag, className, text) {
+  const chatFadeMs = 240;
+  let clientConfig = {
+    brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
+    chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } } },
+  };
+  brandLabel.textContent = clientConfig.brandLabel;
+  const alertController = new AlertPresentationController({
+    capacity: clientConfig.maxAlertQueue,
+    defaultDurationMs: clientConfig.alertDurationMs,
+    render: (alert) => alerts.replaceChildren(buildAlertCard(alert)),
+    clear: () => alerts.replaceChildren(),
+    playSound: playAlertSound,
+    onError: (error) => console.warn('Skipped an alert that could not be rendered.', error),
+  });
+
+  function element(tag, className, value) {
     const node = document.createElement(tag);
     if (className) node.className = className;
-    if (text !== undefined) node.textContent = String(text);
+    if (value !== undefined) node.textContent = String(value);
     return node;
   }
 
   function receive(event) {
     if (event.kind === 'chat.add' && (mode === 'chat' || mode === 'combined')) addChat(event.payload);
+    else if (event.kind === 'chat.event' && (mode === 'chat' || mode === 'combined')) addEventMessage(event.payload);
     else if (event.kind === 'chat.remove' && (mode === 'chat' || mode === 'combined')) removeChat(event.payload.targetEventId);
     else if (event.kind === 'alert.show' && (mode === 'alerts' || mode === 'combined')) enqueueAlert(event.payload);
-    else if (event.kind === 'companion.action' && (mode === 'companion' || mode === 'combined')) enqueueCompanion(event.payload);
   }
 
   function transportStatus(state) {
@@ -68,20 +53,19 @@
     let reconnectTimer;
     socket.addEventListener('open', () => transportStatus('live'));
     socket.addEventListener('message', (message) => {
-      let event;
-      try { event = JSON.parse(message.data); } catch { return; }
-      receive(event);
+      try { receive(JSON.parse(message.data)); } catch { /* Ignore malformed transport data. */ }
     });
     socket.addEventListener('close', () => {
       transportStatus('reconnecting');
-      clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connectDirectly, 1500);
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(connectDirectly, 1500);
     });
   }
 
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-1.1.0.js', 'thsv-browser-overlay-1.1.0');
+        const worker = new SharedWorker('/overlay/worker-1.3.1.js', 'thsv-browser-overlay-1.3.1');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
@@ -96,35 +80,59 @@
 
   function addChat(message) {
     const item = element('li', `message platform-${safeClass(message.platform)}`);
+    item.style.setProperty('--message-platform-bg', messageBackground(message.platform));
     item.dataset.eventId = message.eventId;
     const identity = element('div', 'identity');
-    if (message.presentation.avatarUrl) {
-      const avatar = element('img', 'avatar'); avatar.src = message.presentation.avatarUrl; avatar.alt = ''; avatar.referrerPolicy = 'no-referrer';
-      avatar.addEventListener('error', () => avatar.remove(), { once: true });
-      identity.append(avatar);
-    }
-    identity.append(element('span', 'platform', message.platform.toUpperCase()));
+    if (clientConfig.chat.showProfilePictures) identity.append(buildAvatar(message.user, message.presentation, message.platform, 'chat-avatar'));
+    if (clientConfig.chat.showPlatformLabels) identity.append(element('span', 'platform', message.platform.toUpperCase()));
     const displayName = element('strong', 'display-name', message.user.displayName);
     if (message.presentation.nameColor) displayName.style.color = message.presentation.nameColor;
     identity.append(displayName);
-    if (message.user.isBroadcaster) identity.append(element('span', 'role', 'HOST'));
-    else if (message.user.isModerator) identity.append(element('span', 'role', 'MOD'));
-    else if (message.user.isSubscriber) identity.append(element('span', 'role', 'MEMBER'));
-    if (message.user.isBot) identity.append(element('span', 'role bot', 'BOT'));
-    for (const badge of message.presentation.badges) identity.append(element('span', 'role badge', badge.label));
+    if (clientConfig.chat.showBadges && message.user.isBroadcaster) identity.append(element('span', 'role', 'HOST'));
+    else if (clientConfig.chat.showBadges && message.user.isModerator) identity.append(element('span', 'role', 'MOD'));
+    else if (clientConfig.chat.showBadges && message.user.isSubscriber) identity.append(element('span', 'role', 'MEMBER'));
+    if (clientConfig.chat.showBadges && message.user.isBot) identity.append(element('span', 'role bot', 'BOT'));
+    for (const badge of clientConfig.chat.showBadges ? message.presentation.badges : []) {
+      const badgeElement = element('span', 'role badge');
+      if (badge.iconUrl) {
+        const icon = element('img', 'badge-icon');
+        icon.src = badge.iconUrl;
+        icon.alt = '';
+        icon.referrerPolicy = 'no-referrer';
+        icon.addEventListener('error', () => icon.remove(), { once: true });
+        badgeElement.append(icon);
+      }
+      badgeElement.append(document.createTextNode(badge.label));
+      identity.append(badgeElement);
+    }
     item.append(identity, element('p', 'body', message.message));
     chat.append(item);
     trimChat();
   }
 
   function trimChat() {
-    const visibleMessages = [...chat.children].filter((item) => !item.classList.contains('message-expiring'));
-    while (visibleMessages.length > clientConfig.maxChatMessages) {
-      const oldest = visibleMessages.shift();
+    const visible = [...chat.children].filter((item) => !item.classList.contains('message-expiring'));
+    while (visible.length > clientConfig.maxChatMessages) {
+      const oldest = visible.shift();
       if (!oldest) return;
       oldest.classList.add('message-expiring');
       setTimeout(() => oldest.remove(), chatFadeMs);
     }
+  }
+
+  function addEventMessage(activity) {
+    const item = element('li', `message event-message category-${safeClass(activity.category)} platform-${safeClass(activity.platform)}`);
+    item.style.setProperty('--message-platform-bg', messageBackground(activity.platform));
+    item.dataset.eventId = activity.eventId;
+    const identity = element('div', 'identity');
+    if (clientConfig.chat.showProfilePictures && activity.actor) identity.append(buildAvatar(activity.actor, activity.presentation || {}, activity.platform, 'chat-avatar'));
+    else identity.append(element('span', 'activity-icon', '✦'));
+    if (clientConfig.chat.showPlatformLabels) identity.append(element('span', 'platform', activity.platform.toUpperCase()));
+    identity.append(element('strong', 'display-name event-label', activity.label));
+    if (activity.simulated) identity.append(element('span', 'role event-test', 'TEST'));
+    item.append(identity, element('p', 'body', activity.message));
+    chat.append(item);
+    trimChat();
   }
 
   function removeChat(eventId) {
@@ -132,177 +140,115 @@
   }
 
   function enqueueAlert(alert) {
-    if (activeAlert && priorityRank[alert.priority] > priorityRank[activeAlert.priority]) {
-      clearTimeout(alertTimer); alerts.replaceChildren(); activeAlert = undefined;
-    }
-    alertQueue.push(alert);
-    alertQueue.sort((a, b) => priorityRank[b.priority] - priorityRank[a.priority] || a.sequence - b.sequence);
-    while (alertQueue.length > clientConfig.maxAlertQueue) {
-      const lowestRank = Math.min(...alertQueue.map((queued) => priorityRank[queued.priority]));
-      const oldestLowestPriority = alertQueue.findIndex((queued) => priorityRank[queued.priority] === lowestRank);
-      alertQueue.splice(oldestLowestPriority, 1);
-    }
-    showNextAlert();
-  }
-
-  function showNextAlert() {
-    if (activeAlert || alertQueue.length === 0) return;
-    while (!activeAlert && alertQueue.length > 0) {
-      const nextAlert = alertQueue.shift();
-      try {
-        const card = buildAlertCard(nextAlert);
-        alerts.replaceChildren(card);
-        const timer = setTimeout(finishAlert, clientConfig.alertDurationMs);
-        activeAlert = nextAlert;
-        alertTimer = timer;
-      } catch (error) {
-        alerts.replaceChildren();
-        console.warn('Skipped an alert that could not be rendered.', error);
-      }
-    }
+    alertController.enqueue(alert);
   }
 
   function buildAlertCard(alert) {
     const card = element('article', `alert priority-${alert.priority}`);
-    card.append(element('span', 'alert-platform', alert.platform.toUpperCase()));
-    card.append(element('h2', '', alertTitle(alert)));
-    const detail = alertDetail(alert);
-    if (detail) card.append(element('p', '', detail));
+    const cardStyle = alert.display && alert.display.card ? alert.display.card : {};
+    const alertFamilies = { system: '"Segoe UI Variable Text", "Segoe UI", Arial, sans-serif', rounded: '"Arial Rounded MT Bold", "Segoe UI", Arial, sans-serif', serif: 'Georgia, "Times New Roman", serif', monospace: 'Consolas, "Cascadia Mono", monospace' };
+    card.style.setProperty('--alert-card-bg', cardStyle.backgroundColor || '#171120');
+    card.style.setProperty('--alert-font-family', alertFamilies[cardStyle.fontFamily] || alertFamilies.system);
+    if (cardStyle.backgroundImageUrl) card.style.setProperty('--alert-card-image', `url("${String(cardStyle.backgroundImageUrl).replace(/["\\]/g, '')}")`);
+    const identity = element('div', 'alert-identity');
+    identity.append(buildAvatar(alert.actor, alert.presentation || {}, alert.platform, 'alert-avatar'));
+    const copy = element('div', 'alert-copy');
+    copy.append(element('span', 'alert-platform', alert.platform.toUpperCase()));
+    copy.append(element('h2', '', alert.display ? alert.display.title : alertTitle(alert)));
+    const detail = alert.display ? alert.display.detail : alertDetail(alert);
+    if (detail) copy.append(element('p', 'alert-detail', detail));
+    if (alert.aggregateCount > 1) card.append(element('span', 'aggregated', `${alert.aggregateCount} EVENTS COMBINED${alert.quantity ? ` · ${alert.quantity} TOTAL` : ''}`));
     if (alert.simulated) card.append(element('span', 'simulated', 'TEST EVENT'));
+    identity.append(copy);
+    card.prepend(identity);
     return card;
   }
 
-  function finishAlert() {
-    alerts.replaceChildren();
-    activeAlert = undefined;
-    alertTimer = undefined;
-    showNextAlert();
-  }
-
-  function enqueueCompanion(action) {
-    companionQueue.push(action);
-    while (companionQueue.length > clientConfig.maxCompanionQueue) companionQueue.shift();
-    if (action.action === 'wake' && companionSleeping) return beginCompanionWake();
-    showNextCompanion();
-  }
-
-  function showNextCompanion() {
-    if (activeCompanion || companionQueue.length === 0) return;
-    clearTimeout(companionBlinkTimer);
-    clearInterval(companionFrameTimer);
-    activeCompanion = companionQueue.shift();
-    const action = activeCompanion.action;
-    setCompanionStats(activeCompanion);
-    companionNotice.hidden = false;
-    companionNotice.textContent = `${activeCompanion.actorName} · ${companionActionLabel(action)}${activeCompanion.cost > 0 ? ` · ${activeCompanion.cost} sprouts` : ''}`;
-    companion.classList.add(`companion-${action}`);
-    animateCompanionAction(action);
-    companionTimer = setTimeout(action === 'sleep' ? holdCompanionSleep : finishCompanion, companionDurations[action]);
-  }
-
-  function holdCompanionSleep() {
-    clearTimeout(companionTimer);
-    clearInterval(companionFrameTimer);
-    setCompanionFrame(7);
-    companionNotice.hidden = true;
-    companionSleeping = true;
-    companionTimer = undefined;
-    if (companionQueue.some((queued) => queued.action === 'wake')) beginCompanionWake();
-  }
-
-  function beginCompanionWake() {
-    if (activeCompanion?.action === 'sleep') companion.classList.remove('companion-sleep');
-    activeCompanion = undefined;
-    companionSleeping = false;
-    const wakeIndex = companionQueue.findIndex((queued) => queued.action === 'wake');
-    if (wakeIndex > 0) companionQueue.unshift(...companionQueue.splice(wakeIndex, 1));
-    showNextCompanion();
-  }
-
-  function finishCompanion() {
-    clearTimeout(companionTimer);
-    clearInterval(companionFrameTimer);
-    if (activeCompanion) companion.classList.remove(`companion-${activeCompanion.action}`);
-    setCompanionFrame(0);
-    companionNotice.hidden = true;
-    activeCompanion = undefined;
-    companionTimer = undefined;
-    scheduleCompanionBlink();
-    showNextCompanion();
-  }
-
-  function animateCompanionAction(action) {
-    const frames = companionFrames[action];
-    let step = 0;
-    setCompanionFrame(frames[step]);
-    companionFrameTimer = setInterval(() => {
-      step += 1;
-      if (step < frames.length) setCompanionFrame(frames[step]);
-      else clearInterval(companionFrameTimer);
-    }, companionFrameIntervals[action]);
-  }
-
-  function scheduleCompanionBlink() {
-    clearTimeout(companionBlinkTimer);
-    companionBlinkTimer = setTimeout(() => {
-      if (activeCompanion) return scheduleCompanionBlink();
-      const frames = companionFrames.idle;
-      let step = 0;
-      setCompanionFrame(frames[step]);
-      companionFrameTimer = setInterval(() => {
-        step += 1;
-        if (step < frames.length) setCompanionFrame(frames[step]);
-        else { clearInterval(companionFrameTimer); scheduleCompanionBlink(); }
-      }, 75);
-    }, 3200 + Math.floor(Math.random() * 4600));
-  }
-
-  function setCompanionFrame(index) {
-    const position = companionFramePositions[index];
-    companionBloom.style.backgroundPosition = `${position[0]} ${position[1]}`;
-  }
-
-  function setCompanionStats(state) {
-    document.getElementById('companion-happiness').textContent = state.happiness;
-    document.getElementById('companion-fullness').textContent = state.fullness;
-    document.getElementById('companion-energy').textContent = state.energy;
-  }
-
-  function restoreCompanionState() {
-    if (!clientConfig.companionSleeping) return;
-    clearTimeout(companionBlinkTimer);
-    companionSleeping = true;
-    activeCompanion = { action: 'sleep' };
-    companion.classList.add('companion-sleep');
-    setCompanionFrame(7);
-  }
-
-  function companionActionLabel(action) {
-    return { wave: 'waved to Bloom', eat: 'fed Bloom a berry', sleep: 'helped Bloom rest', wake: 'woke Bloom up', celebrate: 'celebrated with Bloom' }[action] || action;
+  function buildAvatar(actor, presentation, platform, extraClass) {
+    const displayName = actor && (actor.displayName || actor.name) ? actor.displayName || actor.name : platform;
+    const frame = element('span', `avatar-frame ${extraClass} platform-${safeClass(platform)}`);
+    frame.append(element('span', 'avatar avatar-fallback', String(displayName).trim().charAt(0).toUpperCase() || '?'));
+    if (presentation.avatarUrl) {
+      const avatar = element('img', 'avatar avatar-image');
+      avatar.src = presentation.avatarUrl;
+      avatar.alt = '';
+      avatar.referrerPolicy = 'no-referrer';
+      avatar.addEventListener('error', () => avatar.remove(), { once: true });
+      frame.append(avatar);
+    }
+    return frame;
   }
 
   function alertTitle(alert) {
     const actor = alert.actor ? alert.actor.displayName : 'The community';
-    return `${actor} \u00b7 ${alert.alertType.replaceAll('-', ' ')}`;
+    return `${actor} · ${alert.alertType.replaceAll('-', ' ')}`;
   }
 
   function alertDetail(alert) {
     if (alert.subscription) {
       const parts = [alert.subscription.kind, alert.subscription.months ? `${alert.subscription.months} months` : '', alert.subscription.streakMonths ? `${alert.subscription.streakMonths} month streak` : '', alert.subscription.gifterName ? `gifted by ${alert.subscription.gifterName}` : ''].filter(Boolean);
-      if (parts.length) return parts.join(' \u00b7 ');
+      if (parts.length) return parts.join(' · ');
     }
-    if (alert.amount && alert.currency) return `${alert.amount} ${alert.currency}${alert.message ? ` \u00b7 ${alert.message}` : ''}`;
-    if (alert.quantity) return `${alert.quantity}${alert.itemName ? ` \u00d7 ${alert.itemName}` : ''}`;
+    if (alert.amount && alert.currency) return `${alert.amount} ${alert.currency}${alert.message ? ` · ${alert.message}` : ''}`;
+    if (alert.quantity) return `${alert.quantity}${alert.itemName ? ` × ${alert.itemName}` : ''}`;
     return alert.message || alert.tier || (alert.value !== undefined ? `${alert.metric}: ${alert.value}` : '');
   }
 
+  function playAlertSound(alert) {
+    if (!alert.display || alert.display.sound.mode === 'none' || alert.display.sound.volume <= 0) return;
+    if (alert.display.sound.mode === 'custom' && alert.display.sound.customUrl) {
+      const audio = new Audio(alert.display.sound.customUrl); audio.volume = Math.min(1, Math.max(0, alert.display.sound.volume)); void audio.play().catch(() => undefined); return;
+    }
+    try {
+      const AudioContextType = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextType) return;
+      const context = new AudioContextType();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const patterns = { chime: [660, .35], 'soft-bell': [440, .55], 'digital-pop': [880, .18], celebration: [784, .65] };
+      const pattern = patterns[alert.display.sound.mode] || patterns.chime;
+      oscillator.frequency.value = pattern[0];
+      gain.gain.setValueAtTime(Math.min(1, Math.max(0, alert.display.sound.volume)), context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + pattern[1]);
+      oscillator.connect(gain); gain.connect(context.destination);
+      oscillator.start(); oscillator.stop(context.currentTime + pattern[1]);
+      oscillator.addEventListener('ended', () => context.close(), { once: true });
+    } catch { /* Browser-source audio policy may block a preview; visuals continue. */ }
+  }
+
   function safeClass(value) { return String(value).toLowerCase().replace(/[^a-z0-9-]/g, ''); }
+
+  function messageBackground(platform) {
+    const chatConfig = clientConfig.chat;
+    if (chatConfig.messageColorMode === 'transparent') return 'transparent';
+    const color = chatConfig.messageColorMode === 'platform' ? chatConfig.platformMessageColors[platform] || chatConfig.messageBackgroundColor : chatConfig.messageBackgroundColor;
+    return rgba(color, chatConfig.messageBackgroundOpacity);
+  }
+
+  function applyChatAppearance() {
+    const chatConfig = clientConfig.chat;
+    const selectedLayout = requestedLayout === 'compact' || requestedLayout === 'regular' ? requestedLayout : chatConfig.layout;
+    document.body.dataset.layout = selectedLayout;
+    const families = { system: '"Segoe UI Variable Text", "Segoe UI", Arial, sans-serif', rounded: '"Arial Rounded MT Bold", "Segoe UI", Arial, sans-serif', monospace: 'Consolas, "Cascadia Mono", monospace' };
+    document.documentElement.style.setProperty('--chat-font-family', families[chatConfig.fontFamily] || families.system);
+    document.documentElement.style.setProperty('--chat-font-size', `${chatConfig.fontSizePx}px`);
+    document.documentElement.style.setProperty('--chat-text-color', chatConfig.textColor);
+    document.documentElement.style.setProperty('--chat-canvas-bg', chatConfig.backgroundMode === 'solid' ? rgba(chatConfig.backgroundColor, chatConfig.backgroundOpacity) : 'transparent');
+    document.documentElement.style.setProperty('--chat-message-bg', rgba(chatConfig.messageBackgroundColor, chatConfig.messageBackgroundOpacity));
+  }
+
+  function rgba(hex, opacity) {
+    const value = String(hex).replace('#', '');
+    const red = Number.parseInt(value.slice(0, 2), 16);
+    const green = Number.parseInt(value.slice(2, 4), 16);
+    const blue = Number.parseInt(value.slice(4, 6), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${Math.max(0, Math.min(1, Number(opacity)))})`;
+  }
+
   fetch('/overlay/config').then((response) => response.ok ? response.json() : undefined).then((config) => {
-    if (config) clientConfig = config;
+    if (config) { clientConfig = config; alertController.configure(config.maxAlertQueue, config.alertDurationMs); }
+    applyChatAppearance();
     brandLabel.textContent = clientConfig.brandLabel;
     brandLabel.hidden = clientConfig.brandLabel.length === 0;
-    restoreCompanionState();
   }).catch(() => undefined).finally(connect);
-  setCompanionFrame(0);
-  scheduleCompanionBlink();
 })();
