@@ -2,7 +2,7 @@
 param()
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$stamp = '{0}-{1}' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), ([guid]::NewGuid().ToString('N').Substring(0, 8))
 $backupRoot = Join-Path $repo "data\backups\$stamp"
 New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $repo 'config') -Destination $backupRoot -Recurse

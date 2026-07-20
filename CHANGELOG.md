@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - JavaScript release assets are pinned to LF checkout semantics so add-on manifest sizes and hashes remain reproducible on Windows GitHub runners.
 - CycloneDX release SBOMs are written as BOM-free UTF-8 JSON for GitHub attestation compatibility on Windows PowerShell 5.1.
 - Windows-only PowerShell acceptance tests now skip on Linux, and the Windows CI matrix runs them under Windows PowerShell 5.1 so its native cmdlet/module environment matches supported installations.
+- Real PowerShell backup/restore integration tests have an explicit hosted-runner time budget without weakening their assertions.
+- Safety backups now combine a readable timestamp with a random suffix so an immediate restore cannot collide with a backup created in the same second.
 
 ### Safety
 

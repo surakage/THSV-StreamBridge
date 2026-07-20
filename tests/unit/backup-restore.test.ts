@@ -45,7 +45,7 @@ describe('backup and restore scripts', () => {
     await expect(readFile(join(root, 'data', 'runtime', 'bridge.local.json'), 'utf8')).resolves.toContain('original');
     await expect(readFile(join(root, 'data', 'state', 'state.json'), 'utf8')).resolves.toContain('1');
     await expect(readFile(join(root, 'data', 'addons', 'sample.no-op', 'module-package.json'), 'utf8')).resolves.toContain('original');
-  });
+  }, 30_000);
 
   it('rejects unapproved and tampered restores before changing current data', async () => {
     if (process.platform !== 'win32') return;
@@ -58,5 +58,5 @@ describe('backup and restore scripts', () => {
     const tampered = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'scripts', 'restore.ps1'), '-BackupPath', backup, '-ApproveRestore'], { encoding: 'utf8' });
     expect(tampered.status).not.toBe(0);
     await expect(readFile(join(root, 'data', 'state', 'state.json'), 'utf8')).resolves.toContain('current');
-  });
+  }, 30_000);
 });
