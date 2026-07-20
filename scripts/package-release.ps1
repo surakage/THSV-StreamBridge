@@ -3,7 +3,8 @@ param([string]$NodeVersion = '22.23.1')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $package = Get-Content -Raw -LiteralPath (Join-Path $repo 'package.json') | ConvertFrom-Json
-$assetName = "THSV-StreamBridge-$($package.version)-windows-x64"
+# Windows x64 is currently the only supported target; the asset name intentionally omits a platform suffix.
+$assetName = "THSV-StreamBridge-$($package.version)"
 $staging = Join-Path $repo "packages\$assetName"
 $archive = "$staging.zip"
 $checksum = "$archive.sha256"

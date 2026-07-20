@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [2.0.0-rc.4] - 2026-07-20
 
+- Changed: the release archive is now named `THSV-StreamBridge-<version>.zip`, dropping the `-windows-x64` suffix for a shorter download name. Windows x64 remains the only supported target, and the in-app update checker accepts both the new and the old asset names.
 - Added: a `slothbloom.com` link in the wizard header ("A Slothbloom project") and a matching byline at the top of this README, so creators configuring the bridge see where it comes from. No functional or architectural change — StreamBridge remains entirely local, with no accounts and no hosted component.
 - Added: alert layout and media placement presets. Each alert card now has an independent text layout (Classic — avatar left/text right, unchanged default; Stacked — avatar above centered text; Centered — no avatar) and media placement (Behind — full-bleed dimmed, unchanged default; Below — an undimmed banner strip beneath the text; Inset — a small undimmed box in the avatar's spot, or centered above the text for the Centered layout). The two choices combine freely and are configurable per alert type from the Alerts editor, with the live preview pane reflecting both.
 - Changed: a wizard-wide visual pass across every panel — a real button hierarchy (primary/ghost/danger, previously all buttons looked identical), hover/focus transitions, themed scrollbars, purple-accented native checkboxes, rotating chevrons on collapsible sections, and consistent card/typography spacing.

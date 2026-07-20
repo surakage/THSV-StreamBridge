@@ -4,7 +4,7 @@ THSV StreamBridge is distributed as a self-contained Windows x64 ZIP from the of
 
 ## Verify the download
 
-Download the versioned `THSV-StreamBridge-<version>-windows-x64.zip` and adjacent `.sha256` file from the same official release. Follow the commands in [`RELEASE-VERIFICATION.md`](../RELEASE-VERIFICATION.md) to check both the SHA-256 digest and GitHub Actions artifact attestation. The checksum detects corruption; the GitHub attestation authenticates that the archive came from this repository's release workflow without requiring a paid Windows code-signing certificate.
+Download the versioned `THSV-StreamBridge-<version>.zip` and adjacent `.sha256` file from the same official release. Follow the commands in [`RELEASE-VERIFICATION.md`](../RELEASE-VERIFICATION.md) to check both the SHA-256 digest and GitHub Actions artifact attestation. The checksum detects corruption; the GitHub attestation authenticates that the archive came from this repository's release workflow without requiring a paid Windows code-signing certificate.
 
 The release builder downloads the pinned Node runtime from nodejs.org and verifies it against Node.js's published `SHASUMS256.txt` before packaging it. Every file inside the release is then listed with its size and SHA-256 hash in `release-manifest.json`. The installer verifies the entire manifest before creating or changing an installation, copies into creator-private staging, and verifies it again before activation.
 

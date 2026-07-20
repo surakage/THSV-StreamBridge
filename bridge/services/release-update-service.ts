@@ -75,7 +75,9 @@ export class ReleaseUpdateService {
     const latestVersion = tag.replace(/^v/u, '');
     const releaseUrl = trustedUrl(release.html_url, 'release page', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${this.repository}/releases/tag/`));
     const assets = Array.isArray(release.assets) ? release.assets.map((asset) => parseAsset(asset, this.repository)) : [];
-    const archive = assets.find((asset) => /windows-x64\.zip$/iu.test(asset.name));
+    // Matches both the current archive name (THSV-StreamBridge-<version>.zip) and the
+    // pre-rc.4 name that carried a -windows-x64 suffix.
+    const archive = assets.find((asset) => /^THSV-StreamBridge-.+\.zip$/iu.test(asset.name));
     const checksum = archive === undefined ? undefined : assets.find((asset) => asset.name === `${archive.name}.sha256`);
     const sbom = assets.find((asset) => /\.cdx\.json$/iu.test(asset.name));
     const publishedAt = optionalText(release.published_at, 100);

@@ -16,7 +16,7 @@ describe('public release scripts', () => {
     const source = await readFile('scripts/package-release.ps1', 'utf8');
     expect(source).toContain("product = 'THSV StreamBridge'");
     expect(source).toContain('layoutVersion = 2');
-    expect(source).toContain('-windows-x64');
+    expect(source).toContain('$assetName = "THSV-StreamBridge-$($package.version)"');
     expect(source).toContain('node.exe');
     expect(source).toContain('SHASUMS256.txt');
     expect(source).toContain('official SHA-256 verification');

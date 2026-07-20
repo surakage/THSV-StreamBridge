@@ -29,7 +29,7 @@ Streamer.bot remains the automation and decision engine. StreamBridge does not a
 
 Public releases are distributed as self-contained Windows x64 ZIP files from the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases). The archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, and reviewed Streamer.bot packages. Users do not need to install Node.js, npm, Docker, or a database.
 
-1. Download `THSV-StreamBridge-<version>-windows-x64.zip` and its adjacent `.sha256` file.
+1. Download `THSV-StreamBridge-<version>.zip` and its adjacent `.sha256` file.
 2. Verify the download using [RELEASE-VERIFICATION.md](RELEASE-VERIFICATION.md). GitHub artifact attestations provide a free publisher-verification path without requiring a paid Windows code-signing certificate.
 3. Extract the ZIP.
 4. Double-click **Install THSV StreamBridge.cmd**.
