@@ -43,7 +43,8 @@ if "%THSV_UNINSTALL_EXIT%"=="0" (
   echo Press any key to close this window.
   pause >nul
   set "THSV_UNINSTALL_SELF=%~f0"
-  start "" /b powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Milliseconds 750; Remove-Item -LiteralPath $env:THSV_UNINSTALL_SELF -Force"
+  set "THSV_UNINSTALL_ROOT=%THSV_INSTALL_ROOT%"
+  start "" /b powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Milliseconds 1000; $paths = @((Join-Path $env:THSV_UNINSTALL_ROOT 'app'), (Join-Path $env:THSV_UNINSTALL_ROOT 'runtime'), (Join-Path $env:THSV_UNINSTALL_ROOT 'launcher'), (Join-Path $env:THSV_UNINSTALL_ROOT 'Install THSV StreamBridge.cmd'), (Join-Path $env:THSV_UNINSTALL_ROOT 'Start THSV StreamBridge.cmd'), (Join-Path $env:THSV_UNINSTALL_ROOT 'Stop THSV StreamBridge.cmd'), (Join-Path $env:THSV_UNINSTALL_ROOT 'Open THSV Setup Wizard.cmd'), $env:THSV_UNINSTALL_SELF); for ($attempt = 0; $attempt -lt 20; $attempt++) { $remaining = $false; foreach ($path in $paths) { Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue; if (Test-Path -LiteralPath $path) { $remaining = $true } }; if (-not $remaining) { break }; Start-Sleep -Milliseconds 250 }"
   exit /b 0
 )
 color 0C

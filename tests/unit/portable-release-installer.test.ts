@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 interface ReleaseFile { readonly path: string; readonly size: number; readonly sha256: string }
@@ -17,6 +17,7 @@ async function writePortableRelease(root: string, version: string, marker: strin
   await writeFile(join(root, 'runtime', 'node-version.txt'), process.version);
   await writeFile(join(root, 'app', 'dist', 'apps', 'bridge-service.js'), `${marker}\n`);
   await writeFile(join(root, 'app', 'config', 'bridge.example.json'), JSON.stringify({
+    service: { host: '127.0.0.1', port: 18_787 },
     logging: { directory: 'data/logs' }, security: { controlTokenFile: 'data/runtime/control-token' },
     deduplication: { stateFile: 'data/state/deduplication.json' }, timedActions: { stateFile: 'data/state/timed-actions.json' },
     streamerbot: { deliveryStateFile: 'data/state/delivery-outbox.json' },
@@ -59,6 +60,7 @@ describe('portable Windows release installer', () => {
     const firstToken = (await readFile(join(firstInstall, 'data', 'secrets', 'control-token'), 'utf8')).trim();
     expect(Buffer.from(firstToken, 'base64url')).toHaveLength(32);
     expect(await readFile(join(firstInstall, 'app', '2.0.0', 'dist', 'apps', 'bridge-service.js'), 'utf8')).toBe('first\n');
+    await expect(stat(join(firstInstall, 'Install THSV StreamBridge.cmd'))).rejects.toThrow();
     const configuration = JSON.parse(await readFile(join(firstInstall, 'data', 'configuration', 'bridge.local.json'), 'utf8')) as { security: { controlTokenFile: string }; logging: { directory: string } };
     expect(configuration.security.controlTokenFile).toBe(join(firstInstall, 'data', 'secrets', 'control-token'));
     expect(configuration.logging.directory).toBe(join(firstInstall, 'data', 'logs'));
@@ -102,5 +104,29 @@ describe('portable Windows release installer', () => {
     expect(result.status).not.toBe(0);
     expect(processOutput(result)).toMatch(/size mismatch|hash mismatch/u);
     await expect(stat(destination)).rejects.toThrow();
+  }, 60_000);
+
+  it('removes application contents and defers only locked directory shells', async () => {
+    if (process.platform !== 'win32') return;
+    const temporary = await mkdtemp(join(tmpdir(), 'thsv-portable-lock-'));
+    const source = join(temporary, 'release'); const destination = join(temporary, 'install');
+    await writePortableRelease(source, '2.0.0', 'locked');
+    const result = install(source, destination);
+    expect(result.status, processOutput(result)).toBe(0);
+    const versionRoot = join(destination, 'app', '2.0.0');
+    const holder = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { cwd: versionRoot, stdio: 'ignore', windowsHide: true });
+    try {
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 300));
+      const uninstall = spawnSync(process.execPath, [join(destination, 'launcher', 'uninstall.mjs'), '--install-root', destination], { encoding: 'utf8', timeout: 30_000 });
+      expect(uninstall.status, processOutput(uninstall)).toBe(0);
+      expect(processOutput(uninstall)).toContain('visible uninstaller will retry them after its window closes');
+      expect(await readdir(versionRoot)).toEqual([]);
+      expect(await stat(join(destination, 'data'))).toBeDefined();
+      expect(await stat(join(destination, 'addons'))).toBeDefined();
+    } finally {
+      holder.kill('SIGTERM');
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
+      await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    }
   }, 60_000);
 });

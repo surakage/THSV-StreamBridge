@@ -79,7 +79,24 @@ describe('public release scripts', () => {
     expect(source).toContain('[FAILED] THSV StreamBridge could not be removed completely.');
     expect(source).toContain('Reinstalling later will reuse this preserved configuration.');
     expect(source).toContain('pause >nul');
-    expect(source).toContain('Remove-Item -LiteralPath $env:THSV_UNINSTALL_SELF -Force');
+    expect(source).toContain('$env:THSV_UNINSTALL_SELF');
+    expect(source).toContain('Remove-Item -LiteralPath $path -Recurse -Force');
+    expect(source).toContain("Join-Path $env:THSV_UNINSTALL_ROOT 'app'");
+  });
+
+  it('keeps every installed launcher visible with explicit results', async () => {
+    const expectations = [
+      ['Start THSV StreamBridge.cmd', '[SUCCESS] THSV StreamBridge is running.', '[FAILED] THSV StreamBridge could not be started.'],
+      ['Stop THSV StreamBridge.cmd', '[SUCCESS] THSV StreamBridge is stopped.', '[FAILED] THSV StreamBridge could not be stopped cleanly.'],
+      ['Open THSV Setup Wizard.cmd', '[SUCCESS] The setup wizard was opened.', '[FAILED] The setup wizard could not be opened.'],
+    ] as const;
+    for (const [name, success, failure] of expectations) {
+      const source = await readFile(`launcher/${name}`, 'utf8');
+      expect(source).toContain(success);
+      expect(source).toContain(failure);
+      expect(source).toContain('pause >nul');
+      expect(source).toContain('exit /b %THSV_LAUNCH_EXIT%');
+    }
   });
 
   it('requires an explicit switch before deleting creator data', async () => {
@@ -88,6 +105,28 @@ describe('public release scripts', () => {
     expect(source).toContain("process.argv.includes('--confirm-delete-everything')");
     expect(source).toContain('Creator configuration, add-ons, state, logs, backups, and secrets were preserved');
     expect(source).toContain("record.product !== 'THSV StreamBridge'");
+    expect(source).toContain('maxRetries: 2');
+    expect(source).toContain('retryDelay: 100');
+    expect(source).toContain("error?.code !== 'EBUSY'");
+    expect(source).toContain('deferredCleanup.add(path)');
+    expect(source).toContain('visible uninstaller will retry them after its window closes');
+    expect(source).toContain('uninstall was cancelled before application files were removed');
+    expect(source).toContain('Nothing will be reported as fully deleted');
+  });
+
+  it('keeps the release installer only in the downloaded package', async () => {
+    const source = await readFile('installer/install.mjs', 'utf8');
+    expect(source).not.toContain("copyFile(join(sourceRoot, 'installer', 'Install THSV StreamBridge.cmd')");
+    expect(source).toContain('installation was cancelled before replacing application files');
+  });
+
+  it('can stop the authenticated local service when its PID record is missing', async () => {
+    const source = await readFile('launcher/stop.mjs', 'utf8');
+    expect(source.indexOf("readFile(configPath, 'utf8')")).toBeLessThan(source.indexOf("readFile(pidPath, 'utf8')"));
+    expect(source).toContain('Authenticated localhost shutdown remains available without a PID record.');
+    expect(source).toContain("fetch(`${baseUrl}/shutdown`");
+    expect(source).toContain('if (pid !== undefined && isAlive(pid))');
+    expect(source).toContain('const shutdownTimeoutMs = 15_000');
   });
 
   it('ships an authenticated simulation helper without development tooling', async () => {

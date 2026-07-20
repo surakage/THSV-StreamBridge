@@ -56,7 +56,9 @@ try {
   for (const name of ['Start THSV StreamBridge.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Uninstall THSV StreamBridge.cmd']) {
     await copyFile(join(sourceRoot, 'launcher', name), join(installRoot, name));
   }
-  await copyFile(join(sourceRoot, 'installer', 'Install THSV StreamBridge.cmd'), join(installRoot, 'Install THSV StreamBridge.cmd'));
+  // The installer launcher belongs only in the downloaded release folder. Its
+  // companion installer/install.mjs is intentionally not part of an installed
+  // layout, so copying the launcher here would create a broken shortcut.
   for (const name of ['LICENSE', 'THIRD-PARTY-NOTICES.md', 'RELEASE-VERIFICATION.md']) {
     if (await exists(join(sourceRoot, name))) await copyFile(join(sourceRoot, name), join(installRoot, name));
   }
@@ -160,7 +162,8 @@ async function rollbackDirectories(operations) {
 async function stopInstalledBridge(root) {
   const runtime = join(root, 'runtime', 'node.exe'); const script = join(root, 'launcher', 'stop.mjs');
   if (!await exists(runtime) || !await exists(script)) return;
-  spawnSync(runtime, [script], { cwd: root, encoding: 'utf8', timeout: 12_000, windowsHide: true });
+  const result = spawnSync(runtime, [script], { cwd: root, encoding: 'utf8', timeout: 20_000, windowsHide: true });
+  if (result.status !== 0) throw new Error(`The existing StreamBridge could not be stopped safely; installation was cancelled before replacing application files. ${result.error?.message || result.stderr || result.stdout || ''}`.trim());
 }
 
 async function protectPrivateDirectory(path) {

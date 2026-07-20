@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Windows release lifecycle launchers now remain visible with explicit results, the release-only installer shortcut is no longer copied into installed layouts, and uninstall tolerates directory-handle locks by preserving creator data while deferring application-only cleanup until its window closes.
+
 ## [2.0.0-rc.3] - 2026-07-19
 
 ### Changed
