@@ -147,7 +147,7 @@ describe('Browser Overlay Hub contract', () => {
     const source = await fixture('youtube-super-chat.json');
     const config: BrowserOverlayConfig = {
       ...(await testConfig()).browserOverlay, brandLabel: '',
-      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system' }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
+      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind' }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
       kind: 'alert.show', payload: { priority: 'critical', display: { title: 'example_member supported with 5.00 USD', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
@@ -160,6 +160,30 @@ describe('Browser Overlay Hub contract', () => {
     // the youtube event still falls back to its own automatic defaults, not the twitch profile.
     const otherPlatformOnly: BrowserOverlayConfig = { ...config, alerts: { profiles: { twitch: { follow: { ...profile, enabled: false } } } } };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 15 } }, otherPlatformOnly)).toMatchObject({ kind: 'alert.show' });
+  });
+
+  it('carries an uploaded background video through to the projected alert card', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    const videoUrl = `/overlay/assets/${'d'.repeat(64)}.webm`;
+    const config: BrowserOverlayConfig = {
+      ...(await testConfig()).browserOverlay, brandLabel: '',
+      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', backgroundVideoUrl: videoUrl }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
+    };
+    expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 16 } }, config)).toMatchObject({
+      kind: 'alert.show', payload: { display: { card: { backgroundVideoUrl: videoUrl } } },
+    });
+  });
+
+  it('carries the chosen text layout and media placement through to the projected alert card', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    const imageUrl = `/overlay/assets/${'e'.repeat(64)}.png`;
+    const config: BrowserOverlayConfig = {
+      ...(await testConfig()).browserOverlay, brandLabel: '',
+      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'stacked', mediaPlacement: 'inset', backgroundImageUrl: imageUrl }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
+    };
+    expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 17 } }, config)).toMatchObject({
+      kind: 'alert.show', payload: { display: { card: { layout: 'stacked', mediaPlacement: 'inset', backgroundImageUrl: imageUrl } } },
+    });
   });
 
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {

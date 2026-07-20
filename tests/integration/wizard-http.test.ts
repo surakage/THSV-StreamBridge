@@ -78,6 +78,54 @@ describe('wizard HTTP surface', () => {
     expect(Buffer.from(await fetched.arrayBuffer())).toEqual(png);
   });
 
+  it('accepts animated GIF backgrounds and MP4/WebM alert videos, and rejects content-type-confused video uploads', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined));
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+
+    const gif = Buffer.from('4749463839610100010080000000000000ffffff21f90401000000002c00000000010001000002024401003b', 'hex');
+    const gifUpload = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'background', contentType: 'image/gif', contentBase64: gif.toString('base64') }) });
+    expect(gifUpload.status).toBe(201);
+    expect(((await gifUpload.json()) as { url: string }).url).toMatch(/\.gif$/u);
+
+    const mp4 = Buffer.from('000000186674797069736f6d0000020069736f6d69736f32617663316d7034310000', 'hex');
+    const mp4Upload = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'video', contentType: 'video/mp4', contentBase64: mp4.toString('base64') }) });
+    expect(mp4Upload.status).toBe(201);
+    expect(((await mp4Upload.json()) as { url: string }).url).toMatch(/\.mp4$/u);
+
+    const webm = Buffer.from('1a45dfa3', 'hex');
+    const webmUpload = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'video', contentType: 'video/webm', contentBase64: webm.toString('base64') }) });
+    expect(webmUpload.status).toBe(201);
+    expect(((await webmUpload.json()) as { url: string }).url).toMatch(/\.webm$/u);
+
+    const disguisedVideo = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'video', contentType: 'video/mp4', contentBase64: Buffer.from('not an mp4').toString('base64') }) });
+    expect(disguisedVideo.status).toBe(400);
+    expect(await disguisedVideo.text()).toContain('does not match');
+
+    const oversizedVideo = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'video', contentType: 'video/mp4', contentBase64: Buffer.concat([mp4, Buffer.alloc(5_100_000)]).toString('base64') }) });
+    expect(oversizedVideo.status).toBe(400);
+
+    const oversizedImageWithinVideoLimit = await fetch(`${baseUrl}/wizard/api/overlay-assets`, { method: 'POST', headers, body: JSON.stringify({ kind: 'background', contentType: 'image/gif', contentBase64: Buffer.concat([gif, Buffer.alloc(3_000_000)]).toString('base64') }) });
+    expect(oversizedImageWithinVideoLimit.status).toBe(400);
+
+    // The overlay page itself must allow same-origin audio/video playback, or an uploaded
+    // background video (and the pre-existing custom alert sound) would silently never play.
+    const overlayPage = await fetch(`${baseUrl}/overlay/alerts`);
+    expect(overlayPage.status).toBe(200);
+    expect(overlayPage.headers.get('content-security-policy')).toContain("media-src 'self'");
+    // The wizard's own live alert preview plays the same uploaded video in-page, so its shell
+    // needs the same allowance — this was missed on the first pass and only caught live.
+    const wizardShell = await fetch(`${baseUrl}/wizard/`);
+    expect(wizardShell.status).toBe(200);
+    expect(wizardShell.headers.get('content-security-policy')).toContain("media-src 'self'");
+  });
+
   it('serves a locked shell and authenticates every wizard API request', async () => {
     const config = await testConfig();
     config.service.port = 0;

@@ -147,21 +147,62 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
     const card = element('article', `alert priority-${alert.priority}`);
     const cardStyle = alert.display && alert.display.card ? alert.display.card : {};
     const alertFamilies = { system: '"Segoe UI Variable Text", "Segoe UI", Arial, sans-serif', rounded: '"Arial Rounded MT Bold", "Segoe UI", Arial, sans-serif', serif: 'Georgia, "Times New Roman", serif', monospace: 'Consolas, "Cascadia Mono", monospace' };
+    const layout = cardStyle.layout || 'classic';
+    const hasVideo = Boolean(cardStyle.backgroundVideoUrl);
+    const hasImage = Boolean(cardStyle.backgroundImageUrl);
+    const hasMedia = hasVideo || hasImage;
+    // Placement only has a visual effect once media exists; otherwise fall back so layout alone controls the avatar slot.
+    const mediaPlacement = hasMedia ? cardStyle.mediaPlacement || 'behind' : 'behind';
+    card.dataset.layout = layout;
+    card.dataset.mediaPlacement = mediaPlacement;
     card.style.setProperty('--alert-card-bg', cardStyle.backgroundColor || '#171120');
     card.style.setProperty('--alert-font-family', alertFamilies[cardStyle.fontFamily] || alertFamilies.system);
-    if (cardStyle.backgroundImageUrl) card.style.setProperty('--alert-card-image', `url("${String(cardStyle.backgroundImageUrl).replace(/["\\]/g, '')}")`);
+    if (hasMedia && mediaPlacement === 'behind') {
+      if (hasVideo) {
+        card.append(buildAlertMediaElement(cardStyle, true, 'alert-video'), element('div', 'alert-video-overlay'));
+      } else {
+        card.style.setProperty('--alert-card-image', `url("${String(cardStyle.backgroundImageUrl).replace(/["\\]/g, '')}")`);
+      }
+    }
     const identity = element('div', 'alert-identity');
-    identity.append(buildAvatar(alert.actor, alert.presentation || {}, alert.platform, 'alert-avatar'));
+    if (hasMedia && mediaPlacement === 'inset') {
+      const insetBox = element('span', 'alert-media-inset');
+      insetBox.append(buildAlertMediaElement(cardStyle, hasVideo));
+      identity.append(insetBox);
+    } else if (layout !== 'centered') {
+      identity.append(buildAvatar(alert.actor, alert.presentation || {}, alert.platform, 'alert-avatar'));
+    }
     const copy = element('div', 'alert-copy');
     copy.append(element('span', 'alert-platform', alert.platform.toUpperCase()));
     copy.append(element('h2', '', alert.display ? alert.display.title : alertTitle(alert)));
     const detail = alert.display ? alert.display.detail : alertDetail(alert);
     if (detail) copy.append(element('p', 'alert-detail', detail));
+    identity.append(copy);
+    card.append(identity);
+    if (hasMedia && mediaPlacement === 'below') {
+      const banner = element('div', 'alert-media-banner');
+      banner.append(buildAlertMediaElement(cardStyle, hasVideo));
+      card.append(banner);
+    }
     if (alert.aggregateCount > 1) card.append(element('span', 'aggregated', `${alert.aggregateCount} EVENTS COMBINED${alert.quantity ? ` · ${alert.quantity} TOTAL` : ''}`));
     if (alert.simulated) card.append(element('span', 'simulated', 'TEST EVENT'));
-    identity.append(copy);
-    card.prepend(identity);
     return card;
+  }
+
+  function buildAlertMediaElement(cardStyle, hasVideo, className) {
+    if (hasVideo) {
+      const video = element('video', className);
+      video.src = cardStyle.backgroundVideoUrl;
+      video.autoplay = true; video.loop = true; video.muted = false; video.playsInline = true;
+      video.addEventListener('error', () => video.remove(), { once: true });
+      return video;
+    }
+    const img = element('img', className);
+    img.src = cardStyle.backgroundImageUrl;
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', () => img.remove(), { once: true });
+    return img;
   }
 
   function buildAvatar(actor, presentation, platform, extraClass) {
@@ -196,6 +237,9 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
 
   function playAlertSound(alert) {
     if (!alert.display || alert.display.sound.mode === 'none' || alert.display.sound.volume <= 0) return;
+    // A background video carries its own embedded audio track (e.g. "an mp4 with its own song");
+    // layering the separate alert sound on top of that would just be clutter.
+    if (alert.display.card && alert.display.card.backgroundVideoUrl) return;
     if (alert.display.sound.mode === 'custom' && alert.display.sound.customUrl) {
       const audio = new Audio(alert.display.sound.customUrl); audio.volume = Math.min(1, Math.max(0, alert.display.sound.volume)); void audio.play().catch(() => undefined); return;
     }

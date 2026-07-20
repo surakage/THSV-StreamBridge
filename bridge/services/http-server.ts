@@ -232,21 +232,23 @@ export class DiagnosticsServer {
       }
       if (request.method === 'POST' && request.url === '/wizard/api/overlay-assets' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
+        const body = await readBody(request, Math.max(this.config.maxPayloadBytes, MAX_OVERLAY_VIDEO_PAYLOAD_BYTES));
         const input = JSON.parse(body.text) as Record<string, unknown>;
         const kind = input['kind']; const contentType = input['contentType']; const encoded = input['contentBase64'];
         const allowed = kind === 'sound'
           ? new Map([['audio/mpeg', 'mp3'], ['audio/wav', 'wav'], ['audio/x-wav', 'wav'], ['audio/ogg', 'ogg']])
-          : kind === 'background' ? new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]) : undefined;
+          : kind === 'background' ? new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp'], ['image/gif', 'gif']])
+          : kind === 'video' ? new Map([['video/mp4', 'mp4'], ['video/webm', 'webm']]) : undefined;
         if (allowed === undefined || typeof contentType !== 'string' || typeof encoded !== 'string' || !allowed.has(contentType)) return this.reply(response, 400, { error: 'Unsupported overlay asset type.' });
         const extension = allowed.get(contentType) ?? '';
-        const { filename, bytes } = await storeOverlayAsset(encoded, contentType, extension, this.overlayAssetDirectory);
+        const maxBytes = kind === 'video' ? MAX_OVERLAY_VIDEO_ASSET_BYTES : MAX_OVERLAY_ASSET_BYTES;
+        const { filename, bytes } = await storeOverlayAsset(encoded, contentType, extension, this.overlayAssetDirectory, maxBytes);
         return this.reply(response, 201, { url: `/overlay/assets/${filename}`, bytes: bytes.length, contentType });
       }
-      const overlayAssetMatch = request.method === 'GET' ? /^\/overlay\/assets\/([a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp))$/u.exec(request.url ?? '') : null;
+      const overlayAssetMatch = request.method === 'GET' ? /^\/overlay\/assets\/([a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp|gif|mp4|webm))$/u.exec(request.url ?? '') : null;
       if (overlayAssetMatch?.[1] !== undefined) {
         const extension = overlayAssetMatch[1].split('.').pop() ?? '';
-        const contentTypes: Readonly<Record<string, string>> = { mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
+        const contentTypes: Readonly<Record<string, string>> = { mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', mp4: 'video/mp4', webm: 'video/webm' };
         const body = await readFile(join(this.overlayAssetDirectory, overlayAssetMatch[1]));
         response.statusCode = 200; response.setHeader('content-type', contentTypes[extension] ?? 'application/octet-stream'); response.setHeader('cache-control', 'public, max-age=31536000, immutable'); response.end(body); return;
       }
@@ -339,7 +341,7 @@ export class DiagnosticsServer {
     response.statusCode = 200;
     response.setHeader('content-type', asset.contentType);
     response.setHeader('cache-control', 'no-store');
-    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:");
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:; media-src 'self'");
     response.end(body);
   }
 
@@ -359,7 +361,7 @@ export class DiagnosticsServer {
     response.statusCode = 200;
     response.setHeader('content-type', asset.contentType);
     response.setHeader('cache-control', 'no-store');
-    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
     response.end(body);
   }
 }
@@ -455,14 +457,16 @@ async function readBody(request: IncomingMessage, maximumBytes: number): Promise
 }
 
 const MAX_OVERLAY_ASSET_BYTES = 2_000_000;
+const MAX_OVERLAY_VIDEO_ASSET_BYTES = 5_000_000;
+const MAX_OVERLAY_VIDEO_PAYLOAD_BYTES = 7_000_000;
 const MAX_OVERLAY_ASSET_FILES = 100;
 const MAX_OVERLAY_ASSET_TOTAL_BYTES = 50_000_000;
 let overlayAssetWriteChain: Promise<void> = Promise.resolve();
 
-async function storeOverlayAsset(encoded: string, contentType: string, extension: string, directory: string): Promise<{ filename: string; bytes: Buffer }> {
-  if (encoded.length > Math.ceil(MAX_OVERLAY_ASSET_BYTES / 3) * 4 || !isCanonicalBase64(encoded)) throw new OverlayAssetError('Overlay asset data is not valid canonical base64.');
+async function storeOverlayAsset(encoded: string, contentType: string, extension: string, directory: string, maxBytes: number = MAX_OVERLAY_ASSET_BYTES): Promise<{ filename: string; bytes: Buffer }> {
+  if (encoded.length > Math.ceil(maxBytes / 3) * 4 || !isCanonicalBase64(encoded)) throw new OverlayAssetError('Overlay asset data is not valid canonical base64.');
   const bytes = Buffer.from(encoded, 'base64');
-  if (bytes.length === 0 || bytes.length > MAX_OVERLAY_ASSET_BYTES) throw new OverlayAssetError('Overlay assets must be between 1 byte and 2 MB.');
+  if (bytes.length === 0 || bytes.length > maxBytes) throw new OverlayAssetError(`Overlay assets must be between 1 byte and ${String(Math.round(maxBytes / 1_000_000))} MB.`);
   if (!matchesDeclaredAssetType(bytes, contentType)) throw new OverlayAssetError('Overlay asset content does not match its declared media type.');
   const filename = `${createHash('sha256').update(bytes).digest('hex')}.${extension}`;
   let release!: () => void;
@@ -474,7 +478,7 @@ async function storeOverlayAsset(encoded: string, contentType: string, extension
     const target = join(directory, filename);
     try { await stat(target); return { filename, bytes }; }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-    const entries = (await readdir(directory, { withFileTypes: true })).filter((entry) => entry.isFile() && /^[a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp)$/u.test(entry.name));
+    const entries = (await readdir(directory, { withFileTypes: true })).filter((entry) => entry.isFile() && /^[a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp|gif|mp4|webm)$/u.test(entry.name));
     if (entries.length >= MAX_OVERLAY_ASSET_FILES) throw new OverlayAssetError(`Overlay asset storage is limited to ${String(MAX_OVERLAY_ASSET_FILES)} files.`);
     const sizes = await Promise.all(entries.map(async (entry) => (await stat(join(directory, entry.name))).size));
     if (sizes.reduce((sum, size) => sum + size, 0) + bytes.length > MAX_OVERLAY_ASSET_TOTAL_BYTES) throw new OverlayAssetError('Overlay asset storage is limited to 50 MB.');
@@ -491,6 +495,9 @@ function matchesDeclaredAssetType(bytes: Buffer, contentType: string): boolean {
   if (contentType === 'image/png') return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   if (contentType === 'image/jpeg') return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   if (contentType === 'image/webp') return bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+  if (contentType === 'image/gif') return bytes.length >= 6 && bytes.subarray(0, 4).toString('ascii') === 'GIF8' && (bytes[4] === 0x37 || bytes[4] === 0x39) && bytes[5] === 0x61;
+  if (contentType === 'video/mp4') return bytes.length >= 8 && bytes.subarray(4, 8).toString('ascii') === 'ftyp';
+  if (contentType === 'video/webm') return bytes.length >= 4 && bytes.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
   if (contentType === 'audio/wav' || contentType === 'audio/x-wav') return bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WAVE';
   if (contentType === 'audio/ogg') return bytes.length >= 4 && bytes.subarray(0, 4).toString('ascii') === 'OggS';
   if (contentType === 'audio/mpeg') return bytes.length >= 3 && (bytes.subarray(0, 3).toString('ascii') === 'ID3' || (bytes[0] === 0xff && (bytes[1] ?? 0) >= 0xe0));

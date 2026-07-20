@@ -1,5 +1,7 @@
 # THSV StreamBridge
 
+A [Slothbloom](https://slothbloom.com) project.
+
 THSV StreamBridge is a local-first, cross-platform livestream automation framework for creators who use Streamer.bot. It receives events from Twitch, YouTube, Kick, and TikTok through reviewed provider integrations, converts them into one predictable event format, and sends them through one shared automation and browser-overlay hub.
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.

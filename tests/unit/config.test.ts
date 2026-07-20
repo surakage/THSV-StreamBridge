@@ -143,6 +143,44 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: { twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'sum-quantity', windowMs: 5_000 } } } } } } }).success).toBe(false);
   });
 
+  it('accepts an animated GIF or an uploaded background video for an alert card, but not both at once', async () => {
+    const config = await testConfig();
+    const gifUrl = `/overlay/assets/${'a'.repeat(64)}.gif`;
+    const withGif = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', backgroundImageUrl: gifUrl } } },
+    } } } });
+    expect(withGif.browserOverlay.alerts.profiles.twitch?.follow?.card.backgroundImageUrl).toBe(gifUrl);
+    const videoUrl = `/overlay/assets/${'b'.repeat(64)}.mp4`;
+    const withVideo = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', backgroundVideoUrl: videoUrl } } },
+    } } } });
+    expect(withVideo.browserOverlay.alerts.profiles.twitch?.follow?.card.backgroundVideoUrl).toBe(videoUrl);
+    // An image and a video on the same card at once is ambiguous for the renderer and is rejected, not silently resolved.
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', backgroundImageUrl: gifUrl, backgroundVideoUrl: videoUrl } } },
+    } } } }).success).toBe(false);
+    // Only mp4/webm are accepted video extensions, matching what the upload endpoint ever produces.
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', backgroundVideoUrl: `/overlay/assets/${'c'.repeat(64)}.mov` } } },
+    } } } }).success).toBe(false);
+  });
+
+  it('defaults an alert card to classic layout and behind media placement, and accepts explicit overrides', async () => {
+    const config = await testConfig();
+    const defaulted = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system' } } },
+    } } } });
+    expect(defaulted.browserOverlay.alerts.profiles.twitch?.follow?.card).toMatchObject({ layout: 'classic', mediaPlacement: 'behind' });
+    const overridden = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'stacked', mediaPlacement: 'inset' } } },
+    } } } });
+    expect(overridden.browserOverlay.alerts.profiles.twitch?.follow?.card).toMatchObject({ layout: 'stacked', mediaPlacement: 'inset' });
+    // An unrecognized layout or placement is rejected, not silently coerced to a default.
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'floating' } } },
+    } } } }).success).toBe(false);
+  });
+
   it('validates saved chat appearance and a case-insensitive ignored-name list', async () => {
     const config = await testConfig();
     const valid = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: {

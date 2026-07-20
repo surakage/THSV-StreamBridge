@@ -152,8 +152,13 @@ const alertPresentationProfileSchema = z.object({
   card: z.object({
     backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#171120'),
     fontFamily: z.enum(['system', 'rounded', 'serif', 'monospace']).default('system'),
-    backgroundImageUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:png|jpg|webp)$/u).optional(),
-  }).strict().default({ backgroundColor: '#171120', fontFamily: 'system' }),
+    backgroundImageUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:png|jpg|webp|gif)$/u).optional(),
+    backgroundVideoUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:mp4|webm)$/u).optional(),
+    layout: z.enum(['classic', 'stacked', 'centered']).default('classic'),
+    mediaPlacement: z.enum(['behind', 'below', 'inset']).default('behind'),
+  }).strict().superRefine((card, context) => {
+    if (card.backgroundImageUrl !== undefined && card.backgroundVideoUrl !== undefined) context.addIssue({ code: 'custom', path: ['backgroundVideoUrl'], message: 'Use either a background image or a background video, not both.' });
+  }).default({ backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind' }),
   aggregation: z.object({ mode: z.enum(['none', 'sum-quantity']).default('none'), windowMs: z.number().int().min(500).max(30_000).default(5_000) }).strict().default({ mode: 'none', windowMs: 5_000 }),
 }).strict();
 // Only these alert types are ever produced per platform (cross-checked against
