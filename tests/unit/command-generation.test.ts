@@ -237,9 +237,12 @@ describe('command package generation', () => {
     expect(source).toContain('string commandSource = Read("commandSource")');
     expect(source).toContain('generatedCommandResponseMessage');
     expect(source).toContain('if (commandSource == "twitch")');
-    expect(source).toContain('CPH.SendMessage(responseMessage, true, true)');
-    expect(source).toContain('CPH.SendYouTubeMessageToLatestMonitored(responseMessage, true, true)');
-    expect(source).toContain('CPH.SendKickMessage(responseMessage, true, true)');
+    expect(source).toContain('SendToSource(commandSource, responseMessage);');
+    // SendToSource (shared by platform-message and custom-script modes) uses the verified
+    // per-platform methods and signatures, confirmed directly against docs.streamer.bot.
+    expect(source).toContain('CPH.SendMessage(message, true, true)');
+    expect(source).toContain('CPH.SendYouTubeMessageToLatestMonitored(message, true, true)');
+    expect(source).toContain('CPH.SendKickMessage(message, true, true)');
     const decoded = Buffer.from(generated.contentBase64, 'base64');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: Array<{ name: string }>; commands: Array<{ sources: number; globalCooldown: number; userCooldown: number }> } };
     expect(exported.data.actions[0]?.name).toBe('THSV Command - Hello');
@@ -269,11 +272,36 @@ describe('command package generation', () => {
     expect(exported.data.commands[0]?.sources).toBe(0);
   });
 
-  it('embeds a custom script inside the same source gate', () => {
-    const design = createCommandDesign({ name: 'custom-script', responseMode: 'custom-script', commandSources: ['youtube'], customScript: 'SendToSource(commandSource, rawInput);', approvedByCreator: true });
+  it('embeds a custom script inside the same source gate, as the body of a dedicated response method', () => {
+    const design = createCommandDesign({ name: 'custom-script', responseMode: 'custom-script', commandSources: ['youtube'], customScript: 'return "hi";', approvedByCreator: true });
     const source = generateCommandsPackage([design], '!').commands[0]?.sourceCode ?? '';
     expect(source).toContain('allowedSources.Contains(commandSource)');
-    expect(source).toContain('SendToSource(commandSource, rawInput);');
+    // The custom script must land as the body of its own method -- never spliced directly into
+    // Execute() -- so it cannot collide with a creator pasting a full "using/class/Execute()"
+    // wrapper by habit (a real, previously-shipped bug: that produced a class nested inside a
+    // method, which fails to compile). Execute() calls it and reuses the same verified SendToSource
+    // dispatch as platform-message mode, so custom scripts never need to get Send*Message right.
+    expect(source).toContain('private string BuildCustomResponse(string commandSource, string userName, string target, string rawInput, string channelName)');
+    expect(source).toContain('        return "hi";');
+    expect(source).toContain('string responseMessage = BuildCustomResponse(commandSource, userName, target, rawInput, channelName);');
+    expect(source).toContain('SendToSource(commandSource, responseMessage);');
+  });
+
+  it('a custom script that calls CPH directly and falls through still compiles, since BuildCustomResponse always returns a string', () => {
+    const design = createCommandDesign({ name: 'direct-send', responseMode: 'custom-script', commandSources: ['twitch'], customScript: 'CPH.SendMessage("hi", true, true);', approvedByCreator: true });
+    const source = generateCommandsPackage([design], '!').commands[0]?.sourceCode ?? '';
+    // The generator appends a trailing "return \"\";" after the creator's code, so a script with no
+    // return statement of its own still satisfies BuildCustomResponse's non-void return type.
+    expect(source).toContain('CPH.SendMessage("hi", true, true);\n        return "";');
+  });
+
+  it('rejects a custom script that pastes a full action wrapper instead of just a method body', () => {
+    const fullWrapper = 'using System;\npublic class CPHInline\n{\n    public bool Execute()\n    {\n        return true;\n    }\n}';
+    expect(() => createCommandDesign({ name: 'wrapped', responseMode: 'custom-script', commandSources: ['twitch'], customScript: fullWrapper, approvedByCreator: true }))
+      .toThrow('customScript must be only the body of the response method');
+    // A script that merely mentions "Execute" in a comment, or has neither telltale pattern, is fine.
+    expect(() => createCommandDesign({ name: 'not-wrapped', responseMode: 'custom-script', commandSources: ['twitch'], customScript: 'return "ok"; // runs after Execute begins', approvedByCreator: true }))
+      .not.toThrow();
   });
 
   it('uses the configured prefix, falling back to "!" for an invalid one', () => {

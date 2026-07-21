@@ -13,6 +13,11 @@ const MAX_ALIASES = 20;
 const MAX_NOTE_LENGTH = 500;
 const MAX_ACTION_NAME_LENGTH = 200;
 const MAX_CUSTOM_SCRIPT_LENGTH = 20_000;
+// A custom script is meant to be only the body of a helper method the generated action already
+// declares; a full "using ... class CPHInline { ... Execute() { ... } }" wrapper pasted in verbatim
+// would nest inside that method and fail to compile. Reject the common mistake up front, with an
+// actionable message, instead of producing broken C# that fails silently in Streamer.bot.
+const CUSTOM_SCRIPT_WRAPPER_PATTERN = /\bclass\s+CPHInline\b|\bpublic\s+bool\s+Execute\s*\(/u;
 const MAX_BATCH_SIZE = 20;
 const ROLES = ['viewer', 'subscriber', 'moderator', 'broadcaster'] as const;
 const COMMAND_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
@@ -102,6 +107,12 @@ export function createCommandDesign(input: CommandDesignInput): CommandDesign {
     for (const platform of commandSources) if (platformMessages[platform] === undefined) throw new InvalidCommandDesignError(`Enter a ${platform} response or remove that command source.`);
   }
   if (inferredMode === 'custom-script' && customScript.length === 0) throw new InvalidCommandDesignError('customScript is required for custom-script mode.');
+  if (inferredMode === 'custom-script' && CUSTOM_SCRIPT_WRAPPER_PATTERN.test(customScript)) {
+    throw new InvalidCommandDesignError(
+      'customScript must be only the body of the response method -- do not include "using" directives, "public class CPHInline", or "public bool Execute()". '
+      + 'The generated action already provides that wrapper; write the code that computes a reply and end it with a "return" of the message to send (or return "" for no automatic reply).',
+    );
+  }
   const globalCooldown = boundedCooldown(input.globalCooldown, 'globalCooldown');
   const userCooldown = boundedCooldown(input.userCooldown, 'userCooldown');
   return {
@@ -363,13 +374,23 @@ function generateCommandActionSource(design: CommandDesign, commandPhrase: strin
         else if (commandSource == "kick") responseMessage = kickMessage;
         else if (commandSource == "tiktok") responseMessage = tiktokMessage;
         else return true;
-        if (String.IsNullOrWhiteSpace(responseMessage)) return true;
-        CPH.SetArgument("generatedCommandResponseMessage", responseMessage);
-        if (commandSource == "twitch") CPH.SendMessage(responseMessage, true, true);
-        else if (commandSource == "youtube") CPH.SendYouTubeMessageToLatestMonitored(responseMessage, true, true);
-        else if (commandSource == "kick") CPH.SendKickMessage(responseMessage, true, true);
-        else if (commandSource == "tiktok") SendToTikFinity(responseMessage);`
-    : design.responseMode === 'custom-script' ? indentCustomScript(design.customScript) : '        // No automatic response was selected. Add creator-owned sub-actions here.';
+        SendToSource(commandSource, responseMessage);`
+    : design.responseMode === 'custom-script' ? `        string responseMessage = BuildCustomResponse(commandSource, userName, target, rawInput, channelName);
+        SendToSource(commandSource, responseMessage);`
+    : '        // No automatic response was selected. Add creator-owned sub-actions here.';
+  // Custom scripts are only ever the BODY of BuildCustomResponse, never a full action -- creators
+  // write logic that computes and returns a reply, or send it themselves via CPH.* calls and fall
+  // through to the trailing "return \"\";" so SendToSource's no-op-on-empty guard skips it. This is
+  // what actually lets custom scripts compile and run instead of nesting inside Execute() and
+  // producing invalid C#, and lets custom scripts reuse the same verified per-platform send methods
+  // as platform-message mode instead of every creator needing to get those signatures right.
+  const customResponseMethod = design.responseMode === 'custom-script' ? `
+    private string BuildCustomResponse(string commandSource, string userName, string target, string rawInput, string channelName)
+    {
+${indentCustomScript(design.customScript)}
+        return "";
+    }
+` : '';
   return `using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
@@ -434,7 +455,7 @@ ${execution}
         args["message"] = message;
         CPH.WebsocketBroadcastJson(JsonConvert.SerializeObject(new { action = "sendChatbotMessage", args = args }));
     }
-}
+${customResponseMethod}}
 `;
 }
 

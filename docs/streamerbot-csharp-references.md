@@ -59,6 +59,22 @@ The broadcaster-login field is the one true trap: Twitch capitalizes it `broadca
 
 Command-specific arguments (`commandSource`, `rawInput`, `input0`/`input#`, `commandId`, `commandName`) are documented on the [Command Triggered trigger](https://docs.streamer.bot/api/triggers/core/commands/command-triggered) and are the same across platforms; only the platform-specific identity/broadcaster fields above vary by capitalization.
 
+## Verified chat-send methods
+
+Wizard-generated commands' `SendToSource` helper sends through these methods; every signature below was confirmed directly against docs.streamer.bot, not assumed:
+
+| Platform | Method | Signature |
+| --- | --- | --- |
+| Twitch | `CPH.SendMessage` | `(string message, bool useBot = true, bool fallback = true)` |
+| YouTube | `CPH.SendYouTubeMessageToLatestMonitored` | `(string message, bool useBot = true, bool fallback = true)` |
+| Kick | `CPH.SendKickMessage` | `(string message, bool useBot = true, bool fallback = true)` |
+
+`CPH.SendYouTubeMessage` also exists, but additionally requires a `broadcastId` — `SendYouTubeMessageToLatestMonitored` is used instead specifically so commands never need to track which YouTube broadcast is live.
+
+## Custom-script commands
+
+A "C# script body" custom command is **only the body of a method the generated action already declares**, not a full action. Write code that computes a reply and ends with `return` of the message to send — or call `CPH.*` methods yourself and end with `return "";`/`return null;` to skip the automatic send. Do not paste in `using` directives, `class CPHInline`, or `Execute()`; the wizard rejects a script containing those (both in the browser, before the batch even accepts it, and again server-side) because that wrapper would nest inside the generated action's own `Execute()` method and fail to compile — the [C# code guide](https://docs.streamer.bot/api/csharp/guide/introduction) shows what a *full*, standalone Streamer.bot action looks like; a custom-script command is deliberately not that.
+
 Official references:
 
 - [Streamer.bot C# code API](https://docs.streamer.bot/api/csharp)
