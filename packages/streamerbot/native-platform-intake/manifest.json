@@ -1,14 +1,14 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Native Platform Intake",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "author": "surakage",
   "description": "Relays allowlisted Twitch, YouTube, and Kick trigger fields into the validated THSV StreamBridge pipeline.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
   "actions": [
-    { "name": "THSV Twitch - Intake", "group": "THSV StreamBridge - Twitch", "id": "5b43c53a-1e4b-5608-b343-5f88c2884677", "sourceSubActionId": "d92f9b5c-98a1-55e8-8baf-ed6625a56b70", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.4.0.sb" },
-    { "name": "THSV YouTube - Intake", "group": "THSV StreamBridge - YouTube", "id": "38df4ccc-2d85-5a9d-8fa6-6711f513c2bd", "sourceSubActionId": "b86a8912-505e-521b-b1e6-af594ad43f90", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.4.0.sb" },
-    { "name": "THSV Kick - Intake", "group": "THSV StreamBridge - Kick", "id": "a6b02419-c344-5853-8166-eb6b6adb02d7", "sourceSubActionId": "617795f3-c965-5af5-b7f4-0e873d2c8c1f", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.4.0.sb" }
+    { "name": "THSV Twitch - Intake", "group": "THSV StreamBridge - Twitch", "id": "5b43c53a-1e4b-5608-b343-5f88c2884677", "sourceSubActionId": "d92f9b5c-98a1-55e8-8baf-ed6625a56b70", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.5.0.sb" },
+    { "name": "THSV YouTube - Intake", "group": "THSV StreamBridge - YouTube", "id": "38df4ccc-2d85-5a9d-8fa6-6711f513c2bd", "sourceSubActionId": "b86a8912-505e-521b-b1e6-af594ad43f90", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.5.0.sb" },
+    { "name": "THSV Kick - Intake", "group": "THSV StreamBridge - Kick", "id": "a6b02419-c344-5853-8166-eb6b6adb02d7", "sourceSubActionId": "617795f3-c965-5af5-b7f4-0e873d2c8c1f", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.5.0.sb" }
   ],
   "runtime": { "queue": "Default", "concurrent": true },
   "triggerContract": {

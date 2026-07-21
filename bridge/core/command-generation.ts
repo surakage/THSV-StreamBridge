@@ -390,7 +390,12 @@ public class CPHInline
         string rawInput = First(Read("rawInput"), Read("commandParams")).Trim();
         string target = First(Read("input0"), FirstWord(rawInput)).Trim();
         string userName = First(Read("nickname"), Read("username"), Read("user"), Read("userName"), Read("displayName"));
-        string channelName = First(Read("broadcastUserName"), Read("broadcasterUserName"), Read("channelName"));
+        // Streamer.bot's broadcaster-username argument is capitalized differently per platform and
+        // args lookups are case-sensitive: Twitch documents "broadcastUserName", YouTube and Kick
+        // document "broadcastUsername" (lowercase n). All three also expose "broadcastUser" (the
+        // broadcaster's display name) as a fallback. "broadcasterUserName"/"channelName" are not
+        // real Streamer.bot arguments on any platform and never matched anything.
+        string channelName = First(Read("broadcastUserName"), Read("broadcastUsername"), Read("broadcastUser"));
 ${messageDeclarations}
         CPH.SetArgument("generatedCommandName", "${design.name}");
         CPH.SetArgument("generatedCommandPhrase", "${commandPhrase}");

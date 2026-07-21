@@ -20,7 +20,7 @@ public class CPHInline
         "currencyCode", "count", "bits", "viewers", "monthsSubscribed", "months", "cumulative", "gifts", "giftCount", "monthStreak",
         "streakMonths", "tier", "subTier", "subscriptionTier", "giftName", "itemName", "rewardName", "rewardId", "reward.id",
         "reward.title", "rewardCost", "reward.cost", "requiresUserInput", "reward.requiresUserInput", "redemptionId", "broadcastId",
-        "broadcasterUserId", "broadcasterId", "broadcastUserName", "broadcasterUserName", "broadcaster",
+        "broadcastUserId", "broadcastUserName", "broadcastUsername", "broadcastUser",
         "recipientId", "cumulativeMonths", "totalGifts", "totalSubsGifted", "id",
         "recipient.userId", "subscribedAt", "expiresAt", "kicks.amount", "kicks.name", "microAmount"
     };
@@ -87,8 +87,17 @@ public class CPHInline
             ["rewardCost"] = First(ReadInvariant("rewardCost"), ReadInvariant("reward.cost")),
             ["rewardRequiresInput"] = ReadBoolean("requiresUserInput") || ReadBoolean("reward.requiresUserInput"),
             ["redemptionId"] = Read("redemptionId"),
-            ["channelId"] = First(Read("broadcastId"), Read("broadcasterUserId"), Read("broadcasterId")),
-            ["channelName"] = First(Read("broadcastUserName"), Read("broadcasterUserName"), Read("broadcaster")),
+            // Streamer.bot's broadcaster-user-ID argument is "broadcastUserId" on Twitch, YouTube,
+            // and Kick alike; "broadcasterUserId"/"broadcasterId" are not real Streamer.bot
+            // arguments on any platform. "broadcastId" (YouTube only) identifies the livestream
+            // itself, not the broadcaster account, so it is kept only as a last-resort fallback.
+            ["channelId"] = First(Read("broadcastUserId"), Read("broadcastId")),
+            // The broadcaster-username argument is capitalized differently per platform and args
+            // lookups are case-sensitive: Twitch documents "broadcastUserName", YouTube and Kick
+            // document "broadcastUsername" (lowercase n). All three also expose "broadcastUser"
+            // (the broadcaster's display name) as a fallback. "broadcasterUserName"/"broadcaster"
+            // are not real Streamer.bot arguments on any platform and never matched anything.
+            ["channelName"] = First(Read("broadcastUserName"), Read("broadcastUsername"), Read("broadcastUser")),
             ["argumentKeys"] = argumentKeys
         };
         try { CPH.WebsocketBroadcastJson(message.ToString(Formatting.None)); }
