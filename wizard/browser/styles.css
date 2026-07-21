@@ -191,6 +191,21 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .preview-alert-card[data-layout="stacked"] .preview-alert-identity,.preview-alert-card[data-layout="centered"] .preview-alert-identity{flex-direction:column;text-align:center}
 .preview-alert-card[data-layout="stacked"] .preview-alert-copy,.preview-alert-card[data-layout="centered"] .preview-alert-copy{text-align:center}
 
+/* ---------- Chat overlay: live preview ---------- */
+.preview-chat-wrap{margin:2px 0 6px}
+.preview-chat-card{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;padding:12px;min-height:70px;transition:background-color var(--ease)}
+.preview-chat-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.preview-chat-message{padding:10px 12px;border:1px solid rgba(255,255,255,.14);border-left:4px solid var(--eyebrow);border-radius:10px;transition:background-color var(--ease)}
+.preview-chat-identity{display:flex;align-items:center;flex-wrap:wrap;gap:6px 7px;min-width:0}
+.preview-chat-avatar{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;color:#fff;background:#554173}
+.preview-chat-platform,.preview-chat-role{flex:none;padding:2px 5px;border-radius:5px;background:rgba(150,114,255,.22);color:#d9ccff;font-size:.66rem;font-weight:800;letter-spacing:.05em}
+.preview-chat-role{background:rgba(114,239,194,.16);color:#8ee9c9}
+.preview-chat-name{font-weight:750;color:#fff}
+.preview-chat-body{margin:6px 0 0;line-height:1.4;overflow-wrap:anywhere}
+.preview-chat-card[data-layout="compact"] .preview-chat-message{padding:6px 8px;border-radius:7px}
+.preview-chat-card[data-layout="compact"] .preview-chat-avatar{width:20px;height:20px}
+.preview-chat-card[data-layout="compact"] .preview-chat-body{margin-top:3px}
+
 /* ---------- Rewards ---------- */
 .recent-rewards-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .recent-rewards-chips button{background:var(--panel);border:1px solid var(--border);color:var(--nav);padding:6px 12px;border-radius:999px;font-size:.82rem;font-weight:700;box-shadow:none}

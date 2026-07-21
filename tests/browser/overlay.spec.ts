@@ -28,7 +28,7 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   const commandForm = page.locator('#design-command');
   await expect(commandForm.locator('[name="actionName"]')).toBeVisible();
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
-  await expect(commandForm.locator('[name="template"] option')).toHaveCount(10);
+  await expect(commandForm.locator('[name="template"] option')).toHaveCount(17);
   await expect(commandForm.locator('[name="template"] option[value="weather"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="discord"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="rules"]')).toHaveCount(1);
@@ -71,7 +71,19 @@ test('wizard shows only the selected platform events and exposes platform color 
   await expect(form.locator('[name="platformColorKick"]')).toHaveValue('#245c18');
   await expect(form.locator('[name="platformColorTiktok"]')).toHaveValue('#172b31');
 
+  // Live chat preview reflects settings without staging or connecting to an overlay.
+  // "Layout & text" is open by default; other settings sections start collapsed.
+  await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(5);
+  await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'regular');
+  await form.locator('[name="layout"]').selectOption('compact');
+  await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'compact');
+  await page.getByText('Branding & visibility', { exact: true }).click();
+  await form.locator('[name="showProfilePictures"]').uncheck();
+  await expect(page.locator('#chat-preview-list .preview-chat-avatar')).toHaveCount(0);
+
   await page.getByText('Chat events', { exact: true }).click();
+  await form.locator('[name="showEvents"]').uncheck();
+  await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(4);
   await page.locator('#chat-event-platform').selectOption('youtube');
   await expect(page.locator('[data-platform-event]')).toHaveCount(6);
   await expect(page.locator('#chat-event-template-editor')).toContainText('New subscriber (free)');

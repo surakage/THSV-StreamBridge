@@ -80,6 +80,7 @@
   <div class="title-row"><div><h2>Chat overlay</h2><p>Customize one saved chat presentation for OBS, Meld, Streamlabs, and compatible Chromium browser sources. These settings replace the need for layout parameters in the URL.</p></div></div>
   <p class="notice">Ignored names are matched case-insensitively against both username and display name before chat is broadcast to any browser overlay. They do not block commands or alter Streamer.bot chat.</p>
   <form id="chat-overlay-form" class="filter-form">
+    <div class="full-row preview-chat-wrap"><strong class="preview-label">Live preview (example messages, not connected to an overlay)</strong><div id="chat-preview-card" class="preview-chat-card"><ul id="chat-preview-list" class="preview-chat-list"></ul></div></div>
     <details class="form-section" open><summary>Layout &amp; text</summary><div class="detail-grid">
     <label>Layout<select name="layout"><option value="regular">Regular cards</option><option value="compact">Compact feed</option></select></label>
     <label>Visible messages<input name="maxChatMessages" type="number" min="1" max="200" required></label>
