@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Added: seven new Command Sync starter templates — Merch, PC specs / gear, VOD / replays, Emotes, Clip, Bot credit, and Timezone — alongside the existing nine, each pre-filled across all four platforms and ready to add straight to the batch.
 - Changed: the Timed Actions templates (Social rotation, Hydration, Stretch) now set up a complete ready-to-stage timer — per-platform starter message rotations within each platform's character limit, first-run delay, and the bundled Send Timed Message action pre-selected as the target. Staging accepts the bundled action (and an edited timer's unchanged saved target) without requiring a fresh Streamer.bot inspection first; the drift column shows "not-inspected" until the next inspection verifies it. New-timer setup is now: Add timer → pick template → Apply → tick your delivery platforms → Stage → Commit.
 - Added: the Bridge Launcher Streamer.bot actions (Launch/Shutdown) now raise a Windows toast notification with the result — "Bridge connected and healthy," "Bridge stopped," or the failure reason — since they intentionally run with no visible console window. Each run raises exactly one toast, and all THSV toasts share one id so Windows groups them under a single Action Center header instead of piling up. Per-event actions (chat, alerts, command, and platform intake) deliberately never toast. Bumped to 1.4.0.
 
