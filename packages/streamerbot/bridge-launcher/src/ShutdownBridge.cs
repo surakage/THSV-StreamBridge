@@ -8,6 +8,9 @@ using System.IO;
 public class CPHInline
 {
     private const string InstallPathArgument = "thsvBridgeInstallPath";
+    // One shared toast id across all THSV lifecycle actions: Windows stacks every
+    // notification under a single Action Center header instead of piling up separately.
+    private const string ToastId = "thsv-streambridge";
 
     public bool Execute()
     {
@@ -36,6 +39,7 @@ public class CPHInline
             if (!process.WaitForExit(ShutdownTimeoutMs)) return Fail("the launcher did not finish within the expected time.");
             if (process.ExitCode != 0) return Fail("the launcher reported a failure (exit code " + process.ExitCode + ").");
             CPH.LogInfo("THSV StreamBridge shutdown completed through its authenticated lifecycle launcher.");
+            Notify("Bridge stopped.");
             return true;
         }
         catch (Exception exception)
@@ -82,9 +86,17 @@ public class CPHInline
         };
     }
 
+    // Every invocation raises exactly one toast — success and failure paths are exclusive,
+    // and the shared id keeps repeats grouped, so this action can never flood Action Center.
+    private void Notify(string message)
+    {
+        CPH.ShowToastNotification(ToastId, "THSV StreamBridge", message, "THSV StreamBridge", null);
+    }
+
     private bool Fail(string reason)
     {
         CPH.LogError("THSV StreamBridge shutdown failed: " + reason);
+        Notify("Bridge shutdown failed: " + reason);
         return false;
     }
 }

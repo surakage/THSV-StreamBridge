@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Added: the Bridge Launcher Streamer.bot actions (Launch/Shutdown) now raise a Windows toast notification with the result — "Bridge connected and healthy," "Bridge stopped," or the failure reason — since they intentionally run with no visible console window. Each run raises exactly one toast, and all THSV toasts share one id so Windows groups them under a single Action Center header instead of piling up. Per-event actions (chat, alerts, command, and platform intake) deliberately never toast. Bumped to 1.4.0.
+
 ## [2.0.0] - 2026-07-20
 
 - Promotes `2.0.0-rc.4` to the stable v2 release with no code changes. The automated, clean-machine, and visual gates pass; a genuine live-stream, real-viewer soak of the high-impact provider-event matrix is still in progress, and high-impact operations without verified provider-stable IDs remain blocked at runtime regardless (see [production-readiness](docs/production-readiness.md)).
