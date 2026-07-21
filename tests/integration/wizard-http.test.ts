@@ -359,6 +359,11 @@ describe('wizard HTTP surface', () => {
     const response = await fetch(`${baseUrl}/wizard/api/timed-actions/test-timer/test`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
     expect(response.status).toBe(202);
     expect(await response.json()).toMatchObject({ accepted: true, timerId: 'test-timer', simulated: true });
+    // Testing a timer the running bridge does not know (staged but uncommitted, or awaiting a
+    // restart) must explain the commit-and-restart cycle instead of a generic internal error.
+    const unknown = await fetch(`${baseUrl}/wizard/api/timed-actions/not-applied-yet/test`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect(unknown.status).toBe(409);
+    expect(await unknown.json()).toMatchObject({ error: expect.stringContaining('commit the draft and restart') as unknown });
   });
 
   it('generates authenticated alert previews with forced simulated provenance', async () => {

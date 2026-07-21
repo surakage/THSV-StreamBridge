@@ -28,6 +28,10 @@ interface Selection {
 const MAX_TIMEOUT_MS = 2_147_000_000;
 const MAX_CHAT_ACTIVITY_ENTRIES = 10_000;
 
+// Raised when a wizard test targets a timer the RUNNING bridge does not know about —
+// typically a staged-but-uncommitted timer, or a committed one awaiting a restart.
+export class UnknownTimedActionError extends Error {}
+
 export class TimedActionsAdapter extends ManagedAdapter {
   private context: AdapterContext | undefined;
   private readonly timers = new Map<string, NodeJS.Timeout>();
@@ -108,7 +112,7 @@ export class TimedActionsAdapter extends ManagedAdapter {
   }
   public async test(id: string): Promise<Readonly<Record<string, unknown>>> {
     const definition = this.timedActions.definitions.find((candidate) => candidate.id === id);
-    if (definition === undefined) throw new Error(`Unknown timed action: ${id}`);
+    if (definition === undefined) throw new UnknownTimedActionError(`The running bridge has no timer "${id}". If you just created or changed it, commit the draft and restart StreamBridge, then test again.`);
     if (this.context === undefined) throw new Error('Timed actions adapter is not running');
     const now = new Date().toISOString();
     await this.emitDefinition(definition, now, (this.timerState(id).occurrence ?? 0) + 1, 0, true);

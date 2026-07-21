@@ -9,6 +9,7 @@ import { buildNormalizedEvent } from '../adapters/normalization.js';
 import type { IngestResult } from '../core/bridge.js';
 import { InvalidEventError, PayloadTooLargeError } from '../core/bridge.js';
 import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-manager.js';
+import { UnknownTimedActionError } from '../adapters/timed-actions-adapter.js';
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
@@ -311,6 +312,7 @@ export class DiagnosticsServer {
       if (error instanceof AddOnWizardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
+      if (error instanceof UnknownTimedActionError) return this.reply(response, 409, { error: error.message });
       if (error instanceof OutputCapacityError) return this.reply(response, 429, { error: error.message });
       if (error instanceof OutputUnavailableError) return this.reply(response, 503, { error: error.message });
       if (error instanceof UnsupportedContentEncodingError) return this.reply(response, 415, { error: error.message });
