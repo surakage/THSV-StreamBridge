@@ -311,7 +311,10 @@ export function generateCommandsPackage(designs: readonly CommandDesign[], prefi
     const commandId = stableStreamerBotUuid(`${identitySeed}:command`);
     const triggerId = stableStreamerBotUuid(`${identitySeed}:trigger`);
     const commandPhrase = `${normalizedPrefix}${design.name}`;
-    const commandPhrases = [commandPhrase, ...design.aliases.map((alias) => `${normalizedPrefix}${alias}`)].join('\n');
+    // CRLF, not LF: confirmed against a real Streamer.bot export of a manually-typed multi-alias
+    // command — its `command` field was "\r\n"-joined. An LF-only join left wizard-imported
+    // commands showing correctly in the edit dialog but never matching in chat.
+    const commandPhrases = [commandPhrase, ...design.aliases.map((alias) => `${normalizedPrefix}${alias}`)].join('\r\n');
     const sourceCode = generateCommandActionSource(design, commandPhrase);
     actionInputs.push({
       name: actionName,

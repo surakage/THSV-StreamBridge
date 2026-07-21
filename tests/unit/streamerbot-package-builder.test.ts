@@ -5,7 +5,15 @@ import { buildStreamerBotPackage, stableStreamerBotUuid } from '../../bridge/ser
 interface DecodedPackage {
   readonly data: {
     readonly actions: ReadonlyArray<{ readonly id: string; readonly subActions: ReadonlyArray<{ readonly id: string; readonly type: number; readonly index: number; readonly variableName?: string; readonly value?: string; readonly autoType?: boolean; readonly references?: readonly string[] }>; readonly triggers: ReadonlyArray<{ readonly id: string; readonly commandId: string }> }>;
-    readonly commands: ReadonlyArray<{ readonly id: string; readonly sources?: number; readonly globalCooldown?: number; readonly userCooldown?: number; readonly ignoreBotAccount?: boolean; readonly ignoreInternal?: boolean }>;
+    readonly commands: ReadonlyArray<{
+      readonly id: string; readonly command: string; readonly sources?: number; readonly globalCooldown?: number; readonly userCooldown?: number;
+      readonly ignoreBotAccount?: boolean;
+      readonly _yuEckkdeqeGVrWcRFoIw8BeAQXz?: boolean;
+      readonly _2Gw8HsHY4qR8nXsJqEE6F6gMDNj?: boolean;
+      readonly _P3JEHKDbjl8yxL8sXp3xW9byFMe?: readonly unknown[];
+      readonly _ifoddENsXXJUpjpi0CGSd6mx9ff?: readonly unknown[];
+      readonly _8Sqi6SKWnlYNCdAS1XISSKAglmB?: string;
+    }>;
   };
 }
 
@@ -63,6 +71,20 @@ describe('Streamer.bot package builder', () => {
       name: 'hello', command: '!hello', enabled: false, caseSensitive: false, stableIdentitySeed: 'hello',
       sources: 1 | 1_024 | 2_097_152, globalCooldown: 10, userCooldown: 30, ignoreBotAccount: false, ignoreInternal: false,
     }]));
-    expect(decoded.data.commands[0]).toMatchObject({ sources: 2_098_177, globalCooldown: 10, userCooldown: 30, ignoreBotAccount: false, ignoreInternal: false });
+    // "Ignore Internal Messages" has no property literally named `ignoreInternal` in a real
+    // Streamer.bot export; it lives at this obfuscated key (confirmed against a real export of a
+    // manually-typed command, where it sits immediately after `ignoreBotAccount`).
+    expect(decoded.data.commands[0]).toMatchObject({ sources: 2_098_177, globalCooldown: 10, userCooldown: 30, ignoreBotAccount: false, _yuEckkdeqeGVrWcRFoIw8BeAQXz: false });
+  });
+
+  it('joins multi-line commands with CRLF and mirrors them into the comma-separated match-list field', () => {
+    const decoded = decode(buildStreamerBotPackage(meta, [{ name: 'Action', group: 'Tests', sourceCode: 'return true;', stableIdentitySeed: 'action' }], [{
+      name: 'tips', command: '!tip\r\n!tips\r\n!support', enabled: false, caseSensitive: false, stableIdentitySeed: 'tips',
+    }]));
+    expect(decoded.data.commands[0]?.command).toBe('!tip\r\n!tips\r\n!support');
+    expect(decoded.data.commands[0]?._8Sqi6SKWnlYNCdAS1XISSKAglmB).toBe('!tip, !tips, !support');
+    expect(decoded.data.commands[0]?._2Gw8HsHY4qR8nXsJqEE6F6gMDNj).toBe(false);
+    expect(decoded.data.commands[0]?._P3JEHKDbjl8yxL8sXp3xW9byFMe).toEqual([]);
+    expect(decoded.data.commands[0]?._ifoddENsXXJUpjpi0CGSd6mx9ff).toEqual([]);
   });
 });

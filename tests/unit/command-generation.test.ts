@@ -206,7 +206,7 @@ describe('command package generation', () => {
     const command = exported.data.commands[0];
     expect(command?.id).toBe(entry?.commandId);
     expect(command?.name).toBe('so');
-    expect(command?.command).toBe('!so\n!shoutout');
+    expect(command?.command).toBe('!so\r\n!shoutout');
     // Imports remain disabled so the creator reviews the generated action, permissions, sources,
     // aliases, and cooldowns before enabling it.
     expect(command?.enabled).toBe(false);
