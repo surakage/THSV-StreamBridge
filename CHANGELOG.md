@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-20
+
+- Promotes `2.1.0-rc.1` to stable with no code changes. The wizard-command chat-matching fix was live-verified against a real Streamer.bot instance before promotion.
+
 ## [2.1.0-rc.1] - 2026-07-20
 
 - Fixed: wizard-imported commands (for example `!tips`) could show up correctly in Streamer.bot's own edit dialog — Enabled, correct Sources, correct Mode/Location, correct alias list — and still never fire from chat, while deleting and retyping the identical command by hand worked immediately. Diffed a real export of a working, hand-typed command against what the wizard generates and found two real structural bugs: (1) Streamer.bot's multi-line Command(s) field joins aliases with `\r\n`, not `\n` — the wizard was LF-only; (2) a hand-typed command carries an internal, comma-separated mirror of the same alias list in an undocumented property alongside the primary CRLF field, which the wizard never emitted at all. Also fixed a related, longstanding no-op: the "Ignore Internal Messages" option was being written to a property name (`ignoreInternal`) that doesn't exist in Streamer.bot's real export schema, so the toggle silently had no effect on any generated command; it's now written to the correct (obfuscated) property. See `bridge/services/streamerbot-package-builder.ts` for the full reverse-engineered field notes.
