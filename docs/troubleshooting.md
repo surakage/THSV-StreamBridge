@@ -1,5 +1,17 @@
 # Troubleshooting
 
+## Smart App Control blocks the installer
+
+On Windows 11 with Smart App Control enabled, double-clicking `Install THSV StreamBridge.cmd` can be blocked with "Smart App Control has blocked an app with a dangerous file extension." Smart App Control blocks unsigned script files (`.cmd`/`.bat`) that carry the downloaded-from-the-internet mark, and unlike SmartScreen it offers no "Run anyway" button. The `.cmd` is only a thin display wrapper — the real installer is `installer\install.mjs`, run by the bundled, OpenJS-Foundation-signed `runtime\node.exe`, which Smart App Control trusts.
+
+Any one of these resolves it, best first:
+
+1. **Unblock the ZIP before extracting, then re-extract.** Right-click the downloaded `THSV-StreamBridge-<version>.zip` → Properties → check **Unblock** → OK (or in PowerShell: `Unblock-File .\THSV-StreamBridge-<version>.zip`). Files extracted afterward no longer carry the internet mark. Verify the archive per [RELEASE-VERIFICATION.md](../RELEASE-VERIFICATION.md) first — unblocking is a statement that you trust the file.
+2. **Run the installer without the wrapper.** Open a terminal in the extracted folder and run `.\runtime\node.exe .\installer\install.mjs` — this is exactly what the `.cmd` runs, minus the blocked script file.
+3. **Turn Smart App Control off** in Settings → Privacy & security → Windows Security → App & browser control → Smart App Control settings. Only do this if you want it off in general: once disabled, Windows does not allow re-enabling it without reinstalling Windows.
+
+The same restriction can affect the installed `launcher\*.cmd` shortcuts on strict machines; their PowerShell equivalents (`start.ps1`, `stop.ps1`) and the direct `runtime\node.exe` invocation remain available. This is a Windows policy interaction with unsigned portable software, not a StreamBridge defect — the project publishes SHA-256 checksums and GitHub artifact attestations instead of using a paid Windows code-signing certificate.
+
 ## Confirm support before debugging
 
 Facebook is not supported. Twitch, YouTube, and Kick require the included Streamer.bot relay setup, and TikTok/TikFinity retains documented provenance limitations. Check the [compatibility and platform matrix](compatibility.md) before treating an unsupported or unverified transport as an installation failure.

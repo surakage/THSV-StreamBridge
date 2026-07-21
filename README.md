@@ -38,6 +38,8 @@ Public releases are distributed as self-contained Windows x64 ZIP files from the
 
 Default installation location: `%LOCALAPPDATA%\THSV StreamBridge`. Windows 10 or later and PowerShell 5.1 or later are required.
 
+> **Windows 11 Smart App Control note:** machines with Smart App Control enabled block the unsigned `.cmd` installer with no "Run anyway" option. Either unblock the ZIP before extracting (Properties → Unblock) or run `.\runtime\node.exe .\installer\install.mjs` from the extracted folder — see [Troubleshooting](docs/troubleshooting.md#smart-app-control-blocks-the-installer).
+
 ## First-time setup
 
 1. Start Streamer.bot and enable its WebSocket server on `127.0.0.1:8080`.
