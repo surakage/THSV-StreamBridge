@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AddOnWizardService } from '../../bridge/services/addon-wizard-service.js';
+import { AddOnWizardService, validateSettings } from '../../bridge/services/addon-wizard-service.js';
 
 const temporary: string[] = [];
 afterEach(async () => Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
@@ -36,6 +36,16 @@ function declarativeArchive(): Uint8Array {
 }
 
 describe('wizard add-on management', () => {
+  it('enforces enumerated list choices rendered as selector controls', () => {
+    const schema = {
+      type: 'object', properties: {
+        platforms: { type: 'array', items: { type: 'string', enum: ['twitch', 'youtube'] }, minItems: 1, maxItems: 2 },
+      },
+    };
+    expect(validateSettings(schema, { platforms: ['twitch', 'youtube'] })).toEqual({ platforms: ['twitch', 'youtube'] });
+    expect(() => validateSettings(schema, { platforms: ['unsupported'] })).toThrow('unsupported choice');
+  });
+
   it('installs a verified declarative archive, validates settings, toggles it, and preserves state on removal', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-addon-wizard-')); temporary.push(root);
     const packages = join(root, 'packages'); const state = join(root, 'state');
@@ -83,7 +93,7 @@ describe('wizard add-on management', () => {
     const discovered = await service.discover();
     expect(discovered).toEqual([
       expect.objectContaining({ filename: 'damaged.thsv-addon', health: 'rejected', trust: 'integrity-only' }),
-      expect.objectContaining({ filename: 'status-card.thsv-addon', health: 'available', moduleId: 'sample.status-card', trust: 'integrity-only' }),
+      expect.objectContaining({ filename: 'status-card.thsv-addon', health: 'available', moduleId: 'sample.status-card', trust: 'integrity-only', trustMetadata: {} }),
     ]);
     await expect(service.installDiscovered({ filename: 'status-card.thsv-addon', approvedByCreator: false })).rejects.toThrow('explicit creator approval');
     await expect(service.installDiscovered({ filename: '../status-card.thsv-addon', approvedByCreator: true })).rejects.toThrow('filename is invalid');

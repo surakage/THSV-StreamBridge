@@ -146,6 +146,56 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .form-section .detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
 @media(max-width:760px){.form-section .detail-grid{grid-template-columns:1fr}}
 
+/* ---------- Add-on settings: compact, guided, and progressively disclosed ---------- */
+.addon-settings-shell{padding:0;overflow:hidden}
+.addon-settings-shell>summary{padding:15px 16px;background:var(--panel)}
+.addon-settings{display:block;margin:0;padding:0 14px 14px}
+.addon-settings-intro{margin:12px 2px;color:var(--subtle);font-size:.88rem;line-height:1.45}
+.addon-settings-section{border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);overflow:hidden;margin:9px 0}
+.addon-settings-section>summary{padding:13px 14px;background:var(--panel);color:var(--text)}
+.addon-settings-section>summary span{display:grid;gap:3px}
+.addon-settings-section>summary small{color:var(--small);font-weight:500;font-size:.78rem;line-height:1.35}
+.addon-settings-section[open]>summary{border-bottom:1px solid var(--border)}
+.addon-settings-section-body{display:grid;gap:12px}
+.addon-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;padding:14px}
+.addon-settings-section-body>.addon-settings-grid{padding-top:14px}
+.addon-settings-notice{margin:14px 14px 0;padding:12px 14px;border-left:3px solid var(--accent);border-radius:var(--radius-sm);background:var(--panel);color:var(--subtle);line-height:1.5}
+.addon-settings-notice:last-child{margin-bottom:14px}
+.addon-settings-links{display:flex;flex-wrap:wrap;gap:9px;padding:0 14px 14px}
+.addon-settings-links:first-child{padding-top:14px}
+.addon-settings-links a{display:inline-flex;align-items:center;min-height:36px;padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--accent);font-weight:700;text-decoration:none}
+.addon-settings-links a:hover,.addon-settings-links a:focus-visible{border-color:var(--accent);text-decoration:underline}
+.addon-trust-links{display:grid;gap:6px;margin:10px 0}
+.addon-trust-links .button-row{margin-top:0}
+.addon-trust-links a{display:inline-flex;align-items:center;min-height:34px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--accent);font-weight:700;text-decoration:none}
+.addon-trust-links a:hover,.addon-trust-links a:focus-visible{border-color:var(--accent);text-decoration:underline}
+.addon-update-result[data-addon-update-state="update-available"]{border-color:#7b61ff}
+.addon-update-result[data-addon-update-state="revoked"],.addon-update-result[data-addon-update-state="publisher-mismatch"]{border-color:#d94b70;color:#ffd7e1}
+.addon-update-result code{overflow-wrap:anywhere}
+.addon-setting{min-width:0}
+.addon-setting.full-row{grid-column:1/-1}
+.addon-setting[hidden]{display:none}
+.addon-setting label>small,.addon-choice-field>small{color:var(--small);font-weight:500;line-height:1.4}
+.addon-choice-field{min-width:0;margin:0;border:0;padding:0}
+.addon-choice-field legend{padding:0 0 8px;font-weight:800}
+.addon-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.addon-choice{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 11px;background:var(--panel);cursor:pointer;font-weight:700}
+.addon-choice:has(input:checked){border-color:var(--button);background:var(--active);color:var(--active-text)}
+.addon-choice input{margin:0;flex:none}
+.addon-toggle{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);padding:11px 12px;cursor:pointer}
+.addon-toggle>span{display:grid;gap:3px}
+.addon-toggle input{position:absolute;opacity:0;pointer-events:none}
+.addon-toggle i{position:relative;width:42px;height:24px;border-radius:999px;background:var(--input-border);transition:background-color var(--ease);box-shadow:inset 0 1px 3px rgba(0,0,0,.35)}
+.addon-toggle i::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform var(--ease);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.addon-toggle input:checked+i{background:var(--button)}
+.addon-toggle input:checked+i::after{transform:translateX(18px)}
+.addon-toggle input:focus-visible+i{outline:2px solid var(--eyebrow);outline-offset:3px}
+.addon-settings-save{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel)}
+.addon-settings-save button{margin:0}
+.addon-settings-save small{color:var(--small)}
+@media(max-width:760px){.addon-settings-grid{grid-template-columns:1fr}.addon-setting.full-row{grid-column:auto}.addon-choice-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.addon-choice-grid{grid-template-columns:1fr}.addon-settings-save button{width:100%}}
+
 /* ---------- Batch/message sub-lists (timed actions, command sync) ---------- */
 .platform-message-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .message-platform{border-top:1px solid var(--border);padding-top:14px;margin-top:14px}

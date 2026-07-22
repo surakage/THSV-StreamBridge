@@ -1,6 +1,6 @@
 # Streamer.bot C# compiler references
 
-THSV StreamBridge targets Streamer.bot `1.0.5-alpha.31` or newer. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning.
+THSV StreamBridge keeps Streamer.bot `1.0.5-alpha.31` as its live-verified minimum and recommends `1.0.5-alpha.32` for new installs. Alpha.32 improves EventSub retries, authentication, backups, pending-action recovery, and the Execute C# Code editor without removing a C# contract used by these packages. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning. A fresh alpha.32 live compile and relay pass is still required before the verified-version label moves forward.
 
 ## Required references
 
@@ -14,10 +14,13 @@ Every generated import now carries the standard `mscorlib.dll` and `System.dll` 
 - Native Platform Intake
 - TikFinity Intake
 - Timed Message Output
+- Automated Shoutouts
+- User Translate
+- Auto Translate
 
 Normally no manual reference step is required after importing a current package. In the **Execute C# Code** editor, verify the reference list if compilation reports a missing type. Use only the `Newtonsoft.Json.dll` supplied with Streamer.bot; do not download a random DLL or replace Streamer.bot's bundled assembly.
 
-The current source does **not** require `System.Core.dll`, `System.Net.Http.dll`, or any downloaded third-party reference. Earlier compatibility workarounds are not required: current packages use documented `CPH.TryGetArg`, `CPH.SetArgument`, `CPH.WebsocketBroadcastJson`, platform chat methods, action dispatch, command administration, and Twitch reward methods directly.
+The current source does **not** require `System.Core.dll`, `System.Net.Http.dll`, or any downloaded third-party reference. Packages that consume Streamer.bot model types or `Newtonsoft.Json` may also declare the Windows Framework `netstandard.dll` compatibility facade. User Translate and Auto Translate intentionally use `System.Net.HttpWebRequest` from `System.dll`, so no extra HTTP assembly is needed.
 
 ## Packages using only built-in references
 

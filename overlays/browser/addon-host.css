@@ -12,6 +12,27 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 .media-shell.fading { opacity: 0; }
 .media-shell video { width: 100%; height: 100%; object-fit: contain; border-radius: 20px; background: #000; box-shadow: 0 18px 70px rgb(0 0 0 / 55%); }
 .media-title { position: absolute; left: 4%; right: 4%; bottom: 4%; padding: 0.5em 0.7em; overflow-wrap: anywhere; border-radius: 12px; background: rgb(0 0 0 / 72%); font-size: clamp(20px, 2.5vw, 42px); text-align: center; }
+.timer-shell { --timer-background: #0b1017; --timer-background-rendered: rgb(11 16 23 / 88%); --timer-accent: #7ee0ff; --timer-text: #eff7ff; --timer-muted: #dfefff; --timer-warning: #f0c15a; --timer-critical: #ff6b7d; --timer-live: #61f2a4; --timer-border: #85cbff; width: min(94vw, 1100px); color: var(--timer-text); }
+.timer-card { position: relative; overflow: hidden; padding: clamp(22px, 4vw, 54px); border: 2px solid var(--timer-border); border-radius: clamp(20px, 3vw, 40px); background: var(--timer-background-rendered); box-shadow: 0 22px 80px rgb(0 0 0 / 48%); }
+.timer-shell[data-background="none"] .timer-card { border-color: transparent; background: transparent; box-shadow: none; }
+.timer-shell[data-background="solid"] .timer-card { background: var(--timer-background); }
+.timer-shell[data-font="display"] { font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; }
+.timer-shell[data-font="broadcast"] { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.timer-shell[data-font="mono"] { font-family: "Cascadia Mono", Consolas, monospace; }
+.timer-topline, .timer-meta { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; }
+.timer-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--timer-accent); font-size: clamp(18px, 2.2vw, 34px); letter-spacing: .12em; }
+.timer-badge { flex: 0 0 auto; padding: .34em .7em; border: 1px solid currentColor; border-radius: 999px; color: var(--timer-muted); font: 700 clamp(12px, 1.4vw, 20px)/1 Inter, sans-serif; letter-spacing: .08em; }
+.timer-shell[data-state="running"] .timer-badge { color: var(--timer-live); }
+.timer-shell[data-state="warning"] .timer-badge { color: var(--timer-warning); }
+.timer-shell[data-state="critical"] .timer-badge { color: var(--timer-critical); }
+.timer-time { margin: .12em 0 .18em; overflow: hidden; font-size: clamp(64px, 14vw, 190px); font-variant-numeric: tabular-nums; font-weight: 900; line-height: .95; letter-spacing: .02em; text-align: center; text-shadow: 0 .04em .18em rgb(0 0 0 / 35%); white-space: nowrap; }
+.timer-progress-track { height: clamp(10px, 1.4vw, 18px); overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 14%); }
+.timer-progress-fill { width: 0; height: 100%; border-radius: inherit; background: var(--timer-accent); transition: width .5s linear; }
+.timer-shell[data-state="warning"] .timer-progress-fill { background: var(--timer-warning); }
+.timer-shell[data-state="critical"] .timer-progress-fill { background: var(--timer-critical); }
+.timer-meta { margin-top: clamp(12px, 2vw, 22px); color: var(--timer-muted); font: 600 clamp(14px, 1.8vw, 25px)/1.25 Inter, sans-serif; }
+.timer-meta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) { .timer-meta { align-items: flex-start; flex-direction: column; gap: .3rem; } .timer-time { font-size: clamp(48px, 17vw, 96px); } }
 /* Matches overlays/browser/styles.css's .connection-status: red "OFFLINE" while disconnected, a
    brief green "LIVE" flash on connect, then hidden -- the same pattern every overlay surface uses. */
 .status { position: absolute; right: 16px; bottom: 12px; padding: 5px 9px; border-radius: 999px; background: rgb(0 0 0 / 70%); color: #ff9c9c; font-size: 12px; letter-spacing: 0.08em; opacity: 1; transition: opacity .2s ease; }

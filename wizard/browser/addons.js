@@ -24,17 +24,78 @@ async function loadAddOns() {
   }
 }
 
-function renderAddOnField(name, schema, value) {
+function addOnOptionLabel(value) {
+  const knownLabels = { youtube: 'YouTube', tiktok: 'TikTok', tikfinity: 'TikFinity', streamerbot: 'Streamer.bot' };
+  const normalized = String(value).toLowerCase();
+  return knownLabels[normalized] || String(value).replaceAll('-', ' ').replace(/\b\w/gu, (letter) => letter.toUpperCase());
+}
+
+function addOnVisibilityAttributes(ui) {
+  const condition = ui?.visibleWhen;
+  if (!condition || typeof condition.field !== 'string' || !Object.hasOwn(condition, 'equals')) return '';
+  return ` data-addon-visible-field="${safe(condition.field)}" data-addon-visible-value="${safe(JSON.stringify(condition.equals))}"`;
+}
+
+function safeAddOnLink(value) {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function renderAddOnTrustLinks(trust = {}) {
+  const links = [
+    ['Source', trust.sourceUrl],
+    ['Support', trust.supportUrl],
+    ['Updates', trust.updateManifestUrl],
+    ['Revocations', trust.revocationListUrl],
+  ].map(([label, value]) => {
+    const href = safeAddOnLink(value);
+    return href ? `<a href="${safe(href)}" target="_blank" rel="noreferrer noopener">${safe(label)}</a>` : '';
+  }).filter(Boolean).join('');
+  const publisher = trust.publisherId ? `<small><strong>Publisher ID:</strong> ${safe(trust.publisherId)}</small>` : '';
+  if (!links && !publisher) return '<p class="notice">No publisher update or revocation metadata is declared. Install only if you trust the bundled source and release page.</p>';
+  return `<div class="addon-trust-links">${publisher}${links ? `<div class="button-row">${links}</div>` : ''}</div>`;
+}
+
+function renderAddOnUpdate(addOn) {
+  const update = state.addOnUpdates?.addOns?.find((entry) => entry.moduleId === addOn.moduleId);
+  if (!update) return '';
+  const labels = {
+    current: 'Current',
+    'update-available': 'Update available',
+    'requires-newer-core': 'Core update required',
+    'publisher-mismatch': 'Publisher mismatch',
+    revoked: 'Revoked',
+    'not-listed': 'Not in official index',
+    rejected: 'Local package rejected',
+  };
+  const version = update.latestVersion ? ` Latest official version: ${update.latestVersion}.` : '';
+  const warning = update.warning ? ` ${update.warning}` : '';
+  const archive = update.archiveName ? `<small><strong>Official package:</strong> ${safe(update.archiveName)}</small>` : '';
+  const checksum = update.sha256 ? `<small><strong>Published SHA-256:</strong> <code>${safe(update.sha256)}</code></small>` : '';
+  return `<div class="notice addon-update-result" data-addon-update-state="${safe(update.state)}"><strong>${safe(labels[update.state] || update.state)}.</strong>${safe(version + warning)}${archive}${checksum}</div>`;
+}
+
+function renderAddOnField(name, schema, value, ui = {}) {
   const type = schema.type;
   const label = safe(schema.title || name);
   const help = schema.description ? `<small>${safe(schema.description)}</small>` : '';
-  if (Array.isArray(schema.enum)) return `<label>${label}<select name="${safe(name)}">${schema.enum.map((entry) => `<option value="${safe(entry)}" ${entry === value ? 'selected' : ''}>${safe(entry)}</option>`).join('')}</select>${help}</label>`;
-  if (type === 'boolean') return `<label class="check"><input name="${safe(name)}" type="checkbox" ${value === true ? 'checked' : ''}> ${label}</label>`;
-  if (type === 'number' || type === 'integer') return `<label>${label}<input name="${safe(name)}" type="number" ${type === 'integer' ? 'step="1"' : 'step="any"'} value="${safe(value ?? '')}" ${Number.isFinite(schema.minimum) ? `min="${safe(schema.minimum)}"` : ''} ${Number.isFinite(schema.maximum) ? `max="${safe(schema.maximum)}"` : ''}>${help}</label>`;
-  if (type === 'array') return `<label class="full-row">${label}<textarea name="${safe(name)}" rows="6" data-addon-string-list="true" placeholder="One item per line">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>${help}<small>One item per line. Empty and duplicate entries are rejected.</small></label>`;
-  if (schema.format === 'multiline') return `<label class="full-row">${label}<textarea name="${safe(name)}" rows="6" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 2000)}">${safe(value ?? '')}</textarea>${help}</label>`;
-  if (schema.format === 'color') return `<label>${label}<input name="${safe(name)}" type="color" value="${safe(value || '#6f42c1')}">${help}</label>`;
-  return `<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 500)}">${help}</label>`;
+  const fullRow = type === 'array' || schema.format === 'multiline' || ui.fullRow === true;
+  const wrapper = (content) => `<div class="addon-setting ${fullRow ? 'full-row' : ''}"${addOnVisibilityAttributes(ui)}>${content}</div>`;
+  if (type === 'array' && Array.isArray(schema.items?.enum)) {
+    const selected = new Set(Array.isArray(value) ? value : []);
+    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid">${schema.items.enum.map((entry) => `<label class="addon-choice"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
+  }
+  if (Array.isArray(schema.enum)) return wrapper(`<label>${label}<select name="${safe(name)}">${schema.enum.map((entry) => `<option value="${safe(entry)}" ${entry === value ? 'selected' : ''}>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</option>`).join('')}</select>${help}</label>`);
+  if (type === 'boolean') return wrapper(`<label class="addon-toggle"><span><strong>${label}</strong>${help}</span><input name="${safe(name)}" type="checkbox" role="switch" ${value === true ? 'checked' : ''}><i aria-hidden="true"></i></label>`);
+  if (type === 'number' || type === 'integer') return wrapper(`<label>${label}<input name="${safe(name)}" type="number" ${type === 'integer' ? 'step="1"' : 'step="any"'} value="${safe(value ?? '')}" ${Number.isFinite(schema.minimum) ? `min="${safe(schema.minimum)}"` : ''} ${Number.isFinite(schema.maximum) ? `max="${safe(schema.maximum)}"` : ''}>${help}</label>`);
+  if (type === 'array') return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="${safe(Number.isInteger(ui.rows) ? ui.rows : 4)}" data-addon-string-list="true" placeholder="One item per line">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>${help}<small>Enter one item per line. Empty and duplicate entries are rejected.</small></label>`);
+  if (schema.format === 'multiline') return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="${safe(Number.isInteger(ui.rows) ? ui.rows : 4)}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 2000)}">${safe(value ?? '')}</textarea>${help}</label>`);
+  if (schema.format === 'color') return wrapper(`<label>${label}<input name="${safe(name)}" type="color" value="${safe(value || '#6f42c1')}">${help}</label>`);
+  return wrapper(`<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 500)}">${help}</label>`);
 }
 
 function orderedAddOnProperties(addOn) {
@@ -42,6 +103,46 @@ function orderedAddOnProperties(addOn) {
   const requested = Array.isArray(addOn.settingsUi?.order) ? addOn.settingsUi.order.filter((name) => typeof name === 'string' && Object.hasOwn(properties, name)) : [];
   const seen = new Set(requested);
   return [...requested.map((name) => [name, properties[name]]), ...Object.entries(properties).filter(([name]) => !seen.has(name))];
+}
+
+function renderAddOnSettings(addOn) {
+  const entries = orderedAddOnProperties(addOn);
+  if (!entries.length) return '';
+  const byName = new Map(entries);
+  const rendered = new Set();
+  const fieldUi = addOn.settingsUi?.fields && typeof addOn.settingsUi.fields === 'object' ? addOn.settingsUi.fields : {};
+  const renderNames = (names) => names.filter((name) => byName.has(name)).map((name) => {
+    rendered.add(name);
+    return renderAddOnField(name, byName.get(name), addOn.settings[name], fieldUi[name]);
+  }).join('');
+  const requestedSections = Array.isArray(addOn.settingsUi?.sections) ? addOn.settingsUi.sections : [];
+  const sections = requestedSections.filter((section) => section && typeof section.title === 'string' && Array.isArray(section.fields)).map((section) => {
+    const fields = renderNames(section.fields);
+    const notice = typeof section.notice === 'string' && section.notice.trim() ? `<p class="addon-settings-notice">${safe(section.notice)}</p>` : '';
+    const links = Array.isArray(section.links) ? section.links.map((link) => {
+      const href = safeAddOnLink(link?.url);
+      return href && typeof link?.label === 'string' ? `<a href="${safe(href)}" target="_blank" rel="noreferrer noopener">${safe(link.label)}</a>` : '';
+    }).filter(Boolean).join('') : '';
+    if (!fields && !notice && !links) return '';
+    const body = `${notice}${links ? `<div class="addon-settings-links">${links}</div>` : ''}${fields ? `<div class="addon-settings-grid">${fields}</div>` : ''}`;
+    return `<details class="addon-settings-section" ${section.open === true ? 'open' : ''}><summary><span>${safe(section.title)}${section.description ? `<small>${safe(section.description)}</small>` : ''}</span></summary><div class="addon-settings-section-body">${body}</div></details>`;
+  }).join('');
+  const remaining = renderNames(entries.map(([name]) => name).filter((name) => !rendered.has(name)));
+  if (!sections) return `<div class="addon-settings-grid">${remaining}</div>`;
+  return `${sections}${remaining ? `<details class="addon-settings-section"><summary><span>Other settings<small>Less commonly changed options</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>` : ''}`;
+}
+
+function updateAddOnFieldVisibility(form) {
+  form.querySelectorAll('[data-addon-visible-field]').forEach((container) => {
+    const controller = form.elements.namedItem(container.dataset.addonVisibleField);
+    let current;
+    if (controller instanceof RadioNodeList) current = controller.value;
+    else if (controller?.type === 'checkbox') current = controller.checked;
+    else current = controller?.value;
+    let expected;
+    try { expected = JSON.parse(container.dataset.addonVisibleValue); } catch { expected = container.dataset.addonVisibleValue; }
+    container.hidden = current !== expected;
+  });
 }
 
 function renderAddOns() {
@@ -58,20 +159,28 @@ function renderAddOns() {
   const selector = `<label class="addon-selector">Manage installed add-on<select id="addon-selector">${state.addOns.map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('')}</select></label>`;
   list.innerHTML = selector + [selected].map((addOn) => {
     const rejected = addOn.health === 'rejected';
-    const fields = rejected ? '' : orderedAddOnProperties(addOn).map(([name, schema]) => renderAddOnField(name, schema, addOn.settings[name])).join('');
+    const fields = rejected ? '' : renderAddOnSettings(addOn);
     const permissions = addOn.permissions.length ? addOn.permissions.join(', ') : 'No optional permissions requested';
+    const trustLinks = rejected ? '' : renderAddOnTrustLinks(addOn.trust);
+    const updateNotice = renderAddOnUpdate(addOn);
     const liveChatWarning = addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this add-on can automatically post messages to creator-enabled platforms through StreamBridge. Review its settings and publisher before enabling it.</p>' : '';
-    const settings = rejected || !fields ? '' : `<details class="form-section" open><summary>Settings</summary><form class="filter-form addon-settings" data-addon-settings="${safe(addOn.moduleId)}">${fields}<button type="submit">Save settings</button></form></details>`;
+    const providerWarning = addOn.permissions.includes('provider.events.publish') ? '<p class="notice"><strong>Financial-event permission:</strong> this add-on can publish only its assigned provider donations into the core alert pipeline. Stable provider IDs, bounded values, and core validation are enforced; review the provider connection before enabling it.</p>' : '';
+    const settingsIntro = typeof addOn.settingsUi?.intro === 'string' && addOn.settingsUi.intro.trim() ? addOn.settingsUi.intro : 'Open only the section you want to change. Hidden options keep their saved values.';
+    const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell" open><summary>Configure add-on</summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><p class="addon-settings-intro">${safe(settingsIntro)}</p>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Changes take effect after StreamBridge restarts.</small></div></form></details>`;
     const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section"><summary>Approved Streamer.bot actions</summary>${renderAddOnActionGrant(addOn)}</details>`;
     const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section"><summary>Hosted overlay &amp; testing</summary>${renderAddOnOverlayTools(addOn)}</details>`;
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>`}${liveChatWarning}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>${trustLinks}`}${liveChatWarning}${providerWarning}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
   }).join('');
   list.querySelectorAll('details summary').forEach((summary) => { if (openSummaries.has(summary.textContent)) summary.parentElement.open = true; });
   byId('addon-selector').addEventListener('change', (event) => { state.selectedAddOnId = event.target.value; renderAddOns(); });
   document.querySelectorAll('[data-toggle-addon]').forEach((button) => button.addEventListener('click', toggleAddOn));
   document.querySelectorAll('[data-remove-addon]').forEach((button) => button.addEventListener('click', removeAddOn));
-  document.querySelectorAll('[data-addon-settings]').forEach((form) => form.addEventListener('submit', saveAddOnSettings));
+  document.querySelectorAll('[data-addon-settings]').forEach((form) => {
+    form.addEventListener('submit', saveAddOnSettings);
+    form.addEventListener('change', () => updateAddOnFieldVisibility(form));
+    updateAddOnFieldVisibility(form);
+  });
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
   document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
@@ -86,7 +195,7 @@ function renderDiscoveredAddOns() {
   if (!state.discoveredAddOns.length) { list.innerHTML = '<p class="notice">No packages are waiting in the add-on inbox.</p>'; return; }
   list.innerHTML = state.discoveredAddOns.map((addOn) => addOn.health === 'rejected'
     ? `<article class="item muted"><strong>${safe(addOn.filename)}</strong><small>Rejected before installation</small><p class="error">${safe(addOn.error)}</p></article>`
-    : `<article class="item"><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.filename)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small><p>${safe(addOn.description)}</p><small><strong>Permissions:</strong> ${safe(addOn.permissions.length ? addOn.permissions.join(', ') : 'none')} - integrity checked, publisher identity not authenticated</small>${addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this package can automatically post messages after installation and enablement.</p>' : ''}<label class="check"><input type="checkbox" data-approve-discovered="${safe(addOn.filename)}"> I reviewed and trust this publisher and permission request</label><button type="button" data-install-discovered="${safe(addOn.filename)}">Verify and install</button></article>`).join('');
+    : `<article class="item"><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.filename)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small><p>${safe(addOn.description)}</p><small><strong>Permissions:</strong> ${safe(addOn.permissions.length ? addOn.permissions.join(', ') : 'none')} - integrity checked, publisher identity not authenticated</small>${renderAddOnTrustLinks(addOn.trustMetadata)}${addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this package can automatically post messages after installation and enablement.</p>' : ''}${addOn.permissions.includes('provider.events.publish') ? '<p class="notice"><strong>Financial-event permission:</strong> this package can publish bounded donations for its assigned provider into core alerts.</p>' : ''}<label class="check"><input type="checkbox" data-approve-discovered="${safe(addOn.filename)}"> I reviewed and trust this publisher and permission request</label><button type="button" data-install-discovered="${safe(addOn.filename)}">Verify and install</button></article>`).join('');
   document.querySelectorAll('[data-install-discovered]').forEach((button) => button.addEventListener('click', installDiscoveredAddOn));
 }
 
@@ -211,6 +320,7 @@ async function saveAddOnSettings(event) {
   for (const [name, schema] of Object.entries(addOn.configurationSchema.properties || {})) {
     const field = form.elements.namedItem(name);
     if (schema.type === 'boolean') settings[name] = field.checked;
+    else if (schema.type === 'array' && Array.isArray(schema.items?.enum)) settings[name] = [...form.querySelectorAll(`[name="${CSS.escape(name)}"]:checked`)].map((input) => input.value);
     else if (schema.type === 'array') settings[name] = field.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
     else if (schema.type === 'number' || schema.type === 'integer') settings[name] = Number(field.value);
     else settings[name] = field.value;
@@ -295,4 +405,25 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
   finally { status.removeAttribute('aria-busy'); }
 });
 byId('refresh-addons').addEventListener('click', loadAddOns);
+byId('check-addon-updates').addEventListener('click', async () => {
+  const button = byId('check-addon-updates');
+  const status = byId('addon-update-state');
+  button.disabled = true;
+  status.setAttribute('aria-busy', 'true');
+  status.textContent = 'Checking the official GitHub add-on index...';
+  try {
+    const result = await api('/wizard/api/addons/updates/check', { method: 'POST' });
+    state.addOnUpdates = result.available ? result : null;
+    if (!result.available) status.textContent = `Add-on update check unavailable: ${result.error}`;
+    else {
+      const message = result.revokedCount > 0
+        ? `Warning: ${result.revokedCount} installed add-on(s) are revoked. Disable them and review the official release before continuing.`
+        : (result.updateCount > 0 ? `${result.updateCount} add-on update(s) are available. Review each result below; nothing was downloaded or installed.` : 'No compatible add-on updates were found. Nothing was downloaded or installed.');
+      const releaseUrl = safeAddOnLink(result.releaseUrl);
+      status.innerHTML = `${safe(message)}${releaseUrl ? ` <a href="${safe(releaseUrl)}" target="_blank" rel="noreferrer noopener">Open official release</a>` : ''}`;
+    }
+    renderAddOns();
+  } catch (error) { status.textContent = error.message; }
+  finally { status.removeAttribute('aria-busy'); button.disabled = false; }
+});
 document.querySelector('[data-view="addons"]').addEventListener('click', loadAddOns);

@@ -8,6 +8,10 @@ This package installs one intake action for each native Streamer.bot platform co
 
 Each action reads an allowlisted subset of Streamer.bot trigger arguments and broadcasts one bounded `thsv.platform` event over the existing loopback WebSocket. StreamBridge remains responsible for schema validation, normalization, deduplication, viewer identity, structured logging, delivery, and overlays.
 
+Version 1.5.2 also relays Streamer.bot's documented Twitch reply fields (`isReply`, `reply.userName`, `reply.msgBody`, and stable IDs) so an explicit translation command can preserve the original message author. Reply text remains bounded plain text and is never inferred on platforms that do not expose the same contract.
+
+Version 1.5.1 preserves Streamer.bot's `firstMessage` boolean together with an explicit presence marker. A known `true` means the viewer's first message ever in that channel; missing data stays absent rather than being misrepresented as `false`. Add-ons can therefore welcome a genuine first-time chatter once without adding separate First Words triggers or relying on Streamer.bot's configurable per-stream First Words reset cache.
+
 Version 1.1.0 also relays provider-supported chat identity presentation. Twitch supplies badge images and uses a cached Streamer.bot user lookup for profile photos. YouTube supplies its documented profile URL and normalized role badges. Kick supplies badge images but does not currently expose a chat-user profile photo, so the overlay renders a platform-colored initial. TikTok identity remains supplied by the separate TikFinity intake.
 
 The supported trigger types and creator-facing picker paths are declared in `manifest.json`. A platform action must only be assigned triggers from its own platform. Twitch and Kick Stream Online/Offline plus YouTube Broadcast Started/Ended are included so stream-relative timed sessions have real lifecycle input. Test-trigger runs retain Streamer.bot's `isTest` marker and do not count toward production progression unless the creator explicitly enables simulated progression.

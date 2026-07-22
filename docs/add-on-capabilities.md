@@ -10,6 +10,7 @@ The broker is the only supported add-on route to shared framework services:
 - `state.private` exposes one atomic JSON object under the module's private state directory. The object is limited to 100 keys and 64 KiB; one module cannot address another module's broker state.
 - `overlay.publish` exposes `context.overlay.publish(topic, payload)` and a core-hosted browser source at `/overlay/addons/<module-id>`. The route exists only while the installed add-on is enabled and declares this permission. Package HTML and JavaScript are never served.
 - `chat.send` exposes `context.chat.send(request)`. A request either replies only to its normalized source platform or targets an explicit unique platform list. Core applies Unicode-safe limits (Twitch 500, YouTube 200, Kick 500, TikTok 150), rejects or safely splits overflow, isolates platform failures, and limits each add-on to ten routing requests per minute. Delivery reuses the reviewed Timed Message Output action over the existing Streamer.bot connection.
+- `provider.events.publish` exposes only the provider event methods assigned to a first-party provider module. It is not a generic event emitter: core fixes the provider platform and event type, requires a stable source ID, validates decimal-string money and currency, rate-limits intake, and sends the resulting event through normal deduplication and durable delivery.
 
 Streamer.bot action requests share the bridge's existing authenticated WebSocket and use its documented correlated [`DoAction` request](https://docs.streamer.bot/api/websocket/requests). The broker limits each add-on to two pending actions and 30 starts per rolling minute; arguments are JSON-only, limited to 50 keys and 64 KiB. Streamer.bot acknowledgement IDs, timeouts, and cancellation remain correlated by the adapter. Stopping or failing a module aborts its pending broker requests without opening another WebSocket.
 
@@ -19,14 +20,16 @@ Capability diagnostics report grant, denial, and failure counts by module and ne
 
 ## Hosted overlay topics
 
-The shared host understands four namespaced presentation topics:
+The shared host understands six namespaced presentation topics:
 
 - `<module-id>.card.show` with bounded `title`, `text`, optional HTTPS or same-origin `imageUrl`, and optional `durationMs`;
 - `<module-id>.card.hide`;
 - `<module-id>.media.play` with a required creator-generated `playbackId`, an HTTPS or same-origin `url`, optional `title`, `posterUrl`, `muted`, `volume`, and `durationMs`;
-- `<module-id>.media.stop`.
+- `<module-id>.media.stop`;
+- `<module-id>.timer.update` with bounded timer text, seconds, live-platform labels, state flags, and allowlisted style values;
+- `<module-id>.timer.hide`.
 
-The renderer uses text nodes, clamps displayed lengths and numeric values, rejects unsafe URL protocols, and applies a restrictive Content Security Policy. Chat, alerts, and add-on overlays share the existing `SharedWorker` transport when the streaming host supports it; isolated browser-source processes fall back to one direct connection for that source.
+The renderer uses text nodes, clamps displayed lengths and numeric values, rejects unsafe URL protocols and style values, and applies a restrictive Content Security Policy. Package HTML and JavaScript are never served. Chat, alerts, and add-on overlays share the existing `SharedWorker` transport when the streaming host supports it; isolated browser-source processes fall back to one direct connection for that source.
 
 Media add-ons can subscribe through `context.overlay.onLifecycle(listener)`. The hosted overlay reports `loading`, `started`, bounded `heartbeat`, `ended`, `stopped`, `failed`, and `timeout` phases for the matching `playbackId`. Reports return over the already-open overlay transport and are routed only to the owning module; they do not open another WebSocket. Add-ons must correlate the exact `playbackId`, retain a bounded retry until `started`, persist rotation progress only after `ended`, and treat `stopped`, `failed`, and `timeout` as retry-or-skip decisions.
 

@@ -5,6 +5,13 @@
   "description": "Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.",
   "changelog": "1.4.0: adds a fixed four-second end fade and transition buffer, keeps shuffle-without-repeats before refetching the configured pool, and adds creator-triggered Streamer.bot Enable/Disable actions for scene automation. 1.3.0: playback now remains retryable until the matching overlay reports it started, stale responses and lifecycle IDs cannot cancel or advance the active clip, loading time no longer shortens playback, and creators can configure mute and volume. 1.2.0: replaced the fixed rotation-interval timer with playback-completion-driven scheduling -- the next clip is requested a short configurable pause after the current one actually finishes. The clip list refreshes only when the whole rotation pool has been played through. 1.1.0: settings now take effect and newly created Twitch clips enter rotation after a pool refresh. 1.0.0: initial version.",
   "permissions": ["streamerbot.run-approved-action", "overlay.publish", "schedule.bounded", "state.private", "events.subscribe"],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.random-clip-player",
@@ -21,7 +28,7 @@
     "browserSourcesProvided": [],
     "dataStorageOwned": ["data/addons/thsv.random-clip-player/", "data/addons/.state/thsv.random-clip-player/"],
     "installationSteps": [
-      "Import packages/streamerbot/random-clip-player/THSV-StreamBridge-Random-Clip-Player-1.0.0.sb into Streamer.bot.",
+      "Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-1.4.0.sb into Streamer.bot.",
       "In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: \"Get Clips\" and \"Get Clip Download\". Neither fetch action has a chat/event trigger by design.",
       "Optionally bind the imported Enable and Disable actions to Streamer.bot scene-active and scene-inactive triggers.",
       "Add an /overlay/addons/thsv.random-clip-player browser source in OBS/Meld/Streamlabs to render playback."
@@ -37,7 +44,7 @@
   },
   "entrypoint": "dist/index.js",
   "files": [
-    { "path": "dist/index.js", "size": 14743, "sha256": "066d3fb4566f55bcc768f70887f2d23b72e65f2e6e84765fffb09081af17fe60" },
+    { "path": "dist/index.js", "size": 14728, "sha256": "47846dc5705a4326a7d4625328b95cbd66a286c76983a3a0558b17d030211681" },
     { "path": "schemas/config.json", "size": 1608, "sha256": "4564000d3ae9d5ee7a32d624b6bde2c35c9d018c463af65d7242190dfd0a5c37" },
     { "path": "migrations/001-interval-to-pause.mjs", "size": 961, "sha256": "4491b274d95ab76ca7a73cd5bade6bb3a6972e70c9adf03e3ec880b477aaa39c" }
   ]

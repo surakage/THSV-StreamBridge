@@ -144,7 +144,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   }
 
   function buildAlertCard(alert) {
-    const card = element('article', `alert priority-${alert.priority}`);
+    const card = element('article', `alert priority-${alert.priority} platform-${safeClass(alert.platform)}`);
     const cardStyle = alert.display && alert.display.card ? alert.display.card : {};
     const alertFamilies = { system: '"Segoe UI Variable Text", "Segoe UI", Arial, sans-serif', rounded: '"Arial Rounded MT Bold", "Segoe UI", Arial, sans-serif', serif: 'Georgia, "Times New Roman", serif', monospace: 'Consolas, "Cascadia Mono", monospace' };
     const layout = cardStyle.layout || 'classic';

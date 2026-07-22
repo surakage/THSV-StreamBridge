@@ -48,6 +48,8 @@ Desktop.ini
 *.thsv-addon.sha256
 *.tgz
 packages/THSV-StreamBridge-*/
+packages/THSV-StreamBridge-AddOns-index.json
+packages/THSV-StreamBridge-AddOns-index.json.sha256
 
 # Local creator application installations (never package or commit)
 THSV Streamer Bot/

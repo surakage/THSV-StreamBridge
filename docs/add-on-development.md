@@ -14,6 +14,7 @@ Supported permission declarations are:
 - `streamerbot.run-approved-action`
 - `overlay.publish`
 - `chat.send`
+- `provider.events.publish` (first-party provider modules only; never a generic event emitter)
 - `schedule.bounded`
 - `state.private`
 
@@ -31,9 +32,40 @@ my-addon/
   dist/index.js          executable packages only
 ```
 
-`module-package.json` uses `packageFormat: "thsv-addon-v2"` and contains the package kind, author, description, changelog, permissions, complete v2 module manifest, optional executable entrypoint, optional settings UI schema, and the exact byte size and lowercase SHA-256 hash of every shipped file.
+`module-package.json` uses `packageFormat: "thsv-addon-v2"` and contains the package kind, author, description, changelog, permissions, complete v2 module manifest, optional executable entrypoint, optional settings UI schema, optional publisher trust metadata, and the exact byte size and lowercase SHA-256 hash of every shipped file.
 
 Packages are version-bounded with `minimumCoreVersion` and `maximumTestedCoreVersion`. They declare dependencies, required platform capabilities, event subscriptions, provided commands/actions, owned state, installation/removal instructions, and health checks. Add-ons requesting `overlay.publish` receive the fixed core route `/overlay/addons/<module-id>`; they cannot inject custom browser HTML or JavaScript. `browserSourcesProvided` remains reserved for a future declarative route manifest and must stay empty in this preview.
+
+## Publisher, update, and revocation metadata
+
+Add-ons may declare a `trust` object with HTTPS-only links:
+
+```json
+{
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  }
+}
+```
+
+These fields do not silently install or trust code. They give the wizard a stable place to show source, support, update, and emergency-revocation links before a creator approves an add-on. Public release builds also generate `THSV-StreamBridge-AddOns-index.json` and `.sha256` next to the add-on ZIPs. The wizard can manually compare installed packages with that bounded official index and fail closed on malformed data, publisher mismatches, and untrusted GitHub asset URLs. GitHub artifact attestations are the free publisher-authentication path for public releases; the adjacent SHA-256 files remain integrity checks, not a replacement for reviewing the release publisher.
+
+## Public download bundle
+
+When an add-on requires Streamer.bot actions, keep its package under `packages/streamerbot/<add-on-folder>/` and declare the current `.sb` filename in that package's `manifest.json`. The folder name must match its source folder under `addons/`. The public release process creates one `THSV-StreamBridge-AddOn-<Name>-<version>.zip` per add-on containing:
+
+- the wizard-installable `.thsv-addon` and its SHA-256 checksum;
+- only that add-on's Streamer.bot `.sb` import under `Streamer.bot/`;
+- the Streamer.bot package README when supplied; and
+- a short `INSTALL.txt` describing the two-part installation.
+
+Add-on Streamer.bot packages are excluded from the main StreamBridge ZIP. This prevents creators from importing actions for optional features they did not install and lets every add-on be downloaded, upgraded, and removed independently.
+
+The release also publishes `THSV-StreamBridge-AddOns-index.json`, listing each add-on module ID, version, archive name, SHA-256 hash, compatibility range, permission list, publisher ID, and revocation flag. The wizard reads this index only after a creator presses **Check updates**. It reports status and the published archive hash but performs no download or installation. A future guided installer may verify the matching `.sha256` and GitHub release attestation, but it must still require explicit creator approval before installing executable add-ons.
 
 ## Settings contract
 

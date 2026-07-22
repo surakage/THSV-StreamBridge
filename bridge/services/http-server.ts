@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import type { BridgeConfig } from '../../schemas/config.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
-import { PLATFORM_ALERT_TYPES, TIMED_CHAT_PLATFORM_VALUES, alertPresentationSchema } from '../../schemas/config.js';
+import { ALERT_PLATFORM_VALUES, PLATFORM_ALERT_TYPES, alertPresentationSchema } from '../../schemas/config.js';
 import { buildNormalizedEvent } from '../adapters/normalization.js';
 import type { IngestResult } from '../core/bridge.js';
 import { InvalidEventError, PayloadTooLargeError } from '../core/bridge.js';
@@ -188,6 +188,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.checkForUpdates());
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/updates/check' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.checkForAddOnUpdates());
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/addons/install' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, Math.max(this.config.maxPayloadBytes, 10_000_000));
@@ -369,8 +373,8 @@ export class DiagnosticsServer {
 }
 
 function isValidPlatformAlertType(platform: string, alertType: string): boolean {
-  if (!(TIMED_CHAT_PLATFORM_VALUES as readonly string[]).includes(platform)) return false;
-  return (PLATFORM_ALERT_TYPES[platform as (typeof TIMED_CHAT_PLATFORM_VALUES)[number]] as readonly string[]).includes(alertType);
+  if (!(ALERT_PLATFORM_VALUES as readonly string[]).includes(platform)) return false;
+  return (PLATFORM_ALERT_TYPES[platform as (typeof ALERT_PLATFORM_VALUES)[number]] as readonly string[]).includes(alertType);
 }
 
 function buildAlertPreview(platform: string, alertType: string): NormalizedEvent {

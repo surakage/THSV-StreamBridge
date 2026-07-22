@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AddOnCapabilityBroker, CapabilityDeniedError } from '../../bridge/core/addon-capability-broker.js';
 import type { AddOnActionArgumentsV2, AddOnOverlayLifecycleV2 } from '../../bridge/contracts/v2/addon-capability.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
 import { silentLogger } from '../helpers.js';
 
 const ACTION_ONE = '11111111-1111-4111-8111-111111111111';
@@ -104,6 +105,25 @@ describe('AddOnCapabilityBroker', () => {
     expect(route).toHaveBeenCalledWith({ message: 'hello', routing: 'source', sourcePlatform: 'youtube' }, expect.any(AbortSignal));
     for (let index = 1; index < 10; index += 1) await context.chat.send({ message: `message ${String(index)}`, routing: 'selected', selectedPlatforms: ['twitch'] });
     await expect(context.chat.send({ message: 'too many', routing: 'selected', selectedPlatforms: ['twitch'] })).rejects.toThrow('10 outbound message requests per minute');
+  });
+
+  it('publishes only stable-ID donations for the broker-assigned provider namespace', async () => {
+    const publish = vi.fn().mockResolvedValue(undefined);
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { publishProviderEvent: publish });
+    const denied = broker.contextFor({ moduleId: 'thsv.kofi-donations', permissions: [], approvedActionIds: [] });
+    const request = { sourceEventId: 'ko-fi-message-1', sourceEventType: 'KofiDonation', receivedAt: '2026-07-22T12:00:00.000Z', channelName: 'Ko-fi', supporterName: 'Supporter', amount: '5.00', currency: 'USD', message: 'Great stream!', simulated: false } as const;
+    await expect(denied.provider.publishDonation(request)).rejects.toBeInstanceOf(CapabilityDeniedError);
+    const context = broker.contextFor({ moduleId: 'thsv.kofi-donations', permissions: ['provider.events.publish'], approvedActionIds: [] });
+    await context.provider.publishDonation(request);
+    const published = publish.mock.calls[0]?.[0] as NormalizedEvent | undefined;
+    expect(published?.eventType).toBe('engagement.donation'); expect(published?.platform).toBe('kofi');
+    expect(published?.source).toEqual({ adapter: 'addon-provider-kofi', eventId: 'ko-fi-message-1', eventName: 'KofiDonation' });
+    expect(published?.user?.name).toBe('Supporter'); expect(published?.payload).toEqual({ amount: '5.00', currency: 'USD', message: 'Great stream!' });
+    await expect(context.provider.publishDonation({ ...request, sourceEventId: '' })).rejects.toThrow();
+    await expect(context.provider.publishDonation({ ...request, amount: '0.1' })).resolves.toBeUndefined();
+    await expect(context.provider.publishDonation({ ...request, amount: '5 USD' })).rejects.toThrow();
+    const unassigned = broker.contextFor({ moduleId: 'sample.provider', permissions: ['provider.events.publish'], approvedActionIds: [] });
+    await expect(unassigned.provider.publishDonation(request)).rejects.toThrow('not assigned');
   });
 
   it('cancels pending outbound chat when its add-on stops', async () => {

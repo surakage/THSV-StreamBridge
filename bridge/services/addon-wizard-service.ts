@@ -36,6 +36,7 @@ export interface DiscoveredAddOnSummary {
   readonly description?: string;
   readonly packageKind?: 'declarative' | 'executable';
   readonly permissions?: readonly string[];
+  readonly trustMetadata?: InstalledAddOnSummary['trust'];
   readonly minimumCoreVersion?: string;
   readonly maximumTestedCoreVersion?: string;
   readonly trust: 'integrity-only';
@@ -80,7 +81,7 @@ export class AddOnWizardService {
         if (!information.isFile() || information.isSymbolicLink() || information.size < 1 || information.size > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(400, `Package must be a regular file from 1 through ${String(MAXIMUM_ARCHIVE_BYTES)} bytes.`);
         const archive = await readFile(path);
         const descriptor = await inspectAddOnArchive(archive, this.packagesRoot);
-        return { filename, size: information.size, sha256: digest(archive), health: 'available', moduleId: descriptor.manifest.moduleId, name: descriptor.manifest.name, version: descriptor.manifest.version, author: descriptor.author, description: descriptor.description, packageKind: descriptor.packageKind, permissions: descriptor.permissions, minimumCoreVersion: descriptor.manifest.minimumCoreVersion, maximumTestedCoreVersion: descriptor.manifest.maximumTestedCoreVersion, trust: 'integrity-only' };
+        return { filename, size: information.size, sha256: digest(archive), health: 'available', moduleId: descriptor.manifest.moduleId, name: descriptor.manifest.name, version: descriptor.manifest.version, author: descriptor.author, description: descriptor.description, packageKind: descriptor.packageKind, permissions: descriptor.permissions, trustMetadata: descriptor.trust, minimumCoreVersion: descriptor.manifest.minimumCoreVersion, maximumTestedCoreVersion: descriptor.manifest.maximumTestedCoreVersion, trust: 'integrity-only' };
       } catch (error) { return { filename, size: 0, sha256: '0'.repeat(64), health: 'rejected', trust: 'integrity-only', error: error instanceof Error ? error.message : String(error) }; }
     }));
   }
@@ -251,9 +252,12 @@ function validateSettingValue(key: string, schema: Record<string, unknown>, valu
       if (value.length < minimumItems || value.length > maximumItems) throw new AddOnWizardError(400, `${key} must contain from ${String(minimumItems)} through ${String(maximumItems)} items.`);
       const itemSchema = objectInput(schema['items'] ?? { type: 'string' });
       if (itemSchema['type'] !== 'string') throw new AddOnWizardError(400, `${key} supports only text list items.`);
+      const itemEnum = itemSchema['enum'];
+      if (itemEnum !== undefined && (!Array.isArray(itemEnum) || itemEnum.length === 0 || itemEnum.length > 100 || !itemEnum.every((entry) => typeof entry === 'string'))) throw new AddOnWizardError(400, `${key} has an invalid item enum schema.`);
       const minimumLength = boundedInteger(itemSchema['minLength'], 0, 2_000, 0); const maximumLength = boundedInteger(itemSchema['maxLength'], minimumLength, 2_000, 200);
       const normalized = value.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
       if (normalized.length !== value.length || normalized.some((entry) => entry.length < minimumLength || entry.length > maximumLength)) throw new AddOnWizardError(400, `${key} contains an empty or incorrectly sized item.`);
+      if (itemEnum !== undefined && normalized.some((entry) => !itemEnum.includes(entry))) throw new AddOnWizardError(400, `${key} contains an unsupported choice.`);
       if (new Set(normalized).size !== normalized.length) throw new AddOnWizardError(400, `${key} must not contain duplicate items.`);
       return normalized;
     }

@@ -9,6 +9,14 @@
   const mediaShell = document.getElementById('media-shell');
   const media = document.getElementById('media');
   const mediaTitle = document.getElementById('media-title');
+  const timerShell = document.getElementById('timer-shell');
+  const timerLabel = document.getElementById('timer-label');
+  const timerBadge = document.getElementById('timer-badge');
+  const timerTime = document.getElementById('timer-time');
+  const timerProgressTrack = document.getElementById('timer-progress-track');
+  const timerProgress = document.getElementById('timer-progress');
+  const timerReason = document.getElementById('timer-reason');
+  const timerPlatforms = document.getElementById('timer-platforms');
   const status = document.getElementById('status');
   let cardTimer;
   let mediaTimer;
@@ -40,8 +48,61 @@
     cardText.textContent = '';
   }
 
+  function hideTimer() {
+    timerShell.classList.add('hidden');
+    timerShell.removeAttribute('style');
+    timerShell.dataset.state = 'idle';
+  }
+
+  function boundedText(value, maximum, fallback = '') {
+    return typeof value === 'string' ? [...value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim()].slice(0, maximum).join('') : fallback;
+  }
+
+  function safeColor(value, fallback) {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/iu.test(value) ? value : fallback;
+  }
+
+  function colorWithOpacity(value, opacity, fallback, fallbackOpacity) {
+    const color = safeColor(value, fallback);
+    const alpha = typeof opacity === 'number' && Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : fallbackOpacity;
+    return `rgb(${parseInt(color.slice(1, 3), 16)} ${parseInt(color.slice(3, 5), 16)} ${parseInt(color.slice(5, 7), 16)} / ${alpha})`;
+  }
+
+  function showTimer(payload) {
+    hideCard();
+    clearMedia(activePlaybackId ? 'stopped' : undefined);
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    const remaining = Number.isInteger(payload.remainingSeconds) && payload.remainingSeconds >= 0 ? payload.remainingSeconds : 0;
+    const maximum = Number.isInteger(payload.maximumSeconds) && payload.maximumSeconds > 0 ? payload.maximumSeconds : 1;
+    const computedTime = `${String(Math.floor(remaining / 3600)).padStart(2, '0')}:${String(Math.floor((remaining % 3600) / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
+    const livePlatforms = Array.isArray(payload.livePlatforms) ? payload.livePlatforms.filter((value) => typeof value === 'string').slice(0, 4) : [];
+    timerLabel.textContent = boundedText(payload.label, 80, 'TIMER') || 'TIMER';
+    timerTime.textContent = /^\d{2,4}:\d{2}:\d{2}$/u.test(payload.remainingText) ? payload.remainingText : computedTime;
+    timerBadge.textContent = payload.running === true ? 'RUNNING' : payload.live === true ? 'PAUSED' : 'OFFLINE';
+    timerReason.textContent = boundedText(payload.lastReason, 120, 'Waiting for an update').replace(/-/gu, ' ');
+    timerPlatforms.textContent = livePlatforms.length > 0 ? livePlatforms.join(' + ') : 'No live platforms';
+    timerProgress.style.width = `${Math.max(0, Math.min(100, remaining / maximum * 100)).toFixed(2)}%`;
+    timerProgressTrack.classList.toggle('hidden', style.showProgressBar === false);
+    const backgroundMode = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass';
+    const fontFamily = ['display', 'broadcast', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'display';
+    timerShell.dataset.state = payload.critical === true ? 'critical' : payload.warning === true ? 'warning' : payload.running === true ? 'running' : 'paused';
+    timerShell.dataset.background = backgroundMode;
+    timerShell.dataset.font = fontFamily;
+    timerShell.style.setProperty('--timer-background', safeColor(style.backgroundColor, '#0b1017'));
+    timerShell.style.setProperty('--timer-background-rendered', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#0b1017', 0.88));
+    timerShell.style.setProperty('--timer-accent', safeColor(style.accentColor, '#7ee0ff'));
+    timerShell.style.setProperty('--timer-text', safeColor(style.textColor, '#eff7ff'));
+    timerShell.style.setProperty('--timer-muted', safeColor(style.mutedColor, '#dfefff'));
+    timerShell.style.setProperty('--timer-warning', safeColor(style.warningColor, '#f0c15a'));
+    timerShell.style.setProperty('--timer-critical', safeColor(style.criticalColor, '#ff6b7d'));
+    timerShell.style.setProperty('--timer-live', safeColor(style.liveColor, '#61f2a4'));
+    timerShell.style.setProperty('--timer-border', safeColor(style.borderColor, '#85cbff'));
+    timerShell.classList.remove('hidden');
+  }
+
   function showCard(payload) {
     hideCard();
+    hideTimer();
     const title = typeof payload.title === 'string' ? payload.title.slice(0, 200) : '';
     const text = typeof payload.text === 'string' ? payload.text.slice(0, 1_000) : '';
     const imageUrl = safeUrl(payload.imageUrl);
@@ -81,6 +142,7 @@
     if (!url || !playbackId) return;
     clearMedia(activePlaybackId ? 'stopped' : undefined);
     hideCard();
+    hideTimer();
     activePlaybackId = playbackId;
     media.src = url;
     media.muted = payload.muted !== false;
@@ -128,6 +190,8 @@
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.media.play`) playMedia(event.payload);
     else if (event.topic === `${moduleId}.media.stop`) stopMedia();
+    else if (event.topic === `${moduleId}.timer.update`) showTimer(event.payload);
+    else if (event.topic === `${moduleId}.timer.hide`) hideTimer();
   }
 
   function transportState(state) {

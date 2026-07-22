@@ -73,4 +73,31 @@ describe('Streamer.bot add-on relay adapter', () => {
       sourceEventType: 'THSV Addon - Random Clip Player - Enable', relayToken: '', payload: { enabled: true },
     }))).toMatchObject({ eventType: 'addon.thsv.random-clip-player.control', payload: { enabled: true } });
   });
+
+  it('permits only the exact stable-ID Ko-fi donation ingress envelope without a broker token', () => {
+    const provider = {
+      moduleId: 'thsv.kofi-donations', eventType: 'addon.thsv.kofi-donations.donation-received', sourceEventType: 'KofiDonation',
+      relayId: 'ko-fi-message-42', relayToken: '',
+      payload: { amount: '5.00', currency: 'USD', from: 'Supporter', isPublic: true, message: 'Thanks!', timestamp: '2026-07-22T12:00:00.000Z' },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(provider))).toMatchObject({
+      eventType: 'addon.thsv.kofi-donations.donation-received', source: { eventId: 'ko-fi-message-42', eventName: 'KofiDonation' },
+    });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...provider, sourceEventType: 'KofiSubscription' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...provider, payload: { ...provider.payload, unexpected: 'no' } }))).toThrow('relay token');
+  });
+
+  it('permits only bounded, action-matched Subathon Timer creator controls', () => {
+    const control = {
+      moduleId: 'thsv.subathon-timer', eventType: 'addon.thsv.subathon-timer.control', relayToken: '',
+      sourceEventType: 'THSV Addon - Subathon Timer - Add Time', relayId: 'subathon-add-1',
+      payload: { action: 'add-time', seconds: 300 },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({
+      eventType: 'addon.thsv.subathon-timer.control', payload: { action: 'add-time', seconds: 300 },
+    });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'add-time', seconds: 0 } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Subathon Timer - Reset' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'reset', seconds: 300 } }))).toThrow('relay token');
+  });
 });

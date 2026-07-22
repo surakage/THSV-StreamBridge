@@ -34,6 +34,7 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .message.platform-youtube { border-left-color: #ff3b30; }
 .message.platform-kick { border-left-color: #53fc18; }
 .message.platform-tiktok { border-left-color: #25f4ee; }
+.message.platform-kofi { border-left-color: #29abe0; }
 .identity { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 7px; min-width: 0; font-family: var(--chat-font-family); }
 .avatar-frame { position: relative; display: inline-flex; flex: 0 0 auto; width: 32px; height: 32px; }
 .avatar { position: absolute; inset: 0; width: 100%; height: 100%; border: 1px solid rgba(255,255,255,.28); border-radius: 50%; object-fit: cover; }
@@ -42,6 +43,7 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .avatar-frame.platform-youtube .avatar-fallback { background: #c4302b; }
 .avatar-frame.platform-kick .avatar-fallback { background: #356f16; }
 .avatar-frame.platform-tiktok .avatar-fallback { background: #1f7075; }
+.avatar-frame.platform-kofi .avatar-fallback { background: #1f6f91; }
 .activity-icon { display: inline-grid; flex: 0 0 auto; width: 32px; height: 32px; place-items: center; border: 1px solid rgba(114,239,194,.42); border-radius: 50%; background: rgba(114,239,194,.13); color: var(--mint); font-size: 18px; }
 .platform, .role { flex: 0 0 auto; padding: 2px 5px; border-radius: 5px; background: rgba(150,114,255,.22); color: #d9ccff; font-size: max(10px, calc(var(--chat-font-size) * .58)); font-weight: 800; letter-spacing: .06em; }
 .role { background: rgba(114,239,194,.14); color: var(--mint); }
@@ -57,6 +59,8 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .alert::before { position: absolute; inset: 0 auto 0 0; width: 6px; background: var(--violet); content: ""; }
 .alert.priority-high::before { background: #ffca62; }
 .alert.priority-critical::before { background: #ff5f7a; }
+.alert.platform-kofi:not(.priority-critical)::before { background: #29abe0; }
+.alert.platform-kofi .alert-platform { color: #72d4ff; }
 .alert-identity { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 20px; width: 100%; position: relative; z-index: 2; }
 .alert-avatar { width: 76px; height: 76px; }
 .alert-avatar .avatar { border-width: 2px; }

@@ -27,8 +27,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
     npm.cmd run config:validate
     if ($LASTEXITCODE -ne 0) { throw 'Configuration validation failed.' }
+    New-Item -ItemType Directory -Path $temporary -Force | Out-Null
     Get-ChildItem -LiteralPath $resolvedPackages -Filter '*.thsv-addon*' -File | Remove-Item -Force
+    Get-ChildItem -LiteralPath $resolvedPackages -Filter 'THSV-StreamBridge-AddOn-*.zip*' -File | Remove-Item -Force
     $addOnOutputs = @()
+    $addOnPackageFolderNames = @()
     Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory | Sort-Object Name | ForEach-Object {
         $descriptorPath = Join-Path $_.FullName 'module-package.json'
         if (-not (Test-Path -LiteralPath $descriptorPath)) { return }
@@ -39,15 +42,90 @@ try {
         npm.cmd run addon:package -- $_.FullName $addOnArchive
         if ($LASTEXITCODE -ne 0) { throw "$($descriptor.manifest.name) add-on packaging failed." }
         $addOnHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $addOnArchive).Hash.ToLowerInvariant()
-        $addOnChecksum = "$addOnArchive.sha256"
-        Set-Content -LiteralPath $addOnChecksum -Encoding ascii -Value "$addOnHash  $([System.IO.Path]::GetFileName($addOnArchive))"
-        $addOnOutputs += [pscustomobject]@{ Name = [string]$descriptor.manifest.name; Archive = $addOnArchive; Checksum = $addOnChecksum }
+        $streamerBotPackageRoot = Join-Path $repo "packages\streamerbot\$($_.Name)"
+        $streamerBotManifestPath = Join-Path $streamerBotPackageRoot 'manifest.json'
+        if (-not (Test-Path -LiteralPath $streamerBotManifestPath)) { throw "$($descriptor.manifest.name) is missing its separate Streamer.bot package." }
+        $streamerBotManifest = Get-Content -Raw -LiteralPath $streamerBotManifestPath | ConvertFrom-Json
+        $streamerBotImports = @($streamerBotManifest.action.importFile) + @($streamerBotManifest.actions | ForEach-Object { $_.importFile }) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+        if ($streamerBotImports.Count -eq 0) { throw "$($descriptor.manifest.name) has no Streamer.bot import file declared." }
+        foreach ($importFile in $streamerBotImports) {
+            if (-not (Test-Path -LiteralPath (Join-Path $streamerBotPackageRoot $importFile))) { throw "$($descriptor.manifest.name) is missing Streamer.bot import $importFile." }
+        }
+
+        $bundleName = "THSV-StreamBridge-AddOn-$safeName-$($descriptor.manifest.version)"
+        $bundleRoot = Join-Path $temporary $bundleName
+        $bundleStreamerBotRoot = Join-Path $bundleRoot 'Streamer.bot'
+        New-Item -ItemType Directory -Path $bundleStreamerBotRoot -Force | Out-Null
+        Copy-Item -LiteralPath $addOnArchive -Destination (Join-Path $bundleRoot ([System.IO.Path]::GetFileName($addOnArchive)))
+        Set-Content -LiteralPath (Join-Path $bundleRoot "$([System.IO.Path]::GetFileName($addOnArchive)).sha256") -Encoding ascii -Value "$addOnHash  $([System.IO.Path]::GetFileName($addOnArchive))"
+        foreach ($importFile in $streamerBotImports) { Copy-Item -LiteralPath (Join-Path $streamerBotPackageRoot $importFile) -Destination $bundleStreamerBotRoot }
+        if (Test-Path -LiteralPath (Join-Path $streamerBotPackageRoot 'README.md')) { Copy-Item -LiteralPath (Join-Path $streamerBotPackageRoot 'README.md') -Destination (Join-Path $bundleStreamerBotRoot 'README.md') }
+        $installText = @(
+            "$($descriptor.manifest.name) $($descriptor.manifest.version)",
+            '',
+            '1. Open THSV StreamBridge Setup Wizard -> Add-ons.',
+            "2. Install $([System.IO.Path]::GetFileName($addOnArchive)) and approve its requested permissions.",
+            '3. In Streamer.bot, choose Import and import every .sb file from the Streamer.bot folder.',
+            '4. Return to the wizard, enable the add-on, approve only its required Streamer.bot actions, save settings, and restart StreamBridge.',
+            '',
+            'The Streamer.bot imports in this bundle belong only to this add-on. They are intentionally not included in the main StreamBridge package.'
+        )
+        Set-Content -LiteralPath (Join-Path $bundleRoot 'INSTALL.txt') -Encoding utf8 -Value $installText
+        $addOnBundle = Join-Path $resolvedPackages "$bundleName.zip"
+        Compress-Archive -Path "$bundleRoot\*" -DestinationPath $addOnBundle -CompressionLevel Optimal
+        $addOnBundleHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $addOnBundle).Hash.ToLowerInvariant()
+        $addOnChecksum = "$addOnBundle.sha256"
+        Set-Content -LiteralPath $addOnChecksum -Encoding ascii -Value "$addOnBundleHash  $([System.IO.Path]::GetFileName($addOnBundle))"
+        Remove-Item -LiteralPath $addOnArchive -Force
+        $addOnPackageFolderNames += $_.Name
+        $addOnOutputs += [pscustomobject]@{
+            ModuleId = [string]$descriptor.manifest.moduleId
+            Name = [string]$descriptor.manifest.name
+            Version = [string]$descriptor.manifest.version
+            PublisherId = [string]$descriptor.trust.publisherId
+            Archive = $addOnBundle
+            ArchiveName = [System.IO.Path]::GetFileName($addOnBundle)
+            Sha256 = $addOnBundleHash
+            Checksum = $addOnChecksum
+            MinimumCoreVersion = [string]$descriptor.manifest.minimumCoreVersion
+            MaximumTestedCoreVersion = [string]$descriptor.manifest.maximumTestedCoreVersion
+            Permissions = @($descriptor.permissions)
+            Revoked = $false
+        }
     }
+    $addOnIndexPath = Join-Path $resolvedPackages 'THSV-StreamBridge-AddOns-index.json'
+    $addOnIndex = [ordered]@{
+        schemaVersion = 1
+        product = 'THSV StreamBridge Add-ons'
+        generatedAt = (Get-Date).ToUniversalTime().ToString('o')
+        releaseUrl = 'https://github.com/surakage/THSV-StreamBridge/releases'
+        trustModel = 'GitHub release asset hashes plus GitHub artifact attestations; no silent install or auto-enable.'
+        packages = @($addOnOutputs | ForEach-Object {
+            [ordered]@{
+                moduleId = $_.ModuleId
+                name = $_.Name
+                version = $_.Version
+                publisherId = $_.PublisherId
+                archiveName = $_.ArchiveName
+                sha256 = $_.Sha256
+                minimumCoreVersion = $_.MinimumCoreVersion
+                maximumTestedCoreVersion = $_.MaximumTestedCoreVersion
+                permissions = @($_.Permissions)
+                revoked = $_.Revoked
+            }
+        })
+        revoked = @()
+    }
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($addOnIndexPath, ($addOnIndex | ConvertTo-Json -Depth 8), $utf8NoBom)
+    $addOnIndexHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $addOnIndexPath).Hash.ToLowerInvariant()
+    Set-Content -LiteralPath "$addOnIndexPath.sha256" -Encoding ascii -Value "$addOnIndexHash  $([System.IO.Path]::GetFileName($addOnIndexPath))"
 
     Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $checksum -Force -ErrorAction SilentlyContinue
-    New-Item -ItemType Directory -Path $staging, $temporary | Out-Null
+    New-Item -ItemType Directory -Path $staging | Out-Null
     $appRoot = Join-Path $staging 'app'
     $runtimeRoot = Join-Path $staging 'runtime'
     $installerRoot = Join-Path $staging 'installer'
@@ -60,19 +138,23 @@ try {
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'config'), (Join-Path $appRoot 'docs') | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'config\bridge.example.json') -Destination (Join-Path $appRoot 'config')
     $releaseDocs = @(
-        'add-on-capabilities.md', 'add-on-development.md', 'architecture.md', 'browser-overlay.md',
+        'add-on-capabilities.md', 'add-on-development.md', 'architecture.md', 'auto-translate.md', 'automated-shoutouts.md', 'browser-overlay.md',
         'compatibility.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
         'production-readiness.md', 'release.md', 'rewards.md', 'security.md', 'setup.md',
         'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
-        'testing.md', 'timed-actions.md', 'troubleshooting.md'
+        'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md'
     )
     foreach ($document in $releaseDocs) {
         Copy-Item -LiteralPath (Join-Path $repo "docs\$document") -Destination (Join-Path $appRoot 'docs')
     }
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'packages') | Out-Null
-    Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot') -Destination (Join-Path $appRoot 'packages\streamerbot') -Recurse
+    $coreStreamerBotRoot = Join-Path $appRoot 'packages\streamerbot'
+    New-Item -ItemType Directory -Path $coreStreamerBotRoot | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $repo 'packages\streamerbot') -Directory | Where-Object { $_.Name -notin $addOnPackageFolderNames } | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $coreStreamerBotRoot $_.Name) -Recurse
+    }
     # Keep only the import file named by each package manifest; stale generated imports are not runtime assets.
-    Get-ChildItem -LiteralPath (Join-Path $appRoot 'packages\streamerbot') -Directory | ForEach-Object {
+    Get-ChildItem -LiteralPath $coreStreamerBotRoot -Directory | ForEach-Object {
         $manifestPath = Join-Path $_.FullName 'manifest.json'
         if (-not (Test-Path -LiteralPath $manifestPath)) { return }
         $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
@@ -146,6 +228,7 @@ try {
         Write-Output "Optional $($addOn.Name) add-on created at $($addOn.Archive)"
         Write-Output "Add-on SHA-256 checksum created at $($addOn.Checksum)"
     }
+    Write-Output "Add-on update index created at $addOnIndexPath"
 } finally {
     Pop-Location
     Remove-Item -LiteralPath $temporary -Recurse -Force -ErrorAction SilentlyContinue

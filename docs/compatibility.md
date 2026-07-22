@@ -9,13 +9,13 @@ This matrix records tested versions, not speculative compatibility ranges. A new
 | Windows | Windows 10 or later | Required for the supported installer and PowerShell lifecycle |
 | Node.js | 22 or later | Required; installer rejects older major versions |
 | Windows PowerShell | 5.1 or later | Required for release install, upgrade, verification, and uninstall |
-| Streamer.bot | `1.0.5-alpha.31` | Live-verified package compilation, receiver chain, relays, and action projection |
+| Streamer.bot | Minimum `1.0.5-alpha.31`; recommended `1.0.5-alpha.32` | Alpha.31 remains the live-verified compatibility floor. Alpha.32 is the reviewed recommendation for new installs because it fixes EventSub, authentication, backup, pending-action, and C# editor stability issues; live re-acceptance is still pending. |
 | Speaker.bot | `0.1.7` | Live transport/dry-run verified; playback completion acknowledgement is unavailable |
 | Meld Studio | `0.10.3.1` | Live Browser Source verification for Chat, Alerts, and Companion-compatible routes |
 | OBS Studio | Exact accepted build was not recorded | Live standards-based Browser Source verification completed July 16, 2026 |
 | Streamlabs Desktop | Exact build not separately tested | Compatibility accepted through the same Browser Source contract after OBS verification |
 
-Do not infer a version range from a single verified Alpha/build. When adopting another Streamer.bot Alpha, re-import and compile every used `.sb` package, repeat relay tests, verify Action History fields, and update this matrix.
+Do not infer a version range from a single verified Alpha/build. Alpha.32 does not remove or rename a C# method used by the current packages, so their alpha.31 minimum remains honest. After upgrading, re-import and compile every used `.sb` package, repeat relay tests, verify Action History fields, and then update the live-verification record.
 
 Meld Studio is distributed as an MSIX/UWP app, which Windows sandboxes with loopback isolation by default; this blocks access to the local overlay and wizard URLs until an exemption is granted once per machine. See [Troubleshooting](troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard) for the fix. The same restriction can affect other MSIX-packaged broadcasting apps.
 

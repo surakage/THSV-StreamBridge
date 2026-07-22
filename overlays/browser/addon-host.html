@@ -16,6 +16,14 @@
       <video id="media" playsinline></video>
       <strong id="media-title" class="media-title hidden"></strong>
     </section>
+    <section id="timer-shell" class="timer-shell hidden" data-state="idle">
+      <div class="timer-card">
+        <div class="timer-topline"><span id="timer-label" class="timer-label">TIMER</span><span id="timer-badge" class="timer-badge">PAUSED</span></div>
+        <div id="timer-time" class="timer-time">00:00:00</div>
+        <div id="timer-progress-track" class="timer-progress-track" aria-hidden="true"><div id="timer-progress" class="timer-progress-fill"></div></div>
+        <div class="timer-meta"><span id="timer-reason">Waiting for an update</span><span id="timer-platforms">No live platforms</span></div>
+      </div>
+    </section>
     <strong id="status" class="status" data-state="reconnecting">OFFLINE</strong>
   </main>
   <script src="/overlay/addons/host.js" type="module"></script>

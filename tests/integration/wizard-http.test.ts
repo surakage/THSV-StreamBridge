@@ -385,6 +385,10 @@ describe('wizard HTTP surface', () => {
     expect(observed[0]?.source.adapter).toBe('mock');
     expect(observed[0]?.source.eventId).toMatch(/^wizard-/u);
     expect(observed[0]?.metadata.simulated).toBe(true);
+    const kofiResponse = await fetch(`${baseUrl}/wizard/api/alerts/kofi/donation/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect(kofiResponse.status).toBe(202);
+    expect(await kofiResponse.json()).toMatchObject({ accepted: true, simulated: true, platform: 'kofi', alertType: 'donation' });
+    expect(observed[1]).toMatchObject({ platform: 'kofi', eventType: 'engagement.donation', metadata: { simulated: true } });
     // A platform that never produces a given alert type is rejected, not silently defaulted.
     expect((await fetch(`${baseUrl}/wizard/api/alerts/twitch/super-chat/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);
     expect((await fetch(`${baseUrl}/wizard/api/alerts/not-real/follow/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);

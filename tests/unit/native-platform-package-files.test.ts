@@ -30,6 +30,18 @@ describe('native platform intake package', () => {
     expect(source).not.toMatch(/Process\.Start|PowerShell|cmd\.exe/);
   });
 
+  it('relays firstMessage with an explicit presence bit so missing history fails closed', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('CPH.TryGetArg("firstMessage", out firstMessageValue)');
+    expect(source).toContain('["firstMessageKnown"] = firstMessageKnown');
+  });
+
+  it('relays only Streamer.bot documented Twitch reply fields and restores escaped spaces', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('"isReply", "reply.msgId", "reply.userId", "reply.userLogin", "reply.userName", "reply.msgBody"');
+    expect(source).toContain('["replyMessage"] = Read("reply.msgBody").Replace("\\\\s", " ")');
+  });
+
   it('never leaks a hardcoded item name into unrelated events', async () => {
     const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
     expect(source).not.toContain('"Kick Gift"');
@@ -90,7 +102,7 @@ describe('native platform intake package', () => {
   it('packages the current reviewed relay source into all three actions', async () => {
     const root = 'packages/streamerbot/native-platform-intake';
     const reviewed = (await readFile(`${root}/src/RelayPlatform.cs`, 'utf8')).replaceAll('\r\n', '\n').trimEnd();
-    const decoded = Buffer.from((await readFile(`${root}/THSV-StreamBridge-Native-Platform-Intake-1.5.0.sb`, 'utf8')).trim(), 'base64');
+    const decoded = Buffer.from((await readFile(`${root}/THSV-StreamBridge-Native-Platform-Intake-1.5.2.sb`, 'utf8')).trim(), 'base64');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as {
       data: { actions: Array<{ subActions: Array<{ type: number; enabled: boolean; byteCode?: string }> }> };
     };

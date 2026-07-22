@@ -168,18 +168,20 @@ const alertPresentationProfileSchema = z.object({
   }).default({ backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind' }),
   aggregation: z.object({ mode: z.enum(['none', 'sum-quantity']).default('none'), windowMs: z.number().int().min(500).max(30_000).default(5_000) }).strict().default({ mode: 'none', windowMs: 5_000 }),
 }).strict();
-// Only these alert types are ever produced per platform (cross-checked against
-// bridge/adapters/streamerbot-native-adapter.ts and tikfinity-adapter.ts's own event-type
-// mappings). "donation" is intentionally absent everywhere: no provider produces it yet.
-export const PLATFORM_ALERT_TYPES: Readonly<Record<(typeof TIMED_CHAT_PLATFORM_VALUES)[number], readonly (typeof ALERT_PRESENTATION_TYPE_VALUES)[number][]>> = {
+// Alert presentation can include provider-only integrations that are not chat-output
+// destinations. Keep this separate from TIMED_CHAT_PLATFORM_VALUES so Ko-fi can render
+// alerts and chat activity without being offered as a timed-message destination.
+export const ALERT_PLATFORM_VALUES = [...TIMED_CHAT_PLATFORM_VALUES, 'kofi'] as const;
+export const PLATFORM_ALERT_TYPES: Readonly<Record<(typeof ALERT_PLATFORM_VALUES)[number], readonly (typeof ALERT_PRESENTATION_TYPE_VALUES)[number][]>> = {
   twitch: ['follow', 'subscription', 'gift-subscription', 'cheer', 'raid'],
   youtube: ['follow', 'membership', 'gift-subscription', 'super-chat'],
   kick: ['follow', 'subscription', 'gift-subscription', 'gift'],
   tiktok: ['follow', 'subscription', 'gift', 'milestone'],
+  kofi: ['donation'],
 };
 export const alertPresentationSchema = z.object({
   profiles: z.partialRecord(
-    z.enum(TIMED_CHAT_PLATFORM_VALUES),
+    z.enum(ALERT_PLATFORM_VALUES),
     z.partialRecord(z.enum(ALERT_PRESENTATION_TYPE_VALUES), alertPresentationProfileSchema).default({}),
   ).default({}),
 }).strict().superRefine((alerts, context) => {
@@ -188,7 +190,7 @@ export const alertPresentationSchema = z.object({
       if (profile.aggregation.mode === 'sum-quantity' && !['gift', 'gift-subscription', 'cheer'].includes(alertType)) {
         context.addIssue({ code: 'custom', path: ['profiles', platform, alertType, 'aggregation', 'mode'], message: 'Quantity aggregation is supported only for gifts, gift subscriptions, and cheers/bits.' });
       }
-      if (!(PLATFORM_ALERT_TYPES[platform as (typeof TIMED_CHAT_PLATFORM_VALUES)[number]] as readonly string[]).includes(alertType)) {
+      if (!(PLATFORM_ALERT_TYPES[platform as (typeof ALERT_PLATFORM_VALUES)[number]] as readonly string[]).includes(alertType)) {
         context.addIssue({ code: 'custom', path: ['profiles', platform, alertType], message: `${platform} never produces ${alertType} alerts.` });
       }
     }
@@ -223,14 +225,18 @@ export const DEFAULT_CHAT_PLATFORM_EVENTS = {
     follow: { enabled: true, template: '{actor} followed' }, gift: { enabled: true, template: '{actor} sent {quantity} {itemName}' },
     subscription: { enabled: true, template: '{actor} subscribed for month {months}' }, likes: { enabled: true, template: 'TikTok reached {value} likes' },
   },
+  kofi: {
+    donation: { enabled: true, template: '{actor} supported with {amount} {currency} {message}' },
+  },
 } as const;
 const chatPlatformEventsSchema = z.object({
   twitch: z.object({ follow: chatEventSettingSchema, subscription: chatEventSettingSchema, resubscription: chatEventSettingSchema, 'gift-subscription': chatEventSettingSchema, 'gift-bomb': chatEventSettingSchema, cheer: chatEventSettingSchema, raid: chatEventSettingSchema, 'reward-redemption': chatEventSettingSchema }).strict(),
   youtube: z.object({ subscriber: chatEventSettingSchema, member: chatEventSettingSchema, 'membership-gift': chatEventSettingSchema, 'member-milestone': chatEventSettingSchema, 'super-chat': chatEventSettingSchema, 'super-sticker': chatEventSettingSchema }).strict(),
   kick: z.object({ follow: chatEventSettingSchema, subscription: chatEventSettingSchema, resubscription: chatEventSettingSchema, 'gift-subscription': chatEventSettingSchema, 'mass-gift-subscription': chatEventSettingSchema, 'gifted-kicks': chatEventSettingSchema, 'reward-redemption': chatEventSettingSchema }).strict(),
   tiktok: z.object({ follow: chatEventSettingSchema, gift: chatEventSettingSchema, subscription: chatEventSettingSchema, likes: chatEventSettingSchema }).strict(),
+  kofi: z.object({ donation: chatEventSettingSchema }).strict(),
 }).strict();
-export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31' } as const;
+export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31', kofi: '#174a63' } as const;
 
 export const chatOverlaySchema = z.object({
   layout: z.enum(['regular', 'compact']).default('regular'),
@@ -243,26 +249,27 @@ export const chatOverlaySchema = z.object({
   messageBackgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#171120'),
   messageBackgroundOpacity: z.number().min(0).max(1).default(0.96),
   messageColorMode: z.enum(['platform', 'single', 'transparent']).default('platform'),
-  platformMessageColors: z.object({ twitch: z.string().regex(/^#[0-9a-fA-F]{6}$/u), youtube: z.string().regex(/^#[0-9a-fA-F]{6}$/u), kick: z.string().regex(/^#[0-9a-fA-F]{6}$/u), tiktok: z.string().regex(/^#[0-9a-fA-F]{6}$/u) }).strict().default(DEFAULT_CHAT_PLATFORM_COLORS),
+  platformMessageColors: z.object({ twitch: z.string().regex(/^#[0-9a-fA-F]{6}$/u), youtube: z.string().regex(/^#[0-9a-fA-F]{6}$/u), kick: z.string().regex(/^#[0-9a-fA-F]{6}$/u), tiktok: z.string().regex(/^#[0-9a-fA-F]{6}$/u), kofi: z.string().regex(/^#[0-9a-fA-F]{6}$/u) }).strict().default(DEFAULT_CHAT_PLATFORM_COLORS),
   showPlatformLabels: z.boolean().default(true),
   showProfilePictures: z.boolean().default(true),
   showBadges: z.boolean().default(true),
   ignoredNames: z.array(z.string().trim().min(1).max(256)).max(500).default([]),
   events: z.object({
     enabled: z.boolean().default(true),
-    platforms: z.object({ twitch: z.boolean(), youtube: z.boolean(), kick: z.boolean(), tiktok: z.boolean() }).strict().default({ twitch: true, youtube: true, kick: true, tiktok: true }),
+    platforms: z.object({ twitch: z.boolean(), youtube: z.boolean(), kick: z.boolean(), tiktok: z.boolean(), kofi: z.boolean() }).strict().default({ twitch: true, youtube: true, kick: true, tiktok: true, kofi: true }),
     platformEvents: chatPlatformEventsSchema.default(DEFAULT_CHAT_PLATFORM_EVENTS),
     characterLimits: z.object({
       twitch: z.number().int().min(40).max(500).default(500),
       youtube: z.number().int().min(40).max(500).default(200),
       kick: z.number().int().min(40).max(500).default(500),
       tiktok: z.number().int().min(40).max(500).default(150),
-    }).strict().default({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 }),
+      kofi: z.number().int().min(40).max(500).default(500),
+    }).strict().default({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, kofi: 500 }),
   }).strict().default({
     enabled: true,
-    platforms: { twitch: true, youtube: true, kick: true, tiktok: true },
+    platforms: { twitch: true, youtube: true, kick: true, tiktok: true, kofi: true },
     platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS,
-    characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 },
+    characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, kofi: 500 },
   }),
 }).strict().superRefine((chat, context) => {
   const seen = new Set<string>();
@@ -284,7 +291,7 @@ const browserOverlaySchema = z.object({
   chat: chatOverlaySchema.default({
     layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9,
     messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [],
-    events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } },
+    events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, kofi: 500 } },
   }),
   alerts: alertPresentationSchema.default({ profiles: {} }),
 }).strict();
@@ -389,7 +396,7 @@ const bridgeConfigObjectSchema = z
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({
       enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
-      chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } } },
+      chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, kofi: 500 } } },
       alerts: { profiles: {} },
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
@@ -463,15 +470,16 @@ export const bridgeConfigSchema = z.preprocess((input) => {
 function migrateLegacyChatEventConfiguration(overlay: Record<string, unknown>): void {
   if (overlay['chat'] === null || typeof overlay['chat'] !== 'object' || Array.isArray(overlay['chat'])) return;
   const chat = { ...(overlay['chat'] as Record<string, unknown>) };
+  chat['platformMessageColors'] = { ...DEFAULT_CHAT_PLATFORM_COLORS, ...objectRecord(chat['platformMessageColors']) };
   if (chat['events'] === null || typeof chat['events'] !== 'object' || Array.isArray(chat['events'])) { overlay['chat'] = chat; return; }
   const events = { ...(chat['events'] as Record<string, unknown>) };
   const categories = objectRecord(events['categories']);
   const platformCategories = objectRecord(events['platformCategories']);
   const templates = objectRecord(events['templates']);
-  if (events['platformEvents'] === undefined) {
-    const migratedPlatforms: Record<string, unknown> = {};
-    for (const [platform, definitions] of Object.entries(DEFAULT_CHAT_PLATFORM_EVENTS)) {
-      const migratedDefinitions: Record<string, unknown> = {};
+  const migratedPlatforms: Record<string, unknown> = { ...objectRecord(events['platformEvents']) };
+  for (const [platform, definitions] of Object.entries(DEFAULT_CHAT_PLATFORM_EVENTS)) {
+    const migratedDefinitions: Record<string, unknown> = { ...objectRecord(migratedPlatforms[platform]) };
+    if (events['platformEvents'] === undefined) {
       const perPlatformCategories = objectRecord(platformCategories[platform]);
       const perPlatformTemplates = objectRecord(templates[platform]);
       for (const [eventId, setting] of Object.entries(definitions as Readonly<Record<string, { readonly template: string }>>)) {
@@ -482,10 +490,16 @@ function migrateLegacyChatEventConfiguration(overlay: Record<string, unknown>): 
           template: typeof template === 'string' ? template : setting.template,
         };
       }
-      migratedPlatforms[platform] = migratedDefinitions;
+    } else {
+      for (const [eventId, setting] of Object.entries(definitions)) {
+        if (migratedDefinitions[eventId] === undefined) migratedDefinitions[eventId] = setting;
+      }
     }
-    events['platformEvents'] = migratedPlatforms;
+    migratedPlatforms[platform] = migratedDefinitions;
   }
+  events['platformEvents'] = migratedPlatforms;
+  events['platforms'] = { twitch: true, youtube: true, kick: true, tiktok: true, kofi: true, ...objectRecord(events['platforms']) };
+  events['characterLimits'] = { twitch: 500, youtube: 200, kick: 500, tiktok: 150, kofi: 500, ...objectRecord(events['characterLimits']) };
   delete events['categories'];
   delete events['platformCategories'];
   delete events['templates'];

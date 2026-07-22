@@ -26,6 +26,13 @@ describe('public release scripts', () => {
     expect(source).toContain('release-manifest.json');
     expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory");
     expect(source).toContain('npm.cmd run addon:package -- $_.FullName $addOnArchive');
+    expect(source).toContain('THSV-StreamBridge-AddOn-');
+    expect(source).toContain('THSV-StreamBridge-AddOns-index.json');
+    expect(source).toContain("trustModel = 'GitHub release asset hashes plus GitHub artifact attestations; no silent install or auto-enable.'");
+    expect(source).toContain('revoked = @()');
+    expect(source).toContain("Join-Path $bundleRoot 'Streamer.bot'");
+    expect(source).toContain("Where-Object { $_.Name -notin $addOnPackageFolderNames }");
+    expect(source).toContain('They are intentionally not included in the main StreamBridge package.');
     expect(source).toContain('*.thsv-addon*');
     expect(source).toContain("'wizard'");
     expect(source).toContain('$releaseDocs');
@@ -43,9 +50,11 @@ describe('public release scripts', () => {
 
   it('publishes every optional add-on as a separately verified release asset', async () => {
     const workflow = await readFile('.github/workflows/release.yml', 'utf8');
-    expect(workflow).toContain('packages\\*.thsv-addon');
-    expect(workflow).toContain('packages/*.thsv-addon');
-    expect(workflow).toContain('packages\\*.thsv-addon.sha256');
+    expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip');
+    expect(workflow).toContain('packages/THSV-StreamBridge-AddOn-*.zip');
+    expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip.sha256');
+    expect(workflow).toContain('packages/THSV-StreamBridge-AddOns-index.json');
+    expect(workflow).toContain('packages\\THSV-StreamBridge-AddOns-index.json');
   });
 
   it('backs up add-ons and ships a verified approval-gated restore path', async () => {

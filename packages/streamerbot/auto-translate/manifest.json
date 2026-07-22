@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Auto Translate",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Performs creator-approved, timeout-bounded MyMemory requests for the privacy-gated Auto Translate add-on.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "action": {
+    "id": "b31de9cf-0d5d-4ba1-a63e-f9ffde20b27d",
+    "name": "THSV Addon - Auto Translate - Translate Text",
+    "group": "THSV StreamBridge - Add-ons",
+    "source": "src/TranslateText.cs",
+    "importFile": "THSV-StreamBridge-Auto-Translate-1.0.0.sb",
+    "references": [
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+      ".\\Newtonsoft.Json.dll"
+    ]
+  },
+  "runtime": { "queue": "THSV Add-ons", "concurrent": true },
+  "manualTriggerSetup": [],
+  "triggerSafety": "Broker-dispatched only. Do not attach triggers; StreamBridge restricts calls to the creator-approved action ID.",
+  "verificationStatus": "Source and package structure tested; live provider and multi-platform acceptance remains creator-verified."
+}

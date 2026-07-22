@@ -156,6 +156,13 @@ export function deriveCommandEvent(event: NormalizedEvent, config: CommandsConfi
       prefix: parsed.prefix,
       minimumRole: parsed.minimumRole,
       allowBots: parsed.allowBots,
+      ...(event.payload['isReply'] === true && typeof event.payload['replyMessage'] === 'string' && typeof event.payload['replyUserName'] === 'string' ? {
+        isReply: true,
+        replyMessage: event.payload['replyMessage'],
+        replyUserName: event.payload['replyUserName'],
+        ...(typeof event.payload['replyUserId'] === 'string' ? { replyUserId: event.payload['replyUserId'] } : {}),
+        ...(typeof event.payload['replyMessageId'] === 'string' ? { replyMessageId: event.payload['replyMessageId'] } : {}),
+      } : {}),
     },
     metadata: {
       correlationId: event.metadata.correlationId ?? event.eventId,

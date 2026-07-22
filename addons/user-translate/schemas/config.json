@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "User Translate",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable User Translate", "default": true },
+    "enabledPlatforms": { "type": "array", "title": "Platforms that may request translations", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "commandPrefix": { "type": "string", "title": "Command prefix", "description": "One visible non-space character, normally !.", "minLength": 1, "maxLength": 1, "pattern": "^\\S$", "default": "!" },
+    "genericCommandName": { "type": "string", "title": "Generic command name", "description": "Usage: !translate es hello. The add-on reads this from normalized public chat; no separate Streamer.bot command is required.", "pattern": "^[a-z][a-z0-9-]{0,63}$", "default": "translate" },
+    "languageCommands": { "type": "array", "title": "Enabled language-code commands", "description": "Example: es enables !es text. One code per line; no separate Streamer.bot command is required.", "items": { "type": "string", "pattern": "^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$", "maxLength": 20 }, "minItems": 1, "maxItems": 30, "uniqueItems": true, "default": ["en", "es", "fr", "de", "pt"] },
+    "sourceLanguage": { "type": "string", "title": "Language viewers are translating from", "description": "MyMemory requires an explicit source language and does not support autodetect. Use a two- or three-letter language code such as en, es, fr, de, or pt.", "pattern": "^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$", "maxLength": 20, "default": "en" },
+    "tutorialMessage": { "type": "string", "format": "multiline", "title": "Help shown when text is missing", "description": "Token: {targetLanguage}.", "minLength": 1, "maxLength": 1000, "default": "Usage: !{targetLanguage} text or !translate {targetLanguage} text. On Twitch, you can also reply to a message with !{targetLanguage}." },
+    "responseTemplate": { "type": "string", "format": "multiline", "title": "Translation response", "description": "Tokens: {author}, {targetLanguage}, {translation}. Reply translation keeps the original Twitch author's display name.", "minLength": 1, "maxLength": 1000, "default": "{author}: ({targetLanguage}) {translation}" },
+    "errorMessage": { "type": "string", "format": "multiline", "title": "Provider failure message", "minLength": 1, "maxLength": 500, "default": "Translation is temporarily unavailable. Please try again later." },
+    "maximumInputCharacters": { "type": "integer", "title": "Maximum input characters", "minimum": 1, "maximum": 1500, "default": 1000 },
+    "timeoutSeconds": { "type": "integer", "title": "Provider timeout (seconds)", "minimum": 3, "maximum": 15, "default": 8 },
+    "userCooldownSeconds": { "type": "integer", "title": "Per-viewer cooldown (seconds)", "minimum": 5, "maximum": 3600, "default": 15 },
+    "globalCooldownSeconds": { "type": "integer", "title": "Global request cooldown (seconds)", "minimum": 1, "maximum": 60, "default": 2 },
+    "maximumPendingRequests": { "type": "integer", "title": "Maximum requests waiting for a response", "minimum": 1, "maximum": 20, "default": 10 }
+  }
+}

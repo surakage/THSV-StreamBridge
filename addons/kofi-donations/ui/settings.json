@@ -1,0 +1,12 @@
+{
+  "intro": "Complete the Streamer.bot connection first. StreamBridge cannot receive Ko-fi donations directly and never stores your Ko-fi verification token.",
+  "order": ["enabled", "channelName", "includePublicMessage", "showPublicSupporterName", "privateSupporterLabel"],
+  "sections": [
+    { "id": "prerequisites", "title": "1. Before enabling", "description": "Connect Ko-fi to Streamer.bot and import the intake action.", "open": true, "notice": "Required order: create the Ko-fi webhook on the Streamer.bot website, add that URL and verification token in Ko-fi, import the bundled Ko-fi Donations .sb package, then attach Integrations > Ko-Fi > Donation to THSV Addon - Ko-fi Donations - Intake. This add-on will not receive anything until all four steps are complete.", "links": [{ "label": "Open the official Streamer.bot Ko-fi setup guide", "url": "https://docs.streamer.bot/guide/integrations/ko-fi" }], "fields": [] },
+    { "id": "connection", "title": "2. Connection and status", "description": "Enable intake only after the prerequisite checklist is complete.", "fields": ["enabled", "channelName"] },
+    { "id": "privacy", "title": "3. Supporter privacy", "description": "Choose what a public alert may display. Private Ko-fi details always stay hidden.", "fields": ["includePublicMessage", "showPublicSupporterName", "privateSupporterLabel"] },
+    { "id": "presentation", "title": "4. Alerts and chat activity", "description": "Presentation is configured in the core overlay pages.", "notice": "Use Alerts > Ko-fi > Donation for the alert card, sound, duration, and preview. Use Chat Overlay > Chat events > Ko-fi for the optional activity message. Disabling the chat activity message does not disable the alert.", "fields": [] },
+    { "id": "delivery", "title": "5. Delivery safety", "description": "How financial events are protected.", "notice": "Financial events require Ko-fi's stable messageId. Missing IDs are rejected instead of replaced. Accepted donations use the persisted outbox, retry backoff, dead-letter handling, and duplicate suppression. StreamBridge stores neither the Ko-fi verification token nor payment history.", "fields": [] }
+  ],
+  "fields": {}
+}

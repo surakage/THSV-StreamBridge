@@ -1,10 +1,34 @@
 # Changelog
 
+## [2.2.0] - 2026-07-22
+
+- Added six independently downloadable add-ons with matching Streamer.bot imports: Random Clip Player `1.4.0`, Automated Shoutouts `1.0.0`, User Translate `1.0.0`, Auto Translate `1.0.0`, Ko-fi Donations `1.0.1`, and Subathon Timer `1.1.0`.
+- Added a core-owned Subathon timer overlay with responsive styling, editable font/background/opacity, platform-specific event rules, durable timer state, and narrowly allowlisted Start, Pause, Resume, Reset, and Add Time Streamer.bot controls.
+- Added a manual, read-only add-on update checker with publisher, compatibility, revocation, and checksum validation. Updates never download or install themselves.
+- Improved add-on settings with guided collapsible sections, conditional fields, toggles, selectors, clearer privacy notes, and exact creator-approved Streamer.bot action grants.
+- Hardened native platform intake, add-on relay boundaries, hosted overlay topics, translation response limits, stable financial-event identity, and provider-specific chat/alert routing.
+- Changed release packaging so core and every add-on are separate, checksummed artifacts; each add-on archive contains its own `.thsv-addon`, matching `.sb`, setup notes, and update-index entry.
+
+- Added: Auto Translate `1.0.0` as a separate, disabled-by-default add-on for creator-selected public chat. It starts allowlist-only, requires an explicit source and target language, skips bots, system actors, commands, simulations, ignored names, duplicate messages, and same-language pairs, and applies bounded pending work, cooldowns, per-minute limits, and a maximum translated-message percentage. Provider text is never persisted and replies route only to the message's source platform.
+- Added: User Translate `1.0.0` as an explicit-command-only add-on. It supports configurable language-code commands, a generic translate command, Twitch reply translation with the original author's name, source-platform-only output, platform-aware splitting, bounded timeouts and cooldowns, provider-failure messages, and a clear MyMemory privacy disclosure. Source and translated message text are never persisted.
+- Changed: Native Platform Intake `1.5.2` relays only Streamer.bot's documented Twitch reply fields and restores `reply.msgBody` escaped spaces so opt-in add-ons can use reply context without guessing or retaining raw trigger objects.
+
 All notable changes to this project will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+- Changed Ko-fi Donations to `1.0.1` with a short Streamer.bot-first setup checklist, collapsed connection/privacy/presentation/safety sections, direct official setup links, and explicit guidance showing where Ko-fi alerts and optional chat activity are configured. The Alerts page now also explains the supported Ko-fi prerequisite and the reason Streamlabs intake remains pending.
+- Added the Ko-fi Donations add-on and its separate Streamer.bot import. Ko-fi payments require the documented stable `messageId`, keep private supporter content out of public alerts, and enter the normal validated, deduplicated, durable delivery pipeline through a narrowly scoped provider permission.
+- Added a manual, read-only wizard add-on update checker. It validates the official GitHub release index, reports compatible updates, publisher mismatches, unlisted packages, and revocations, and never downloads, installs, enables, or disables an add-on automatically.
+- Hardened User Translate and Auto Translate so their Streamer.bot actions reject third-party provider responses larger than 256 KiB before JSON parsing.
+
+- Wizard/Roadmap: Auto Translate settings are split into shorter setup sections (start, audience, languages, chat message, safety limits, chat rate limits, final review) so the add-on is not one dense limits panel. The future add-on roadmap now places Ko-fi/Streamlabs providers before Community Analytics and Multi-platform Subathon, then Free Game Check and utility packs after the financial/provider foundation.
+- Add-ons: package descriptors now support HTTPS-only publisher source, support, update, and revocation metadata. Release packaging now emits a GitHub-hosted add-on index plus checksum so future add-on updates can be reviewed from one manifest without silent installs.
+- Added: Automated Shoutouts `1.0.0` as a separate executable add-on. Twitch raids, first-chat creators, and manual targets are promoted only after Streamer.bot returns a non-empty extended-user category; an allowlisted Twitch first-time chatter with a verified empty category receives a separate editable viewer welcome exactly once instead. YouTube, Kick, and TikTok automatic first-chat messages are platform-specific welcomes because their documented integrations do not expose an arbitrary chatter category. Moderator commands, source/selected routing, editable per-platform templates, stable-identity ignores, persisted cooldowns, a bounded expiring queue, hosted cards, an optional native Twitch shoutout, and strict single-message destination limits are included. Simulated events never post live or call Twitch.
+- Wizard: add-on settings now support creator-defined collapsible sections, switch controls, checkbox selectors for enumerated lists, shorter text editors, plain-language option labels, and conditional fields. Automated Shoutouts uses eight guided sections instead of one long settings card.
+- Compatibility: reviewed Streamer.bot `1.0.5-alpha.32`. It is now recommended for new installs because of EventSub, authentication, backup, pending-action, and C# editor stability fixes. Existing packages retain `1.0.5-alpha.31` as their live-verified minimum because alpha.32 does not remove a C# contract they use; a fresh live acceptance pass remains pending. Native Platform Intake `1.5.1` now preserves the known `firstMessage` flag so first-ever-viewer welcomes fail closed when history is unavailable.
 
 ## [2.1.1] - 2026-07-21
 

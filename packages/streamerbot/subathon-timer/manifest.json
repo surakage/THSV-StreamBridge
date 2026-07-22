@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Subathon Timer",
+  "version": "1.1.0",
+  "author": "surakage",
+  "description": "Provides creator-triggered Start, Pause, Resume, Reset, and Add Time controls for the Subathon Timer add-on.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.32",
+  "actions": [
+    {
+      "name": "THSV Addon - Subathon Timer - Start",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [{ "name": "subathonAction", "value": "start" }],
+      "source": "src/ControlTimer.cs",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-1.1.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "name": "THSV Addon - Subathon Timer - Pause",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [{ "name": "subathonAction", "value": "pause" }],
+      "source": "src/ControlTimer.cs",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-1.1.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "name": "THSV Addon - Subathon Timer - Resume",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [{ "name": "subathonAction", "value": "resume" }],
+      "source": "src/ControlTimer.cs",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-1.1.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "name": "THSV Addon - Subathon Timer - Reset",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [{ "name": "subathonAction", "value": "reset" }],
+      "source": "src/ControlTimer.cs",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-1.1.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "name": "THSV Addon - Subathon Timer - Add Time",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        { "name": "subathonAction", "value": "add-time" },
+        { "name": "subathonSeconds", "value": "300", "autoType": true }
+      ],
+      "source": "src/ControlTimer.cs",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-1.1.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    }
+  ],
+  "runtime": { "queue": "THSV Add-ons", "concurrent": true },
+  "editableArguments": ["subathonSeconds"],
+  "manualTriggerSetup": ["Optionally attach these controls to hotkeys, deck buttons, or scene-active/scene-inactive triggers."],
+  "triggerSafety": "These actions publish only a bounded local timer-control envelope. They do not send chat, call external APIs, or run other actions.",
+  "verificationStatus": "Package structure and relay validation are automated; creator-selected hotkey and scene trigger attachment remains manual."
+}

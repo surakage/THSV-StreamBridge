@@ -105,6 +105,28 @@ describe('Browser Overlay Hub contract', () => {
     expect(projectBrowserOverlayEvents(event, config.browserOverlay).map((entry) => entry.kind)).toEqual(['alert.show']);
   });
 
+  it('routes a Ko-fi donation to alerts and optionally to the chat activity feed', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    const config = await testConfig();
+    const event: NormalizedEvent = {
+      ...source,
+      eventId: 'kofi-message-001',
+      platform: 'kofi',
+      eventType: 'engagement.donation',
+      source: { adapter: 'streamerbot-addon-relay', eventId: 'kofi-message-001', eventName: 'KofiDonation' },
+      payload: { amount: '5.00', currency: 'USD', message: 'Keep building!' },
+      metadata: { ...source.metadata, bridgeSequence: 24, simulated: false },
+    };
+
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay)).toMatchObject([
+      { kind: 'alert.show', payload: { platform: 'kofi', alertType: 'donation', amount: '5.00', currency: 'USD' } },
+      { kind: 'chat.event', payload: { platform: 'kofi', category: 'donation', label: 'KO-FI', message: 'example_member supported with 5.00 USD Keep building!' } },
+    ]);
+
+    config.browserOverlay.chat.events.platformEvents.kofi.donation.enabled = false;
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay).map((entry) => entry.kind)).toEqual(['alert.show']);
+  });
+
   it('projects an enabled reward redemption as a chat-only activity message', async () => {
     const source = await fixture('twitch-chat.json');
     const config = await testConfig();

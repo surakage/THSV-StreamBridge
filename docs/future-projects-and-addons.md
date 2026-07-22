@@ -23,7 +23,7 @@ The recommended public build remains a portable, self-contained Windows x64 ZIP 
 
 Add-on archives use the `.thsv-addon` extension. Creators can upload one in the authenticated wizard or copy it to `data/addons/inbox/`. Inbox discovery is intentionally not auto-install: the wizard validates the archive, displays its identity, requested permissions, compatibility, and integrity status, then requires approval. Installed add-ons appear in one selector; selecting an add-on opens only that add-on's settings.
 
-Package hashes prove that installed bytes match the package descriptor. They do not prove who published it. Until a free publisher-signing workflow such as Minisign or Sigstore attestations is added to releases, executable add-ons remain a trusted-publisher feature and declarative packages remain the preferred public tier.
+Package hashes prove that installed bytes match the package descriptor. They do not prove who published it. Release packaging emits a checksummed add-on index, and the wizard now performs a manual read-only version, compatibility, publisher, and revocation check against that official index. GitHub artifact attestations are the free publisher-authentication path for official releases; live attestation verification and guided package replacement remain future work. Executable add-ons remain a trusted-publisher feature and declarative packages remain the preferred public third-party tier.
 
 ## Priority add-ons
 
@@ -48,42 +48,74 @@ Acceptance requires live Twitch retrieval plus playback checks in OBS, Meld, and
 
 ### 2. Automated Shoutouts
 
-Build as an add-on instead of expanding core commands. It should react to creator-selected raids, first chat, manual commands, or approved groups/teams; use stable viewer identity; enforce per-channel cooldowns; and send through the shared source/selected-platform outbound router. Pronouns and team membership should be optional provider data with a readable fallback when unavailable. It must never issue repeated shoutouts after reconnect replay.
+Implemented as `thsv.automated-shoutouts` 1.0.0. It category-verifies Twitch targets with Streamer.bot's documented extended-user lookup before automatic promotion; uses platform-specific welcomes for allowlisted YouTube/Kick/TikTok first chats; accepts moderator/broadcaster manual commands; enforces a bounded queue, expiry, per-user/global/per-stream gates and strict destination limits; and sends through the shared source/selected-platform router. It optionally calls Streamer.bot's documented native Twitch shoutout method through a separate approved action. Pronouns and team membership remain deferred. See [Automated Shoutouts](automated-shoutouts.md).
 
 ### 3. User Translate
 
-Provide explicit commands such as `!en text` and reply-to-message translation. Preserve the original author's display name, split output using the destination platform's limit, enforce request timeouts and rate limits, and return a short tutorial when no text is supplied.
-
-Translation text leaves the local machine for a third-party service even when no API key is required. The wizard must disclose that fact, name the service, link its privacy terms, let the creator disable it per platform, and avoid retaining source or translated messages. An undocumented Google endpoint is not a dependable production contract; the add-on needs a replaceable provider interface and a failure message that does not expose raw URLs or stack traces.
+Implemented as `thsv.user-translate` 1.0.0. It supports explicit language commands (`!es text`), a generic command (`!translate es text`), and Twitch reply translation using Streamer.bot's documented reply arguments. Results preserve the original reply author, route only to the source platform, split using the shared platform-aware router, and are protected by bounded pending work, timeouts, and per-user/global cooldowns. The default documented no-key MyMemory provider requires an explicit source language; the wizard states that requested text leaves the local machine and the add-on never retains source or translated messages. See [User Translate](user-translate.md).
 
 ### 4. Auto Translate
 
-Keep separate from user-requested translation because it has much greater privacy, moderation, rate-limit, and chat-spam impact. Require opt-in channels/languages, bot-account availability, allow/ignore lists, bounded concurrency, duplicate suppression, and a maximum translated-message percentage. Ship only after the manual User Translate add-on is stable.
+Implemented as `thsv.auto-translate` 1.0.0 and kept separate from User Translate because automatic translation has greater privacy, moderation, rate-limit, and chat-spam impact. It starts disabled and allowlist-only, uses explicit source and target languages, skips commands/bots/system actors/simulations, supports allow and ignore lists, bounds concurrency and provider requests, suppresses duplicates, caps translations per minute, and enforces a maximum translated-message percentage. Results route only to the original platform and source/translated text is never persisted. See [Auto Translate](auto-translate.md).
 
 ### 5. Donation providers
 
 Streamlabs and Ko-fi should be separate provider add-ons. Each must preserve its provider event ID, verify webhook signatures or trusted Streamer.bot provenance, carry money as decimal strings, and maintain distinct alert identity and colors. Do not merge them with Twitch Bits, YouTube Super Chats, Kick KICKs, or TikTok gifts. Financial intake must use durable delivery and dead letters before public release.
 
-### 6. Speaker.bot orchestration
+Current progress: Ko-fi Donations 1.0.0 is implemented for stable-ID donation intake; live Ko-fi test-webhook acceptance remains pending. Streamlabs remains deferred until a provider-stable donation ID is documented or confirmed from a real trigger capture.
+
+### 6. Community analytics
+
+Build the StreamSuite-inspired feature set as an optional analytics add-on, not core. The useful pieces are attendance, first-chat/check-in tracking, stream start/end sessions, returning-viewer detection, per-stream summaries, simple interaction counters, and exportable local reports. The add-on should store its own private state through StreamBridge instead of scattering persistent Streamer.bot globals across unrelated actions.
+
+Responsibilities:
+
+- track attendance from normalized first-message, check-in command, and approved reward events;
+- keep bot/service-account ignore lists in the wizard;
+- distinguish new, returning, and already-counted viewers within a stream session;
+- count follows, raids, subscriptions, memberships, gifts, cheers, Super Chats, TikTok gifts, and TikTok like milestones only when stable event identity is available;
+- expose session summaries in the wizard and optional local report export;
+- never claim official analytics, revenue, payout, or tax accuracy;
+- keep all reset/clear operations explicit and backup-friendly.
+
+Do not include private contact messages, carrier email-to-SMS, personal local paths, or credential-bearing report delivery. Those are intentionally out of scope for public add-ons.
+
+### 7. Multi-platform Subathon
+
+Build Subathon after donation providers and high-impact event identity are stable. It should consume normalized events from Twitch, YouTube, Kick, TikTok, Ko-fi, and Streamlabs, then publish a core-hosted timer overlay that counts down and increases through creator-defined event rules.
+
+Responsibilities:
+
+- define per-platform contribution rules such as subscription adds time, gift count multiplies time, cheer/Super Chat/donation amount adds time, raid size adds time, and TikTok like milestones add time;
+- support max total time, max per-event add, happy-hour multipliers, pause/resume, manual add/remove, reset with backup, and live-only gating;
+- show timer, goal, last contributor, event rotator, and optional safety state in one hosted overlay;
+- require simulated preview before live use;
+- record every accepted timer mutation with event ID, platform, amount, rule, and resulting timer value;
+- ignore unsupported or unstable events until the provider has verified stable IDs.
+
+The add-on should not use a downloaded UI DLL or direct OBS control. The wizard and hosted overlay already provide the safer configuration and display layer.
+
+### 8. Speaker.bot orchestration
 
 Rebuild the archived feature against normalized events and the public capability API. Add content filtering, per-event allowlists, voice selection, queue limits, interruption rules, and a creator-visible emergency stop before allowing alert text to be spoken aloud.
 
-### 7. Viewer identity and progression
+### 9. Viewer identity and progression
 
 Rebuild only after platform account-linking, privacy export/deletion, moderator correction, replay-safe rewards, and migration rules are designed. This add-on can later provide a shared identity service to games, companions, and cooldown systems without putting viewer profiles in core.
 
-### 8. Bloom Companion
+### 10. Bloom Companion
 
 Depends on the progression add-on and hosted media lifecycle. Keep artwork, animation state, interaction rules, and companion storage entirely optional. It should continue a sleep pose until a wake event, use non-looping transition animations, and remain visually stable across browser-source sizes.
 
-### 9. Games and interactive extensions
+### 11. Games and interactive extensions
 
 Choose the Adventure, Chat Arena, Prediction Game, Companion Care, Fishing, and Trivia should remain add-ons or later Twitch Extensions. Browser-heavy, account-linked games are better Twitch Extension candidates; chat-command versions can use the bridge add-on API. Rewards must be cosmetic or creator-defined until viewer identity and anti-abuse controls are complete.
 
 ## Later utility candidates
 
+- Free Game Check as a separate posting add-on with scheduled/manual checks, offer caching, duplicate suppression, Discord/webhook output, platform-chat output, and preview-before-post controls;
+- quote, counter, giveaway, and poll helpers as a Creator Utility Pack with independent enable switches and source-platform routing;
 - moderation dashboard and bounded chat-history tools;
-- quote, counter, giveaway, and poll helpers;
 - creator-approved scene automation using documented OBS/Meld/Streamlabs APIs;
 - local clip cache and prefetch helper for unreliable connections;
 - accessibility packs such as high-contrast overlays, caption relays, and TTS controls;
@@ -106,7 +138,11 @@ Every public add-on must:
 
 1. Finish live acceptance for the main v2 preview and publish its portable release.
 2. Build Random Clip Player as the reference executable media add-on.
-3. Add free publisher authentication and add-on update metadata.
-4. Build Automated Shoutouts and User Translate using the shared outbound router.
-5. Add Streamlabs and Ko-fi providers after financial durability acceptance.
-6. Rebuild Speaker.bot, identity/progression, Bloom, and games only after their privacy and safety dependencies are complete.
+3. Polish installed add-on setup screens so every add-on uses compact sections, clear toggles, and hidden advanced controls.
+4. Completed: use the generated add-on index for manual wizard update, compatibility, publisher-mismatch, unlisted-package, and revocation warnings.
+5. Complete live acceptance for Automated Shoutouts, User Translate, and Auto Translate.
+6. Add Streamlabs and Ko-fi providers after financial durability acceptance.
+7. Build Community Analytics from the safe StreamSuite ideas.
+8. Build Multi-platform Subathon on top of verified provider events.
+9. Add Free Game Check and the Creator Utility Pack.
+10. Rebuild Speaker.bot, identity/progression, Bloom, and games only after their privacy and safety dependencies are complete.

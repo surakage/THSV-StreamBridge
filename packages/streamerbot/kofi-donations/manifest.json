@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0.0", "name": "THSV StreamBridge - Ko-fi Donations", "version": "1.0.1", "author": "surakage",
+  "description": "Relays verified Ko-fi Donation triggers into the stable-ID, durable StreamBridge alert pipeline.", "minimumStreamerBotVersion": "1.0.5-alpha.32",
+  "action": { "id": "e61c4b43-6cf0-5d56-a1c9-2176ae09c312", "name": "THSV Addon - Ko-fi Donations - Intake", "group": "THSV StreamBridge - Add-ons", "source": "src/RelayKoFiDonation.cs", "importFile": "THSV-StreamBridge-KoFi-Donations-1.0.1.sb", "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"] },
+  "runtime": { "queue": "THSV Add-ons", "concurrent": true }, "manualTriggerSetup": ["Integrations > Ko-Fi > Donation"],
+  "triggerSafety": "Attach only Ko-Fi > Donation. The action rejects missing stable messageId values and never generates a replacement payment ID.",
+  "verificationStatus": "Static and simulated relay coverage included; a real or Ko-fi test webhook remains required for live acceptance."
+}

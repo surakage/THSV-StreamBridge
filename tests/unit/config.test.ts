@@ -200,8 +200,8 @@ describe('bridge configuration', () => {
       ...config.browserOverlay.chat, layout: 'compact', fontFamily: 'rounded', fontSizePx: 24, backgroundMode: 'solid', ignoredNames: ['ExampleBot', 'Another Viewer'],
     } } });
     expect(valid.browserOverlay.chat).toMatchObject({ layout: 'compact', fontSizePx: 24, ignoredNames: ['ExampleBot', 'Another Viewer'] });
-    expect(valid.browserOverlay.chat).toMatchObject({ messageColorMode: 'platform', platformMessageColors: { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31' } });
-    expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true }, platformEvents: { youtube: { subscriber: { enabled: true }, member: { enabled: true } }, tiktok: { likes: { enabled: true }, subscription: { enabled: true } } }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } });
+    expect(valid.browserOverlay.chat).toMatchObject({ messageColorMode: 'platform', platformMessageColors: { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31', kofi: '#174a63' } });
+    expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, kofi: true }, platformEvents: { youtube: { subscriber: { enabled: true }, member: { enabled: true } }, tiktok: { likes: { enabled: true }, subscription: { enabled: true } }, kofi: { donation: { enabled: true } } }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, kofi: 500 } });
     expect(valid.browserOverlay.chat.events).not.toHaveProperty('categories');
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 60 } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, backgroundColor: 'red' } } }).success).toBe(false);
@@ -228,6 +228,9 @@ describe('bridge configuration', () => {
     expect(migrated.platformEvents.youtube.subscriber).toEqual({ enabled: true, template: '{actor} found the channel' });
     expect(migrated.platformEvents.youtube.member.enabled).toBe(false);
     expect(migrated.platformEvents.tiktok.subscription.enabled).toBe(false);
+    expect(migrated.platformEvents.kofi.donation).toEqual({ enabled: true, template: '{actor} supported with {amount} {currency} {message}' });
+    expect(migrated.platforms.kofi).toBe(true);
+    expect(migrated.characterLimits.kofi).toBe(500);
     expect(migrated).not.toHaveProperty('categories');
     expect(migrated).not.toHaveProperty('templates');
   });

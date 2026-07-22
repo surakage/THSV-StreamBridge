@@ -6,7 +6,9 @@ function relay(platform: 'twitch' | 'youtube' | 'kick', sourceEventType: string,
     type: 'thsv.platform', version: '1.0.0', platform, sourceEventType, relayId: `relay-${platform}-${sourceEventType}`,
     sourceEventId: `source-${platform}-${sourceEventType}`, receivedAt: '2026-07-17T00:00:00.000Z', simulated: true,
     userId: 'viewer-1', userName: 'viewer_login', displayName: 'Viewer Name', profilePictureUrl: '', nameColor: '', badges: [], role: 'Viewer',
-    isModerator: false, isBroadcaster: false, isSubscribed: false, isVip: false, message: '', amount: '', currency: '', quantity: '', tier: '', itemName: '',
+    isModerator: false, isBroadcaster: false, isSubscribed: false, isVip: false, message: '', firstMessage: false, firstMessageKnown: false,
+    isReply: false, replyMessageId: '', replyUserId: '', replyUserLogin: '', replyUserName: '', replyMessage: '',
+    amount: '', currency: '', quantity: '', tier: '', itemName: '',
     channelId: 'channel-1', channelName: 'Example Channel', argumentKeys: [], ...overrides,
   };
 }
@@ -25,6 +27,23 @@ describe('native Streamer.bot platform relay adapter', () => {
   ] as const)('normalizes %s chat', (platform, sourceEventType) => {
     const event = normalizeStreamerBotPlatformRelay(relay(platform, sourceEventType, { message: ' Hello 🦥 ' }));
     expect(event).toMatchObject({ platform, eventType: 'chat.message', payload: { message: 'Hello 🦥' }, metadata: { simulated: true } });
+  });
+
+  it('preserves a known first-ever-message flag without inventing it when absent', () => {
+    expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', {
+      message: 'My first message', firstMessage: true, firstMessageKnown: true,
+    }))).toMatchObject({ payload: { message: 'My first message', firstMessage: true } });
+    expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', {
+      message: 'Unknown history', firstMessage: false, firstMessageKnown: false,
+    })).payload).toEqual({ message: 'Unknown history' });
+  });
+
+  it('preserves a complete documented Twitch reply and fails closed on partial or non-Twitch reply data', () => {
+    expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', {
+      message: '!es', isReply: true, replyMessageId: 'parent-1', replyUserId: 'author-1', replyUserName: 'Original Author', replyMessage: 'hello there',
+    }))).toMatchObject({ payload: { message: '!es', isReply: true, replyMessageId: 'parent-1', replyUserId: 'author-1', replyUserName: 'Original Author', replyMessage: 'hello there' } });
+    expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', { message: '!es', isReply: true, replyUserName: '', replyMessage: 'hello' })).payload).toEqual({ message: '!es' });
+    expect(normalizeStreamerBotPlatformRelay(relay('youtube', 'YouTubeMessage', { message: '!es', isReply: true, replyUserName: 'Someone', replyMessage: 'hello' })).payload).toEqual({ message: '!es' });
   });
 
   it('normalizes Twitch roles and cheer quantity', () => {

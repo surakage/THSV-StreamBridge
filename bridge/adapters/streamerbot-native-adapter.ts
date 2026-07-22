@@ -30,6 +30,14 @@ const relaySchema = z.object({
   isSubscribed: z.boolean().default(false),
   isVip: z.boolean().default(false),
   message: z.string().max(2_000).default(''),
+  firstMessage: z.boolean().default(false),
+  firstMessageKnown: z.boolean().default(false),
+  isReply: z.boolean().default(false),
+  replyMessageId: z.string().max(256).default(''),
+  replyUserId: z.string().max(256).default(''),
+  replyUserLogin: z.string().max(256).default(''),
+  replyUserName: z.string().max(256).default(''),
+  replyMessage: z.string().max(2_000).default(''),
   amount: z.string().max(32).default(''),
   currency: z.string().max(8).default(''),
   quantity: z.string().max(32).default(''),
@@ -142,7 +150,19 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   if (eventType === 'chat.message') {
     const message = clean(relay.message);
     if (message === '') throw new Error(`${relay.sourceEventType} requires a message.`);
-    return { ...common, payload: { message } };
+    const replyMessage = clean(relay.replyMessage);
+    const replyUserName = clean(relay.replyUserName) || clean(relay.replyUserLogin);
+    return { ...common, payload: {
+      message,
+      ...(relay.firstMessageKnown ? { firstMessage: relay.firstMessage } : {}),
+      ...(relay.platform === 'twitch' && relay.isReply && replyMessage !== '' && replyUserName !== '' ? {
+        isReply: true,
+        replyMessage,
+        replyUserName,
+        ...(clean(relay.replyUserId) === '' ? {} : { replyUserId: clean(relay.replyUserId) }),
+        ...(clean(relay.replyMessageId) === '' ? {} : { replyMessageId: clean(relay.replyMessageId) }),
+      } : {}),
+    } };
   }
   if (eventType === 'channel.follow') return { ...common, payload: {} };
   if (eventType === 'stream.online' || eventType === 'stream.offline') return { ...common, user: undefined, payload: {} };

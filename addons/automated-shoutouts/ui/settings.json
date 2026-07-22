@@ -1,0 +1,82 @@
+{
+  "intro": "Start with Quick start, then open only the behavior you want to customize. Automatic and manual shoutouts remain disabled until you enable them.",
+  "order": [
+    "enabled", "enabledPlatforms", "triggerOnRaids", "minimumRaidViewers",
+    "triggerOnFirstChat", "firstChatResetHours", "firstChatAllowlist", "triggerOnManualCommand", "manualCommandName",
+    "ignoredUsers", "deliveryMode", "selectedPlatforms", "raidTemplate", "twitchFirstChatTemplate", "twitchViewerWelcomeTemplate",
+    "youtubeWelcomeTemplate", "kickWelcomeTemplate", "tiktokWelcomeTemplate", "manualTwitchTemplate",
+    "manualChannelTemplate", "globalCooldownSeconds", "userCooldownMinutes", "onePerStream",
+    "maximumQueueSize", "queueExpiryMinutes", "twitchShoutoutMode", "showOverlayCard",
+    "overlayDurationSeconds"
+  ],
+  "sections": [
+    {
+      "id": "quick-start",
+      "title": "1. Quick start",
+      "description": "Turn the add-on on and choose which platforms it watches.",
+      "open": true,
+      "fields": ["enabled", "enabledPlatforms"]
+    },
+    {
+      "id": "automatic",
+      "title": "2. Automatic shoutouts",
+      "description": "Choose which automatic events are allowed to create a message.",
+      "fields": ["triggerOnRaids", "minimumRaidViewers", "triggerOnFirstChat", "firstChatResetHours", "firstChatAllowlist"]
+    },
+    {
+      "id": "manual",
+      "title": "3. Manual moderator command",
+      "description": "Configure the command moderators use when they choose a shoutout target.",
+      "fields": ["triggerOnManualCommand", "manualCommandName"]
+    },
+    {
+      "id": "delivery",
+      "title": "4. Message destinations",
+      "description": "Choose where text is posted and whether Twitch also receives its native shoutout.",
+      "fields": ["deliveryMode", "selectedPlatforms", "twitchShoutoutMode"]
+    },
+    {
+      "id": "twitch-messages",
+      "title": "5. Twitch messages",
+      "description": "Edit raid, creator, viewer-welcome, and manual Twitch wording.",
+      "fields": ["raidTemplate", "twitchFirstChatTemplate", "twitchViewerWelcomeTemplate", "manualTwitchTemplate"]
+    },
+    {
+      "id": "other-messages",
+      "title": "6. YouTube, Kick, and TikTok messages",
+      "description": "Edit platform welcomes and the manual channel-link message.",
+      "fields": ["youtubeWelcomeTemplate", "kickWelcomeTemplate", "tiktokWelcomeTemplate", "manualChannelTemplate"]
+    },
+    {
+      "id": "safety",
+      "title": "7. Spam protection and ignored users",
+      "description": "Control repeats, queue size, cooldowns, and accounts that should never appear.",
+      "fields": ["ignoredUsers", "globalCooldownSeconds", "userCooldownMinutes", "onePerStream", "maximumQueueSize", "queueExpiryMinutes"]
+    },
+    {
+      "id": "overlay",
+      "title": "8. Overlay card",
+      "description": "Enable or disable the optional on-screen shoutout card.",
+      "fields": ["showOverlayCard", "overlayDurationSeconds"]
+    }
+  ],
+  "fields": {
+    "minimumRaidViewers": { "visibleWhen": { "field": "triggerOnRaids", "equals": true } },
+    "firstChatResetHours": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true } },
+    "firstChatAllowlist": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 4 },
+    "manualCommandName": { "visibleWhen": { "field": "triggerOnManualCommand", "equals": true } },
+    "selectedPlatforms": { "visibleWhen": { "field": "deliveryMode", "equals": "selected" } },
+    "deliveryMode": { "labels": { "source": "Reply only on the source platform", "selected": "Post to selected platforms" } },
+    "twitchShoutoutMode": { "labels": { "text": "Editable text only", "native": "Native Twitch shoutout only", "both": "Native shoutout and editable text" } },
+    "raidTemplate": { "visibleWhen": { "field": "triggerOnRaids", "equals": true }, "rows": 3 },
+    "twitchFirstChatTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "twitchViewerWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "youtubeWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "kickWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "tiktokWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "manualTwitchTemplate": { "visibleWhen": { "field": "triggerOnManualCommand", "equals": true }, "rows": 3 },
+    "manualChannelTemplate": { "visibleWhen": { "field": "triggerOnManualCommand", "equals": true }, "rows": 3 },
+    "ignoredUsers": { "rows": 4 },
+    "overlayDurationSeconds": { "visibleWhen": { "field": "showOverlayCard", "equals": true } }
+  }
+}

@@ -34,6 +34,25 @@ describe('Stage 9 add-on packages', () => {
     expect(verified.descriptor).toMatchObject({ packageFormat: 'thsv-addon-v2', entrypoint: 'dist/index.js', manifest: { moduleId: 'sample.no-op' } });
   });
 
+  it('accepts HTTPS publisher update and revocation metadata while rejecting unsafe trust URLs', async () => {
+    const root = await workspace();
+    await cp('examples/addons/no-op', root, { recursive: true });
+    const descriptorPath = join(root, 'module-package.json');
+    const descriptor = JSON.parse(await readFile(descriptorPath, 'utf8')) as Record<string, unknown>;
+    descriptor['trust'] = {
+      publisherId: 'sample.publisher',
+      sourceUrl: 'https://example.test/source',
+      supportUrl: 'https://example.test/support',
+      updateManifestUrl: 'https://example.test/addons/index.json',
+      revocationListUrl: 'https://example.test/addons/revocations.json',
+    };
+    await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
+    await expect(verifyAddOnPackage(root)).resolves.toMatchObject({ descriptor: { trust: { publisherId: 'sample.publisher', updateManifestUrl: 'https://example.test/addons/index.json' } } });
+    descriptor['trust'] = { updateManifestUrl: 'http://example.test/addons/index.json' };
+    await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
+    await expect(verifyAddOnPackage(root)).rejects.toThrow('https');
+  });
+
   it('rejects tampering, unlisted files, traversal, and incompatible core versions', async () => {
     const root = await workspace();
     await cp('examples/addons/no-op', root, { recursive: true });

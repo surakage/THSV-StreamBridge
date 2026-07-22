@@ -1,0 +1,14 @@
+{
+  "intro": "Auto Translate sends selected public chat text to an external provider. Start with platforms and audience, then review language, wording, limits, and privacy before enabling.",
+  "order": ["enabled", "enabledPlatforms", "audienceMode", "allowedNames", "ignoredNames", "sourceLanguage", "targetLanguage", "commandPrefix", "responseTemplate", "showProviderErrors", "errorMessage", "maximumInputCharacters", "timeoutSeconds", "userCooldownSeconds", "globalCooldownSeconds", "maximumPendingRequests", "maximumTranslationsPerMinute", "percentageWindowMessages", "percentageMinimumSample", "maximumTranslatedPercentage"],
+  "sections": [
+    { "id": "quick-start", "title": "1. Start here", "description": "Keep translation off until setup is reviewed.", "open": true, "fields": ["enabled", "enabledPlatforms"] },
+    { "id": "audience", "title": "2. Audience", "description": "Choose who can be translated. Ignore rules always win.", "open": true, "fields": ["audienceMode", "allowedNames", "ignoredNames"] },
+    { "id": "languages", "title": "3. Languages", "description": "Pick one known source language and one different target language.", "fields": ["sourceLanguage", "targetLanguage", "commandPrefix"] },
+    { "id": "wording", "title": "4. Chat message", "description": "Customize the public reply. Provider failures stay hidden unless enabled.", "fields": ["responseTemplate", "showProviderErrors", "errorMessage"] },
+    { "id": "safety-limits", "title": "5. Safety limits", "description": "Bound message size, wait time, and queued provider work.", "fields": ["maximumInputCharacters", "timeoutSeconds", "maximumPendingRequests"] },
+    { "id": "rate-limits", "title": "6. Chat rate limits", "description": "Prevent automatic translations from taking over normal chat.", "fields": ["userCooldownSeconds", "globalCooldownSeconds", "maximumTranslationsPerMinute", "percentageWindowMessages", "percentageMinimumSample", "maximumTranslatedPercentage"] },
+    { "id": "privacy", "title": "7. Review before enabling", "description": "Confirm what leaves your computer.", "notice": "Every selected public chat message is sent to MyMemory (Translated). StreamBridge does not retain message text, but the provider may process text and request metadata. Auto Translate cannot detect language automatically and must never be used for private or sensitive messages.", "links": [{ "label": "Read MyMemory terms", "url": "https://mymemory.translated.net/terms-and-conditions" }], "fields": [] }
+  ],
+  "fields": { "allowedNames": { "rows": 5 }, "ignoredNames": { "rows": 4 }, "responseTemplate": { "rows": 3 }, "errorMessage": { "rows": 2, "visibleWhen": { "field": "showProviderErrors", "equals": true } } }
+}

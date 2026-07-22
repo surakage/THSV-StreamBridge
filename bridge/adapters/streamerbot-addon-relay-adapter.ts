@@ -88,7 +88,7 @@ export class StreamerBotAddOnRelayAdapter extends ManagedAdapter {
 
 export function normalizeStreamerBotAddOnRelay(input: unknown): NormalizedEvent {
   const relay = relaySchema.parse(input);
-  if (!isCreatorPlaybackControl(relay) && !addOnRelayAuthorizer.consume(relay.moduleId, relay.relayToken)) throw new Error('Add-on relay token is missing, expired, already used, or belongs to another module.');
+  if (!isCreatorControl(relay) && !isTrustedProviderIngress(relay) && !addOnRelayAuthorizer.consume(relay.moduleId, relay.relayToken)) throw new Error('Add-on relay token is missing, expired, already used, or belongs to another module.');
   assertBoundedPayload(relay.payload);
   // Versions before Random Clip Player 1.3 used a shortened namespace. Accept only those two
   // exact historical events and canonicalize them immediately; all other add-ons still have to
@@ -114,10 +114,40 @@ function boundedEventId(prefix: string, value: string): string {
   return composed.length <= 256 ? composed : `${prefix}sha256-${createHash('sha256').update(value).digest('hex')}`;
 }
 
-function isCreatorPlaybackControl(relay: AddOnRelay): boolean {
-  if (relay.moduleId !== 'thsv.random-clip-player' || relay.eventType !== 'addon.thsv.random-clip-player.control') return false;
-  if (!['THSV Addon - Random Clip Player - Enable', 'THSV Addon - Random Clip Player - Disable'].includes(relay.sourceEventType)) return false;
-  return Object.keys(relay.payload).length === 1 && typeof relay.payload['enabled'] === 'boolean';
+function isCreatorControl(relay: AddOnRelay): boolean {
+  if (relay.relayToken !== '') return false;
+  if (relay.moduleId === 'thsv.random-clip-player' && relay.eventType === 'addon.thsv.random-clip-player.control') {
+    if (!['THSV Addon - Random Clip Player - Enable', 'THSV Addon - Random Clip Player - Disable'].includes(relay.sourceEventType)) return false;
+    return Object.keys(relay.payload).length === 1 && typeof relay.payload['enabled'] === 'boolean';
+  }
+  if (relay.moduleId !== 'thsv.subathon-timer' || relay.eventType !== 'addon.thsv.subathon-timer.control') return false;
+  const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
+  if (!['start', 'pause', 'resume', 'reset', 'add-time'].includes(action)) return false;
+  const actionLabel = action === 'add-time' ? 'Add Time' : `${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
+  const expectedSource = `THSV Addon - Subathon Timer - ${actionLabel}`;
+  if (relay.sourceEventType !== expectedSource) return false;
+  const keys = Object.keys(relay.payload);
+  if (action === 'add-time') {
+    const seconds = relay.payload['seconds'];
+    return keys.length === 2 && typeof seconds === 'number' && Number.isInteger(seconds) && seconds >= 1 && seconds <= 86_400;
+  }
+  return keys.length === 1;
+}
+
+// Streamer.bot receives Ko-fi through a creator-configured webhook whose verification token is
+// checked by Streamer.bot. This one exact envelope is the provider intake path; it intentionally
+// cannot mint other add-on events or omit Ko-fi's stable message ID.
+function isTrustedProviderIngress(relay: AddOnRelay): boolean {
+  if (relay.moduleId !== 'thsv.kofi-donations' || relay.eventType !== 'addon.thsv.kofi-donations.donation-received') return false;
+  if (relay.sourceEventType !== 'KofiDonation' || relay.relayToken !== '') return false;
+  const keys = Object.keys(relay.payload);
+  if (keys.some((key) => !['amount', 'currency', 'from', 'isPublic', 'message', 'timestamp'].includes(key))) return false;
+  return typeof relay.payload['amount'] === 'string'
+    && typeof relay.payload['currency'] === 'string'
+    && typeof relay.payload['from'] === 'string'
+    && typeof relay.payload['isPublic'] === 'boolean'
+    && typeof relay.payload['message'] === 'string'
+    && typeof relay.payload['timestamp'] === 'string';
 }
 
 function assertBoundedPayload(payload: AddOnRelay['payload']): void {

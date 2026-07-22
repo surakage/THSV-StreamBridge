@@ -6,7 +6,7 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Release status:** `2.1.1` is the current stable release. Its automated suites, browser checks, Windows lifecycle tests, and self-contained release build pass. A genuine live-stream, real-viewer soak of the high-impact provider-event matrix is still in progress; until then, high-impact operations without verified provider-stable IDs remain blocked at runtime by design. See the [production-readiness gate](docs/production-readiness.md) for the remaining live-verification items.
+> **Release status:** `2.2.0` is the current stable release. Its automated suites, browser checks, Windows lifecycle tests, add-on verification, and self-contained release build pass. A genuine live-stream, real-viewer soak of the high-impact provider-event matrix is still in progress; until then, high-impact operations without verified provider-stable IDs remain blocked at runtime by design. See the [production-readiness gate](docs/production-readiness.md) for the remaining live-verification items.
 
 ## What it does
 
@@ -27,7 +27,7 @@ Streamer.bot remains the automation and decision engine. StreamBridge does not a
 
 ## Download and install
 
-Public releases are distributed as self-contained Windows x64 ZIP files from the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases). The archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, and reviewed Streamer.bot packages. Users do not need to install Node.js, npm, Docker, or a database.
+Public releases are distributed as self-contained Windows x64 ZIP files from the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases). The main archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, and core Streamer.bot packages. Optional add-on Streamer.bot actions are deliberately kept out of the main import list. Each add-on has its own ZIP containing the wizard-installable `.thsv-addon`, only that add-on's `.sb` import, setup instructions, and checksums. Users do not need to install Node.js, npm, Docker, or a database.
 
 1. Download `THSV-StreamBridge-<version>.zip` and its adjacent `.sha256` file.
 2. Verify the download using [RELEASE-VERIFICATION.md](RELEASE-VERIFICATION.md). GitHub artifact attestations provide a free publisher-verification path without requiring a paid Windows code-signing certificate.
@@ -35,6 +35,8 @@ Public releases are distributed as self-contained Windows x64 ZIP files from the
 4. Double-click **Install THSV StreamBridge.cmd**.
 5. The installer creates a private local control token, starts the bridge, checks health, and opens the authenticated setup wizard.
 6. Follow [Streamer.bot setup](docs/streamerbot-setup.md) to import the supplied packages, add only the [approved trigger matrix](docs/streamerbot-trigger-matrix.md), and connect the WebSocket server.
+
+For an optional feature, download its matching `THSV-StreamBridge-AddOn-<Name>-<version>.zip`. Extract it, install the `.thsv-addon` through the wizard, then import the `.sb` file from that bundle's `Streamer.bot` folder. Add-on actions are never mixed into the main StreamBridge package.
 
 Default installation location: `%LOCALAPPDATA%\THSV StreamBridge`. Windows 10 or later and PowerShell 5.1 or later are required.
 
@@ -64,7 +66,9 @@ Add-ons must use the main StreamBridge installation. They reuse its normalized e
 
 Install a `.thsv-addon` through the authenticated Add-ons page, or copy it into `data/addons/inbox/` and review it there. Inbox packages are inspected but never installed or executed automatically. Executable add-ons run under the creator's Windows account, so install them only from trusted publishers. Planned projects and their safety requirements are tracked in the [future project and add-on roadmap](docs/future-projects-and-addons.md).
 
-Optional add-ons are separate downloads on the same GitHub Release as core. Each has its own versioned `.thsv-addon`, SHA-256 checksum, and build-provenance attestation, so creators can update core without silently installing features they did not choose. Future valid packages placed under the repository's `addons/` directory are discovered by release automation and published the same way.
+Optional add-ons are separate downloads on the same GitHub Release as core. Each has its own versioned `.thsv-addon`, SHA-256 checksum, and build-provenance attestation, so creators can update core without silently installing features they did not choose. The Add-ons page can manually check the official release index and report updates, compatibility problems, publisher mismatches, unlisted packages, or revocations; it never downloads or installs an add-on. Future valid packages placed under the repository's `addons/` directory are discovered by release automation and published the same way.
+
+Current add-ons are [Random Clip Player](docs/future-projects-and-addons.md#1-random-clip-player), [Automated Shoutouts](docs/automated-shoutouts.md), [User Translate](docs/user-translate.md), [Auto Translate](docs/auto-translate.md), [Ko-fi Donations](docs/kofi-donations.md), and [Subathon Timer](docs/subathon-timer.md). User Translate is explicit-command-only; Auto Translate is disabled-by-default and allowlist-first because selected public chat text leaves the local computer for translation. Both route replies only to the originating platform and never store source or translated message text. Ko-fi requires its supported Streamer.bot integration, while Subathon Timer remains local and uses only creator-approved event rules and controls.
 
 ## Privacy and security
 
@@ -79,7 +83,7 @@ Optional add-ons are separate downloads on the same GitHub Release as core. Each
 
 Review [Security](docs/security.md), [release verification](RELEASE-VERIFICATION.md), and [integration assumptions](docs/integration-assumptions.md) before using financial, reward, or destructive automation.
 
-The v2 line lives on `main` as the stable `2.1.1` release, following `2.0.0`. It was developed on the merged `overhaul/v2-preview` branch. The normalized v2 contract and reviewed Streamer.bot component packages retain their `2.0.0-preview.1` compatibility identifier; stable `1.x` remains available from the releases page. Stages 2 through 9 are implemented: v2 contracts, compatibility migration preview, excluded-feature extraction, the module host, the authenticated setup wizard, provider-authoritative capability reports, platform controls, scoped blocker rules, Streamer.bot command design and synchronization, session-relative timed actions, configurable browser alerts, documented channel-reward intake and administration, packaging, and the add-on API. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Stage 4 completion](docs/stage-4-completion.md), [Stage 5 completion](docs/stage-5-completion.md), [Stage 6 completion](docs/stage-6-completion.md), [Stage 7 completion](docs/stage-7-completion.md), [Stage 8 completion](docs/stage-8-completion.md), [Stage 9 completion](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
+The v2 line lives on `main` as the stable `2.2.0` release, following `2.1.1`. It was developed on the merged `overhaul/v2-preview` branch. The normalized v2 contract and reviewed Streamer.bot component packages retain their `2.0.0-preview.1` compatibility identifier; stable `1.x` remains available from the releases page. Stages 2 through 9 are implemented: v2 contracts, compatibility migration preview, excluded-feature extraction, the module host, the authenticated setup wizard, provider-authoritative capability reports, platform controls, scoped blocker rules, Streamer.bot command design and synchronization, session-relative timed actions, configurable browser alerts, documented channel-reward intake and administration, packaging, and the add-on API. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Stage 4 completion](docs/stage-4-completion.md), [Stage 5 completion](docs/stage-5-completion.md), [Stage 6 completion](docs/stage-6-completion.md), [Stage 7 completion](docs/stage-7-completion.md), [Stage 8 completion](docs/stage-8-completion.md), [Stage 9 completion](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
 
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
@@ -108,7 +112,7 @@ Streamer.bot Package Foundation adds:
 - Reviewed C# receiver source with normalized-event validation
 - A stable platform-neutral action-argument contract for future packages
 - Automated checks that the exported package contains the reviewed source
-- Live validation against Streamer.bot `1.0.5-alpha.31`
+- Live validation against Streamer.bot `1.0.5-alpha.31`; `1.0.5-alpha.32` is the recommended update pending a fresh live acceptance pass
 
 Import the package and follow the instructions in the [Streamer.bot receiver package](packages/streamerbot/core-receiver/README.md).
 
@@ -192,13 +196,15 @@ TikFinity does not currently document a stable source-event ID or reliable simul
 
 ## Native Streamer.bot platform intake
 
-Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.5.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection and preserve Streamer.bot's test-event provenance.
+Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.5.1.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
 
 Stage 8 adds Twitch and Kick reward-redemption intake to those native actions. The separate triggerless `THSV StreamBridge - Reward Administration` package exposes only documented, creator-approved Twitch operations; Kick mutations are hidden and rejected until Streamer.bot documents them. See [Channel rewards](docs/rewards.md).
 
 ## V2 add-on packages
 
 Stage 9 adds hash-verified, version-bounded optional module packages plus an authenticated Add-ons page in the local wizard. A declarative package can expose schema-validated settings without executing add-on code. Executable packages receive scoped handles for private state, bounded scheduling, exact creator-approved Streamer.bot actions through the bridge's single connection, and core-hosted namespaced card/media overlays with playback lifecycle reports. They still run with StreamBridge's Windows-account permissions, so the broker is not an operating-system sandbox and installation requires explicit creator approval. Packages copied into `data/addons/inbox/` are inspected and listed but never auto-installed. A failed or corrupted add-on is shown as rejected without stopping required core modules. Start with `examples/addons/declarative-settings/`, the [add-on developer guide](docs/add-on-development.md), the [capability broker reference](docs/add-on-capabilities.md), and the [future project roadmap](docs/future-projects-and-addons.md).
+
+Official optional downloads currently include Random Clip Player, Automated Shoutouts, User Translate, and Auto Translate. Each add-on ships as its own ZIP containing the matching `.thsv-addon`, its own Streamer.bot `.sb` import, installation notes, and checksums; add-on actions are intentionally excluded from the main StreamBridge import set. Auto Translate starts disabled and allowlist-only because selected chat text leaves the local computer for translation. See [Auto Translate](docs/auto-translate.md).
 
 ## Source development
 

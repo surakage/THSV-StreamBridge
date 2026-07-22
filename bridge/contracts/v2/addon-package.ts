@@ -18,11 +18,25 @@ export const ADD_ON_PERMISSION_VALUES = [
   'streamerbot.run-approved-action',
   'overlay.publish',
   'chat.send',
+  'provider.events.publish',
   'schedule.bounded',
   'state.private',
 ] as const;
 export const addOnPermissionV2Schema = z.enum(ADD_ON_PERMISSION_VALUES);
 export type AddOnPermissionV2 = z.infer<typeof addOnPermissionV2Schema>;
+
+const safeHttpsUrlSchema = z.url().refine((value) => {
+  try { return new URL(value).protocol === 'https:'; }
+  catch { return false; }
+}, 'Add-on trust URLs must use https.');
+
+export const addOnTrustV2Schema = z.object({
+  publisherId: z.string().trim().min(1).max(100).regex(/^[a-z][a-z0-9.-]*$/u).optional(),
+  sourceUrl: safeHttpsUrlSchema.optional(),
+  supportUrl: safeHttpsUrlSchema.optional(),
+  updateManifestUrl: safeHttpsUrlSchema.optional(),
+  revocationListUrl: safeHttpsUrlSchema.optional(),
+}).strict();
 
 export const addOnPackageV2Schema = z.object({
   packageFormat: z.literal('thsv-addon-v2'),
@@ -31,6 +45,7 @@ export const addOnPackageV2Schema = z.object({
   description: z.string().trim().min(1).max(1_000).default('No description supplied.'),
   changelog: z.string().trim().max(10_000).default(''),
   permissions: z.array(addOnPermissionV2Schema).max(20).default([]),
+  trust: addOnTrustV2Schema.default({}),
   manifest: moduleManifestV2Schema,
   entrypoint: z.string().min(1).max(500).refine(isSafeAddOnPath, 'The entrypoint must be a safe relative path.').refine((path) => path.endsWith('.js') || path.endsWith('.mjs'), 'The entrypoint must be JavaScript.').optional(),
   settingsUi: z.string().min(1).max(500).refine(isSafeAddOnPath, 'The settings UI schema must be a safe relative path.').optional(),

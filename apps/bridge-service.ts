@@ -18,6 +18,7 @@ import { FileDeliveryOutboxStore } from '../bridge/services/delivery-outbox-stor
 import { AddOnWizardService } from '../bridge/services/addon-wizard-service.js';
 import { AddOnCapabilityBroker } from '../bridge/core/addon-capability-broker.js';
 import { ReleaseUpdateService } from '../bridge/services/release-update-service.js';
+import { AddOnUpdateService } from '../bridge/services/addon-update-service.js';
 import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
 import { OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
 
@@ -60,18 +61,22 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   publishOverlay: async (moduleId, topic, payload) => overlayHub.publishAddOn(moduleId, topic, payload),
   subscribeOverlayLifecycle: (moduleId, listener) => overlayHub.subscribeAddOnLifecycle(moduleId, listener),
   routeOutboundMessage: (request, signal) => outboundRouter.route(request, signal),
+  publishProviderEvent: async (event) => {
+    await activeBridge.ingest(event);
+  },
 });
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
-const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, deliveryOutboxStore, modules });
+const activeBridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, deliveryOutboxStore, modules });
 const wizard = new WizardService(
   streamerBotInspector,
   new WizardConfigurationGateway(configPath, (platforms) => registry.capabilityReports(platforms)),
   new FileCommandSyncStore(join(dataRoot, 'state', 'command-sync.json'), logger),
   new AddOnWizardService(addOnsRoot, addOnStateRoot),
   new ReleaseUpdateService(CORE_CONTRACT_VERSION),
+  new AddOnUpdateService(CORE_CONTRACT_VERSION),
 );
-bridge.subscribe((event) => overlayHub.publish(event));
+activeBridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;
 
 async function shutdown(signal: string): Promise<void> {
@@ -80,7 +85,7 @@ async function shutdown(signal: string): Promise<void> {
   logger.info('Shutdown requested', { signal });
   try {
     await server.stop();
-    await bridge.stop();
+    await activeBridge.stop();
     await logger.flush();
     process.exitCode = 0;
   } catch (error) {
@@ -89,7 +94,7 @@ async function shutdown(signal: string): Promise<void> {
   }
 }
 
-const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub, wizard, dataRoot);
+const server = new DiagnosticsServer({ ...config.service, ...config.security }, activeBridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub, wizard, dataRoot);
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
 process.once('SIGTERM', () => void shutdown('SIGTERM'));
@@ -97,12 +102,12 @@ process.once('uncaughtException', (error) => { logger.error('Uncaught exception'
 process.once('unhandledRejection', (error) => { logger.error('Unhandled rejection', { error }); void shutdown('unhandledRejection'); });
 
 try {
-  await bridge.start();
+  await activeBridge.start();
   await server.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
 } catch (error) {
   logger.error('Startup failed', { error });
-  await bridge.stop().catch(() => undefined);
+  await activeBridge.stop().catch(() => undefined);
   await logger.flush();
   process.exitCode = 1;
 }

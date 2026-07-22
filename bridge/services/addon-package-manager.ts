@@ -265,6 +265,7 @@ export interface InstalledAddOnSummary {
   readonly changelog: string;
   readonly packageKind: 'declarative' | 'executable';
   readonly permissions: readonly string[];
+  readonly trust: AddOnPackageV2['trust'];
   readonly enabled: boolean;
   readonly approvedActionIds: readonly string[];
   readonly health: 'installed' | 'rejected';
@@ -294,6 +295,7 @@ export async function listInstalledAddOnPackages(addOnsRoot: string): Promise<re
         changelog: verified.descriptor.changelog,
         packageKind: verified.descriptor.packageKind,
         permissions: verified.descriptor.permissions,
+        trust: verified.descriptor.trust,
         enabled: record.enabled !== false,
         approvedActionIds: validateInstalledActionIds(record.approvedActionIds),
         health: 'installed',
@@ -301,7 +303,7 @@ export async function listInstalledAddOnPackages(addOnsRoot: string): Promise<re
         ...(settingsUi === undefined ? {} : { settingsUi }),
       });
     } catch (error) {
-      result.push({ moduleId: entry.name, name: entry.name, version: 'unknown', author: 'Unknown publisher', description: 'This installed add-on failed integrity or compatibility verification and will not be loaded.', changelog: '', packageKind: 'executable', permissions: [], enabled: false, approvedActionIds: [], health: 'rejected', error: error instanceof Error ? error.message : String(error), configurationSchema: { type: 'object', properties: {}, additionalProperties: false } });
+      result.push({ moduleId: entry.name, name: entry.name, version: 'unknown', author: 'Unknown publisher', description: 'This installed add-on failed integrity or compatibility verification and will not be loaded.', changelog: '', packageKind: 'executable', permissions: [], trust: {}, enabled: false, approvedActionIds: [], health: 'rejected', error: error instanceof Error ? error.message : String(error), configurationSchema: { type: 'object', properties: {}, additionalProperties: false } });
     }
   }
   return result;

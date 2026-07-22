@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Ko-fi Donations", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Ko-fi donation intake", "description": "Leave off until the verified Ko-fi webhook and Streamer.bot trigger are configured.", "default": false },
+    "channelName": { "type": "string", "title": "Provider label", "minLength": 1, "maxLength": 256, "default": "Ko-fi" },
+    "includePublicMessage": { "type": "boolean", "title": "Show public supporter messages", "description": "Private Ko-fi messages are never exposed regardless of this setting.", "default": true },
+    "showPublicSupporterName": { "type": "boolean", "title": "Show public supporter names", "default": true },
+    "privateSupporterLabel": { "type": "string", "title": "Private or hidden supporter label", "minLength": 1, "maxLength": 256, "default": "Anonymous Ko-fi supporter" }
+  }
+}

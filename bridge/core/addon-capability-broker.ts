@@ -1,10 +1,11 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnScheduledTaskV2, type ModuleRuntimeContextV2 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type ModuleRuntimeContextV2 } from '../contracts/v2/addon-capability.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { Logger } from '../services/logger.js';
 import { addOnRelayAuthorizer } from '../services/addon-relay-authorizer.js';
@@ -22,7 +23,20 @@ const TASK_TIMEOUT_MS = 5_000;
 const MAXIMUM_PENDING_ACTIONS_PER_MODULE = 2;
 const MAXIMUM_ACTIONS_PER_MINUTE = 30;
 const MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE = 10;
+const MAXIMUM_PROVIDER_EVENTS_PER_MINUTE = 120;
 const jsonRecordSchema = z.record(z.string().min(1).max(100), jsonValueV2Schema);
+const providerDonationSchema = z.object({
+  sourceEventId: z.string().trim().min(1).max(256),
+  sourceEventType: z.string().trim().min(1).max(100),
+  receivedAt: z.iso.datetime({ offset: true }),
+  channelName: z.string().trim().min(1).max(256),
+  supporterName: z.string().trim().min(1).max(256),
+  amount: z.string().regex(/^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/u),
+  currency: z.string().regex(/^[A-Z]{3}$/u),
+  message: z.string().max(2_000).optional(),
+  simulated: z.boolean(),
+}).strict();
+const PROVIDER_MODULES: Readonly<Record<string, string>> = Object.freeze({ 'thsv.kofi-donations': 'kofi' });
 
 export interface ModuleCapabilityGrant {
   readonly moduleId: string;
@@ -36,6 +50,7 @@ export interface AddOnCapabilityBrokerDependencies {
   readonly publishOverlay?: (moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>) => Promise<void>;
   readonly subscribeOverlayLifecycle?: (moduleId: string, listener: (event: AddOnOverlayLifecycleV2) => void) => () => void;
   readonly routeOutboundMessage?: (request: AddOnOutboundMessageRequestV2, signal: AbortSignal) => Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
+  readonly publishProviderEvent?: (event: NormalizedEvent) => Promise<void>;
 }
 
 interface CapabilityAudit {
@@ -63,6 +78,7 @@ export class AddOnCapabilityBroker {
   private readonly actionActivity = new Map<string, ActionActivity>();
   private readonly overlaySubscriptions = new Map<string, Set<() => void>>();
   private readonly outboundActivity = new Map<string, OutboundActivity>();
+  private readonly providerEventStarts = new Map<string, number[]>();
   private readonly generations = new Map<string, number>();
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {}
@@ -97,6 +113,7 @@ export class AddOnCapabilityBroker {
         onLifecycle: (listener: (event: AddOnOverlayLifecycleV2) => void) => this.subscribeOverlayLifecycle(grant, listener),
       }),
       chat: Object.freeze({ send: (request: AddOnOutboundMessageRequestV2) => this.sendChat(grant, request) }),
+      provider: Object.freeze({ publishDonation: (request: AddOnProviderDonationRequestV2) => this.publishProviderDonation(grant, request) }),
     };
     return Object.freeze(context);
   }
@@ -117,6 +134,7 @@ export class AddOnCapabilityBroker {
     const outbound = this.outboundActivity.get(moduleId);
     if (outbound !== undefined) for (const controller of outbound.controllers) controller.abort(new Error(`Add-on ${moduleId} stopped before its outbound chat request completed.`));
     this.outboundActivity.delete(moduleId);
+    this.providerEventStarts.delete(moduleId);
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
@@ -125,7 +143,8 @@ export class AddOnCapabilityBroker {
       scheduledTasks: this.scheduled.size,
       actionRequests: Object.fromEntries([...this.actionActivity.entries()].map(([moduleId, activity]) => [moduleId, { pending: activity.pending, startsInCurrentWindow: activity.startedAt.filter((startedAt) => startedAt >= Date.now() - 60_000).length }])),
       outboundRequests: Object.fromEntries([...this.outboundActivity.entries()].map(([moduleId, activity]) => [moduleId, { pending: activity.pending, startsInCurrentWindow: activity.startedAt.filter((time) => time >= Date.now() - 60_000).length }])),
-      limits: { maximumJsonBytes: MAXIMUM_JSON_BYTES, maximumRecordKeys: MAXIMUM_RECORD_KEYS, maximumArguments: MAXIMUM_ARGUMENTS, minimumDelayMs: MINIMUM_DELAY_MS, maximumDelayMs: MAXIMUM_DELAY_MS, maximumTimersPerModule: MAXIMUM_TIMERS_PER_MODULE, taskTimeoutMs: TASK_TIMEOUT_MS, maximumPendingActionsPerModule: MAXIMUM_PENDING_ACTIONS_PER_MODULE, maximumActionsPerMinute: MAXIMUM_ACTIONS_PER_MINUTE, maximumOutboundRequestsPerMinute: MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE },
+      providerEvents: Object.fromEntries([...this.providerEventStarts.entries()].map(([moduleId, starts]) => [moduleId, { startsInCurrentWindow: starts.filter((time) => time >= Date.now() - 60_000).length }])),
+      limits: { maximumJsonBytes: MAXIMUM_JSON_BYTES, maximumRecordKeys: MAXIMUM_RECORD_KEYS, maximumArguments: MAXIMUM_ARGUMENTS, minimumDelayMs: MINIMUM_DELAY_MS, maximumDelayMs: MAXIMUM_DELAY_MS, maximumTimersPerModule: MAXIMUM_TIMERS_PER_MODULE, taskTimeoutMs: TASK_TIMEOUT_MS, maximumPendingActionsPerModule: MAXIMUM_PENDING_ACTIONS_PER_MODULE, maximumActionsPerMinute: MAXIMUM_ACTIONS_PER_MINUTE, maximumOutboundRequestsPerMinute: MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE, maximumProviderEventsPerMinute: MAXIMUM_PROVIDER_EVENTS_PER_MINUTE },
       modules: Object.fromEntries([...this.audits.entries()].map(([moduleId, audit]) => [moduleId, { ...audit }])),
     };
   }
@@ -247,6 +266,35 @@ export class AddOnCapabilityBroker {
     try { const result = await this.dependencies.routeOutboundMessage(request, controller.signal); this.record(grant.moduleId, 'chat.send', 'granted'); return result; }
     catch (error) { this.record(grant.moduleId, 'chat.send', 'failed'); throw error; }
     finally { activity.pending -= 1; activity.controllers.delete(controller); }
+  }
+
+  private async publishProviderDonation(grant: ActiveModuleCapabilityGrant, request: AddOnProviderDonationRequestV2): Promise<void> {
+    this.require(grant, 'provider.events.publish', 'provider.events.publishDonation');
+    const platform = PROVIDER_MODULES[grant.moduleId];
+    if (platform === undefined) return this.deny(grant.moduleId, 'provider.events.publish', 'provider.events.publishDonation', 'This add-on is not assigned a provider event namespace.');
+    if (this.dependencies.publishProviderEvent === undefined) return this.deny(grant.moduleId, 'provider.events.publish', 'provider.events.publishDonation', 'Provider event ingestion is unavailable.');
+    const parsed = providerDonationSchema.parse(request);
+    const starts = this.providerEventStarts.get(grant.moduleId) ?? [];
+    const cutoff = Date.now() - 60_000;
+    while ((starts[0] ?? Number.POSITIVE_INFINITY) < cutoff) starts.shift();
+    if (starts.length >= MAXIMUM_PROVIDER_EVENTS_PER_MINUTE) return this.deny(grant.moduleId, 'provider.events.publish', 'provider.events.publishDonation', `The provider exceeded ${String(MAXIMUM_PROVIDER_EVENTS_PER_MINUTE)} accepted events per minute.`);
+    starts.push(Date.now()); this.providerEventStarts.set(grant.moduleId, starts);
+    const sourceIdHash = createHash('sha256').update(`${platform}:${parsed.sourceEventId}`).digest('hex');
+    const message = parsed.message?.replace(/[\p{Cc}\s]+/gu, ' ').trim();
+    const event: NormalizedEvent = {
+      schemaVersion: '1.0.0',
+      eventId: `addon-provider-${platform}-${sourceIdHash}`,
+      eventType: 'engagement.donation',
+      platform,
+      source: { adapter: `addon-provider-${platform}`, eventId: parsed.sourceEventId, eventName: parsed.sourceEventType },
+      receivedAt: parsed.receivedAt,
+      channel: { name: parsed.channelName },
+      user: { name: parsed.supporterName, displayName: parsed.supporterName, actorType: 'human', roles: [] },
+      payload: { amount: parsed.amount, currency: parsed.currency, ...(message === undefined || message === '' ? {} : { message }) },
+      metadata: { simulated: parsed.simulated },
+    };
+    try { await this.dependencies.publishProviderEvent(event); this.record(grant.moduleId, 'provider.events.publishDonation', 'granted'); }
+    catch (error) { this.record(grant.moduleId, 'provider.events.publishDonation', 'failed'); throw error; }
   }
 
   private statePath(moduleId: string): string {

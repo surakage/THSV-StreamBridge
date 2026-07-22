@@ -1,0 +1,26 @@
+{
+  "intro": "Set up viewer-requested translation in five short sections. Commands work from normalized chat, and replies return only to the platform where the request originated.",
+  "order": ["enabled", "enabledPlatforms", "commandPrefix", "genericCommandName", "languageCommands", "sourceLanguage", "tutorialMessage", "responseTemplate", "errorMessage", "maximumInputCharacters", "timeoutSeconds", "userCooldownSeconds", "globalCooldownSeconds", "maximumPendingRequests"],
+  "sections": [
+    { "id": "quick-start", "title": "1. Quick start", "description": "Turn translation on and choose where viewers may use it.", "open": true, "fields": ["enabled", "enabledPlatforms"] },
+    { "id": "commands", "title": "2. Commands and languages", "description": "Choose the prefix, generic command, short language commands, and known source language. These work directly from normalized chat without a separate Streamer.bot command.", "open": true, "fields": ["commandPrefix", "genericCommandName", "languageCommands", "sourceLanguage"] },
+    { "id": "messages", "title": "3. Chat wording", "description": "Customize the help, result, and failure messages.", "fields": ["tutorialMessage", "responseTemplate", "errorMessage"] },
+    { "id": "safety", "title": "4. Limits and spam protection", "description": "Bound provider work, waiting requests, and viewer frequency.", "fields": ["maximumInputCharacters", "timeoutSeconds", "userCooldownSeconds", "globalCooldownSeconds", "maximumPendingRequests"] },
+    {
+      "id": "privacy",
+      "title": "5. Privacy and provider",
+      "description": "Review what leaves your computer before enabling translation.",
+      "notice": "Only text from an explicit translation request is sent to MyMemory (Translated). StreamBridge does not retain that message text, but the provider may process the text and request metadata under its own terms. Do not translate private or sensitive information.",
+      "links": [
+        { "label": "Read MyMemory terms", "url": "https://mymemory.translated.net/terms-and-conditions" }
+      ],
+      "fields": []
+    }
+  ],
+  "fields": {
+    "languageCommands": { "rows": 5 },
+    "tutorialMessage": { "rows": 3 },
+    "responseTemplate": { "rows": 3 },
+    "errorMessage": { "rows": 2 }
+  }
+}

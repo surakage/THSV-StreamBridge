@@ -1,0 +1,51 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Sends bounded, cooldown-protected shoutouts and welcomes after creator-selected raids, approved first chats, or moderator commands, using StreamBridge's shared platform router.",
+  "changelog": "1.0.0: initial release with Twitch category-verified raid/creator promotion, a separate editable one-time Twitch viewer welcome when an allowlisted first-chat lookup returns no category, platform-specific YouTube/Kick/TikTok welcomes, allowlisted first-chat detection, moderator-only manual commands, per-platform one-message length enforcement, source or selected-platform routing, editable templates, bounded queueing, durable cooldowns, an optional hosted overlay card, and an optional creator-approved native Twitch shoutout action.",
+  "permissions": ["events.subscribe", "chat.send", "overlay.publish", "schedule.bounded", "state.private", "streamerbot.run-approved-action"],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.automated-shoutouts",
+    "name": "Automated Shoutouts",
+    "version": "1.0.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": ["channel.raid", "chat.message", "command.received", "stream.online", "stream.offline", "addon.thsv.automated-shoutouts.twitch-profile-received"],
+    "commandsProvided": [{ "id": "automated-shoutouts.shoutout", "name": "shoutout (recommended alias: so)" }],
+    "actionsProvided": [
+      { "id": "automated-shoutouts.twitch-lookup", "name": "Required Twitch creator category lookup" },
+      { "id": "automated-shoutouts.twitch-native", "name": "Optional Twitch native shoutout" }
+    ],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": ["data/addons/thsv.automated-shoutouts/", "data/addons/.state/thsv.automated-shoutouts/"],
+    "installationSteps": [
+      "Install and enable the add-on in the StreamBridge wizard, then review its chat.send and overlay.publish permissions.",
+      "In Command Sync, create the configured shoutout command (recommended aliases: so and shoutout) with Moderator permission.",
+      "Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.",
+      "Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.",
+      "For TikTok output, enable Allow Streamer.bot to push messages to TikFinity in TikFinity Chatbot settings."
+    ],
+    "uninstallationSteps": ["Uninstall the add-on. Its private cooldown state remains preserved for a later reinstall."],
+    "migrations": [],
+    "healthChecks": [{ "id": "thsv.automated-shoutouts.runtime", "description": "Confirms shoutout event handling, bounded state, and broker access are healthy." }]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    { "path": "dist/index.js", "size": 24686, "sha256": "10d628459dd82cfdeaa4df955021a13d42b7de0ce94ec76e8921ce585d48d518" },
+    { "path": "schemas/config.json", "size": 6849, "sha256": "051ab8357eed706de5fc58b170cde0b22dcee2529da90d53188935d6669d0d45" },
+    { "path": "ui/settings.json", "size": 4785, "sha256": "66a138c292350628206e80758a48b1b5eaf31c1bb34a920b7cad083408dc01e3" }
+  ]
+}

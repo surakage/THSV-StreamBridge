@@ -79,6 +79,23 @@ export interface AddOnChatCapabilityV2 {
   send(request: AddOnOutboundMessageRequestV2): Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
 }
 
+export interface AddOnProviderDonationRequestV2 {
+  readonly sourceEventId: string;
+  readonly sourceEventType: string;
+  readonly receivedAt: string;
+  readonly channelName: string;
+  readonly supporterName: string;
+  readonly amount: string;
+  readonly currency: string;
+  readonly message?: string;
+  readonly simulated: boolean;
+}
+
+export interface AddOnProviderCapabilityV2 {
+  /** Publishes only the provider event types assigned to this installed module. Core constructs and validates the normalized event. */
+  publishDonation(request: AddOnProviderDonationRequestV2): Promise<void>;
+}
+
 export interface ModuleRuntimeContextV2 {
   readonly moduleId: string;
   readonly grantedPermissions: readonly AddOnPermissionV2[];
@@ -91,4 +108,5 @@ export interface ModuleRuntimeContextV2 {
   readonly schedule: AddOnScheduleCapabilityV2;
   readonly overlay: AddOnOverlayCapabilityV2;
   readonly chat: AddOnChatCapabilityV2;
+  readonly provider: AddOnProviderCapabilityV2;
 }

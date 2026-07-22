@@ -13,7 +13,8 @@ public class CPHInline
     private const int MaximumArgumentKeys = 100;
     private const int MaximumTextLength = 2000;
     private static readonly string[] KnownArguments = {
-        "actionName", "userName", "userLogin", "fromUserName", "messageId", "msgId", "eventId", "isTest", "isSimulated",
+        "actionName", "userName", "userLogin", "fromUserName", "messageId", "msgId", "eventId", "isTest", "isSimulated", "firstMessage",
+        "isReply", "reply.msgId", "reply.userId", "reply.userLogin", "reply.userName", "reply.msgBody", "reply.threadMsgId", "reply.threadUserLogin",
         "userId", "fromUserId", "user", "displayName", "fromUser", "userProfileUrl", "userProfilePicture", "profilePicture",
         "profileImageUrl", "targetUserProfileImageUrl", "color", "badges", "badge", "role", "isModerator", "isBroadcaster",
         "isSubscribed", "subscribed", "isVip", "message", "messageStripped", "rawInput", "amount", "donationAmount", "currency",
@@ -54,6 +55,8 @@ public class CPHInline
         }
         string relayId = Guid.NewGuid().ToString("N");
         string userName = First(Read("userName"), Read("userLogin"), Read("fromUserName"));
+        object firstMessageValue;
+        bool firstMessageKnown = CPH.TryGetArg("firstMessage", out firstMessageValue);
         var message = new JObject
         {
             ["type"] = "thsv.platform",
@@ -76,6 +79,18 @@ public class CPHInline
             ["isSubscribed"] = ReadBoolean("isSubscribed") || ReadBoolean("subscribed"),
             ["isVip"] = ReadBoolean("isVip"),
             ["message"] = Bounded(First(Read("message"), Read("messageStripped"), Read("rawInput")), MaximumTextLength),
+            // Streamer.bot's firstMessage flag means the user's first message ever in this
+            // channel. Keep a separate presence bit so missing data never becomes a false claim.
+            ["firstMessage"] = ReadBoolean("firstMessage"),
+            ["firstMessageKnown"] = firstMessageKnown,
+            // Twitch documents these fields for chat commands. reply.msgBody escapes spaces as
+            // \s, so restore them before passing the bounded plain-text value to StreamBridge.
+            ["isReply"] = ReadBoolean("isReply"),
+            ["replyMessageId"] = Read("reply.msgId"),
+            ["replyUserId"] = Read("reply.userId"),
+            ["replyUserLogin"] = Read("reply.userLogin"),
+            ["replyUserName"] = Read("reply.userName"),
+            ["replyMessage"] = Read("reply.msgBody").Replace("\\s", " "),
             ["amount"] = First(MicroAmountToDecimal(ReadInvariant("microAmount")), StripCurrencySymbol(First(ReadInvariant("amount"), ReadInvariant("donationAmount")))),
             ["currency"] = First(Read("currency"), Read("currencyCode")),
             ["quantity"] = First(ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("months"), ReadInvariant("cumulative"), ReadInvariant("gifts"), ReadInvariant("giftCount"), ReadInvariant("kicks.amount")),

@@ -25,6 +25,7 @@ import {
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
 import type { AddOnWizardService, DiscoveredAddOnSummary, WizardAddOnSummary } from './addon-wizard-service.js';
 import type { ReleaseUpdateService, ReleaseUpdateStatus } from './release-update-service.js';
+import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -148,6 +149,7 @@ export class WizardService {
     private readonly commandSyncStore?: CommandSyncStore,
     private readonly addOns?: AddOnWizardService,
     private readonly updates?: ReleaseUpdateService,
+    private readonly addOnUpdates?: AddOnUpdateService,
   ) {}
 
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
@@ -421,6 +423,11 @@ export class WizardService {
     return this.updates.check();
   }
 
+  public async checkForAddOnUpdates(): Promise<AddOnUpdateStatus> {
+    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on update checks are not configured.');
+    return this.addOnUpdates.check(await this.addOns.list());
+  }
+
   public async installAddOn(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.install(input);
@@ -457,7 +464,7 @@ export class WizardService {
       configuration: this.configuration?.diagnostics(),
       commandSync: this.commandSyncStore?.status(),
       addOns: this.addOns?.diagnostics(),
-      updates: { configured: this.updates !== undefined },
+      updates: { configured: this.updates !== undefined, addOnsConfigured: this.addOnUpdates !== undefined },
     };
   }
 }
