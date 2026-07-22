@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>THSV Subathon Timer</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="timer-shell" data-state="idle">
+    <div class="timer-card">
+      <div class="timer-topline">
+        <span id="label" class="timer-label">SUBATHON</span>
+        <span id="badge" class="timer-badge">OFFLINE</span>
+      </div>
+      <div id="time" class="timer-time">00:00:00</div>
+      <div class="timer-progress-track" aria-hidden="true">
+        <div id="progress" class="timer-progress-fill"></div>
+      </div>
+      <div class="timer-meta">
+        <span id="reason">Waiting for StreamBridge</span>
+        <span id="platforms">No live platforms</span>
+      </div>
+    </div>
+  </main>
+  <script src="./app.js" defer></script>
+</body>
+</html>

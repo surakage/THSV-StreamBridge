@@ -1,0 +1,155 @@
+:root {
+  color-scheme: dark;
+  --bg: rgba(11, 16, 23, 0.18);
+  --card: linear-gradient(145deg, rgba(14, 24, 38, 0.94), rgba(8, 13, 20, 0.88));
+  --line: rgba(133, 203, 255, 0.18);
+  --ink: #eff7ff;
+  --muted: rgba(223, 239, 255, 0.72);
+  --accent: #7ee0ff;
+  --warn: #f0c15a;
+  --critical: #ff6b7d;
+  --live: #61f2a4;
+  --font-display: "Segoe UI Variable Display", "Trebuchet MS", "Aptos", sans-serif;
+  --font-broadcast: "Franklin Gothic Medium", "Bahnschrift", "Segoe UI", sans-serif;
+  --font-mono: "Consolas", "Cascadia Mono", "Courier New", monospace;
+  --font-active: var(--font-display);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--font-active);
+}
+
+body {
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.timer-shell {
+  width: min(840px, 92vw);
+}
+
+.timer-card {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: 28px 30px 26px;
+  background:
+    radial-gradient(circle at top right, rgba(126, 224, 255, 0.16), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(97, 242, 164, 0.14), transparent 30%),
+    var(--card);
+  color: var(--ink);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.32);
+}
+
+.timer-shell[data-background="solid"] .timer-card {
+  background: var(--card);
+  backdrop-filter: none;
+}
+
+.timer-shell[data-background="none"] .timer-card {
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.timer-topline,
+.timer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.timer-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.timer-badge {
+  border-radius: 999px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.timer-time {
+  margin: 12px 0 14px;
+  font-size: clamp(3.2rem, 11vw, 6.3rem);
+  line-height: 0.94;
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 28px rgba(126, 224, 255, 0.12);
+}
+
+.timer-progress-track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.timer-shell[data-progress="hidden"] .timer-progress-track {
+  display: none;
+}
+
+.timer-progress-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #66d7ff, #7cf0d5);
+  transition: width 220ms linear, background-color 220ms linear, filter 220ms linear;
+}
+
+.timer-meta {
+  margin-top: 14px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.timer-shell[data-state="live"] .timer-badge {
+  color: var(--live);
+  border-color: rgba(97, 242, 164, 0.4);
+}
+
+.timer-shell[data-state="warning"] .timer-progress-fill {
+  background: linear-gradient(90deg, #ffd25d, #ffb562);
+}
+
+.timer-shell[data-state="warning"] .timer-badge {
+  color: var(--warn);
+  border-color: rgba(240, 193, 90, 0.45);
+}
+
+.timer-shell[data-state="critical"] .timer-progress-fill {
+  background: linear-gradient(90deg, #ff8796, #ff6075);
+  filter: saturate(1.1);
+}
+
+.timer-shell[data-state="critical"] .timer-badge {
+  color: var(--critical);
+  border-color: rgba(255, 107, 125, 0.46);
+}
+
+@media (max-width: 700px) {
+  body { padding: 14px; }
+  .timer-card { padding: 20px 20px 18px; border-radius: 22px; }
+  .timer-topline, .timer-meta { flex-direction: column; align-items: flex-start; }
+  .timer-meta { gap: 6px; }
+}

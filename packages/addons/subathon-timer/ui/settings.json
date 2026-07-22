@@ -1,0 +1,82 @@
+{
+  "order": [
+    "enabled", "enabledPlatforms",
+    "autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline", "startingMinutes", "maximumMinutes",
+    "enableModeratorCommands", "startCommandName", "pauseCommandName", "resumeCommandName", "resetCommandName", "addTimeCommandName", "defaultManualAddSeconds",
+    "followSeconds", "subscriptionSeconds", "membershipSeconds", "giftSubscriptionSecondsEach", "giftSecondsEach",
+    "raidBaseSeconds", "raidPerViewerSeconds", "minimumRaidViewers", "likeThreshold", "likeThresholdAwardSeconds",
+    "showOverlay", "overlaySourceUrl", "overlayLabel", "warningMinutes", "criticalMinutes"
+    , "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor", "overlayShowProgressBar"
+  ],
+  "sections": [
+    {
+      "id": "quick-start",
+      "title": "1. Quick start",
+      "description": "Turn the timer on, choose which live platforms can affect it, and set the starting time.",
+      "open": true,
+      "fields": ["enabled", "enabledPlatforms", "startingMinutes", "maximumMinutes"]
+    },
+    {
+      "id": "lifecycle",
+      "title": "2. Stream lifecycle",
+      "description": "Decide how the timer behaves when your stream starts or ends.",
+      "fields": ["autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline"]
+    },
+    {
+      "id": "controls",
+      "title": "3. Manual controls",
+      "description": "Choose how Streamer.bot actions and moderator commands can control the timer.",
+      "fields": ["enableModeratorCommands", "startCommandName", "pauseCommandName", "resumeCommandName", "resetCommandName", "addTimeCommandName", "defaultManualAddSeconds"]
+    },
+    {
+      "id": "bonuses-core",
+      "title": "4. Core event bonuses",
+      "description": "Set the time awards for follows, subscriptions, memberships, gifted subs, and raids.",
+      "fields": ["followSeconds", "subscriptionSeconds", "membershipSeconds", "giftSubscriptionSecondsEach", "raidBaseSeconds", "raidPerViewerSeconds", "minimumRaidViewers"]
+    },
+    {
+      "id": "bonuses-social",
+      "title": "5. Gift and like bonuses",
+      "description": "Set the cross-platform gift bonus and the thresholded TikTok-like bonus so the timer does not jump on every single like.",
+      "fields": ["giftSecondsEach", "likeThreshold", "likeThresholdAwardSeconds"]
+    },
+    {
+      "id": "overlay",
+      "title": "6. Overlay state",
+      "description": "Choose the dedicated timer overlay URL, style, label, and warning thresholds.",
+      "fields": ["showOverlay", "overlaySourceUrl", "overlayLabel", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor", "overlayShowProgressBar", "warningMinutes", "criticalMinutes"]
+    },
+    {
+      "id": "review",
+      "title": "7. Review before enabling",
+      "description": "This first version uses only normalized StreamBridge events and bounded private timer state.",
+      "notice": "No external API is used. The add-on stores only timer counters, session timestamps, current live-platform state, and like-threshold progress. It does not store chat text or payout data. Streamer.bot actions can control it by sending a normalized system.custom event with moduleId thsv.subathon-timer and action start, pause, resume, reset, or add-time.",
+      "fields": []
+    }
+  ],
+  "fields": {
+    "enabledPlatforms": { "rows": 4 },
+    "startCommandName": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
+    "pauseCommandName": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
+    "resumeCommandName": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
+    "resetCommandName": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
+    "addTimeCommandName": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
+    "defaultManualAddSeconds": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
+    "overlaySourceUrl": { "visibleWhen": { "field": "showOverlay", "equals": true }, "readOnly": true },
+    "overlayLabel": { "placeholder": "SUBATHON", "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayFontFamily": { "visibleWhen": { "field": "showOverlay", "equals": true }, "labels": { "display": "Display", "broadcast": "Broadcast", "mono": "Mono" } },
+    "overlayBackgroundMode": { "visibleWhen": { "field": "showOverlay", "equals": true }, "labels": { "glass": "Glass", "solid": "Solid", "none": "Transparent" } },
+    "overlayBackgroundColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayBackgroundOpacity": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayAccentColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayTextColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayMutedColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayWarningColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayCriticalColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayLiveColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayBorderColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayShowProgressBar": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "warningMinutes": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "criticalMinutes": { "visibleWhen": { "field": "showOverlay", "equals": true } }
+  }
+}

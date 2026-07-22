@@ -124,6 +124,7 @@ export class DiagnosticsServer {
         return this.reply(response, 200, await this.wizard.exportConfiguration());
       }
       if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
+      if (request.method === 'GET' && requestPath !== undefined && requestPath.startsWith('/overlay/addons/thsv.subathon-timer')) return await this.subathonOverlayAsset(response, requestPath);
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
         release = this.guard.acquire(request, false);
@@ -193,6 +194,17 @@ export class DiagnosticsServer {
     response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
     response.end(body);
   }
+
+  private async subathonOverlayAsset(response: ServerResponse, url: string): Promise<void> {
+    const asset = SUBATHON_OVERLAY_ASSETS[url];
+    if (asset === undefined) return this.reply(response, 404, { error: 'Not found' });
+    const body = await readFile(resolve(process.cwd(), 'packages', 'addons', 'subathon-timer', 'overlay', asset.file));
+    response.statusCode = 200;
+    response.setHeader('content-type', asset.contentType);
+    response.setHeader('cache-control', 'no-store');
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    response.end(body);
+  }
 }
 
 const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
@@ -227,6 +239,13 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/styles-1.0.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.1.0.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.1.1.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+};
+
+const SUBATHON_OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
+  '/overlay/addons/thsv.subathon-timer': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/addons/thsv.subathon-timer/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/addons/thsv.subathon-timer/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/addons/thsv.subathon-timer/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }

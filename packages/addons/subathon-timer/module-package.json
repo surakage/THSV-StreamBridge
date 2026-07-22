@@ -1,0 +1,70 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Maintains one bounded multi-platform subathon countdown that decreases over time and increases from selected live events.",
+  "changelog": "1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
+  "permissions": ["events.subscribe", "overlay.publish", "schedule.bounded", "state.private"],
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.subathon-timer",
+    "name": "Subathon Timer",
+    "version": "1.1.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "stream.online",
+      "stream.offline",
+      "channel.follow",
+      "channel.subscription",
+      "channel.membership",
+      "channel.gift-subscription",
+      "engagement.gift",
+      "engagement.milestone",
+      "channel.raid",
+      "command.received",
+      "system.custom"
+    ],
+    "commandsProvided": [
+      { "id": "subathon-timer.start", "name": "subathon-start" },
+      { "id": "subathon-timer.pause", "name": "subathon-pause" },
+      { "id": "subathon-timer.resume", "name": "subathon-resume" },
+      { "id": "subathon-timer.reset", "name": "subathon-reset" },
+      { "id": "subathon-timer.add-time", "name": "subathon-addtime" }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [
+      { "id": "subathon-timer.overlay", "name": "Subathon Timer Overlay", "path": "/overlay/addons/thsv.subathon-timer" }
+    ],
+    "dataStorageOwned": ["data/addons/thsv.subathon-timer/", "data/addons/.state/thsv.subathon-timer/"],
+    "installationSteps": [
+      "Install and enable the add-on, then choose your starting time, cap, and per-event bonuses.",
+      "Use stream.online and stream.offline from your connected platform relays so the timer starts and pauses from real live state.",
+      "Import or create Streamer.bot actions that send normalized system.custom control events for start, pause, resume, reset, or add-time when you change scenes or press buttons.",
+      "Optional: enable the moderator commands if you also want chat-based controls.",
+      "This release also includes a dedicated browser-source route and creator-editable timer styling.",
+      "The timer uses only normalized StreamBridge events. It does not invent a separate Streamer.bot timer or external API dependency."
+    ],
+    "uninstallationSteps": [
+      "Uninstall the add-on. The timer state is preserved for a later reinstall unless you explicitly delete add-on data."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      { "id": "thsv.subathon-timer.runtime", "description": "Confirms bounded timer updates, live-state tracking, and per-event bonus handling." }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    { "path": "dist/index.js", "size": 19907, "sha256": "500d9446a0715a5e52e84e5d70866211634e52be5771f033f803a53ae9f9e73b" },
+    { "path": "schemas/config.json", "size": 6412, "sha256": "9e83f4172c6418bca9fd1c4546c2a083a1c8f5eb31e7e17e8c075f15fb0b7ed9" },
+    { "path": "ui/settings.json", "size": 5964, "sha256": "e831de27791e08fc357ccee9bf0588fbc0bd5f860d0233df3a1607e34618f94b" },
+    { "path": "overlay/index.html", "size": 902, "sha256": "53746ced81df30bc1b100f34b78ca3fbf056f0354eeb0d45fc35f743b3400721" },
+    { "path": "overlay/styles.css", "size": 3613, "sha256": "8b657e40bdbf88a91047ee29db6e8f627d6147ac4cca751ec1cab6e6a17dec6a" },
+    { "path": "overlay/app.js", "size": 5398, "sha256": "58d9ec4602dea2ff47269e1a3e8d6609fe94400dcd66736ffc771ea77e869fed" },
+    { "path": "README.md", "size": 1486, "sha256": "ba8b859c772a53a6db2bf73c5f74c4c2dbaae588cf6e6524425afd308fa0ae90" }
+  ]
+}

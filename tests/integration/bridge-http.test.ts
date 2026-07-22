@@ -97,6 +97,9 @@ describe('bridge HTTP integration', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
     }
+    for (const route of ['/overlay/addons/thsv.subathon-timer', '/overlay/addons/thsv.subathon-timer/app.js', '/overlay/addons/thsv.subathon-timer/styles.css']) {
+      expect((await fetch(`${baseUrl}${route}`)).status).toBe(200);
+    }
     const source = await fetch(`${baseUrl}/overlay/app-1.1.0.js`).then((response) => response.text());
     expect(source).not.toContain('companion');
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
