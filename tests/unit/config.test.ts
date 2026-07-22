@@ -12,6 +12,18 @@ describe('bridge configuration', () => {
     expect(parsed.browserOverlay).toEqual(config.browserOverlay);
   });
 
+  it('removes the obsolete add-on relay pseudo-platform because the relay is internal', async () => {
+    const config = await testConfig();
+    const parsed = bridgeConfigSchema.parse({
+      ...config,
+      platforms: {
+        ...config.platforms,
+        addons: { ...config.platforms['mock'], adapter: 'streamerbot-addon-relay', capabilities: [] },
+      },
+    });
+    expect(parsed.platforms).not.toHaveProperty('addons');
+  });
+
   it('accepts the example configuration', async () => {
     const config = await testConfig();
     expect(bridgeConfigSchema.safeParse(config).success).toBe(true);
@@ -114,6 +126,7 @@ describe('bridge configuration', () => {
     expect(valid.timedActions.definitions[0]).toMatchObject({ gates: { platforms: ['twitch'] }, target: { deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } });
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['twitch', 'twitch'] } }] } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['facebook'] } }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, actionId: '04ca0087-578d-5c2e-9e06-249dc072e9f8' } }] } }).success).toBe(false);
   });
 
   it('validates independent per-platform timed-message rotations and character limits', async () => {

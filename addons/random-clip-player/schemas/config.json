@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Random Clip Player",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {
+    "secondsBetweenClips": {
+      "type": "integer",
+      "title": "Pause between clips (seconds)",
+      "description": "How long to wait after the four-second fade finishes before the next clip starts. The transition buffer is automatic, so a setting of 60 seconds produces a 64-second total gap.",
+      "minimum": 1,
+      "maximum": 3600,
+      "default": 5
+    },
+    "clipCount": {
+      "type": "integer",
+      "title": "Clips to fetch per refresh",
+      "description": "How many of your most recent Twitch clips to pull into the rotation pool at once.",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 20
+    },
+    "minDurationSeconds": {
+      "type": "integer",
+      "title": "Minimum clip length (seconds)",
+      "minimum": 1,
+      "maximum": 300,
+      "default": 5
+    },
+    "maxDurationSeconds": {
+      "type": "integer",
+      "title": "Maximum clip length (seconds)",
+      "minimum": 1,
+      "maximum": 300,
+      "default": 60
+    },
+    "muted": {
+      "type": "boolean",
+      "title": "Mute clip audio",
+      "description": "Disable clip audio. Leave this off to play the clip's original sound in OBS, Meld, or Streamlabs.",
+      "default": false
+    },
+    "volume": {
+      "type": "number",
+      "title": "Clip volume",
+      "description": "Playback volume from 0 (silent) through 1 (full volume).",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 1
+    }
+  }
+}

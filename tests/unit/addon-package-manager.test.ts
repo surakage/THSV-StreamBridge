@@ -64,6 +64,19 @@ describe('Stage 9 add-on packages', () => {
     await expect(readFile(join(state, 'creator.json'), 'utf8')).resolves.toContain('kept');
   });
 
+  it('ignores the sibling inbox directory instead of rejecting it as a malformed add-on', async () => {
+    const root = await workspace();
+    const addOns = join(root, 'addons');
+    await installAddOnPackage('examples/addons/no-op', addOns, true);
+    await mkdir(join(addOns, 'inbox'), { recursive: true });
+    await writeFile(join(addOns, 'inbox', 'some-package.thsv-addon'), 'not a real archive\n');
+    const warnings: unknown[] = [];
+    const logger = { ...silentLogger, error: (message: string, fields?: unknown) => { warnings.push({ message, fields }); } };
+    const modules = await loadInstalledAddOns(addOns, logger);
+    expect(modules.map((module) => module.manifest.moduleId)).toEqual(['sample.no-op']);
+    expect(warnings).toEqual([]);
+  });
+
   it('persists exact creator-approved action IDs and preserves them across package upgrades', async () => {
     const root = await workspace(); const source = join(root, 'source'); const addOns = join(root, 'addons');
     await cp('examples/addons/no-op', source, { recursive: true });
@@ -79,7 +92,7 @@ describe('Stage 9 add-on packages', () => {
     await installAddOnPackage(source, addOns, true);
     await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([expect.objectContaining({ approvedActionIds: [actionId] })]);
     await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['not-an-id'], true)).rejects.toThrow('valid UUIDs');
-    await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['143fce1d-c5b0-4108-b766-ee2d0249e2d4'], true)).rejects.toThrow('Core Receiver');
+    await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['143fce1d-c5b0-4108-b766-ee2d0249e2d4'], true)).rejects.toThrow('framework actions cannot be granted');
   });
 
   it('re-verifies the creator-private staging copy before any add-on code can execute', async () => {
@@ -93,25 +106,26 @@ describe('Stage 9 add-on packages', () => {
 
   it('runs ordered add-on data migrations and rolls code and state back when a later migration fails', async () => {
     const root = await workspace(); const addOns = join(root, 'data', 'addons');
+    const stateRoot = join(root, 'creator-owned-state');
     const v1 = join(root, 'v1'); await mkdir(v1); await migrationPackage(v1, '1.0.0', []);
-    await installAddOnPackage(v1, addOns, true);
-    const storage = join(addOns, '.state', 'sample.migrating');
+    await installAddOnPackage(v1, addOns, true, { stateRoot });
+    const storage = join(stateRoot, 'sample.migrating');
     await mkdir(storage, { recursive: true }); await writeFile(join(storage, 'state.json'), JSON.stringify({ format: 1 }));
 
     const v2 = join(root, 'v2'); await mkdir(v2); await migrationPackage(v2, '2.0.0', [{ from: '1.0.0', to: '2.0.0', script: 'migrations/001.mjs' }],
       `import { readFile, writeFile } from 'node:fs/promises'; import { join } from 'node:path'; export async function migrate(context) { const path = join(context.storageRoot, 'state.json'); const state = JSON.parse(await readFile(path, 'utf8')); await writeFile(path, JSON.stringify({ ...state, format: 2, migratedFrom: context.fromVersion })); }\n`);
-    await installAddOnPackage(v2, addOns, true);
+    await installAddOnPackage(v2, addOns, true, { stateRoot });
     await expect(readFile(join(storage, 'state.json'), 'utf8')).resolves.toContain('"format":2');
 
     const v3 = join(root, 'v3'); await mkdir(v3); await migrationPackage(v3, '3.0.0', [{ from: '2.0.0', to: '3.0.0', script: 'migrations/002.mjs' }],
       `import { writeFile } from 'node:fs/promises'; import { join } from 'node:path'; export async function migrate(context) { await writeFile(join(context.storageRoot, 'state.json'), '{"format":3}'); throw new Error('migration failed'); }\n`);
-    await expect(installAddOnPackage(v3, addOns, true)).rejects.toThrow('migration failed');
+    await expect(installAddOnPackage(v3, addOns, true, { stateRoot })).rejects.toThrow('migration failed');
     await expect(readFile(join(storage, 'state.json'), 'utf8')).resolves.toContain('"format":2');
     await expect(readFile(join(addOns, 'sample.migrating', 'installed-package.json'), 'utf8')).resolves.toContain('"version": "2.0.0"');
 
     const hanging = join(root, 'hanging'); await mkdir(hanging); await migrationPackage(hanging, '3.0.0', [{ from: '2.0.0', to: '3.0.0', script: 'migrations/hang.mjs' }],
       `export async function migrate() { await new Promise(() => setInterval(() => undefined, 1000)); }\n`);
-    await expect(installAddOnPackage(hanging, addOns, true, { migrationTimeoutMs: 100 })).rejects.toThrow('exceeded 100 ms');
+    await expect(installAddOnPackage(hanging, addOns, true, { migrationTimeoutMs: 100, stateRoot })).rejects.toThrow('exceeded 100 ms');
     await expect(readFile(join(storage, 'state.json'), 'utf8')).resolves.toContain('"format":2');
     await expect(readFile(join(addOns, 'sample.migrating', 'installed-package.json'), 'utf8')).resolves.toContain('"version": "2.0.0"');
   });

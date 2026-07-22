@@ -74,7 +74,7 @@ public class CPHInline
             targetActionId = ReadString(payload, "targetActionId");
             targetActionName = ReadString(payload, "targetActionName");
             Guid parsedActionId;
-            if (!Guid.TryParse(targetActionId, out parsedActionId) || targetActionId == ThisActionId) return Fail("payload.targetActionId must identify a different Streamer.bot action.");
+            if (!Guid.TryParse(targetActionId, out parsedActionId) || IsProtectedAction(parsedActionId)) return Fail("payload.targetActionId must identify a creator-owned, non-framework Streamer.bot action.");
             if (targetActionName.Length == 0 || targetActionName.Length > 200) return Fail("payload.targetActionName must contain 1-200 characters.");
             JToken approved = payload["targetActionApproved"];
             if (approved == null || approved.Type != JTokenType.Boolean || !string.Equals(approved.ToString(), "true", StringComparison.OrdinalIgnoreCase)) return Fail("Running a selected action requires explicit creator approval.");
@@ -126,6 +126,17 @@ public class CPHInline
         }
         CPH.SetArgument("multiTimedValid", true);
         return true;
+    }
+
+    private bool IsProtectedAction(Guid actionId)
+    {
+        return actionId == new Guid(ThisActionId)
+            || actionId == new Guid("143fce1d-c5b0-4108-b766-ee2d0249e2d4")
+            || actionId == new Guid("04ca0087-578d-5c2e-9e06-249dc072e9f8")
+            || actionId == new Guid("c1d3a9e2-0f4b-4b78-91c2-7a65d8e309f1")
+            || actionId == new Guid("f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2")
+            || actionId == new Guid("8d8e3667-fd96-510f-b2ae-a8affe5b789a")
+            || actionId == new Guid("4e9f0946-f33d-5309-b376-a16df5612b32");
     }
 
     private void InitializeOutputs()

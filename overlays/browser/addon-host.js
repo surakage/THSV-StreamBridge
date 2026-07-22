@@ -12,9 +12,12 @@
   const status = document.getElementById('status');
   let cardTimer;
   let mediaTimer;
+  let mediaFadeTimer;
+  let pendingMediaDurationMs;
   let heartbeatTimer;
   let activePlaybackId = '';
   let sendTransport = () => undefined;
+  const mediaFadeMs = 4_000;
 
   function safeUrl(value) {
     if (typeof value !== 'string' || value.length === 0 || value.length > 4_096) return undefined;
@@ -56,6 +59,8 @@
 
   function clearMedia(phase) {
     clearTimeout(mediaTimer);
+    clearTimeout(mediaFadeTimer);
+    pendingMediaDurationMs = undefined;
     clearInterval(heartbeatTimer);
     if (phase) reportLifecycle(phase);
     media.pause();
@@ -63,6 +68,7 @@
     media.load();
     mediaTitle.textContent = '';
     mediaTitle.classList.add('hidden');
+    mediaShell.classList.remove('fading');
     mediaShell.classList.add('hidden');
     activePlaybackId = '';
   }
@@ -84,14 +90,36 @@
     const title = typeof payload.title === 'string' ? payload.title.slice(0, 300) : '';
     mediaTitle.textContent = title;
     mediaTitle.classList.toggle('hidden', title.length === 0);
+    mediaShell.classList.remove('fading');
     mediaShell.classList.remove('hidden');
     reportLifecycle('loading');
     void media.play().catch((error) => { status.textContent = 'PLAYBACK BLOCKED'; status.dataset.state = 'error'; reportLifecycle('failed', error?.message || 'Playback blocked'); clearMedia(); });
-    if (payload.durationMs !== undefined) mediaTimer = setTimeout(() => clearMedia('timeout'), boundedDuration(payload.durationMs, 60_000));
+    pendingMediaDurationMs = payload.durationMs;
   }
 
-  media.addEventListener('playing', () => { reportLifecycle('started'); clearInterval(heartbeatTimer); heartbeatTimer = setInterval(() => reportLifecycle('heartbeat'), 10_000); });
-  media.addEventListener('ended', () => clearMedia('ended'));
+  media.addEventListener('playing', () => {
+    // A previous unmuted autoplay attempt may have left a visible failure badge. Once the
+    // browser actually starts this playback, restore the normal transient LIVE state so the
+    // stale warning does not cover a clip that is already running.
+    transportState('live');
+    reportLifecycle('started');
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = setInterval(() => reportLifecycle('heartbeat'), 10_000);
+    clearTimeout(mediaTimer);
+    // Loading time must not consume the clip's playback budget. A small grace period covers
+    // metadata differences while the native ended event remains the normal completion path.
+    const durationWithGrace = Number.isInteger(pendingMediaDurationMs) ? pendingMediaDurationMs + 10_000 : undefined;
+    mediaTimer = setTimeout(() => clearMedia('timeout'), boundedDuration(durationWithGrace, 70_000));
+  });
+  media.addEventListener('ended', () => {
+    // Keep the final frame mounted while the whole card fades away. Report the clean ending at
+    // once so the add-on can begin its creator pause plus matching four-second transition buffer.
+    clearTimeout(mediaTimer);
+    clearInterval(heartbeatTimer);
+    reportLifecycle('ended');
+    mediaShell.classList.add('fading');
+    mediaFadeTimer = setTimeout(() => clearMedia(), mediaFadeMs);
+  });
   media.addEventListener('error', () => { reportLifecycle('failed', media.error?.message || `Media error ${media.error?.code || 0}`); clearMedia(); });
 
   function receive(event) {
@@ -103,9 +131,8 @@
   }
 
   function transportState(state) {
-    status.textContent = state === 'live' ? 'LIVE' : 'RECONNECTING';
+    status.textContent = state === 'live' ? 'LIVE' : 'OFFLINE';
     status.dataset.state = state;
-    document.body.dataset.clean = state === 'live' ? 'true' : 'false';
   }
 
   function connectDirectly() {

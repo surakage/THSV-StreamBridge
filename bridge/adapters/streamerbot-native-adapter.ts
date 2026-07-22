@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { AdapterContext } from './adapter.js';
@@ -75,16 +76,19 @@ export class StreamerBotNativeAdapter extends ManagedAdapter {
   }
 
   private async receive(message: Readonly<Record<string, unknown>>): Promise<void> {
-    if (message['type'] !== 'thsv.platform' || this.context === undefined || message['platform'] !== this.name) return;
+    // Captured once so a concurrent stop() clearing this.context mid-flight cannot leave the
+    // catch handler below dereferencing undefined after an awaited emit() rejects.
+    const context = this.context;
+    if (message['type'] !== 'thsv.platform' || context === undefined || message['platform'] !== this.name) return;
     try {
       const event = normalizeStreamerBotPlatformRelay(message, this.name);
-      const result = await this.context.emit(event, Buffer.byteLength(JSON.stringify(message)));
+      const result = await context.emit(event, Buffer.byteLength(JSON.stringify(message)));
       this.lastEventAt = new Date().toISOString();
       this.lastError = undefined;
-      this.context.logger.info('Native Streamer.bot platform relay event accepted', { adapter: this.name, eventType: event.eventType, eventId: event.eventId, result });
+      context.logger.info('Native Streamer.bot platform relay event accepted', { adapter: this.name, eventType: event.eventType, eventId: event.eventId, result });
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
-      this.context.logger.warn('Native Streamer.bot platform relay event rejected', { adapter: this.name, error });
+      context.logger.warn('Native Streamer.bot platform relay event rejected', { adapter: this.name, error });
     }
   }
 }
@@ -119,7 +123,7 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   };
   const common = {
     schemaVersion: '1.0.0' as const,
-    eventId: `streamerbot-${relay.platform}-${sourceId}`,
+    eventId: boundedEventId(`streamerbot-${relay.platform}-`, sourceId),
     eventType,
     platform: relay.platform,
     source: { adapter: 'streamerbot-native', eventId: sourceId, eventName: relay.sourceEventType },
@@ -171,6 +175,11 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     } };
   }
   return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1) } };
+}
+
+function boundedEventId(prefix: string, value: string): string {
+  const composed = `${prefix}${value}`;
+  return composed.length <= 256 ? composed : `${prefix}sha256-${createHash('sha256').update(value).digest('hex')}`;
 }
 
 function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {

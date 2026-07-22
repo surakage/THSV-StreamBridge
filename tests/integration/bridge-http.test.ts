@@ -53,6 +53,7 @@ describe('bridge HTTP integration', () => {
     expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(await fixture()) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { ...headers, origin: 'https://attacker.example' }, body: JSON.stringify(await fixture()) })).status).toBe(403);
     expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers: { ...headers, 'content-encoding': 'gzip' }, body: '{}' })).status).toBe(415);
+    expect((await fetch(`${baseUrl}/simulate`, { method: 'POST', headers, body: JSON.stringify({ eventType: 'system.timed' }) })).status).toBe(400);
   });
 
   it('forces simulation provenance instead of trusting caller metadata', async () => {

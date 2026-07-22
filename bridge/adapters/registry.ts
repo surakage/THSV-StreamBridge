@@ -10,9 +10,11 @@ import { TimedActionsAdapter } from './timed-actions-adapter.js';
 import { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 import { TikfinityAdapter } from './tikfinity-adapter.js';
 import { StreamerBotNativeAdapter } from './streamerbot-native-adapter.js';
+import { StreamerBotAddOnRelayAdapter } from './streamerbot-addon-relay-adapter.js';
 
 export type InputAdapterFactory = (name: string, config: PlatformConfig) => InputAdapter;
 export type OutputAdapterFactory = (name: string, config: OutputConfig) => OutputAdapter;
+export type InternalInputAdapterFactory = () => InputAdapter;
 
 export interface InputProviderCapabilities {
   readonly legacy: readonly Capability[];
@@ -31,6 +33,7 @@ interface RegisteredInputProvider {
 
 export class AdapterRegistry {
   private readonly inputFactories = new Map<string, RegisteredInputProvider>();
+  private readonly internalInputFactories = new Map<string, InternalInputAdapterFactory>();
   private readonly outputFactories = new Map<string, OutputAdapterFactory>();
 
   public registerInput(provider: string, factory: InputAdapterFactory, declaration?: InputProviderDeclaration): this {
@@ -45,8 +48,14 @@ export class AdapterRegistry {
     return this;
   }
 
+  public registerInternalInput(provider: string, factory: InternalInputAdapterFactory): this {
+    if (this.inputFactories.has(provider) || this.internalInputFactories.has(provider)) throw new Error(`Input adapter provider is already registered: ${provider}`);
+    this.internalInputFactories.set(provider, factory);
+    return this;
+  }
+
   public createInputs(platforms: Readonly<Record<string, PlatformConfig>>): InputAdapter[] {
-    return Object.entries(platforms).map(([name, config]) => {
+    const configured = Object.entries(platforms).filter(([, config]) => !this.internalInputFactories.has(config.adapter)).map(([name, config]) => {
       const provider = this.inputFactories.get(config.adapter);
       if (provider === undefined) throw new Error(`No input adapter registered for provider ${config.adapter} (platform ${name})`);
       const declared = provider.declaration?.(name);
@@ -57,10 +66,11 @@ export class AdapterRegistry {
       const authoritativeConfig = declared === undefined ? { ...config, enabled: config.enabled && config.inputEnabled } : { ...config, enabled: config.enabled && config.inputEnabled, capabilities: [...declared.legacy] };
       return provider.factory(name, authoritativeConfig);
     });
+    return [...configured, ...[...this.internalInputFactories.values()].map((factory) => factory())];
   }
 
   public capabilityReports(platforms: Readonly<Record<string, PlatformConfig>>): readonly PlatformCapabilityReport[] {
-    return Object.entries(platforms).map(([platform, config]) => {
+    return Object.entries(platforms).filter(([, config]) => !this.internalInputFactories.has(config.adapter)).map(([platform, config]) => {
       const registered = this.inputFactories.get(config.adapter);
       if (registered === undefined) throw new Error(`No input adapter registered for provider ${config.adapter} (platform ${platform})`);
       const declaration = registered.declaration?.(platform);
@@ -104,6 +114,14 @@ export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logge
     limitations: ['TikFinity field mappings remain third-party and must be verified against the installed version.'],
   }));
   registry.registerInput('streamerbot-native', (name, platform) => new StreamerBotNativeAdapter(name, platform, streamerBotEventRelay), nativeCapabilities);
+  registry.registerInternalInput('streamerbot-addon-relay', () => new StreamerBotAddOnRelayAdapter('addons', {
+    enabled: config.streamerbot.enabled,
+    inputEnabled: true,
+    outputEnabled: false,
+    adapter: 'streamerbot-addon-relay',
+    capabilities: [],
+    reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+  }, streamerBotEventRelay));
   for (const provider of ['twitch-placeholder', 'youtube-placeholder', 'kick-placeholder', 'tikfinity-placeholder']) {
     registry.registerInput(provider, (name, platform) => new PlaceholderAdapter(name, platform, `${provider} has no production transport in Milestone 1.`), () => ({ legacy: [], supported: [], verification: 'unverified', limitations: ['Placeholder provider has no production transport.'], allowUnsupportedLegacyClaims: true }));
   }

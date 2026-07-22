@@ -422,7 +422,7 @@ public class CPHInline
         string channelName = First(Read("broadcastUserName"), Read("broadcastUsername"), Read("broadcastUser"));
 ${messageDeclarations}
         CPH.SetArgument("generatedCommandName", "${design.name}");
-        CPH.SetArgument("generatedCommandPhrase", "${commandPhrase}");
+        CPH.SetArgument("generatedCommandPhrase", "${escapeCSharpString(commandPhrase)}");
         CPH.SetArgument("generatedCommandMinimumRole", "${design.minimumRole}");
         CPH.SetArgument("generatedCommandSource", commandSource);
         CPH.SetArgument("generatedCommandRawInput", rawInput);

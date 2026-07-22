@@ -6,6 +6,12 @@ async function loadAddOns() {
     const result = await api('/wizard/api/addons');
     state.addOns = result.addOns;
     state.discoveredAddOns = result.discovered || [];
+    if (!state.addOnActionDrafts) state.addOnActionDrafts = {};
+    if (!state.addOnActionGroupDrafts) state.addOnActionGroupDrafts = {};
+    if (!state.addOnActionNameCache) state.addOnActionNameCache = loadAddOnActionNameCache();
+    const installedIds = new Set(state.addOns.map((addOn) => addOn.moduleId));
+    for (const id of Object.keys(state.addOnActionDrafts)) if (!installedIds.has(id)) delete state.addOnActionDrafts[id];
+    for (const id of Object.keys(state.addOnActionGroupDrafts)) if (!installedIds.has(id)) delete state.addOnActionGroupDrafts[id];
     if (state.selectedAddOnId && !state.addOns.some((addOn) => addOn.moduleId === state.selectedAddOnId)) state.selectedAddOnId = '';
     if (!state.selectedAddOnId && state.addOns.length) state.selectedAddOnId = state.addOns[0].moduleId;
     renderAddOns();
@@ -44,6 +50,9 @@ function renderAddOns() {
     list.innerHTML = '<p class="notice">No add-ons are installed. Core chat, commands, alerts, timers, and rewards continue to work without add-ons.</p>';
     return;
   }
+  // Re-rendering (for example after Add/Remove on the approved-actions list) would otherwise
+  // reset every <details> section back to its default open/closed state on each click.
+  const openSummaries = new Set([...list.querySelectorAll('details[open] summary')].map((summary) => summary.textContent));
   const selected = state.addOns.find((addOn) => addOn.moduleId === state.selectedAddOnId) || state.addOns[0];
   state.selectedAddOnId = selected.moduleId;
   const selector = `<label class="addon-selector">Manage installed add-on<select id="addon-selector">${state.addOns.map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('')}</select></label>`;
@@ -52,17 +61,22 @@ function renderAddOns() {
     const fields = rejected ? '' : orderedAddOnProperties(addOn).map(([name, schema]) => renderAddOnField(name, schema, addOn.settings[name])).join('');
     const permissions = addOn.permissions.length ? addOn.permissions.join(', ') : 'No optional permissions requested';
     const liveChatWarning = addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this add-on can automatically post messages to creator-enabled platforms through StreamBridge. Review its settings and publisher before enabling it.</p>' : '';
-    const settings = rejected ? '' : `<form class="filter-form addon-settings" data-addon-settings="${safe(addOn.moduleId)}">${fields || '<p class="notice full-row">This add-on has no configurable settings.</p>'}${fields ? '<button type="submit">Save settings</button>' : ''}</form>`;
-    const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : renderAddOnActionGrant(addOn);
-    const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : renderAddOnOverlayTools(addOn);
+    const settings = rejected || !fields ? '' : `<details class="form-section" open><summary>Settings</summary><form class="filter-form addon-settings" data-addon-settings="${safe(addOn.moduleId)}">${fields}<button type="submit">Save settings</button></form></details>`;
+    const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section"><summary>Approved Streamer.bot actions</summary>${renderAddOnActionGrant(addOn)}</details>`;
+    const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section"><summary>Hosted overlay &amp; testing</summary>${renderAddOnOverlayTools(addOn)}</details>`;
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>`}${liveChatWarning}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${settings}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>`}${liveChatWarning}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
   }).join('');
+  list.querySelectorAll('details summary').forEach((summary) => { if (openSummaries.has(summary.textContent)) summary.parentElement.open = true; });
   byId('addon-selector').addEventListener('change', (event) => { state.selectedAddOnId = event.target.value; renderAddOns(); });
   document.querySelectorAll('[data-toggle-addon]').forEach((button) => button.addEventListener('click', toggleAddOn));
   document.querySelectorAll('[data-remove-addon]').forEach((button) => button.addEventListener('click', removeAddOn));
   document.querySelectorAll('[data-addon-settings]').forEach((form) => form.addEventListener('submit', saveAddOnSettings));
-  document.querySelectorAll('[data-addon-action-grants]').forEach((form) => form.addEventListener('submit', saveAddOnActionGrants));
+  document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
+  document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
+  document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
+  document.querySelectorAll('[data-remove-addon-action]').forEach((button) => button.addEventListener('click', removeAddOnActionDraft));
+  document.querySelectorAll('[data-save-addon-action-grants]').forEach((button) => button.addEventListener('click', saveAddOnActionGrants));
   document.querySelectorAll('[data-copy-addon-overlay]').forEach((button) => button.addEventListener('click', copyAddOnOverlayUrl));
   document.querySelectorAll('[data-preview-addon-overlay]').forEach((button) => button.addEventListener('click', previewAddOnOverlay));
 }
@@ -81,7 +95,9 @@ async function installDiscoveredAddOn(event) {
   const approval = [...document.querySelectorAll('[data-approve-discovered]')].find((input) => input.dataset.approveDiscovered === filename);
   if (!approval?.checked) { byId('addon-state').textContent = 'Review the discovered package and approve it before installation.'; return; }
   try {
-    const result = await api('/wizard/api/addons/install-discovered', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename, approvedByCreator: true }) });
+    const discovered = state.discoveredAddOns.find((addOn) => addOn.filename === filename);
+    if (!discovered?.sha256) { byId('addon-state').textContent = 'Inspect this package again before installing it.'; return; }
+    const result = await api('/wizard/api/addons/install-discovered', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename, sha256: discovered.sha256, approvedByCreator: true }) });
     state.selectedAddOnId = result.moduleId;
     await loadAddOns();
     byId('addon-state').textContent = `Installed ${result.moduleId} ${result.version} from the inbox. Restart StreamBridge to activate it.`;
@@ -90,18 +106,80 @@ async function installDiscoveredAddOn(event) {
 
 function renderAddOnOverlayTools(addOn) {
   const url = `${location.origin}/overlay/addons/${addOn.moduleId}`;
-  return `<section class="transaction full-row"><strong>Hosted add-on overlay</strong><p>This core-rendered source accepts scoped cards and media without loading package HTML or JavaScript. Add it to Meld, OBS, or Streamlabs.</p><label>Browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Send preview card</button></div></section>`;
+  return `<p>This core-rendered source accepts scoped cards and media without loading package HTML or JavaScript. Add it to Meld, OBS, or Streamlabs, then send a preview card to confirm the connection before relying on it live.</p><label>Browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Send preview card</button></div>${addOn.enabled ? '' : '<small>Enable this add-on to send a live preview.</small>'}`;
 }
 
 function renderAddOnActionGrant(addOn) {
   const prohibited = new Set(['143fce1d-c5b0-4108-b766-ee2d0249e2d4']);
-  const approved = new Set(addOn.approvedActionIds || []);
   const liveById = new Map(state.liveActions.map((action) => [action.id, action]));
-  const actions = [...state.liveActions.filter((action) => !prohibited.has(action.id.toLowerCase())), ...(addOn.approvedActionIds || []).filter((id) => !liveById.has(id) && !prohibited.has(id.toLowerCase())).map((id) => ({ id, name: 'Previously approved action (not in latest inspection)', enabled: false }))];
-  const choices = actions.length
-    ? actions.map((action) => `<label class="check"><input type="checkbox" name="actionId" value="${safe(action.id)}" ${approved.has(action.id) ? 'checked' : ''}> ${safe(action.name)} <small>${safe(action.id)}${action.enabled === false ? ' · disabled or missing' : ''}</small></label>`).join('')
-    : '<p class="notice full-row">Use Streamer.bot → Inspect first. No action can be granted by name or guessed ID.</p>';
-  return `<form class="filter-form addon-action-grants" data-addon-action-grants="${safe(addOn.moduleId)}"><div class="full-row"><strong>Approved Streamer.bot actions</strong><p>Choose the exact action IDs this add-on may dispatch. It cannot run any other action through the capability broker.</p></div>${choices}<button type="submit">Save action grants</button></form>`;
+  // Not yet inspected this session (state.liveActions resets on every wizard page load) reads
+  // very differently from a genuinely missing action: the first just needs a fresh Inspect to
+  // confirm, the second means the action was actually removed or renamed in Streamer.bot.
+  const notYetInspected = state.liveActions.length === 0;
+  rememberInspectedActionNames(state.liveActions);
+  if (!state.addOnActionDrafts) state.addOnActionDrafts = {};
+  if (!state.addOnActionDrafts[addOn.moduleId]) state.addOnActionDrafts[addOn.moduleId] = [...(addOn.approvedActionIds || [])];
+  const draft = state.addOnActionDrafts[addOn.moduleId];
+
+  const approvedEntries = draft.map((id) => {
+    const live = liveById.get(id);
+    if (live) return { id, name: live.name, group: actionGroupName(live), suffix: live.enabled === false ? ' · disabled in Streamer.bot' : '' };
+    const remembered = state.addOnActionNameCache?.[id];
+    if (remembered) return { id, name: remembered.name, group: remembered.group, suffix: ' · saved grant remains active; status not checked this session' };
+    return { id, name: notYetInspected ? 'Approved action ID' : 'Approved action no longer found in Streamer.bot', group: '', suffix: notYetInspected ? ' · saved grant remains active' : ' · missing from Streamer.bot' };
+  });
+  const inspectHint = notYetInspected ? '<div class="notice full-row"><strong>Your saved action grants remain active.</strong> Refresh the action list to retrieve current names and status or add another action.<div class="button-row"><button type="button" class="ghost" data-inspect-addon-actions>Refresh action names</button></div></div>' : '';
+  const list = approvedEntries.length
+    ? `<div class="entity-list-group addon-approved-actions"><h3>Approved actions</h3><ul>${approvedEntries.map((entry) => `<li class="entity-row"><span class="entity-item"><strong>${safe(entry.name)}</strong><small>${entry.group ? `${safe(entry.group)} · ` : ''}${safe(entry.id)}${safe(entry.suffix)}</small></span><button type="button" class="entity-remove" data-remove-addon-action="${safe(entry.id)}" data-remove-addon-action-module="${safe(addOn.moduleId)}" aria-label="Remove ${safe(entry.name)}">✕</button></li>`).join('')}</ul></div>`
+    : '<p class="notice full-row">No actions approved yet.</p>';
+
+  const available = state.liveActions
+    .filter((action) => !prohibited.has(action.id.toLowerCase()) && !draft.includes(action.id))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const groups = [...new Set(available.map(actionGroupName))].sort((left, right) => left.localeCompare(right));
+  if (!state.addOnActionGroupDrafts) state.addOnActionGroupDrafts = {};
+  const rememberedGroup = state.addOnActionGroupDrafts[addOn.moduleId];
+  const selectedGroup = groups.includes(rememberedGroup) ? rememberedGroup : groups[0];
+  if (selectedGroup) state.addOnActionGroupDrafts[addOn.moduleId] = selectedGroup;
+  const groupActions = available.filter((action) => actionGroupName(action) === selectedGroup);
+  const picker = available.length
+    ? `<div class="addon-action-picker"><label>Streamer.bot group<select data-addon-action-group="${safe(addOn.moduleId)}">${groups.map((group) => `<option value="${safe(group)}" ${group === selectedGroup ? 'selected' : ''}>${safe(group)}</option>`).join('')}</select></label><label>Action<select data-addon-action-picker="${safe(addOn.moduleId)}"><option value="">Choose an action from this group…</option>${groupActions.map((action) => `<option value="${safe(action.id)}">${safe(action.name)}</option>`).join('')}</select></label><button type="button" data-add-addon-action="${safe(addOn.moduleId)}">Add selected action</button></div>`
+    : (notYetInspected ? '' : '<p class="notice full-row">Every inspected action is already approved.</p>');
+
+  return `<div class="addon-action-grants" data-addon-action-grants="${safe(addOn.moduleId)}"><p>Choose the exact action IDs this add-on may dispatch. It cannot run any other action through the capability broker.</p>${inspectHint}${list}${picker}<button type="button" data-save-addon-action-grants="${safe(addOn.moduleId)}">Save action grants</button></div>`;
+}
+
+const ADDON_ACTION_NAME_CACHE_KEY = 'thsv.streambridge.addon-action-names.v1';
+
+function loadAddOnActionNameCache() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ADDON_ACTION_NAME_CACHE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch { return {}; }
+}
+
+function rememberInspectedActionNames(actions) {
+  if (!actions.length) return;
+  if (!state.addOnActionNameCache) state.addOnActionNameCache = loadAddOnActionNameCache();
+  const inspectedAt = new Date().toISOString();
+  for (const action of actions) state.addOnActionNameCache[action.id] = { name: action.name, group: actionGroupName(action), inspectedAt };
+  const newest = Object.entries(state.addOnActionNameCache)
+    .sort((left, right) => String(right[1]?.inspectedAt || '').localeCompare(String(left[1]?.inspectedAt || '')))
+    .slice(0, 500);
+  state.addOnActionNameCache = Object.fromEntries(newest);
+  try { localStorage.setItem(ADDON_ACTION_NAME_CACHE_KEY, JSON.stringify(state.addOnActionNameCache)); } catch { /* The live inspection still supplies names when browser storage is unavailable. */ }
+}
+
+function actionGroupName(action) {
+  const group = typeof action.group === 'string' ? action.group.trim() : '';
+  return group || 'Ungrouped';
+}
+
+function selectAddOnActionGroup(event) {
+  const id = event.currentTarget.dataset.addonActionGroup;
+  if (!state.addOnActionGroupDrafts) state.addOnActionGroupDrafts = {};
+  state.addOnActionGroupDrafts[id] = event.currentTarget.value;
+  renderAddOns();
 }
 
 async function toggleAddOn(event) {
@@ -144,15 +222,30 @@ async function saveAddOnSettings(event) {
   } catch (error) { byId('addon-state').textContent = error.message; }
 }
 
+function addAddOnActionDraft(event) {
+  const id = event.currentTarget.dataset.addAddonAction;
+  const select = document.querySelector(`[data-addon-action-picker="${CSS.escape(id)}"]`);
+  const actionId = select?.value;
+  if (!actionId) return;
+  state.addOnActionDrafts[id] = [...(state.addOnActionDrafts[id] || []), actionId];
+  renderAddOns();
+}
+
+function removeAddOnActionDraft(event) {
+  const id = event.currentTarget.dataset.removeAddonActionModule;
+  const actionId = event.currentTarget.dataset.removeAddonAction;
+  state.addOnActionDrafts[id] = (state.addOnActionDrafts[id] || []).filter((candidate) => candidate !== actionId);
+  renderAddOns();
+}
+
 async function saveAddOnActionGrants(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const id = form.dataset.addonActionGrants;
-  const actionIds = [...form.querySelectorAll('input[name="actionId"]:checked')].map((input) => input.value);
-  if (!confirm(`Allow ${id} to dispatch exactly ${actionIds.length} selected Streamer.bot action(s)? This takes effect after StreamBridge restarts.`)) return;
-  try {
-    await api(`/wizard/api/addons/${encodeURIComponent(id)}/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds, approvedByCreator: true }) });
-    await loadAddOns();
+  const id = event.currentTarget.dataset.saveAddonActionGrants;
+  const actionIds = state.addOnActionDrafts[id] || [];
+  if (!confirm(`Allow ${id} to dispatch exactly ${actionIds.length} approved Streamer.bot action(s)? This takes effect after StreamBridge restarts.`)) return;
+    try {
+      await api(`/wizard/api/addons/${encodeURIComponent(id)}/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds, approvedByCreator: true }) });
+      delete state.addOnActionDrafts[id];
+      await loadAddOns();
     byId('addon-state').textContent = `Action grants saved for ${id}. Restart StreamBridge to apply them.`;
   } catch (error) { byId('addon-state').textContent = error.message; }
 }

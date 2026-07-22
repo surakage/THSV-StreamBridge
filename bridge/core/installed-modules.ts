@@ -1,12 +1,45 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { lstat, readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Logger } from '../services/logger.js';
 import type { PlatformCapabilityId } from '../contracts/v2/capability.js';
-import { validateInstalledActionIds, verifyAddOnPackage } from '../services/addon-package-manager.js';
+import { safeChild, validateInstalledActionIds, verifyAddOnPackage } from '../services/addon-package-manager.js';
+import { validateSettings } from '../services/addon-wizard-service.js';
 import { createBuiltinModules } from './builtin-modules.js';
 import { ModuleRegistry, type FrameworkModule } from './module-registry.js';
 import type { AddOnCapabilityBroker } from './addon-capability-broker.js';
+
+const MAXIMUM_SETTINGS_BYTES = 65_536;
+
+function knownSettingsProperties(schema: unknown): ReadonlySet<string> {
+  if (typeof schema !== 'object' || schema === null) return new Set();
+  const properties = (schema as { properties?: unknown }).properties;
+  if (typeof properties !== 'object' || properties === null) return new Set();
+  return new Set(Object.keys(properties));
+}
+
+async function readAddOnSettings(stateRoot: string, moduleId: string, configurationSchemaPath: string, packageRoot: string): Promise<Readonly<Record<string, unknown>>> {
+  const schema = JSON.parse(await readFile(safeChild(packageRoot, configurationSchemaPath), 'utf8')) as unknown;
+  const path = safeChild(resolve(stateRoot), `${moduleId}/settings.json`);
+  try {
+    const information = await lstat(path);
+    if (!information.isFile() || information.isSymbolicLink() || information.size > MAXIMUM_SETTINGS_BYTES) throw new Error(`Add-on settings must be a regular file no larger than ${String(MAXIMUM_SETTINGS_BYTES)} bytes.`);
+    const raw = JSON.parse(await readFile(path, 'utf8')) as unknown;
+    const input = typeof raw === 'object' && raw !== null && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+    // A key an older version of this add-on's schema used to accept but the current one does not
+    // (renamed or removed in an update) is dropped rather than treated as a hard failure: unlike
+    // the wizard's own settings-save endpoint -- where an unrecognized key really is suspect input
+    // worth rejecting -- this file was written by an already-trusted earlier version of the same
+    // add-on, and a settings schema evolving across versions is normal, expected change. Rejecting
+    // the whole add-on over one stale key would be a self-inflicted update failure.
+    const properties = knownSettingsProperties(schema);
+    const known = Object.fromEntries(Object.entries(input).filter(([key]) => properties.has(key)));
+    return validateSettings(schema, known);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return validateSettings(schema, {}, true);
+    throw error;
+  }
+}
 
 type ModuleFactory = () => FrameworkModule | Promise<FrameworkModule>;
 
@@ -16,10 +49,10 @@ function isFrameworkModule(value: unknown): value is FrameworkModule {
   return candidate.manifest !== undefined && typeof candidate.required === 'boolean';
 }
 
-export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger): Promise<readonly FrameworkModule[]> {
+export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger, addOnStateRoot = join(addOnsRoot, '.state')): Promise<readonly FrameworkModule[]> {
   const root = resolve(addOnsRoot);
   let directories: readonly string[];
-  try { directories = (await readdir(root, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).map((entry) => entry.name).sort(); }
+  try { directories = (await readdir(root, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'inbox').map((entry) => entry.name).sort(); }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
     logger.error('Unable to inspect installed add-ons; core modules will continue', { addOnsRoot: root, error });
@@ -45,9 +78,11 @@ export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger): P
       const candidate = imported.createModule === undefined ? imported.default : await imported.createModule();
       if (!isFrameworkModule(candidate)) throw new Error('The entrypoint must export a FrameworkModule as default or through createModule().');
       if (JSON.stringify(candidate.manifest) !== JSON.stringify(verified.descriptor.manifest)) throw new Error('The runtime manifest does not exactly match module-package.json.');
+      const settings = await readAddOnSettings(addOnStateRoot, verified.descriptor.manifest.moduleId, verified.descriptor.manifest.configurationSchema, verified.root);
       modules.push({
         ...candidate,
         required: false,
+        settings,
         capabilityGrant: {
           moduleId: verified.descriptor.manifest.moduleId,
           permissions: verified.descriptor.permissions,
@@ -120,8 +155,8 @@ export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candi
   return [...unique.values()];
 }
 
-export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker): Promise<ModuleRegistry> {
+export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker, addOnStateRoot?: string): Promise<ModuleRegistry> {
   const builtins = createBuiltinModules();
-  const installed = await loadInstalledAddOns(addOnsRoot, logger);
+  const installed = await loadInstalledAddOns(addOnsRoot, logger, addOnStateRoot);
   return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger, availableCapabilities)], logger, 5_000, broker);
 }

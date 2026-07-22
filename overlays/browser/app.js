@@ -43,7 +43,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   }
 
   function transportStatus(state) {
-    status.textContent = state === 'live' ? 'LIVE' : 'RECONNECTING';
+    status.textContent = state === 'live' ? 'LIVE' : 'OFFLINE';
     status.dataset.state = state;
   }
 

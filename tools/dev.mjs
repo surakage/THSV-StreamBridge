@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdir, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +34,9 @@ try {
   await waitForInitialHealth(baseUrl, child);
   becameHealthy = true;
 } catch (error) {
+  if (child !== undefined && !await terminateChild(child, 4_000)) {
+    throw new Error('Development bridge startup failed and its child process could not be stopped; runtime ownership markers were retained.', { cause: error });
+  }
   await removeOwnedRuntimeMarkers();
   throw error;
 } finally {
@@ -72,7 +75,6 @@ async function waitForInitialHealth(url, spawnedChild) {
     } catch { /* Continue through the bounded startup window. */ }
     await delay(200);
   }
-  spawnedChild.kill('SIGTERM');
   throw new Error('Development bridge did not become healthy within 15 seconds.');
 }
 
@@ -100,10 +102,22 @@ async function stop(signal) {
   if (stopping) return;
   stopping = true;
   clearInterval(monitor);
-  if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
-  const deadline = Date.now() + 4_000;
-  while (child.exitCode === null && child.signalCode === null && Date.now() < deadline) await delay(50);
+  if (!await terminateChild(child, 4_000)) throw new Error('Development bridge child did not stop; runtime ownership markers were retained.');
   await finish(signal === 'service-stopped' ? 0 : 130);
+}
+
+async function terminateChild(spawnedChild, graceMs) {
+  if (spawnedChild.exitCode !== null || spawnedChild.signalCode !== null) return true;
+  spawnedChild.kill('SIGTERM');
+  let deadline = Date.now() + graceMs;
+  while (spawnedChild.exitCode === null && spawnedChild.signalCode === null && Date.now() < deadline) await delay(50);
+  if (spawnedChild.exitCode !== null || spawnedChild.signalCode !== null) return true;
+  if (process.platform === 'win32' && spawnedChild.pid !== undefined) {
+    spawnSync('taskkill.exe', ['/pid', String(spawnedChild.pid), '/t', '/f'], { windowsHide: true, stdio: 'ignore', timeout: 5_000 });
+    deadline = Date.now() + 2_000;
+    while (spawnedChild.exitCode === null && spawnedChild.signalCode === null && Date.now() < deadline) await delay(50);
+  }
+  return spawnedChild.exitCode !== null || spawnedChild.signalCode !== null;
 }
 
 async function finish(exitCode) {

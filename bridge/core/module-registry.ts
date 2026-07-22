@@ -11,6 +11,8 @@ export interface FrameworkModule {
   readonly required: boolean;
   /** Assigned by the verified package loader. Add-on code cannot expand this grant. */
   readonly capabilityGrant?: ModuleCapabilityGrant;
+  /** The add-on's own creator-saved settings, validated against its configurationSchema with defaults applied. Assigned by the loader; not settable by add-on code. */
+  readonly settings?: Readonly<Record<string, unknown>>;
   start?(context: ModuleRuntimeContextV2): Promise<void>;
   stop?(context: ModuleRuntimeContextV2): Promise<void>;
   onEvent?(event: NormalizedEvent, context: ModuleRuntimeContextV2): Promise<void>;
@@ -36,7 +38,7 @@ export class ModuleRegistry {
       if (this.states.has(manifest.moduleId)) throw new Error(`Module ${manifest.moduleId} is registered more than once.`);
       if (module.capabilityGrant !== undefined && module.capabilityGrant.moduleId !== manifest.moduleId) throw new Error(`Capability grant for ${module.capabilityGrant.moduleId} cannot be assigned to ${manifest.moduleId}.`);
       const normalized = { ...module, manifest };
-      const context = this.broker.contextFor(normalized.capabilityGrant ?? { moduleId: manifest.moduleId, permissions: [], approvedActionIds: [] });
+      const context = this.broker.contextFor(normalized.capabilityGrant ?? { moduleId: manifest.moduleId, permissions: [], approvedActionIds: [] }, normalized.settings ?? {});
       this.states.set(manifest.moduleId, { module: normalized, context, status: 'stopped', message: undefined });
     }
     this.order = resolveModuleOrder(this.states);

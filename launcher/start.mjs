@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, mkdirSync, openSync } from 'node:fs';
+import { closeSync, mkdirSync, openSync, rmSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ const dataRoot = join(installRoot, 'data');
 const runtimeRoot = join(dataRoot, 'runtime');
 const recordPath = join(runtimeRoot, 'install-manifest.json');
 const pidPath = join(runtimeRoot, 'streambridge.pid');
+const launchLockPath = join(runtimeRoot, 'streambridge.launch.lock');
 const configPath = join(dataRoot, 'configuration', 'bridge.local.json');
 const tokenPath = join(dataRoot, 'secrets', 'control-token');
 const openWizard = process.argv.includes('--open-wizard');
@@ -19,10 +20,12 @@ if (record.product !== 'THSV StreamBridge' || typeof record.activeVersion !== 's
 const appRoot = join(installRoot, 'app', record.activeVersion);
 const entrypoint = join(appRoot, 'dist', 'apps', 'bridge-service.js');
 const config = JSON.parse(stripUtf8Bom(await readFile(configPath, 'utf8')));
-const host = ['0.0.0.0', '::', '[::]'].includes(config.service.host) ? '127.0.0.1' : config.service.host;
-const healthHost = host === '::1' ? '[::1]' : host;
-const baseUrl = `http://${healthHost}:${String(config.service.port)}`;
+if (!Number.isInteger(config.service?.port) || config.service.port < 1 || config.service.port > 65_535) throw new Error('The configured service port is invalid.');
+const baseUrl = `http://127.0.0.1:${String(config.service.port)}`;
 
+mkdirSync(runtimeRoot, { recursive: true });
+await acquireLaunchLock();
+process.once('exit', releaseLaunchLock);
 await stopExisting(baseUrl);
 mkdirSync(join(dataRoot, 'logs'), { recursive: true });
 mkdirSync(runtimeRoot, { recursive: true });
@@ -54,6 +57,7 @@ if (openWizard) {
   opener.unref();
 }
 if (!waitOnly) process.stdout.write(`THSV StreamBridge ${record.activeVersion} started at ${baseUrl}\n`);
+releaseLaunchLock();
 
 async function stopExisting(url) {
   let existingPid;
@@ -104,3 +108,18 @@ async function waitForHealth(url, pid, timeoutMs) {
 function isAlive(pid) { try { process.kill(pid, 0); return true; } catch { return false; } }
 function delay(ms) { return new Promise((resolveDelay) => setTimeout(resolveDelay, ms)); }
 function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value; }
+
+async function acquireLaunchLock() {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try { await writeFile(launchLockPath, `${String(process.pid)}\n`, { flag: 'wx', encoding: 'ascii', mode: 0o600 }); return; }
+    catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const owner = Number((await readFile(launchLockPath, 'ascii').catch(() => '')).trim());
+      if (Number.isInteger(owner) && owner > 0 && isAlive(owner)) throw new Error(`Another THSV StreamBridge launcher is already running with PID ${String(owner)}.`, { cause: error });
+      await rm(launchLockPath, { force: true });
+    }
+  }
+  throw new Error('Could not acquire the THSV StreamBridge startup lock.');
+}
+
+function releaseLaunchLock() { try { rmSync(launchLockPath, { force: true }); } catch { /* Best effort during process exit. */ } }

@@ -44,10 +44,36 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   await expect(page.getByRole('article').getByText('Sample No-Op Add-On 1.0.0', { exact: true })).toBeVisible();
-  await expect(page.getByText('Use Streamer.bot → Inspect first.')).toBeVisible();
+  await page.getByText('Approved Streamer.bot actions', { exact: true }).click();
+  await expect(page.getByText('Your saved action grants remain active.', { exact: false })).toBeVisible();
+  await page.evaluate(`state.liveActions = [
+    { id: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce', name: 'THSV Addon - Random Clip Player - Get Clip Download', group: 'THSV StreamBridge - Add-ons', enabled: true },
+    { id: 'f89e397b-7106-5101-a620-b0f5da4facf9', name: 'THSV Addon - Random Clip Player - Get Clips', group: 'THSV StreamBridge - Add-ons', enabled: true },
+    { id: 'e32d29f1-fc2a-58e5-a1f2-a7731f29d940', name: 'THSV Command - Lurk', group: 'THSV StreamBridge - Commands', enabled: true },
+  ]; renderAddOns();`);
+  await expect(page.getByText('No actions approved yet.')).toBeVisible();
+  const groupPicker = page.locator('[data-addon-action-group="sample.no-op"]');
+  const actionPicker = page.locator('[data-addon-action-picker="sample.no-op"]');
+  await expect(groupPicker).toHaveValue('THSV StreamBridge - Add-ons');
+  await expect(actionPicker.locator('option')).toHaveCount(3);
+  await expect(actionPicker).not.toContainText('THSV Command - Lurk');
+  await groupPicker.selectOption('THSV StreamBridge - Commands');
+  await expect(actionPicker.locator('option')).toHaveCount(2);
+  await expect(actionPicker).toContainText('THSV Command - Lurk');
+  await expect(actionPicker).not.toContainText('Random Clip Player');
+  await groupPicker.selectOption('THSV StreamBridge - Add-ons');
+  await actionPicker.selectOption('f89e397b-7106-5101-a620-b0f5da4facf9');
+  await page.getByRole('button', { name: 'Add selected action' }).click();
+  await expect(page.locator('.addon-approved-actions')).toContainText('THSV Addon - Random Clip Player - Get Clips');
+  await expect(page.locator('.addon-approved-actions')).toContainText('THSV StreamBridge - Add-ons');
+  await page.evaluate('state.liveActions = []; renderAddOns();');
+  await expect(page.locator('.addon-approved-actions')).toContainText('THSV Addon - Random Clip Player - Get Clips');
+  await expect(page.locator('.addon-approved-actions')).toContainText('saved grant remains active; status not checked this session');
+  await expect(page.getByRole('button', { name: 'Refresh action names' })).toBeVisible();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Save action grants' }).click();
   await expect(page.getByText('Action grants saved for sample.no-op')).toBeVisible();
+  await page.getByText('Hosted overlay & testing', { exact: true }).click();
   const overlayUrl = await page.locator('[data-addon-overlay-url="sample.no-op"]').inputValue();
   expect(overlayUrl).toBe('http://127.0.0.1:8799/overlay/addons/sample.no-op');
   const overlay = await context.newPage();

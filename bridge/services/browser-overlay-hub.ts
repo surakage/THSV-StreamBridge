@@ -20,7 +20,7 @@ export class BrowserOverlayHub {
   private readonly lifecycleListeners = new Map<string, Set<(event: AddOnOverlayLifecycleV2) => void>>();
   private readonly activePlaybackIds = new Map<string, Map<string, number>>();
   private readonly upgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
-    if (request.url !== '/overlay/events' || !isLoopback(request.socket.remoteAddress)) { socket.destroy(); return; }
+    if (request.url !== '/overlay/events' || !isLoopback(request.socket.remoteAddress) || !isTrustedOverlayOrigin(request)) { socket.destroy(); return; }
     this.sockets.handleUpgrade(request, socket, head, (client) => this.sockets.emit('connection', client, request));
   };
 
@@ -141,4 +141,18 @@ function ignoredChatActor(event: NormalizedEvent, ignoredNames: readonly string[
 
 function isLoopback(address: string | undefined): boolean {
   return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+}
+
+function isTrustedOverlayOrigin(request: IncomingMessage): boolean {
+  const origin = request.headers.origin;
+  if (origin === undefined) return true; // Non-browser test/diagnostic clients have no ambient-origin attack.
+  if (request.headers.host === undefined) return false;
+  try {
+    const url = new URL(origin);
+    return ['http:', 'https:'].includes(url.protocol)
+      && ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(url.hostname)
+      && url.host === request.headers.host
+      && url.username.length === 0
+      && url.password.length === 0;
+  } catch { return false; }
 }

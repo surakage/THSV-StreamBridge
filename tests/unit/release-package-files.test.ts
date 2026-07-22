@@ -24,6 +24,9 @@ describe('public release scripts', () => {
     expect(source).toContain('Install THSV StreamBridge.cmd');
     expect(source).toContain('Get-FileHash -Algorithm SHA256');
     expect(source).toContain('release-manifest.json');
+    expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory");
+    expect(source).toContain('npm.cmd run addon:package -- $_.FullName $addOnArchive');
+    expect(source).toContain('*.thsv-addon*');
     expect(source).toContain("'wizard'");
     expect(source).toContain('$releaseDocs');
     expect(source).toContain("'streamerbot-csharp-references.md'");
@@ -36,6 +39,13 @@ describe('public release scripts', () => {
     for (const forbidden of ['bridge.local.json', 'control-token', 'streambridge.pid', 'state|logs|backups']) expect(source).toContain(forbidden);
     for (const archived of ['viewer-progression', 'companion-actions', 'speaker-orchestration', 'bloom-idle-sprite.png']) expect(source).toContain(archived);
     expect(source).not.toContain("Copy-Item -LiteralPath (Join-Path $repo 'archive')");
+  });
+
+  it('publishes every optional add-on as a separately verified release asset', async () => {
+    const workflow = await readFile('.github/workflows/release.yml', 'utf8');
+    expect(workflow).toContain('packages\\*.thsv-addon');
+    expect(workflow).toContain('packages/*.thsv-addon');
+    expect(workflow).toContain('packages\\*.thsv-addon.sha256');
   });
 
   it('backs up add-ons and ships a verified approval-gated restore path', async () => {
@@ -127,6 +137,21 @@ describe('public release scripts', () => {
     expect(source).toContain("fetch(`${baseUrl}/shutdown`");
     expect(source).toContain('if (pid !== undefined && isAlive(pid))');
     expect(source).toContain('const shutdownTimeoutMs = 15_000');
+  });
+
+  it('opens the configured wizard only after verifying the loopback service identity', async () => {
+    const source = await readFile('launcher/open-wizard.mjs', 'utf8');
+    expect(source).toContain("readFile(configPath, 'utf8')");
+    expect(source).toContain('http://127.0.0.1:');
+    expect(source).toContain("health?.service !== 'THSV StreamBridge'");
+    expect(source).toContain("`${baseUrl}/wizard/`");
+  });
+
+  it('does not discard development ownership markers before a spawned child is confirmed stopped', async () => {
+    const source = await readFile('tools/dev.mjs', 'utf8');
+    expect(source).toContain('await terminateChild(child, 4_000)');
+    expect(source).toContain("spawnSync('taskkill.exe'");
+    expect(source.indexOf('await terminateChild(child, 4_000)')).toBeLessThan(source.indexOf('await removeOwnedRuntimeMarkers();'));
   });
 
   it('ships an authenticated simulation helper without development tooling', async () => {

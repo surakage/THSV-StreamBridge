@@ -12,6 +12,12 @@ function relay(platform: 'twitch' | 'youtube' | 'kick', sourceEventType: string,
 }
 
 describe('native Streamer.bot platform relay adapter', () => {
+  it('hashes a composed source identity that would exceed the normalized event limit', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', { sourceEventId: 'r'.repeat(256), message: 'bounded' }));
+    expect(event.eventId).toMatch(/^streamerbot-twitch-sha256-[a-f0-9]{64}$/u);
+    expect(event.eventId.length).toBeLessThanOrEqual(256);
+    expect(event.source.eventId).toBe('r'.repeat(256));
+  });
   it.each([
     ['twitch', 'TwitchChatMessage'],
     ['youtube', 'YouTubeMessage'],

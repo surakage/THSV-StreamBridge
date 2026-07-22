@@ -8,8 +8,8 @@ const pidPath = join(dataRoot, 'runtime', 'streambridge.pid');
 const configPath = join(dataRoot, 'configuration', 'bridge.local.json');
 const tokenPath = join(dataRoot, 'secrets', 'control-token');
 const config = JSON.parse(stripUtf8Bom(await readFile(configPath, 'utf8')));
-const host = ['0.0.0.0', '::', '[::]'].includes(config.service.host) ? '127.0.0.1' : config.service.host;
-const baseUrl = `http://${host === '::1' ? '[::1]' : host}:${String(config.service.port)}`;
+if (!Number.isInteger(config.service?.port) || config.service.port < 1 || config.service.port > 65_535) throw new Error('The configured service port is invalid.');
+const baseUrl = `http://127.0.0.1:${String(config.service.port)}`;
 const token = (await readFile(tokenPath, 'utf8')).trim();
 let pid;
 try { pid = Number((await readFile(pidPath, 'utf8')).trim()); } catch { /* Authenticated localhost shutdown remains available without a PID record. */ }

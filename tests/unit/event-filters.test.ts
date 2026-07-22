@@ -27,6 +27,8 @@ describe('Stage 4 event blockers', () => {
     const config = await testConfig();
     expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('dangerous', 'display', '(a+)+$'), match: { kind: 'regex', value: '(a+)+$', caseSensitive: false } }] } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('ambiguous', 'display', '(a|aa)+$'), match: { kind: 'regex', value: '(a|aa)+$', caseSensitive: false } }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('nested-ambiguous', 'display', '^((a|aa))+$'), match: { kind: 'regex', value: '^((a|aa))+$', caseSensitive: false } }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('optional-repeat', 'display', '(a?){20}b'), match: { kind: 'regex', value: '(a?){20}b', caseSensitive: false } }] } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, filters: { enabled: true, rules: [{ ...rule('safe', 'display', '^hello\\s+world$'), match: { kind: 'regex', value: '^hello\\s+world$', caseSensitive: false } }] } }).success).toBe(true);
   });
 

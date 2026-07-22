@@ -13,6 +13,8 @@ The broker is the only supported add-on route to shared framework services:
 
 Streamer.bot action requests share the bridge's existing authenticated WebSocket and use its documented correlated [`DoAction` request](https://docs.streamer.bot/api/websocket/requests). The broker limits each add-on to two pending actions and 30 starts per rolling minute; arguments are JSON-only, limited to 50 keys and 64 KiB. Streamer.bot acknowledgement IDs, timeouts, and cancellation remain correlated by the adapter. Stopping or failing a module aborts its pending broker requests without opening another WebSocket.
 
+Every approved action invocation also receives a short-lived, one-use `thsvAddonRelayToken` argument. An action returning a `thsv.addon` envelope must copy that token into `relayToken`; the bridge consumes it only for the module that requested the action. This prevents another Streamer.bot action from claiming an add-on's namespace. Creator-bound Random Clip Player enable/disable actions are the narrow exception: they may publish only the exact boolean control event, allowing scene triggers to pause playback without an outstanding bridge request.
+
 Capability diagnostics report grant, denial, and failure counts by module and never record state, overlay payloads, or action arguments. A denial is isolated to the requesting optional module.
 
 ## Hosted overlay topics
@@ -26,7 +28,7 @@ The shared host understands four namespaced presentation topics:
 
 The renderer uses text nodes, clamps displayed lengths and numeric values, rejects unsafe URL protocols, and applies a restrictive Content Security Policy. Chat, alerts, and add-on overlays share the existing `SharedWorker` transport when the streaming host supports it; isolated browser-source processes fall back to one direct connection for that source.
 
-Media add-ons can subscribe through `context.overlay.onLifecycle(listener)`. The hosted overlay reports `loading`, `started`, bounded `heartbeat`, `ended`, `stopped`, `failed`, and `timeout` phases for the matching `playbackId`. Reports return over the already-open overlay transport and are routed only to the owning module; they do not open another WebSocket. Add-ons should persist rotation progress only after `ended`, treat `failed` and `timeout` as retry-or-skip decisions, and unsubscribe automatically or rely on module cleanup.
+Media add-ons can subscribe through `context.overlay.onLifecycle(listener)`. The hosted overlay reports `loading`, `started`, bounded `heartbeat`, `ended`, `stopped`, `failed`, and `timeout` phases for the matching `playbackId`. Reports return over the already-open overlay transport and are routed only to the owning module; they do not open another WebSocket. Add-ons must correlate the exact `playbackId`, retain a bounded retry until `started`, persist rotation progress only after `ended`, and treat `stopped`, `failed`, and `timeout` as retry-or-skip decisions.
 
 ## Entrypoint example
 
@@ -52,4 +54,4 @@ export default {
 
 This broker is a least-privilege framework API, not an operating-system sandbox. Executable JavaScript still runs in the StreamBridge process under the creator's Windows account and could bypass supported APIs by using Node directly. Install executable add-ons only from trusted, reviewed publishers. Declarative add-ons remain the recommended public third-party tier because they do not execute package code.
 
-The hosted overlay limitation is closed. The Random Clip Player can now be implemented against `media.play`, but it still requires its own live Twitch clip retrieval and OBS/Meld/Streamlabs playback acceptance tests. It must use this broker and must never create its own Streamer.bot connection or background service.
+Random Clip Player `1.4.0` implements the hosted `media.play` lifecycle with correlated playback IDs and bounded retries. The overlay fades the final frame for four seconds, and scheduling adds that fixed transition buffer after the creator's configured pause. The add-on exhausts its no-repeat pool before refetching, and namespaced Enable/Disable relays let creator-selected Streamer.bot scene triggers pause or resume it without creating another connection or background service.

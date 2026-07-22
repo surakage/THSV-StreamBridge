@@ -81,6 +81,13 @@ export class AlertPresentationController {
         pending.alert.quantity = Number(pending.alert.quantity || 0) + Number(alert.quantity || 0);
         return;
       }
+      while (this.pendingAggregates.size >= this.queue.capacity) {
+        const oldestKey = this.pendingAggregates.keys().next().value;
+        if (oldestKey === undefined) break;
+        const oldest = this.pendingAggregates.get(oldestKey);
+        this.pendingAggregates.delete(oldestKey);
+        if (oldest) { this.cancel(oldest.timer); this.enqueueReady(oldest.alert, queuedAt); }
+      }
       const buffered = { ...alert, aggregateCount: 1 };
       const timer = this.schedule(() => {
         this.pendingAggregates.delete(aggregation.key);

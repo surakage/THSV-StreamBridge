@@ -38,13 +38,17 @@ jobs:
         shell: powershell
         run: |
           $archive = Get-ChildItem packages\THSV-StreamBridge-*.zip | Select-Object -First 1
+          $addons = @(Get-ChildItem packages\*.thsv-addon)
           if ($null -eq $archive) { throw 'Release archive was not produced.' }
+          if ($addons.Count -eq 0) { throw 'No add-on archives were produced.' }
           "archive=$($archive.FullName)" >> $env:GITHUB_OUTPUT
           "checksum=$($archive.FullName).sha256" >> $env:GITHUB_OUTPUT
       - name: Attest release provenance
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: ${{ steps.assets.outputs.archive }}
+          subject-path: |
+            ${{ steps.assets.outputs.archive }}
+            packages/*.thsv-addon
       - name: Attest software bill of materials
         uses: actions/attest-sbom@v2
         with:
@@ -66,7 +70,9 @@ jobs:
           }
           if ($isPrerelease) { $releaseFlags += '--prerelease' }
           gh release create $env:GITHUB_REF_NAME @releaseFlags
-          gh release upload $env:GITHUB_REF_NAME "${{ steps.assets.outputs.archive }}" "${{ steps.assets.outputs.checksum }}" "THSV-StreamBridge-$env:GITHUB_REF_NAME.cdx.json"
+          $assets = @("${{ steps.assets.outputs.archive }}", "${{ steps.assets.outputs.checksum }}", "THSV-StreamBridge-$env:GITHUB_REF_NAME.cdx.json")
+          $assets += @(Get-ChildItem packages\*.thsv-addon, packages\*.thsv-addon.sha256 | ForEach-Object FullName)
+          gh release upload $env:GITHUB_REF_NAME @assets
           if ($isPrerelease) {
             gh release edit $env:GITHUB_REF_NAME --draft=false
           } else {

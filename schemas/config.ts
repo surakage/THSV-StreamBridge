@@ -75,11 +75,18 @@ const timedActionSelectionSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('platform-shuffle'), messagesByPlatform: platformMessageListsSchema }).strict(),
 ]);
 
+const PROTECTED_TIMED_ACTION_IDS = new Set([
+  '143fce1d-c5b0-4108-b766-ee2d0249e2d4', 'f021d77f-7eb8-55d8-87dd-d681c439dfef',
+  '04ca0087-578d-5c2e-9e06-249dc072e9f8', 'c1d3a9e2-0f4b-4b78-91c2-7a65d8e309f1',
+  'f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2', '8d8e3667-fd96-510f-b2ae-a8affe5b789a',
+  '4e9f0946-f33d-5309-b376-a16df5612b32',
+]);
+
 const timedActionTargetSchema = z.discriminatedUnion('provider', [
   z.object({ provider: z.literal('event-only') }).strict(),
   z.object({
     provider: z.literal('run-existing-action'),
-    actionId: z.uuid(),
+    actionId: z.uuid().refine((value) => !PROTECTED_TIMED_ACTION_IDS.has(value.toLowerCase()), 'protected StreamBridge actions cannot be timed-action targets'),
     actionName: z.string().min(1).max(200),
     approvedByCreator: z.literal(true),
     deliveryPlatforms: z.array(z.enum(TIMED_CHAT_PLATFORM_VALUES)).max(TIMED_CHAT_PLATFORM_VALUES.length).refine((platforms) => new Set(platforms).size === platforms.length, 'delivery platforms must be unique').default([]),
@@ -445,6 +452,11 @@ export const bridgeConfigSchema = z.preprocess((input) => {
   delete migrated['meldOverlay'];
   delete migrated['viewerIdentity'];
   delete migrated['companion'];
+  if (migrated['platforms'] !== null && typeof migrated['platforms'] === 'object' && !Array.isArray(migrated['platforms'])) {
+    migrated['platforms'] = Object.fromEntries(Object.entries(migrated['platforms'] as Record<string, unknown>).filter(([, value]) => {
+      return value === null || typeof value !== 'object' || Array.isArray(value) || (value as Record<string, unknown>)['adapter'] !== 'streamerbot-addon-relay';
+    }));
+  }
   return migrated;
 }, bridgeConfigObjectSchema);
 
@@ -519,6 +531,7 @@ function unsafeRegexReason(pattern: string): string | undefined {
   if (/\([^)]*\|[^)]*\)[+*{]/u.test(pattern)) return 'Quantified alternation groups are not allowed.';
   if (/\([^)]*[+*][^)]*\)[+*{]/u.test(pattern)) return 'Nested quantified groups are not allowed.';
   if (/(?:\.[+*]|\[[^\]]+\][+*]|\\[dDsSwW][+*])[+*{]/u.test(pattern)) return 'Nested quantifiers are not allowed.';
+  if (hasHazardousQuantifiedGroup(pattern)) return 'Quantified groups may not contain alternation or another quantifier.';
   // A chain of many adjacent quantified atoms (e.g. "a?a?a?...") contains no nesting or
   // alternation for the checks above to catch, but still produces exponential backtracking
   // cost on a non-matching input. Bounding the total quantifier count keeps that search
@@ -528,6 +541,30 @@ function unsafeRegexReason(pattern: string): string | undefined {
   }
   try { new RegExp(pattern, 'u'); } catch { return 'Regular expression is invalid.'; }
   return undefined;
+}
+
+function hasHazardousQuantifiedGroup(pattern: string): boolean {
+  const stack: boolean[] = [];
+  let escaped = false; let inClass = false;
+  for (let index = 0; index < pattern.length; index += 1) {
+    const character = pattern[index];
+    if (escaped) { escaped = false; continue; }
+    if (character === '\\') { escaped = true; continue; }
+    if (character === '[') { inClass = true; continue; }
+    if (character === ']' && inClass) { inClass = false; continue; }
+    if (inClass) continue;
+    if (character === '(') { stack.push(false); continue; }
+    if (character === '|' || character === '*' || character === '+' || character === '?' || character === '{') {
+      if (stack.length > 0) stack[stack.length - 1] = true;
+      continue;
+    }
+    if (character !== ')' || stack.length === 0) continue;
+    const hazardous = stack.pop() === true;
+    if (hazardous && stack.length > 0) stack[stack.length - 1] = true;
+    const next = pattern[index + 1];
+    if (hazardous && next !== undefined && ['*', '+', '?', '{'].includes(next)) return true;
+  }
+  return false;
 }
 
 function countQuantifiers(pattern: string): number {

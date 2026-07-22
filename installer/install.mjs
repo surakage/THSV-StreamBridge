@@ -181,7 +181,7 @@ async function pruneOldVersions(root, retained) {
 }
 
 function validateManifest(value) {
-  if (value.product !== PRODUCT || value.layoutVersion !== 2 || typeof value.version !== 'string' || value.runtime?.platform !== 'win32' || value.runtime?.arch !== 'x64' || !Array.isArray(value.files)) throw new Error('release-manifest.json is invalid or not a Windows x64 portable release.');
+  if (value.product !== PRODUCT || value.layoutVersion !== 2 || typeof value.version !== 'string' || !isReleaseVersion(value.version) || value.runtime?.platform !== 'win32' || value.runtime?.arch !== 'x64' || !Array.isArray(value.files)) throw new Error('release-manifest.json is invalid or not a Windows x64 portable release.');
   for (const file of value.files) if (typeof file.path !== 'string' || !Number.isSafeInteger(file.size) || !/^[a-f0-9]{64}$/u.test(file.sha256)) throw new Error('release-manifest.json contains an invalid file entry.');
 }
 
@@ -211,7 +211,7 @@ function parseArguments(values) {
 }
 
 function compareVersions(left, right) {
-  const parse = (value) => { const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?/u.exec(value); if (!match) throw new Error(`Invalid release version: ${value}`); return [Number(match[1]), Number(match[2]), Number(match[3]), match[4]]; };
+  const parse = (value) => { const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/u.exec(value); if (!match) throw new Error(`Invalid release version: ${value}`); return [Number(match[1]), Number(match[2]), Number(match[3]), match[4]]; };
   const a = parse(left); const b = parse(right);
   for (let index = 0; index < 3; index += 1) if (a[index] !== b[index]) return a[index] < b[index] ? -1 : 1;
   if (a[3] === b[3]) return 0; if (a[3] === undefined) return 1; if (b[3] === undefined) return -1; return String(a[3]).localeCompare(String(b[3]));
@@ -219,5 +219,6 @@ function compareVersions(left, right) {
 
 async function writeJsonAtomic(path, value) { await mkdir(dirname(path), { recursive: true }); const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, 'utf8'); await rename(temporary, path); }
 async function readJsonIfPresent(path) { try { return JSON.parse(await readFile(path, 'utf8')); } catch (error) { if (error?.code === 'ENOENT') return undefined; throw error; } }
+function isReleaseVersion(value) { return /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u.test(value); }
 async function sha256(path) { return createHash('sha256').update(await readFile(path)).digest('hex'); }
 async function exists(path) { try { await stat(path); return true; } catch (error) { if (error?.code === 'ENOENT') return false; throw error; } }

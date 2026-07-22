@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { AdapterRegistry } from '../../bridge/adapters/registry.js';
+import { AdapterRegistry, createDefaultAdapterRegistry } from '../../bridge/adapters/registry.js';
 import { MockAdapter } from '../../bridge/adapters/mock-adapter.js';
-import { platformConfig } from '../helpers.js';
+import { platformConfig, silentLogger, testConfig } from '../helpers.js';
 import type { OutputAdapter } from '../../bridge/adapters/adapter.js';
 
 describe('AdapterRegistry', () => {
@@ -36,5 +36,24 @@ describe('AdapterRegistry', () => {
     };
     const registry = new AdapterRegistry().registerOutput('plugin-provider', () => output);
     expect(registry.createOutputs({ custom: { enabled: true, adapter: 'plugin-provider', settings: {} } })).toEqual([output]);
+  });
+
+  it('always creates internal inputs and ignores their obsolete platform seed', () => {
+    const registry = new AdapterRegistry()
+      .registerInput('plugin-provider', (name, config) => new MockAdapter(name, config))
+      .registerInternalInput('internal-provider', () => new MockAdapter('internal', { ...platformConfig(), adapter: 'internal-provider' }));
+    const inputs = registry.createInputs({
+      twitch: { ...platformConfig(), adapter: 'plugin-provider' },
+      legacy: { ...platformConfig(), adapter: 'internal-provider' },
+    });
+    expect(inputs.map((adapter) => adapter.name)).toEqual(['twitch', 'internal']);
+    expect(registry.capabilityReports({ legacy: { ...platformConfig(), adapter: 'internal-provider' } })).toEqual([]);
+  });
+
+  it('creates the Streamer.bot add-on return relay without a platform configuration entry', async () => {
+    const config = await testConfig();
+    expect(Object.values(config.platforms).some((platform) => platform.adapter === 'streamerbot-addon-relay')).toBe(false);
+    const inputs = createDefaultAdapterRegistry(config, silentLogger).createInputs(config.platforms);
+    expect(inputs.map((adapter) => adapter.name)).toContain('addons');
   });
 });

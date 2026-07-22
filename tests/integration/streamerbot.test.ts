@@ -2,9 +2,18 @@ import { createServer } from 'node:net';
 import { WebSocketServer } from 'ws';
 import { describe, expect, it } from 'vitest';
 import { StreamerBotAdapter } from '../../bridge/adapters/streamerbot-adapter.js';
-import { fixture, silentLogger, testConfig } from '../helpers.js';
+import { fixture, platformConfig, silentLogger, testConfig } from '../helpers.js';
 import { StreamerBotEventRelay } from '../../bridge/adapters/streamerbot-event-relay.js';
+import { StreamerBotAddOnRelayAdapter } from '../../bridge/adapters/streamerbot-addon-relay-adapter.js';
+import { MockAdapter } from '../../bridge/adapters/mock-adapter.js';
 import { createCommandAdministrationRequest } from '../../bridge/core/command-administration.js';
+import { StreamBridge } from '../../bridge/core/bridge.js';
+import { ModuleRegistry, type FrameworkModule } from '../../bridge/core/module-registry.js';
+import { moduleManifestV2Schema } from '../../bridge/contracts/v2/module-manifest.js';
+import { CORE_CONTRACT_VERSION } from '../../bridge/contracts/v2/common.js';
+import { NoopDeduplicationStore } from '../../bridge/services/deduplication-store.js';
+import type { NormalizedEvent } from '../../schemas/event.js';
+import { addOnRelayAuthorizer } from '../../bridge/services/addon-relay-authorizer.js';
 
 async function unusedPort(): Promise<number> {
   const server = createServer();
@@ -43,7 +52,7 @@ describe('Streamer.bot adapter', () => {
     }
   });
 
-  it('isolates a synchronous relay subscriber failure from the adapter process', async () => {
+  it('ignores pre-authentication relays and isolates an authenticated subscriber failure', async () => {
     const config = await testConfig();
     const relay = new StreamerBotEventRelay();
     relay.subscribe(() => { throw new Error('subscriber failed'); });
@@ -51,6 +60,9 @@ describe('Streamer.bot adapter', () => {
     const warn = (message: string, fields?: Readonly<Record<string, unknown>>): void => { warnings.push({ message, ...(fields === undefined ? {} : { fields }) }); };
     const adapter = new StreamerBotAdapter(config.streamerbot, { ...silentLogger, warn }, 'streamerbot', relay);
     const handleMessage = (adapter as unknown as { handleMessage(raw: string): void }).handleMessage.bind(adapter);
+    expect(() => handleMessage(JSON.stringify({ type: 'thsv.platform', platform: 'twitch' }))).not.toThrow();
+    expect(warnings).toHaveLength(0);
+    (adapter as unknown as { relayAuthorized: boolean }).relayAuthorized = true;
     expect(() => handleMessage(JSON.stringify({ type: 'thsv.platform', platform: 'twitch' }))).not.toThrow();
     expect(warnings).toHaveLength(1);
     expect(warnings[0]?.message).toBe('Ignored Streamer.bot relay subscriber failure');
@@ -182,15 +194,73 @@ describe('Streamer.bot adapter', () => {
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'unrelated' } }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.tikfinity', version: '1.0.0', kind: 'follow' } }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.platform', version: '1.0.0', platform: 'twitch' } }));
+        socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.addon', version: '1.0.0', moduleId: 'sample.random-clip-player' } }));
       });
     });
     await adapter.start();
-    await expect.poll(() => received.length).toBe(2);
+    await expect.poll(() => received.length).toBe(3);
     expect(subscription?.events?.General).toEqual(['Custom']);
     expect(received[0]).toMatchObject({ type: 'thsv.tikfinity', kind: 'follow' });
     expect(received[1]).toMatchObject({ type: 'thsv.platform', platform: 'twitch' });
+    expect(received[2]).toMatchObject({ type: 'thsv.addon', moduleId: 'sample.random-clip-player' });
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('delivers a Streamer.bot add-on relay broadcast through the bridge to the subscribed add-on onEvent', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const relay = new StreamerBotEventRelay();
+    const addOnRelayAdapter = new StreamerBotAddOnRelayAdapter('addons', platformConfig(), relay);
+    const mock = new MockAdapter('mock', platformConfig());
+    const received: NormalizedEvent[] = [];
+    const module: FrameworkModule = {
+      manifest: moduleManifestV2Schema.parse({
+        contractVersion: CORE_CONTRACT_VERSION, moduleId: 'sample.random-clip-player', name: 'Sample Random Clip Player', version: '1.0.0',
+        minimumCoreVersion: CORE_CONTRACT_VERSION, maximumTestedCoreVersion: CORE_CONTRACT_VERSION, configurationSchema: 'schemas/config.json',
+        eventSubscriptions: ['addon.sample.random-clip-player.clips-received'], installationSteps: ['Review and approve.'], uninstallationSteps: ['Remove the package.'],
+      }),
+      required: false,
+      onEvent: async (event) => { received.push(event); },
+    };
+    const modules = new ModuleRegistry([module], silentLogger);
+    await modules.start();
+    const bridge = new StreamBridge(config, silentLogger, { inputs: [mock, addOnRelayAdapter], outputs: [], deduplicationStore: new NoopDeduplicationStore(), modules });
+    await bridge.start();
+
+    const streamerBotAdapter = new StreamerBotAdapter({
+      ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+    }, silentLogger, 'streamerbot', relay);
+    const relayToken = addOnRelayAuthorizer.issue('sample.random-clip-player');
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => {
+        const raw = Buffer.isBuffer(data) ? data.toString('utf8') : Buffer.from(data as ArrayBuffer).toString('utf8');
+        const request = JSON.parse(raw) as { readonly id: string; readonly request: string; readonly events?: unknown };
+        if (request.request !== 'Subscribe') return;
+        socket.send(JSON.stringify({ id: request.id, status: 'ok', events: request.events }));
+        socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: {
+          type: 'thsv.addon', version: '1.0.0', moduleId: 'sample.random-clip-player', eventType: 'addon.sample.random-clip-player.clips-received',
+          sourceEventType: 'THSV Addon - Random Clip Player - Get Clips', relayId: 'relay-clips-1', receivedAt: new Date().toISOString(), simulated: true,
+          relayToken,
+          payload: { clipId: 'AwkwardClip', title: 'Nice play', durationSeconds: 12 },
+        } }));
+      });
+    });
+
+    try {
+      await streamerBotAdapter.start();
+      await expect.poll(() => received.length, { timeout: 2_000 }).toBe(1);
+      expect(received[0]).toMatchObject({
+        eventType: 'addon.sample.random-clip-player.clips-received', platform: 'system',
+        payload: { clipId: 'AwkwardClip', title: 'Nice play', durationSeconds: 12 },
+      });
+    } finally {
+      await streamerBotAdapter.stop();
+      await bridge.stop();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 
   it('uses only documented read requests for wizard inspection and returns response data', async () => {

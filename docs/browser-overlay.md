@@ -149,7 +149,20 @@ Use the authenticated wizard's **Chat Overlay** and **Alerts** pages instead of 
 
 The character-limit values are local overlay display caps, not claims about each platform's outbound chat API. The defaults are conservative and can be adjusted from 40 to 500 characters in the wizard. Disabling a platform event in chat does not disable its alert card or stop Streamer.bot from receiving the normalized event. Donations are not exposed as native platform choices: Streamlabs and Ko-fi intake providers remain future add-ons and require verified source IDs before they can enter the alert/chat pipeline.
 
-`brandLabel` changes the combined overlay heading without editing HTML; set it to an empty string to hide the label. Standalone Chat and Alerts keep the live badge hidden during normal operation and show a subtle **RECONNECTING** badge whenever the bridge connection is unavailable.
+`brandLabel` changes the combined overlay heading without editing HTML; set it to an empty string to hide the label.
+
+### Connection-status badge (every overlay surface)
+
+Every overlay surface — combined, standalone Chat, standalone Alerts, and every add-on-hosted overlay — shows the same small connection-status badge, driven by the same two states:
+
+- **Disconnected**: a red **OFFLINE** badge, always visible. Covers the moment before the transport first connects and any later drop; a reconnect attempt is made automatically every 1.5s but the badge does not change wording while retrying.
+- **Connected**: a brief green **LIVE** flash, then the badge fades to fully transparent (`opacity: 0`, matching the fade duration in each surface's stylesheet) and stays hidden for the rest of the session unless the connection drops again.
+
+This is deliberate: a creator glancing at a browser source should be able to tell "is this actually wired up" at a glance without a permanent status line cluttering the frame once it's confirmed working. Any new overlay surface (a future add-on's own overlay, a new standalone mode) should reuse this exact pattern rather than inventing its own status treatment:
+
+- Reuse the `.connection-status` (or, for add-on-hosted overlays, `.status`) class and its `[data-state="live"]`/default (disconnected) CSS states — see `overlays/browser/styles.css` and `overlays/browser/addon-host.css`.
+- Drive `data-state` from the same transport-open/transport-close events the existing overlays already listen for; do not introduce a separate polling or timeout-based "am I connected" check.
+- Keep the red/green colors visually consistent with the existing badges (`#ff9c9c` disconnected, `var(--mint)` connected) rather than picking new ones per surface.
 
 The event WebSocket accepts loopback clients only, even if the diagnostics HTTP service is deliberately exposed on another interface. It broadcasts public presentation projections, never raw payloads, credentials, private messages, or operator traffic.
 
@@ -164,6 +177,8 @@ The browser hub is implemented, offline-testable, and live-verified in Meld Stud
 Enabled installed add-ons that declare `overlay.publish` receive `/overlay/addons/<module-id>`. The wizard shows the exact copyable URL and can send a five-second preview card. The page shares the existing overlay `SharedWorker` and WebSocket when supported, filters every envelope to its own module ID, and renders only core-defined card and media commands. Add-on packages cannot supply HTML, CSS, or JavaScript to this route.
 
 Media URLs must use HTTPS or the bridge's same origin. Text is assigned through `textContent`, lengths and timing are clamped, and the page's Content Security Policy permits only same-origin code plus HTTPS images/media. An isolated streaming application process may still need one direct WebSocket for its browser source; the add-on never creates or owns that connection itself.
+
+Media duration safety begins only after the browser reports `playing`, so download/buffering time cannot shorten the clip. The native `ended` event remains authoritative; the configured duration adds a ten-second grace period and acts only as a stuck-playback timeout. Media add-ons must keep a bounded retry until the matching `playbackId` reports `started`, because a publication sent while its browser source is closed is not replayed by the generic overlay transport.
 
 ## Alert storm protection
 

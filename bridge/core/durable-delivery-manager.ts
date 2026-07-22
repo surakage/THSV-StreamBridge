@@ -36,6 +36,7 @@ export class DurableOutputDeliveryManager {
   private stopping = false;
   private persistenceError: string | undefined;
   private persistChain: Promise<void> = Promise.resolve();
+  private enqueueChain: Promise<void> = Promise.resolve();
   private drainWaiters: Array<() => void> = [];
 
   public constructor(
@@ -75,7 +76,13 @@ export class DurableOutputDeliveryManager {
 
   public async enqueue(event: NormalizedEvent): Promise<readonly string[]> { return this.enqueueBatch([event]); }
 
-  public async enqueueBatch(events: readonly NormalizedEvent[]): Promise<readonly string[]> {
+  public enqueueBatch(events: readonly NormalizedEvent[]): Promise<readonly string[]> {
+    const operation = this.enqueueChain.then(() => this.enqueueBatchSerialized(events));
+    this.enqueueChain = operation.then(() => undefined, () => undefined);
+    return operation;
+  }
+
+  private async enqueueBatchSerialized(events: readonly NormalizedEvent[]): Promise<readonly string[]> {
     if (this.stopping) throw new OutputUnavailableError('Output delivery is stopping');
     const enabled = this.runtimes.filter((runtime) => runtime.adapter.enabled);
     for (const runtime of enabled) {
@@ -83,11 +90,23 @@ export class DurableOutputDeliveryManager {
       if (runtime.queue.length + runtime.active.size + events.length > this.queueCapacity) throw new OutputCapacityError(`Output ${runtime.adapter.name} queue is full`);
     }
     const queuedAt = new Date().toISOString();
+    const additions = new Map<OutputRuntime, DeliveryOutboxRecord[]>();
     for (const runtime of enabled) {
-      for (const event of events) runtime.queue.push({ id: randomUUID(), output: runtime.adapter.name, lane: deliveryLane(event), event, queuedAt, attempts: 0 });
+      const records = events.map((event) => ({ id: randomUUID(), output: runtime.adapter.name, lane: deliveryLane(event), event, queuedAt, attempts: 0 }));
+      additions.set(runtime, records);
+      runtime.queue.push(...records);
       runtime.metrics.enqueued += events.length;
     }
-    await this.persist();
+    try { await this.persist(); }
+    catch (error) {
+      for (const [runtime, records] of additions) {
+        const rejected = new Set(records.map((record) => record.id));
+        runtime.queue.splice(0, runtime.queue.length, ...runtime.queue.filter((record) => !rejected.has(record.id)));
+        runtime.metrics.enqueued -= records.length;
+      }
+      await this.persist().catch(() => undefined);
+      throw error;
+    }
     for (const runtime of enabled) this.pump(runtime);
     return enabled.map((runtime) => runtime.adapter.name);
   }
@@ -153,7 +172,6 @@ export class DurableOutputDeliveryManager {
       runtime.metrics.consecutiveFailures = 0;
       runtime.metrics.lastSuccessAt = new Date().toISOString();
       delete runtime.metrics.lastError;
-      await this.persist();
     } catch (error) {
       runtime.active.delete(record.id);
       record.attempts += 1;
@@ -175,6 +193,15 @@ export class DurableOutputDeliveryManager {
         this.logger.warn('Output delivery failed; durable retry scheduled', { output: runtime.adapter.name, eventId: record.event.eventId, attempt: record.attempts, delayMs: delay, error });
       }
       await this.persist().catch(() => undefined);
+      this.pump(runtime);
+      this.resolveDrained();
+      return;
+    }
+    try { await this.persist(); }
+    catch (error) {
+      // The downstream already acknowledged this record. Never redeliver merely because
+      // persisting the acknowledgement failed; readiness remains degraded until a later save.
+      this.logger.error('Output acknowledgement could not be persisted; delivery will not be repeated in this process', { output: runtime.adapter.name, eventId: record.event.eventId, error });
     } finally {
       this.pump(runtime);
       this.resolveDrained();

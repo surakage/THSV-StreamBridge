@@ -21,6 +21,7 @@ describe('MutableRequestGuard', () => {
     const guard = new MutableRequestGuard(TEST_CONTROL_TOKEN, [], 10, 1);
     expect(() => guard.assertLoopback(request({}, '192.168.1.10'))).toThrow('loopback-only');
     expect(() => guard.assertLoopback(request())).not.toThrow();
+    expect(() => guard.assertLoopback(request({ host: 'attacker.example' }))).toThrow('Host header');
     expect(() => guard.acquire(request({ authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, '192.168.1.10'), false)).toThrow('loopback-only');
     expect(() => guard.acquire(request({ authorization: `Bearer ${TEST_CONTROL_TOKEN}`, origin: 'https://attacker.example' }), false)).toThrow('origin');
   });

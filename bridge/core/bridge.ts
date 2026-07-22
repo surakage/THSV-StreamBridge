@@ -131,6 +131,9 @@ export class StreamBridge {
   }
 
   public async simulate(input: unknown, byteLength?: number): Promise<IngestResult> {
+    if (typeof input === 'object' && input !== null && !Array.isArray(input) && (input as Record<string, unknown>)['eventType'] === 'system.timed') {
+      throw new InvalidEventError(['system.timed events can only be produced by configured timed actions; use the wizard timer test endpoint.']);
+    }
     const result = await this.simulationAdapter.simulate(input, byteLength);
     if (!isIngestResult(result)) throw new Error('Simulation adapter completed without an ingest result');
     return result;
@@ -157,14 +160,23 @@ export class StreamBridge {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
-    this.timedActions?.observe(validatedEvent);
-    if (validatedEvent.eventType === 'stream.online') {
-      const wasOffline = this.livePlatforms.size === 0;
-      this.livePlatforms.add(validatedEvent.platform);
-      if (wasOffline && this.timedActions?.controlStatus()['active'] !== true) await this.timedActions?.control('start');
-    } else if (validatedEvent.eventType === 'stream.offline') {
-      this.livePlatforms.delete(validatedEvent.platform);
-      if (this.livePlatforms.size === 0) await this.timedActions?.control('stop');
+    try {
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      await this.dependencies.deduplicationStore.flush();
+      this.timedActions?.observe(validatedEvent);
+      if (validatedEvent.eventType === 'stream.online') {
+        const wasOffline = this.livePlatforms.size === 0;
+        this.livePlatforms.add(validatedEvent.platform);
+        if (wasOffline && this.timedActions?.controlStatus()['active'] !== true) await this.timedActions?.control('start');
+      } else if (validatedEvent.eventType === 'stream.offline') {
+        this.livePlatforms.delete(validatedEvent.platform);
+        if (this.livePlatforms.size === 0) await this.timedActions?.control('stop');
+      }
+    } catch (error) {
+      this.deduplicator.forget(validatedEvent);
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      await this.dependencies.deduplicationStore.flush().catch(() => undefined);
+      throw error;
     }
 
     const initialFilterDecision = this.filters.evaluate(validatedEvent);
@@ -197,7 +209,6 @@ export class StreamBridge {
         this.lastAcceptedSequence = acceptedSequence;
         this.lastAcceptedEventAt = acceptedAt;
       }
-      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
       await this.persistAcceptedState(lastEvent, acceptedAt);
       for (const event of events) this.logger.info('Event accepted for delivery', { eventId: event.eventId, eventType: event.eventType, platform: event.platform, outputs });
       return {
@@ -211,6 +222,8 @@ export class StreamBridge {
       };
     } catch (error) {
       this.deduplicator.forget(validatedEvent);
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      await this.dependencies.deduplicationStore.flush().catch(() => undefined);
       throw error;
     }
   }

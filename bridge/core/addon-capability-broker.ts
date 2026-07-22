@@ -4,9 +4,10 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { CORE_RECEIVER_ACTION_ID, type AddOnActionArgumentsV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnScheduledTaskV2, type ModuleRuntimeContextV2 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnScheduledTaskV2, type ModuleRuntimeContextV2 } from '../contracts/v2/addon-capability.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { Logger } from '../services/logger.js';
+import { addOnRelayAuthorizer } from '../services/addon-relay-authorizer.js';
 
 const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -28,6 +29,7 @@ export interface ModuleCapabilityGrant {
   readonly permissions: readonly AddOnPermissionV2[];
   readonly approvedActionIds: readonly string[];
 }
+interface ActiveModuleCapabilityGrant extends ModuleCapabilityGrant { readonly generation: number }
 
 export interface AddOnCapabilityBrokerDependencies {
   readonly runStreamerBotAction?: (actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>;
@@ -61,11 +63,15 @@ export class AddOnCapabilityBroker {
   private readonly actionActivity = new Map<string, ActionActivity>();
   private readonly overlaySubscriptions = new Map<string, Set<() => void>>();
   private readonly outboundActivity = new Map<string, OutboundActivity>();
+  private readonly generations = new Map<string, number>();
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {}
 
-  public contextFor(rawGrant: ModuleCapabilityGrant): ModuleRuntimeContextV2 {
-    const grant = validateGrant(rawGrant);
+  public contextFor(rawGrant: ModuleCapabilityGrant, settings: Readonly<Record<string, unknown>> = {}): ModuleRuntimeContextV2 {
+    const validatedGrant = validateGrant(rawGrant);
+    const generation = (this.generations.get(validatedGrant.moduleId) ?? 0) + 1;
+    this.generations.set(validatedGrant.moduleId, generation);
+    const grant: ActiveModuleCapabilityGrant = Object.freeze({ ...validatedGrant, generation });
     const permissions = Object.freeze([...grant.permissions]);
     const approvedActionIds = Object.freeze([...grant.approvedActionIds]);
     const has = (permission: AddOnPermissionV2): boolean => permissions.includes(permission);
@@ -74,6 +80,7 @@ export class AddOnCapabilityBroker {
       grantedPermissions: permissions,
       approvedActionIds,
       has,
+      settings: Object.freeze({ ...settings }),
       state: Object.freeze({
         read: () => this.readState(grant),
         write: (value: AddOnPrivateStateV2) => this.writeState(grant, value),
@@ -95,6 +102,7 @@ export class AddOnCapabilityBroker {
   }
 
   public cleanup(moduleId: string): void {
+    this.generations.set(moduleId, (this.generations.get(moduleId) ?? 0) + 1);
     for (const [taskId, entry] of this.scheduled) {
       if (entry.moduleId !== moduleId) continue;
       clearTimeout(entry.timer); this.scheduled.delete(taskId);
@@ -122,7 +130,7 @@ export class AddOnCapabilityBroker {
     };
   }
 
-  private async readState(grant: ModuleCapabilityGrant): Promise<AddOnPrivateStateV2> {
+  private async readState(grant: ActiveModuleCapabilityGrant): Promise<AddOnPrivateStateV2> {
     this.require(grant, 'state.private', 'state.read');
     const path = this.statePath(grant.moduleId);
     try {
@@ -137,7 +145,7 @@ export class AddOnCapabilityBroker {
     }
   }
 
-  private async writeState(grant: ModuleCapabilityGrant, value: AddOnPrivateStateV2): Promise<void> {
+  private async writeState(grant: ActiveModuleCapabilityGrant, value: AddOnPrivateStateV2): Promise<void> {
     this.require(grant, 'state.private', 'state.write');
     const parsed = parseRecord(value, 'Private add-on state');
     assertBoundedJson(parsed, 'Private add-on state');
@@ -145,10 +153,10 @@ export class AddOnCapabilityBroker {
     catch (error) { this.record(grant.moduleId, 'state.write', 'failed'); throw error; }
   }
 
-  private async runAction(grant: ModuleCapabilityGrant, actionId: string, argumentsValue: AddOnActionArgumentsV2): Promise<void> {
+  private async runAction(grant: ActiveModuleCapabilityGrant, actionId: string, argumentsValue: AddOnActionArgumentsV2): Promise<void> {
     this.require(grant, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action');
     if (!ACTION_ID.test(actionId) || !grant.approvedActionIds.includes(actionId)) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'The requested Streamer.bot action ID is not creator-approved for this add-on.');
-    if (actionId.toLowerCase() === CORE_RECEIVER_ACTION_ID) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'Add-ons cannot dispatch the StreamBridge Core Receiver action.');
+    if (isProtectedFrameworkActionId(actionId)) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'Add-ons cannot dispatch StreamBridge framework actions.');
     const parsed = parseRecord(argumentsValue, 'Streamer.bot action arguments');
     if (Object.keys(parsed).length > MAXIMUM_ARGUMENTS) throw new Error(`Streamer.bot action arguments may contain at most ${String(MAXIMUM_ARGUMENTS)} keys.`);
     assertBoundedJson(parsed, 'Streamer.bot action arguments');
@@ -159,12 +167,13 @@ export class AddOnCapabilityBroker {
     if (activity.pending >= MAXIMUM_PENDING_ACTIONS_PER_MODULE) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', `The add-on already has ${String(MAXIMUM_PENDING_ACTIONS_PER_MODULE)} pending Streamer.bot actions.`);
     if (activity.startedAt.length >= MAXIMUM_ACTIONS_PER_MINUTE) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', `The add-on exceeded ${String(MAXIMUM_ACTIONS_PER_MINUTE)} Streamer.bot actions per minute.`);
     const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.actionActivity.set(grant.moduleId, activity);
-    try { await this.dependencies.runStreamerBotAction(actionId, parsed, controller.signal); this.record(grant.moduleId, 'streamerbot.run-approved-action', 'granted'); }
+    const relayToken = addOnRelayAuthorizer.issue(grant.moduleId);
+    try { await this.dependencies.runStreamerBotAction(actionId, { ...parsed, thsvAddonRelayToken: relayToken }, controller.signal); this.record(grant.moduleId, 'streamerbot.run-approved-action', 'granted'); }
     catch (error) { this.record(grant.moduleId, 'streamerbot.run-approved-action', 'failed'); throw error; }
     finally { activity.pending -= 1; activity.controllers.delete(controller); }
   }
 
-  private schedule(grant: ModuleCapabilityGrant, delayMs: number, task: () => void | Promise<void>): string {
+  private schedule(grant: ActiveModuleCapabilityGrant, delayMs: number, task: () => void | Promise<void>): string {
     this.require(grant, 'schedule.bounded', 'schedule.after');
     if (!Number.isInteger(delayMs) || delayMs < MINIMUM_DELAY_MS || delayMs > MAXIMUM_DELAY_MS) throw new Error(`Scheduled delays must be integer milliseconds from ${String(MINIMUM_DELAY_MS)} through ${String(MAXIMUM_DELAY_MS)}.`);
     if (typeof task !== 'function') throw new Error('Scheduled task must be a function.');
@@ -173,14 +182,14 @@ export class AddOnCapabilityBroker {
     const taskId = randomUUID();
     const timer = setTimeout(() => {
       this.scheduled.delete(taskId);
-      void this.runScheduledTask(grant.moduleId, taskId, task);
+      void this.runScheduledTask(grant, taskId, task);
     }, delayMs);
     this.scheduled.set(taskId, { moduleId: grant.moduleId, timer });
     this.record(grant.moduleId, 'schedule.after', 'granted');
     return taskId;
   }
 
-  private cancel(grant: ModuleCapabilityGrant, taskId: string): boolean {
+  private cancel(grant: ActiveModuleCapabilityGrant, taskId: string): boolean {
     this.require(grant, 'schedule.bounded', 'schedule.cancel');
     const moduleId = grant.moduleId;
     const entry = this.scheduled.get(taskId);
@@ -188,7 +197,9 @@ export class AddOnCapabilityBroker {
     clearTimeout(entry.timer); this.scheduled.delete(taskId); this.record(moduleId, 'schedule.cancel', 'granted'); return true;
   }
 
-  private async runScheduledTask(moduleId: string, taskId: string, task: () => void | Promise<void>): Promise<void> {
+  private async runScheduledTask(grant: ActiveModuleCapabilityGrant, taskId: string, task: () => void | Promise<void>): Promise<void> {
+    const moduleId = grant.moduleId;
+    if (!this.isActive(grant)) return;
     let timer: NodeJS.Timeout | undefined;
     try {
       await Promise.race([
@@ -202,7 +213,7 @@ export class AddOnCapabilityBroker {
     } finally { if (timer !== undefined) clearTimeout(timer); }
   }
 
-  private async publishOverlay(grant: ModuleCapabilityGrant, topic: string, payload: Readonly<Record<string, unknown>>): Promise<void> {
+  private async publishOverlay(grant: ActiveModuleCapabilityGrant, topic: string, payload: Readonly<Record<string, unknown>>): Promise<void> {
     this.require(grant, 'overlay.publish', 'overlay.publish');
     const suffix = topic.startsWith(`${grant.moduleId}.`) ? topic.slice(grant.moduleId.length + 1) : '';
     if (!OVERLAY_TOPIC_SUFFIX.test(suffix)) throw new Error(`Overlay topic must begin with ${grant.moduleId}. and use dotted identifiers.`);
@@ -212,7 +223,7 @@ export class AddOnCapabilityBroker {
     catch (error) { this.record(grant.moduleId, 'overlay.publish', 'failed'); throw error; }
   }
 
-  private subscribeOverlayLifecycle(grant: ModuleCapabilityGrant, listener: (event: AddOnOverlayLifecycleV2) => void): () => void {
+  private subscribeOverlayLifecycle(grant: ActiveModuleCapabilityGrant, listener: (event: AddOnOverlayLifecycleV2) => void): () => void {
     this.require(grant, 'overlay.publish', 'overlay.lifecycle.subscribe');
     if (typeof listener !== 'function') throw new Error('Overlay lifecycle listener must be a function.');
     if (this.dependencies.subscribeOverlayLifecycle === undefined) return this.deny(grant.moduleId, 'overlay.publish', 'overlay.lifecycle.subscribe', 'Overlay lifecycle reports are unavailable.');
@@ -224,7 +235,7 @@ export class AddOnCapabilityBroker {
     return unsubscribe;
   }
 
-  private async sendChat(grant: ModuleCapabilityGrant, request: AddOnOutboundMessageRequestV2): Promise<readonly AddOnOutboundMessageDeliveryV2[]> {
+  private async sendChat(grant: ActiveModuleCapabilityGrant, request: AddOnOutboundMessageRequestV2): Promise<readonly AddOnOutboundMessageDeliveryV2[]> {
     this.require(grant, 'chat.send', 'chat.send');
     if (this.dependencies.routeOutboundMessage === undefined) return this.deny(grant.moduleId, 'chat.send', 'chat.send', 'Outbound chat routing is unavailable.');
     const activity = this.outboundActivity.get(grant.moduleId) ?? { pending: 0, startedAt: [], controllers: new Set<AbortController>() };
@@ -244,9 +255,12 @@ export class AddOnCapabilityBroker {
     return path;
   }
 
-  private require(grant: ModuleCapabilityGrant, permission: AddOnPermissionV2, operation: string): void {
+  private require(grant: ActiveModuleCapabilityGrant, permission: AddOnPermissionV2, operation: string): void {
+    if (!this.isActive(grant)) this.deny(grant.moduleId, permission, operation, `Add-on ${grant.moduleId} is no longer running.`);
     if (!grant.permissions.includes(permission)) this.deny(grant.moduleId, permission, operation, `Add-on ${grant.moduleId} was not granted ${permission}.`);
   }
+
+  private isActive(grant: ActiveModuleCapabilityGrant): boolean { return this.generations.get(grant.moduleId) === grant.generation; }
 
   private deny(moduleId: string, permission: AddOnPermissionV2, operation: string, message: string): never {
     this.record(moduleId, operation, 'denied'); this.logger.warn('Add-on capability denied', { moduleId, permission, operation });
@@ -265,7 +279,7 @@ function validateGrant(value: ModuleCapabilityGrant): ModuleCapabilityGrant {
   if (new Set(permissions).size !== permissions.length) throw new Error('Capability permissions must be unique.');
   const approvedActionIds = z.array(z.string().regex(ACTION_ID)).max(50).parse(value.approvedActionIds);
   if (new Set(approvedActionIds).size !== approvedActionIds.length) throw new Error('Approved Streamer.bot action IDs must be unique.');
-  if (approvedActionIds.some((actionId) => actionId.toLowerCase() === CORE_RECEIVER_ACTION_ID)) throw new Error('The StreamBridge Core Receiver action cannot be granted to an add-on.');
+  if (approvedActionIds.some(isProtectedFrameworkActionId)) throw new Error('StreamBridge framework actions cannot be granted to an add-on.');
   return Object.freeze({ moduleId: value.moduleId, permissions: Object.freeze([...permissions]), approvedActionIds: Object.freeze([...approvedActionIds]) });
 }
 

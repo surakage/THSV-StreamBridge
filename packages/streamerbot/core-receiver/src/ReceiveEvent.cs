@@ -2,6 +2,7 @@
 // Trust boundary: all downstream THSV actions must consume these validated streamBridge* arguments.
 // References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Newtonsoft.Json;
@@ -14,6 +15,10 @@ public class CPHInline
     private const string SupportedSchemaVersion = "1.0.0";
     private const int MaximumEventJsonLength = 2800000;
     private const int MaximumJsonDepth = 32;
+    private const int MaximumRememberedEventIds = 2000;
+    private static readonly object DedupeLock = new object();
+    private static readonly HashSet<string> RememberedEventIds = new HashSet<string>(StringComparer.Ordinal);
+    private static readonly Queue<string> RememberedEventOrder = new Queue<string>();
 
     public bool Execute()
     {
@@ -77,6 +82,13 @@ public class CPHInline
         if (user != null && (userName == null || userActorType == null || !IsOptionalString(user, "id", 256) || !IsOptionalString(user, "displayName", 256) || !IsRoles(user["roles"])))
             return Fail("Invalid user data.");
 
+        if (!RememberEvent(eventId))
+        {
+            CPH.SetArgument("streamBridgeDuplicate", true);
+            CPH.LogDebug("THSV StreamBridge ignored duplicate receiver event " + eventId + ".");
+            return true;
+        }
+
         CPH.SetArgument("streamBridgeSchemaVersion", schemaVersion);
         CPH.SetArgument("streamBridgeEventId", eventId);
         CPH.SetArgument("streamBridgeEventType", eventType);
@@ -103,6 +115,7 @@ public class CPHInline
     private void InitializeOutputs()
     {
         CPH.SetArgument("streamBridgeValid", false);
+        CPH.SetArgument("streamBridgeDuplicate", false);
         CPH.SetArgument("streamBridgeValidationError", string.Empty);
         CPH.SetArgument("streamBridgeContractVersion", ContractVersion);
         CPH.SetArgument("streamBridgePackageVersion", PackageVersion);
@@ -124,6 +137,18 @@ public class CPHInline
         CPH.SetArgument("streamBridgeMetadata", "{}");
         CPH.SetArgument("streamBridgeCorrelationId", string.Empty);
         CPH.SetArgument("streamBridgeSimulated", false);
+    }
+
+    private bool RememberEvent(string eventId)
+    {
+        lock (DedupeLock)
+        {
+            if (!RememberedEventIds.Add(eventId)) return false;
+            RememberedEventOrder.Enqueue(eventId);
+            while (RememberedEventOrder.Count > MaximumRememberedEventIds)
+                RememberedEventIds.Remove(RememberedEventOrder.Dequeue());
+            return true;
+        }
     }
 
     private bool Fail(string message)

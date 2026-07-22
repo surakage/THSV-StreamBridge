@@ -38,7 +38,9 @@ Responsibilities:
 - choose clips randomly without repeats until the eligible library is exhausted;
 - publish one `media.play` request with a unique `playbackId` to the core-hosted add-on overlay;
 - wait for `started`, `heartbeat`, and `ended`; retry or skip on `failed` or `timeout`;
-- expose scene allowlists, clip age/category filters, minimum/maximum duration, mature-content policy, volume, transition, interval, and no-repeat settings in its wizard page;
+- fade the final frame for four seconds, then honor the creator's configured between-clips pause;
+- expose minimum/maximum duration, pool size, volume, mute, and interval settings in its wizard page;
+- provide Streamer.bot Enable and Disable actions that creators can attach to scene-active and scene-inactive triggers;
 - support Starting Soon, BRB, and Ending use without directly controlling OBS, Meld, or Streamlabs;
 - reuse the bridge's existing Streamer.bot and overlay transports and refuse to run when the required main version/capabilities are absent.
 

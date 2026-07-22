@@ -20,7 +20,12 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .overlay { position: relative; width: 100%; height: 100%; padding: 3vh 3vw; }
 .chat-shell { position: absolute; right: 3vw; bottom: 4vh; width: min(500px, 40vw); max-height: 72vh; padding: 14px; border: 1px solid rgba(255,255,255,.16); border-radius: 18px; background: rgba(18,13,28,.9); box-shadow: 0 16px 48px rgba(0,0,0,.38); }
 .chat-shell header { display: flex; justify-content: space-between; gap: 12px; padding: 3px 5px 12px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .14em; }
-.connection-status { position: absolute; top: 3vh; right: 3vw; z-index: 20; padding: 5px 8px; border-radius: 6px; background: rgba(18,13,28,.9); color: #ff9c9c; font-size: 10px; font-weight: 800; letter-spacing: .1em; }
+/* Every overlay surface (chat, alerts, combined, and add-on-hosted) shares this rule: a red
+   "OFFLINE" badge while disconnected, a brief green "LIVE" flash on connect, then hidden -- so a
+   creator can tell at a glance whether an overlay is actually wired up without a permanent status
+   line cluttering the frame once it is. */
+.connection-status { position: absolute; top: 3vh; right: 3vw; z-index: 20; padding: 5px 8px; border-radius: 6px; background: rgba(18,13,28,.9); color: #ff9c9c; font-size: 10px; font-weight: 800; letter-spacing: .1em; opacity: 0; transition: opacity .2s ease; }
+.connection-status[data-state="reconnecting"] { opacity: 1; }
 #status[data-state="live"] { color: var(--mint); }
 .chat { display: flex; flex-direction: column; gap: 10px; max-height: 63vh; margin: 0; padding: 0; overflow: hidden; list-style: none; }
 .message { padding: 12px 14px; border: 1px solid rgba(255,255,255,.22); border-left: 4px solid var(--violet); border-radius: 11px; background: var(--message-platform-bg, var(--chat-message-bg)); box-shadow: 0 4px 14px rgba(0,0,0,.3); animation: chat-arrive .16s linear both; }
@@ -80,9 +85,8 @@ body[data-mode="chat"] .chat-shell { right: clamp(16px, 2vw, 40px); bottom: clam
 body[data-mode="chat"] .chat-shell header { display: none; }
 body[data-mode="chat"] .chat { max-height: 82vh; }
 body[data-mode="chat"] .message.message-expiring { overflow: hidden; animation: chat-expire .24s ease-in forwards; }
-body[data-mode="chat"] .connection-status, body[data-mode="alerts"] .connection-status { opacity: 0; transition: opacity .2s ease; }
-body[data-mode="chat"] .connection-status[data-state="reconnecting"] { right: 2vw; bottom: 1vh; top: auto; opacity: 1; }
-body[data-mode="alerts"] .connection-status[data-state="reconnecting"] { top: 1vh; right: auto; left: 50%; opacity: 1; transform: translateX(-50%); }
+body[data-mode="chat"] .connection-status[data-state="reconnecting"] { right: 2vw; bottom: 1vh; top: auto; }
+body[data-mode="alerts"] .connection-status[data-state="reconnecting"] { top: 1vh; right: auto; left: 50%; transform: translateX(-50%); }
 body[data-mode="chat"][data-layout="compact"] .overlay { display: flex; flex-direction: column; justify-content: flex-end; }
 body[data-mode="chat"][data-layout="compact"] .chat-shell { position: relative; inset: auto; width: 100%; max-height: 100%; padding: 6px 6px 16px; flex: 0 0 auto; }
 body[data-mode="chat"][data-layout="compact"] .chat { max-height: 100vh; gap: 5px; }

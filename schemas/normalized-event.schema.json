@@ -4,17 +4,43 @@
   "title": "THSV StreamBridge Normalized Event",
   "type": "object",
   "additionalProperties": false,
+  "$defs": {
+    "jsonValue": {
+      "oneOf": [
+        { "type": ["string", "number", "boolean", "null"] },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } }
+      ]
+    },
+    "httpsUrl": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^https://" },
+    "presentationBadge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z][a-z0-9-]*$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "iconUrl": { "$ref": "#/$defs/httpsUrl" }
+      }
+    }
+  },
   "required": ["schemaVersion", "eventId", "eventType", "platform", "source", "receivedAt", "channel", "payload", "metadata"],
   "properties": {
     "schemaVersion": { "const": "1.0.0" },
     "eventId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "eventType": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$", "not": { "enum": ["viewer.progression", "companion.action"] }, "description": "A standard or extension event type. Archived add-on event types are excluded from core." },
     "platform": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z][a-z0-9-]*$", "description": "An open lowercase platform identifier; third-party platform names do not require a shared-schema change." },
-    "source": { "type": "object", "additionalProperties": false, "required": ["adapter", "eventName"], "properties": { "adapter": { "type": "string" }, "eventId": { "type": "string" }, "eventName": { "type": "string" } } },
+    "source": { "type": "object", "additionalProperties": false, "required": ["adapter", "eventName"], "properties": { "adapter": { "type": "string", "minLength": 1, "maxLength": 100 }, "eventId": { "type": "string", "minLength": 1, "maxLength": 256 }, "eventName": { "type": "string", "minLength": 1, "maxLength": 100 } } },
     "receivedAt": { "type": "string", "format": "date-time" },
-    "channel": { "type": "object", "additionalProperties": false, "required": ["name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" } } },
-    "user": { "type": "object", "additionalProperties": false, "required": ["name", "roles"], "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "displayName": { "type": "string" }, "actorType": { "type": "string", "enum": ["human", "bot", "system"], "default": "human" }, "roles": { "type": "array", "items": { "type": "string" } } } },
-    "payload": { "type": "object" },
-    "metadata": { "type": "object", "additionalProperties": false, "required": ["simulated"], "properties": { "correlationId": { "type": "string" }, "bridgeSequence": { "type": "integer", "minimum": 1, "description": "Process-local arrival sequence assigned by the bridge after deduplication; caller-supplied values are overwritten." }, "simulated": { "type": "boolean" }, "unverifiedFields": { "type": "array", "items": { "type": "string" } }, "rawPayload": {} } }
-  }
+    "channel": { "type": "object", "additionalProperties": false, "required": ["name"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 256 }, "name": { "type": "string", "minLength": 1, "maxLength": 256 } } },
+    "user": { "type": "object", "additionalProperties": false, "required": ["name"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 256 }, "name": { "type": "string", "minLength": 1, "maxLength": 256 }, "displayName": { "type": "string", "minLength": 1, "maxLength": 256 }, "actorType": { "type": "string", "enum": ["human", "bot", "system"], "default": "human" }, "roles": { "type": "array", "maxItems": 32, "default": [], "items": { "type": "string", "maxLength": 64 } }, "avatarUrl": { "$ref": "#/$defs/httpsUrl" }, "nameColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }, "badges": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/presentationBadge" } } } },
+    "payload": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+    "metadata": { "type": "object", "additionalProperties": false, "required": [], "properties": { "correlationId": { "type": "string", "maxLength": 256 }, "bridgeSequence": { "type": "integer", "minimum": 1, "description": "Process-local arrival sequence assigned by the bridge after deduplication; caller-supplied values are overwritten." }, "simulated": { "type": "boolean", "default": false }, "unverifiedFields": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 256 } }, "rawPayload": { "$ref": "#/$defs/jsonValue" } } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "eventType": { "enum": ["channel.follow", "channel.subscription", "channel.membership", "channel.gift-subscription", "engagement.gift", "engagement.donation", "engagement.cheer", "engagement.super-chat", "channel.raid", "engagement.milestone", "reward.redemption"] } }, "required": ["eventType"] },
+      "then": { "properties": { "source": { "required": ["adapter", "eventName", "eventId"] } } }
+    }
+  ]
 }

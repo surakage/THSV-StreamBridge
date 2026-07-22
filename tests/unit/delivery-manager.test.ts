@@ -6,7 +6,7 @@ import type { NormalizedEvent } from '../../schemas/event.js';
 import type { OutputAdapter } from '../../bridge/adapters/adapter.js';
 import { OutputCapacityError, OutputDeliveryManager } from '../../bridge/core/delivery-manager.js';
 import { fixture, silentLogger } from '../helpers.js';
-import { FileDeliveryOutboxStore } from '../../bridge/services/delivery-outbox-store.js';
+import { FileDeliveryOutboxStore, type DeliveryOutboxSnapshot, type DeliveryOutboxStore } from '../../bridge/services/delivery-outbox-store.js';
 
 class FakeOutput implements OutputAdapter {
   public readonly name = 'fake';
@@ -17,6 +17,19 @@ class FakeOutput implements OutputAdapter {
   public async stop(): Promise<void> { this.state = 'stopped'; }
   public async deliver(event: NormalizedEvent): Promise<void> { await this.deliverImpl(event); }
   public status(): Readonly<Record<string, unknown>> { return { name: this.name, state: this.state }; }
+}
+
+class FlakyOutboxStore implements DeliveryOutboxStore {
+  public snapshot: DeliveryOutboxSnapshot = { version: 1, pending: [], deadLetters: [] };
+  public saves = 0;
+  public constructor(private readonly failingSaves: ReadonlySet<number>) {}
+  public async load(): Promise<DeliveryOutboxSnapshot> { return structuredClone(this.snapshot); }
+  public async save(snapshot: DeliveryOutboxSnapshot): Promise<void> {
+    this.saves += 1;
+    if (this.failingSaves.has(this.saves)) throw new Error(`save ${String(this.saves)} failed`);
+    this.snapshot = structuredClone(snapshot);
+  }
+  public status(): Readonly<Record<string, unknown>> { return { enabled: true, durable: true }; }
 }
 
 describe('OutputDeliveryManager', () => {
@@ -170,5 +183,32 @@ describe('OutputDeliveryManager', () => {
     await writeFile(stateFile, '{not-json', 'utf8');
     const manager = new OutputDeliveryManager([new FakeOutput()], 10, 1, 3, silentLogger, { store: new FileDeliveryOutboxStore(stateFile) });
     await expect(manager.start()).rejects.toThrow('could not be loaded safely');
+  });
+
+  it('rolls back an enqueue when the durable write fails before delivery starts', async () => {
+    const output = new FakeOutput(); const delivered: string[] = [];
+    output.deliverImpl = async (event) => { delivered.push(event.eventId); };
+    const store = new FlakyOutboxStore(new Set([1]));
+    const manager = new OutputDeliveryManager([output], 10, 1, 3, silentLogger, { store });
+    await manager.start();
+    await expect(manager.enqueue(await fixture())).rejects.toThrow('could not be persisted');
+    expect(delivered).toEqual([]);
+    expect(store.snapshot.pending).toEqual([]);
+    expect((manager.statuses()[0]?.['delivery'] as Record<string, unknown>)['enqueued']).toBe(0);
+    await manager.stop();
+  });
+
+  it('does not redeliver an acknowledged event solely because acknowledgement persistence fails', async () => {
+    const output = new FakeOutput(); const delivered: string[] = [];
+    output.deliverImpl = async (event) => { delivered.push(event.eventId); };
+    const store = new FlakyOutboxStore(new Set([2]));
+    const manager = new OutputDeliveryManager([output], 10, 1, 3, silentLogger, { store });
+    await manager.start();
+    await manager.enqueue(await fixture());
+    await expect.poll(() => delivered.length).toBe(1);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(delivered).toEqual(['sim-twitch-chat-001']);
+    expect(manager.ready()).toBe(false);
+    await manager.stop();
   });
 });

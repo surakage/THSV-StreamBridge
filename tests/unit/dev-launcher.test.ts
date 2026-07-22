@@ -16,7 +16,7 @@ describe('development launcher', () => {
     expect(source).toContain('active-config.txt');
     expect(source).toContain("open(startupLockPath, 'wx')");
     expect(source).toContain('waitForInitialHealth(baseUrl, child)');
-    expect(source).not.toContain('taskkill');
+    expect(source).toContain("spawnSync('taskkill.exe', ['/pid', String(spawnedChild.pid), '/t', '/f']");
     expect(source).not.toContain("child_process.exec");
   });
 });

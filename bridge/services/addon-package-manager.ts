@@ -6,13 +6,15 @@ import { Worker } from 'node:worker_threads';
 import { unzipSync } from 'fflate';
 import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
 import { addOnPackageV2Schema, type AddOnPackageV2 } from '../contracts/v2/addon-package.js';
-import { CORE_RECEIVER_ACTION_ID } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId } from '../contracts/v2/addon-capability.js';
 
 const DESCRIPTOR_FILE = 'module-package.json';
 const MIGRATION_TIMEOUT_MS = 30_000;
 const MAXIMUM_DESCRIPTOR_BYTES = 1_048_576;
 const MAXIMUM_CONFIGURATION_SCHEMA_BYTES = 262_144;
 const MAXIMUM_SETTINGS_UI_BYTES = 65_536;
+const MAXIMUM_PACKAGE_FILES = 1_000;
+const MAXIMUM_PACKAGE_BYTES = 100 * 1_024 * 1_024;
 const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 export class AddOnPackageError extends Error {
@@ -24,7 +26,7 @@ export interface VerifiedAddOnPackage {
   readonly descriptor: AddOnPackageV2;
 }
 
-function safeChild(root: string, relativePath: string): string {
+export function safeChild(root: string, relativePath: string): string {
   const candidate = resolve(root, ...relativePath.split('/'));
   const prefix = resolve(root).replace(/[\\/]+$/u, '') + sep;
   if (!candidate.startsWith(prefix)) throw new AddOnPackageError(`Package path leaves its root: ${relativePath}`);
@@ -150,6 +152,8 @@ export async function verifyAddOnPackage(rootPath: string, coreVersion: string =
   const result = addOnPackageV2Schema.safeParse(raw);
   if (!result.success) throw new AddOnPackageError(`Add-on descriptor validation failed: ${result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ')}`);
   const descriptor = result.data;
+  const declaredBytes = descriptor.files.reduce((total, file) => total + file.size, 0);
+  if (descriptor.files.length > MAXIMUM_PACKAGE_FILES || declaredBytes > MAXIMUM_PACKAGE_BYTES) throw new AddOnPackageError(`Add-on packages may contain at most ${String(MAXIMUM_PACKAGE_FILES)} files and ${String(MAXIMUM_PACKAGE_BYTES)} declared bytes.`);
   const configurationEntry = descriptor.files.find((file) => file.path === descriptor.manifest.configurationSchema);
   if (configurationEntry !== undefined && configurationEntry.size > MAXIMUM_CONFIGURATION_SCHEMA_BYTES) throw new AddOnPackageError(`The configuration schema exceeds ${String(MAXIMUM_CONFIGURATION_SCHEMA_BYTES)} bytes.`);
   const settingsUiEntry = descriptor.settingsUi === undefined ? undefined : descriptor.files.find((file) => file.path === descriptor.settingsUi);
@@ -159,6 +163,7 @@ export async function verifyAddOnPackage(rootPath: string, coreVersion: string =
 
   const expected = new Set([DESCRIPTOR_FILE, ...descriptor.files.map((file) => file.path), ...(allowInstallRecord ? ['installed-package.json'] : [])]);
   const actual = await listFiles(root);
+  if (actual.length > MAXIMUM_PACKAGE_FILES + 2) throw new AddOnPackageError(`Add-on packages may contain at most ${String(MAXIMUM_PACKAGE_FILES)} payload files.`);
   const unexpected = actual.filter((path) => !expected.has(path));
   const missing = [...expected].filter((path) => !actual.includes(path));
   if (unexpected.length > 0 || missing.length > 0) throw new AddOnPackageError(`Package file list mismatch. Unexpected: ${unexpected.join(', ') || 'none'}; missing: ${missing.join(', ') || 'none'}.`);
@@ -172,7 +177,13 @@ export async function verifyAddOnPackage(rootPath: string, coreVersion: string =
   return { root, descriptor };
 }
 
-export async function installAddOnPackage(sourceRoot: string, addOnsRoot: string, approvedByCreator: boolean, options: { readonly migrationTimeoutMs?: number; readonly stagePreparedHook?: (stage: string) => Promise<void> } = {}): Promise<VerifiedAddOnPackage> {
+export interface InstallAddOnOptions {
+  readonly migrationTimeoutMs?: number;
+  readonly stagePreparedHook?: (stage: string) => Promise<void>;
+  readonly stateRoot?: string;
+}
+
+export async function installAddOnPackage(sourceRoot: string, addOnsRoot: string, approvedByCreator: boolean, options: InstallAddOnOptions = {}): Promise<VerifiedAddOnPackage> {
   if (!approvedByCreator) throw new AddOnPackageError('Installing an add-on requires explicit creator approval after reviewing its publisher, permissions, compatibility, and package kind.');
   const migrationTimeoutMs = options.migrationTimeoutMs ?? MIGRATION_TIMEOUT_MS;
   if (!Number.isInteger(migrationTimeoutMs) || migrationTimeoutMs < 10 || migrationTimeoutMs > MIGRATION_TIMEOUT_MS) throw new AddOnPackageError(`Migration timeout must be an integer from 10 through ${String(MIGRATION_TIMEOUT_MS)} ms.`);
@@ -183,8 +194,9 @@ export async function installAddOnPackage(sourceRoot: string, addOnsRoot: string
   const suffix = String(Date.now());
   const stage = safeChild(root, `.install-${verified.descriptor.manifest.moduleId}-${suffix}`);
   const rollback = safeChild(root, `.rollback-${verified.descriptor.manifest.moduleId}-${suffix}`);
-  const storageRoot = safeChild(root, `.state/${verified.descriptor.manifest.moduleId}`);
-  const storageRollback = safeChild(root, `.state/.rollback-${verified.descriptor.manifest.moduleId}-${suffix}`);
+  const stateRoot = resolve(options.stateRoot ?? safeChild(root, '.state'));
+  const storageRoot = safeChild(stateRoot, verified.descriptor.manifest.moduleId);
+  const storageRollback = safeChild(stateRoot, `.rollback-${verified.descriptor.manifest.moduleId}-${suffix}`);
   let storageExisted = false;
   let migrationStatePrepared = false;
   let storageBackupReady = false;
@@ -310,7 +322,7 @@ export async function setAddOnApprovedActionIds(moduleId: string, addOnsRoot: st
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId)) throw new AddOnPackageError('Invalid module ID.');
   if (actionIds.length > 50 || actionIds.some((id) => !ACTION_ID.test(id))) throw new AddOnPackageError('Approved Streamer.bot action IDs must contain at most 50 valid UUIDs.');
   if (new Set(actionIds).size !== actionIds.length) throw new AddOnPackageError('Approved Streamer.bot action IDs must be unique.');
-  if (actionIds.some((id) => id.toLowerCase() === CORE_RECEIVER_ACTION_ID)) throw new AddOnPackageError('The StreamBridge Core Receiver action cannot be granted to an add-on.');
+  if (actionIds.some(isProtectedFrameworkActionId)) throw new AddOnPackageError('StreamBridge framework actions cannot be granted to an add-on.');
   const target = safeChild(resolve(addOnsRoot), moduleId);
   const verified = await verifyAddOnPackage(target, undefined, true);
   if (!verified.descriptor.permissions.includes('streamerbot.run-approved-action') && actionIds.length > 0) throw new AddOnPackageError('This add-on did not request permission to run approved Streamer.bot actions.');
@@ -322,7 +334,7 @@ export async function setAddOnApprovedActionIds(moduleId: string, addOnsRoot: st
 export function validateInstalledActionIds(value: unknown): readonly string[] {
   if (value === undefined) return [];
   if (!isStringArray(value) || value.length > 50 || value.some((id) => !ACTION_ID.test(id)) || new Set(value).size !== value.length) throw new AddOnPackageError('The installed add-on action grant is invalid. Re-save or revoke its action grants.');
-  if (value.some((id) => id.toLowerCase() === CORE_RECEIVER_ACTION_ID)) throw new AddOnPackageError('The installed add-on action grant includes the prohibited StreamBridge Core Receiver action. Revoke its action grants.');
+  if (value.some(isProtectedFrameworkActionId)) throw new AddOnPackageError('The installed add-on action grant includes a protected StreamBridge framework action. Revoke its action grants.');
   return [...value];
 }
 
@@ -343,7 +355,7 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry: unknown): entry is string => typeof entry === 'string');
 }
 
-export async function installAddOnArchive(archive: Uint8Array, addOnsRoot: string, approvedByCreator: boolean, limits: { readonly maximumFiles?: number; readonly maximumUncompressedBytes?: number } = {}): Promise<VerifiedAddOnPackage> {
+export async function installAddOnArchive(archive: Uint8Array, addOnsRoot: string, approvedByCreator: boolean, limits: { readonly maximumFiles?: number; readonly maximumUncompressedBytes?: number } = {}, options: InstallAddOnOptions = {}): Promise<VerifiedAddOnPackage> {
   const extracted = unpackAddOnArchive(archive, limits);
   const root = resolve(addOnsRoot); await mkdir(root, { recursive: true });
   const extraction = await mkdtemp(join(root, '.archive-'));
@@ -352,7 +364,7 @@ export async function installAddOnArchive(archive: Uint8Array, addOnsRoot: strin
     for (const [path, content] of Object.entries(extracted)) {
       const target = safeChild(extraction, path); await mkdir(dirname(target), { recursive: true }); await writeFile(target, content, { mode: 0o600 });
     }
-    return await installAddOnPackage(extraction, root, approvedByCreator);
+    return await installAddOnPackage(extraction, root, approvedByCreator, options);
   } finally { await rm(extraction, { recursive: true, force: true }); }
 }
 

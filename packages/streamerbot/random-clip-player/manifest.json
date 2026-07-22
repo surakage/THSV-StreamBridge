@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Random Clip Player",
+  "version": "1.1.0",
+  "author": "surakage",
+  "description": "Fetches the broadcaster's Twitch clips and resolves a direct playable download URL per clip on request, for the Random Clip Player add-on.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "actions": [
+    {
+      "name": "THSV Addon - Random Clip Player - Get Clips",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "clipCount",
+          "value": "20"
+        }
+      ],
+      "source": "src/GetClips.cs",
+      "importFile": "THSV-StreamBridge-Random-Clip-Player-1.0.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "name": "THSV Addon - Random Clip Player - Get Clip Download",
+      "group": "THSV StreamBridge - Add-ons",
+      "source": "src/GetClipDownload.cs",
+      "importFile": "THSV-StreamBridge-Random-Clip-Player-1.0.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "name": "THSV Addon - Random Clip Player - Enable",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "randomClipPlayerEnabled",
+          "value": "true",
+          "autoType": true
+        }
+      ],
+      "source": "src/ControlPlayback.cs",
+      "importFile": "THSV-StreamBridge-Random-Clip-Player-1.0.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "name": "THSV Addon - Random Clip Player - Disable",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "randomClipPlayerEnabled",
+          "value": "false",
+          "autoType": true
+        }
+      ],
+      "source": "src/ControlPlayback.cs",
+      "importFile": "THSV-StreamBridge-Random-Clip-Player-1.0.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": { "queue": "Default", "concurrent": true },
+  "editableArguments": ["clipCount"],
+  "manualTriggerSetup": {
+    "getClips": [],
+    "getClipDownload": [],
+    "enable": ["Attach the streaming host's scene-active trigger for the scene that should play clips."],
+    "disable": ["Attach the same scene's scene-inactive trigger, or the next scene's scene-active trigger." ]
+  },
+  "triggerSafety": "Get Clips and Get Clip Download are broker-dispatched only and must not receive triggers. Enable and Disable are intentionally creator-triggered scene controls.",
+  "verificationStatus": "C# compilation and live Twitch retrieval/hosted-overlay playback verified; scene-trigger attachment remains creator-selected"
+}

@@ -61,7 +61,7 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   subscribeOverlayLifecycle: (moduleId, listener) => overlayHub.subscribeAddOnLifecycle(moduleId, listener),
   routeOutboundMessage: (request, signal) => outboundRouter.route(request, signal),
 });
-const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker);
+const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
 const bridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, deliveryOutboxStore, modules });
 const wizard = new WizardService(

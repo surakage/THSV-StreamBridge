@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
 import { buildStreamerBotPackage } from '../bridge/services/streamerbot-package-builder.js';
 
 interface ExportManifest {
@@ -70,12 +70,21 @@ const encoded = buildStreamerBotPackage(
         stableIdentitySeed: `${manifest.name}:${action.name}:${argument.name}`,
       })),
     }),
-    sourceCode: (await readFile(resolve(packageDirectory, action.source))).toString('utf8'),
+    sourceCode: (await readFile(safePackagePath(packageDirectory, action.source))).toString('utf8'),
     stableIdentitySeed: legacySingleAction ? manifest.name : `${manifest.name}:${action.name}`,
   }))),
 );
 
 const importFile = actions[0]?.importFile;
 if (importFile === undefined) throw new Error('Manifest has no import file.');
-await writeFile(resolve(packageDirectory, importFile), encoded);
-console.log(`Created ${resolve(packageDirectory, importFile)}`);
+const outputPath = safePackagePath(packageDirectory, importFile);
+await writeFile(outputPath, encoded);
+console.log(`Created ${outputPath}`);
+
+function safePackagePath(root: string, relativePath: string): string {
+  if (relativePath.length === 0 || relativePath.includes('\\') || relativePath.startsWith('/') || /^[A-Za-z]:/u.test(relativePath)) throw new Error(`Package path is unsafe: ${relativePath}`);
+  const target = resolve(root, ...relativePath.split('/'));
+  const prefix = resolve(root).replace(/[\\/]+$/u, '') + sep;
+  if (!target.startsWith(prefix)) throw new Error(`Package path leaves its root: ${relativePath}`);
+  return target;
+}

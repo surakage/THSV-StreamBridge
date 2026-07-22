@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import {
@@ -27,6 +27,7 @@ export interface WizardAddOnSummary extends InstalledAddOnSummary {
 export interface DiscoveredAddOnSummary {
   readonly filename: string;
   readonly size: number;
+  readonly sha256: string;
   readonly health: 'available' | 'rejected';
   readonly moduleId?: string;
   readonly name?: string;
@@ -62,7 +63,7 @@ export class AddOnWizardService {
     const archive = decodeBase64(stringInput(body['contentBase64'], 'contentBase64', Math.ceil(MAXIMUM_ARCHIVE_BYTES * 4 / 3) + 8));
     if (archive.length === 0 || archive.length > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(413, `Add-on packages must be from 1 through ${String(MAXIMUM_ARCHIVE_BYTES)} bytes.`);
     try {
-      const installed = await installAddOnArchive(archive, this.packagesRoot, true);
+      const installed = await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
       return { installed: true, moduleId: installed.descriptor.manifest.moduleId, version: installed.descriptor.manifest.version, restartRequired: true };
     } catch (error) { throw asWizardError(error); }
   }
@@ -77,9 +78,10 @@ export class AddOnWizardService {
         const path = join(this.inboxRoot, filename);
         const information = await lstat(path);
         if (!information.isFile() || information.isSymbolicLink() || information.size < 1 || information.size > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(400, `Package must be a regular file from 1 through ${String(MAXIMUM_ARCHIVE_BYTES)} bytes.`);
-        const descriptor = await inspectAddOnArchive(await readFile(path), this.packagesRoot);
-        return { filename, size: information.size, health: 'available', moduleId: descriptor.manifest.moduleId, name: descriptor.manifest.name, version: descriptor.manifest.version, author: descriptor.author, description: descriptor.description, packageKind: descriptor.packageKind, permissions: descriptor.permissions, minimumCoreVersion: descriptor.manifest.minimumCoreVersion, maximumTestedCoreVersion: descriptor.manifest.maximumTestedCoreVersion, trust: 'integrity-only' };
-      } catch (error) { return { filename, size: 0, health: 'rejected', trust: 'integrity-only', error: error instanceof Error ? error.message : String(error) }; }
+        const archive = await readFile(path);
+        const descriptor = await inspectAddOnArchive(archive, this.packagesRoot);
+        return { filename, size: information.size, sha256: digest(archive), health: 'available', moduleId: descriptor.manifest.moduleId, name: descriptor.manifest.name, version: descriptor.manifest.version, author: descriptor.author, description: descriptor.description, packageKind: descriptor.packageKind, permissions: descriptor.permissions, minimumCoreVersion: descriptor.manifest.minimumCoreVersion, maximumTestedCoreVersion: descriptor.manifest.maximumTestedCoreVersion, trust: 'integrity-only' };
+      } catch (error) { return { filename, size: 0, sha256: '0'.repeat(64), health: 'rejected', trust: 'integrity-only', error: error instanceof Error ? error.message : String(error) }; }
     }));
   }
 
@@ -88,11 +90,14 @@ export class AddOnWizardService {
     const filename = stringInput(body['filename'], 'filename', 250);
     assertInboxFilename(filename);
     if (body['approvedByCreator'] !== true) throw new AddOnWizardError(403, 'Installing a discovered add-on requires explicit creator approval.');
+    const expectedSha256 = sha256Input(body['sha256']);
     const path = join(this.inboxRoot, filename);
     const information = await lstat(path).catch((error: unknown) => { throw new AddOnWizardError((error as NodeJS.ErrnoException).code === 'ENOENT' ? 404 : 500, 'The discovered add-on package is unavailable.'); });
     if (!information.isFile() || information.isSymbolicLink() || information.size < 1 || information.size > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(400, 'The discovered package is not a safe regular add-on file.');
     try {
-      const installed = await installAddOnArchive(await readFile(path), this.packagesRoot, true);
+      const archive = await readFile(path);
+      if (digest(archive) !== expectedSha256) throw new AddOnWizardError(409, 'The discovered package changed after review. Inspect it again before approving installation.');
+      const installed = await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
       return { installed: true, source: 'inbox', filename, moduleId: installed.descriptor.manifest.moduleId, version: installed.descriptor.manifest.version, restartRequired: true };
     } catch (error) { throw asWizardError(error); }
   }
@@ -191,13 +196,20 @@ function decodeBase64(value: string): Uint8Array {
   return Buffer.from(value, 'base64');
 }
 
+function sha256Input(value: unknown): string {
+  if (typeof value !== 'string' || !/^[a-f0-9]{64}$/u.test(value)) throw new AddOnWizardError(400, 'sha256 is required and must match the inspected package.');
+  return value;
+}
+
+function digest(value: Uint8Array): string { return createHash('sha256').update(value).digest('hex'); }
+
 function asWizardError(error: unknown): AddOnWizardError {
   if (error instanceof AddOnWizardError) return error;
   if (error instanceof AddOnPackageError) return new AddOnWizardError(400, error.message);
   return new AddOnWizardError(500, error instanceof Error ? error.message : String(error));
 }
 
-function validateSettings(schemaValue: unknown, input: Record<string, unknown>, useDefaults = false): Readonly<Record<string, unknown>> {
+export function validateSettings(schemaValue: unknown, input: Record<string, unknown>, useDefaults = false): Readonly<Record<string, unknown>> {
   const schema = objectInput(schemaValue);
   if (schema['type'] !== 'object') throw new AddOnWizardError(400, 'Add-on configuration schemas must have type object.');
   const properties = objectInput(schema['properties'] ?? {});

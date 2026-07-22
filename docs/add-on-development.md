@@ -73,6 +73,8 @@ Restart StreamBridge after install, update, enable/disable, or removal. A corrup
 
 An executable entrypoint exports either a default `FrameworkModule` object or `createModule()`. Its runtime manifest must exactly match the verified descriptor. Module IDs cannot conflict with built-ins or other add-ons, dependencies must be available and acyclic, and required capabilities must exist on enabled input platforms. `start(context)`, `onEvent(event, context)`, and `stop(context)` receive the loader-owned capability context. Do not open another Streamer.bot WebSocket.
 
+When `context.streamerbot.runApprovedAction()` invokes an action, StreamBridge adds a one-use `thsvAddonRelayToken` argument. Any C# action returning a `thsv.addon` envelope must copy it to the envelope's `relayToken` field. Do not persist, log, reuse, or expose that token; it is bound to the requesting module and expires quickly.
+
 Executable upgrade migrations declare one unambiguous forward step and run in a bounded worker against the dedicated state root. StreamBridge snapshots that root, runs ordered migrations, re-verifies the private staged package after code execution, and restores code and state if migration fails. A migration still has full process-user permissions; rollback covers only the supplied state root.
 
 ## Reference packages
@@ -80,4 +82,4 @@ Executable upgrade migrations declare one unambiguous forward step and run in a 
 - `examples/addons/declarative-settings/` is the preferred harmless public reference. It demonstrates wizard-rendered settings without executable add-on code.
 - `examples/addons/no-op/` is the minimal executable lifecycle reference for expert review and testing.
 
-The planned Random Clip Player can now build on the completed capability broker and hosted browser-source contract. It should request only approved Streamer.bot action dispatch, bounded scheduling, private state, and overlay publication; it must reuse the bridge's one WebSocket connection rather than creating its own.
+- `addons/random-clip-player/` is the first production-oriented executable media add-on. It requests only approved Streamer.bot action dispatch, bounded scheduling, private state, event subscription, and overlay publication, and reuses the bridge's one WebSocket connection. Release builds publish it as a separately reviewable `.thsv-addon` asset rather than silently installing it with core.

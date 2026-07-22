@@ -9,6 +9,7 @@ const relaySchema = z.object({
   version: z.literal('1.0.0'),
   kind: z.enum(['chat', 'follow', 'gift', 'like', 'subscription']),
   relayId: z.string().min(1).max(256),
+  providerEventId: z.string().max(256).default(''),
   receivedAt: z.iso.datetime({ offset: true }),
   simulated: z.boolean(),
   userId: z.string().max(256).default(''),
@@ -99,13 +100,13 @@ export function normalizeTikfinityRelay(input: unknown, channelName = 'tiktok'):
     schemaVersion: '1.0.0' as const,
     eventId: `tikfinity-${relay.kind}-${relay.relayId}`,
     platform: 'tiktok',
-    source: { adapter: 'tikfinity-streamerbot', eventId: relay.relayId, eventName: `TikFinity.${relay.kind}` },
+    source: { adapter: 'tikfinity-streamerbot', ...(clean(relay.providerEventId) === '' ? {} : { eventId: clean(relay.providerEventId) }), eventName: `TikFinity.${relay.kind}` },
     receivedAt: relay.receivedAt,
     channel: { name: channelName },
     user,
     metadata: {
       simulated: relay.simulated,
-      unverifiedFields: ['source.eventId', 'metadata.simulated', ...relay.argumentKeys.map((key) => `tikfinity.${key}`)].slice(0, 100),
+      unverifiedFields: [...(clean(relay.providerEventId) === '' ? ['source.eventId'] : []), 'metadata.simulated', ...relay.argumentKeys.map((key) => `tikfinity.${key}`)].slice(0, 100),
     },
   };
   if (relay.kind === 'chat') {

@@ -64,6 +64,7 @@ export class StreamerBotAdapter {
   private reconnectTimer: NodeJS.Timeout | undefined;
   private stopping = false;
   private authenticated = false;
+  private relayAuthorized = false;
   private readonly pending = new Map<string, PendingRequest>();
   private readonly inspectionAudit: StreamerBotInspectionAuditEntry[] = [];
 
@@ -109,6 +110,8 @@ export class StreamerBotAdapter {
         socket.close(1000, 'Bridge shutdown');
       });
     }
+    this.authenticated = false;
+    this.relayAuthorized = false;
     this.state = 'stopped';
   }
 
@@ -217,6 +220,7 @@ export class StreamerBotAdapter {
       });
       socket.once('close', () => {
         this.authenticated = false;
+        this.relayAuthorized = false;
         if (!this.stopping) this.scheduleReconnect();
         settle();
       });
@@ -280,7 +284,7 @@ export class StreamerBotAdapter {
         else pending.reject(new Error(`Streamer.bot request ${message.id} failed`));
       }
     }
-    const relayMessage = extractInboundRelay(message);
+    const relayMessage = this.relayAuthorized ? extractInboundRelay(message) : undefined;
     if (relayMessage !== undefined) {
       try { this.eventRelay?.publish(relayMessage); }
       catch (error) { this.logger.warn('Ignored Streamer.bot relay subscriber failure', { error }); }
@@ -288,6 +292,7 @@ export class StreamerBotAdapter {
   }
 
   private async completeHandshake(): Promise<void> {
+    this.relayAuthorized = true;
     if (this.eventRelay !== undefined) {
       const id = randomUUID();
       await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'] } });
@@ -369,7 +374,7 @@ function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<strin
   return isSupportedRelay(message.data) ? message.data : undefined;
 }
 
-function isSupportedRelay(value: Readonly<Record<string, unknown>>): boolean { return value['type'] === 'thsv.tikfinity' || value['type'] === 'thsv.platform'; }
+function isSupportedRelay(value: Readonly<Record<string, unknown>>): boolean { return value['type'] === 'thsv.tikfinity' || value['type'] === 'thsv.platform' || value['type'] === 'thsv.addon'; }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

@@ -64,6 +64,8 @@ Add-ons must use the main StreamBridge installation. They reuse its normalized e
 
 Install a `.thsv-addon` through the authenticated Add-ons page, or copy it into `data/addons/inbox/` and review it there. Inbox packages are inspected but never installed or executed automatically. Executable add-ons run under the creator's Windows account, so install them only from trusted publishers. Planned projects and their safety requirements are tracked in the [future project and add-on roadmap](docs/future-projects-and-addons.md).
 
+Optional add-ons are separate downloads on the same GitHub Release as core. Each has its own versioned `.thsv-addon`, SHA-256 checksum, and build-provenance attestation, so creators can update core without silently installing features they did not choose. Future valid packages placed under the repository's `addons/` directory are discovered by release automation and published the same way.
+
 ## Privacy and security
 
 - Management, diagnostics, simulation, and overlays bind to loopback by default.
@@ -221,7 +223,7 @@ See the [Stage 2 completion record](docs/stage-2-completion.md), [Stage 3 comple
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 
-Latest stable release: [THSV StreamBridge v1.0.1](https://github.com/surakage/THSV-StreamBridge/releases/tag/v1.0.1).
+Latest stable release: [THSV StreamBridge v2.1.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0).
 
 ## License
 

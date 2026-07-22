@@ -111,6 +111,17 @@ describe('portable Windows release installer', () => {
     await expect(stat(destination)).rejects.toThrow();
   }, 60_000);
 
+  it('rejects release versions that could escape the versioned application directory', async () => {
+    if (process.platform !== 'win32') return;
+    const temporary = await mkdtemp(join(tmpdir(), 'thsv-portable-version-'));
+    const source = join(temporary, 'release'); const destination = join(temporary, 'install');
+    await writePortableRelease(source, '1.2.3/../../../outside', 'unsafe');
+    const result = install(source, destination);
+    expect(result.status).not.toBe(0);
+    expect(processOutput(result)).toContain('release-manifest.json is invalid');
+    await expect(stat(join(temporary, 'outside'))).rejects.toThrow();
+  }, 60_000);
+
   it('removes application contents and defers only locked directory shells', async () => {
     if (process.platform !== 'win32') return;
     const temporary = await mkdtemp(join(tmpdir(), 'thsv-portable-lock-'));

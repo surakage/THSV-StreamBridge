@@ -80,13 +80,19 @@ describe('wizard add-on management', () => {
     await writeFile(join(inbox, 'damaged.thsv-addon'), 'not a package');
     const service = new AddOnWizardService(packages, state, inbox);
     await expect(service.list()).resolves.toEqual([]);
-    await expect(service.discover()).resolves.toEqual([
+    const discovered = await service.discover();
+    expect(discovered).toEqual([
       expect.objectContaining({ filename: 'damaged.thsv-addon', health: 'rejected', trust: 'integrity-only' }),
       expect.objectContaining({ filename: 'status-card.thsv-addon', health: 'available', moduleId: 'sample.status-card', trust: 'integrity-only' }),
     ]);
     await expect(service.installDiscovered({ filename: 'status-card.thsv-addon', approvedByCreator: false })).rejects.toThrow('explicit creator approval');
     await expect(service.installDiscovered({ filename: '../status-card.thsv-addon', approvedByCreator: true })).rejects.toThrow('filename is invalid');
-    await expect(service.installDiscovered({ filename: 'status-card.thsv-addon', approvedByCreator: true })).resolves.toMatchObject({ installed: true, source: 'inbox', moduleId: 'sample.status-card' });
+    const approved = discovered.find((addOn) => addOn.filename === 'status-card.thsv-addon');
+    await writeFile(join(inbox, 'status-card.thsv-addon'), 'changed after review');
+    await expect(service.installDiscovered({ filename: 'status-card.thsv-addon', sha256: approved?.sha256, approvedByCreator: true })).rejects.toThrow('changed after review');
+    await writeFile(join(inbox, 'status-card.thsv-addon'), declarativeArchive());
+    const refreshed = (await service.discover()).find((addOn) => addOn.filename === 'status-card.thsv-addon');
+    await expect(service.installDiscovered({ filename: 'status-card.thsv-addon', sha256: refreshed?.sha256, approvedByCreator: true })).resolves.toMatchObject({ installed: true, source: 'inbox', moduleId: 'sample.status-card' });
     await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.status-card' })]);
   });
 

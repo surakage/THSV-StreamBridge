@@ -11,7 +11,7 @@ public class CPHInline
     private const int MaximumTextLength = 2000;
     private static readonly string[] KnownArguments = {
         "actionName", "isSimulated", "simulated", "isTest", "userId", "username", "nickname", "profilePictureUrl",
-        "profilePicturUrl", "commandParams", "giftId", "giftName", "coins", "repeatCount", "likeCount", "totalLikeCount", "subMonth"
+        "profilePicturUrl", "commandParams", "eventId", "messageId", "msgId", "giftId", "giftName", "coins", "repeatCount", "likeCount", "totalLikeCount", "subMonth"
     };
 
     public bool Execute()
@@ -40,6 +40,7 @@ public class CPHInline
             ["version"] = "1.0.0",
             ["kind"] = kind,
             ["relayId"] = Guid.NewGuid().ToString("N"),
+            ["providerEventId"] = First(Read("eventId"), First(Read("messageId"), Read("msgId"))),
             ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"),
             ["simulated"] = simulated,
             ["userId"] = Read("userId"),

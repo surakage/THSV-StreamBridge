@@ -1,6 +1,8 @@
 # Dependencies and build output
 node_modules/
 dist/
+!addons/**/dist/
+!addons/**/dist/**
 build/
 coverage/
 playwright-report/
@@ -42,6 +44,8 @@ Desktop.ini
 # Packages and release artifacts
 *.zip
 *.zip.sha256
+*.thsv-addon
+*.thsv-addon.sha256
 *.tgz
 packages/THSV-StreamBridge-*/
 

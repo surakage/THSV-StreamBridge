@@ -44,6 +44,8 @@ export class MutableRequestGuard {
 
   public assertLoopback(request: IncomingMessage): void {
     if (!isLoopback(request.socket.remoteAddress)) throw new RequestGuardError(403, 'This endpoint is loopback-only');
+    const host = request.headers.host;
+    if (host !== undefined && !isLoopbackHost(host)) throw new RequestGuardError(403, 'This endpoint requires a loopback Host header');
   }
 
   private authorized(header: string | undefined): boolean {
@@ -59,6 +61,13 @@ function isSameOrigin(origin: string, host: string | undefined): boolean {
   try {
     const url = new URL(origin);
     return ['http:', 'https:'].includes(url.protocol) && url.host === host && url.username.length === 0 && url.password.length === 0;
+  } catch { return false; }
+}
+
+function isLoopbackHost(value: string): boolean {
+  try {
+    const url = new URL(`http://${value}`);
+    return ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) && url.username.length === 0 && url.password.length === 0;
   } catch { return false; }
 }
 

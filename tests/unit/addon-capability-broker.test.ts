@@ -35,6 +35,15 @@ describe('AddOnCapabilityBroker', () => {
     expect(encoded).toContain('"denied":4');
   });
 
+  it('exposes creator-saved settings on the context, frozen and defaulted to an empty object', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const withSettings = broker.contextFor({ moduleId: 'sample.settings', permissions: [], approvedActionIds: [] }, { intervalMinutes: 10, clipCount: 20 });
+    expect(withSettings.settings).toEqual({ intervalMinutes: 10, clipCount: 20 });
+    expect(Object.isFrozen(withSettings.settings)).toBe(true);
+    const withoutSettings = broker.contextFor({ moduleId: 'sample.no-settings', permissions: [], approvedActionIds: [] });
+    expect(withoutSettings.settings).toEqual({});
+  });
+
   it('isolates bounded private state by module ID', async () => {
     const root = await stateRoot();
     const broker = new AddOnCapabilityBroker(silentLogger, root);
@@ -52,7 +61,10 @@ describe('AddOnCapabilityBroker', () => {
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { runStreamerBotAction: dispatch });
     const context = broker.contextFor({ moduleId: 'sample.actions', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [ACTION_ONE] });
     await context.streamerbot.runApprovedAction(ACTION_ONE, { clipId: 'clip-123', count: 1 });
-    expect(dispatch).toHaveBeenCalledWith(ACTION_ONE, { clipId: 'clip-123', count: 1 }, expect.anything());
+    expect(dispatch).toHaveBeenCalledOnce();
+    expect(dispatch.mock.calls[0]?.[0]).toBe(ACTION_ONE);
+    expect(dispatch.mock.calls[0]?.[1]).toMatchObject({ clipId: 'clip-123', count: 1 });
+    expect(typeof dispatch.mock.calls[0]?.[1]?.['thsvAddonRelayToken']).toBe('string');
     expect(dispatch.mock.calls[0]?.[2]?.aborted).toBe(false);
     await expect(context.streamerbot.runApprovedAction(ACTION_TWO)).rejects.toThrow('not creator-approved');
     await expect(context.streamerbot.runApprovedAction(ACTION_ONE, Object.fromEntries(Array.from({ length: 51 }, (_, index) => [`key${String(index)}`, index])))).rejects.toThrow('at most 50 keys');
@@ -145,5 +157,23 @@ describe('AddOnCapabilityBroker', () => {
     expect(unsubscribe).toHaveBeenCalledOnce();
     broker.cleanup('sample.media');
     expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('revokes every capability exposed by a stopped or superseded runtime context', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const grant = { moduleId: 'sample.revoked', permissions: ['state.private', 'schedule.bounded'] as const, approvedActionIds: [] };
+    const oldContext = broker.contextFor(grant);
+    broker.cleanup('sample.revoked');
+    await expect(oldContext.state.read()).rejects.toThrow('no longer running');
+    expect(() => oldContext.schedule.after(1_000, () => undefined)).toThrow('no longer running');
+    const replacement = broker.contextFor(grant);
+    await expect(replacement.state.read()).resolves.toEqual({});
+    await expect(oldContext.state.read()).rejects.toThrow('no longer running');
+  });
+
+  it('rejects grants for privileged StreamBridge framework actions', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    expect(() => broker.contextFor({ moduleId: 'sample.privileged', permissions: ['streamerbot.run-approved-action'], approvedActionIds: ['04ca0087-578d-5c2e-9e06-249dc072e9f8'] }))
+      .toThrow('framework actions cannot be granted');
   });
 });

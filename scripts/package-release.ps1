@@ -27,6 +27,22 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
     npm.cmd run config:validate
     if ($LASTEXITCODE -ne 0) { throw 'Configuration validation failed.' }
+    Get-ChildItem -LiteralPath $resolvedPackages -Filter '*.thsv-addon*' -File | Remove-Item -Force
+    $addOnOutputs = @()
+    Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory | Sort-Object Name | ForEach-Object {
+        $descriptorPath = Join-Path $_.FullName 'module-package.json'
+        if (-not (Test-Path -LiteralPath $descriptorPath)) { return }
+        $descriptor = Get-Content -Raw -LiteralPath $descriptorPath | ConvertFrom-Json
+        $safeName = ([string]$descriptor.manifest.name -replace '[^A-Za-z0-9]+', '-').Trim('-')
+        if ([string]::IsNullOrWhiteSpace($safeName) -or [string]::IsNullOrWhiteSpace([string]$descriptor.manifest.version)) { throw "Invalid add-on release identity in $descriptorPath" }
+        $addOnArchive = Join-Path $resolvedPackages "THSV-$safeName-$($descriptor.manifest.version).thsv-addon"
+        npm.cmd run addon:package -- $_.FullName $addOnArchive
+        if ($LASTEXITCODE -ne 0) { throw "$($descriptor.manifest.name) add-on packaging failed." }
+        $addOnHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $addOnArchive).Hash.ToLowerInvariant()
+        $addOnChecksum = "$addOnArchive.sha256"
+        Set-Content -LiteralPath $addOnChecksum -Encoding ascii -Value "$addOnHash  $([System.IO.Path]::GetFileName($addOnArchive))"
+        $addOnOutputs += [pscustomobject]@{ Name = [string]$descriptor.manifest.name; Archive = $addOnArchive; Checksum = $addOnChecksum }
+    }
 
     Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
@@ -126,6 +142,10 @@ try {
     Set-Content -LiteralPath $checksum -Encoding ascii -Value "$archiveHash  $([System.IO.Path]::GetFileName($archive))"
     Write-Output "Portable Windows release created at $archive"
     Write-Output "SHA-256 checksum created at $checksum"
+    foreach ($addOn in $addOnOutputs) {
+        Write-Output "Optional $($addOn.Name) add-on created at $($addOn.Archive)"
+        Write-Output "Add-on SHA-256 checksum created at $($addOn.Checksum)"
+    }
 } finally {
     Pop-Location
     Remove-Item -LiteralPath $temporary -Recurse -Force -ErrorAction SilentlyContinue
