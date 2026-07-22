@@ -1,6 +1,6 @@
 # Production-readiness gate
 
-`2.1.0` is the published stable release. The automated, clean-machine, and visual gates below pass; the live-runtime items listed under "Remaining live verification" are still in progress. Publishing stable was a deliberate maintainer decision: the runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
+`2.1.1` is the published stable release. The automated, clean-machine, and visual gates below pass; the live-runtime items listed under "Remaining live verification" are still in progress. Publishing stable was a deliberate maintainer decision: the runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
 
 ## Automated gate
 

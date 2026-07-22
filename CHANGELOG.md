@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-07-21
+
 - Security: completed a repository-wide trust-boundary pass. Streamer.bot relay frames are ignored until authenticated; add-on result relays use short-lived one-use module tokens; privileged framework actions cannot be granted to add-ons or selected by timed actions; browser WebSockets enforce loopback same-origin; localhost HTTP rejects hostile Host headers; add-on review/install closes package-swap races; regex blockers reject nested ambiguous quantifiers; and package/export paths are confined to their approved roots.
 - Reliability: hardened durable delivery and deduplication persistence, including serialized enqueue commits, rollback on failed acceptance, corruption fail-closed behavior, and bounded receiver-side replay suppression. Launcher startup is serialized, custom service ports are honored by lifecycle and wizard launchers, and the wizard verifies the expected healthy service before opening.
 - Changed: release packaging now discovers every valid folder under `addons/` and publishes each add-on as a separate versioned, checksummed, provenance-attested `.thsv-addon` asset. The published normalized-event JSON Schema now tracks runtime field bounds, presentation metadata, JSON-only values, and stable identity requirements.

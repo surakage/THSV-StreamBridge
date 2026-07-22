@@ -6,7 +6,7 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Release status:** `2.1.0` is the current stable release. Its automated suites pass, and the wizard-command chat-matching fix has been live-verified against a real Streamer.bot instance. A genuine live-stream, real-viewer soak of the high-impact provider-event matrix is still in progress; until then, high-impact operations without verified provider-stable IDs remain blocked at runtime by design. See the [production-readiness gate](docs/production-readiness.md) for the remaining live-verification items.
+> **Release status:** `2.1.1` is the current stable release. Its automated suites, browser checks, Windows lifecycle tests, and self-contained release build pass. A genuine live-stream, real-viewer soak of the high-impact provider-event matrix is still in progress; until then, high-impact operations without verified provider-stable IDs remain blocked at runtime by design. See the [production-readiness gate](docs/production-readiness.md) for the remaining live-verification items.
 
 ## What it does
 
@@ -79,7 +79,7 @@ Optional add-ons are separate downloads on the same GitHub Release as core. Each
 
 Review [Security](docs/security.md), [release verification](RELEASE-VERIFICATION.md), and [integration assumptions](docs/integration-assumptions.md) before using financial, reward, or destructive automation.
 
-The v2 line lives on `main` as the stable `2.1.0` release, following `2.0.0`. It was developed on the merged `overhaul/v2-preview` branch. The normalized v2 contract and reviewed Streamer.bot component packages retain their `2.0.0-preview.1` compatibility identifier; stable `1.x` remains available from the releases page. Stages 2 through 9 are implemented: v2 contracts, compatibility migration preview, excluded-feature extraction, the module host, the authenticated setup wizard, provider-authoritative capability reports, platform controls, scoped blocker rules, Streamer.bot command design and synchronization, session-relative timed actions, configurable browser alerts, documented channel-reward intake and administration, packaging, and the add-on API. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Stage 4 completion](docs/stage-4-completion.md), [Stage 5 completion](docs/stage-5-completion.md), [Stage 6 completion](docs/stage-6-completion.md), [Stage 7 completion](docs/stage-7-completion.md), [Stage 8 completion](docs/stage-8-completion.md), [Stage 9 completion](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
+The v2 line lives on `main` as the stable `2.1.1` release, following `2.0.0`. It was developed on the merged `overhaul/v2-preview` branch. The normalized v2 contract and reviewed Streamer.bot component packages retain their `2.0.0-preview.1` compatibility identifier; stable `1.x` remains available from the releases page. Stages 2 through 9 are implemented: v2 contracts, compatibility migration preview, excluded-feature extraction, the module host, the authenticated setup wizard, provider-authoritative capability reports, platform controls, scoped blocker rules, Streamer.bot command design and synchronization, session-relative timed actions, configurable browser alerts, documented channel-reward intake and administration, packaging, and the add-on API. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Stage 4 completion](docs/stage-4-completion.md), [Stage 5 completion](docs/stage-5-completion.md), [Stage 6 completion](docs/stage-6-completion.md), [Stage 7 completion](docs/stage-7-completion.md), [Stage 8 completion](docs/stage-8-completion.md), [Stage 9 completion](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
 
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
@@ -223,7 +223,7 @@ See the [Stage 2 completion record](docs/stage-2-completion.md), [Stage 3 comple
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 
-Latest stable release: [THSV StreamBridge v2.1.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0).
+Latest stable release: [THSV StreamBridge v2.1.1](https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.1).
 
 ## License
 
