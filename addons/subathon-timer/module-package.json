@@ -3,8 +3,13 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Maintains one bounded multi-platform subathon countdown that decreases over time and increases from selected live events.",
-  "changelog": "1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
-  "permissions": ["events.subscribe", "overlay.publish", "schedule.bounded", "state.private"],
+  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
+  "permissions": [
+    "events.subscribe",
+    "overlay.publish",
+    "schedule.bounded",
+    "state.private"
+  ],
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
@@ -16,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.subathon-timer",
     "name": "Subathon Timer",
-    "version": "1.1.0",
+    "version": "2.4.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -37,19 +42,37 @@
       "addon.thsv.subathon-timer.control"
     ],
     "commandsProvided": [
-      { "id": "subathon-timer.start", "name": "subathon-start" },
-      { "id": "subathon-timer.pause", "name": "subathon-pause" },
-      { "id": "subathon-timer.resume", "name": "subathon-resume" },
-      { "id": "subathon-timer.reset", "name": "subathon-reset" },
-      { "id": "subathon-timer.add-time", "name": "subathon-addtime" }
+      {
+        "id": "subathon-timer.start",
+        "name": "subathon-start"
+      },
+      {
+        "id": "subathon-timer.pause",
+        "name": "subathon-pause"
+      },
+      {
+        "id": "subathon-timer.resume",
+        "name": "subathon-resume"
+      },
+      {
+        "id": "subathon-timer.reset",
+        "name": "subathon-reset"
+      },
+      {
+        "id": "subathon-timer.add-time",
+        "name": "subathon-addtime"
+      }
     ],
     "actionsProvided": [],
     "browserSourcesProvided": [],
-    "dataStorageOwned": ["data/addons/thsv.subathon-timer/", "data/addons/.state/thsv.subathon-timer/"],
+    "dataStorageOwned": [
+      "data/addons/thsv.subathon-timer/",
+      "data/addons/.state/thsv.subathon-timer/"
+    ],
     "installationSteps": [
       "Install and enable the add-on, then choose your starting time, cap, and per-event bonuses.",
       "Use stream.online and stream.offline from your connected platform relays so the timer starts and pauses from real live state.",
-      "Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-1.1.0.sb package for Start, Pause, Resume, Reset, and Add Time actions.",
+      "Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-2.4.0.sb package for Start, Pause, Resume, Reset, and Add Time actions.",
       "Attach those optional control actions to hotkeys, scene triggers, or buttons in Streamer.bot. The imported actions relay only bounded local timer controls.",
       "Optional: enable the moderator commands if you also want chat-based controls.",
       "Use the core-owned hosted add-on overlay URL shown in the wizard. It renders the timer without executing add-on-supplied browser code.",
@@ -60,15 +83,34 @@
     ],
     "migrations": [],
     "healthChecks": [
-      { "id": "thsv.subathon-timer.runtime", "description": "Confirms bounded timer updates, live-state tracking, and per-event bonus handling." }
+      {
+        "id": "thsv.subathon-timer.runtime",
+        "description": "Confirms bounded timer updates, live-state tracking, and per-event bonus handling."
+      }
     ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
-    { "path": "dist/index.js", "size": 20071, "sha256": "3020d5cd3080ba14310cb88d10e666edc13baa6779cda13f5b409bf163e74d63" },
-    { "path": "schemas/config.json", "size": 6209, "sha256": "e08b9487b4b002177b2a47db4a187f3aeff2137e1c8bca8938a823bf7be7d07a" },
-    { "path": "ui/settings.json", "size": 5773, "sha256": "9aae0841ad1454bcd8a5c1e21e497bc0e8ba93a066ce1b6bc830d5ecffba65c1" },
-    { "path": "README.md", "size": 1984, "sha256": "b469cf10ea16f3af6676d7f0f24dae833f7eb4b6caaf49549fce4f69d279587e" }
+    {
+      "path": "dist/index.js",
+      "size": 20071,
+      "sha256": "4bc44efb6cbba506c395a21e7a85e39db0864bc6732fdf740a0eed9b7e0a7ea4"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 6209,
+      "sha256": "e08b9487b4b002177b2a47db4a187f3aeff2137e1c8bca8938a823bf7be7d07a"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 6152,
+      "sha256": "70e5b5d748655097ba3e80754f07ff757a8e6c1b8f74a1749c8825b3f0f1e54d"
+    },
+    {
+      "path": "README.md",
+      "size": 1984,
+      "sha256": "fa42ea5c43b12289f9a9ecdf7569ccac5b9ba3ff44d6f88789a0faeefad7441a"
+    }
   ]
 }

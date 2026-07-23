@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/browser',
+  globalTeardown: './tools/playwright-global-teardown.ts',
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: false,
@@ -18,5 +19,9 @@ export default defineConfig({
     url: 'http://127.0.0.1:8799/health',
     timeout: 30_000,
     reuseExistingServer: !process.env['CI'],
+    gracefulShutdown: {
+      signal: 'SIGTERM',
+      timeout: 10_000,
+    },
   },
 });

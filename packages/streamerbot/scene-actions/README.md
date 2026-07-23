@@ -1,6 +1,6 @@
 # THSV Scene Actions — Streamer.bot package
 
-Import `THSV-StreamBridge-Scene-Actions-1.0.0.sb`. The package creates one intake action and five empty starter targets.
+Import `THSV-StreamBridge-Scene-Actions-2.4.0.sb`. The package creates one intake action and five empty starter targets.
 
 ## Add triggers to the Intake action
 

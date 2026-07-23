@@ -17,6 +17,8 @@ Every generated import now carries the standard `mscorlib.dll` and `System.dll` 
 - Automated Shoutouts
 - User Translate
 - Auto Translate
+- Discord Chat Archive
+- Quote Vault
 
 Normally no manual reference step is required after importing a current package. In the **Execute C# Code** editor, verify the reference list if compilation reports a missing type. Use only the `Newtonsoft.Json.dll` supplied with Streamer.bot; do not download a random DLL or replace Streamer.bot's bundled assembly.
 

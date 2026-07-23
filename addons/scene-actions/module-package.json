@@ -3,8 +3,13 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.",
-  "changelog": "1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
-  "permissions": ["events.subscribe", "streamerbot.run-approved-action", "schedule.bounded", "state.private"],
+  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "schedule.bounded",
+    "state.private"
+  ],
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
@@ -16,32 +21,60 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scene-actions",
     "name": "Scene Actions",
-    "version": "1.0.0",
+    "version": "2.4.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
-    "eventSubscriptions": ["stream.scene-changed"],
+    "eventSubscriptions": [
+      "stream.scene-changed"
+    ],
     "commandsProvided": [],
     "actionsProvided": [],
     "browserSourcesProvided": [],
-    "dataStorageOwned": ["data/addons/thsv.scene-actions/", "data/addons/.state/thsv.scene-actions/"],
+    "dataStorageOwned": [
+      "data/addons/thsv.scene-actions/",
+      "data/addons/.state/thsv.scene-actions/"
+    ],
     "installationSteps": [
       "Import the bundled Streamer.bot Scene Actions package.",
       "Attach the documented OBS Studio, Streamlabs Desktop, and/or Meld Studio Scene Changed triggers to the imported Intake action.",
       "Refresh Streamer.bot actions in the wizard, approve the scene actions this add-on may run, and edit the starter scene mappings."
     ],
-    "uninstallationSteps": ["Uninstall the add-on. Its private anti-loop state remains preserved for a later reinstall."],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Its private anti-loop state remains preserved for a later reinstall."
+    ],
     "migrations": [],
-    "healthChecks": [{ "id": "thsv.scene-actions.runtime", "description": "Confirms normalized scene events can dispatch creator-approved actions without repeat loops." }]
+    "healthChecks": [
+      {
+        "id": "thsv.scene-actions.runtime",
+        "description": "Confirms normalized scene events can dispatch creator-approved actions without repeat loops."
+      }
+    ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
-    { "path": "dist/index.js", "size": 7852, "sha256": "7b2da8b83b635eafef33e329aaf4cd34c7b202ac0983b1f2ab513bb3186bd9af" },
-    { "path": "schemas/config.json", "size": 2642, "sha256": "f7de95b97eb6604968a5aa75ed62ee205e217744fc3ad3400dee844132ea7358" },
-    { "path": "ui/settings.json", "size": 1262, "sha256": "1ce60d199e16dd5760a7b8f8998e5b388778e639a61d0cc21d7f1b1d0de6de71" },
-    { "path": "README.md", "size": 1066, "sha256": "d73344ad5dc68b88bc4a56e315a1c95143c087714e367a8af22be783627a097d" }
+    {
+      "path": "dist/index.js",
+      "size": 7852,
+      "sha256": "3467589fd76381efbeb9597bda4a025b5f751b2d08f519f17fe19e0816656abb"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2642,
+      "sha256": "f7de95b97eb6604968a5aa75ed62ee205e217744fc3ad3400dee844132ea7358"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1262,
+      "sha256": "1ce60d199e16dd5760a7b8f8998e5b388778e639a61d0cc21d7f1b1d0de6de71"
+    },
+    {
+      "path": "README.md",
+      "size": 1066,
+      "sha256": "53577209413b289f19b04bc5aea223faabed4c8834dbdf9601b66be1087ad9d7"
+    }
   ]
 }

@@ -156,4 +156,27 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...confirm, payload: { action: 'suggest' } }))).toThrow('relay token');
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...confirm, payload: { action: 'confirm', target: 'untrusted' } }))).toThrow('relay token');
   });
+
+  it('permits only exact action-matched Quote Vault creator controls', () => {
+    const random = {
+      moduleId: 'thsv.quote-vault',
+      eventType: 'addon.thsv.quote-vault.control',
+      sourceEventType: 'THSV Addon - Quote Vault - Random Quote',
+      relayId: 'quote-vault-random-1',
+      relayToken: '',
+      payload: { action: 'random', sourcePlatform: 'twitch' },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(random))).toMatchObject({
+      eventType: 'addon.thsv.quote-vault.control',
+      payload: { action: 'random', sourcePlatform: 'twitch' },
+    });
+    expect(normalizeStreamerBotAddOnRelay(relay({
+      ...random,
+      sourceEventType: 'THSV Addon - Quote Vault - Statistics',
+      payload: { action: 'stats', sourcePlatform: 'tiktok' },
+    }))).toMatchObject({ payload: { action: 'stats', sourcePlatform: 'tiktok' } });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...random, payload: { action: 'random', sourcePlatform: 'facebook' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...random, sourceEventType: 'THSV Addon - Quote Vault - Statistics' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...random, payload: { action: 'random', sourcePlatform: 'twitch', quoteId: 1 } }))).toThrow('relay token');
+  });
 });

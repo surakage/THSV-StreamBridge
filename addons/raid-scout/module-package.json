@@ -3,8 +3,14 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Finds a safe live Twitch raid destination from preferred, followed-live, or same-category sources, then requires creator confirmation before starting the raid.",
-  "changelog": "1.0.0: initial release with configurable discovery order, bounded Twitch searches, preferred-channel batching, viewer/language/category/tag filters, similar-size preference, stream-based recent-raid protection, shuffle-without-repeats, expiring suggestions, creator Confirm/Cancel actions, optional advanced automatic mode, editable chat output, and a styled Next Stop overlay card.",
-  "permissions": ["events.subscribe", "streamerbot.run-approved-action", "state.private", "chat.send", "overlay.publish"],
+  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable discovery order, bounded Twitch searches, preferred-channel batching, viewer/language/category/tag filters, similar-size preference, stream-based recent-raid protection, shuffle-without-repeats, expiring suggestions, creator Confirm/Cancel actions, optional advanced automatic mode, editable chat output, and a styled Next Stop overlay card.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "state.private",
+    "chat.send",
+    "overlay.publish"
+  ],
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
@@ -16,35 +22,63 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.raid-scout",
     "name": "Raid Scout",
-    "version": "1.0.0",
+    "version": "2.4.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
-    "eventSubscriptions": ["addon.thsv.raid-scout.controller-result", "addon.thsv.raid-scout.control", "stream.online"],
+    "eventSubscriptions": [
+      "addon.thsv.raid-scout.controller-result",
+      "addon.thsv.raid-scout.control",
+      "stream.online"
+    ],
     "commandsProvided": [],
     "actionsProvided": [],
     "browserSourcesProvided": [],
-    "dataStorageOwned": ["data/addons/thsv.raid-scout/", "data/addons/.state/thsv.raid-scout/"],
+    "dataStorageOwned": [
+      "data/addons/thsv.raid-scout/",
+      "data/addons/.state/thsv.raid-scout/"
+    ],
     "installationSteps": [
       "Import the separate Raid Scout Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that stable action ID for this add-on.",
       "Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.",
       "Configure preferred channels and filters, then test Suggest before enabling automatic mode."
     ],
-    "uninstallationSteps": ["Uninstall the add-on. Its bounded private suggestion and raid history remains preserved for a later reinstall."],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Its bounded private suggestion and raid history remains preserved for a later reinstall."
+    ],
     "migrations": [],
     "healthChecks": [
-      { "id": "thsv.raid-scout.runtime", "description": "Confirms bounded discovery, filtering, non-repeating selection, and creator-confirmed Twitch raids." }
+      {
+        "id": "thsv.raid-scout.runtime",
+        "description": "Confirms bounded discovery, filtering, non-repeating selection, and creator-confirmed Twitch raids."
+      }
     ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
-    { "path": "dist/index.js", "size": 25003, "sha256": "5eb1ca2f71a9084ca04c2eb404a1afca52dc18d4475c65714da89cfd90b8a01d" },
-    { "path": "schemas/config.json", "size": 6355, "sha256": "dd61372fa0955c04d644cbd9f07e2bea1dc799969cfd829fdfe95c342fa9ff34" },
-    { "path": "ui/settings.json", "size": 6702, "sha256": "3d8ec5ab3a93d2b136b019bebf02e57d8fffd0b635cce55c52b3473b652f2313" },
-    { "path": "README.md", "size": 2158, "sha256": "e70e5809062a020346229e2ed6a8071062541121241fa89d4dfc2c21be89f33f" }
+    {
+      "path": "dist/index.js",
+      "size": 25003,
+      "sha256": "5641c40bfe5253a9b05d0cf337ffce8b39f0792845b981ddc67fd8300bee8bd1"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 6355,
+      "sha256": "dd61372fa0955c04d644cbd9f07e2bea1dc799969cfd829fdfe95c342fa9ff34"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 6702,
+      "sha256": "3d8ec5ab3a93d2b136b019bebf02e57d8fffd0b635cce55c52b3473b652f2313"
+    },
+    {
+      "path": "README.md",
+      "size": 2158,
+      "sha256": "9905db0c2ebd8921fcc827226832efa899c9fd3b83073087d8ea0e14db74aba8"
+    }
   ]
 }

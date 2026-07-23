@@ -4,7 +4,7 @@ This package turns a receiver-validated `chat.message` event into one stable set
 
 ## Install
 
-1. Import core receiver `1.0.3` and then `THSV-StreamBridge-Multi-Chat-1.1.1.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Core-Receiver-2.4.0.sb` and then `THSV-StreamBridge-Multi-Chat-2.4.0.sb` into Streamer.bot.
 2. Open `THSV StreamBridge - Receive Event`.
 3. Add **Core > Actions > Run Action** after its enabled C# receiver sub-action.
 4. Select `THSV StreamBridge - Multi-Chat` and keep **Run Action Immediately** enabled.

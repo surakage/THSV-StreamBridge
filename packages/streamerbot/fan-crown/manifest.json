@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Fan Crown",
-  "version": "1.0.0",
+  "version": "2.4.0",
   "author": "surakage",
   "description": "Provides one triggerless Twitch reward controller and two optional creator-controlled maintenance actions for the Fan Crown add-on.",
   "minimumStreamerBotVersion": "1.0.5-alpha.33",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Fan Crown - Controller",
       "group": "THSV StreamBridge - Add-ons",
       "source": "src/FanCrownController.cs",
-      "importFile": "THSV-StreamBridge-Fan-Crown-1.0.0.sb",
+      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -25,9 +25,14 @@
       "name": "THSV Addon - Fan Crown - Reset Crown",
       "group": "THSV StreamBridge - Add-ons",
       "source": "src/FanCrownControl.cs",
-      "importFile": "THSV-StreamBridge-Fan-Crown-1.0.0.sb",
+      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.0.sb",
       "arguments": [
-        { "name": "fanCrownControlAction", "value": "reset-crown", "autoType": false, "id": "0e4c16d8-b65c-4450-b7df-0c5b087e7fd7" }
+        {
+          "name": "fanCrownControlAction",
+          "value": "reset-crown",
+          "autoType": false,
+          "id": "0e4c16d8-b65c-4450-b7df-0c5b087e7fd7"
+        }
       ],
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
@@ -42,9 +47,14 @@
       "name": "THSV Addon - Fan Crown - Reset Month",
       "group": "THSV StreamBridge - Add-ons",
       "source": "src/FanCrownControl.cs",
-      "importFile": "THSV-StreamBridge-Fan-Crown-1.0.0.sb",
+      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.0.sb",
       "arguments": [
-        { "name": "fanCrownControlAction", "value": "reset-month", "autoType": false, "id": "3c071e2b-1e98-47cc-a041-6f15ae37f99c" }
+        {
+          "name": "fanCrownControlAction",
+          "value": "reset-month",
+          "autoType": false,
+          "id": "3c071e2b-1e98-47cc-a041-6f15ae37f99c"
+        }
       ],
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
@@ -55,11 +65,18 @@
       ]
     }
   ],
-  "runtime": { "queue": "THSV Add-ons", "concurrent": false },
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
   "manualTriggerSetup": {
     "controller": [],
-    "resetCrown": ["Optional: attach only to a creator-controlled hotkey or deck button."],
-    "resetMonth": ["Optional and destructive: attach only to a creator-controlled hotkey or deck button after reviewing its purpose."]
+    "resetCrown": [
+      "Optional: attach only to a creator-controlled hotkey or deck button."
+    ],
+    "resetMonth": [
+      "Optional and destructive: attach only to a creator-controlled hotkey or deck button after reviewing its purpose."
+    ]
   },
   "triggerSafety": "Controller must remain triggerless and is dispatched only through Fan Crown's approved stable action ID. Reset actions emit exact, bounded local control envelopes and never mutate Twitch directly.",
   "verificationStatus": "Official Twitch reward redemption variables and Streamer.bot UpdateReward, fulfill, and cancel signatures are source-verified; live mutation remains creator acceptance-tested with a harmless Streamer.bot-owned reward."

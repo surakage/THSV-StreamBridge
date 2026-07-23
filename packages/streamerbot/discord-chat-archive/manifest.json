@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Discord Chat Archive",
+  "version": "2.4.0",
+  "author": "surakage",
+  "description": "Delivers bounded, filtered multi-platform public-chat batches to a creator-owned Discord webhook and returns correlated delivery results to StreamBridge.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.33",
+  "actions": [
+    {
+      "id": "df40969d-5923-4432-bdca-ecdee451f150",
+      "sourceSubActionId": "e50aefd9-a1a6-49d0-82f8-38a8c5a874b0",
+      "name": "THSV Addon - Discord Chat Archive - Deliver",
+      "group": "THSV StreamBridge - Add-ons",
+      "source": "src/DeliverToDiscord.cs",
+      "importFile": "THSV-StreamBridge-Discord-Chat-Archive-2.4.0.sb",
+      "arguments": [
+        {
+          "name": "discordArchiveWebhookUrl",
+          "value": "REPLACE_WITH_DISCORD_WEBHOOK_URL",
+          "autoType": false,
+          "id": "635a83a8-fe19-40ea-9501-0c484ae5ace2"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": true
+  },
+  "manualTriggerSetup": [],
+  "triggerSafety": "Broker-dispatched only. Do not attach platform triggers. A manual run with no delivery arguments sends one safe setup test.",
+  "verificationStatus": "Source and package structure tested; creator must live-test the private Discord webhook after import."
+}

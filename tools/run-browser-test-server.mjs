@@ -2,6 +2,15 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+// Playwright owns this disposable process. Give the real bridge shutdown handler
+// time to close files and sockets, then guarantee the test runner is not held open
+// by a provider or browser-test handle that would never exist in the packaged app.
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    setTimeout(() => process.exit(process.exitCode ?? 0), 5_000);
+  });
+}
+
 const directory = await mkdtemp(join(tmpdir(), 'thsv-browser-test-'));
 const config = JSON.parse(await readFile('config/bridge.example.json', 'utf8'));
 config.service.port = Number(process.env.THVS_PLAYWRIGHT_PORT ?? 8799);

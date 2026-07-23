@@ -114,7 +114,7 @@ Choose the Adventure, Chat Arena, Prediction Game, Companion Care, Fishing, and 
 ## Later utility candidates
 
 - Free Game Check as a separate posting add-on with scheduled/manual checks, offer caching, duplicate suppression, Discord/webhook output, platform-chat output, and preview-before-post controls;
-- quote, counter, giveaway, and poll helpers as a Creator Utility Pack with independent enable switches and source-platform routing;
+- Quote Vault is now implemented as its own moderated cross-platform add-on; counter, giveaway, and poll helpers remain candidates for a future Creator Utility Pack with independent enable switches and source-platform routing;
 - moderation dashboard and bounded chat-history tools;
 - creator-approved scene automation using documented OBS/Meld/Streamlabs APIs;
 - local clip cache and prefetch helper for unreliable connections;

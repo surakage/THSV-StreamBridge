@@ -1,0 +1,40 @@
+{
+  "intro": "Set up clip rotation in three short sections. StreamBridge waits for playback to finish, fades out for four seconds, then applies the pause below before requesting the next clip.",
+  "order": [
+    "secondsBetweenClips",
+    "clipCount",
+    "minDurationSeconds",
+    "maxDurationSeconds",
+    "muted",
+    "volume"
+  ],
+  "sections": [
+    {
+      "id": "playback",
+      "title": "1. Playback timing",
+      "description": "Choose the pause after each fade and the number of clips in one shuffle cycle.",
+      "open": true,
+      "fields": ["secondsBetweenClips", "clipCount"]
+    },
+    {
+      "id": "filtering",
+      "title": "2. Clip length",
+      "description": "Keep clips within a useful duration range for BRB, starting, or ending scenes.",
+      "fields": ["minDurationSeconds", "maxDurationSeconds"]
+    },
+    {
+      "id": "audio",
+      "title": "3. Audio",
+      "description": "Choose whether clips are muted and set their playback volume.",
+      "fields": ["muted", "volume"]
+    },
+    {
+      "id": "review",
+      "title": "4. Review before enabling",
+      "description": "Confirm the required Streamer.bot actions and browser source.",
+      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Enable and Disable actions are optional scene triggers.",
+      "fields": []
+    }
+  ],
+  "fields": {}
+}

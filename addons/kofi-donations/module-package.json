@@ -3,8 +3,11 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Receives verified Ko-fi Donation triggers through Streamer.bot and publishes stable-ID donations into StreamBridge's durable alert pipeline with privacy controls.",
-  "changelog": "1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
-  "permissions": ["events.subscribe", "provider.events.publish"],
+  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
+  "permissions": [
+    "events.subscribe",
+    "provider.events.publish"
+  ],
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
@@ -16,31 +19,59 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.kofi-donations",
     "name": "Ko-fi Donations",
-    "version": "1.0.1",
+    "version": "2.4.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
-    "eventSubscriptions": ["addon.thsv.kofi-donations.donation-received"],
+    "eventSubscriptions": [
+      "addon.thsv.kofi-donations.donation-received"
+    ],
     "commandsProvided": [],
-    "actionsProvided": [{ "id": "kofi-donations.intake", "name": "Required Ko-fi donation intake" }],
+    "actionsProvided": [
+      {
+        "id": "kofi-donations.intake",
+        "name": "Required Ko-fi donation intake"
+      }
+    ],
     "browserSourcesProvided": [],
-    "dataStorageOwned": ["data/addons/thsv.kofi-donations/"],
+    "dataStorageOwned": [
+      "data/addons/thsv.kofi-donations/"
+    ],
     "installationSteps": [
       "Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.",
       "Import the Ko-fi Donations Streamer.bot package and attach Ko-Fi > Donation to its intake action.",
       "Install this add-on, review its financial-event permission, configure privacy, enable it, and restart StreamBridge."
     ],
-    "uninstallationSteps": ["Uninstall the add-on. StreamBridge stores no Ko-fi webhook secrets or payment history."],
+    "uninstallationSteps": [
+      "Uninstall the add-on. StreamBridge stores no Ko-fi webhook secrets or payment history."
+    ],
     "migrations": [],
-    "healthChecks": [{ "id": "thsv.kofi-donations.runtime", "description": "Confirms stable-ID Ko-fi donations can enter the validated durable alert pipeline." }]
+    "healthChecks": [
+      {
+        "id": "thsv.kofi-donations.runtime",
+        "description": "Confirms stable-ID Ko-fi donations can enter the validated durable alert pipeline."
+      }
+    ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
-    { "path": "dist/index.js", "size": 3610, "sha256": "c69010f1e32695ab2863620ff3abe91ec6ca27ddd4c9e92c101230a86ee1dc19" },
-    { "path": "schemas/config.json", "size": 964, "sha256": "51fca8bb7698368168e573c465aa48e8efbe36c296ac05d6b4d11d36886c9991" },
-    { "path": "ui/settings.json", "size": 2195, "sha256": "99ccaad8619b93de435ffb47b94df87381ced0d197a52d0dfd7f7c0c9d67d1c7" }
+    {
+      "path": "dist/index.js",
+      "size": 3610,
+      "sha256": "e2c18b8a5609ae65e8b7e584c5c55625738972f4a85d8243b5d672d624de15f5"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 964,
+      "sha256": "51fca8bb7698368168e573c465aa48e8efbe36c296ac05d6b4d11d36886c9991"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 2195,
+      "sha256": "99ccaad8619b93de435ffb47b94df87381ced0d197a52d0dfd7f7c0c9d67d1c7"
+    }
   ]
 }

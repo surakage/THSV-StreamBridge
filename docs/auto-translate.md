@@ -14,7 +14,7 @@ Auto Translate is a separate, disabled-by-default add-on for automatically trans
 
 1. Download and extract `THSV-StreamBridge-AddOn-Auto-Translate-1.0.0.zip`.
 2. Install its `.thsv-addon` in the authenticated wizard, but leave automatic translation disabled.
-3. Import `Streamer.bot/THSV-StreamBridge-Auto-Translate-1.0.0.sb` and approve only `THSV Addon - Auto Translate - Translate Text` for this add-on.
+3. Import `Streamer.bot/THSV-StreamBridge-Auto-Translate-2.4.0.sb` and approve only `THSV Addon - Auto Translate - Translate Text` for this add-on.
 4. Set one known source language and a different target language. MyMemory does not provide automatic language detection through this endpoint.
 5. Add exact viewer names or stable platform user IDs to the allowlist, review the limits and privacy disclosure, then enable it.
 

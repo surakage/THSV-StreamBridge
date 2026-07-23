@@ -47,7 +47,7 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '1.4.0',
+  version: '2.4.0',
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1',
   dependencies: [],
@@ -59,7 +59,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-1.4.0.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.4.0.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Optionally bind the imported Enable and Disable actions to Streamer.bot scene-active and scene-inactive triggers.',
     'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.',

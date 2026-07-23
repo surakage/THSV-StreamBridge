@@ -3,8 +3,14 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Translates only explicit viewer requests through a disclosed no-key provider, then returns bounded results to the originating platform without retaining message text.",
-  "changelog": "1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
-  "permissions": ["events.subscribe", "chat.send", "schedule.bounded", "state.private", "streamerbot.run-approved-action"],
+  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "schedule.bounded",
+    "state.private",
+    "streamerbot.run-approved-action"
+  ],
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
@@ -16,35 +22,71 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.user-translate",
     "name": "User Translate",
-    "version": "1.0.0",
+    "version": "2.4.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
-    "eventSubscriptions": ["chat.message", "addon.thsv.user-translate.translation-received"],
-    "commandsProvided": [
-      { "id": "user-translate.generic", "name": "translate (usage: !translate es hello)" },
-      { "id": "user-translate.language-code", "name": "language-code commands (examples: !en, !es, !fr)" }
+    "eventSubscriptions": [
+      "chat.message",
+      "addon.thsv.user-translate.translation-received"
     ],
-    "actionsProvided": [{ "id": "user-translate.translate", "name": "Required no-key MyMemory translation request" }],
+    "commandsProvided": [
+      {
+        "id": "user-translate.generic",
+        "name": "translate (usage: !translate es hello)"
+      },
+      {
+        "id": "user-translate.language-code",
+        "name": "language-code commands (examples: !en, !es, !fr)"
+      }
+    ],
+    "actionsProvided": [
+      {
+        "id": "user-translate.translate",
+        "name": "Required no-key MyMemory translation request"
+      }
+    ],
     "browserSourcesProvided": [],
-    "dataStorageOwned": ["data/addons/thsv.user-translate/", "data/addons/.state/thsv.user-translate/"],
+    "dataStorageOwned": [
+      "data/addons/thsv.user-translate/",
+      "data/addons/.state/thsv.user-translate/"
+    ],
     "installationSteps": [
       "Install and enable the add-on, then review the external translation privacy disclosure in its settings.",
       "Import the User Translate Streamer.bot package and approve its Translate Text action for this add-on.",
       "Choose the command prefix and enabled language codes in the add-on settings; no separate Streamer.bot command is required.",
       "Examples: !translate es hello, !es hello, or on Twitch reply to a message with !es."
     ],
-    "uninstallationSteps": ["Uninstall the add-on. Only bounded cooldown metadata is retained; message text is never stored."],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Only bounded cooldown metadata is retained; message text is never stored."
+    ],
     "migrations": [],
-    "healthChecks": [{ "id": "thsv.user-translate.runtime", "description": "Confirms bounded command handling, provider dispatch, and source-platform response routing." }]
+    "healthChecks": [
+      {
+        "id": "thsv.user-translate.runtime",
+        "description": "Confirms bounded command handling, provider dispatch, and source-platform response routing."
+      }
+    ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
-    { "path": "dist/index.js", "size": 11498, "sha256": "e1f839412ecc56eee1906803e5f4b6bbdc5a00cb6e79f29f8aa16d37bfea3b0d" },
-    { "path": "schemas/config.json", "size": 3331, "sha256": "966ff807d1c300de390014ba5161b340e417f5eb1f31af378463039b647c8437" },
-    { "path": "ui/settings.json", "size": 2267, "sha256": "65b2923263925953a7b61c147a53f8140db57865b544b8fecc71c7bd83884422" }
+    {
+      "path": "dist/index.js",
+      "size": 11498,
+      "sha256": "33ed1e766adf7a0cc3a6a633ea51cd6c393bbf76104bd2d867a1cc716c6bc12b"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3331,
+      "sha256": "966ff807d1c300de390014ba5161b340e417f5eb1f31af378463039b647c8437"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 2267,
+      "sha256": "65b2923263925953a7b61c147a53f8140db57865b544b8fecc71c7bd83884422"
+    }
   ]
 }

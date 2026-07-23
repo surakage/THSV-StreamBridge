@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Raid Scout",
-  "version": "1.0.0",
+  "version": "2.4.0",
   "author": "surakage",
   "description": "Provides one triggerless bounded Twitch discovery/raid controller and three creator controls for Raid Scout.",
   "minimumStreamerBotVersion": "1.0.5-alpha.33",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Raid Scout - Controller",
       "group": "THSV StreamBridge - Add-ons",
       "source": "src/RaidScoutController.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-1.0.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-2.4.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -26,9 +26,14 @@
       "name": "THSV Addon - Raid Scout - Suggest",
       "group": "THSV StreamBridge - Add-ons",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-1.0.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-2.4.0.sb",
       "arguments": [
-        { "name": "raidScoutControlAction", "value": "suggest", "autoType": false, "id": "1a8f4772-e30a-4025-b694-09500c2f2a64" }
+        {
+          "name": "raidScoutControlAction",
+          "value": "suggest",
+          "autoType": false,
+          "id": "1a8f4772-e30a-4025-b694-09500c2f2a64"
+        }
       ],
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
@@ -43,9 +48,14 @@
       "name": "THSV Addon - Raid Scout - Confirm",
       "group": "THSV StreamBridge - Add-ons",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-1.0.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-2.4.0.sb",
       "arguments": [
-        { "name": "raidScoutControlAction", "value": "confirm", "autoType": false, "id": "b7082014-e633-47db-9467-255f3982d7d6" }
+        {
+          "name": "raidScoutControlAction",
+          "value": "confirm",
+          "autoType": false,
+          "id": "b7082014-e633-47db-9467-255f3982d7d6"
+        }
       ],
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
@@ -60,9 +70,14 @@
       "name": "THSV Addon - Raid Scout - Cancel",
       "group": "THSV StreamBridge - Add-ons",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-1.0.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-2.4.0.sb",
       "arguments": [
-        { "name": "raidScoutControlAction", "value": "cancel", "autoType": false, "id": "1c7105f4-b6e5-4e2b-a9c2-660699ea6d8a" }
+        {
+          "name": "raidScoutControlAction",
+          "value": "cancel",
+          "autoType": false,
+          "id": "1c7105f4-b6e5-4e2b-a9c2-660699ea6d8a"
+        }
       ],
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
@@ -73,12 +88,21 @@
       ]
     }
   ],
-  "runtime": { "queue": "THSV Add-ons", "concurrent": false },
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
   "manualTriggerSetup": {
     "controller": [],
-    "suggest": ["Attach only to a creator-controlled hotkey, deck button, or operator command."],
-    "confirm": ["Attach only to a creator-controlled hotkey, deck button, or operator command."],
-    "cancel": ["Attach only to a creator-controlled hotkey, deck button, or operator command."]
+    "suggest": [
+      "Attach only to a creator-controlled hotkey, deck button, or operator command."
+    ],
+    "confirm": [
+      "Attach only to a creator-controlled hotkey, deck button, or operator command."
+    ],
+    "cancel": [
+      "Attach only to a creator-controlled hotkey, deck button, or operator command."
+    ]
   },
   "triggerSafety": "Controller must remain triggerless and is dispatched only through Raid Scout's approved stable action ID. Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly.",
   "verificationStatus": "Streamer.bot broadcaster/raid method signatures and Twitch Helix followed/category contracts are source-verified; live Twitch discovery and raid acceptance remain creator-tested."

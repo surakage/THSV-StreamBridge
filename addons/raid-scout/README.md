@@ -21,7 +21,7 @@ The order is configurable. Each source can be disabled. Search requests, pages, 
 
 ## Install
 
-1. Import `THSV-StreamBridge-Raid-Scout-1.0.0.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Raid-Scout-2.4.0.sb` into Streamer.bot.
 2. Leave `THSV Addon - Raid Scout - Controller` triggerless.
 3. Install `thsv.raid-scout-1.0.0.thsv-addon` through the StreamBridge wizard.
 4. Inspect Streamer.bot and approve only the Raid Scout Controller action.

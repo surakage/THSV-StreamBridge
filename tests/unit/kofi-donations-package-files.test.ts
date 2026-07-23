@@ -28,7 +28,7 @@ describe('Ko-fi Donations Streamer.bot package', () => {
   it('ships as its own import with a single donation-only action and bounded references', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/kofi-donations/manifest.json', 'utf8')) as { action: { id: string; importFile: string; references: string[] }; manualTriggerSetup: string[] };
     expect(manifest.action.id).toBe('e61c4b43-6cf0-5d56-a1c9-2176ae09c312');
-    expect(manifest.action.importFile).toBe('THSV-StreamBridge-KoFi-Donations-1.0.1.sb');
+    expect(manifest.action.importFile).toBe('THSV-StreamBridge-KoFi-Donations-2.4.0.sb');
     expect(manifest.manualTriggerSetup).toEqual(['Integrations > Ko-Fi > Donation']);
     expect(manifest.action.references).toEqual(expect.arrayContaining(['.\\Newtonsoft.Json.dll']));
   });

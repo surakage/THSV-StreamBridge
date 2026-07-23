@@ -1,0 +1,54 @@
+{
+  "intro": "Discord Chat Archive copies selected public chat to one creator-owned Discord channel. Set up the private webhook in Streamer.bot first, then review platforms, filters, appearance, delivery limits, and privacy before enabling.",
+  "order": [
+    "enabled", "enabledPlatforms", "ignoreBots", "ignoredUsers", "ignoreCommands", "commandPrefix", "includeSimulatedMessages",
+    "messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage",
+    "batchWindowSeconds", "maximumMessagesPerBatch", "maximumQueueMessages", "maximumMessageCharacters",
+    "retryCount", "retryDelaySeconds", "showDroppedMessageNotice"
+  ],
+  "sections": [
+    {
+      "id": "quick-start",
+      "title": "1. Start here",
+      "description": "Keep the add-on disabled until its webhook action has passed a manual test.",
+      "open": true,
+      "notice": "Required order: create a private Discord webhook, import the bundled Streamer.bot package, replace its webhook Set Argument, Save and Compile, run the action manually once, approve that exact action here, then enable the add-on.",
+      "links": [
+        { "label": "Open the official Streamer.bot Discord setup guide", "url": "https://docs.streamer.bot/guide/integrations/discord" }
+      ],
+      "fields": ["enabled", "enabledPlatforms"]
+    },
+    {
+      "id": "filters",
+      "title": "2. Bots, viewers, and commands",
+      "description": "System messages are always excluded. Exact ignore rules always win.",
+      "open": true,
+      "fields": ["ignoreBots", "ignoredUsers", "ignoreCommands", "commandPrefix", "includeSimulatedMessages"]
+    },
+    {
+      "id": "appearance",
+      "title": "3. Discord message appearance",
+      "description": "Customize the archived line without exposing the private webhook URL.",
+      "fields": ["messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage"]
+    },
+    {
+      "id": "delivery",
+      "title": "4. Batching and reliability",
+      "description": "Bound Discord calls, waiting messages, individual message length, and retry work.",
+      "fields": ["batchWindowSeconds", "maximumMessagesPerBatch", "maximumQueueMessages", "maximumMessageCharacters", "retryCount", "retryDelaySeconds", "showDroppedMessageNotice"]
+    },
+    {
+      "id": "privacy",
+      "title": "5. Privacy review",
+      "description": "Understand where selected messages go before turning the add-on on.",
+      "notice": "Every accepted public message is sent to the Discord webhook channel and retained according to that Discord server's policies. Private, operator, and system chat are never subscribed. StreamBridge keeps waiting and retry content only in bounded memory and writes no chat transcript or webhook URL to disk. Tell viewers when public chat is being archived.",
+      "fields": []
+    }
+  ],
+  "fields": {
+    "ignoredUsers": { "rows": 6 },
+    "commandPrefix": { "visibleWhen": { "field": "ignoreCommands", "equals": true } },
+    "messageTemplate": { "rows": 3 },
+    "useViewerAvatarForSingleMessage": { "visibleWhen": { "field": "useViewerIdentityForSingleMessage", "equals": true } }
+  }
+}

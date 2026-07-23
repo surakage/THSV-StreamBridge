@@ -76,7 +76,11 @@ function renderAddOnUpdate(addOn) {
   const warning = update.warning ? ` ${update.warning}` : '';
   const archive = update.archiveName ? `<small><strong>Official package:</strong> ${safe(update.archiveName)}</small>` : '';
   const checksum = update.sha256 ? `<small><strong>Published SHA-256:</strong> <code>${safe(update.sha256)}</code></small>` : '';
-  return `<div class="notice addon-update-result" data-addon-update-state="${safe(update.state)}"><strong>${safe(labels[update.state] || update.state)}.</strong>${safe(version + warning)}${archive}${checksum}</div>`;
+  const downloadUrl = safeAddOnLink(update.downloadUrl);
+  const download = update.state === 'update-available' && downloadUrl
+    ? `<div class="button-row"><a class="button-link compact" href="${safe(downloadUrl)}" target="_blank" rel="noreferrer noopener">Download verified update</a></div>`
+    : '';
+  return `<div class="notice addon-update-result" data-addon-update-state="${safe(update.state)}"><strong>${safe(labels[update.state] || update.state)}.</strong>${safe(version + warning)}${archive}${checksum}${download}</div>`;
 }
 
 function renderAddOnField(name, schema, value, ui = {}) {
@@ -212,7 +216,7 @@ function renderAddOns() {
     const liveChatWarning = addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this add-on can automatically post messages to creator-enabled platforms through StreamBridge. Review its settings and publisher before enabling it.</p>' : '';
     const providerWarning = addOn.permissions.includes('provider.events.publish') ? '<p class="notice"><strong>Financial-event permission:</strong> this add-on can publish only its assigned provider donations into the core alert pipeline. Stable provider IDs, bounded values, and core validation are enforced; review the provider connection before enabling it.</p>' : '';
     const settingsIntro = typeof addOn.settingsUi?.intro === 'string' && addOn.settingsUi.intro.trim() ? addOn.settingsUi.intro : 'Open only the section you want to change. Hidden options keep their saved values.';
-    const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell" open><summary>Configure add-on</summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><p class="addon-settings-intro">${safe(settingsIntro)}</p>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Changes take effect after StreamBridge restarts.</small></div></form></details>`;
+    const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell" open><summary>Configure add-on</summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><div class="addon-settings-heading"><p class="addon-settings-intro">${safe(settingsIntro)}</p><div class="button-row"><button type="button" class="ghost compact" data-addon-sections="expand">Expand all</button><button type="button" class="ghost compact" data-addon-sections="collapse">Collapse all</button></div></div>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Changes take effect after StreamBridge restarts.</small></div></form></details>`;
     const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section"><summary>Approved Streamer.bot actions</summary>${renderAddOnActionGrant(addOn)}</details>`;
     const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section"><summary>Hosted overlay &amp; testing</summary>${renderAddOnOverlayTools(addOn)}</details>`;
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
@@ -225,6 +229,10 @@ function renderAddOns() {
   document.querySelectorAll('[data-addon-settings]').forEach((form) => {
     form.addEventListener('submit', saveAddOnSettings);
     form.addEventListener('change', () => updateAddOnFieldVisibility(form));
+    form.querySelectorAll('[data-addon-sections]').forEach((button) => button.addEventListener('click', () => {
+      const open = button.dataset.addonSections === 'expand';
+      form.querySelectorAll('.addon-settings-section').forEach((section) => { section.open = open; });
+    }));
     updateAddOnFieldVisibility(form);
   });
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);

@@ -15,8 +15,8 @@ If authentication is enabled, set the environment variable named by `streamerbot
 
 Import these first if you want Streamer.bot to start StreamBridge or open the wizard:
 
-- `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-1.4.0.sb`
-- `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-2.1.0.sb`
+- `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-2.4.0.sb`
+- `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-2.4.0.sb`
 
 Each lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave `%LOCALAPPDATA%\THSV StreamBridge` for the default installation, or edit that argument for a custom path. Do not edit the C# just to change the path.
 
@@ -26,11 +26,11 @@ Only **Launch Bridge** may receive **Core > Streamer.bot > Streamer.bot Started*
 
 Import:
 
-1. `packages\streamerbot\core-receiver\THSV-StreamBridge-Core-Receiver-2.0.0-preview.1.sb`
-2. `packages\streamerbot\multi-chat\THSV-StreamBridge-Multi-Chat-1.1.1.sb`
-3. `packages\streamerbot\multi-commands\THSV-StreamBridge-Multi-Commands-2.0.0-preview.1.sb`
-4. `packages\streamerbot\multi-alerts\THSV-StreamBridge-Multi-Alerts-1.0.1.sb`
-5. `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-1.3.0.sb`
+1. `packages\streamerbot\core-receiver\THSV-StreamBridge-Core-Receiver-2.4.0.sb`
+2. `packages\streamerbot\multi-chat\THSV-StreamBridge-Multi-Chat-2.4.0.sb`
+3. `packages\streamerbot\multi-commands\THSV-StreamBridge-Multi-Commands-2.4.0.sb`
+4. `packages\streamerbot\multi-alerts\THSV-StreamBridge-Multi-Alerts-2.4.0.sb`
+5. `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-2.4.0.sb`
 
 The Core Receiver installs or upgrades `THSV StreamBridge - Receive Event` in the `THSV StreamBridge` group. Keep `streamerbot.actionAlias` set to that exact name unless you deliberately change both sides.
 
@@ -62,7 +62,7 @@ Keep the receiver and all four child actions triggerless. Their trust boundary d
 Import:
 
 ```text
-packages\streamerbot\timed-message-output\THSV-StreamBridge-Timed-Message-Output-1.1.0.sb
+packages\streamerbot\timed-message-output\THSV-StreamBridge-Timed-Message-Output-2.4.0.sb
 ```
 
 Keep `THSV StreamBridge - Send Timed Message` triggerless. Select it from the wizard only for shuffled timed-chat definitions. Separate-platform mode applies each platform's saved character limits and rotates its list independently.
@@ -72,7 +72,7 @@ Keep `THSV StreamBridge - Send Timed Message` triggerless. Select it from the wi
 Import:
 
 ```text
-packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-1.0.0.sb
+packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-2.4.0.sb
 ```
 
 Review the custom C# and keep `THSV StreamBridge - Reward Administration` triggerless. Each live Twitch mutation requires separate wizard confirmation and approval. Kick mutations remain unavailable.
@@ -84,10 +84,10 @@ Core Receiver, Command Administration, Reward Administration, Timed Message Outp
 Import:
 
 ```text
-packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.5.2.sb
+packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-2.4.0.sb
 ```
 
-It installs one intake action per platform in separate Twitch, YouTube, and Kick groups. Version 1.5.2 preserves Streamer.bot's known `firstMessage` flag for add-ons that distinguish a first-ever channel message and includes the current Kick Mass Gift Subscription argument contract.
+It installs one intake action per platform in separate Twitch, YouTube, and Kick groups. The `2.4.0` package preserves Streamer.bot's known `firstMessage` flag for add-ons that distinguish a first-ever channel message and includes the current Kick Mass Gift Subscription argument contract.
 
 For each platform you use:
 
@@ -105,7 +105,7 @@ Do not copy platform triggers onto the receiver or a `Multi-*` action.
 Import:
 
 ```text
-packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.1.0.sb
+packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-2.4.0.sb
 ```
 
 It installs:

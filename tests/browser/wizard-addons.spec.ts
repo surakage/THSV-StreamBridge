@@ -20,7 +20,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByRole('button', { name: 'Add-ons' }).click();
   await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Check updates' })).toBeVisible();
-  await expect(page.getByText('Update checks are manual and never install or enable an add-on.')).toBeVisible();
+  await expect(page.getByText('Update checks are creator-started and never silently install or enable code.', { exact: false })).toBeVisible();
   await expect(page.getByText('No add-ons are installed')).toBeVisible();
 
   const root = 'examples/addons/declarative-settings';
@@ -35,9 +35,10 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.getByRole('article').getByText('Declarative Settings Example 1.0.0', { exact: true })).toBeVisible();
   await expect(page.getByText('THSV StreamBridge Project', { exact: false })).toBeVisible();
   await expect(page.getByText('state.private', { exact: false })).toBeVisible();
-  await page.evaluate(`state.addOnUpdates = { available: true, updateCount: 1, revokedCount: 0, addOns: [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', installedVersion: '1.0.0', latestVersion: '1.1.0', state: 'update-available', sha256: '${'a'.repeat(64)}' }] }; renderAddOns();`);
+  await page.evaluate(`state.addOnUpdates = { available: true, updateCount: 1, revokedCount: 0, addOns: [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', installedVersion: '1.0.0', latestVersion: '1.1.0', state: 'update-available', sha256: '${'a'.repeat(64)}', downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.4.0/sample.zip' }] }; renderAddOns();`);
   await expect(page.getByText('Update available.', { exact: false })).toBeVisible();
   await expect(page.getByText('Latest official version: 1.1.0.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Download verified update' })).toHaveAttribute('href', 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.4.0/sample.zip');
 
   await page.getByLabel('Heading').fill('My private add-on setting');
   await page.getByLabel('Accent').selectOption('green');
@@ -70,6 +71,11 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(guidedSettings.getByLabel('Twitch')).toBeChecked();
   await expect(guidedSettings.getByLabel('YouTube')).not.toBeChecked();
   await expect(guidedSettings.getByLabel('Heading')).not.toBeVisible();
+  await guidedSettings.getByRole('button', { name: 'Expand all' }).click();
+  await expect(guidedSettings.locator('.addon-settings-section[open]')).toHaveCount(3);
+  await guidedSettings.getByRole('button', { name: 'Collapse all' }).click();
+  await expect(guidedSettings.locator('.addon-settings-section[open]')).toHaveCount(0);
+  await quickStart.click();
   await advanced.click();
   await expect(guidedSettings.getByLabel('Heading')).toBeVisible();
   await guidedSettings.locator('summary').filter({ hasText: '3. Privacy' }).click();
@@ -81,7 +87,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const userTranslateSettings = page.locator('[data-addon-settings="thsv.user-translate"]');
-  await expect(page.getByRole('article').getByText('User Translate 1.0.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('User Translate 2.4.0', { exact: true })).toBeVisible();
   await expect(userTranslateSettings.getByText('Set up viewer-requested translation in five short sections.', { exact: false })).toBeVisible();
   await expect(userTranslateSettings.locator('input[name="enabledPlatforms"][value="twitch"]')).toBeChecked();
   await expect(userTranslateSettings.locator('input[name="enabledPlatforms"][value="youtube"]')).toBeChecked();
@@ -99,7 +105,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const autoTranslateSettings = page.locator('[data-addon-settings="thsv.auto-translate"]');
-  await expect(page.getByRole('article').getByText('Auto Translate 1.0.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Auto Translate 2.4.0', { exact: true })).toBeVisible();
   await expect(autoTranslateSettings.getByText('Auto Translate sends selected public chat text', { exact: false })).toBeVisible();
   await expect(autoTranslateSettings.locator('input[name="enabled"]')).not.toBeChecked();
   await autoTranslateSettings.locator('summary').filter({ hasText: '2. Audience' }).click();
@@ -118,7 +124,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const shoutoutSettings = page.locator('[data-addon-settings="thsv.automated-shoutouts"]');
-  await expect(page.getByRole('article').getByText('Automated Shoutouts 1.1.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Automated Shoutouts 2.4.0', { exact: true })).toBeVisible();
   await expect(shoutoutSettings.locator('summary')).toHaveCount(8);
   await shoutoutSettings.locator('summary').filter({ hasText: '8. Twitch visual popup' }).click();
   await expect(shoutoutSettings.getByLabel('Show a Twitch visual popup')).toBeChecked();
@@ -142,16 +148,16 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const subathonSettings = page.locator('[data-addon-settings="thsv.subathon-timer"]');
-  await expect(page.getByRole('article').getByText('Subathon Timer 1.1.0', { exact: true })).toBeVisible();
-  await expect(subathonSettings.locator('summary')).toHaveCount(7);
+  await expect(page.getByRole('article').getByText('Subathon Timer 2.4.0', { exact: true })).toBeVisible();
+  await expect(subathonSettings.locator('summary')).toHaveCount(8);
   await expect(subathonSettings.getByLabel('Enable Subathon Timer')).toBeChecked();
   await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(4);
   await subathonSettings.locator('summary').filter({ hasText: '3. Manual controls' }).click();
   await expect(subathonSettings.getByText('Choose how Streamer.bot actions', { exact: false })).toBeVisible();
-  await subathonSettings.locator('summary').filter({ hasText: '6. Overlay state' }).click();
+  await subathonSettings.locator('summary').filter({ hasText: '6. Overlay layout' }).click();
   await expect(subathonSettings.getByLabel('Overlay background style')).toHaveValue('glass');
   await expect(page.locator('[data-addon-overlay-url="thsv.subathon-timer"]')).toHaveValue('http://127.0.0.1:8799/overlay/subathon');
-  await subathonSettings.locator('summary').filter({ hasText: '7. Review before enabling' }).click();
+  await subathonSettings.locator('summary').filter({ hasText: '8. Review before enabling' }).click();
   await expect(subathonSettings.getByText('Import the separate Subathon Timer Streamer.bot package', { exact: false })).toBeVisible();
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
   const subathonOverlay = await context.newPage();
@@ -165,7 +171,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const sceneSettings = page.locator('[data-addon-settings="thsv.scene-actions"]');
-  await expect(page.getByRole('article').getByText('Scene Actions 1.0.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Scene Actions 2.4.0', { exact: true })).toBeVisible();
   await expect(sceneSettings.getByText('Scene-to-action mappings')).toBeVisible();
   await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(5);
   await expect(sceneSettings.locator('[data-scene-mapping-field="sceneName"]').first()).toHaveValue('Starting Soon');
@@ -185,7 +191,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
-  await expect(page.getByRole('article').getByText('Raid Scout 1.0.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Raid Scout 2.4.0', { exact: true })).toBeVisible();
   await expect(raidScoutSettings.locator('summary')).toHaveCount(11);
   await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
   await expect(raidScoutSettings.getByLabel('Raid confirmation mode')).toHaveValue('required');

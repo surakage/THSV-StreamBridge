@@ -12,7 +12,7 @@ Fan Crown turns one Streamer.bot-owned Twitch Channel Points reward into a rotat
 
 ## Install
 
-1. Import `THSV-StreamBridge-Fan-Crown-1.0.0.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Fan-Crown-2.4.0.sb` into Streamer.bot.
 2. Leave `THSV Addon - Fan Crown - Controller` triggerless.
 3. Ensure the existing `THSV Twitch - Intake` action has Twitch Reward Redemption set to Any Reward.
 4. Install `thsv.fan-crown-1.0.0.thsv-addon` through the StreamBridge wizard.

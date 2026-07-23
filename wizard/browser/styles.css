@@ -150,7 +150,9 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .addon-settings-shell{padding:0;overflow:hidden}
 .addon-settings-shell>summary{padding:15px 16px;background:var(--panel)}
 .addon-settings{display:block;margin:0;padding:0 14px 14px}
-.addon-settings-intro{margin:12px 2px;color:var(--subtle);font-size:.88rem;line-height:1.45}
+.addon-settings-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin:12px 2px}
+.addon-settings-heading .button-row{flex:0 0 auto}
+.addon-settings-intro{margin:0;color:var(--subtle);font-size:.88rem;line-height:1.45}
 .addon-settings-section{border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);overflow:hidden;margin:9px 0}
 .addon-settings-section>summary{padding:13px 14px;background:var(--panel);color:var(--text)}
 .addon-settings-section>summary span{display:grid;gap:3px}
@@ -217,6 +219,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .addon-approved-actions{margin:14px 0}
 @media(max-width:760px){.addon-action-picker{grid-template-columns:1fr}.addon-action-picker button{width:100%}}
 .button-link{display:inline-block;border-radius:var(--radius-sm);background:var(--button);color:#fff;padding:11px 16px;font-weight:800;text-decoration:none;transition:background-color var(--ease),transform .1s ease}
+.button-link.compact{padding:7px 11px;font-size:.82rem}
 .button-link:hover{background:var(--button-hover);transform:translateY(-1px)}
 
 /* ---------- Token reference ---------- */

@@ -1,0 +1,80 @@
+{
+  "intro": "Quote Vault keeps one moderated, local quote library for Twitch, YouTube, Kick, and TikTok. Ordinary chat is never saved; only explicit quote submissions and bounded management history enter private add-on state.",
+  "order": [
+    "enabled", "enabledPlatforms", "commandPrefix", "quoteCommand", "quotesCommand", "submitCommand", "addCommand",
+    "approveCommand", "rejectCommand", "pendingCommand", "editCommand", "deleteCommand", "restoreCommand", "statsCommand",
+    "communitySubmissionRole", "directAddRole", "ignoreBots", "ignoredUsers", "allowLinks",
+    "maximumQuoteCharacters", "maximumApprovedQuotes", "maximumPendingQuotes",
+    "userSubmissionCooldownSeconds", "userRetrievalCooldownSeconds", "globalCommandCooldownSeconds", "moderatorBypassCooldowns",
+    "starterQuotes", "quoteMessageTemplate", "submittedMessageTemplate", "addedMessageTemplate", "approvedMessageTemplate",
+    "rejectedMessageTemplate", "editedMessageTemplate", "deletedMessageTemplate", "restoredMessageTemplate",
+    "duplicateMessage", "permissionMessage", "invalidUsageMessage", "notFoundMessage", "libraryFullMessage"
+  ],
+  "sections": [
+    {
+      "id": "start",
+      "title": "1. Start here",
+      "description": "Choose where Quote Vault is available. It uses normalized chat and needs no separate platform triggers.",
+      "open": true,
+      "notice": "Recommended first test: keep community submissions enabled, submit one harmless quote, approve it as a moderator, then retrieve it from the same platform.",
+      "fields": ["enabled", "enabledPlatforms", "commandPrefix"]
+    },
+    {
+      "id": "public-commands",
+      "title": "2. Viewer commands",
+      "description": "Public retrieval and moderated submission commands.",
+      "open": true,
+      "fields": ["quoteCommand", "quotesCommand", "submitCommand", "communitySubmissionRole"]
+    },
+    {
+      "id": "moderator-commands",
+      "title": "3. Moderator commands",
+      "description": "Trusted additions, review, editing, recoverable deletion, and statistics.",
+      "fields": ["addCommand", "approveCommand", "rejectCommand", "pendingCommand", "editCommand", "deleteCommand", "restoreCommand", "statsCommand", "directAddRole"]
+    },
+    {
+      "id": "safety",
+      "title": "4. Safety and spam prevention",
+      "description": "Bots, exact ignores, links, sizes, queue capacity, and cooldowns.",
+      "open": true,
+      "fields": ["ignoreBots", "ignoredUsers", "allowLinks", "maximumQuoteCharacters", "maximumApprovedQuotes", "maximumPendingQuotes", "userSubmissionCooldownSeconds", "userRetrievalCooldownSeconds", "globalCommandCooldownSeconds", "moderatorBypassCooldowns"]
+    },
+    {
+      "id": "starter-library",
+      "title": "5. Optional starter library",
+      "description": "Seed a new empty library without replacing existing quotes.",
+      "notice": "Use one line per item: Quoted Name | Quote text. This seed is read only when the private library has never contained a quote.",
+      "fields": ["starterQuotes"]
+    },
+    {
+      "id": "quote-display",
+      "title": "6. Quote display",
+      "description": "Control how approved quotes appear in the originating platform's chat.",
+      "fields": ["quoteMessageTemplate"]
+    },
+    {
+      "id": "confirmation-messages",
+      "title": "7. Submission and moderation messages",
+      "description": "Short confirmations for successful library changes.",
+      "fields": ["submittedMessageTemplate", "addedMessageTemplate", "approvedMessageTemplate", "rejectedMessageTemplate", "editedMessageTemplate", "deletedMessageTemplate", "restoredMessageTemplate"]
+    },
+    {
+      "id": "help-errors",
+      "title": "8. Help and error messages",
+      "description": "Clear responses for rejected or invalid requests.",
+      "fields": ["duplicateMessage", "permissionMessage", "invalidUsageMessage", "notFoundMessage", "libraryFullMessage"]
+    },
+    {
+      "id": "privacy",
+      "title": "9. Privacy and retention",
+      "description": "Review what Quote Vault stores.",
+      "notice": "Quote Vault stores only approved, pending, recently deleted quotes, their platform-scoped submitter identity, and a bounded moderation history. Ordinary chat is not retained. Deleted quotes remain recoverable only in a small rotating trash list. No data leaves the local computer except the quote responses deliberately sent to live chat.",
+      "fields": []
+    }
+  ],
+  "fields": {
+    "ignoredUsers": { "rows": 5 },
+    "starterQuotes": { "rows": 8 },
+    "quoteMessageTemplate": { "rows": 3 }
+  }
+}

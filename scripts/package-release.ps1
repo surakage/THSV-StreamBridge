@@ -140,7 +140,7 @@ try {
     $releaseDocs = @(
         'add-on-capabilities.md', 'add-on-development.md', 'architecture.md', 'auto-translate.md', 'automated-shoutouts.md', 'browser-overlay.md',
         'compatibility.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
-        'production-readiness.md', 'release.md', 'rewards.md', 'security.md', 'setup.md',
+        'discord-chat-archive.md', 'getting-started.md', 'production-readiness.md', 'quote-vault.md', 'release.md', 'rewards.md', 'security.md', 'setup.md',
         'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
         'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md'
     )

@@ -1,4 +1,5 @@
 {
+  "intro": "Set up the timer in short sections. Start with timing and lifecycle, then open only the event bonuses, controls, or visual options you want to customize.",
   "order": [
     "enabled", "enabledPlatforms",
     "autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline", "startingMinutes", "maximumMinutes",
@@ -41,14 +42,20 @@
       "fields": ["giftSecondsEach", "likeThreshold", "likeThresholdAwardSeconds"]
     },
     {
-      "id": "overlay",
-      "title": "6. Overlay state",
-      "description": "Choose the dedicated timer overlay URL, style, label, and warning thresholds.",
-      "fields": ["showOverlay", "overlayLabel", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor", "overlayShowProgressBar", "warningMinutes", "criticalMinutes"]
+      "id": "overlay-layout",
+      "title": "6. Overlay layout",
+      "description": "Choose the timer label, font, background behavior, progress bar, and warning thresholds.",
+      "fields": ["showOverlay", "overlayLabel", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundOpacity", "overlayShowProgressBar", "warningMinutes", "criticalMinutes"]
+    },
+    {
+      "id": "overlay-colors",
+      "title": "7. Overlay colors",
+      "description": "Customize the timer background, accent, text, state, and border colors.",
+      "fields": ["overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor"]
     },
     {
       "id": "review",
-      "title": "7. Review before enabling",
+      "title": "8. Review before enabling",
       "description": "This first version uses only normalized StreamBridge events and bounded private timer state.",
       "notice": "No external API is used. The add-on stores only timer counters, session timestamps, current live-platform state, and like-threshold progress. It does not store chat text or payout data. Import the separate Subathon Timer Streamer.bot package for optional Start, Pause, Resume, Reset, and Add Time controls.",
       "fields": []

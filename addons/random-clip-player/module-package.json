@@ -3,8 +3,14 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.",
-  "changelog": "1.4.0: adds a fixed four-second end fade and transition buffer, keeps shuffle-without-repeats before refetching the configured pool, and adds creator-triggered Streamer.bot Enable/Disable actions for scene automation. 1.3.0: playback now remains retryable until the matching overlay reports it started, stale responses and lifecycle IDs cannot cancel or advance the active clip, loading time no longer shortens playback, and creators can configure mute and volume. 1.2.0: replaced the fixed rotation-interval timer with playback-completion-driven scheduling -- the next clip is requested a short configurable pause after the current one actually finishes. The clip list refreshes only when the whole rotation pool has been played through. 1.1.0: settings now take effect and newly created Twitch clips enter rotation after a pool refresh. 1.0.0: initial version.",
-  "permissions": ["streamerbot.run-approved-action", "overlay.publish", "schedule.bounded", "state.private", "events.subscribe"],
+  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.4.0: adds a fixed four-second end fade and transition buffer, keeps shuffle-without-repeats before refetching the configured pool, and adds creator-triggered Streamer.bot Enable/Disable actions for scene automation. 1.3.0: playback now remains retryable until the matching overlay reports it started, stale responses and lifecycle IDs cannot cancel or advance the active clip, loading time no longer shortens playback, and creators can configure mute and volume. 1.2.0: replaced the fixed rotation-interval timer with playback-completion-driven scheduling -- the next clip is requested a short configurable pause after the current one actually finishes. The clip list refreshes only when the whole rotation pool has been played through. 1.1.0: settings now take effect and newly created Twitch clips enter rotation after a pool refresh. 1.0.0: initial version.",
+  "permissions": [
+    "streamerbot.run-approved-action",
+    "overlay.publish",
+    "schedule.bounded",
+    "state.private",
+    "events.subscribe"
+  ],
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
@@ -16,36 +22,84 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.random-clip-player",
     "name": "Random Clip Player",
-    "version": "1.4.0",
+    "version": "2.4.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
-    "eventSubscriptions": ["addon.thsv.random-clip-player.clips-received", "addon.thsv.random-clip-player.clip-download-received", "addon.thsv.random-clip-player.control"],
+    "eventSubscriptions": [
+      "addon.thsv.random-clip-player.clips-received",
+      "addon.thsv.random-clip-player.clip-download-received",
+      "addon.thsv.random-clip-player.control"
+    ],
     "commandsProvided": [],
     "actionsProvided": [],
     "browserSourcesProvided": [],
-    "dataStorageOwned": ["data/addons/thsv.random-clip-player/", "data/addons/.state/thsv.random-clip-player/"],
+    "dataStorageOwned": [
+      "data/addons/thsv.random-clip-player/",
+      "data/addons/.state/thsv.random-clip-player/"
+    ],
     "installationSteps": [
-      "Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-1.4.0.sb into Streamer.bot.",
+      "Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.4.0.sb into Streamer.bot.",
       "In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: \"Get Clips\" and \"Get Clip Download\". Neither fetch action has a chat/event trigger by design.",
       "Optionally bind the imported Enable and Disable actions to Streamer.bot scene-active and scene-inactive triggers.",
       "Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback."
     ],
-    "uninstallationSteps": ["Remove the add-on package; its separately owned rotation state remains preserved."],
-    "migrations": [
-      { "from": "1.0.0", "to": "1.1.0", "script": "migrations/001-interval-to-pause.mjs" },
-      { "from": "1.1.0", "to": "1.2.0", "script": "migrations/001-interval-to-pause.mjs" },
-      { "from": "1.2.0", "to": "1.3.0", "script": "migrations/001-interval-to-pause.mjs" },
-      { "from": "1.3.0", "to": "1.4.0", "script": "migrations/001-interval-to-pause.mjs" }
+    "uninstallationSteps": [
+      "Remove the add-on package; its separately owned rotation state remains preserved."
     ],
-    "healthChecks": [{ "id": "thsv.random-clip-player.runtime", "description": "Confirms the add-on can request clips and receive Streamer.bot relay events." }]
+    "migrations": [
+      {
+        "from": "1.0.0",
+        "to": "1.1.0",
+        "script": "migrations/001-interval-to-pause.mjs"
+      },
+      {
+        "from": "1.1.0",
+        "to": "1.2.0",
+        "script": "migrations/001-interval-to-pause.mjs"
+      },
+      {
+        "from": "1.2.0",
+        "to": "1.3.0",
+        "script": "migrations/001-interval-to-pause.mjs"
+      },
+      {
+        "from": "1.3.0",
+        "to": "1.4.0",
+        "script": "migrations/001-interval-to-pause.mjs"
+      }
+    ],
+    "healthChecks": [
+      {
+        "id": "thsv.random-clip-player.runtime",
+        "description": "Confirms the add-on can request clips and receive Streamer.bot relay events."
+      }
+    ]
   },
   "entrypoint": "dist/index.js",
   "files": [
-    { "path": "dist/index.js", "size": 14704, "sha256": "1a074af4123a454c7aafe4d2de5a0fb0153ca35bb15fdb7994d4c2958e35cba3" },
-    { "path": "schemas/config.json", "size": 1608, "sha256": "4564000d3ae9d5ee7a32d624b6bde2c35c9d018c463af65d7242190dfd0a5c37" },
-    { "path": "migrations/001-interval-to-pause.mjs", "size": 961, "sha256": "4491b274d95ab76ca7a73cd5bade6bb3a6972e70c9adf03e3ec880b477aaa39c" }
-  ]
+    {
+      "path": "dist/index.js",
+      "size": 14704,
+      "sha256": "508c353d14e1b40d31a0560f1a746a971af60ce9ffb26968f7fb134943efa521"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 1608,
+      "sha256": "4564000d3ae9d5ee7a32d624b6bde2c35c9d018c463af65d7242190dfd0a5c37"
+    },
+    {
+      "path": "migrations/001-interval-to-pause.mjs",
+      "size": 961,
+      "sha256": "4491b274d95ab76ca7a73cd5bade6bb3a6972e70c9adf03e3ec880b477aaa39c"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1480,
+      "sha256": "96b4699d939bb54932a4bf16cbb93a101748e11d2d97efec70a8775967a7d786"
+    }
+  ],
+  "settingsUi": "ui/settings.json"
 }

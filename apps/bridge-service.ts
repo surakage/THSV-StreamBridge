@@ -20,6 +20,7 @@ import { AddOnCapabilityBroker } from '../bridge/core/addon-capability-broker.js
 import { ReleaseUpdateService } from '../bridge/services/release-update-service.js';
 import { AddOnUpdateService } from '../bridge/services/addon-update-service.js';
 import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
+import { STREAMBRIDGE_VERSION } from '../bridge/version.js';
 import { OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
@@ -73,7 +74,7 @@ const wizard = new WizardService(
   new WizardConfigurationGateway(configPath, (platforms) => registry.capabilityReports(platforms)),
   new FileCommandSyncStore(join(dataRoot, 'state', 'command-sync.json'), logger),
   new AddOnWizardService(addOnsRoot, addOnStateRoot),
-  new ReleaseUpdateService(CORE_CONTRACT_VERSION),
+  new ReleaseUpdateService(STREAMBRIDGE_VERSION),
   new AddOnUpdateService(CORE_CONTRACT_VERSION),
 );
 activeBridge.subscribe((event) => overlayHub.publish(event));

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Quote Vault",
+  "version": "2.4.0",
+  "author": "surakage",
+  "description": "Provides optional creator-triggered random-quote and library-statistics controls for the cross-platform Quote Vault add-on.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.33",
+  "actions": [
+    {
+      "id": "4f4b1d42-8b8c-4a47-9c98-2a10d194ba31",
+      "sourceSubActionId": "235e3e5f-41d9-4b52-a6a4-e2f2218c83a1",
+      "name": "THSV Addon - Quote Vault - Random Quote",
+      "group": "THSV StreamBridge - Add-ons",
+      "source": "src/QuoteVaultControl.cs",
+      "importFile": "THSV-StreamBridge-Quote-Vault-2.4.0.sb",
+      "arguments": [
+        {
+          "name": "quoteVaultControlAction",
+          "value": "random",
+          "autoType": false,
+          "id": "726a360b-adca-4846-a97f-7235ad09803a"
+        },
+        {
+          "name": "quoteVaultSourcePlatform",
+          "value": "twitch",
+          "autoType": false,
+          "id": "ec59d409-dfe5-462f-8185-41db3808b79d"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "9c73e218-34ae-4bf7-a926-1c5340a28d70",
+      "sourceSubActionId": "6d5bc006-dbd5-463d-a32f-ae90d13d30e6",
+      "name": "THSV Addon - Quote Vault - Statistics",
+      "group": "THSV StreamBridge - Add-ons",
+      "source": "src/QuoteVaultControl.cs",
+      "importFile": "THSV-StreamBridge-Quote-Vault-2.4.0.sb",
+      "arguments": [
+        {
+          "name": "quoteVaultControlAction",
+          "value": "stats",
+          "autoType": false,
+          "id": "dd5f8d14-17f8-496a-9ef4-a20cb3d5ee62"
+        },
+        {
+          "name": "quoteVaultSourcePlatform",
+          "value": "twitch",
+          "autoType": false,
+          "id": "2e192521-3587-4390-a941-d0ba94fc2264"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
+  "manualTriggerSetup": {
+    "randomQuote": [
+      "Optional: attach to a creator-controlled hotkey, deck button, timer, or scene action."
+    ],
+    "statistics": [
+      "Optional: attach only to a creator-controlled hotkey or deck button."
+    ]
+  },
+  "triggerSafety": "These optional actions emit only exact Quote Vault control envelopes. Public quote commands are parsed from normalized chat and need no Streamer.bot command or platform trigger.",
+  "verificationStatus": "Source and package structure tested; creator must live-test output on each enabled platform."
+}

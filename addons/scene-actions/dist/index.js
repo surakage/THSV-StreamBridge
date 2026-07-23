@@ -6,7 +6,7 @@ const MAXIMUM_MAPPINGS = 50;
 const pendingByConnection = new Map();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.scene-actions', name: 'Scene Actions', version: '1.0.0',
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.scene-actions', name: 'Scene Actions', version: '2.4.0',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.scene-changed'], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.scene-actions/', 'data/addons/.state/thsv.scene-actions/'],

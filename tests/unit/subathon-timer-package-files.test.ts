@@ -12,7 +12,7 @@ describe('Subathon Timer Streamer.bot package', () => {
       'THSV Addon - Subathon Timer - Add Time',
     ]);
     expect(manifest.actions.every((action) => action.group === 'THSV StreamBridge - Add-ons')).toBe(true);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Subathon-Timer-1.1.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Subathon-Timer-2.4.0.sb']));
     expect(manifest.actions[4]?.arguments).toContainEqual({ name: 'subathonSeconds', value: '300', autoType: true });
   });
 

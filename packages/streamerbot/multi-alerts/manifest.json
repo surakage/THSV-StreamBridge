@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Multi-Alerts",
-  "version": "1.0.1",
+  "version": "2.4.0",
   "author": "surakage",
   "description": "Platform-neutral public alert projection for receiver-validated THSV StreamBridge events.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
@@ -11,21 +11,83 @@
     "id": "2a52e02b-fefe-5c89-8aeb-067aa773d621",
     "sourceSubActionId": "1de5ec44-94b9-506d-b321-a06dd73ebc92",
     "source": "src/ProcessAlert.cs",
-    "importFile": "THSV-StreamBridge-Multi-Alerts-1.0.1.sb"
+    "importFile": "THSV-StreamBridge-Multi-Alerts-2.4.0.sb"
   },
   "runtime": {
     "queue": "Default",
     "concurrent": true,
-    "dependencies": ["THSV StreamBridge - Core Receiver 2.0.0-preview.1", "Streamer.bot CPH API", "Newtonsoft.Json/JObject default C# reference"]
+    "dependencies": [
+      "THSV StreamBridge - Core Receiver 2.0.0-preview.1",
+      "Streamer.bot CPH API",
+      "Newtonsoft.Json/JObject default C# reference"
+    ]
   },
   "contract": {
     "version": "1.0.0",
-    "acceptedEventTypes": ["channel.follow", "channel.subscription", "channel.membership", "channel.gift-subscription", "engagement.gift", "engagement.donation", "engagement.cheer", "engagement.super-chat", "channel.raid", "engagement.milestone"],
+    "acceptedEventTypes": [
+      "channel.follow",
+      "channel.subscription",
+      "channel.membership",
+      "channel.gift-subscription",
+      "engagement.gift",
+      "engagement.donation",
+      "engagement.cheer",
+      "engagement.super-chat",
+      "channel.raid",
+      "engagement.milestone"
+    ],
     "maximumTextCharacters": 500,
-    "requiredInputArguments": ["streamBridgeValid", "streamBridgeEventType", "streamBridgeEventId", "streamBridgeReceivedAt", "streamBridgeSequence", "streamBridgePlatform", "streamBridgeChannelName", "streamBridgePayload", "streamBridgeMetadata"],
-    "outputArguments": ["multiAlertHandled", "multiAlertValid", "multiAlertValidationError", "multiAlertContractVersion", "multiAlertPackageVersion", "multiAlertEventId", "multiAlertReceivedAt", "multiAlertSequence", "multiAlertVisibility", "multiAlertType", "multiAlertPlatform", "multiAlertChannelId", "multiAlertChannelName", "multiAlertHasActor", "multiAlertActorId", "multiAlertActorName", "multiAlertActorDisplayName", "multiAlertActorType", "multiAlertActorRoles", "multiAlertAmount", "multiAlertCurrency", "multiAlertQuantity", "multiAlertItemName", "multiAlertTier", "multiAlertMessage", "multiAlertMetric", "multiAlertValue", "multiAlertSimulated", "multiAlertVerifiedTransport", "multiAlertUnverifiedFields"],
+    "requiredInputArguments": [
+      "streamBridgeValid",
+      "streamBridgeEventType",
+      "streamBridgeEventId",
+      "streamBridgeReceivedAt",
+      "streamBridgeSequence",
+      "streamBridgePlatform",
+      "streamBridgeChannelName",
+      "streamBridgePayload",
+      "streamBridgeMetadata"
+    ],
+    "outputArguments": [
+      "multiAlertHandled",
+      "multiAlertValid",
+      "multiAlertValidationError",
+      "multiAlertContractVersion",
+      "multiAlertPackageVersion",
+      "multiAlertEventId",
+      "multiAlertReceivedAt",
+      "multiAlertSequence",
+      "multiAlertVisibility",
+      "multiAlertType",
+      "multiAlertPlatform",
+      "multiAlertChannelId",
+      "multiAlertChannelName",
+      "multiAlertHasActor",
+      "multiAlertActorId",
+      "multiAlertActorName",
+      "multiAlertActorDisplayName",
+      "multiAlertActorType",
+      "multiAlertActorRoles",
+      "multiAlertAmount",
+      "multiAlertCurrency",
+      "multiAlertQuantity",
+      "multiAlertItemName",
+      "multiAlertTier",
+      "multiAlertMessage",
+      "multiAlertMetric",
+      "multiAlertValue",
+      "multiAlertSimulated",
+      "multiAlertVerifiedTransport",
+      "multiAlertUnverifiedFields"
+    ],
     "contentSafety": {
-      "untrustedTextArguments": ["multiAlertActorName", "multiAlertActorDisplayName", "multiAlertItemName", "multiAlertTier", "multiAlertMessage"],
+      "untrustedTextArguments": [
+        "multiAlertActorName",
+        "multiAlertActorDisplayName",
+        "multiAlertItemName",
+        "multiAlertTier",
+        "multiAlertMessage"
+      ],
       "speechDefault": "deny-unless-creator-approved",
       "browserRendering": "contextual-escape-required"
     }

@@ -1,6 +1,6 @@
 # THSV StreamBridge - User Translate
 
-Import `THSV-StreamBridge-User-Translate-1.0.0.sb`, compile the single action with the references in `manifest.json`, and approve that exact action for User Translate in the StreamBridge wizard. Do not attach a trigger; the add-on capability broker dispatches it.
+Import `THSV-StreamBridge-User-Translate-2.4.0.sb`, compile the single action with the references in `manifest.json`, and approve that exact action for User Translate in the StreamBridge wizard. Do not attach a trigger; the add-on capability broker dispatches it.
 
 The action sends only explicitly requested chat text to MyMemory's HTTPS API. It never logs or persists that text. MyMemory requires a known source language, accepts at most 500 UTF-8 bytes per segment, and does not support `autodetect`; the action therefore splits bounded input into at most four safe segments. Provider failures return a generic code rather than leaking the message into logs.
 

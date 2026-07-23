@@ -139,6 +139,16 @@ function isCreatorControl(relay: AddOnRelay): boolean {
     const expectedSource = `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
     return relay.sourceEventType === expectedSource && Object.keys(relay.payload).length === 1;
   }
+  if (relay.moduleId === 'thsv.quote-vault' && relay.eventType === 'addon.thsv.quote-vault.control') {
+    const action = relay.payload['action'];
+    const sourcePlatform = relay.payload['sourcePlatform'];
+    if (action !== 'random' && action !== 'stats') return false;
+    if (!['twitch', 'youtube', 'kick', 'tiktok'].includes(typeof sourcePlatform === 'string' ? sourcePlatform : '')) return false;
+    const expectedSource = action === 'random'
+      ? 'THSV Addon - Quote Vault - Random Quote'
+      : 'THSV Addon - Quote Vault - Statistics';
+    return relay.sourceEventType === expectedSource && Object.keys(relay.payload).length === 2;
+  }
   if (relay.moduleId !== 'thsv.subathon-timer' || relay.eventType !== 'addon.thsv.subathon-timer.control') return false;
   const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
   if (!['start', 'pause', 'resume', 'reset', 'add-time'].includes(action)) return false;

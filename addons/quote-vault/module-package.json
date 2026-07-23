@@ -1,0 +1,130 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Provides one bounded, moderated, local quote library shared by Twitch, YouTube, Kick, and TikTok with source-platform-only responses.",
+  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial cross-platform release with random, ID, search, count, viewer submission, moderator approval/rejection/edit, recoverable delete/restore, statistics, Twitch reply capture, exact ignores, bot/system/simulation/link gates, duplicate detection, cooldowns, bounded private storage, and optional creator controls.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.quote-vault",
+    "name": "Quote Vault",
+    "version": "2.4.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "chat.message",
+      "addon.thsv.quote-vault.control"
+    ],
+    "commandsProvided": [
+      {
+        "id": "quote-vault.quote",
+        "name": "quote - random, ID, or search"
+      },
+      {
+        "id": "quote-vault.quotes",
+        "name": "quotes - count or quoted-person lookup"
+      },
+      {
+        "id": "quote-vault.submit",
+        "name": "quotesubmit - moderated viewer submission"
+      },
+      {
+        "id": "quote-vault.add",
+        "name": "quoteadd - trusted direct addition"
+      },
+      {
+        "id": "quote-vault.approve",
+        "name": "quoteapprove - approve a pending quote"
+      },
+      {
+        "id": "quote-vault.reject",
+        "name": "quotereject - reject a pending quote"
+      },
+      {
+        "id": "quote-vault.pending",
+        "name": "quotepending - review pending IDs"
+      },
+      {
+        "id": "quote-vault.edit",
+        "name": "quoteedit - edit an approved quote"
+      },
+      {
+        "id": "quote-vault.delete",
+        "name": "quotedelete - soft-delete a quote"
+      },
+      {
+        "id": "quote-vault.restore",
+        "name": "quoterestore - restore a deleted quote"
+      },
+      {
+        "id": "quote-vault.stats",
+        "name": "quotestats - library counts"
+      }
+    ],
+    "actionsProvided": [
+      {
+        "id": "quote-vault.random",
+        "name": "Optional creator-triggered random quote"
+      },
+      {
+        "id": "quote-vault.stats",
+        "name": "Optional creator-triggered library statistics"
+      }
+    ],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.quote-vault/",
+      "data/addons/.state/thsv.quote-vault/"
+    ],
+    "installationSteps": [
+      "Install and configure Quote Vault. No separate platform chat trigger is required.",
+      "Choose enabled platforms, command names, submission permissions, and safety limits.",
+      "Import the optional Quote Vault Streamer.bot package only if creator-triggered random or statistics actions are wanted.",
+      "Tell moderators that viewer submissions remain pending until approved."
+    ],
+    "uninstallationSteps": [
+      "Export or record wanted quotes before uninstalling. Private Quote Vault state remains preserved for a later reinstall."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.quote-vault.runtime",
+        "description": "Confirms bounded cross-platform quote commands, moderation, storage, and source-routed responses."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 35122,
+      "sha256": "a7a3c974318d7795c4723396d6dd27a29c5668959d680a685a03449d3e1cc206"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 6962,
+      "sha256": "a64b2c1f2b34bd2114e6f9e39818d8c4d9bceb694d7bc0d050f38d13bcca2fa4"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 4552,
+      "sha256": "36c5dfa05431e305dc70edcb75abce1e41f76554a035d255d8c22f234b4a8f16"
+    }
+  ]
+}

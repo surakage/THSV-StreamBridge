@@ -3,8 +3,14 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Automatically translates creator-selected public chat through a disclosed provider with allowlist-first privacy controls and strict spam limits.",
-  "changelog": "1.0.0: initial privacy-gated release with disabled-by-default activation, per-platform selection, allow and ignore lists, explicit source and target languages, command/bot/system exclusion, bounded cooldowns and pending work, duplicate suppression, per-minute and translated-percentage caps, source-platform-only output, and no chat-text retention.",
-  "permissions": ["events.subscribe", "chat.send", "schedule.bounded", "state.private", "streamerbot.run-approved-action"],
+  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial privacy-gated release with disabled-by-default activation, per-platform selection, allow and ignore lists, explicit source and target languages, command/bot/system exclusion, bounded cooldowns and pending work, duplicate suppression, per-minute and translated-percentage caps, source-platform-only output, and no chat-text retention.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "schedule.bounded",
+    "state.private",
+    "streamerbot.run-approved-action"
+  ],
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
@@ -16,32 +22,62 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.auto-translate",
     "name": "Auto Translate",
-    "version": "1.0.0",
+    "version": "2.4.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
-    "eventSubscriptions": ["chat.message", "addon.thsv.auto-translate.translation-received"],
+    "eventSubscriptions": [
+      "chat.message",
+      "addon.thsv.auto-translate.translation-received"
+    ],
     "commandsProvided": [],
-    "actionsProvided": [{ "id": "auto-translate.translate", "name": "Required no-key MyMemory translation request" }],
+    "actionsProvided": [
+      {
+        "id": "auto-translate.translate",
+        "name": "Required no-key MyMemory translation request"
+      }
+    ],
     "browserSourcesProvided": [],
-    "dataStorageOwned": ["data/addons/thsv.auto-translate/", "data/addons/.state/thsv.auto-translate/"],
+    "dataStorageOwned": [
+      "data/addons/thsv.auto-translate/",
+      "data/addons/.state/thsv.auto-translate/"
+    ],
     "installationSteps": [
       "Install the add-on but leave it disabled until its privacy notice, languages, audience, and rate limits are reviewed.",
       "Import the Auto Translate Streamer.bot package and approve only its Translate Text action.",
       "Set a known source language and a different target language. Automatic language detection is not claimed.",
       "Add viewer names to the allowlist before enabling the default allowlist-only mode."
     ],
-    "uninstallationSteps": ["Uninstall the add-on. Bounded cooldown metadata is preserved; chat and translated text are never stored."],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Bounded cooldown metadata is preserved; chat and translated text are never stored."
+    ],
     "migrations": [],
-    "healthChecks": [{ "id": "thsv.auto-translate.runtime", "description": "Confirms privacy-gated message selection, bounded provider dispatch, and source-platform response routing." }]
+    "healthChecks": [
+      {
+        "id": "thsv.auto-translate.runtime",
+        "description": "Confirms privacy-gated message selection, bounded provider dispatch, and source-platform response routing."
+      }
+    ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
-    { "path": "dist/index.js", "size": 11660, "sha256": "93b10d6d71402667e28a347e83ebb3c056e197f01532d135387bda73a1c9cdca" },
-    { "path": "schemas/config.json", "size": 3951, "sha256": "ca5bcd217e00e0a40e3d4b1ab9febf63ca3306a6a76350404e4b5cce3b91274a" },
-    { "path": "ui/settings.json", "size": 2716, "sha256": "31454a4224c01c2a94ec1b84200bde7e5f5e956ab19a42c9c86b8b01dd5a24f6" }
+    {
+      "path": "dist/index.js",
+      "size": 11660,
+      "sha256": "1fe92032c319e46633614c38b06df2aaa29d23245d2c67436ee93635b7f8e1f5"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3951,
+      "sha256": "ca5bcd217e00e0a40e3d4b1ab9febf63ca3306a6a76350404e4b5cce3b91274a"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 2716,
+      "sha256": "31454a4224c01c2a94ec1b84200bde7e5f5e956ab19a42c9c86b8b01dd5a24f6"
+    }
   ]
 }

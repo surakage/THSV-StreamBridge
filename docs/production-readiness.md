@@ -1,6 +1,6 @@
 # Production-readiness gate
 
-`2.3.1` is the published stable release. The automated, clean-machine, and visual gates below pass; the live-runtime items listed under "Remaining live verification" are still in progress. Publishing stable was a deliberate maintainer decision: the runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
+`2.4.0` is the stable release baseline. The bridge, every first-party add-on, and every Streamer.bot import share that visible version while the add-on/event API contract remains independently versioned. The automated, clean-machine, and visual gates below pass; the live-runtime items listed under "Remaining live verification" are still in progress. Publishing stable is a deliberate maintainer decision: the runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
 
 ## Automated gate
 

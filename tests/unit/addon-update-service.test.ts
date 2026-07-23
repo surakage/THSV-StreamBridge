@@ -49,16 +49,27 @@ function published(moduleId: string, version: string, overrides: Record<string, 
 
 function responses(indexBody: unknown): ReturnType<typeof vi.fn<typeof fetch>> {
   const encoded = JSON.stringify(indexBody);
+  const publishedPackages = (indexBody as { packages?: Array<{ archiveName?: string }> }).packages ?? [];
   return vi.fn<typeof fetch>()
     .mockResolvedValueOnce(new Response(JSON.stringify({
       html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0',
       draft: false,
       prerelease: false,
-      assets: [{
-        name: 'THSV-StreamBridge-AddOns-index.json',
-        browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json',
-        size: Buffer.byteLength(encoded),
-      }],
+      assets: [
+        {
+          name: 'THSV-StreamBridge-AddOns-index.json',
+          browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json',
+          size: Buffer.byteLength(encoded),
+        },
+        ...publishedPackages.map((entry) => {
+          if (typeof entry.archiveName !== 'string') throw new Error('Test package archive name is required.');
+          return {
+            name: entry.archiveName,
+            browser_download_url: `https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/${entry.archiveName}`,
+            size: 1024,
+          };
+        }),
+      ],
     }), { status: 200 }))
     .mockResolvedValueOnce(new Response(encoded, { status: 200, headers: { 'content-length': String(Buffer.byteLength(encoded)) } }));
 }
@@ -81,7 +92,12 @@ describe('AddOnUpdateService', () => {
     expect(result).toMatchObject({ available: true, updateCount: 1, revokedCount: 1 });
     expect(result.addOns).toEqual([
       expect.objectContaining({ moduleId: 'thsv.current', state: 'current' }),
-      expect.objectContaining({ moduleId: 'thsv.update', state: 'update-available', latestVersion: '1.2.0' }),
+      expect.objectContaining({
+        moduleId: 'thsv.update',
+        state: 'update-available',
+        latestVersion: '1.2.0',
+        downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOn-thsv.update-1.2.0.zip',
+      }),
       expect.objectContaining({ moduleId: 'thsv.future', state: 'requires-newer-core' }),
       expect.objectContaining({ moduleId: 'thsv.unlisted', state: 'not-listed' }),
       expect.objectContaining({ moduleId: 'thsv.revoked', state: 'revoked' }),

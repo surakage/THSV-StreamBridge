@@ -14,7 +14,7 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.automated-shoutouts',
   name: 'Automated Shoutouts',
-  version: '1.1.0',
+  version: '2.4.0',
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',

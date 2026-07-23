@@ -7,7 +7,7 @@ Subathon Timer `1.1.0` is an optional THSV StreamBridge add-on that maintains a 
 1. Install and configure THSV StreamBridge `2.2.0` or later.
 2. Download the separate Subathon Timer add-on ZIP from the same GitHub Release.
 3. In the wizard, open **Add-ons**, review and install the included `.thsv-addon`, then restart the bridge.
-4. Import the matching `THSV-StreamBridge-Subathon-Timer-1.1.0.sb` package into Streamer.bot.
+4. Import the matching `THSV-StreamBridge-Subathon-Timer-2.4.0.sb` package into Streamer.bot.
 5. Copy the hosted overlay URL shown on the add-on page into a browser source.
 
 The Streamer.bot import creates Start, Pause, Resume, Reset, and Add Time actions. To change the manual addition, edit the visible `subathonSeconds` Set Argument above the Add Time C# action; no code edit is required.

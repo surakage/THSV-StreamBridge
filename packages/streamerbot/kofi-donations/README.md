@@ -1,7 +1,7 @@
 # THSV StreamBridge - Ko-fi Donations
 
 1. Configure Ko-fi in Streamer.bot using its website webhook and Ko-fi verification token.
-2. Import `THSV-StreamBridge-KoFi-Donations-1.0.1.sb` and accept the reviewed C# warning.
+2. Import `THSV-StreamBridge-KoFi-Donations-2.4.0.sb` and accept the reviewed C# warning.
 3. Attach only **Integrations > Ko-Fi > Donation** to `THSV Addon - Ko-fi Donations - Intake`.
 4. Install the matching `.thsv-addon`, enable it in the wizard, and restart StreamBridge.
 

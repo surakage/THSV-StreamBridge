@@ -15,7 +15,7 @@ describe('Fan Crown Streamer.bot package', () => {
     });
     expect(manifest.actions[1]?.arguments).toEqual([expect.objectContaining({ name: 'fanCrownControlAction', value: 'reset-crown' })]);
     expect(manifest.actions[2]?.arguments).toEqual([expect.objectContaining({ name: 'fanCrownControlAction', value: 'reset-month' })]);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Fan-Crown-1.0.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Fan-Crown-2.4.0.sb']));
     expect(manifest.triggerSafety).toContain('Controller must remain triggerless');
   });
 

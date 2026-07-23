@@ -5,7 +5,7 @@ User Translate is an explicit, command-driven add-on. It remains separate from A
 ## Setup
 
 1. Download and extract `THSV-StreamBridge-AddOn-User-Translate-1.0.0.zip`, then install its `.thsv-addon` in the authenticated wizard.
-2. Import `Streamer.bot/THSV-StreamBridge-User-Translate-1.0.0.sb` from the same extracted bundle into Streamer.bot.
+2. Import `Streamer.bot/THSV-StreamBridge-User-Translate-2.4.0.sb` from the same extracted bundle into Streamer.bot.
 3. Inspect Streamer.bot from the wizard, approve `THSV Addon - User Translate - Translate Text` for the add-on, and save the grant.
 4. Choose the command prefix and language codes in the add-on settings. The add-on reads them from normalized public chat, so no separate Streamer.bot command is required.
 5. Set the known source language. MyMemory's documented API requires it; `auto` is not a valid source language.

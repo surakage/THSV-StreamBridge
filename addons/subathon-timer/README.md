@@ -4,7 +4,7 @@ This add-on keeps one bounded cross-platform subathon countdown using normalized
 
 ## Streamer.bot controls
 
-Import `THSV-StreamBridge-Subathon-Timer-1.1.0.sb` from this add-on's release bundle. It creates Start, Pause, Resume, Reset, and Add Time actions inside `THSV StreamBridge - Add-ons`. Attach them to hotkeys, deck buttons, or scene triggers. Add Time defaults to 300 seconds; edit that action's Set Argument value when you need a different amount.
+Import `THSV-StreamBridge-Subathon-Timer-2.4.0.sb` from this add-on's release bundle. It creates Start, Pause, Resume, Reset, and Add Time actions inside `THSV StreamBridge - Add-ons`. Attach them to hotkeys, deck buttons, or scene triggers. Add Time defaults to 300 seconds; edit that action's Set Argument value when you need a different amount.
 
 The imported actions send a tightly scoped local `addon.thsv.subathon-timer.control` relay. The older normalized `system.custom` shape remains supported for compatibility:
 

@@ -21,7 +21,7 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.subathon-timer',
   name: 'Subathon Timer',
-  version: '1.1.0',
+  version: '2.4.0',
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1',
   dependencies: [],
@@ -41,7 +41,7 @@ const manifest = {
   installationSteps: [
     'Install and enable the add-on, then choose your starting time, cap, and per-event bonuses.',
     'Use stream.online and stream.offline from your connected platform relays so the timer starts and pauses from real live state.',
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-1.1.0.sb package for Start, Pause, Resume, Reset, and Add Time actions.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-2.4.0.sb package for Start, Pause, Resume, Reset, and Add Time actions.',
     'Attach those optional control actions to hotkeys, scene triggers, or buttons in Streamer.bot. The imported actions relay only bounded local timer controls.',
     'Optional: enable the moderator commands if you also want chat-based controls.',
     'Use the core-owned hosted add-on overlay URL shown in the wizard. It renders the timer without executing add-on-supplied browser code.',

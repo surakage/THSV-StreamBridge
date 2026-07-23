@@ -7,7 +7,7 @@ The action validates the normalized event envelope supplied in `streamBridgeEven
 ## Install
 
 1. Open Streamer.bot and select **Import**.
-2. Drag `THSV-StreamBridge-Core-Receiver-2.0.0-preview.1.sb` into the import field, or paste the file contents.
+2. Drag `THSV-StreamBridge-Core-Receiver-2.4.0.sb` into the import field, or paste the file contents.
 3. Confirm the package metadata and import the `THSV StreamBridge - Receive Event` action.
 4. Keep the bridge configuration `streamerbot.actionAlias` set to that exact action name.
 5. Enable the Streamer.bot WebSocket server, start the bridge, and run `npm run simulate`.

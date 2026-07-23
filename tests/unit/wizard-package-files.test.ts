@@ -6,7 +6,7 @@ describe('wizard launcher package', () => {
   it('contains author, description, reviewed source, and only a loopback wizard URL', async () => {
     const root = 'packages/streamerbot/wizard-launcher';
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as { name: string; version: string; author: string; description: string; action: { source: string; importFile: string } };
-    expect(manifest).toMatchObject({ version: '2.1.0', author: 'surakage' });
+    expect(manifest).toMatchObject({ version: '2.4.0', author: 'surakage' });
     expect(manifest.description.length).toBeGreaterThan(20);
     const source = await readFile(`${root}/${manifest.action.source}`, 'utf8');
     expect(source).toContain('open-wizard.mjs');

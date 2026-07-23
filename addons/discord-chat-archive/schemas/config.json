@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Discord Chat Archive",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Discord Chat Archive", "description": "Disabled by default. Complete the Discord and Streamer.bot setup first.", "default": false },
+    "enabledPlatforms": { "type": "array", "title": "Platforms to archive", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "ignoreBots": { "type": "boolean", "title": "Ignore detected bot accounts", "description": "Uses StreamBridge's normalized human, bot, and system actor classification.", "default": true },
+    "ignoredUsers": { "type": "array", "title": "Ignored viewers and bots", "description": "One exact value per line: username, platform:username, or platform:id:stable-user-id. Matching is case-insensitive.", "items": { "type": "string", "minLength": 1, "maxLength": 300 }, "maxItems": 500, "uniqueItems": true, "default": [] },
+    "ignoreCommands": { "type": "boolean", "title": "Ignore command messages", "description": "Skips messages beginning with the saved command prefix.", "default": false },
+    "commandPrefix": { "type": "string", "title": "Command prefix", "minLength": 1, "maxLength": 1, "pattern": "^\\S$", "default": "!" },
+    "includeSimulatedMessages": { "type": "boolean", "title": "Allow simulated messages", "description": "Off by default so trigger tests cannot write to the real Discord channel.", "default": false },
+    "messageTemplate": { "type": "string", "format": "multiline", "title": "Archived message format", "description": "Tokens: {time}, {date}, {platform}, {displayName}, {user}, {message}, and {channel}. Mentions are neutralized.", "minLength": 1, "maxLength": 500, "default": "[{time}] [{platform}] {displayName}: {message}" },
+    "webhookDisplayName": { "type": "string", "title": "Discord webhook display name", "description": "Used for normal batches. The private webhook URL stays in Streamer.bot and is never saved here.", "minLength": 1, "maxLength": 80, "default": "THSV Chat Archive" },
+    "useViewerIdentityForSingleMessage": { "type": "boolean", "title": "Use viewer name for single-message deliveries", "description": "Off by default so Discord clearly identifies the archive bot instead of appearing to impersonate viewers.", "default": false },
+    "useViewerAvatarForSingleMessage": { "type": "boolean", "title": "Use viewer profile picture for single messages", "default": false },
+    "batchWindowSeconds": { "type": "integer", "title": "Collect messages for (seconds)", "description": "Five seconds keeps the add-on below StreamBridge's approved-action rate limit while reducing Discord webhook calls.", "minimum": 5, "maximum": 30, "default": 5 },
+    "maximumMessagesPerBatch": { "type": "integer", "title": "Maximum messages per Discord post", "minimum": 1, "maximum": 20, "default": 10 },
+    "maximumQueueMessages": { "type": "integer", "title": "Maximum messages waiting", "description": "When full, the oldest waiting message is omitted and a bounded notice is added to the next post.", "minimum": 10, "maximum": 500, "default": 100 },
+    "maximumMessageCharacters": { "type": "integer", "title": "Maximum characters copied from one chat message", "minimum": 40, "maximum": 1000, "default": 500 },
+    "retryCount": { "type": "integer", "title": "Retry failed Discord posts", "description": "Retries stay in memory only and are discarded when StreamBridge stops.", "minimum": 0, "maximum": 2, "default": 1 },
+    "retryDelaySeconds": { "type": "integer", "title": "Wait before retrying (seconds)", "minimum": 5, "maximum": 60, "default": 10 },
+    "showDroppedMessageNotice": { "type": "boolean", "title": "Report messages omitted by a full queue", "default": true }
+  }
+}

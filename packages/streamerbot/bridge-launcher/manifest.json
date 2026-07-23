@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Bridge Launcher",
-  "version": "1.4.0",
+  "version": "2.4.0",
   "author": "surakage",
   "description": "Launches and stops THSV StreamBridge through its validated PowerShell lifecycle scripts without exposing its control token to Streamer.bot.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
@@ -24,7 +24,7 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
       ],
       "source": "src/LaunchBridge.cs",
-      "importFile": "THSV-StreamBridge-Bridge-Launcher-1.4.0.sb"
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-2.4.0.sb"
     },
     {
       "name": "THSV StreamBridge - Shutdown Bridge",
@@ -44,13 +44,20 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
       ],
       "source": "src/ShutdownBridge.cs",
-      "importFile": "THSV-StreamBridge-Bridge-Launcher-1.4.0.sb"
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-2.4.0.sb"
     }
   ],
-  "runtime": { "queue": "Default", "concurrent": true },
-  "editableArguments": ["thsvBridgeInstallPath"],
+  "runtime": {
+    "queue": "Default",
+    "concurrent": true
+  },
+  "editableArguments": [
+    "thsvBridgeInstallPath"
+  ],
   "manualTriggerSetup": {
-    "launch": ["Core > Streamer.bot > Streamer.bot Started"],
+    "launch": [
+      "Core > Streamer.bot > Streamer.bot Started"
+    ],
     "shutdown": []
   },
   "triggerSafety": "Launch may use Streamer.bot Started. Keep Shutdown manual; attaching it to one platform's offline event would incorrectly stop a multi-platform bridge while another platform remains live.",

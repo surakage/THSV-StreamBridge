@@ -35,6 +35,7 @@ export interface AddOnUpdateItem {
   readonly latestVersion?: string;
   readonly publisherId?: string;
   readonly archiveName?: string;
+  readonly downloadUrl?: string;
   readonly sha256?: string;
   readonly warning?: string;
 }
@@ -76,7 +77,13 @@ export class AddOnUpdateService {
       const encoded = new Uint8Array(await indexResponse.arrayBuffer());
       if (encoded.byteLength === 0 || encoded.byteLength > MAXIMUM_INDEX_BYTES) throw new Error('The published add-on index is empty or exceeds the 1 MiB safety limit.');
       const index = parseIndex(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(encoded)) as unknown, this.repository);
-      const addOns = installed.map((addOn) => evaluateAddOn(addOn, index.packages, index.revoked, this.currentCoreVersion));
+      const addOns = installed.map((addOn) => evaluateAddOn(
+        addOn,
+        index.packages,
+        index.revoked,
+        this.currentCoreVersion,
+        (archiveName) => findPackageAssetUrl(release.assets, archiveName, this.repository),
+      ));
       return {
         checkedAt,
         available: true,
@@ -112,6 +119,18 @@ function findIndexAsset(value: unknown, repository: string): { readonly url: str
   return { url };
 }
 
+function findPackageAssetUrl(value: unknown, archiveName: string, repository: string): string {
+  if (!Array.isArray(value)) throw new Error('GitHub returned an invalid release asset list.');
+  const matches = value.filter((entry): entry is GitHubReleaseAsset => {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) return false;
+    return (entry as Record<string, unknown>)['name'] === archiveName;
+  });
+  if (matches.length !== 1) throw new Error(`The latest release must contain exactly one ${archiveName} asset.`);
+  const asset = matches[0];
+  if (typeof asset?.size !== 'number' || !Number.isSafeInteger(asset.size) || asset.size < 1 || asset.size > 1_073_741_824) throw new Error(`GitHub returned an invalid size for ${archiveName}.`);
+  return trustedUrl(asset.browser_download_url, 'add-on package URL', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${repository}/releases/download/`));
+}
+
 function parseIndex(value: unknown, repository: string): { readonly packages: readonly AddOnIndexPackage[]; readonly revoked: ReadonlySet<string> } {
   const index = record(value, 'add-on index');
   if (index['schemaVersion'] !== 1 || index['product'] !== 'THSV StreamBridge Add-ons') throw new Error('The published add-on index uses an unsupported format.');
@@ -140,7 +159,13 @@ function parseIndex(value: unknown, repository: string): { readonly packages: re
   return { packages, revoked };
 }
 
-function evaluateAddOn(installed: InstalledAddOnSummary, packages: readonly AddOnIndexPackage[], revoked: ReadonlySet<string>, coreVersion: string): AddOnUpdateItem {
+function evaluateAddOn(
+  installed: InstalledAddOnSummary,
+  packages: readonly AddOnIndexPackage[],
+  revoked: ReadonlySet<string>,
+  coreVersion: string,
+  packageUrl: (archiveName: string) => string,
+): AddOnUpdateItem {
   const base = { moduleId: installed.moduleId, name: installed.name, installedVersion: installed.version };
   if (installed.health === 'rejected') return { ...base, state: 'rejected', warning: installed.error ?? 'The installed package failed local verification.' };
   const published = packages.find((entry) => entry.moduleId === installed.moduleId);
@@ -150,8 +175,9 @@ function evaluateAddOn(installed: InstalledAddOnSummary, packages: readonly AddO
   if (installedPublisher !== published.publisherId) return { ...base, state: 'publisher-mismatch', ...publishedFields(published), warning: `Publisher mismatch: installed ${installedPublisher ?? 'not declared'}; index ${published.publisherId ?? 'not declared'}. No update should be installed.` };
   const compatibility: AddOnCompatibility = compareVersions(coreVersion, published.minimumCoreVersion) < 0 ? 'requires-newer-core' : (compareVersions(coreVersion, published.maximumTestedCoreVersion) > 0 ? 'newer-than-tested' : 'compatible');
   const newer = compareVersions(installed.version, published.version) < 0;
-  if (newer && compatibility === 'requires-newer-core') return { ...base, state: 'requires-newer-core', compatibility, ...publishedFields(published), warning: `Version ${published.version} requires StreamBridge ${published.minimumCoreVersion} or newer.` };
-  return { ...base, state: newer ? 'update-available' : 'current', compatibility, ...publishedFields(published), ...(compatibility === 'newer-than-tested' ? { warning: `This add-on was tested through StreamBridge ${published.maximumTestedCoreVersion}; your core is newer.` } : {}) };
+  const downloadUrl = packageUrl(published.archiveName);
+  if (newer && compatibility === 'requires-newer-core') return { ...base, state: 'requires-newer-core', compatibility, ...publishedFields(published), downloadUrl, warning: `Version ${published.version} requires StreamBridge ${published.minimumCoreVersion} or newer.` };
+  return { ...base, state: newer ? 'update-available' : 'current', compatibility, ...publishedFields(published), downloadUrl, ...(compatibility === 'newer-than-tested' ? { warning: `This add-on was tested through StreamBridge ${published.maximumTestedCoreVersion}; your core is newer.` } : {}) };
 }
 
 function publishedFields(value: AddOnIndexPackage): Pick<AddOnUpdateItem, 'latestVersion' | 'publisherId' | 'archiveName' | 'sha256'> {

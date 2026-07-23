@@ -14,7 +14,7 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '1.0.0',
+  version: '2.4.0',
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1',
   dependencies: [],

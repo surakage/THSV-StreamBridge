@@ -14,7 +14,7 @@ describe('Raid Scout package files', () => {
       group: 'THSV StreamBridge - Add-ons',
     });
     expect(manifest.actions.slice(1).map((action) => action.arguments?.[0]?.value)).toEqual(['suggest', 'confirm', 'cancel']);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Raid-Scout-1.0.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Raid-Scout-2.4.0.sb']));
     expect(manifest.triggerSafety).toContain('Controller must remain triggerless');
   });
 
