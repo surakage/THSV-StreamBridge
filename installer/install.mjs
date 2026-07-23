@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 const PRODUCT = 'THSV StreamBridge';
@@ -146,16 +147,29 @@ async function verifyCopiedSection(value, prefix, destination, include = () => t
 }
 
 async function replaceDirectory(target, staged, backup, operations) {
-  if (await exists(target)) { await rename(target, backup); operations.push({ target, backup }); }
+  if (await exists(target)) { await renameWithRetry(target, backup); operations.push({ target, backup }); }
   await mkdir(dirname(target), { recursive: true });
-  await rename(staged, target);
+  await renameWithRetry(staged, target);
   operations.push({ target, backup: undefined });
 }
 
 async function rollbackDirectories(operations) {
   for (const operation of [...operations].reverse()) {
     if (operation.backup === undefined) await rm(operation.target, { recursive: true, force: true });
-    else if (await exists(operation.backup)) { await rm(operation.target, { recursive: true, force: true }); await rename(operation.backup, operation.target); }
+    else if (await exists(operation.backup)) { await rm(operation.target, { recursive: true, force: true }); await renameWithRetry(operation.backup, operation.target); }
+  }
+}
+
+async function renameWithRetry(source, destination) {
+  const retryable = new Set(['EACCES', 'EBUSY', 'ENOTEMPTY', 'EPERM']);
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await rename(source, destination);
+      return;
+    } catch (error) {
+      if (!retryable.has(error?.code) || attempt >= 11) throw error;
+      await delay(Math.min(50 * (2 ** attempt), 400));
+    }
   }
 }
 
@@ -217,7 +231,7 @@ function compareVersions(left, right) {
   if (a[3] === b[3]) return 0; if (a[3] === undefined) return 1; if (b[3] === undefined) return -1; return String(a[3]).localeCompare(String(b[3]));
 }
 
-async function writeJsonAtomic(path, value) { await mkdir(dirname(path), { recursive: true }); const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, 'utf8'); await rename(temporary, path); }
+async function writeJsonAtomic(path, value) { await mkdir(dirname(path), { recursive: true }); const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, 'utf8'); await renameWithRetry(temporary, path); }
 async function readJsonIfPresent(path) { try { return JSON.parse(await readFile(path, 'utf8')); } catch (error) { if (error?.code === 'ENOENT') return undefined; throw error; } }
 function isReleaseVersion(value) { return /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u.test(value); }
 async function sha256(path) { return createHash('sha256').update(await readFile(path)).digest('hex'); }

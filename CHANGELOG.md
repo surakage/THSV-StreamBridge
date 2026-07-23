@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-07-22
+
+- Fixed transient Windows `EPERM`, `EBUSY`, `EACCES`, and `ENOTEMPTY` file locks during portable upgrades and rollback by applying bounded retry and backoff to atomic directory and manifest swaps.
+
 ## [2.3.0] - 2026-07-22
 
 - Added Scene Actions `1.0.0`: one documented OBS Studio, Streamlabs Desktop, and Meld Studio scene-change intake normalizes `stream.scene-changed` through the existing Streamer.bot WebSocket. A guided wizard editor maps exact scene names to creator-approved stable action IDs, with editable starter actions, optional delays, duplicate suppression, loop-rate protection, and Trigger Test safety. The same scene events now make core Timed Action scene gates operational without another connection.
