@@ -1,0 +1,50 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Runs one rotating Streamer.bot-owned Twitch Fan Crown reward with bounded pricing, stable-identity eligibility, result-confirmed mutations, and a private monthly leaderboard.",
+  "changelog": "1.0.0: initial release with fixed or multiplier price progression, a hard cost cap, current-holder and per-user cooldown rules, optional stream reset, local-calendar monthly rollover, points-spent ranking, reign tracking, editable chat messages, a styled hosted overlay card, and separate controller/reset Streamer.bot actions.",
+  "permissions": ["events.subscribe", "streamerbot.run-approved-action", "state.private", "chat.send", "overlay.publish", "schedule.bounded"],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.fan-crown",
+    "name": "Fan Crown",
+    "version": "1.0.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": ["reward.redemption", "stream.online", "addon.thsv.fan-crown.controller-result", "addon.thsv.fan-crown.control"],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": ["data/addons/thsv.fan-crown/", "data/addons/.state/thsv.fan-crown/"],
+    "installationSteps": [
+      "Import the separate Fan Crown Streamer.bot package.",
+      "Keep its Controller action triggerless and approve only that action for this add-on.",
+      "Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.",
+      "Create one Streamer.bot-owned Twitch reward and match its Reward ID, base title, and base cost in the wizard."
+    ],
+    "uninstallationSteps": ["Uninstall the add-on. Its compact private season state remains preserved for a later reinstall."],
+    "migrations": [],
+    "healthChecks": [
+      { "id": "thsv.fan-crown.runtime", "description": "Confirms serialized crown captures, result-correlated reward administration, bounded pricing, and private monthly ranking state." }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    { "path": "dist/index.js", "size": 27258, "sha256": "3f5978ca62187545f38f3b10f7bfa5b8bf42a70581593e868ff056ff3b4cbe3f" },
+    { "path": "schemas/config.json", "size": 5332, "sha256": "94190ea63187532a2580d9ff5894a4ed6908d4ce03389eb2dad1dd05fe49daa9" },
+    { "path": "ui/settings.json", "size": 3830, "sha256": "ebe3532caaf286f1f14aafa1edaba67c96baa7764a33dc0afcc85f98669b81e5" },
+    { "path": "README.md", "size": 1399, "sha256": "0884df2c0c3aea538d897c88383b6fb68fab9bf2fb2ca078c33e9ea99ce440a5" }
+  ]
+}

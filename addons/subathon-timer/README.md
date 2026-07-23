@@ -40,6 +40,8 @@ Example payload:
 
 The core-owned, allowlisted add-on overlay host renders the timer at:
 
-- `http://127.0.0.1:8787/overlay/addons/thsv.subathon-timer`
+- `http://127.0.0.1:8787/overlay/subathon`
+
+The previous module-ID URL remains supported so existing scenes do not break.
 
 The add-on settings let the creator change the overlay font family, background mode, background opacity, border color, accent color, warning and critical colors, and whether the progress bar is shown. The add-on publishes only bounded data; its package does not execute custom browser code.

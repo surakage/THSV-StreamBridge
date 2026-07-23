@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFile } from 'node:fs/promises';
 /* eslint-disable @typescript-eslint/no-unsafe-call -- executable add-on exports are intentionally loaded from verified plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import { channelUrl, fitMessageToPlatforms, matchesViewerRule, renderTemplate, viewerKey } from '../../addons/automated-shoutouts/dist/index.js';
@@ -35,5 +36,18 @@ describe('Automated Shoutouts add-on helpers', () => {
     const result = fitMessage(`Watch ${'A'.repeat(500)} https://twitch.tv/creator_name`, candidate, ['twitch', 'tiktok']);
     expect(result.length).toBeLessThanOrEqual(150);
     expect(result).toMatch(/… https:\/\/twitch\.tv\/creator_name$/u);
+  });
+
+  it('keeps Twitch visual choices in one guided section and other platforms chat-only', async () => {
+    const schema = JSON.parse(await readFile('addons/automated-shoutouts/schemas/config.json', 'utf8')) as { properties: Record<string, { enum?: string[]; default?: unknown }> };
+    const ui = JSON.parse(await readFile('addons/automated-shoutouts/ui/settings.json', 'utf8')) as { sections: Array<{ id: string; fields: string[] }> };
+    expect(schema.properties['twitchVisualType']?.enum).toEqual(['profile-card', 'random-clip']);
+    expect(schema.properties['twitchVisualTriggers']?.default).toEqual(['raid', 'first-chat', 'manual']);
+    expect(schema.properties['clipMuted']?.default).toBe(true);
+    expect(ui.sections.find((section) => section.id === 'overlay')?.fields).toContain('clipFallbackToCard');
+    expect(ui.sections.find((section) => section.id === 'overlay')?.fields).toContain('twitchVisualTriggers');
+    expect(schema.properties).not.toHaveProperty('youtubeVisualType');
+    expect(schema.properties).not.toHaveProperty('kickVisualType');
+    expect(schema.properties).not.toHaveProperty('tiktokVisualType');
   });
 });

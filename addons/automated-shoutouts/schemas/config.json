@@ -30,7 +30,17 @@
     "maximumQueueSize": { "type": "integer", "title": "Maximum queued shoutouts", "minimum": 1, "maximum": 20, "default": 10 },
     "queueExpiryMinutes": { "type": "integer", "title": "Drop queued shoutouts after (minutes)", "minimum": 1, "maximum": 60, "default": 10 },
     "twitchShoutoutMode": { "type": "string", "title": "Twitch shoutout mode", "description": "Native uses Streamer.bot's Twitch API action and its platform cooldowns. Both sends native plus editable text.", "enum": ["text", "native", "both"], "default": "text" },
-    "showOverlayCard": { "type": "boolean", "title": "Show a shoutout card in the hosted add-on overlay", "default": true },
-    "overlayDurationSeconds": { "type": "integer", "title": "Overlay card duration (seconds)", "minimum": 2, "maximum": 60, "default": 10 }
+    "showOverlayCard": { "type": "boolean", "title": "Show a Twitch visual popup", "description": "Twitch can show a profile card or random clip. YouTube, Kick, and TikTok remain chat-only.", "default": true },
+    "twitchVisualTriggers": { "type": "array", "title": "Show the Twitch popup for", "description": "Choose which Twitch shoutout paths can display the selected profile card or clip.", "items": { "type": "string", "enum": ["raid", "first-chat", "manual"] }, "minItems": 1, "maxItems": 3, "uniqueItems": true, "default": ["raid", "first-chat", "manual"] },
+    "twitchVisualType": { "type": "string", "title": "Twitch popup style", "enum": ["profile-card", "random-clip"], "default": "profile-card" },
+    "overlayCardTemplate": { "type": "string", "format": "multiline", "title": "Profile-card message", "description": "Tokens: {displayName}, {user}, {category}, {channelUrl}, {viewers}, and {trigger}.", "minLength": 1, "maxLength": 1000, "default": "Go show {displayName} some love! They stream {category}. {channelUrl}" },
+    "overlayDurationSeconds": { "type": "integer", "title": "Profile-card duration (seconds)", "minimum": 2, "maximum": 60, "default": 10 },
+    "clipCount": { "type": "integer", "title": "Clips considered per shoutout", "minimum": 1, "maximum": 100, "default": 20 },
+    "clipMaximumAgeDays": { "type": "integer", "title": "Maximum clip age (days)", "minimum": 1, "maximum": 3650, "default": 90 },
+    "clipMaximumDurationSeconds": { "type": "integer", "title": "Maximum clip length (seconds)", "minimum": 5, "maximum": 60, "default": 30 },
+    "clipPreferPopular": { "type": "boolean", "title": "Prefer clips with more views", "description": "Uses weighted random selection; every eligible clip can still be selected.", "default": false },
+    "clipMuted": { "type": "boolean", "title": "Mute clips", "description": "Muted playback is the most reliable choice for browser-source autoplay.", "default": true },
+    "clipVolume": { "type": "number", "title": "Clip volume", "minimum": 0, "maximum": 1, "default": 0.7 },
+    "clipFallbackToCard": { "type": "boolean", "title": "Show the profile card when no clip is available", "default": true }
   }
 }

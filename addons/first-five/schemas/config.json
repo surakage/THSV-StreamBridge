@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "First Five",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable First Five",
+      "default": true
+    },
+    "reward1Id": {
+      "type": "string",
+      "title": "1st-place Reward ID",
+      "description": "Right-click the Streamer.bot-owned Twitch reward and copy its Reward ID.",
+      "maxLength": 256,
+      "default": ""
+    },
+    "reward2Id": {
+      "type": "string",
+      "title": "2nd-place Reward ID",
+      "maxLength": 256,
+      "default": ""
+    },
+    "reward3Id": {
+      "type": "string",
+      "title": "3rd-place Reward ID",
+      "maxLength": 256,
+      "default": ""
+    },
+    "reward4Id": {
+      "type": "string",
+      "title": "4th-place Reward ID",
+      "maxLength": 256,
+      "default": ""
+    },
+    "reward5Id": {
+      "type": "string",
+      "title": "5th-place Reward ID",
+      "maxLength": 256,
+      "default": ""
+    },
+    "reward1Title": {
+      "type": "string",
+      "title": "Available 1st-place title",
+      "minLength": 1,
+      "maxLength": 45,
+      "default": "Claim 1st Place"
+    },
+    "reward2Title": {
+      "type": "string",
+      "title": "Available 2nd-place title",
+      "minLength": 1,
+      "maxLength": 45,
+      "default": "Claim 2nd Place"
+    },
+    "reward3Title": {
+      "type": "string",
+      "title": "Available 3rd-place title",
+      "minLength": 1,
+      "maxLength": 45,
+      "default": "Claim 3rd Place"
+    },
+    "reward4Title": {
+      "type": "string",
+      "title": "Available 4th-place title",
+      "minLength": 1,
+      "maxLength": 45,
+      "default": "Claim 4th Place"
+    },
+    "reward5Title": {
+      "type": "string",
+      "title": "Available 5th-place title",
+      "minLength": 1,
+      "maxLength": 45,
+      "default": "Claim 5th Place"
+    },
+    "claimedTitleTemplate": {
+      "type": "string",
+      "title": "Claimed reward title",
+      "description": "Tokens: {name}, {ordinal}. The rendered title is safely limited to Twitch's 45-character maximum.",
+      "minLength": 1,
+      "maxLength": 100,
+      "default": "{name} was {ordinal}"
+    },
+    "announceClaims": {
+      "type": "boolean",
+      "title": "Announce successful placements in Twitch chat",
+      "default": true
+    },
+    "claimMessageTemplate": {
+      "type": "string",
+      "title": "Successful-claim message",
+      "description": "Tokens: {name}, {ordinal}, {position}.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{name} claimed {ordinal} place in First Five!"
+    },
+    "notifyRejectedClaims": {
+      "type": "boolean",
+      "title": "Tell repeat claimants why they were refunded",
+      "default": false
+    },
+    "rejectedMessageTemplate": {
+      "type": "string",
+      "title": "Repeat-claim message",
+      "description": "Token: {name}. Leave repeat notifications off to reduce chat noise.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{name}, you already claimed a First Five place this stream."
+    },
+    "announceMonthlyWinner": {
+      "type": "boolean",
+      "title": "Announce the previous month's winner",
+      "description": "The announcement is sent on the first Twitch stream or First Five event in the new month.",
+      "default": true
+    },
+    "monthlyWinnerMessageTemplate": {
+      "type": "string",
+      "title": "Monthly-winner message",
+      "description": "Tokens: {name}, {points}, {firsts}, {month}.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "Last month’s First Five winner was {name} with {points} points!"
+    },
+    "showLeaderboardCard": {
+      "type": "boolean",
+      "title": "Show a First Five leaderboard card after updates",
+      "default": true
+    },
+    "leaderboardCardSeconds": {
+      "type": "integer",
+      "title": "Leaderboard card duration (seconds)",
+      "minimum": 5,
+      "maximum": 3600,
+      "default": 30
+    }
+  }
+}

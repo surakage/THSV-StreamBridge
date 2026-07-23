@@ -1,6 +1,11 @@
 (() => {
   'use strict';
-  const moduleId = location.pathname.slice('/overlay/addons/'.length);
+  const aliases = Object.freeze({
+    '/overlay/shoutouts': 'thsv.automated-shoutouts',
+    '/overlay/clips': 'thsv.random-clip-player',
+    '/overlay/subathon': 'thsv.subathon-timer',
+  });
+  const moduleId = aliases[location.pathname] || location.pathname.slice('/overlay/addons/'.length);
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId)) return;
   const card = document.getElementById('card');
   const cardImage = document.getElementById('card-image');
@@ -105,8 +110,18 @@
     hideTimer();
     const title = typeof payload.title === 'string' ? payload.title.slice(0, 200) : '';
     const text = typeof payload.text === 'string' ? payload.text.slice(0, 1_000) : '';
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
     const imageUrl = safeUrl(payload.imageUrl);
     if (imageUrl) { cardImage.src = imageUrl; cardImage.classList.remove('hidden'); }
+    const backgroundMode = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass';
+    const fontFamily = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
+    card.dataset.background = backgroundMode;
+    card.dataset.font = fontFamily;
+    card.style.setProperty('--card-background', safeColor(style.backgroundColor, '#140d1f'));
+    card.style.setProperty('--card-background-rendered', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#140d1f', 0.94));
+    card.style.setProperty('--card-accent', safeColor(style.accentColor, '#ffffff'));
+    card.style.setProperty('--card-border', colorWithOpacity(style.accentColor, 0.36, '#ffffff', 0.18));
+    card.style.setProperty('--card-text', safeColor(style.textColor, '#ffffff'));
     cardTitle.textContent = title;
     cardText.textContent = text;
     card.classList.remove('hidden');

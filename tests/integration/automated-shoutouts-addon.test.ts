@@ -68,7 +68,7 @@ describe('Automated Shoutouts installed add-on', () => {
     expect(sends).toEqual([{ message: 'Thank you Friendly Raider for the raid with 42 viewers! They stream Just Chatting. Watch them at https://twitch.tv/friendly_raider', routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }]);
     expect(overlays).toHaveLength(1);
     expect(overlays[0]?.topic).toBe('thsv.automated-shoutouts.card.show');
-    expect(overlays[0]?.payload).toMatchObject({ title: 'Friendly Raider · twitch', imageUrl: 'https://example.com/verified-avatar.png' });
+    expect(overlays[0]?.payload).toMatchObject({ title: 'Meet Friendly Raider on Twitch', imageUrl: 'https://example.com/verified-avatar.png' });
     await registry.stop();
   });
 
@@ -100,10 +100,55 @@ describe('Automated Shoutouts installed add-on', () => {
       user: { name: 'tiktok_creator', displayName: 'TikTok Creator', actorType: 'human', roles: ['viewer'] }, payload: { message: 'hello' }, metadata: { simulated: true },
     }));
     expect(sends).toHaveLength(0);
-    expect(overlays).toHaveLength(3);
-    expect(overlays[0]).toMatchObject({ payload: { text: 'Welcome to the stream, Creator! Thanks for joining us on YouTube.' } });
-    expect(overlays[1]).toMatchObject({ payload: { text: 'Welcome to the stream, Kick Creator! Thanks for joining us on Kick.' } });
-    expect(overlays[2]).toMatchObject({ payload: { text: 'Welcome, TikTok Creator! Thanks for joining the TikTok live.' } });
+    expect(overlays).toHaveLength(0); // Non-Twitch welcomes remain chat-only, including previews.
+    await registry.stop();
+  });
+
+  it('requests and plays a bounded Twitch target clip through the shared hosted overlay', async () => {
+    const installed = await installAddOnPackage('addons/automated-shoutouts', addOnsRoot, true);
+    await mkdir(join(stateRoot, 'thsv.automated-shoutouts'), { recursive: true });
+    await writeFile(join(stateRoot, 'thsv.automated-shoutouts', 'settings.json'), JSON.stringify({
+      twitchVisualType: 'random-clip', clipCount: 30, clipMaximumAgeDays: 60,
+      clipMaximumDurationSeconds: 25, clipPreferPopular: true, clipMuted: false, clipVolume: 0.5,
+    }));
+    const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
+    const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.automated-shoutouts');
+    if (module === undefined) throw new Error('Automated Shoutouts must load.');
+    const actions: Array<{ actionId: string; argumentsValue: unknown }> = [];
+    const overlays: Array<{ topic: string; payload: unknown }> = [];
+    const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
+      routeOutboundMessage: async () => [{ platform: 'twitch', accepted: true, parts: 1 }],
+      publishOverlay: async (_moduleId, topic, payload) => { overlays.push({ topic, payload }); },
+      runStreamerBotAction: async (actionId, argumentsValue) => { actions.push({ actionId, argumentsValue }); },
+    });
+    const registry = new ModuleRegistry([{ ...module, capabilityGrant: {
+      moduleId: module.manifest.moduleId,
+      permissions: installed.descriptor.permissions,
+      approvedActionIds: ['e3d92d7e-193a-5bba-8b8c-4f17e605c9d2', 'e47c65a2-09d2-5c5b-9c99-c98e3e1d9362'],
+    } }], silentLogger, 5_000, broker);
+    await registry.start();
+    await registry.publish(event({ eventId: 'clip-raid' }));
+    await registry.publish(event({
+      eventId: 'clip-profile', eventType: 'addon.thsv.automated-shoutouts.twitch-profile-received', platform: 'system',
+      source: { adapter: 'streamerbot-addon-relay', eventId: 'clip-profile-relay', eventName: 'Lookup Twitch Creator' },
+      user: undefined, payload: { lookupId: 'clip-raid', category: 'Art', profileImageUrl: 'https://example.com/avatar.png' },
+    }));
+    expect(actions).toHaveLength(2);
+    expect(actions[1]).toMatchObject({
+      actionId: 'e47c65a2-09d2-5c5b-9c99-c98e3e1d9362',
+      argumentsValue: { lookupId: 'clip-raid', targetUserName: 'friendly_raider', clipCount: 30, maximumAgeDays: 60, maximumDurationSeconds: 25, preferPopular: true },
+    });
+    await registry.publish(event({
+      eventId: 'clip-result', eventType: 'addon.thsv.automated-shoutouts.twitch-clip-received', platform: 'system',
+      source: { adapter: 'streamerbot-addon-relay', eventId: 'clip-result-relay', eventName: 'Get Twitch Clip' },
+      user: undefined,
+      payload: { lookupId: 'clip-raid', found: true, clipId: 'FriendlyClip123', title: 'A lovely clip', thumbnailUrl: 'https://example.com/clip.jpg', durationSeconds: 20, landscapeUrl: 'https://example.com/clip.mp4' },
+    }));
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0]).toMatchObject({
+      topic: 'thsv.automated-shoutouts.media.play',
+      payload: { url: 'https://example.com/clip.mp4', muted: false, volume: 0.5, posterUrl: 'https://example.com/clip.jpg', title: 'A lovely clip', durationMs: 20_000 },
+    });
     await registry.stop();
   });
 
@@ -120,9 +165,11 @@ describe('Automated Shoutouts installed add-on', () => {
     if (module === undefined) throw new Error('Automated Shoutouts must load.');
     const sends: unknown[] = [];
     const actions: Array<{ actionId: string; argumentsValue: unknown }> = [];
+    const overlays: Array<{ topic: string; payload: unknown }> = [];
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
       routeOutboundMessage: async (request) => { sends.push(request); return [{ platform: 'twitch', accepted: true, parts: 1 }]; },
       runStreamerBotAction: async (actionId, argumentsValue) => { actions.push({ actionId, argumentsValue }); },
+      publishOverlay: async (_moduleId, topic, payload) => { overlays.push({ topic, payload }); },
     });
     const registry = new ModuleRegistry([{ ...module, capabilityGrant: {
       moduleId: module.manifest.moduleId,
@@ -144,9 +191,49 @@ describe('Automated Shoutouts installed add-on', () => {
       user: undefined, payload: { lookupId: 'twitch-first-viewer', category: '', profileImageUrl: '' },
     }));
     expect(sends).toEqual([{ message: 'Hello Friendly Viewer, welcome to the stream!', routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }]);
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0]).toMatchObject({ topic: 'thsv.automated-shoutouts.card.show', payload: { title: 'Meet Friendly Viewer on Twitch' } });
     await registry.publish({ ...firstChat, eventId: 'twitch-second-viewer', source: { ...firstChat.source, eventId: 'twitch-message-2' } });
     expect(actions).toHaveLength(1);
     expect(sends).toHaveLength(1);
+    await registry.stop();
+  });
+
+  it('shows the selected Twitch visual for a manual moderator shoutout', async () => {
+    const installed = await installAddOnPackage('addons/automated-shoutouts', addOnsRoot, true);
+    await mkdir(join(stateRoot, 'thsv.automated-shoutouts'), { recursive: true });
+    await writeFile(join(stateRoot, 'thsv.automated-shoutouts', 'settings.json'), JSON.stringify({ twitchVisualTriggers: ['manual'] }));
+    const [module] = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
+    if (module === undefined) throw new Error('Automated Shoutouts must load.');
+    const sends: unknown[] = [];
+    const actions: Array<{ actionId: string; argumentsValue: unknown }> = [];
+    const overlays: Array<{ topic: string; payload: unknown }> = [];
+    const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
+      routeOutboundMessage: async (request) => { sends.push(request); return [{ platform: 'twitch', accepted: true, parts: 1 }]; },
+      runStreamerBotAction: async (actionId, argumentsValue) => { actions.push({ actionId, argumentsValue }); },
+      publishOverlay: async (_moduleId, topic, payload) => { overlays.push({ topic, payload }); },
+    });
+    const registry = new ModuleRegistry([{ ...module, capabilityGrant: {
+      moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions,
+      approvedActionIds: ['e3d92d7e-193a-5bba-8b8c-4f17e605c9d2'],
+    } }], silentLogger, 5_000, broker);
+    await registry.start();
+    await registry.publish(event({
+      eventId: 'manual-twitch', eventType: 'command.received',
+      source: { adapter: 'fixture', eventId: 'manual-twitch-source', eventName: 'Command' },
+      user: { id: 'mod-1', name: 'mod', actorType: 'human', roles: ['moderator'] },
+      payload: { command: 'shoutout', arguments: ['TargetCreator'] },
+    }));
+    expect(actions).toHaveLength(1);
+    await registry.publish(event({
+      eventId: 'manual-twitch-profile', eventType: 'addon.thsv.automated-shoutouts.twitch-profile-received', platform: 'system',
+      source: { adapter: 'streamerbot-addon-relay', eventId: 'manual-profile-relay', eventName: 'Lookup Twitch Creator' },
+      user: undefined,
+      payload: { lookupId: 'manual-twitch', category: 'Music', profileImageUrl: 'https://example.com/target.png' },
+    }));
+    expect(sends).toHaveLength(1);
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0]).toMatchObject({ topic: 'thsv.automated-shoutouts.card.show', payload: { title: 'Meet TargetCreator on Twitch', imageUrl: 'https://example.com/target.png' } });
     await registry.stop();
   });
 

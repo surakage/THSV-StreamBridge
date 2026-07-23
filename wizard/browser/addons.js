@@ -85,9 +85,10 @@ function renderAddOnField(name, schema, value, ui = {}) {
   const help = schema.description ? `<small>${safe(schema.description)}</small>` : '';
   const fullRow = type === 'array' || schema.format === 'multiline' || ui.fullRow === true;
   const wrapper = (content) => `<div class="addon-setting ${fullRow ? 'full-row' : ''}"${addOnVisibilityAttributes(ui)}>${content}</div>`;
+  if (ui.control === 'scene-mappings') return wrapper(renderSceneMappingEditor(name, value, help));
   if (type === 'array' && Array.isArray(schema.items?.enum)) {
     const selected = new Set(Array.isArray(value) ? value : []);
-    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid">${schema.items.enum.map((entry) => `<label class="addon-choice"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
+    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid">${schema.items.enum.map((entry) => `<label class="addon-choice"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
   }
   if (Array.isArray(schema.enum)) return wrapper(`<label>${label}<select name="${safe(name)}">${schema.enum.map((entry) => `<option value="${safe(entry)}" ${entry === value ? 'selected' : ''}>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</option>`).join('')}</select>${help}</label>`);
   if (type === 'boolean') return wrapper(`<label class="addon-toggle"><span><strong>${label}</strong>${help}</span><input name="${safe(name)}" type="checkbox" role="switch" ${value === true ? 'checked' : ''}><i aria-hidden="true"></i></label>`);
@@ -96,6 +97,51 @@ function renderAddOnField(name, schema, value, ui = {}) {
   if (schema.format === 'multiline') return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="${safe(Number.isInteger(ui.rows) ? ui.rows : 4)}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 2000)}">${safe(value ?? '')}</textarea>${help}</label>`);
   if (schema.format === 'color') return wrapper(`<label>${label}<input name="${safe(name)}" type="color" value="${safe(value || '#6f42c1')}">${help}</label>`);
   return wrapper(`<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 500)}">${help}</label>`);
+}
+
+function parseSceneMappingRows(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => { try { const parsed = JSON.parse(entry); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null; } catch { return null; } }).filter(Boolean).slice(0, 50);
+}
+
+function sceneActionOptions(selectedId = '') {
+  const prohibited = new Set(['143fce1d-c5b0-4108-b766-ee2d0249e2d4', '18bdc91c-64eb-4787-8be9-6a921b272943']);
+  const starterActions = [
+    { id: '68fa3646-8b6c-4ef0-bf96-19474de8b620', name: 'THSV Scene - Starting Soon', group: 'THSV Scene Actions', enabled: true },
+    { id: '93ff064c-dd73-44fd-9a7e-f0b9499e4760', name: 'THSV Scene - Just Chatting', group: 'THSV Scene Actions', enabled: true },
+    { id: '6f22b156-ad06-42c2-bc5d-92ce89c02510', name: 'THSV Scene - Gameplay', group: 'THSV Scene Actions', enabled: true },
+    { id: '8b58b594-06c3-45e9-9fc1-f2655b02b92f', name: 'THSV Scene - Be Right Back', group: 'THSV Scene Actions', enabled: true },
+    { id: 'c7f5238b-33e1-4095-9dbe-06a331218c74', name: 'THSV Scene - Ending Soon', group: 'THSV Scene Actions', enabled: true },
+  ];
+  const byId = new Map(starterActions.map((action) => [action.id, action]));
+  for (const action of state.liveActions) if (!prohibited.has(action.id.toLowerCase())) byId.set(action.id, action);
+  const actions = [...byId.values()].sort((left, right) => actionGroupName(left).localeCompare(actionGroupName(right)) || left.name.localeCompare(right.name));
+  const hasSelected = actions.some((action) => action.id === selectedId); const remembered = state.addOnActionNameCache?.[selectedId];
+  const unavailable = selectedId && !hasSelected ? `<option value="${safe(selectedId)}" selected>${safe(remembered?.name || 'Saved action')} — ${safe(selectedId)}</option>` : '';
+  return `<option value="">Choose a Streamer.bot action…</option>${unavailable}${actions.map((action) => `<option value="${safe(action.id)}" ${action.id === selectedId ? 'selected' : ''}>${safe(actionGroupName(action))} — ${safe(action.name)}</option>`).join('')}`;
+}
+
+function renderSceneMappingRow(mapping = {}) {
+  const provider = ['obs', 'streamlabs', 'meld'].includes(mapping.provider) ? mapping.provider : 'obs'; const delay = Number.isInteger(mapping.delaySeconds) ? Math.min(60, Math.max(0, mapping.delaySeconds)) : 0;
+  const id = typeof mapping.id === 'string' && mapping.id ? mapping.id : `scene-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  return `<article class="scene-mapping-row" data-scene-mapping-row data-scene-mapping-id="${safe(id)}"><div class="title-row"><label class="addon-toggle"><span><strong>Mapping enabled</strong></span><input type="checkbox" role="switch" data-scene-mapping-field="enabled" ${mapping.enabled !== false ? 'checked' : ''}><i aria-hidden="true"></i></label><button type="button" class="danger ghost" data-remove-scene-mapping>Remove</button></div><div class="scene-mapping-grid"><label>Provider<select data-scene-mapping-field="provider"><option value="obs" ${provider === 'obs' ? 'selected' : ''}>OBS Studio</option><option value="streamlabs" ${provider === 'streamlabs' ? 'selected' : ''}>Streamlabs Desktop</option><option value="meld" ${provider === 'meld' ? 'selected' : ''}>Meld Studio</option></select></label><label>Exact scene name<input type="text" maxlength="256" required data-scene-mapping-field="sceneName" value="${safe(mapping.sceneName || '')}" placeholder="Starting Soon"></label><label>Connection name (optional)<input type="text" maxlength="256" data-scene-mapping-field="connectionName" value="${safe(mapping.connectionName || '')}" placeholder="Any connection"></label><label>Wait before action (seconds)<input type="number" min="0" max="60" step="1" data-scene-mapping-field="delaySeconds" value="${safe(delay)}"></label><label class="full-row">Streamer.bot target action<select required data-scene-mapping-field="actionId">${sceneActionOptions(mapping.actionId || '')}</select><small>Approve this same action in the section below before restarting StreamBridge.</small></label></div></article>`;
+}
+
+function renderSceneMappingEditor(name, value, help) {
+  const rows = parseSceneMappingRows(value);
+  return `<fieldset class="scene-mapping-editor" data-scene-mapping-editor><legend>Scene-to-action mappings</legend><p>One scene can run one or more approved actions. Use the optional connection name only when two connections reuse the same scene name.</p><textarea class="hidden" aria-hidden="true" tabindex="-1" name="${safe(name)}" data-addon-string-list="true">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea><div data-scene-mapping-list>${rows.map(renderSceneMappingRow).join('')}</div><button type="button" class="ghost" data-add-scene-mapping>Add scene mapping</button>${help}<small>Mappings use stable action IDs, so renaming a target action in Streamer.bot does not break it.</small></fieldset>`;
+}
+
+function syncSceneMappingEditor(editor) {
+  const textarea = editor.querySelector('textarea[name="mappings"]');
+  const mappings = [...editor.querySelectorAll('[data-scene-mapping-row]')].map((row) => ({ id: row.dataset.sceneMappingId, enabled: row.querySelector('[data-scene-mapping-field="enabled"]').checked, provider: row.querySelector('[data-scene-mapping-field="provider"]').value, connectionName: row.querySelector('[data-scene-mapping-field="connectionName"]').value.trim(), sceneName: row.querySelector('[data-scene-mapping-field="sceneName"]').value.trim(), actionId: row.querySelector('[data-scene-mapping-field="actionId"]').value, delaySeconds: Number(row.querySelector('[data-scene-mapping-field="delaySeconds"]').value) }));
+  textarea.value = mappings.map((mapping) => JSON.stringify(mapping)).join('\n'); return mappings;
+}
+
+function attachSceneMappingEditor(editor) {
+  editor.addEventListener('input', () => syncSceneMappingEditor(editor)); editor.addEventListener('change', () => syncSceneMappingEditor(editor));
+  editor.querySelector('[data-add-scene-mapping]').addEventListener('click', () => { const list = editor.querySelector('[data-scene-mapping-list]'); if (list.children.length >= 50) { byId('addon-state').textContent = 'Scene Actions supports at most 50 mappings.'; return; } list.insertAdjacentHTML('beforeend', renderSceneMappingRow()); syncSceneMappingEditor(editor); });
+  editor.addEventListener('click', (event) => { const button = event.target.closest('[data-remove-scene-mapping]'); if (!button) return; button.closest('[data-scene-mapping-row]').remove(); syncSceneMappingEditor(editor); });
 }
 
 function orderedAddOnProperties(addOn) {
@@ -181,6 +227,7 @@ function renderAddOns() {
     form.addEventListener('change', () => updateAddOnFieldVisibility(form));
     updateAddOnFieldVisibility(form);
   });
+  document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
   document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
@@ -214,12 +261,13 @@ async function installDiscoveredAddOn(event) {
 }
 
 function renderAddOnOverlayTools(addOn) {
-  const url = `${location.origin}/overlay/addons/${addOn.moduleId}`;
+  const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
+  const url = `${location.origin}${overlayPath}`;
   return `<p>This core-rendered source accepts scoped cards and media without loading package HTML or JavaScript. Add it to Meld, OBS, or Streamlabs, then send a preview card to confirm the connection before relying on it live.</p><label>Browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Send preview card</button></div>${addOn.enabled ? '' : '<small>Enable this add-on to send a live preview.</small>'}`;
 }
 
 function renderAddOnActionGrant(addOn) {
-  const prohibited = new Set(['143fce1d-c5b0-4108-b766-ee2d0249e2d4']);
+  const prohibited = new Set(['143fce1d-c5b0-4108-b766-ee2d0249e2d4', '18bdc91c-64eb-4787-8be9-6a921b272943']);
   const liveById = new Map(state.liveActions.map((action) => [action.id, action]));
   // Not yet inspected this session (state.liveActions resets on every wizard page load) reads
   // very differently from a genuinely missing action: the first just needs a fresh Inspect to
@@ -316,6 +364,12 @@ async function saveAddOnSettings(event) {
   const form = event.currentTarget;
   const id = form.dataset.addonSettings;
   const addOn = state.addOns.find((candidate) => candidate.moduleId === id);
+  const sceneEditor = form.querySelector('[data-scene-mapping-editor]');
+  if (sceneEditor) {
+    const mappings = syncSceneMappingEditor(sceneEditor);
+    if (mappings.some((mapping) => !mapping.sceneName || !mapping.actionId)) { byId('addon-state').textContent = 'Every scene mapping needs an exact scene name and a target action.'; return; }
+    if (new Set(mappings.map((mapping) => mapping.id)).size !== mappings.length) { byId('addon-state').textContent = 'Every scene mapping needs a unique ID.'; return; }
+  }
   const settings = {};
   for (const [name, schema] of Object.entries(addOn.configurationSchema.properties || {})) {
     const field = form.elements.namedItem(name);
@@ -427,3 +481,8 @@ byId('check-addon-updates').addEventListener('click', async () => {
   finally { status.removeAttribute('aria-busy'); button.disabled = false; }
 });
 document.querySelector('[data-view="addons"]').addEventListener('click', loadAddOns);
+const ADD_ON_OVERLAY_PATHS = Object.freeze({
+  'thsv.automated-shoutouts': '/overlay/shoutouts',
+  'thsv.random-clip-player': '/overlay/clips',
+  'thsv.subathon-timer': '/overlay/subathon',
+});

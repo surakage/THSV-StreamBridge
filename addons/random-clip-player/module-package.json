@@ -31,7 +31,7 @@
       "Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-1.4.0.sb into Streamer.bot.",
       "In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: \"Get Clips\" and \"Get Clip Download\". Neither fetch action has a chat/event trigger by design.",
       "Optionally bind the imported Enable and Disable actions to Streamer.bot scene-active and scene-inactive triggers.",
-      "Add an /overlay/addons/thsv.random-clip-player browser source in OBS/Meld/Streamlabs to render playback."
+      "Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback."
     ],
     "uninstallationSteps": ["Remove the add-on package; its separately owned rotation state remains preserved."],
     "migrations": [
@@ -44,7 +44,7 @@
   },
   "entrypoint": "dist/index.js",
   "files": [
-    { "path": "dist/index.js", "size": 14728, "sha256": "47846dc5705a4326a7d4625328b95cbd66a286c76983a3a0558b17d030211681" },
+    { "path": "dist/index.js", "size": 14704, "sha256": "1a074af4123a454c7aafe4d2de5a0fb0153ca35bb15fdb7994d4c2958e35cba3" },
     { "path": "schemas/config.json", "size": 1608, "sha256": "4564000d3ae9d5ee7a32d624b6bde2c35c9d018c463af65d7242190dfd0a5c37" },
     { "path": "migrations/001-interval-to-pause.mjs", "size": 961, "sha256": "4491b274d95ab76ca7a73cd5bade6bb3a6972e70c9adf03e3ec880b477aaa39c" }
   ]

@@ -1,0 +1,10 @@
+{
+  "intro": "Import the Streamer.bot package and attach its Intake action to the scene-change triggers first. Then refresh action names, approve only the target actions you intend to run, and edit the scene mappings below.",
+  "order": ["enabled", "enabledProviders", "mappings", "caseSensitive", "runOnSimulatedEvents", "duplicateWindowMs", "loopWindowSeconds", "maximumRunsPerLoopWindow"],
+  "sections": [
+    { "id": "quick-start", "title": "1. Providers", "description": "Choose which connected streaming apps may activate mappings.", "open": true, "fields": ["enabled", "enabledProviders"] },
+    { "id": "mappings", "title": "2. Scene mappings", "description": "Bind each exact scene name to one creator-approved Streamer.bot action.", "open": true, "fields": ["mappings"] },
+    { "id": "safety", "title": "3. Safety and testing", "description": "Prevent duplicate events, action loops, and accidental Trigger Test execution.", "fields": ["caseSensitive", "runOnSimulatedEvents", "duplicateWindowMs", "loopWindowSeconds", "maximumRunsPerLoopWindow"] }
+  ],
+  "fields": { "enabledProviders": { "labels": { "obs": "OBS Studio", "streamlabs": "Streamlabs Desktop", "meld": "Meld Studio" } }, "mappings": { "control": "scene-mappings", "fullRow": true } }
+}

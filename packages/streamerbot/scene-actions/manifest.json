@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Scene Actions",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Relays OBS Studio, Streamlabs Desktop, and Meld Studio scene changes to one guarded StreamBridge add-on that dispatches creator-approved actions by stable ID.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.33",
+  "actions": [
+    { "id": "18bdc91c-64eb-4787-8be9-6a921b272943", "name": "THSV Scene Actions - Intake", "group": "THSV StreamBridge - Add-ons", "source": "src/RelaySceneChange.cs", "importFile": "THSV-StreamBridge-Scene-Actions-1.0.0.sb", "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll", ".\\Newtonsoft.Json.dll"] },
+    { "id": "68fa3646-8b6c-4ef0-bf96-19474de8b620", "name": "THSV Scene - Starting Soon", "group": "THSV Scene Actions", "source": "src/SceneActionTemplate.cs", "importFile": "THSV-StreamBridge-Scene-Actions-1.0.0.sb", "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"] },
+    { "id": "93ff064c-dd73-44fd-9a7e-f0b9499e4760", "name": "THSV Scene - Just Chatting", "group": "THSV Scene Actions", "source": "src/SceneActionTemplate.cs", "importFile": "THSV-StreamBridge-Scene-Actions-1.0.0.sb", "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"] },
+    { "id": "6f22b156-ad06-42c2-bc5d-92ce89c02510", "name": "THSV Scene - Gameplay", "group": "THSV Scene Actions", "source": "src/SceneActionTemplate.cs", "importFile": "THSV-StreamBridge-Scene-Actions-1.0.0.sb", "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"] },
+    { "id": "8b58b594-06c3-45e9-9fc1-f2655b02b92f", "name": "THSV Scene - Be Right Back", "group": "THSV Scene Actions", "source": "src/SceneActionTemplate.cs", "importFile": "THSV-StreamBridge-Scene-Actions-1.0.0.sb", "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"] },
+    { "id": "c7f5238b-33e1-4095-9dbe-06a331218c74", "name": "THSV Scene - Ending Soon", "group": "THSV Scene Actions", "source": "src/SceneActionTemplate.cs", "importFile": "THSV-StreamBridge-Scene-Actions-1.0.0.sb", "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"] }
+  ],
+  "runtime": { "queue": "THSV Add-ons", "concurrent": true },
+  "manualTriggerSetup": [
+    "Add OBS Studio > Scene Changed (Connection: Any; Scene: any) to THSV Scene Actions - Intake.",
+    "Add Streamlabs Desktop > Scene Changed (Instance: Any; Scene: any) to THSV Scene Actions - Intake.",
+    "Add Meld Studio > Scene Changed (Connection: Any) to THSV Scene Actions - Intake. If your Streamer.bot version requires a Scene value, attach one copy per scene."
+  ],
+  "triggerSafety": "Only the Intake action receives scene-change triggers. Starter target actions have no triggers and must be dispatched through creator-approved stable-ID mappings.",
+  "verificationStatus": "Official trigger variables and CPH methods are source-verified; live OBS, Streamlabs Desktop, and Meld acceptance remains creator-verified."
+}

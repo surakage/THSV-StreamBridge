@@ -62,7 +62,7 @@ const manifest = {
     'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-1.4.0.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Optionally bind the imported Enable and Disable actions to Streamer.bot scene-active and scene-inactive triggers.',
-    'Add an /overlay/addons/thsv.random-clip-player browser source in OBS/Meld/Streamlabs to render playback.',
+    'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.',
   ],
   uninstallationSteps: ['Remove the add-on package; its separately owned rotation state remains preserved.'],
   migrations: [

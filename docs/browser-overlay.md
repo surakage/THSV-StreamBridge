@@ -174,7 +174,7 @@ The browser hub is implemented, offline-testable, and live-verified in Meld Stud
 
 ## Hosted add-on overlays
 
-Enabled installed add-ons that declare `overlay.publish` receive `/overlay/addons/<module-id>`. The wizard shows the exact copyable URL and can send a five-second preview card. The page shares the existing overlay `SharedWorker` and WebSocket when supported, filters every envelope to its own module ID, and renders only core-defined card and media commands. Add-on packages cannot supply HTML, CSS, or JavaScript to this route.
+Enabled installed add-ons that declare `overlay.publish` receive a core-hosted source. Official visual add-ons use short creator-facing routes: `/overlay/shoutouts`, `/overlay/clips`, and `/overlay/subathon`. The generic `/overlay/addons/<module-id>` form remains supported for third-party add-ons and backward compatibility. The wizard shows the exact copyable URL and can send a five-second preview card. The page shares the existing overlay `SharedWorker` and WebSocket when supported, filters every envelope to its canonical module ID, and renders only core-defined card and media commands. Add-on packages cannot supply HTML, CSS, or JavaScript to this route.
 
 Media URLs must use HTTPS or the bridge's same origin. Text is assigned through `textContent`, lengths and timing are clamped, and the page's Content Security Policy permits only same-origin code plus HTTPS images/media. An isolated streaming application process may still need one direct WebSocket for its browser source; the add-on never creates or owns that connection itself.
 

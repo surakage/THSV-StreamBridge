@@ -1,0 +1,58 @@
+{
+  "intro": "Fan Crown turns one Streamer.bot-owned Twitch Channel Points reward into a rotating crown. The current holder must be challenged, the real points spent become the monthly score, and every rejected redemption is sent for refund.",
+  "order": [
+    "enabled", "rewardId", "baseRewardTitle", "holderTitleTemplate",
+    "pricingMode", "baseCost", "fixedIncrease", "multiplier", "maximumCost", "roundingIncrement",
+    "resetEachStream", "blockCurrentHolder", "userCooldownMinutes", "allowBroadcaster", "allowModerators",
+    "announceCaptures", "captureMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate",
+    "announceMonthlyWinner", "monthlyWinnerMessageTemplate",
+    "showCrownCard", "crownCardSeconds", "overlayBackgroundMode", "overlayBackgroundColor",
+    "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"
+  ],
+  "fields": {
+    "pricingMode": { "labels": { "fixed": "Fixed increase (recommended)", "multiplier": "Multiplier (advanced)" } },
+    "fixedIncrease": { "visibleWhen": { "field": "pricingMode", "equals": "fixed" } },
+    "multiplier": { "visibleWhen": { "field": "pricingMode", "equals": "multiplier" } },
+    "overlayBackgroundMode": { "labels": { "glass": "Glass", "solid": "Solid", "none": "Transparent" } },
+    "overlayFontFamily": { "labels": { "display": "Display", "broadcast": "Broadcast", "serif": "Serif", "mono": "Monospace" } }
+  },
+  "sections": [
+    {
+      "id": "setup",
+      "title": "1. Connect the reward",
+      "description": "Create and own the reward in Streamer.bot, then paste its stable Reward ID. Match its initial title and cost to these settings.",
+      "open": true,
+      "fields": ["enabled", "rewardId", "baseRewardTitle", "holderTitleTemplate"]
+    },
+    {
+      "id": "pricing",
+      "title": "2. Price progression",
+      "description": "Fixed increase is predictable. Multiplier is an advanced option. Every mode is rounded and stopped at the hard maximum.",
+      "fields": ["pricingMode", "baseCost", "fixedIncrease", "multiplier", "maximumCost", "roundingIncrement"]
+    },
+    {
+      "id": "eligibility",
+      "title": "3. Viewer rules and resets",
+      "description": "The current holder is blocked by default. Optional cooldowns use stable Twitch user IDs rather than changeable display names.",
+      "fields": ["resetEachStream", "blockCurrentHolder", "userCooldownMinutes", "allowBroadcaster", "allowModerators"]
+    },
+    {
+      "id": "chat",
+      "title": "4. Twitch chat messages",
+      "description": "Capture announcements are editable. Refund explanations are disabled by default to avoid chat noise.",
+      "fields": ["announceCaptures", "captureMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate", "announceMonthlyWinner", "monthlyWinnerMessageTemplate"]
+    },
+    {
+      "id": "overlay",
+      "title": "5. Crown overlay",
+      "description": "Use the add-on overlay URL shown by the wizard. Long names and leaderboard text are safely bounded by the hosted card.",
+      "fields": ["showCrownCard", "crownCardSeconds", "overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"]
+    },
+    {
+      "id": "maintenance",
+      "title": "Maintenance and privacy",
+      "description": "The companion package includes Reset Crown and Reset Month actions. Attach them only to creator-controlled hotkeys or deck buttons.",
+      "notice": "Fan Crown stores only stable Twitch user IDs, current display names, optional HTTPS avatars, aggregate points, capture counts, and bounded timestamps in private atomic state. It stores no chat text, OAuth token, SlothCoin balance, or hard-coded file path. Trigger tests and simulated reward events never mutate the real reward."
+    }
+  ]
+}

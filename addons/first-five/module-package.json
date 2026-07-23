@@ -1,0 +1,50 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Runs five Streamer.bot-owned Twitch channel-point rewards in sequence, permits one placement per viewer per stream, and maintains a compact monthly leaderboard.",
+  "changelog": "1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
+  "permissions": ["events.subscribe", "streamerbot.run-approved-action", "state.private", "chat.send", "overlay.publish"],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.first-five",
+    "name": "First Five",
+    "version": "1.0.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": ["reward.redemption", "stream.online", "addon.thsv.first-five.controller-result", "addon.thsv.first-five.control"],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": ["data/addons/thsv.first-five/", "data/addons/.state/thsv.first-five/"],
+    "installationSteps": [
+      "Import the separate First Five Streamer.bot package.",
+      "Keep its Controller action triggerless and approve only that action for this add-on.",
+      "Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.",
+      "Choose five Streamer.bot-owned Twitch reward IDs in placement order, then start with only the first reward enabled."
+    ],
+    "uninstallationSteps": ["Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall."],
+    "migrations": [],
+    "healthChecks": [
+      { "id": "thsv.first-five.runtime", "description": "Confirms serialized placement claims, reward transitions, and monthly leaderboard state." }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    { "path": "dist/index.js", "size": 16791, "sha256": "7871b379420493933a64346392d55c1fd80561f75abff4180276b0f59b5c9b5f" },
+    { "path": "schemas/config.json", "size": 4004, "sha256": "f6ba8e8d566f58bf9b2f2166235b88c5d110960ece64164683e4fb7037b55711" },
+    { "path": "ui/settings.json", "size": 2470, "sha256": "a00de8bb151697382933cd2bf408b6bf7a14c2d8e16219107bbd0d43bc1d5b80" },
+    { "path": "README.md", "size": 1105, "sha256": "77c860a4c02e8799b7c1df112f77a12624f83506556843cda4bee4ac26638b3d" }
+  ]
+}

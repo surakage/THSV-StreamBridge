@@ -29,6 +29,19 @@ export interface DiagnosticsTarget {
 class UnsupportedContentEncodingError extends Error {}
 class OverlayAssetError extends Error {}
 
+const ADD_ON_OVERLAY_ALIASES = Object.freeze<Record<string, string>>({
+  '/overlay/shoutouts': 'thsv.automated-shoutouts',
+  '/overlay/clips': 'thsv.random-clip-player',
+  '/overlay/subathon': 'thsv.subathon-timer',
+});
+
+function addOnOverlayModuleId(requestPath: string | undefined): string | undefined {
+  if (requestPath === undefined) return undefined;
+  const alias = ADD_ON_OVERLAY_ALIASES[requestPath];
+  if (alias !== undefined) return alias;
+  return /^\/overlay\/addons\/([a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+)$/u.exec(requestPath)?.[1];
+}
+
 export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
@@ -107,10 +120,10 @@ export class DiagnosticsServer {
         return this.reply(response, 200, this.overlayHub.clientConfig());
       }
       if (request.method === 'GET' && requestPath !== undefined && ['/overlay/addons/host.js', '/overlay/addons/host.css'].includes(requestPath)) return await this.overlayAsset(response, requestPath);
-      const addOnOverlayMatch = request.method === 'GET' ? /^\/overlay\/addons\/([a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+)$/u.exec(requestPath ?? '') : null;
-      if (addOnOverlayMatch?.[1] !== undefined && this.overlayHub !== undefined && this.wizard !== undefined) {
+      const addOnOverlayModule = request.method === 'GET' ? addOnOverlayModuleId(requestPath) : undefined;
+      if (addOnOverlayModule !== undefined && this.overlayHub !== undefined && this.wizard !== undefined) {
         this.guard.assertLoopback(request);
-        const addOn = (await this.wizard.listAddOns()).find((candidate) => candidate.moduleId === addOnOverlayMatch[1]);
+        const addOn = (await this.wizard.listAddOns()).find((candidate) => candidate.moduleId === addOnOverlayModule);
         if (!this.overlayHub.clientConfig().enabled || addOn === undefined || addOn.health !== 'installed' || !addOn.enabled || !addOn.permissions.includes('overlay.publish')) return this.reply(response, 404, { error: 'Add-on overlay not found' });
         return await this.addOnOverlayAsset(response, 'addon-host.html');
       }

@@ -100,4 +100,60 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Subathon Timer - Reset' }))).toThrow('relay token');
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'reset', seconds: 300 } }))).toThrow('relay token');
   });
+
+  it('permits only the exact First Five manual reset control', () => {
+    const control = {
+      moduleId: 'thsv.first-five', eventType: 'addon.thsv.first-five.control', relayToken: '',
+      sourceEventType: 'THSV Addon - First Five - Reset', relayId: 'first-five-reset-1',
+      payload: { action: 'reset' },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({
+      eventType: 'addon.thsv.first-five.control', payload: { action: 'reset' },
+    });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - First Five - Controller' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'reset', force: true } }))).toThrow('relay token');
+  });
+
+  it('permits only exact action-matched Fan Crown maintenance controls', () => {
+    const resetCrown = {
+      moduleId: 'thsv.fan-crown', eventType: 'addon.thsv.fan-crown.control', relayToken: '',
+      sourceEventType: 'THSV Addon - Fan Crown - Reset Crown', relayId: 'fan-crown-reset-1',
+      payload: { action: 'reset-crown' },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(resetCrown))).toMatchObject({
+      eventType: 'addon.thsv.fan-crown.control', payload: { action: 'reset-crown' },
+    });
+    expect(normalizeStreamerBotAddOnRelay(relay({
+      ...resetCrown,
+      sourceEventType: 'THSV Addon - Fan Crown - Reset Month',
+      payload: { action: 'reset-month' },
+    }))).toMatchObject({ payload: { action: 'reset-month' } });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...resetCrown, sourceEventType: 'THSV Addon - Fan Crown - Controller' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...resetCrown, payload: { action: 'reset-month' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...resetCrown, payload: { action: 'reset-crown', force: true } }))).toThrow('relay token');
+  });
+
+  it('permits only exact action-matched Raid Scout creator controls', () => {
+    for (const action of ['suggest', 'confirm', 'cancel']) {
+      const sourceEventType = `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
+      expect(normalizeStreamerBotAddOnRelay(relay({
+        moduleId: 'thsv.raid-scout',
+        eventType: 'addon.thsv.raid-scout.control',
+        sourceEventType,
+        relayId: `raid-scout-${action}`,
+        relayToken: '',
+        payload: { action },
+      }))).toMatchObject({ eventType: 'addon.thsv.raid-scout.control', payload: { action } });
+    }
+    const confirm = {
+      moduleId: 'thsv.raid-scout',
+      eventType: 'addon.thsv.raid-scout.control',
+      sourceEventType: 'THSV Addon - Raid Scout - Confirm',
+      relayId: 'raid-scout-confirm-invalid',
+      relayToken: '',
+      payload: { action: 'confirm' },
+    };
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...confirm, payload: { action: 'suggest' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...confirm, payload: { action: 'confirm', target: 'untrusted' } }))).toThrow('relay token');
+  });
 });

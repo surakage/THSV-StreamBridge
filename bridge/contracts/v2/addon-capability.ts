@@ -22,6 +22,7 @@ export const PROTECTED_FRAMEWORK_ACTION_IDS = new Set([
   'c1d3a9e2-0f4b-4b78-91c2-7a65d8e309f1',
   'f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2',
   '8d8e3667-fd96-510f-b2ae-a8affe5b789a',
+  '18bdc91c-64eb-4787-8be9-6a921b272943',
 ].map((value) => value.toLowerCase()));
 
 export function isProtectedFrameworkActionId(actionId: string): boolean { return PROTECTED_FRAMEWORK_ACTION_IDS.has(actionId.toLowerCase()); }

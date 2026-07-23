@@ -120,6 +120,25 @@ function isCreatorControl(relay: AddOnRelay): boolean {
     if (!['THSV Addon - Random Clip Player - Enable', 'THSV Addon - Random Clip Player - Disable'].includes(relay.sourceEventType)) return false;
     return Object.keys(relay.payload).length === 1 && typeof relay.payload['enabled'] === 'boolean';
   }
+  if (relay.moduleId === 'thsv.first-five' && relay.eventType === 'addon.thsv.first-five.control') {
+    return relay.sourceEventType === 'THSV Addon - First Five - Reset'
+      && Object.keys(relay.payload).length === 1
+      && relay.payload['action'] === 'reset';
+  }
+  if (relay.moduleId === 'thsv.fan-crown' && relay.eventType === 'addon.thsv.fan-crown.control') {
+    const action = relay.payload['action'];
+    if (action !== 'reset-crown' && action !== 'reset-month') return false;
+    const expectedSource = action === 'reset-month'
+      ? 'THSV Addon - Fan Crown - Reset Month'
+      : 'THSV Addon - Fan Crown - Reset Crown';
+    return relay.sourceEventType === expectedSource && Object.keys(relay.payload).length === 1;
+  }
+  if (relay.moduleId === 'thsv.raid-scout' && relay.eventType === 'addon.thsv.raid-scout.control') {
+    const action = relay.payload['action'];
+    if (action !== 'suggest' && action !== 'confirm' && action !== 'cancel') return false;
+    const expectedSource = `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
+    return relay.sourceEventType === expectedSource && Object.keys(relay.payload).length === 1;
+  }
   if (relay.moduleId !== 'thsv.subathon-timer' || relay.eventType !== 'addon.thsv.subathon-timer.control') return false;
   const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
   if (!['start', 'pause', 'resume', 'reset', 'add-time'].includes(action)) return false;

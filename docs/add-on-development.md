@@ -34,7 +34,7 @@ my-addon/
 
 `module-package.json` uses `packageFormat: "thsv-addon-v2"` and contains the package kind, author, description, changelog, permissions, complete v2 module manifest, optional executable entrypoint, optional settings UI schema, optional publisher trust metadata, and the exact byte size and lowercase SHA-256 hash of every shipped file.
 
-Packages are version-bounded with `minimumCoreVersion` and `maximumTestedCoreVersion`. They declare dependencies, required platform capabilities, event subscriptions, provided commands/actions, owned state, installation/removal instructions, and health checks. Add-ons requesting `overlay.publish` receive the fixed core route `/overlay/addons/<module-id>`; they cannot inject custom browser HTML or JavaScript. `browserSourcesProvided` remains reserved for a future declarative route manifest and must stay empty in this preview.
+Packages are version-bounded with `minimumCoreVersion` and `maximumTestedCoreVersion`. They declare dependencies, required platform capabilities, event subscriptions, provided commands/actions, owned state, installation/removal instructions, and health checks. Add-ons requesting `overlay.publish` receive the fixed core route `/overlay/addons/<module-id>`; they cannot inject custom browser HTML or JavaScript. Core may expose a shorter alias for a bundled official add-on, but third-party packages must use their canonical module-ID route. `browserSourcesProvided` remains reserved for a future declarative route manifest and must stay empty in this preview.
 
 ## Publisher, update, and revocation metadata
 

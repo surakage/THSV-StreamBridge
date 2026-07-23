@@ -1,0 +1,44 @@
+{
+  "intro": "First Five unlocks five Streamer.bot-owned Twitch rewards in order. One viewer may claim only one placement per stream. Placement scores accumulate in a compact monthly leaderboard: 1st=5, 2nd=4, 3rd=3, 4th=2, 5th=1.",
+  "order": [
+    "enabled",
+    "reward1Id", "reward2Id", "reward3Id", "reward4Id", "reward5Id",
+    "reward1Title", "reward2Title", "reward3Title", "reward4Title", "reward5Title", "claimedTitleTemplate",
+    "announceClaims", "claimMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate",
+    "announceMonthlyWinner", "monthlyWinnerMessageTemplate",
+    "showLeaderboardCard", "leaderboardCardSeconds"
+  ],
+  "sections": [
+    {
+      "id": "setup",
+      "title": "1. Connect the five rewards",
+      "description": "Use five unique rewards created and owned by Streamer.bot. Initially enable only the first reward.",
+      "open": true,
+      "fields": ["enabled", "reward1Id", "reward2Id", "reward3Id", "reward4Id", "reward5Id"]
+    },
+    {
+      "id": "titles",
+      "title": "2. Reward titles",
+      "description": "Set the available title for each placement and the title shown after a viewer claims it.",
+      "fields": ["reward1Title", "reward2Title", "reward3Title", "reward4Title", "reward5Title", "claimedTitleTemplate"]
+    },
+    {
+      "id": "chat",
+      "title": "3. Twitch chat messages",
+      "description": "Successful claims can be announced. Repeat-claim notices are off by default to prevent chat spam.",
+      "fields": ["announceClaims", "claimMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate"]
+    },
+    {
+      "id": "monthly",
+      "title": "4. Monthly leaderboard",
+      "description": "The stream placements reset each stream. Weighted scores reset on the first event of a new local-calendar month.",
+      "fields": ["announceMonthlyWinner", "monthlyWinnerMessageTemplate", "showLeaderboardCard", "leaderboardCardSeconds"]
+    },
+    {
+      "id": "privacy",
+      "title": "Privacy and storage",
+      "description": "First Five stores Twitch user IDs, current display names, placement counts, and compact timestamps in its private atomic state. It stores no chat text, tokens, SlothCoins, or point balances.",
+      "notice": "Import the separate First Five Streamer.bot package. Keep Controller triggerless, approve it for this add-on, and optionally attach Reset to a deck button. Trigger tests and simulated reward events never change live rewards."
+    }
+  ]
+}

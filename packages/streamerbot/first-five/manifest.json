@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - First Five",
+  "version": "1.0.0",
+  "author": "surakage",
+  "description": "Provides one triggerless reward controller and one optional manual reset action for the First Five Twitch channel-points add-on.",
+  "minimumStreamerBotVersion": "1.0.5-alpha.33",
+  "actions": [
+    {
+      "id": "5807e453-1cdb-49bf-bad8-d50f785cbc77",
+      "name": "THSV Addon - First Five - Controller",
+      "group": "THSV StreamBridge - Add-ons",
+      "source": "src/FirstFiveController.cs",
+      "importFile": "THSV-StreamBridge-First-Five-1.0.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "8183b790-0f3b-4827-986b-0ffb47361e38",
+      "name": "THSV Addon - First Five - Reset",
+      "group": "THSV StreamBridge - Add-ons",
+      "source": "src/ResetFirstFive.cs",
+      "importFile": "THSV-StreamBridge-First-Five-1.0.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": { "queue": "THSV Add-ons", "concurrent": false },
+  "manualTriggerSetup": {
+    "controller": [],
+    "reset": ["Optional: attach to a deck button or hotkey for a creator-confirmed emergency stream reset."]
+  },
+  "triggerSafety": "Controller must remain triggerless and is dispatched only by the creator-approved First Five add-on. Reset emits one tightly scoped local control event.",
+  "verificationStatus": "Official Twitch reward CPH signatures and trigger variables are source-verified; live reward mutation remains creator acceptance-tested with harmless Streamer.bot-owned rewards."
+}

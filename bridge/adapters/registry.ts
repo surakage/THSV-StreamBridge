@@ -11,6 +11,7 @@ import { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 import { TikfinityAdapter } from './tikfinity-adapter.js';
 import { StreamerBotNativeAdapter } from './streamerbot-native-adapter.js';
 import { StreamerBotAddOnRelayAdapter } from './streamerbot-addon-relay-adapter.js';
+import { StreamerBotSceneRelayAdapter } from './streamerbot-scene-relay-adapter.js';
 
 export type InputAdapterFactory = (name: string, config: PlatformConfig) => InputAdapter;
 export type OutputAdapterFactory = (name: string, config: OutputConfig) => OutputAdapter;
@@ -119,6 +120,14 @@ export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logge
     inputEnabled: true,
     outputEnabled: false,
     adapter: 'streamerbot-addon-relay',
+    capabilities: [],
+    reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+  }, streamerBotEventRelay));
+  registry.registerInternalInput('streamerbot-scene-relay', () => new StreamerBotSceneRelayAdapter('scenes', {
+    enabled: config.streamerbot.enabled,
+    inputEnabled: true,
+    outputEnabled: false,
+    adapter: 'streamerbot-scene-relay',
     capabilities: [],
     reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
   }, streamerBotEventRelay));

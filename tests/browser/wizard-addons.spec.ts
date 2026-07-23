@@ -12,6 +12,7 @@ async function packageAddOn(root: string): Promise<Uint8Array> {
 }
 
 test('wizard installs and configures add-ons without injecting package code', async ({ page, context }) => {
+  test.setTimeout(60_000);
   await page.goto('/wizard/');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
@@ -112,6 +113,30 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(autoTranslateSettings.getByRole('link', { name: 'Read MyMemory terms' })).toHaveAttribute('rel', 'noreferrer noopener');
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
+  const shoutoutArchive = await packageAddOn('addons/automated-shoutouts');
+  await page.getByLabel('Add-on package').setInputFiles({ name: 'automated-shoutouts.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(shoutoutArchive) });
+  await page.getByLabel(/I reviewed and trust/u).check();
+  await page.getByRole('button', { name: 'Verify and install' }).click();
+  const shoutoutSettings = page.locator('[data-addon-settings="thsv.automated-shoutouts"]');
+  await expect(page.getByRole('article').getByText('Automated Shoutouts 1.1.0', { exact: true })).toBeVisible();
+  await expect(shoutoutSettings.locator('summary')).toHaveCount(8);
+  await shoutoutSettings.locator('summary').filter({ hasText: '8. Twitch visual popup' }).click();
+  await expect(shoutoutSettings.getByLabel('Show a Twitch visual popup')).toBeChecked();
+  await expect(shoutoutSettings.locator('input[name="twitchVisualTriggers"]:checked')).toHaveCount(3);
+  await expect(shoutoutSettings.getByLabel('Manual moderator shoutouts')).toBeChecked();
+  await expect(shoutoutSettings.getByLabel('Approved first-time chatters')).toBeChecked();
+  await expect(shoutoutSettings.getByLabel('Twitch popup style')).toHaveValue('profile-card');
+  await expect(page.locator('[data-addon-overlay-url="thsv.automated-shoutouts"]')).toHaveValue('http://127.0.0.1:8799/overlay/shoutouts');
+  await shoutoutSettings.getByLabel('Show a Twitch visual popup').uncheck();
+  await expect(shoutoutSettings.getByLabel('Twitch popup style')).not.toBeVisible();
+  await shoutoutSettings.getByLabel('Show a Twitch visual popup').check();
+  await shoutoutSettings.getByLabel('Twitch popup style').selectOption('random-clip');
+  await expect(shoutoutSettings.getByLabel('Clips considered per shoutout')).toHaveValue('20');
+  await expect(shoutoutSettings.getByLabel('Maximum clip length (seconds)')).toHaveValue('30');
+  await expect(shoutoutSettings.getByLabel('Mute clips')).toBeChecked();
+  await expect(shoutoutSettings.getByText('YouTube, Kick, and TikTok remain chat-only.', { exact: false })).toBeVisible();
+  expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+
   const subathonArchive = await packageAddOn('addons/subathon-timer');
   await page.getByLabel('Add-on package').setInputFiles({ name: 'subathon-timer.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(subathonArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
@@ -125,15 +150,61 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(subathonSettings.getByText('Choose how Streamer.bot actions', { exact: false })).toBeVisible();
   await subathonSettings.locator('summary').filter({ hasText: '6. Overlay state' }).click();
   await expect(subathonSettings.getByLabel('Overlay background style')).toHaveValue('glass');
-  await expect(page.locator('[data-addon-overlay-url="thsv.subathon-timer"]')).toHaveValue('http://127.0.0.1:8799/overlay/addons/thsv.subathon-timer');
+  await expect(page.locator('[data-addon-overlay-url="thsv.subathon-timer"]')).toHaveValue('http://127.0.0.1:8799/overlay/subathon');
   await subathonSettings.locator('summary').filter({ hasText: '7. Review before enabling' }).click();
   await expect(subathonSettings.getByText('Import the separate Subathon Timer Streamer.bot package', { exact: false })).toBeVisible();
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
   const subathonOverlay = await context.newPage();
-  await subathonOverlay.goto('http://127.0.0.1:8799/overlay/addons/thsv.subathon-timer');
+  await subathonOverlay.goto('http://127.0.0.1:8799/overlay/subathon');
   await expect(subathonOverlay.locator('#timer-shell')).toBeAttached();
   await expect(subathonOverlay.getByText('LIVE', { exact: true })).toBeAttached();
   await subathonOverlay.close();
+
+  const sceneActionsArchive = await packageAddOn('addons/scene-actions');
+  await page.getByLabel('Add-on package').setInputFiles({ name: 'scene-actions.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(sceneActionsArchive) });
+  await page.getByLabel(/I reviewed and trust/u).check();
+  await page.getByRole('button', { name: 'Verify and install' }).click();
+  const sceneSettings = page.locator('[data-addon-settings="thsv.scene-actions"]');
+  await expect(page.getByRole('article').getByText('Scene Actions 1.0.0', { exact: true })).toBeVisible();
+  await expect(sceneSettings.getByText('Scene-to-action mappings')).toBeVisible();
+  await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(5);
+  await expect(sceneSettings.locator('[data-scene-mapping-field="sceneName"]').first()).toHaveValue('Starting Soon');
+  await expect(sceneSettings.locator('[data-scene-mapping-field="actionId"]').first()).toHaveValue('68fa3646-8b6c-4ef0-bf96-19474de8b620');
+  await sceneSettings.getByRole('button', { name: 'Add scene mapping' }).click();
+  await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(6);
+  const addedMapping = sceneSettings.locator('[data-scene-mapping-row]').last();
+  await addedMapping.locator('[data-scene-mapping-field="provider"]').selectOption('meld');
+  await addedMapping.locator('[data-scene-mapping-field="sceneName"]').fill('Intermission');
+  await addedMapping.locator('[data-scene-mapping-field="actionId"]').selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'Save all settings' }).click();
+  await expect(page.locator('[data-addon-settings="thsv.scene-actions"] [data-scene-mapping-row]')).toHaveCount(6);
+  await expect(page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).resolves.toBe(true);
+
+  const raidScoutArchive = await packageAddOn('addons/raid-scout');
+  await page.getByLabel('Add-on package').setInputFiles({ name: 'raid-scout.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(raidScoutArchive) });
+  await page.getByLabel(/I reviewed and trust/u).check();
+  await page.getByRole('button', { name: 'Verify and install' }).click();
+  const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
+  await expect(page.getByRole('article').getByText('Raid Scout 1.0.0', { exact: true })).toBeVisible();
+  await expect(raidScoutSettings.locator('summary')).toHaveCount(11);
+  await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
+  await expect(raidScoutSettings.getByLabel('Raid confirmation mode')).toHaveValue('required');
+  await raidScoutSettings.locator('summary').filter({ hasText: '2. Where to search' }).click();
+  await expect(raidScoutSettings.getByLabel('Search preferred channels')).toBeChecked();
+  await raidScoutSettings.locator('summary').filter({ hasText: '3. Preferred channels' }).click();
+  await expect(raidScoutSettings.getByLabel('Preferred Twitch channels')).toBeVisible();
+  await raidScoutSettings.getByLabel('Search preferred channels').uncheck();
+  await expect(raidScoutSettings.getByLabel('Preferred Twitch channels')).not.toBeVisible();
+  await raidScoutSettings.locator('summary').filter({ hasText: '4. Search limits' }).click();
+  await raidScoutSettings.getByLabel('Search followed live channels').uncheck();
+  await expect(raidScoutSettings.getByLabel('Maximum followed candidates')).not.toBeVisible();
+  await expect(raidScoutSettings.getByLabel('Maximum same-category candidates')).toBeVisible();
+  await raidScoutSettings.locator('summary').filter({ hasText: '8. Confirmation and chat messages' }).click();
+  const noCandidateMessage = raidScoutSettings.locator('textarea[name="noCandidateMessage"]');
+  await expect(noCandidateMessage).not.toBeVisible();
+  await raidScoutSettings.getByLabel('Post a no-candidate message in Twitch chat').check();
+  await expect(noCandidateMessage).toBeVisible();
+  expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
   const executableRoot = 'examples/addons/no-op';
   const descriptor = JSON.parse(await readFile(join(executableRoot, 'module-package.json'), 'utf8')) as { permissions: string[] };

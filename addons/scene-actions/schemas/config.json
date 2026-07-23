@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Scene Actions", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Scene Actions", "default": true },
+    "enabledProviders": { "type": "array", "title": "Scene providers", "items": { "type": "string", "enum": ["obs", "streamlabs", "meld"] }, "minItems": 1, "maxItems": 3, "uniqueItems": true, "default": ["obs", "streamlabs", "meld"] },
+    "mappings": { "type": "array", "title": "Scene mappings", "description": "Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID.", "items": { "type": "string", "minLength": 20, "maxLength": 1000 }, "maxItems": 50, "uniqueItems": true,
+      "default": [
+        "{\"id\":\"starting-soon\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Starting Soon\",\"actionId\":\"68fa3646-8b6c-4ef0-bf96-19474de8b620\",\"delaySeconds\":0}",
+        "{\"id\":\"just-chatting\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Just Chatting\",\"actionId\":\"93ff064c-dd73-44fd-9a7e-f0b9499e4760\",\"delaySeconds\":0}",
+        "{\"id\":\"gameplay\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Gameplay\",\"actionId\":\"6f22b156-ad06-42c2-bc5d-92ce89c02510\",\"delaySeconds\":0}",
+        "{\"id\":\"be-right-back\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Be Right Back\",\"actionId\":\"8b58b594-06c3-45e9-9fc1-f2655b02b92f\",\"delaySeconds\":0}",
+        "{\"id\":\"ending-soon\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Ending Soon\",\"actionId\":\"c7f5238b-33e1-4095-9dbe-06a331218c74\",\"delaySeconds\":0}"
+      ] },
+    "caseSensitive": { "type": "boolean", "title": "Scene names are case-sensitive", "default": false },
+    "duplicateWindowMs": { "type": "integer", "title": "Duplicate suppression window (milliseconds)", "minimum": 100, "maximum": 10000, "default": 1500 },
+    "loopWindowSeconds": { "type": "integer", "title": "Loop-protection window (seconds)", "minimum": 2, "maximum": 60, "default": 10 },
+    "maximumRunsPerLoopWindow": { "type": "integer", "title": "Maximum actions in the loop window", "minimum": 1, "maximum": 20, "default": 5 },
+    "runOnSimulatedEvents": { "type": "boolean", "title": "Allow Streamer.bot trigger tests to run mapped actions", "description": "Keep this off while configuring. Turn it on only when you intentionally want Trigger Test events to execute mapped actions.", "default": false }
+  }
+}

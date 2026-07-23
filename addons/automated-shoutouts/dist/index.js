@@ -2,7 +2,9 @@
 // events and uses only brokered chat, overlay, action, scheduler, and private-state capabilities.
 const NATIVE_TWITCH_SHOUTOUT_ACTION_ID = 'c84fdb40-d06f-5b0a-9ddf-f6d21c68922e';
 const LOOKUP_TWITCH_CREATOR_ACTION_ID = 'e3d92d7e-193a-5bba-8b8c-4f17e605c9d2';
+const GET_TWITCH_CLIP_ACTION_ID = 'e47c65a2-09d2-5c5b-9c99-c98e3e1d9362';
 const TWITCH_PROFILE_EVENT = 'addon.thsv.automated-shoutouts.twitch-profile-received';
+const TWITCH_CLIP_EVENT = 'addon.thsv.automated-shoutouts.twitch-clip-received';
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const PLATFORM_MESSAGE_LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
 const NATIVE_GLOBAL_COOLDOWN_MS = 120_000;
@@ -12,15 +14,16 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.automated-shoutouts',
   name: 'Automated Shoutouts',
-  version: '1.0.0',
+  version: '1.1.0',
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['channel.raid', 'chat.message', 'command.received', 'stream.online', 'stream.offline', TWITCH_PROFILE_EVENT],
+  eventSubscriptions: ['channel.raid', 'chat.message', 'command.received', 'stream.online', 'stream.offline', TWITCH_PROFILE_EVENT, TWITCH_CLIP_EVENT],
   commandsProvided: [{ id: 'automated-shoutouts.shoutout', name: 'shoutout (recommended alias: so)' }],
   actionsProvided: [
     { id: 'automated-shoutouts.twitch-lookup', name: 'Required Twitch creator category lookup' },
     { id: 'automated-shoutouts.twitch-native', name: 'Optional Twitch native shoutout' },
+    { id: 'automated-shoutouts.twitch-clip', name: 'Optional Twitch random clip lookup' },
   ],
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.automated-shoutouts/', 'data/addons/.state/thsv.automated-shoutouts/'],
@@ -29,6 +32,7 @@ const manifest = {
     'In Command Sync, create the configured shoutout command (recommended aliases: so and shoutout) with Moderator permission.',
     'Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.',
     'Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.',
+    'Optional: approve Get Twitch Clip when Twitch visual popup is set to Random clip.',
     'For TikTok output, enable Allow Streamer.bot to push messages to TikFinity in TikFinity Chatbot settings.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its private cooldown state remains preserved for a later reinstall.'],
@@ -50,7 +54,10 @@ const FALLBACKS = Object.freeze({
   manualChannelTemplate: 'Go check out {displayName} at {channelUrl} and show them some love!',
   globalCooldownSeconds: 30, userCooldownMinutes: 60, onePerStream: true,
   maximumQueueSize: 10, queueExpiryMinutes: 10, twitchShoutoutMode: 'text',
-  showOverlayCard: true, overlayDurationSeconds: 10,
+  showOverlayCard: true, twitchVisualTriggers: ['raid', 'first-chat', 'manual'], twitchVisualType: 'profile-card',
+  overlayCardTemplate: 'Go show {displayName} some love! They stream {category}. {channelUrl}', overlayDurationSeconds: 10,
+  clipCount: 20, clipMaximumAgeDays: 90, clipMaximumDurationSeconds: 30,
+  clipPreferPopular: false, clipMuted: true, clipVolume: 0.7, clipFallbackToCard: true,
 });
 
 function settingsFor(context) {
@@ -149,6 +156,7 @@ function sanitizeState(value) {
   return {
     queue: (Array.isArray(source.queue) ? source.queue.map(sanitizeCandidate).filter(Boolean) : []).slice(0, 20),
     pendingLookups: (Array.isArray(source.pendingLookups) ? source.pendingLookups.map(sanitizeCandidate).filter(Boolean) : []).slice(-20),
+    pendingClips: (Array.isArray(source.pendingClips) ? source.pendingClips.map(sanitizeCandidate).filter(Boolean) : []).slice(-20),
     firstChatSeen: Array.isArray(source.firstChatSeen) ? source.firstChatSeen.filter((item) => typeof item === 'string').map((item) => cleanText(item, 600)).slice(-500) : [],
     sentUsers: Array.isArray(source.sentUsers) ? source.sentUsers.filter((item) => typeof item === 'string').map((item) => cleanText(item, 600)).slice(-500) : [],
     userCooldowns: sanitizeEntries(source.userCooldowns, 500), nativeUserCooldowns: sanitizeEntries(source.nativeUserCooldowns, 500),
@@ -207,15 +215,78 @@ function serialize(task) {
 }
 
 async function preview(candidate, message, context, settings) {
-  if (!settings.showOverlayCard) return;
+  if (candidate.platform !== 'twitch' || !settings.showOverlayCard) return;
+  const cardText = renderTemplate(settings.overlayCardTemplate, candidate) || message;
   try {
     await context.overlay.publish(`${context.moduleId}.card.show`, {
-      title: `${candidate.user.displayName || candidate.user.name} · ${candidate.platform}`,
-      text: message,
+      title: `Meet ${candidate.user.displayName || candidate.user.name} on Twitch`,
+      text: cardText,
       ...(candidate.user.avatarUrl ? { imageUrl: candidate.user.avatarUrl } : {}),
       durationMs: settings.overlayDurationSeconds * 1000,
     });
   } catch { /* A closed optional overlay must never stop chat processing. */ }
+}
+
+async function requestTwitchClip(candidate, message, context, settings) {
+  if (!context.approvedActionIds.includes(GET_TWITCH_CLIP_ACTION_ID)) {
+    if (settings.clipFallbackToCard) await preview(candidate, message, context, settings);
+    return;
+  }
+  const state = sanitizeState(await context.state.read());
+  const cutoff = Date.now() - settings.queueExpiryMinutes * 60_000;
+  state.pendingClips = state.pendingClips.filter((item) => item.queuedAt >= cutoff && item.id !== candidate.id);
+  state.pendingClips.push(candidate);
+  await context.state.write(state);
+  try {
+    await context.streamerbot.runApprovedAction(GET_TWITCH_CLIP_ACTION_ID, {
+      lookupId: candidate.id,
+      targetUserName: candidate.user.name,
+      ...(candidate.user.id ? { targetUserId: candidate.user.id } : {}),
+      clipCount: settings.clipCount,
+      maximumAgeDays: settings.clipMaximumAgeDays,
+      maximumDurationSeconds: settings.clipMaximumDurationSeconds,
+      preferPopular: settings.clipPreferPopular,
+    });
+  } catch {
+    const latest = sanitizeState(await context.state.read());
+    latest.pendingClips = latest.pendingClips.filter((item) => item.id !== candidate.id);
+    await context.state.write(latest);
+    if (settings.clipFallbackToCard) await preview(candidate, message, context, settings);
+  }
+}
+
+async function handleTwitchClip(event, context) {
+  const lookupId = cleanText(event.payload?.lookupId, 100);
+  if (!lookupId) return;
+  const settings = settingsFor(context);
+  const state = sanitizeState(await context.state.read());
+  const candidate = state.pendingClips.find((item) => item.id === lookupId);
+  state.pendingClips = state.pendingClips.filter((item) => item.id !== lookupId);
+  await context.state.write(state);
+  if (!candidate) return;
+  const message = fitMessageToPlatforms(renderTemplate(templateFor(settings, candidate), candidate), candidate, ['twitch']);
+  const url = cleanText(event.payload?.landscapeUrl, 4096);
+  const clipId = cleanText(event.payload?.clipId, 100);
+  if (event.payload?.found !== true || !url.startsWith('https://') || !clipId) {
+    if (settings.clipFallbackToCard) await preview(candidate, message, context, settings);
+    return;
+  }
+  const thumbnailUrl = cleanText(event.payload?.thumbnailUrl, 4096);
+  const clipTitle = cleanText(event.payload?.title, 300);
+  const durationSeconds = Number(event.payload?.durationSeconds);
+  try {
+    await context.overlay.publish(`${context.moduleId}.media.play`, {
+      url,
+      playbackId: `${clipId}-${Date.now()}`,
+      muted: settings.clipMuted,
+      volume: settings.clipVolume,
+      ...(thumbnailUrl.startsWith('https://') ? { posterUrl: thumbnailUrl } : {}),
+      title: clipTitle || `Shoutout: ${candidate.user.displayName || candidate.user.name}`,
+      ...(Number.isFinite(durationSeconds) && durationSeconds > 0 ? { durationMs: Math.round(durationSeconds * 1_000) } : {}),
+    });
+  } catch {
+    if (settings.clipFallbackToCard) await preview(candidate, message, context, settings);
+  }
 }
 
 function scheduleDrain(context, delayMs) {
@@ -344,7 +415,10 @@ async function sendCandidate(candidate, context, settings, state) {
       ? { message, routing: 'source', sourcePlatform: candidate.platform, overflow: 'reject' }
       : { message, routing: 'selected', selectedPlatforms, overflow: 'reject' });
   }
-  await preview(candidate, message, context, settings);
+  if (candidate.platform === 'twitch' && settings.showOverlayCard && settings.twitchVisualTriggers.includes(candidate.trigger)) {
+    if (settings.twitchVisualType === 'random-clip') await requestTwitchClip(candidate, message, context, settings);
+    else await preview(candidate, message, context, settings);
+  }
 }
 
 async function drain(context) {
@@ -388,6 +462,7 @@ async function handleEvent(event, context) {
   const settings = settingsFor(context);
   if (!settings.enabled) return;
   if (event.eventType === TWITCH_PROFILE_EVENT) return handleTwitchProfile(event, context);
+  if (event.eventType === TWITCH_CLIP_EVENT) return handleTwitchClip(event, context);
   if (event.eventType === 'stream.online' || event.eventType === 'stream.offline') return handleLifecycle(event, context);
   const platform = platformOf(event.platform);
   if (!platform || !settings.enabledPlatforms.includes(platform)) return;

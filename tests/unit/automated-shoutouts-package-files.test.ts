@@ -20,9 +20,17 @@ describe('Automated Shoutouts Streamer.bot package', () => {
     expect(source).not.toContain('CPH.SendMessage');
   });
 
+  it('uses supported Streamer.bot clip methods without direct GQL, OBS mutation, or chat output', async () => {
+    const source = await readFile('packages/streamerbot/automated-shoutouts/src/GetTwitchClip.cs', 'utf8');
+    expect(source).toContain('CPH.GetClipsForUser(userName, clipCount, null)');
+    expect(source).toContain('CPH.TwitchGetClipDownloadUrls(selected.Id)');
+    expect(source).toContain('addon.thsv.automated-shoutouts.twitch-clip-received');
+    expect(source).not.toMatch(/gql\.twitch\.tv|HttpClient|ObsSet|CPH\.SendMessage|CPH\.RunAction/iu);
+  });
+
   it('pins the action ID consumed by the add-on and declares only required references', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/automated-shoutouts/manifest.json', 'utf8')) as { actions: Array<{ id: string; references: string[] }> };
-    expect(manifest.actions.map((action) => action.id)).toEqual(['e3d92d7e-193a-5bba-8b8c-4f17e605c9d2', 'c84fdb40-d06f-5b0a-9ddf-f6d21c68922e']);
+    expect(manifest.actions.map((action) => action.id)).toEqual(['e3d92d7e-193a-5bba-8b8c-4f17e605c9d2', 'c84fdb40-d06f-5b0a-9ddf-f6d21c68922e', 'e47c65a2-09d2-5c5b-9c99-c98e3e1d9362']);
     expect(manifest.actions[1]?.references).toEqual([
       'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll',
       'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll',

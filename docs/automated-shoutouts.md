@@ -1,6 +1,6 @@
 # Automated Shoutouts add-on
 
-Automated Shoutouts is an optional `.thsv-addon` that turns already-normalized StreamBridge events into bounded shoutout messages. It reuses the main bridge's event bus, one Streamer.bot WebSocket connection, outbound platform router, scheduler, private state, and hosted overlay. It does not open another socket or store chat messages.
+Automated Shoutouts is an optional `.thsv-addon` that turns already-normalized StreamBridge events into bounded shoutout messages. Twitch can additionally show either a verified profile card or a random eligible clip. It reuses the main bridge's event bus, one Streamer.bot WebSocket connection, outbound platform router, scheduler, private state, and hosted overlay. It does not open another socket or store chat messages.
 
 ## Supported triggers
 
@@ -19,7 +19,7 @@ The intake packages—not this add-on—translate provider variables into `event
 
 | Provider | Useful documented inputs | Output used |
 |---|---|---|
-| Twitch / Streamer.bot | Raid `%viewers%`; Twitch user ID, login, display name, profile image; command `%command%`, `%commandName%`, `%commandSource%`, `%input#%`, `%rawInput%`; extended user `Game` and `ProfileImageUrl` | lookup action uses `CPH.TwitchGetExtendedUserInfoById/Login`; shared router uses `CPH.SendMessage`; optional native action uses `CPH.TwitchSendShoutoutById/Login` |
+| Twitch / Streamer.bot | Raid `%viewers%`; Twitch user ID, login, display name, profile image; command `%command%`, `%commandName%`, `%commandSource%`, `%input#%`, `%rawInput%`; extended user `Game` and `ProfileImageUrl` | lookup action uses `CPH.TwitchGetExtendedUserInfoById/Login`; optional clip action uses `CPH.GetClipsForUser` and `CPH.TwitchGetClipDownloadUrls`; shared router uses `CPH.SendMessage`; optional native action uses `CPH.TwitchSendShoutoutById/Login` |
 | YouTube / Streamer.bot | Chat `%message%`, `%messageId%`, `%publishedAt%`; YouTube user and broadcast variables; normalized command arguments | shared router uses `CPH.SendYouTubeMessageToLatestMonitored` because the broadcast ID is not part of every normalized event |
 | Kick / Streamer.bot | Chat `%isInternal%`, Kick chat variables including message ID, and Kick user variables; normalized command arguments | shared router uses `CPH.SendKickMessage`; automatic first chat is a welcome because the documented user API exposes only `KickGetBot` and `KickGetBroadcaster`, not arbitrary chatter categories |
 | TikTok / TikFinity | `%userId%`, `%username%`, `%nickname%`, documented `%profilePicturUrl%` spelling, `%commandParams%`, `%giftId%`, `%giftName%`, `%coins%`, `%repeatCount%`, `%likeCount%`, `%totalLikeCount%`, `%subMonth%`, `%emoteId%`, `%emoteImageUrl%` | TikFinity's documented `CPH.WebsocketBroadcastJson` envelope with `action: "sendChatbotMessage"` and `args.message` |
@@ -43,12 +43,20 @@ Streamer.bot does not currently document an arbitrary-channel native shoutout fo
 
 ## Setup
 
-1. Download and extract `THSV-StreamBridge-AddOn-Automated-Shoutouts-1.0.0.zip`, then install its `THSV-Automated-Shoutouts-1.0.0.thsv-addon` through the authenticated wizard and enable it.
+1. Download and extract `THSV-StreamBridge-AddOn-Automated-Shoutouts-1.1.0.zip`, then install its `THSV-Automated-Shoutouts-1.1.0.thsv-addon` through the authenticated wizard and enable it.
 2. Review the settings. Keep first-chat automation disabled until its allowlist is populated.
 3. For manual use, open **Command Sync** and create the command named by **Manual command name**. Recommended aliases are `so` and `shoutout`; set the reference role to Moderator and enable the desired message sources.
-4. Import `Streamer.bot/THSV-StreamBridge-Automated-Shoutouts-1.0.0.sb` from the extracted add-on bundle. The native platform intake remains a core import supplied by the main StreamBridge download. Do not attach triggers to the Automated Shoutouts actions. Approve `Lookup Twitch Creator` whenever Twitch triggers are enabled. Approve `Twitch Native Shoutout` only when the Twitch mode is `native` or `both`.
+4. Import `Streamer.bot/THSV-StreamBridge-Automated-Shoutouts-1.1.0.sb` from the extracted add-on bundle. The native platform intake remains a core import supplied by the main StreamBridge download. Do not attach triggers to the Automated Shoutouts actions. Approve `Lookup Twitch Creator` whenever Twitch triggers are enabled. Approve `Twitch Native Shoutout` only when the Twitch mode is `native` or `both`. Approve `Get Twitch Clip` only when the visual popup uses random clips.
 5. For TikTok output, enable **Allow Streamer.bot to push messages to TikFinity** in TikFinity's Chatbot settings.
-6. Optionally add `http://127.0.0.1:8787/overlay/addons/thsv.automated-shoutouts` to OBS, Meld, or Streamlabs and use **Send preview card** in the wizard.
+6. Optionally add the concise **Shoutouts** source, `http://127.0.0.1:8787/overlay/shoutouts`, to OBS, Meld, or Streamlabs and use **Send preview card** in the wizard. The previous module-ID URL remains supported for existing scenes.
+
+## Twitch visual popup
+
+The visual popup is Twitch-only. Choose **Profile card with picture** for the target's verified profile image, category, channel URL, and editable card message. Choose **Random Twitch clip** to select one eligible clip using creator-set age and duration limits; optional popularity weighting still leaves every eligible clip selectable. Clip playback is muted by default for reliable browser-source autoplay, with an editable volume setting when mute is disabled. If Twitch returns no eligible or playable clip, the add-on can fall back to the profile card.
+
+The **Show the Twitch popup for** control independently selects incoming raids, approved first-time chatters, and manual moderator shoutouts. Manual means the normalized moderator/broadcaster command configured under **Manual command name**; first-time chatter still requires the creator allowlist and the first-chat switch. The selected profile card or clip is shared by all enabled Twitch trigger paths.
+
+Clip playback uses Streamer.bot's supported methods and the same core-owned `/overlay/shoutouts` source. It never creates an OBS-specific scene, invokes an external hash service, stores a signed playback URL, or adds another socket. YouTube, Kick, and TikTok continue to receive only their respective bounded chat messages.
 
 ## Template tokens
 
@@ -88,3 +96,4 @@ The add-on never persists chat message text. Private state contains only a bound
 8. Confirm a viewer cannot invoke the command and an ignored target never appears.
 9. If native mode is enabled, confirm the approved action returns `automatedShoutoutSucceeded = true`; then confirm an immediate repeat is suppressed/falls back rather than calling Twitch again.
 10. If TikTok delivery is enabled, confirm TikFinity's chatbot push option is enabled and a source-routed test appears once.
+11. Select **Profile card with picture** and confirm the Twitch avatar, channel message, and category fit without clipping. Then select **Random Twitch clip**, approve the clip action, and confirm one eligible clip plays and fades through the hosted overlay. Test a target with no eligible clips and confirm the card fallback appears.

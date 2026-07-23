@@ -6,8 +6,9 @@
     "ignoredUsers", "deliveryMode", "selectedPlatforms", "raidTemplate", "twitchFirstChatTemplate", "twitchViewerWelcomeTemplate",
     "youtubeWelcomeTemplate", "kickWelcomeTemplate", "tiktokWelcomeTemplate", "manualTwitchTemplate",
     "manualChannelTemplate", "globalCooldownSeconds", "userCooldownMinutes", "onePerStream",
-    "maximumQueueSize", "queueExpiryMinutes", "twitchShoutoutMode", "showOverlayCard",
-    "overlayDurationSeconds"
+    "maximumQueueSize", "queueExpiryMinutes", "twitchShoutoutMode", "showOverlayCard", "twitchVisualTriggers", "twitchVisualType",
+    "overlayCardTemplate", "overlayDurationSeconds", "clipCount", "clipMaximumAgeDays", "clipMaximumDurationSeconds",
+    "clipPreferPopular", "clipMuted", "clipVolume", "clipFallbackToCard"
   ],
   "sections": [
     {
@@ -55,9 +56,9 @@
     },
     {
       "id": "overlay",
-      "title": "8. Overlay card",
-      "description": "Enable or disable the optional on-screen shoutout card.",
-      "fields": ["showOverlayCard", "overlayDurationSeconds"]
+      "title": "8. Twitch visual popup",
+      "description": "Choose a verified profile card or a random Twitch clip. Other platforms remain chat-only.",
+      "fields": ["showOverlayCard", "twitchVisualTriggers", "twitchVisualType", "overlayCardTemplate", "overlayDurationSeconds", "clipCount", "clipMaximumAgeDays", "clipMaximumDurationSeconds", "clipPreferPopular", "clipMuted", "clipVolume", "clipFallbackToCard"]
     }
   ],
   "fields": {
@@ -68,6 +69,8 @@
     "selectedPlatforms": { "visibleWhen": { "field": "deliveryMode", "equals": "selected" } },
     "deliveryMode": { "labels": { "source": "Reply only on the source platform", "selected": "Post to selected platforms" } },
     "twitchShoutoutMode": { "labels": { "text": "Editable text only", "native": "Native Twitch shoutout only", "both": "Native shoutout and editable text" } },
+    "twitchVisualTriggers": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "labels": { "raid": "Incoming raids", "first-chat": "Approved first-time chatters", "manual": "Manual moderator shoutouts" } },
+    "twitchVisualType": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "labels": { "profile-card": "Profile card with picture", "random-clip": "Random Twitch clip" } },
     "raidTemplate": { "visibleWhen": { "field": "triggerOnRaids", "equals": true }, "rows": 3 },
     "twitchFirstChatTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
     "twitchViewerWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
@@ -77,6 +80,14 @@
     "manualTwitchTemplate": { "visibleWhen": { "field": "triggerOnManualCommand", "equals": true }, "rows": 3 },
     "manualChannelTemplate": { "visibleWhen": { "field": "triggerOnManualCommand", "equals": true }, "rows": 3 },
     "ignoredUsers": { "rows": 4 },
-    "overlayDurationSeconds": { "visibleWhen": { "field": "showOverlayCard", "equals": true } }
+    "overlayCardTemplate": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "rows": 3 },
+    "overlayDurationSeconds": { "visibleWhen": { "field": "showOverlayCard", "equals": true } },
+    "clipCount": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
+    "clipMaximumAgeDays": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
+    "clipMaximumDurationSeconds": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
+    "clipPreferPopular": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
+    "clipMuted": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
+    "clipVolume": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
+    "clipFallbackToCard": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } }
   }
 }

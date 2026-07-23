@@ -1,0 +1,62 @@
+{
+  "intro": "Raid Scout searches Twitch in a creator-controlled order, filters unsafe or repetitive destinations, and suggests one live channel. Suggest then Confirm is the default; no raid starts merely because discovery completed.",
+  "order": [
+    "enabled", "usePreferred", "useFollowed", "useCategory", "sourceOrder", "preferredChannels", "maximumPreferredLookups",
+    "maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults", "minimumViewers", "maximumViewers",
+    "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio", "preferredLanguage",
+    "requireMatchingLanguage", "excludedChannels", "excludedCategories", "excludedTags", "recentRaidStreams",
+    "confirmationMode", "suggestionExpiryMinutes", "announceConfirmedRaid", "confirmedRaidMessage", "announceNoCandidate",
+    "noCandidateMessage", "showSuggestionCard", "showConfirmedCard", "cardSeconds", "overlayBackgroundMode",
+    "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"
+  ],
+  "fields": {
+    "preferredChannels": { "visibleWhen": { "field": "usePreferred", "equals": true } },
+    "maximumPreferredLookups": { "visibleWhen": { "field": "usePreferred", "equals": true } },
+    "maximumFollowedResults": { "visibleWhen": { "field": "useFollowed", "equals": true } },
+    "maximumFollowedPages": { "visibleWhen": { "field": "useFollowed", "equals": true } },
+    "maximumCategoryResults": { "visibleWhen": { "field": "useCategory", "equals": true } },
+    "sourceOrder": {
+      "labels": {
+        "preferred-followed-category": "Preferred, then followed, then category",
+        "preferred-category-followed": "Preferred, then category, then followed",
+        "followed-preferred-category": "Followed, then preferred, then category",
+        "followed-category-preferred": "Followed, then category, then preferred",
+        "category-preferred-followed": "Category, then preferred, then followed",
+        "category-followed-preferred": "Category, then followed, then preferred"
+      }
+    },
+    "confirmationMode": {
+      "labels": {
+        "required": "Suggest, then require Confirm (recommended)",
+        "suggest-only": "Suggest only; never start a raid",
+        "automatic": "Automatically raid the selected channel (advanced)"
+      }
+    },
+    "minimumAudienceRatio": { "visibleWhen": { "field": "preferSimilarSize", "equals": true } },
+    "maximumAudienceRatio": { "visibleWhen": { "field": "preferSimilarSize", "equals": true } },
+    "preferredLanguage": { "visibleWhen": { "field": "requireMatchingLanguage", "equals": true } },
+    "confirmedRaidMessage": { "visibleWhen": { "field": "announceConfirmedRaid", "equals": true } },
+    "noCandidateMessage": { "visibleWhen": { "field": "announceNoCandidate", "equals": true } },
+    "overlayBackgroundMode": { "labels": { "glass": "Glass", "solid": "Solid", "none": "Transparent" } },
+    "overlayFontFamily": { "labels": { "display": "Display", "broadcast": "Broadcast", "serif": "Serif", "mono": "Monospace" } }
+  },
+  "sections": [
+    { "id": "quick-start", "title": "1. Turn on Raid Scout", "description": "Start here. Suggest then Confirm is the safest mode and keeps the final raid under your control.", "open": true, "fields": ["enabled", "confirmationMode"] },
+    { "id": "discovery", "title": "2. Where to search", "description": "Choose the Twitch sources Raid Scout may use and the order it should try them. It stops at the first source with eligible live channels.", "fields": ["usePreferred", "useFollowed", "useCategory", "sourceOrder"] },
+    { "id": "preferred", "title": "3. Preferred channels", "description": "Shown only when preferred-channel search is enabled. Paste one Twitch login per line or separate logins with commas.", "fields": ["preferredChannels", "maximumPreferredLookups"] },
+    { "id": "limits", "title": "4. Search limits", "description": "Only limits for enabled search sources are shown. Conservative limits keep Twitch requests fast and bounded.", "fields": ["maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults"] },
+    { "id": "audience", "title": "5. Audience size", "description": "Keep suggestions within a comfortable viewer range. Similar-size matching reveals its ratio controls only when enabled.", "fields": ["minimumViewers", "maximumViewers", "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio"] },
+    { "id": "language-category", "title": "6. Language, category, and tags", "description": "Require a matching language when needed, then exclude categories or tags you do not want recommended.", "fields": ["requireMatchingLanguage", "preferredLanguage", "excludedCategories", "excludedTags"] },
+    { "id": "channels-history", "title": "7. Blocked channels and repeat protection", "description": "Your own channel, offline channels, the current suggestion, blocked channels, and recent confirmed raids are always removed.", "fields": ["excludedChannels", "recentRaidStreams"] },
+    { "id": "messages", "title": "8. Confirmation and chat messages", "description": "Set how long a suggestion remains valid and choose which outcomes should be announced in chat. Message boxes appear only when their announcement is enabled.", "fields": ["suggestionExpiryMinutes", "announceConfirmedRaid", "confirmedRaidMessage", "announceNoCandidate", "noCandidateMessage"] },
+    { "id": "overlay-content", "title": "9. Dock and on-stream cards", "description": "Use the add-on URL privately as a dock to review suggestions. Disable suggestion cards if an unconfirmed destination should not appear on-stream.", "fields": ["showSuggestionCard", "showConfirmedCard", "cardSeconds"] },
+    { "id": "overlay-style", "title": "10. Card appearance", "description": "Choose a readable card style for OBS, Meld, Streamlabs, or a private browser dock.", "fields": ["overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"] },
+    {
+      "id": "maintenance",
+      "title": "Safety, controls, and privacy",
+      "description": "Use the imported Suggest, Confirm, and Cancel actions from a creator-controlled deck, hotkey, or operator command.",
+      "notice": "Raid Scout stores only bounded candidate summaries, shuffle bags, stream counters, and the last 100 suggestion/raid outcomes in private local state. Twitch authentication stays inside the triggerless Streamer.bot controller and is sent only to fixed api.twitch.tv endpoints. Tokens are never relayed, logged, saved by StreamBridge, or exposed to the overlay.",
+      "fields": []
+    }
+  ]
+}

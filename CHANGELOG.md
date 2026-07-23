@@ -19,6 +19,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Added Scene Actions `1.0.0`: one documented OBS Studio, Streamlabs Desktop, and Meld Studio scene-change intake normalizes `stream.scene-changed` through the existing Streamer.bot WebSocket. A guided wizard editor maps exact scene names to creator-approved stable action IDs, with editable starter actions, optional delays, duplicate suppression, loop-rate protection, and Trigger Test safety. The same scene events now make core Timed Action scene gates operational without another connection.
+
+- Added First Five `1.0.0`, a Twitch Channel Points queue that opens five sequential creator-owned rewards, rejects duplicate viewers across every position, serializes redemption decisions, refunds failed or invalid claims, keeps a private monthly leaderboard, and exposes creator-controlled reset actions.
+
+- Added Raid Scout `1.0.0`, a Twitch-only preferred/followed-live/same-category raid finder with bounded Helix discovery, creator-ordered sources, viewer/language/category/tag filters, similar-size preference, stream-based repeat protection, shuffle rotation, expiring suggestions, creator Confirm/Cancel controls, private history, and a configurable Next Stop browser card. Suggest then confirm is the default; automatic raiding is an explicit advanced opt-in.
+
+- Added Fan Crown `1.0.0`, a Twitch-only rotating Channel Points crown with actual-spend monthly rankings, fixed or multiplier pricing, current-holder and cooldown rules, serialized redemption decisions, replay protection, refund-on-failure behavior, creator-approved Streamer.bot mutations, manual reset actions, editable chat messages, and a configurable hosted overlay card.
+
+- Added concise official add-on overlay URLs (`/overlay/shoutouts`, `/overlay/clips`, and `/overlay/subathon`) while preserving existing module-ID URLs, and added per-trigger Twitch visual controls for raid, approved first-chat, and manual shoutout paths.
+
+- Changed Automated Shoutouts to `1.1.0` with Twitch-only visual modes: an editable verified profile card or a bounded random clip. Clip retrieval uses Streamer.bot's supported `GetClipsForUser` and `TwitchGetClipDownloadUrls` methods, respects creator-set age/duration/popularity, mute, and volume controls, and can fall back to the profile card. YouTube, Kick, and TikTok remain chat-only, and no OBS scene mutation, undocumented Twitch GQL call, permanent clip file, or extra WebSocket is introduced.
+
 - Changed Ko-fi Donations to `1.0.1` with a short Streamer.bot-first setup checklist, collapsed connection/privacy/presentation/safety sections, direct official setup links, and explicit guidance showing where Ko-fi alerts and optional chat activity are configured. The Alerts page now also explains the supported Ko-fi prerequisite and the reason Streamlabs intake remains pending.
 - Added the Ko-fi Donations add-on and its separate Streamer.bot import. Ko-fi payments require the documented stable `messageId`, keep private supporter content out of public alerts, and enter the normal validated, deduplicated, durable delivery pipeline through a narrowly scoped provider permission.
 - Added a manual, read-only wizard add-on update checker. It validates the official GitHub release index, reports compatible updates, publisher mismatches, unlisted packages, and revocations, and never downloads, installs, enables, or disables an add-on automatically.
