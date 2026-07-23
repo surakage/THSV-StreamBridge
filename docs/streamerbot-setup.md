@@ -1,49 +1,185 @@
 # Streamer.bot setup
 
-The foundation sends a `DoAction` WebSocket request and waits for the correlated `status: ok` response.
+Complete the core installation in [Getting started](getting-started.md) before configuring Streamer.bot. StreamBridge sends one `DoAction` request through Streamer.bot's local WebSocket server and waits for its correlated `status: ok` response.
 
-## Manual setup
-
-Before the core imports, you may import `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-1.4.0.sb` and `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-2.0.0-preview.1.sb`. Each bridge lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave its default `%LOCALAPPDATA%\THSV StreamBridge` path unchanged, or edit that sub-action for a custom path; do not edit the C#. Only Launch Bridge may receive **Core > Streamer.bot > Streamer.bot Started**; keep Shutdown Bridge and Open Setup Wizard manual. Both lifecycle actions run hidden (no console window) and instead raise one Windows toast notification per run — success or failure — grouped under a single Action Center header; per-event actions such as chat and alert intake intentionally never toast.
+## 1. Start the WebSocket server
 
 1. In Streamer.bot, open **Servers/Clients > WebSocket Server**.
-2. Keep the address at `127.0.0.1`, port `8080`, and endpoint `/`, or update the bridge URL to match.
-3. Enable **Auto Start** and start the WebSocket server.
-4. Import `packages\streamerbot\core-receiver\THSV-StreamBridge-Core-Receiver-2.0.0-preview.1.sb`. It installs or upgrades `THSV StreamBridge - Receive Event` in the `THSV StreamBridge` group.
-5. Keep `streamerbot.actionAlias` set to `THSV StreamBridge - Receive Event`. The receiver validates the full `streamBridgeEvent` JSON and exposes the versioned, platform-neutral arguments documented in the adjacent package manifest.
-6. Import `packages\streamerbot\multi-chat\THSV-StreamBridge-Multi-Chat-1.1.1.sb`.
-7. In the receiver action, add **Core > Actions > Run Action** after the enabled receiver C# sub-action. Select `THSV StreamBridge - Multi-Chat` and leave **Run Action Immediately** enabled so it receives the validated argument stack.
-8. Import `packages\streamerbot\multi-commands\THSV-StreamBridge-Multi-Commands-2.0.0-preview.1.sb`.
-9. Add another immediate **Run Action** child in the receiver and select `THSV StreamBridge - Multi-Commands`. Multi-Chat and Multi-Commands safely ignore event types they do not own.
-10. Import `packages\streamerbot\multi-alerts\THSV-StreamBridge-Multi-Alerts-1.0.1.sb` and add it as another immediate receiver child action.
-11. Import `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-1.3.0.sb` and add it as another immediate receiver child action.
-12. Import `packages\streamerbot\timed-message-output\THSV-StreamBridge-Timed-Message-Output-1.1.0.sb`. Keep `THSV StreamBridge - Send Timed Message` triggerless; select it from the wizard only for shuffled timed-chat definitions. The recommended separate-platform mode applies the saved Twitch, YouTube, Kick, and TikTok limits and rotates each list independently.
-13. For TikTok through TikFinity, import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.1.0.sb`. It installs `THSV TikTok - Chat`, `THSV TikTok - Follow`, `THSV TikTok - Gift`, `THSV TikTok - Like`, and `THSV TikTok - Subscription` in the `THSV StreamBridge - TikTok` group.
-14. In TikFinity, set Streamer.bot Address `127.0.0.1`, Port `8080`, Endpoint `/`, then run **Test Connection**. Map Chat, Follow, Gift, Like, and Subscription events to the matching imported actions.
-15. Enable the local config's `tiktok` entry with adapter `tikfinity-streamerbot`, restart StreamBridge, then use TikFinity's event simulator. Confirm Action History shows the intake action followed by `THSV StreamBridge - Receive Event` and that diagnostics show the `tiktok` adapter connected.
-16. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.5.1.sb`. It installs one intake action each for Twitch, YouTube, and Kick in separate platform groups. Version 1.5.1 also preserves Streamer.bot's known `firstMessage` flag so add-ons can distinguish a first-ever channel message from an ordinary first message of the stream.
-17. Add only the trigger picker paths declared under `manualTriggerSetup` for each platform in `packages\streamerbot\native-platform-intake\manifest.json`, then enable the corresponding `streamerbot-native` platform entries in the local bridge configuration. Include Twitch/Kick Stream Online and Stream Offline plus YouTube Broadcast Started and Broadcast Ended; timed actions use those lifecycle events.
-18. For rewards, add `TwitchRewardRedemption` only to `THSV Twitch - Intake` and `KickRewardRedemption` only to `THSV Kick - Intake`.
-19. Import `packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-1.0.0.sb`. Review the custom C# source and keep `THSV StreamBridge - Reward Administration` triggerless. The wizard requires a separate confirmation and approval flag for every live Twitch operation. Kick mutations remain unavailable.
-20. For a network-free check, explicitly set `streamerbot.testMode` true and run the simulator. Diagnostics will report `liveDelivery: false`; no Streamer.bot action will execute.
-21. For a live check, set test mode false, start Streamer.bot, start the bridge, and run the fixture matrices listed in [Testing](testing.md).
-22. If authentication is enabled, set the environment variable named by `passwordEnv` before starting. Never store the password in JSON.
+2. Set the address to `127.0.0.1`, port to `8080`, and endpoint to `/`.
+3. Enable **Auto Start**, then start the server.
+4. If you intentionally use another address, port, endpoint, or authentication setting, update StreamBridge to match.
 
-The intake broadcasts only documented, allowlisted placeholder fields. It reuses StreamBridge's existing Streamer.bot WebSocket rather than opening another connection. Until live provenance is verified, events default to simulated and expose unverified transport/source-ID fields.
+If authentication is enabled, set the environment variable named by `streamerbot.passwordEnv` before starting StreamBridge. Never store the password in JSON.
 
-`actionId` is optional. The human-readable alias is the portable default; an installation-specific GUID can be added later.
+## 2. Import optional lifecycle launchers
 
-The import file is Base64-encoded and contains an `SBAE` header followed by gzip-compressed export JSON. Its readable source, manifest, and automated reproducibility test are stored beside it under `packages\streamerbot\core-receiver`.
+Import these first if you want Streamer.bot to start StreamBridge or open the wizard:
 
-Multi-Chat, Multi-Commands, Multi-Alerts, Multi-Timed Actions, and Send Timed Message must not have direct triggers. Their trust boundary depends on running after a successful receiver invocation. Viewer Progression, Bloom Companion, and Speaker Orchestration are archived and must not be imported into the Stage 2 core chain.
+- `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-1.4.0.sb`
+- `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-2.1.0.sb`
 
-Core Receiver, Command Administration, Reward Administration, and the setup wizard also remain triggerless. The only automatic framework trigger outside platform intake is the optional **Core > Streamer.bot > Streamer.bot Started** trigger on Launch Bridge. Keep Shutdown Bridge manual so one platform ending cannot stop an active multistream.
+Each lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave `%LOCALAPPDATA%\THSV StreamBridge` for the default installation, or edit that argument for a custom path. Do not edit the C# just to change the path.
 
-Before enabling live triggers, compile every imported C# action using [the required Streamer.bot references](streamerbot-csharp-references.md).
+Only **Launch Bridge** may receive **Core > Streamer.bot > Streamer.bot Started**. Keep **Shutdown Bridge** and **Open Setup Wizard** manual. These actions run hidden and report one grouped Windows notification; high-frequency intake actions do not create notifications.
 
-Reward Administration must also remain triggerless. See [Channel rewards](rewards.md) for the supported Twitch operations, Kick intake-only boundary, and safe test procedure.
+## 3. Import the receiver and projection packages
 
-Official references:
+Import:
+
+1. `packages\streamerbot\core-receiver\THSV-StreamBridge-Core-Receiver-2.0.0-preview.1.sb`
+2. `packages\streamerbot\multi-chat\THSV-StreamBridge-Multi-Chat-1.1.1.sb`
+3. `packages\streamerbot\multi-commands\THSV-StreamBridge-Multi-Commands-2.0.0-preview.1.sb`
+4. `packages\streamerbot\multi-alerts\THSV-StreamBridge-Multi-Alerts-1.0.1.sb`
+5. `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-1.3.0.sb`
+
+The Core Receiver installs or upgrades `THSV StreamBridge - Receive Event` in the `THSV StreamBridge` group. Keep `streamerbot.actionAlias` set to that exact name unless you deliberately change both sides.
+
+Open `THSV StreamBridge - Receive Event`. After its enabled receiver C# sub-action, add four **Core > Actions > Run Action** children in this order:
+
+1. `THSV StreamBridge - Multi-Chat`
+2. `THSV StreamBridge - Multi-Commands`
+3. `THSV StreamBridge - Multi-Alerts`
+4. `THSV StreamBridge - Multi-Timed Actions`
+
+Leave **Run Action Immediately** enabled for every child so each one receives the validated argument stack. The child packages safely ignore event types they do not own.
+
+The resulting chain is:
+
+```text
+THSV StreamBridge - Receive Event
+  -> THSV StreamBridge - Multi-Chat
+  -> THSV StreamBridge - Multi-Commands
+  -> THSV StreamBridge - Multi-Alerts
+  -> THSV StreamBridge - Multi-Timed Actions
+```
+
+Keep the receiver and all four child actions triggerless. Their trust boundary depends on running only after receiver validation.
+
+## 4. Import optional core outputs and administration
+
+### Timed messages
+
+Import:
+
+```text
+packages\streamerbot\timed-message-output\THSV-StreamBridge-Timed-Message-Output-1.1.0.sb
+```
+
+Keep `THSV StreamBridge - Send Timed Message` triggerless. Select it from the wizard only for shuffled timed-chat definitions. Separate-platform mode applies each platform's saved character limits and rotates its list independently.
+
+### Reward administration
+
+Import:
+
+```text
+packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-1.0.0.sb
+```
+
+Review the custom C# and keep `THSV StreamBridge - Reward Administration` triggerless. Each live Twitch mutation requires separate wizard confirmation and approval. Kick mutations remain unavailable.
+
+Core Receiver, Command Administration, Reward Administration, Timed Message Output, and the setup wizard remain triggerless.
+
+## 5. Connect Twitch, YouTube, and Kick
+
+Import:
+
+```text
+packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-1.5.2.sb
+```
+
+It installs one intake action per platform in separate Twitch, YouTube, and Kick groups. Version 1.5.2 preserves Streamer.bot's known `firstMessage` flag for add-ons that distinguish a first-ever channel message and includes the current Kick Mass Gift Subscription argument contract.
+
+For each platform you use:
+
+1. Open the matching intake action.
+2. Add only the trigger picker paths declared in `packages\streamerbot\native-platform-intake\manifest.json` and the [trigger matrix](streamerbot-trigger-matrix.md).
+3. Include Twitch/Kick **Stream Online** and **Stream Offline**, and YouTube **Broadcast Started** and **Broadcast Ended**, if timed actions need stream lifecycle.
+4. Add `TwitchRewardRedemption` only to `THSV Twitch - Intake`.
+5. Add `KickRewardRedemption` only to `THSV Kick - Intake`.
+6. Enable the matching `streamerbot-native` platform in the wizard.
+
+Do not copy platform triggers onto the receiver or a `Multi-*` action.
+
+## 6. Connect TikTok through TikFinity
+
+Import:
+
+```text
+packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-1.1.0.sb
+```
+
+It installs:
+
+- `THSV TikTok - Chat`
+- `THSV TikTok - Follow`
+- `THSV TikTok - Gift`
+- `THSV TikTok - Like`
+- `THSV TikTok - Subscription`
+
+In TikFinity:
+
+1. Set Streamer.bot Address to `127.0.0.1`, Port to `8080`, and Endpoint to `/`.
+2. Run **Test Connection**.
+3. Map Chat, Follow, Gift, Like, and Subscription to their matching imported actions.
+4. Enable the wizard's TikTok entry with adapter `tikfinity-streamerbot`.
+5. Restart StreamBridge.
+6. Run a TikFinity simulated event.
+7. Confirm Action History shows the matching intake followed by Core Receiver and that diagnostics reports the TikTok adapter connected.
+
+For a wizard-generated TikTok command, assign its generated Streamer.bot action to the corresponding TikFinity command event. Enable **Allow Streamer.bot to push messages to TikFinity** when it should reply in TikTok chat. The generated action consumes TikFinity's `commandParams`, `nickname`, and `username` and sends through `sendChatbotMessage`.
+
+## 7. Compile before enabling live triggers
+
+Open every imported THSV action containing **Execute C# Code**, select **Save and Compile**, and resolve any error before enabling live triggers. Current packages carry their required references; use [Streamer.bot C# compiler references](streamerbot-csharp-references.md) if Streamer.bot reports a missing type.
+
+Accept Streamer.bot's custom C# warning only when the `.sb` came from a verified official core or add-on archive.
+
+## 8. Verify the complete path
+
+### Network-free test
+
+Set `streamerbot.testMode` to `true`, restart StreamBridge, and run the simulator. Diagnostics must report `liveDelivery: false`, and no Streamer.bot action should execute.
+
+### Local live-delivery test
+
+1. Set `streamerbot.testMode` to `false`.
+2. Start Streamer.bot and its WebSocket server.
+3. Start StreamBridge.
+4. Run the fixture matrices in [Testing](testing.md).
+5. Confirm one intake action, one Core Receiver run, and the expected child action in Action History.
+6. Confirm the browser overlay receives the event once.
+
+A successful intake writes `Native Streamer.bot platform relay event accepted` to the structured bridge log. A rejection writes a readable warning. If neither appears, the intake action or active runtime platform configuration is not connected.
+
+The intake transmits only documented, allowlisted fields and reuses StreamBridge's existing Streamer.bot WebSocket. It does not create a second connection. Until a transport's live provenance is verified, its events remain simulated or expose unverified identity fields.
+
+## Action wiring at a glance
+
+| Action kind | Direct triggers? | Where it belongs |
+| --- | --- | --- |
+| Twitch/YouTube/Kick intake | Yes | Only documented matching platform triggers |
+| TikFinity intake | TikFinity mapping | Matching TikFinity event |
+| Core Receiver | No | Called by StreamBridge |
+| Multi-Chat | No | Immediate child of Core Receiver |
+| Multi-Commands | No | Immediate child of Core Receiver |
+| Multi-Alerts | No | Immediate child of Core Receiver |
+| Multi-Timed Actions | No | Immediate child of Core Receiver |
+| Timed Message Output | No | Selected by a wizard timed action |
+| Reward Administration | No | Called only through approved framework flow |
+| Launch Bridge | Optional | Streamer.bot Started |
+| Shutdown/Open Wizard | No | Manual |
+
+Wizard-generated commands import into `THSV Bridge - Commands`. Their action names default to `THSV Command - <Command>` and can be edited before export.
+
+Optional add-ons are not part of the core action chain. Download the add-on's separate ZIP, install its `.thsv-addon`, import only its bundled `.sb`, and follow its `INSTALL.md`.
+
+`actionId` is optional for portable core delivery. The human-readable action alias is the default; an installation-specific GUID can be added later.
+
+The `.sb` import is Base64-encoded and contains an `SBAE` header followed by gzip-compressed export JSON. Readable source, manifests, and reproducibility tests live beside each package.
+
+Viewer Progression, Bloom Companion, and Speaker Orchestration are archived and must not be imported into the current core chain.
+
+## Official references
 
 - <https://docs.streamer.bot/api/websocket/guide/configuration>
 - <https://docs.streamer.bot/api/websocket/guide/authentication>
@@ -56,15 +192,3 @@ Official references:
 - <https://docs.streamer.bot/api/triggers/kick/channel/stream-offline>
 - <https://docs.streamer.bot/api/triggers/youtube/broadcast/started>
 - <https://docs.streamer.bot/api/triggers/youtube/broadcast/ended>
-# Action wiring at a glance
-
-- Attach native Twitch, YouTube, and Kick triggers only to the matching actions in `THSV StreamBridge / Platform Intake`.
-- Wizard-generated commands and their actions import into `THSV Bridge - Commands`. Their action
-  names default to `THSV Command - <Command>` but can be edited in the wizard before export.
-- For an enabled TikTok command, assign the generated Streamer.bot action to the corresponding
-  command event in TikFinity. Enable **Allow Streamer.bot to push messages to TikFinity** when the
-  command should reply in TikTok chat. The generated action consumes TikFinity's `commandParams`,
-  `nickname`, and `username` arguments and sends through `sendChatbotMessage`.
-- Do **not** attach platform triggers to Multi-Chat, Multi-Commands, or Multi-Alerts.
-- Keep Multi-Chat, Multi-Commands, and Multi-Alerts as immediate child actions under `THSV StreamBridge - Receive Event`. The bridge calls the receiver once; those projection actions read its validated `streamBridge*` arguments.
-- A successful intake now writes `Native Streamer.bot platform relay event accepted` to the structured bridge log. A rejection writes a readable warning. If neither appears, the intake action or active runtime configuration is not connected.

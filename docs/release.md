@@ -2,6 +2,8 @@
 
 THSV StreamBridge is distributed as a self-contained Windows x64 ZIP from the official GitHub Releases page. It includes the compiled bridge, exact production dependencies, launchers, documentation, reviewed Streamer.bot packages, and a pinned Node.js 22 runtime. Installation does not run npm, require administrator access, or require a globally installed Node.js.
 
+For a first installation, follow [Getting started](getting-started.md). This page documents the package and lifecycle behavior in more detail.
+
 ## Verify the download
 
 Download the versioned `THSV-StreamBridge-<version>.zip` and adjacent `.sha256` file from the same official release. Follow the commands in [`RELEASE-VERIFICATION.md`](../RELEASE-VERIFICATION.md) to check both the SHA-256 digest and GitHub Actions artifact attestation. The checksum detects corruption; the GitHub attestation authenticates that the archive came from this repository's release workflow without requiring a paid Windows code-signing certificate.
@@ -10,9 +12,18 @@ The release builder downloads the pinned Node runtime from nodejs.org and verifi
 
 ## Install
 
-1. Extract the verified ZIP to a temporary folder.
-2. Review `README.md`, `CHANGELOG.md`, and `release-manifest.json` if desired.
-3. Double-click `Install THSV StreamBridge.cmd`.
+1. If Windows shows **Unblock** in the verified ZIP's Properties, select it before extracting.
+2. Extract the verified ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.
+3. Review `README.md`, `CHANGELOG.md`, and `release-manifest.json` if desired.
+4. Double-click `Install THSV StreamBridge.cmd`.
+
+The command window remains open and shows a final success or failure message. If Windows policy blocks the `.cmd` wrapper, open PowerShell in the extracted folder and run:
+
+```powershell
+.\runtime\node.exe .\installer\install.mjs
+```
+
+This invokes the same installer through the bundled runtime and preserves its visible console output.
 
 The default destination is `%LOCALAPPDATA%\THSV StreamBridge`. The installer creates this layout:
 
@@ -30,6 +41,8 @@ The installer generates a random 256-bit control token for a new installation, r
 
 If automatic launch is not wanted, run the extracted installer from a terminal with `--no-start`. `--install-root <path>` selects a safe alternative destination. These switches are primarily for managed or test installations; the normal public flow is the root install command.
 
+After installation, complete the [Streamer.bot setup](streamerbot-setup.md) before enabling live automation.
+
 ## Start, stop, and open setup
 
 Use the shortcuts in the installed `launcher` directory:
@@ -41,11 +54,19 @@ Use the shortcuts in the installed `launcher` directory:
 
 Starting a second managed instance first requests authenticated shutdown of the recorded instance, waits for it to exit, and then starts the active version. The launcher passes explicit data, add-on package, and add-on-state roots so release upgrades cannot overwrite creator files.
 
+Each `.cmd` launcher stays open long enough to show the final result. If a launcher is blocked, run its matching `.mjs` file with the installed runtime from PowerShell. For example:
+
+```powershell
+& "$env:LOCALAPPDATA\THSV StreamBridge\runtime\node.exe" "$env:LOCALAPPDATA\THSV StreamBridge\launcher\start.mjs" --open-wizard
+```
+
 ## Upgrade and rollback
 
 Run the newer release's root installer. It refuses a downgrade by default, stages and re-verifies the new release, keeps the current version as `previousVersion`, activates the new version, and runs a health check. If startup health fails, the activation record is restored to the previous version.
 
 Creator-owned `data/` and `addons/state/` directories are not part of a version swap. Old application versions beyond the active and previous versions are cleaned after a successful installation. A deliberate downgrade requires `--allow-downgrade` and should be preceded by an external copy of both creator-owned directories because older code may not understand newer state.
+
+Release `2.3.1` and later retry bounded transient Windows `EACCES`, `EBUSY`, `ENOTEMPTY`, and `EPERM` file-lock failures during activation. Close any File Explorer, editor, or antivirus scan holding the old application directory if the bounded retry still fails, then rerun the installer.
 
 ## Uninstall and privacy
 
@@ -56,6 +77,16 @@ Permanent deletion requires both `--delete-user-data` and `--confirm-delete-ever
 ## Add-ons
 
 Install `.thsv-addon` files from the authenticated wizard's Add-ons page. The wizard displays publisher, version, description, package kind, compatibility, requested permissions, and any declared source/support/update/revocation links before approval. It verifies archive paths, expanded size, the descriptor, every declared file, hashes, and core-version bounds in private staging.
+
+The installation order is:
+
+1. Install and verify core.
+2. Download and verify the add-on's separate ZIP from the same official release.
+3. Install its `.thsv-addon` from the wizard.
+4. Import only the `.sb` file included in that add-on ZIP.
+5. Configure approved actions and settings, restart when requested, then run its preview or test.
+
+Optional add-on `.sb` files are intentionally absent from the core import list.
 
 Official releases publish every optional add-on as its own versioned `.thsv-addon` with an adjacent SHA-256 file and GitHub build-provenance attestation. Keeping add-ons separate makes each package's executable permissions and Streamer.bot action requirements visible before installation; core never installs them automatically. Release automation discovers valid package folders under `addons/`, so a future add-on can join the same release without being compiled into core.
 

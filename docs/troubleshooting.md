@@ -1,5 +1,38 @@
 # Troubleshooting
 
+Start with these checks:
+
+1. Open `http://127.0.0.1:8787/health`.
+2. Open `http://127.0.0.1:8787/diagnostics`.
+3. Inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\service.stderr.log`.
+4. Confirm Streamer.bot's WebSocket server is running on `127.0.0.1:8080`.
+
+## Installer opens and closes or shows no result
+
+Current release wrappers remain open and display a final success or failure result. If an older or policy-blocked wrapper closes immediately, open PowerShell in the extracted release folder and run:
+
+```powershell
+.\runtime\node.exe .\installer\install.mjs
+```
+
+Do not run from inside the ZIP preview. If the command reports that `installer\install.mjs` is missing, you are running from an incomplete installed folder or an incorrectly extracted archive. Download the core ZIP again, verify it, extract the complete archive, and run the installer from that extracted folder.
+
+## An installed launcher closes immediately
+
+Use the launchers under `%LOCALAPPDATA%\THSV StreamBridge\launcher`, not copies left in an older extracted release folder. Current `.cmd` launchers pause after reporting the result.
+
+To see the direct error in PowerShell:
+
+```powershell
+& "$env:LOCALAPPDATA\THSV StreamBridge\runtime\node.exe" "$env:LOCALAPPDATA\THSV StreamBridge\launcher\start.mjs" --open-wizard
+```
+
+If that fails, inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\service.stderr.log`. Reinstalling the current core ZIP repairs application/runtime/launcher files while preserving creator data.
+
+## The wizard does not open
+
+Run `Open THSV Setup Wizard.cmd` from the installed `launcher` folder. Then check `http://127.0.0.1:8787/health`. If health is good but the browser did not open, manually open `http://127.0.0.1:8787/wizard/`. The launcher is still recommended because it starts the service and uses the local authentication flow.
+
 ## Smart App Control blocks the installer
 
 On Windows 11 with Smart App Control enabled, double-clicking `Install THSV StreamBridge.cmd` can be blocked with "Smart App Control has blocked an app with a dangerous file extension." Smart App Control blocks unsigned script files (`.cmd`/`.bat`) that carry the downloaded-from-the-internet mark, and unlike SmartScreen it offers no "Run anyway" button. The `.cmd` is only a thin display wrapper — the real installer is `installer\install.mjs`, run by the bundled, OpenJS-Foundation-signed `runtime\node.exe`, which Smart App Control trusts.
@@ -29,6 +62,20 @@ Open `http://127.0.0.1:8787/diagnostics`. Disabled adapters do not block readine
 ## Streamer.bot is unavailable
 
 Confirm its WebSocket server is started and its address, port, endpoint, and authentication match configuration. Test mode performs no network connection.
+
+## A live event does not reach Chat or Alerts
+
+Check Streamer.bot Action History in this order:
+
+1. The matching Twitch, YouTube, Kick, or TikFinity **intake** action should run once.
+2. `THSV StreamBridge - Receive Event` should run once.
+3. The relevant `THSV StreamBridge - Multi-Chat` or `THSV StreamBridge - Multi-Alerts` child should run once.
+
+Attach platform triggers only to intake actions. Keep Core Receiver and all `Multi-*` actions triggerless; add the `Multi-*` actions as immediate **Run Action** children under Core Receiver. If the intake runs but no receiver follows, confirm the platform is enabled in the wizard and the Streamer.bot WebSocket URL matches `127.0.0.1:8080/`. See [Streamer.bot setup](streamerbot-setup.md).
+
+## An add-on is rejected after an update
+
+Update core first, then install the latest matching add-on ZIP from the same official release. Restart StreamBridge after package changes. A stale setting renamed by a newer add-on should be migrated by current core; if rejection remains, record the exact wizard reason before uninstalling anything. Default add-on uninstall preserves its private settings for repair or reinstall.
 
 ## Service exits during startup
 

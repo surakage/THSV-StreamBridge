@@ -1,6 +1,6 @@
 # Setup
 
-These steps are for a source checkout. Public release users should follow the [Installer and public release guide](release.md) instead.
+These steps are for contributors running a source checkout. Public release users should follow [Getting started](getting-started.md) instead; it covers downloading, installing, Streamer.bot wiring, overlays, testing, add-ons, updating, and uninstalling.
 
 1. Install Node.js 22 or later and Git.
 2. Open PowerShell in the repository root.

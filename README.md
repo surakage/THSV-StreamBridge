@@ -6,7 +6,17 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Release status:** `2.2.0` is the current stable release. Its automated suites, browser checks, Windows lifecycle tests, add-on verification, and self-contained release build pass. A genuine live-stream, real-viewer soak of the high-impact provider-event matrix is still in progress; until then, high-impact operations without verified provider-stable IDs remain blocked at runtime by design. See the [production-readiness gate](docs/production-readiness.md) for the remaining live-verification items.
+> **Release status:** `2.3.1` is the current stable release. Its automated suites, browser checks, Windows lifecycle tests, add-on verification, self-contained release build, and transient Windows upgrade-lock retry pass. A genuine live-stream, real-viewer soak of the high-impact provider-event matrix is still in progress; until then, high-impact operations without verified provider-stable IDs remain blocked at runtime by design. See the [production-readiness gate](docs/production-readiness.md) for the remaining live-verification items.
+
+## Start here
+
+| Your situation | Follow this guide |
+| --- | --- |
+| First installation | [Getting started](docs/getting-started.md) |
+| Updating an existing installation | [Update instructions](docs/getting-started.md#update) |
+| Installing an optional add-on | [Add-on installation](docs/getting-started.md#7-install-an-optional-add-on) |
+| Solving a startup or Windows block | [Troubleshooting](docs/troubleshooting.md) |
+| Developing from source | [Source checkout setup](docs/setup.md) |
 
 ## What it does
 
@@ -27,30 +37,33 @@ Streamer.bot remains the automation and decision engine. StreamBridge does not a
 
 ## Download and install
 
-Public releases are distributed as self-contained Windows x64 ZIP files from the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases). The main archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, and core Streamer.bot packages. Optional add-on Streamer.bot actions are deliberately kept out of the main import list. Each add-on has its own ZIP containing the wizard-installable `.thsv-addon`, only that add-on's `.sb` import, setup instructions, and checksums. Users do not need to install Node.js, npm, Docker, or a database.
+Public releases are distributed as self-contained Windows x64 ZIP files from the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest). The main archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, and core Streamer.bot packages. Optional add-on Streamer.bot actions are deliberately kept out of the main import list. Each add-on has its own ZIP containing the wizard-installable `.thsv-addon`, only that add-on's `.sb` import, setup instructions, and checksums. Users do not need to install Node.js, npm, Docker, or a database.
 
-1. Download `THSV-StreamBridge-<version>.zip` and its adjacent `.sha256` file.
+1. Download `THSV-StreamBridge-2.3.1.zip` and its adjacent `.sha256` file.
 2. Verify the download using [RELEASE-VERIFICATION.md](RELEASE-VERIFICATION.md). GitHub artifact attestations provide a free publisher-verification path without requiring a paid Windows code-signing certificate.
-3. Extract the ZIP.
-4. Double-click **Install THSV StreamBridge.cmd**.
-5. The installer creates a private local control token, starts the bridge, checks health, and opens the authenticated setup wizard.
-6. Follow [Streamer.bot setup](docs/streamerbot-setup.md) to import the supplied packages, add only the [approved trigger matrix](docs/streamerbot-trigger-matrix.md), and connect the WebSocket server.
+3. If Windows shows **Unblock** in the ZIP's Properties, select it before extracting.
+4. Extract the ZIP to a temporary folder; do not run the installer from inside the ZIP preview.
+5. Double-click **Install THSV StreamBridge.cmd**.
+6. The installer creates a private local control token, starts the bridge, checks health, and opens the authenticated setup wizard.
+7. Follow the [first-install walkthrough](docs/getting-started.md) and [Streamer.bot setup](docs/streamerbot-setup.md).
 
 For an optional feature, download its matching `THSV-StreamBridge-AddOn-<Name>-<version>.zip`. Extract it, install the `.thsv-addon` through the wizard, then import the `.sb` file from that bundle's `Streamer.bot` folder. Add-on actions are never mixed into the main StreamBridge package.
 
 Default installation location: `%LOCALAPPDATA%\THSV StreamBridge`. Windows 10 or later and PowerShell 5.1 or later are required.
 
-> **Windows 11 Smart App Control note:** machines with Smart App Control enabled block the unsigned `.cmd` installer with no "Run anyway" option. Either unblock the ZIP before extracting (Properties → Unblock) or run `.\runtime\node.exe .\installer\install.mjs` from the extracted folder — see [Troubleshooting](docs/troubleshooting.md#smart-app-control-blocks-the-installer).
+> **Windows 11 Smart App Control note:** machines with Smart App Control enabled can block the unsigned `.cmd` installer with no "Run anyway" option. Either unblock the verified ZIP before extracting (Properties → Unblock) or run `.\runtime\node.exe .\installer\install.mjs` from PowerShell in the extracted folder. See [Troubleshooting](docs/troubleshooting.md#smart-app-control-blocks-the-installer).
 
 ## First-time setup
 
-1. Start Streamer.bot and enable its WebSocket server on `127.0.0.1:8080`.
-2. Import the packages listed in [Streamer.bot setup](docs/streamerbot-setup.md), accepting custom C# only after verifying the package came from this repository. The Bridge Launcher includes an editable install-path **Set Argument**, so custom paths never require C# edits.
-3. Confirm the required compiler references using [Streamer.bot C# references](docs/streamerbot-csharp-references.md).
-4. Open `http://127.0.0.1:8787/wizard/` or use **Open THSV Setup Wizard.cmd**.
-5. Enable only the platforms you have connected and configure Chat, Alerts, Commands, Timed Actions, and Rewards.
-6. Add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as browser sources.
-7. Run simulated fixtures before enabling live automation.
+1. Install core.
+2. Enable Streamer.bot's WebSocket server on `127.0.0.1:8080`.
+3. Import and wire the core Streamer.bot packages.
+4. Open the wizard using the installed launcher.
+5. Enable and test one platform at a time.
+6. Add Chat and Alerts browser sources.
+7. Install optional add-ons only after core events work.
+
+The complete click-by-click sequence, exact launcher paths, receiver wiring, overlay URLs, verification checks, upgrade steps, and uninstall behavior are in [Getting started](docs/getting-started.md).
 
 ## Updating safely
 
@@ -83,7 +96,7 @@ Current add-ons are [Random Clip Player](docs/future-projects-and-addons.md#1-ra
 
 Review [Security](docs/security.md), [release verification](RELEASE-VERIFICATION.md), and [integration assumptions](docs/integration-assumptions.md) before using financial, reward, or destructive automation.
 
-The v2 line lives on `main` as the stable `2.2.0` release, following `2.1.1`. It was developed on the merged `overhaul/v2-preview` branch. The normalized v2 contract and reviewed Streamer.bot component packages retain their `2.0.0-preview.1` compatibility identifier; stable `1.x` remains available from the releases page. Stages 2 through 9 are implemented: v2 contracts, compatibility migration preview, excluded-feature extraction, the module host, the authenticated setup wizard, provider-authoritative capability reports, platform controls, scoped blocker rules, Streamer.bot command design and synchronization, session-relative timed actions, configurable browser alerts, documented channel-reward intake and administration, packaging, and the add-on API. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Stage 4 completion](docs/stage-4-completion.md), [Stage 5 completion](docs/stage-5-completion.md), [Stage 6 completion](docs/stage-6-completion.md), [Stage 7 completion](docs/stage-7-completion.md), [Stage 8 completion](docs/stage-8-completion.md), [Stage 9 completion](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
+The v2 line lives on `main`, with `2.3.1` as the current stable release. It was developed on the merged `overhaul/v2-preview` branch. The normalized v2 contract and reviewed Streamer.bot component packages retain their own compatibility versions so package upgrades remain explicit. Stages 2 through 9 established the v2 contracts, module host, authenticated setup wizard, provider controls, scoped blocker rules, command synchronization, session-relative timed actions, browser alerts, reward administration, packaging, and the add-on API. See [Stage 2 completion](docs/stage-2-completion.md), [Stage 3 completion](docs/stage-3-completion.md), [Stage 4 completion](docs/stage-4-completion.md), [Stage 5 completion](docs/stage-5-completion.md), [Stage 6 completion](docs/stage-6-completion.md), [Stage 7 completion](docs/stage-7-completion.md), [Stage 8 completion](docs/stage-8-completion.md), [Stage 9 completion](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [Revised product scope](docs/product-scope.md), [v2 contracts](docs/contracts-v2.md), and [module system](docs/module-system.md).
 
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
@@ -112,7 +125,7 @@ Streamer.bot Package Foundation adds:
 - Reviewed C# receiver source with normalized-event validation
 - A stable platform-neutral action-argument contract for future packages
 - Automated checks that the exported package contains the reviewed source
-- Live validation against Streamer.bot `1.0.5-alpha.31`; `1.0.5-alpha.32` is the recommended update pending a fresh live acceptance pass
+- Live validation against Streamer.bot `1.0.5-alpha.31`; `1.0.5-alpha.33` is recommended for new installations pending a fresh live acceptance pass
 
 Import the package and follow the instructions in the [Streamer.bot receiver package](packages/streamerbot/core-receiver/README.md).
 
@@ -182,7 +195,7 @@ Use `http://127.0.0.1:8787/overlay/` for the combined canvas, add `http://127.0.
 
 The former Viewer Identity and Progression, Bloom Companion, and Speaker.bot Orchestration implementations are no longer core features. Their source, packages, tests, documentation, and assets are preserved under `archive/future-add-ons/` until they can be rebuilt against the public module API. Core does not load their state, expose their endpoints, emit their legacy events, or serve their browser surfaces. See [Future add-ons](docs/future-add-ons.md).
 
-## V2 preview setup wizard
+## Setup wizard
 
 Stages 3 through 9 provide an authenticated loopback wizard at `http://127.0.0.1:8787/wizard/`. A portable installation keeps its unique token under `data/secrets/control-token`; a source checkout uses the path configured by `security.controlTokenFile`. The token stays local and is never included in configuration exports.
 
@@ -225,11 +238,11 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See the [Stage 2 completion record](docs/stage-2-completion.md), [Stage 3 completion record](docs/stage-3-completion.md), [Stage 4 completion record](docs/stage-4-completion.md), [Stage 5 completion record](docs/stage-5-completion.md), [Stage 6 completion record](docs/stage-6-completion.md), [Stage 7 completion record](docs/stage-7-completion.md), [Stage 8 completion record](docs/stage-8-completion.md), [Stage 9 completion record](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), [Future add-ons](docs/future-add-ons.md), and the [future project and add-on roadmap](docs/future-projects-and-addons.md).
+See [Getting started](docs/getting-started.md), the [Stage 2 completion record](docs/stage-2-completion.md), [Stage 3 completion record](docs/stage-3-completion.md), [Stage 4 completion record](docs/stage-4-completion.md), [Stage 5 completion record](docs/stage-5-completion.md), [Stage 6 completion record](docs/stage-6-completion.md), [Stage 7 completion record](docs/stage-7-completion.md), [Stage 8 completion record](docs/stage-8-completion.md), [Stage 9 completion record](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), [Future add-ons](docs/future-add-ons.md), and the [future project and add-on roadmap](docs/future-projects-and-addons.md).
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 
-Latest stable release: [THSV StreamBridge v2.1.1](https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.1).
+Latest stable release: [THSV StreamBridge v2.3.1](https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.3.1).
 
 ## License
 
