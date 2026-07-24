@@ -11,8 +11,10 @@ describe('native platform intake package', () => {
       expect.objectContaining({ name: 'THSV Twitch - Intake', group: 'THSV StreamBridge - Twitch' }),
       expect.objectContaining({ name: 'THSV YouTube - Intake', group: 'THSV StreamBridge - YouTube' }),
       expect.objectContaining({ name: 'THSV Kick - Intake', group: 'THSV StreamBridge - Kick' }),
+      expect.objectContaining({ name: 'THSV Streamlabs - Intake', group: 'THSV StreamBridge - Streamlabs' }),
+      expect.objectContaining({ name: 'THSV Kofi - Intake', group: 'THSV StreamBridge - Kofi' }),
     ]);
-    expect(Object.keys(manifest.triggerContract)).toEqual(['twitch', 'youtube', 'kick']);
+    expect(Object.keys(manifest.triggerContract)).toEqual(['twitch', 'youtube', 'kick', 'streamlabs', 'kofi']);
   });
 
   it('keeps the reviewed relay source bounded and side-effect limited', async () => {
@@ -22,5 +24,110 @@ describe('native platform intake package', () => {
     expect(source).not.toContain('CPH.SetGlobalVar');
     expect(source).not.toContain('CPH.RunAction');
     expect(source).not.toMatch(/Process\.Start|PowerShell|cmd\.exe/);
+  });
+
+  it('supports YouTube jewels gifts in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { youtube: string[] };
+    };
+    expect(manifest.triggerContract.youtube).toContain('YouTubeJewelsGifted');
+  });
+
+  it('supports Twitch gift paid upgrades in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchGiftPaidUpgrade');
+  });
+
+  it('supports Twitch pay-it-forward in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchPayItForward');
+  });
+
+  it('supports Twitch prime paid upgrade in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchPrimePaidUpgrade');
+  });
+
+  it('supports Twitch hype train start in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchHypeTrainStart');
+  });
+
+  it('supports Twitch hype train level up in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchHypeTrainLevelUp');
+  });
+
+  it('supports Twitch hype train update in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchHypeTrainUpdate');
+  });
+
+  it('supports Twitch hype train end in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchHypeTrainEnd');
+  });
+
+  it('supports Twitch modiversary in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchModiversary');
+  });
+
+  it('supports Twitch watch streak in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchWatchStreak');
+  });
+
+  it('supports Twitch ad run in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchAdRun');
+  });
+
+  it('supports Twitch upcoming ad in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { twitch: string[] };
+    };
+    expect(manifest.triggerContract.twitch).toContain('TwitchUpcomingAd');
+  });
+
+  it('supports Kofi shop order in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { kofi: string[] };
+    };
+    expect(manifest.triggerContract.kofi).toContain('KofiShopOrder');
+  });
+
+  it('supports Streamlabs merchandise in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { streamlabs: string[] };
+    };
+    expect(manifest.triggerContract.streamlabs).toContain('StreamlabsMerchandise');
+  });
+
+  it('supports Streamlabs charity donation in trigger contract', async () => {
+    const manifest = JSON.parse(await readFile('packages/streamerbot/native-platform-intake/manifest.json', 'utf8')) as {
+      triggerContract: { streamlabs: string[] };
+    };
+    expect(manifest.triggerContract.streamlabs).toContain('StreamlabsCharityDonation');
   });
 });

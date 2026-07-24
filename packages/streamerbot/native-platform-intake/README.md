@@ -5,6 +5,10 @@ This package installs one intake action for each native Streamer.bot platform co
 - `THSV Twitch - Intake` in `THSV StreamBridge - Twitch`
 - `THSV YouTube - Intake` in `THSV StreamBridge - YouTube`
 - `THSV Kick - Intake` in `THSV StreamBridge - Kick`
+- `THSV Streamlabs - Intake` in `THSV StreamBridge - Streamlabs`
+- `THSV Kofi - Intake` in `THSV StreamBridge - Kofi`
+- Supports `StreamlabsDonation`, `StreamlabsCharityDonation`, and `StreamlabsMerchandise` in the Streamlabs action.
+- Supports `KofiDonation`, `KofiCommission`, `KofiResubscription`, `KofiSubscription`, and `KofiShopOrder`
 
 Each action reads an allowlisted subset of Streamer.bot trigger arguments and broadcasts one bounded `thsv.platform` event over the existing loopback WebSocket. StreamBridge remains responsible for schema validation, normalization, deduplication, viewer identity, structured logging, delivery, and overlays.
 

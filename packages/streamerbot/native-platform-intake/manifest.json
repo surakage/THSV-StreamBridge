@@ -3,17 +3,21 @@
   "name": "THSV StreamBridge - Native Platform Intake",
   "version": "1.0.0",
   "author": "surakage",
-  "description": "Relays allowlisted Twitch, YouTube, and Kick trigger fields into the validated THSV StreamBridge pipeline.",
+  "description": "Relays allowlisted Twitch, YouTube, Kick, Streamlabs, and Kofi trigger fields into the validated THSV StreamBridge pipeline.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
   "actions": [
     { "name": "THSV Twitch - Intake", "group": "THSV StreamBridge - Twitch", "id": "5b43c53a-1e4b-5608-b343-5f88c2884677", "sourceSubActionId": "d92f9b5c-98a1-55e8-8baf-ed6625a56b70", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb" },
     { "name": "THSV YouTube - Intake", "group": "THSV StreamBridge - YouTube", "id": "38df4ccc-2d85-5a9d-8fa6-6711f513c2bd", "sourceSubActionId": "b86a8912-505e-521b-b1e6-af594ad43f90", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb" },
-    { "name": "THSV Kick - Intake", "group": "THSV StreamBridge - Kick", "id": "a6b02419-c344-5853-8166-eb6b6adb02d7", "sourceSubActionId": "617795f3-c965-5af5-b7f4-0e873d2c8c1f", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb" }
+    { "name": "THSV Kick - Intake", "group": "THSV StreamBridge - Kick", "id": "a6b02419-c344-5853-8166-eb6b6adb02d7", "sourceSubActionId": "617795f3-c965-5af5-b7f4-0e873d2c8c1f", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb" },
+    { "name": "THSV Streamlabs - Intake", "group": "THSV StreamBridge - Streamlabs", "id": "d9c4f4f0-6c2f-4f7d-b3c5-2f3f0dbf1a9c", "sourceSubActionId": "9f4d8d74-6f6b-4b77-9c9f-5f4d6b5f8e3c", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb" },
+    { "name": "THSV Kofi - Intake", "group": "THSV StreamBridge - Kofi", "id": "1c7f1ec8-cd9b-4dc7-9e3e-7de5bfeec2a0", "sourceSubActionId": "f1df7df0-8d9c-45f3-8a8e-5d2a7b8f5d31", "source": "src/RelayPlatform.cs", "importFile": "THSV-StreamBridge-Native-Platform-Intake-1.0.0.sb" }
   ],
   "runtime": { "queue": "Default", "concurrent": true },
   "triggerContract": {
-    "twitch": ["TwitchChatMessage", "TwitchFollow", "TwitchCheer", "TwitchSub", "TwitchReSub", "TwitchGiftSub", "TwitchGiftBomb", "TwitchRaid"],
-    "youtube": ["YouTubeMessage", "YouTubeSuperChat", "YouTubeSuperSticker", "YouTubeNewSubscriber", "YouTubeNewSponsor", "YouTubeMemberMileStone", "YouTubeMembershipGift"],
-    "kick": ["KickChatMessage", "KickFollow", "KickSubscription", "KickResubscription", "KickGiftSubscription", "KickMassGiftSubscription", "KickGifted"]
+    "twitch": ["TwitchChatMessage", "TwitchFollow", "TwitchCheer", "TwitchSub", "TwitchReSub", "TwitchGiftSub", "TwitchGiftBomb", "TwitchRaid", "TwitchPowerUpRedemption", "TwitchGiftPaidUpgrade", "TwitchPayItForward", "TwitchPrimePaidUpgrade", "TwitchModiversary", "TwitchWatchStreak", "TwitchHypeTrainStart", "TwitchHypeTrainLevelUp", "TwitchHypeTrainUpdate", "TwitchHypeTrainEnd", "TwitchAdRun", "TwitchUpcomingAd"],
+    "youtube": ["YouTubeMessage", "YouTubeSuperChat", "YouTubeSuperSticker", "YouTubeNewSubscriber", "YouTubeNewSponsor", "YouTubeMemberMileStone", "YouTubeMembershipGift", "YouTubeJewelsGifted"],
+    "kick": ["KickChatMessage", "KickFollow", "KickSubscription", "KickResubscription", "KickGiftSubscription", "KickMassGiftSubscription", "KickGifted"],
+    "streamlabs": ["StreamlabsDonation", "StreamlabsCharityDonation", "StreamlabsMerchandise"],
+    "kofi": ["KofiDonation", "KofiCommission", "KofiResubscription", "KofiSubscription", "KofiShopOrder"]
   }
 }
