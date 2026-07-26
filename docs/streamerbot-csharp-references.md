@@ -1,6 +1,6 @@
 # Streamer.bot C# compiler references
 
-THSV StreamBridge keeps Streamer.bot `1.0.5-alpha.31` as its live-verified minimum and recommends `1.0.5-alpha.33` for new installs. Alpha.33 includes the Alpha.32 EventSub, authentication, backup, pending-action, and C# editor improvements plus additional WebSocket startup and Twitch stability fixes. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning. A fresh alpha.33 live compile and relay pass is still required before the verified-version label moves forward.
+THSV StreamBridge keeps Streamer.bot `1.0.5-alpha.31` as its backward-compatible minimum and recommends `1.0.5-beta.1` for new installs. Beta.1 has passed THSV startup, WebSocket/EventSub connection, focused C# compilation, controller relay, reward mutation, and reset checks. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning. Live chat and YouTube/Kick trigger re-acceptance remain before Beta.1 becomes the complete live-verification floor.
 
 ## Required references
 

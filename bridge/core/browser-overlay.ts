@@ -45,7 +45,7 @@ export interface OverlayChatActivity {
 }
 
 export type ChatPlatformEventId = 'follow' | 'subscription' | 'resubscription' | 'gift-subscription' | 'gift-bomb' | 'cheer' | 'raid' | 'reward-redemption'
-  | 'subscriber' | 'member' | 'membership-gift' | 'member-milestone' | 'super-chat' | 'super-sticker'
+  | 'subscriber' | 'member' | 'membership-gift' | 'member-milestone' | 'super-chat' | 'super-sticker' | 'jewels-gift'
   | 'mass-gift-subscription' | 'gifted-kicks' | 'gift' | 'likes' | 'donation';
 
 export class InvalidBrowserOverlayEventError extends Error {}
@@ -148,6 +148,7 @@ function renderChatActivityTemplate(template: string, event: NormalizedEvent, al
     actor: event.user?.displayName ?? event.user?.name ?? alert?.actor?.displayName ?? 'The community', platform: event.platform, event: event.eventType,
     rewardTitle: typeof event.payload['rewardTitle'] === 'string' ? event.payload['rewardTitle'] : '', input: typeof event.payload['input'] === 'string' ? event.payload['input'] : '',
     amount: alert?.amount ?? '', currency: alert?.currency ?? '', quantity: alert?.quantity === undefined ? '' : String(alert.quantity), itemName: alert?.itemName ?? '',
+    jewelsAmount: typeof event.payload['jewelsAmount'] === 'number' ? String(event.payload['jewelsAmount']) : '',
     tier: alert?.tier ?? '', message: alert?.message ?? '', metric: alert?.metric ?? '', value: alert?.value === undefined ? '' : String(alert.value),
     months: typeof event.payload['months'] === 'number' ? String(event.payload['months']) : typeof event.payload['subMonth'] === 'number' ? String(event.payload['subMonth']) : '',
     streakMonths: typeof event.payload['streakMonths'] === 'number' ? String(event.payload['streakMonths']) : '',
@@ -160,7 +161,7 @@ function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | unde
   const source = event.source.eventName;
   const exact: Readonly<Record<string, ChatPlatformEventId>> = {
     TwitchFollow: 'follow', TwitchSub: 'subscription', TwitchReSub: 'resubscription', TwitchGiftSub: 'gift-subscription', TwitchGiftBomb: 'gift-bomb', TwitchCheer: 'cheer', TwitchRaid: 'raid', TwitchRewardRedemption: 'reward-redemption',
-    YouTubeNewSubscriber: 'subscriber', YouTubeNewSponsor: 'member', YouTubeMembershipGift: 'membership-gift', YouTubeMemberMileStone: 'member-milestone', YouTubeSuperChat: 'super-chat', YouTubeSuperSticker: 'super-sticker',
+    YouTubeNewSubscriber: 'subscriber', YouTubeNewSponsor: 'member', YouTubeMembershipGift: 'membership-gift', YouTubeMemberMileStone: 'member-milestone', YouTubeSuperChat: 'super-chat', YouTubeSuperSticker: 'super-sticker', YouTubeJewelsGifted: 'jewels-gift',
     KickFollow: 'follow', KickSubscription: 'subscription', KickResubscription: 'resubscription', KickGiftSubscription: 'gift-subscription', KickMassGiftSubscription: 'mass-gift-subscription', KickKicksGifted: 'gifted-kicks', KickRewardRedemption: 'reward-redemption',
     'TikFinity.follow': 'follow', 'TikFinity.gift': 'gift', 'TikFinity.subscription': 'subscription', 'TikFinity.like': 'likes',
     KofiDonation: 'donation',
@@ -168,7 +169,7 @@ function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | unde
   const matched = exact[source];
   if (matched !== undefined) return matched;
   if (event.platform === 'twitch') return ({ 'channel.follow': 'follow', 'channel.subscription': 'subscription', 'channel.gift-subscription': 'gift-subscription', 'engagement.cheer': 'cheer', 'channel.raid': 'raid', 'reward.redemption': 'reward-redemption' } as const)[event.eventType as 'channel.follow'];
-  if (event.platform === 'youtube') return ({ 'channel.follow': 'subscriber', 'channel.membership': 'member', 'channel.gift-subscription': 'membership-gift', 'engagement.super-chat': 'super-chat' } as const)[event.eventType as 'channel.follow'];
+  if (event.platform === 'youtube') return ({ 'channel.follow': 'subscriber', 'channel.membership': 'member', 'channel.gift-subscription': 'membership-gift', 'engagement.super-chat': 'super-chat', 'engagement.gift': 'jewels-gift' } as const)[event.eventType as 'channel.follow'];
   if (event.platform === 'kick') return ({ 'channel.follow': 'follow', 'channel.subscription': 'subscription', 'channel.gift-subscription': 'gift-subscription', 'engagement.gift': 'gifted-kicks', 'reward.redemption': 'reward-redemption' } as const)[event.eventType as 'channel.follow'];
   if (event.platform === 'tiktok') return ({ 'channel.follow': 'follow', 'channel.subscription': 'subscription', 'engagement.gift': 'gift', 'engagement.milestone': 'likes' } as const)[event.eventType as 'channel.follow'];
   if (event.platform === 'kofi') return ({ 'engagement.donation': 'donation' } as const)[event.eventType as 'engagement.donation'];
@@ -181,7 +182,7 @@ function platformEventSetting(config: BrowserOverlayConfig, platform: keyof Brow
 }
 
 function chatActivityLabel(category: OverlayChatActivity['category']): string {
-  return ({ follow: 'FOLLOW', subscription: 'SUBSCRIPTION', resubscription: 'RESUBSCRIPTION', 'gift-subscription': 'GIFT SUB', 'gift-bomb': 'GIFT BOMB', cheer: 'BITS', raid: 'RAID', 'reward-redemption': 'REWARD', subscriber: 'SUBSCRIBER', member: 'MEMBER', 'membership-gift': 'MEMBERSHIP GIFT', 'member-milestone': 'MEMBER MILESTONE', 'super-chat': 'SUPER CHAT', 'super-sticker': 'SUPER STICKER', 'mass-gift-subscription': 'MASS GIFT', 'gifted-kicks': 'KICKS GIFTED', gift: 'GIFT', likes: 'LIKES', donation: 'KO-FI' })[category];
+  return ({ follow: 'FOLLOW', subscription: 'SUBSCRIPTION', resubscription: 'RESUBSCRIPTION', 'gift-subscription': 'GIFT SUB', 'gift-bomb': 'GIFT BOMB', cheer: 'BITS', raid: 'RAID', 'reward-redemption': 'REWARD', subscriber: 'SUBSCRIBER', member: 'MEMBER', 'membership-gift': 'MEMBERSHIP GIFT', 'member-milestone': 'MEMBER MILESTONE', 'super-chat': 'SUPER CHAT', 'super-sticker': 'SUPER STICKER', 'jewels-gift': 'JEWELS GIFT', 'mass-gift-subscription': 'MASS GIFT', 'gifted-kicks': 'KICKS GIFTED', gift: 'GIFT', likes: 'LIKES', donation: 'KO-FI' })[category];
 }
 
 function rewardActivityMessage(event: NormalizedEvent): string {

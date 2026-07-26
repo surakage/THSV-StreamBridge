@@ -17,7 +17,7 @@ const manifest = {
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['reward.redemption', 'stream.online', CONTROLLER_RESULT_EVENT, CONTROL_EVENT],
+  eventSubscriptions: ['reward.redemption', 'stream.online', 'stream.offline', CONTROLLER_RESULT_EVENT, CONTROL_EVENT],
   commandsProvided: [],
   actionsProvided: [],
   browserSourcesProvided: [],
@@ -26,7 +26,7 @@ const manifest = {
     'Import the separate First Five Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
     'Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.',
-    'Choose five Streamer.bot-owned Twitch reward IDs in placement order, then start with only the first reward enabled.',
+    'Choose five Streamer.bot-owned Twitch reward IDs in placement order and keep Skip Reward Queue disabled on all five rewards.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall.'],
   migrations: [],
@@ -118,10 +118,16 @@ export function sanitizeState(value, now = Date.now()) {
     month: clean(source.previousMonth.month, 7),
     winner: leaderboardEntry(source.previousMonth.winner),
   } : undefined;
+  const pendingPlacement = source.pending && typeof source.pending === 'object' ? placement(source.pending.placement) : undefined;
+  const pendingOperation = source.pending && typeof source.pending === 'object'
+    ? clean(source.pending.operation, 20) || (pendingPlacement ? 'claim' : '')
+    : '';
   const pending = source.pending && typeof source.pending === 'object' ? {
+    operation: pendingOperation,
     requestId: clean(source.pending.requestId, 100),
     eventId: clean(source.pending.eventId, 256),
-    placement: placement(source.pending.placement),
+    placement: pendingPlacement,
+    streamCycleId: clean(source.pending.streamCycleId, 256),
     startedAt: integer(source.pending.startedAt, 0, Number.MAX_SAFE_INTEGER, 0),
   } : undefined;
   return {
@@ -131,7 +137,7 @@ export function sanitizeState(value, now = Date.now()) {
     leaderboardMonth: /^\d{4}-\d{2}$/u.test(source.leaderboardMonth) ? source.leaderboardMonth : monthKey(now),
     leaderboard,
     ...(previous?.month && previous.winner ? { previousMonth: previous } : {}),
-    ...(pending?.requestId && pending.placement ? { pending } : {}),
+    ...(pending?.requestId && pending.operation && (pending.operation !== 'claim' || pending.placement) ? { pending } : {}),
     announcedMonth: clean(source.announcedMonth, 7),
   };
 }
@@ -240,13 +246,16 @@ async function announcePreviousWinner(context, settings, state, winner) {
 }
 
 async function resetStream(event, context, settings, state) {
-  if (!context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
+  if (state.pending || !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
   const cycleId = clean(event?.source?.eventId || event?.eventId || requestId('cycle'), 256);
-  const next = { ...withoutPending(state), streamCycleId: cycleId, placements: [] };
+  if (cycleId && cycleId === state.streamCycleId) return state;
+  const pending = { operation: 'reset', requestId: requestId('reset'), eventId: '', streamCycleId: cycleId, startedAt: Date.now() };
+  const reserved = { ...state, pending };
+  await context.state.write(reserved);
   try {
     await runController(context, {
       firstFiveOperation: 'reset',
-      firstFiveRequestId: requestId('reset'),
+      firstFiveRequestId: pending.requestId,
       firstFiveReward1Id: settings.rewardIds[0], firstFiveReward1Title: settings.availableTitles[0],
       firstFiveReward2Id: settings.rewardIds[1], firstFiveReward2Title: settings.availableTitles[1],
       firstFiveReward3Id: settings.rewardIds[2], firstFiveReward3Title: settings.availableTitles[2],
@@ -254,11 +263,24 @@ async function resetStream(event, context, settings, state) {
       firstFiveReward5Id: settings.rewardIds[4], firstFiveReward5Title: settings.availableTitles[4],
     });
   } catch {
+    const rolledBack = withoutPending(reserved);
+    await context.state.write(rolledBack);
     return state;
   }
-  await context.state.write(next);
-  await publishLeaderboard(context, settings, next);
-  return next;
+  return reserved;
+}
+
+async function deactivateStream(context, settings) {
+  if (!context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return;
+  try {
+    await runController(context, {
+      firstFiveOperation: 'deactivate',
+      firstFiveRequestId: requestId('deactivate'),
+      firstFiveReward1Id: settings.rewardIds[0], firstFiveReward2Id: settings.rewardIds[1],
+      firstFiveReward3Id: settings.rewardIds[2], firstFiveReward4Id: settings.rewardIds[3],
+      firstFiveReward5Id: settings.rewardIds[4],
+    });
+  } catch { /* The next verified stream-online reset retries the complete reward repair. */ }
 }
 
 async function handleRedemption(event, context, settings, state) {
@@ -281,7 +303,7 @@ async function handleRedemption(event, context, settings, state) {
     return state;
   }
   const claim = { position, userId, displayName, rewardId, redemptionId, claimedAt: new Date().toISOString() };
-  const pending = { requestId: requestId('claim'), eventId: clean(event.eventId, 256), placement: claim, startedAt: Date.now() };
+  const pending = { operation: 'claim', requestId: requestId('claim'), eventId: clean(event.eventId, 256), placement: claim, streamCycleId: '', startedAt: Date.now() };
   const reserved = { ...state, pending };
   await context.state.write(reserved);
   try {
@@ -293,6 +315,7 @@ async function handleRedemption(event, context, settings, state) {
       firstFiveAvailableTitle: settings.availableTitles[position - 1],
       firstFiveClaimedTitle: claimedTitle(settings, claim),
       firstFiveNextRewardId: settings.rewardIds[position] || '',
+      firstFiveRedemptionAlreadyFulfilled: event.payload?.skipsQueue === true,
     });
     return reserved;
   } catch {
@@ -304,12 +327,24 @@ async function handleRedemption(event, context, settings, state) {
 
 async function handleControllerResult(event, context, settings, state) {
   const request = clean(event.payload?.requestId, 100);
-  if (!state.pending || state.pending.requestId !== request || clean(event.payload?.operation, 20) !== 'claim') return state;
+  const operation = clean(event.payload?.operation, 20);
+  if (!state.pending || state.pending.requestId !== request || operation !== state.pending.operation) return state;
   if (event.payload?.success !== true) {
     const failed = withoutPending(state);
     await context.state.write(failed);
     return failed;
   }
+  if (state.pending.operation === 'reset') {
+    const completed = {
+      ...withoutPending(state),
+      streamCycleId: state.pending.streamCycleId,
+      placements: [],
+    };
+    await context.state.write(completed);
+    await publishLeaderboard(context, settings, completed);
+    return completed;
+  }
+  if (state.pending.operation !== 'claim' || !state.pending.placement) return state;
   const claim = state.pending.placement;
   const completed = {
     ...withoutPending(state),
@@ -335,6 +370,10 @@ async function handleEvent(event, context) {
 
   if (event.eventType === 'stream.online' && event.platform === 'twitch' && event.metadata?.simulated !== true) {
     await resetStream(event, context, settings, state);
+    return;
+  }
+  if (event.eventType === 'stream.offline' && event.platform === 'twitch' && event.metadata?.simulated !== true) {
+    await deactivateStream(context, settings);
     return;
   }
   if (event.eventType === CONTROL_EVENT && event.payload?.action === 'reset') {

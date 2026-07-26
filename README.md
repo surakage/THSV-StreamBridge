@@ -125,7 +125,7 @@ Streamer.bot Package Foundation adds:
 - Reviewed C# receiver source with normalized-event validation
 - A stable platform-neutral action-argument contract for future packages
 - Automated checks that the exported package contains the reviewed source
-- Live validation against Streamer.bot `1.0.5-alpha.31`; `1.0.5-alpha.33` is recommended for new installations pending a fresh live acceptance pass
+- Live compatibility floor at Streamer.bot `1.0.5-alpha.31`; `1.0.5-beta.1` is recommended for new installations and has passed startup, WebSocket, EventSub-connection, C# compile, and Fan Crown mutation smoke checks
 
 Import the package and follow the instructions in the [Streamer.bot receiver package](packages/streamerbot/core-receiver/README.md).
 

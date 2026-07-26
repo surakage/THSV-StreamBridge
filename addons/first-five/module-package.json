@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs five Streamer.bot-owned Twitch channel-point rewards in sequence, permits one placement per viewer per stream, and maintains a compact monthly leaderboard.",
-  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
+  "changelog": "2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -14,7 +14,7 @@
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
-    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "supportUrl": "https://www.slothbloom.com/tip",
     "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
     "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
   },
@@ -31,6 +31,7 @@
     "eventSubscriptions": [
       "reward.redemption",
       "stream.online",
+      "stream.offline",
       "addon.thsv.first-five.controller-result",
       "addon.thsv.first-five.control"
     ],
@@ -45,7 +46,7 @@
       "Import the separate First Five Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that action for this add-on.",
       "Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.",
-      "Choose five Streamer.bot-owned Twitch reward IDs in placement order, then start with only the first reward enabled."
+      "Choose five Streamer.bot-owned Twitch reward IDs in placement order and keep Skip Reward Queue disabled on all five rewards."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall."
@@ -63,8 +64,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 16791,
-      "sha256": "7e4870317ba6030fac5d9a52e70a0dfab25e3c401954cf665cf50bd89b1a6c8b"
+      "size": 18800,
+      "sha256": "99c5554dee13106144a265f27e0de70e156428edabad3a9c75d71e97fc75cd9f"
     },
     {
       "path": "schemas/config.json",
@@ -73,13 +74,13 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 2470,
-      "sha256": "a00de8bb151697382933cd2bf408b6bf7a14c2d8e16219107bbd0d43bc1d5b80"
+      "size": 2742,
+      "sha256": "5215e6a781cdd0aa915650dd97f20d5d1ff8a2a8869058e409efb54e7d76e6d3"
     },
     {
       "path": "README.md",
-      "size": 1105,
-      "sha256": "f7ff0bfde610dc9f92070d0a98d611b1acddf06e2a534a1ac1e02def284c05b9"
+      "size": 1540,
+      "sha256": "eec27ac83770eca3b397d7166de8ce2bd79d6b8e2f2d5e854dab36742905f699"
     }
   ]
 }

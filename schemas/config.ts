@@ -174,7 +174,7 @@ const alertPresentationProfileSchema = z.object({
 export const ALERT_PLATFORM_VALUES = [...TIMED_CHAT_PLATFORM_VALUES, 'kofi'] as const;
 export const PLATFORM_ALERT_TYPES: Readonly<Record<(typeof ALERT_PLATFORM_VALUES)[number], readonly (typeof ALERT_PRESENTATION_TYPE_VALUES)[number][]>> = {
   twitch: ['follow', 'subscription', 'gift-subscription', 'cheer', 'raid'],
-  youtube: ['follow', 'membership', 'gift-subscription', 'super-chat'],
+  youtube: ['follow', 'membership', 'gift-subscription', 'gift', 'super-chat'],
   kick: ['follow', 'subscription', 'gift-subscription', 'gift'],
   tiktok: ['follow', 'subscription', 'gift', 'milestone'],
   kofi: ['donation'],
@@ -197,7 +197,7 @@ export const alertPresentationSchema = z.object({
   }
 });
 
-const CHAT_EVENT_TEMPLATE_TOKEN_VALUES = ['actor', 'rewardTitle', 'input', 'amount', 'currency', 'quantity', 'itemName', 'tier', 'message', 'metric', 'value', 'months', 'streakMonths'] as const;
+const CHAT_EVENT_TEMPLATE_TOKEN_VALUES = ['actor', 'rewardTitle', 'input', 'amount', 'currency', 'quantity', 'itemName', 'jewelsAmount', 'tier', 'message', 'metric', 'value', 'months', 'streakMonths'] as const;
 const chatEventTemplateTokens = new Set<string>(CHAT_EVENT_TEMPLATE_TOKEN_VALUES);
 const platformChatEventTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.test(value), 'Chat event templates cannot contain control characters.').superRefine((value, context) => {
   for (const match of value.matchAll(/\{([a-z][a-zA-Z]*)\}/gu)) if (!chatEventTemplateTokens.has(match[1] ?? '')) context.addIssue({ code: 'custom', message: `Unknown chat event template token ${match[0]}.` });
@@ -214,6 +214,7 @@ export const DEFAULT_CHAT_PLATFORM_EVENTS = {
     subscriber: { enabled: true, template: '{actor} subscribed to the channel' }, member: { enabled: true, template: '{actor} became a paid member {tier}' },
     'membership-gift': { enabled: true, template: '{actor} gifted {quantity} memberships' }, 'member-milestone': { enabled: true, template: '{actor} reached {months} months as a member' },
     'super-chat': { enabled: true, template: '{actor} sent a Super Chat: {amount} {currency} {message}' }, 'super-sticker': { enabled: true, template: '{actor} sent a Super Sticker: {amount} {currency}' },
+    'jewels-gift': { enabled: true, template: '{actor} sent {quantity} {itemName} worth {jewelsAmount} Jewels' },
   },
   kick: {
     follow: { enabled: true, template: '{actor} followed' }, subscription: { enabled: true, template: '{actor} subscribed {tier}' },
@@ -231,7 +232,7 @@ export const DEFAULT_CHAT_PLATFORM_EVENTS = {
 } as const;
 const chatPlatformEventsSchema = z.object({
   twitch: z.object({ follow: chatEventSettingSchema, subscription: chatEventSettingSchema, resubscription: chatEventSettingSchema, 'gift-subscription': chatEventSettingSchema, 'gift-bomb': chatEventSettingSchema, cheer: chatEventSettingSchema, raid: chatEventSettingSchema, 'reward-redemption': chatEventSettingSchema }).strict(),
-  youtube: z.object({ subscriber: chatEventSettingSchema, member: chatEventSettingSchema, 'membership-gift': chatEventSettingSchema, 'member-milestone': chatEventSettingSchema, 'super-chat': chatEventSettingSchema, 'super-sticker': chatEventSettingSchema }).strict(),
+  youtube: z.object({ subscriber: chatEventSettingSchema, member: chatEventSettingSchema, 'membership-gift': chatEventSettingSchema, 'member-milestone': chatEventSettingSchema, 'super-chat': chatEventSettingSchema, 'super-sticker': chatEventSettingSchema, 'jewels-gift': chatEventSettingSchema }).strict(),
   kick: z.object({ follow: chatEventSettingSchema, subscription: chatEventSettingSchema, resubscription: chatEventSettingSchema, 'gift-subscription': chatEventSettingSchema, 'mass-gift-subscription': chatEventSettingSchema, 'gifted-kicks': chatEventSettingSchema, 'reward-redemption': chatEventSettingSchema }).strict(),
   tiktok: z.object({ follow: chatEventSettingSchema, gift: chatEventSettingSchema, subscription: chatEventSettingSchema, likes: chatEventSettingSchema }).strict(),
   kofi: z.object({ donation: chatEventSettingSchema }).strict(),
@@ -511,7 +512,7 @@ function legacyChatCategory(platform: string, eventId: string): string {
   if (eventId === 'reward-redemption') return 'rewards';
   if (eventId === 'follow' || eventId === 'subscriber') return 'follows';
   if (['subscription', 'resubscription', 'gift-subscription', 'gift-bomb', 'member', 'membership-gift', 'member-milestone', 'mass-gift-subscription'].includes(eventId)) return 'subscriptions';
-  if (eventId === 'gift' || eventId === 'gifted-kicks') return 'gifts';
+  if (eventId === 'gift' || eventId === 'gifted-kicks' || eventId === 'jewels-gift') return 'gifts';
   if (eventId === 'cheer' || eventId === 'super-chat' || eventId === 'super-sticker') return 'support';
   if (eventId === 'raid') return 'raids';
   if (platform === 'tiktok' && eventId === 'likes') return 'milestones';

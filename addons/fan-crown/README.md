@@ -19,4 +19,7 @@ Fan Crown turns one Streamer.bot-owned Twitch Channel Points reward into a rotat
 5. Inspect Streamer.bot, approve only the Fan Crown Controller action, and paste the Streamer.bot-owned reward ID into Fan Crown settings.
 6. Make the Twitch reward's initial title and price match the configured base title and base cost.
 
+Fan Crown supports rewards that either use or skip Twitch's redemption queue. For complete rejected-claim refunds, keep **Redemption Skips Queue** disabled: Twitch auto-fulfills rewards that skip the queue, and an already fulfilled redemption cannot be refunded. Valid crown captures still work in either mode.
+
 The optional Reset Crown and Reset Month actions emit tightly scoped local control events. They do not edit files or rewards directly.
+The controller shows a Streamer.bot success toast only after Twitch confirms that the reward title and base cost were restored.

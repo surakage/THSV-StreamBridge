@@ -28,13 +28,13 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.fan-crown/', 'data/addons/.state/thsv.fan-crown/'],
   installationSteps: [
     'Import the separate Fan Crown Streamer.bot package.',
-    'Keep its Controller action triggerless and approve only that stable action ID for this add-on.',
+    'Keep its Controller action triggerless and approve only that action for this add-on.',
     'Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.',
-    'Create one Streamer.bot-owned Twitch reward, copy its Reward ID, and match its initial title and cost to the wizard settings.',
+    'Create one Streamer.bot-owned Twitch reward and match its Reward ID, base title, and base cost in the wizard.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact private season state remains preserved for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.fan-crown.runtime', description: 'Confirms serialized crown captures, bounded pricing, and monthly private leaderboard state.' }],
+  healthChecks: [{ id: 'thsv.fan-crown.runtime', description: 'Confirms serialized crown captures, result-correlated reward administration, bounded pricing, and private monthly ranking state.' }],
 };
 
 const FALLBACKS = Object.freeze({
@@ -478,6 +478,7 @@ async function handleRedemption(event, context, settings, state) {
       fanCrownRewardCost: nextCost,
       fanCrownPreviousTitle: state.crown ? holderTitle(settings, state.crown.displayName) : settings.baseRewardTitle,
       fanCrownPreviousCost: state.currentCost,
+      fanCrownRedemptionAlreadyFulfilled: event.payload?.skipsQueue === true,
     });
     return reserved;
   } catch {

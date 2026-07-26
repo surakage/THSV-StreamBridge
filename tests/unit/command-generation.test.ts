@@ -243,6 +243,16 @@ describe('command package generation', () => {
     expect(source).toContain('CPH.SendMessage(message, true, true)');
     expect(source).toContain('CPH.SendYouTubeMessageToLatestMonitored(message, true, true)');
     expect(source).toContain('CPH.SendKickMessage(message, true, true)');
+    expect(source).toContain('string targetUrl = PlatformUrl(commandSource, target);');
+    expect(source).toContain('string channelUrl = PlatformUrl(commandSource, channelName);');
+    expect(source).toContain('Replace("{targetUrl}", targetUrl ?? "")');
+    expect(source).toContain('Replace("{channelUrl}", channelUrl ?? "")');
+    expect(source).toContain('if (source == "twitch") return "https://twitch.tv/" + segment;');
+    expect(source).toContain('if (source == "youtube") return "https://youtube.com/@" + segment;');
+    expect(source).toContain('if (source == "kick") return "https://kick.com/" + segment;');
+    expect(source).toContain('if (source == "tiktok") return "https://www.tiktok.com/@" + segment;');
+    expect(source).toContain('generatedCommandTargetUrl');
+    expect(source).toContain('generatedCommandChannelUrl');
     const decoded = Buffer.from(generated.contentBase64, 'base64');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: Array<{ name: string }>; commands: Array<{ sources: number; globalCooldown: number; userCooldown: number }> } };
     expect(exported.data.actions[0]?.name).toBe('THSV Command - Hello');
@@ -281,9 +291,9 @@ describe('command package generation', () => {
     // wrapper by habit (a real, previously-shipped bug: that produced a class nested inside a
     // method, which fails to compile). Execute() calls it and reuses the same verified SendToSource
     // dispatch as platform-message mode, so custom scripts never need to get Send*Message right.
-    expect(source).toContain('private string BuildCustomResponse(string commandSource, string userName, string target, string rawInput, string channelName)');
+    expect(source).toContain('private string BuildCustomResponse(string commandSource, string userName, string target, string targetUrl, string rawInput, string channelName, string channelUrl)');
     expect(source).toContain('        return "hi";');
-    expect(source).toContain('string responseMessage = BuildCustomResponse(commandSource, userName, target, rawInput, channelName);');
+    expect(source).toContain('string responseMessage = BuildCustomResponse(commandSource, userName, target, targetUrl, rawInput, channelName, channelUrl);');
     expect(source).toContain('SendToSource(commandSource, responseMessage);');
   });
 

@@ -389,6 +389,7 @@ async function processEvent(event, context) {
 
 const moduleDefinition = {
   manifest,
+  required: false,
   async start(context) { stopped = false; await context.state.write(sanitizeState(await context.state.read())); },
   async stop() { stopped = true; await eventQueue.catch(() => undefined); },
   async onEvent(event, context) {

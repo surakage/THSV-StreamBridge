@@ -2,6 +2,8 @@
 
 Discord Chat Archive is an optional, disabled-by-default add-on that copies creator-selected **public** Twitch, YouTube, Kick, and TikTok chat into one creator-owned Discord webhook channel. It uses StreamBridge's normalized chat event and existing Streamer.bot connection; it does not attach separate platform triggers or open another WebSocket.
 
+The current `2.4.0` package targets a normal Discord text channel. A future shared Discord-delivery upgrade will add an explicit **Normal channel** or **Forum channel** choice. Forum mode will create one bounded thread per stream session or configured date window and append chat batches to it; it will never create one forum post for every viewer message. Until that upgrade is released and tested, do not point the current package at a forum webhook.
+
 ## Before installing
 
 Create a dedicated private Discord channel and webhook. Treat its URL like a password. If the URL appears in a screenshot, stream, log, or shared import, delete that webhook in Discord and create a new one.

@@ -28,11 +28,12 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   const commandForm = page.locator('#design-command');
   await expect(commandForm.locator('[name="actionName"]')).toBeVisible();
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
-  await expect(commandForm.locator('[name="template"] option')).toHaveCount(17);
+  await expect(commandForm.locator('[name="template"] option')).toHaveCount(18);
   await expect(commandForm.locator('[name="template"] option[value="weather"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="discord"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="rules"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="lurk"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="timezone"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="commandDeliveryPlatform"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="commandSource"][value="tiktok"]')).toHaveCount(1);
   await commandForm.locator('[name="template"]').selectOption('socials');
@@ -85,9 +86,10 @@ test('wizard shows only the selected platform events and exposes platform color 
   await form.locator('[name="showEvents"]').uncheck();
   await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(4);
   await page.locator('#chat-event-platform').selectOption('youtube');
-  await expect(page.locator('[data-platform-event]')).toHaveCount(6);
+  await expect(page.locator('[data-platform-event]')).toHaveCount(7);
   await expect(page.locator('#chat-event-template-editor')).toContainText('New subscriber (free)');
   await expect(page.locator('#chat-event-template-editor')).toContainText('New paid member');
+  await expect(page.locator('#chat-event-template-editor')).toContainText('Jewels gift');
   await expect(page.locator('#chat-event-template-editor')).not.toContainText('Raid');
 
   await page.locator('#chat-event-platform').selectOption('tiktok');

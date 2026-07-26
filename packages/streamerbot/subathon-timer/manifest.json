@@ -7,6 +7,7 @@
   "minimumStreamerBotVersion": "1.0.5-alpha.32",
   "actions": [
     {
+      "id": "a4f643c3-006d-52c8-82c5-5aca635a5a3b",
       "name": "THSV Addon - Subathon Timer - Start",
       "group": "THSV StreamBridge - Add-ons",
       "arguments": [
@@ -24,6 +25,7 @@
       ]
     },
     {
+      "id": "af7ed7c9-343a-5385-8166-0d0e231f7327",
       "name": "THSV Addon - Subathon Timer - Pause",
       "group": "THSV StreamBridge - Add-ons",
       "arguments": [
@@ -41,6 +43,7 @@
       ]
     },
     {
+      "id": "19feb2aa-2bfa-5261-a7f4-1c0249154686",
       "name": "THSV Addon - Subathon Timer - Resume",
       "group": "THSV StreamBridge - Add-ons",
       "arguments": [
@@ -58,6 +61,7 @@
       ]
     },
     {
+      "id": "01e49d26-6712-5657-8938-9d9156788700",
       "name": "THSV Addon - Subathon Timer - Reset",
       "group": "THSV StreamBridge - Add-ons",
       "arguments": [
@@ -75,6 +79,7 @@
       ]
     },
     {
+      "id": "a6d1fcec-e114-552a-b07b-917da6b21ffa",
       "name": "THSV Addon - Subathon Timer - Add Time",
       "group": "THSV StreamBridge - Add-ons",
       "arguments": [

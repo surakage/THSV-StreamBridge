@@ -17,6 +17,7 @@ describe('native platform intake package', () => {
     expect(manifest.triggerContract.twitch).toContain('TwitchRewardRedemption');
     expect(manifest.triggerContract.twitch).toEqual(expect.arrayContaining(['TwitchStreamOnline', 'TwitchStreamOffline']));
     expect(manifest.triggerContract.youtube).toEqual(expect.arrayContaining(['YouTubeBroadcastStarted', 'YouTubeBroadcastEnded']));
+    expect(manifest.triggerContract.youtube).toContain('YouTubeJewelsGifted');
     expect(manifest.triggerContract.kick).toEqual(expect.arrayContaining(['KickStreamOnline', 'KickStreamOffline']));
     expect(manifest.triggerContract.kick).toContain('KickRewardRedemption');
   });
@@ -64,6 +65,15 @@ describe('native platform intake package', () => {
     const quantityLine = source.split('\n').find((line) => line.includes('["quantity"] ='));
     expect(itemNameLine).toContain('Read("kicks.name")');
     expect(quantityLine).toContain('ReadInvariant("kicks.amount")');
+  });
+
+  it('maps YouTube Jewels Gifted fields from the captured Streamer.bot beta-1 contract', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('"YouTubeJewelsGifted"');
+    expect(source).toContain('Read("gift.name")');
+    expect(source).toContain('ReadInvariant("gift.comboCount")');
+    expect(source).toContain('ReadInvariant("gift.jewelsAmount")');
+    expect(source).toContain('Read("gift.altText")');
   });
 
   it('prefers YouTube\'s integer micro-amount over its pre-formatted currency string, using only integer arithmetic', async () => {

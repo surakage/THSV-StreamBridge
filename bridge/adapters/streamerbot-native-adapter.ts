@@ -44,10 +44,13 @@ const relaySchema = z.object({
   streakMonths: z.string().max(32).default(''),
   tier: z.string().max(100).default(''),
   itemName: z.string().max(500).default(''),
+  jewelsAmount: z.string().max(32).default(''),
+  giftAltText: z.string().max(500).default(''),
   rewardId: z.string().max(256).default(''),
   rewardTitle: z.string().max(256).default(''),
   rewardCost: z.string().max(32).default(''),
   rewardRequiresInput: z.boolean().default(false),
+  rewardSkipsQueue: z.boolean().default(false),
   redemptionId: z.string().max(256).default(''),
   channelId: z.string().max(256).default(''),
   channelName: z.string().max(256).default(''),
@@ -182,7 +185,15 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     if (amount === undefined || currency === undefined) throw new Error(`${relay.sourceEventType} requires amount and currency.`);
     return { ...common, payload: { amount, currency, ...(clean(relay.message) === '' ? {} : { message: clean(relay.message) }) } };
   }
-  if (eventType === 'engagement.gift') return { ...common, payload: { itemName: clean(relay.itemName) || 'Platform Gift', quantity: positiveInteger(relay.quantity, 1) } };
+  if (eventType === 'engagement.gift') {
+    const jewelsAmount = optionalPositiveInteger(relay.jewelsAmount);
+    return { ...common, payload: {
+      itemName: clean(relay.itemName) || 'Platform Gift',
+      quantity: positiveInteger(relay.quantity, 1),
+      ...(jewelsAmount === undefined ? {} : { jewelsAmount }),
+      ...(clean(relay.giftAltText) === '' ? {} : { message: clean(relay.giftAltText) }),
+    } };
+  }
   if (eventType === 'reward.redemption') {
     const rewardId = clean(relay.rewardId);
     const redemptionId = clean(relay.redemptionId);
@@ -191,7 +202,9 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     return { ...common, payload: {
       rewardId, rewardTitle: clean(relay.rewardTitle) || 'Untitled reward', rewardCost: nonnegativeInteger(relay.rewardCost),
       requiresUserInput: relay.rewardRequiresInput, ...(clean(relay.message) === '' ? {} : { input: clean(relay.message) }), redemptionId,
-      supportedOperations: relay.platform === 'twitch' ? ['fulfill', 'cancel'] : [], verifiedTransport: true,
+      skipsQueue: relay.rewardSkipsQueue,
+      supportedOperations: relay.platform === 'twitch' && !relay.rewardSkipsQueue ? ['fulfill', 'cancel'] : [],
+      verifiedTransport: true,
     } };
   }
   return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1) } };
@@ -213,7 +226,7 @@ function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {
   if (['TwitchGiftSub', 'TwitchGiftBomb', 'YouTubeMembershipGift', 'KickGiftSubscription', 'KickMassGiftSubscription'].includes(type)) return 'channel.gift-subscription';
   if (type === 'TwitchCheer') return 'engagement.cheer';
   if (['YouTubeSuperChat', 'YouTubeSuperSticker'].includes(type)) return 'engagement.super-chat';
-  if (type === 'KickKicksGifted') return 'engagement.gift';
+  if (['KickKicksGifted', 'YouTubeJewelsGifted'].includes(type)) return 'engagement.gift';
   if (type === 'TwitchRaid') return 'channel.raid';
   if ((relay.platform === 'twitch' && type === 'TwitchRewardRedemption') || (relay.platform === 'kick' && type === 'KickRewardRedemption')) return 'reward.redemption';
   throw new Error(`Unsupported native Streamer.bot event type: ${type}`);

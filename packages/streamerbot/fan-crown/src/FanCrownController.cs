@@ -10,6 +10,7 @@ public class CPHInline
     private const string ModuleId = "thsv.fan-crown";
     private const string ResultEvent = "addon.thsv.fan-crown.controller-result";
     private const string SourceName = "THSV Addon - Fan Crown - Controller";
+    private const string ToastId = "thsv-fan-crown-reset";
     private const int MaximumCost = 2000000000;
 
     public bool Execute()
@@ -45,6 +46,7 @@ public class CPHInline
         int rewardCost = BoundedCost("fanCrownRewardCost");
         string previousTitle = BoundedTitle("fanCrownPreviousTitle");
         int previousCost = BoundedCost("fanCrownPreviousCost");
+        bool alreadyFulfilled = ReadBoolean("fanCrownRedemptionAlreadyFulfilled");
         if (rewardId.Length == 0 || redemptionId.Length == 0 || rewardTitle.Length == 0 || rewardCost == 0 || previousTitle.Length == 0 || previousCost == 0)
             return Reject("claim", requestId, relayToken, "Claim requires bounded reward, redemption, title, cost, and rollback values.");
 
@@ -56,7 +58,9 @@ public class CPHInline
             return Reject("claim", requestId, relayToken, "Streamer.bot could not update the reward; the redemption was sent for refund.");
         }
 
-        bool fulfilled = CPH.TwitchRedemptionFulfill(rewardId, redemptionId);
+        // Rewards configured to skip Twitch's redemption queue arrive already FULFILLED.
+        // Calling TwitchRedemptionFulfill again returns 404 even though the claim is valid.
+        bool fulfilled = alreadyFulfilled || CPH.TwitchRedemptionFulfill(rewardId, redemptionId);
         if (!fulfilled)
         {
             bool restored = CPH.UpdateReward(rewardId, previousTitle, null, previousCost, null);
@@ -90,7 +94,19 @@ public class CPHInline
             return Reject("reset", requestId, relayToken, "Reset requires a reward ID, title, and cost.");
         bool updated = CPH.UpdateReward(rewardId, rewardTitle, null, rewardCost, null);
         EmitResult("reset", requestId, relayToken, updated, updated ? "" : "Streamer.bot could not reset the reward.");
-        if (updated) CPH.LogInfo("THSV Fan Crown restored the base reward title and cost.");
+        if (updated)
+        {
+            string resetName = requestId.StartsWith("reset-month-", StringComparison.Ordinal)
+                ? "Monthly leaderboard reset"
+                : "Crown reset";
+            CPH.LogInfo("THSV Fan Crown restored the base reward title and cost.");
+            CPH.ShowToastNotification(
+                ToastId,
+                "Fan Crown",
+                resetName + " completed successfully. Reward restored to " + rewardTitle + " at " + rewardCost + " points.",
+                "THSV StreamBridge",
+                null);
+        }
         return updated;
     }
 
@@ -116,6 +132,12 @@ public class CPHInline
     {
         string value;
         return CPH.TryGetArg(name, out value) && value != null ? value.Trim() : "";
+    }
+
+    private bool ReadBoolean(string name)
+    {
+        bool value;
+        return CPH.TryGetArg(name, out value) && value;
     }
 
     private bool Reject(string operation, string requestId, string relayToken, string reason)

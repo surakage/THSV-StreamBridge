@@ -20,10 +20,11 @@ public class CPHInline
         "isSubscribed", "subscribed", "isVip", "message", "messageStripped", "rawInput", "amount", "donationAmount", "currency",
         "currencyCode", "count", "bits", "viewers", "monthsSubscribed", "months", "cumulative", "gifts", "giftCount", "monthStreak",
         "streakMonths", "tier", "subTier", "subscriptionTier", "giftName", "itemName", "rewardName", "rewardId", "reward.id",
-        "reward.title", "rewardCost", "reward.cost", "requiresUserInput", "reward.requiresUserInput", "redemptionId", "broadcastId",
+        "reward.title", "rewardCost", "reward.cost", "requiresUserInput", "reward.requiresUserInput", "skipsQueue", "redemptionId", "broadcastId",
         "broadcastUserId", "broadcastUserName", "broadcastUsername", "broadcastUser",
         "recipientId", "cumulativeMonths", "totalGifts", "totalSubsGifted", "id",
-        "recipient.userId", "subscribedAt", "expiresAt", "kicks.amount", "kicks.name", "microAmount"
+        "recipient.userId", "subscribedAt", "expiresAt", "kicks.amount", "kicks.name", "microAmount",
+        "gift.jewelsAmount", "gift.name", "gift.comboCount", "gift.altText", "gift.isCombo", "gift.hasVisualEffect", "gift.durationInSeconds", "gift.url"
     };
     private sealed class AvatarCacheEntry
     {
@@ -93,14 +94,19 @@ public class CPHInline
             ["replyMessage"] = Read("reply.msgBody").Replace("\\s", " "),
             ["amount"] = First(MicroAmountToDecimal(ReadInvariant("microAmount")), StripCurrencySymbol(First(ReadInvariant("amount"), ReadInvariant("donationAmount")))),
             ["currency"] = First(Read("currency"), Read("currencyCode")),
-            ["quantity"] = First(ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("months"), ReadInvariant("cumulative"), ReadInvariant("gifts"), ReadInvariant("giftCount"), ReadInvariant("kicks.amount")),
+            ["quantity"] = First(ReadInvariant("gift.comboCount"), ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("months"), ReadInvariant("cumulative"), ReadInvariant("gifts"), ReadInvariant("giftCount"), ReadInvariant("kicks.amount")),
             ["streakMonths"] = First(ReadInvariant("monthStreak"), ReadInvariant("streakMonths")),
             ["tier"] = First(Read("tier"), Read("subTier"), Read("subscriptionTier")),
-            ["itemName"] = First(Read("giftName"), Read("itemName"), Read("rewardName"), Read("kicks.name")),
+            ["itemName"] = First(Read("gift.name"), Read("giftName"), Read("itemName"), Read("rewardName"), Read("kicks.name")),
+            ["jewelsAmount"] = ReadInvariant("gift.jewelsAmount"),
+            ["giftAltText"] = Read("gift.altText"),
             ["rewardId"] = First(Read("rewardId"), Read("reward.id")),
             ["rewardTitle"] = First(Read("rewardName"), Read("reward.title")),
             ["rewardCost"] = First(ReadInvariant("rewardCost"), ReadInvariant("reward.cost")),
             ["rewardRequiresInput"] = ReadBoolean("requiresUserInput") || ReadBoolean("reward.requiresUserInput"),
+            // Twitch exposes skipsQueue=true when the redemption is already FULFILLED.
+            // Downstream controllers must not try to fulfill or refund that redemption again.
+            ["rewardSkipsQueue"] = ReadBoolean("skipsQueue"),
             ["redemptionId"] = Read("redemptionId"),
             // Streamer.bot's broadcaster-user-ID argument is "broadcastUserId" on Twitch, YouTube,
             // and Kick alike; "broadcasterUserId"/"broadcasterId" are not real Streamer.bot
@@ -143,7 +149,7 @@ public class CPHInline
     private bool Supported(string platform, string eventType)
     {
         if (platform == "twitch") return eventType == "TwitchChatMessage" || eventType == "TwitchFollow" || eventType == "TwitchCheer" || eventType == "TwitchSub" || eventType == "TwitchReSub" || eventType == "TwitchGiftSub" || eventType == "TwitchGiftBomb" || eventType == "TwitchRaid" || eventType == "TwitchRewardRedemption" || eventType == "TwitchStreamOnline" || eventType == "TwitchStreamOffline";
-        if (platform == "youtube") return eventType == "YouTubeMessage" || eventType == "YouTubeSuperChat" || eventType == "YouTubeSuperSticker" || eventType == "YouTubeNewSubscriber" || eventType == "YouTubeNewSponsor" || eventType == "YouTubeMemberMileStone" || eventType == "YouTubeMembershipGift" || eventType == "YouTubeBroadcastStarted" || eventType == "YouTubeBroadcastEnded";
+        if (platform == "youtube") return eventType == "YouTubeMessage" || eventType == "YouTubeSuperChat" || eventType == "YouTubeSuperSticker" || eventType == "YouTubeJewelsGifted" || eventType == "YouTubeNewSubscriber" || eventType == "YouTubeNewSponsor" || eventType == "YouTubeMemberMileStone" || eventType == "YouTubeMembershipGift" || eventType == "YouTubeBroadcastStarted" || eventType == "YouTubeBroadcastEnded";
         if (platform == "kick") return eventType == "KickChatMessage" || eventType == "KickFollow" || eventType == "KickSubscription" || eventType == "KickResubscription" || eventType == "KickGiftSubscription" || eventType == "KickMassGiftSubscription" || eventType == "KickKicksGifted" || eventType == "KickRewardRedemption" || eventType == "KickStreamOnline" || eventType == "KickStreamOffline";
         return false;
     }

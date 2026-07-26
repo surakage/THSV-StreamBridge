@@ -21,6 +21,7 @@ Add triggers only to the actions listed below. Streamer.bot owns provider connec
 - YouTube > Chat > Message
 - YouTube > Chat > Super Chat
 - YouTube > Chat > Super Sticker
+- YouTube > Chat > Jewels Gifted
 - YouTube > General > New Subscriber
 - YouTube > General > New Sponsor
 - YouTube > Membership > Member Milestone
@@ -28,7 +29,7 @@ Add triggers only to the actions listed below. Streamer.bot owns provider connec
 - YouTube > Broadcast > Started
 - YouTube > Broadcast > Ended
 
-YouTube New Subscriber is a free channel subscription (the equivalent of a follow). New Sponsor, Member Milestone, and Membership Gift represent paid membership activity and remain separate.
+YouTube New Subscriber is a free channel subscription (the equivalent of a follow). New Sponsor, Member Milestone, and Membership Gift represent paid membership activity and remain separate. Jewels Gifted is normalized as a platform gift using Streamer.bot's `messageId`, `gift.name`, `gift.comboCount`, `gift.jewelsAmount`, and `gift.altText` arguments; it feeds the gift alert profile and has its own optional chat-activity template.
 
 ## THSV Kick - Intake
 

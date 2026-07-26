@@ -29,7 +29,7 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.automated-shoutouts/', 'data/addons/.state/thsv.automated-shoutouts/'],
   installationSteps: [
     'Install and enable the add-on in the StreamBridge wizard, then review its chat.send and overlay.publish permissions.',
-    'In Command Sync, create the configured shoutout command (recommended aliases: so and shoutout) with Moderator permission.',
+    'In Command Sync, apply Automated Shoutouts command. It creates the source, permission, and cooldown shell with no canned response so this add-on remains the only shoutout owner.',
     'Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.',
     'Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.',
     'Optional: approve Get Twitch Clip when Twitch visual popup is set to Random clip.',

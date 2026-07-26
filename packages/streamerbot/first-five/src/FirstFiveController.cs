@@ -10,6 +10,7 @@ public class CPHInline
     private const string ModuleId = "thsv.first-five";
     private const string ResultEvent = "addon.thsv.first-five.controller-result";
     private const string SourceName = "THSV Addon - First Five - Controller";
+    private const string ToastId = "thsv-first-five-reset";
 
     public bool Execute()
     {
@@ -24,6 +25,7 @@ public class CPHInline
             if (operation == "claim") return Claim(requestId, relayToken);
             if (operation == "cancel") return Cancel(requestId, relayToken);
             if (operation == "reset") return Reset(requestId, relayToken);
+            if (operation == "deactivate") return Deactivate(requestId, relayToken);
             return Reject(operation, requestId, relayToken, "Unsupported First Five operation.");
         }
         catch (Exception error)
@@ -41,6 +43,7 @@ public class CPHInline
         string availableTitle = BoundedTitle("firstFiveAvailableTitle");
         string claimedTitle = BoundedTitle("firstFiveClaimedTitle");
         string nextRewardId = OptionalId("firstFiveNextRewardId");
+        bool alreadyFulfilled = ReadBoolean("firstFiveRedemptionAlreadyFulfilled");
         if (rewardId.Length == 0 || redemptionId.Length == 0 || availableTitle.Length == 0 || claimedTitle.Length == 0)
             return Reject("claim", requestId, relayToken, "Claim requires reward, redemption, available-title, and claimed-title values.");
 
@@ -51,7 +54,9 @@ public class CPHInline
         }
 
         CPH.DisableReward(rewardId);
-        bool fulfilled = CPH.TwitchRedemptionFulfill(rewardId, redemptionId);
+        // Rewards configured to skip Twitch's queue arrive already fulfilled.
+        // Do not issue a second fulfill request, which Twitch rejects even though the claim is valid.
+        bool fulfilled = alreadyFulfilled || CPH.TwitchRedemptionFulfill(rewardId, redemptionId);
         if (!fulfilled)
         {
             CPH.UpdateRewardTitle(rewardId, availableTitle);
@@ -100,8 +105,28 @@ public class CPHInline
             else CPH.DisableReward(rewardId);
         }
         EmitResult("reset", requestId, relayToken, titlesUpdated, titlesUpdated ? "" : "One or more reward titles could not be restored.");
-        if (titlesUpdated) CPH.LogInfo("THSV First Five restored the five-reward stream chain.");
+        if (titlesUpdated)
+        {
+            CPH.LogInfo("THSV First Five restored the five-reward stream chain.");
+            CPH.ShowToastNotification(ToastId, "First Five", "First Five is ready. First place is enabled and places 2-5 are locked.", "THSV StreamBridge", null);
+        }
         return titlesUpdated;
+    }
+
+    private bool Deactivate(string requestId, string relayToken)
+    {
+        var rewardIds = new List<string>();
+        for (int index = 1; index <= 5; index++)
+        {
+            string rewardId = BoundedId("firstFiveReward" + index.ToString() + "Id");
+            if (rewardId.Length == 0)
+                return Reject("deactivate", requestId, relayToken, "Deactivation requires five reward IDs.");
+            rewardIds.Add(rewardId);
+        }
+        foreach (string rewardId in rewardIds) CPH.DisableReward(rewardId);
+        EmitResult("deactivate", requestId, relayToken, true, "");
+        CPH.LogInfo("THSV First Five disabled all placement rewards while the stream is offline.");
+        return true;
     }
 
     private string BoundedId(string name)
@@ -126,6 +151,12 @@ public class CPHInline
     {
         string value;
         return CPH.TryGetArg(name, out value) && value != null ? value.Trim() : "";
+    }
+
+    private bool ReadBoolean(string name)
+    {
+        bool value;
+        return CPH.TryGetArg(name, out value) && value;
     }
 
     private bool Reject(string operation, string requestId, string relayToken, string reason)

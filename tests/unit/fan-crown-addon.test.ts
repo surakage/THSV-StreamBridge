@@ -139,6 +139,7 @@ describe('Fan Crown add-on', () => {
       fanCrownRewardTitle: 'Viewer is No. 1 Fan',
       fanCrownRewardCost: 750,
       fanCrownPreviousCost: 500,
+      fanCrownRedemptionAlreadyFulfilled: false,
     }));
     expect(testRuntime.value().leaderboard).toEqual([]);
     await fanCrown.onEvent({
@@ -155,6 +156,17 @@ describe('Fan Crown add-on', () => {
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.fan-crown.card.show', expect.objectContaining({
       imageUrl: 'https://example.com/avatar.png',
       style: expect.objectContaining({ backgroundColor: '#201335', fontFamily: 'display' }),
+    }));
+  });
+
+  it('tells the controller not to fulfill a Twitch redemption that already skipped the queue', async () => {
+    const testRuntime = runtime();
+    const baseEvent = rewardEvent();
+    const event = { ...baseEvent, payload: { ...baseEvent.payload, skipsQueue: true, supportedOperations: [] } };
+    await fanCrown.onEvent(event, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
+      fanCrownOperation: 'claim',
+      fanCrownRedemptionAlreadyFulfilled: true,
     }));
   });
 

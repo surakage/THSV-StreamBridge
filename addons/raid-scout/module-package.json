@@ -14,7 +14,7 @@
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
-    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "supportUrl": "https://www.slothbloom.com/tip",
     "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
     "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
   },
@@ -62,8 +62,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 25003,
-      "sha256": "5641c40bfe5253a9b05d0cf337ffce8b39f0792845b981ddc67fd8300bee8bd1"
+      "size": 25022,
+      "sha256": "dcd0cca8ff794dba7bdb1a171215840aa3b9018e0ad33cd679489938f3c2170e"
     },
     {
       "path": "schemas/config.json",

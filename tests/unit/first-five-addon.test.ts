@@ -13,7 +13,7 @@ const settings = {
   monthlyWinnerMessageTemplate: '{name} won {month} with {points} points!', showLeaderboardCard: true, leaderboardCardSeconds: 30,
 };
 
-function rewardEvent(position: number, userId = 'user-1', displayName = 'Viewer') {
+function rewardEvent(position: number, userId = 'user-1', displayName = 'Viewer', skipsQueue = false) {
   return {
     eventId: `event-${String(position)}-${userId}`,
     eventType: 'reward.redemption',
@@ -24,7 +24,8 @@ function rewardEvent(position: number, userId = 'user-1', displayName = 'Viewer'
     user: { id: userId, name: displayName.toLowerCase(), displayName, roles: [], actorType: 'human' },
     payload: {
       rewardId: rewardIds[position - 1], rewardTitle: `Reward ${String(position)}`, rewardCost: 100,
-      redemptionId: `redemption-${String(position)}-${userId}`, verifiedTransport: true, supportedOperations: ['fulfill', 'cancel'],
+      redemptionId: `redemption-${String(position)}-${userId}`, verifiedTransport: true, skipsQueue,
+      supportedOperations: skipsQueue ? [] : ['fulfill', 'cancel'],
     },
     metadata: { simulated: false },
   };
@@ -88,6 +89,14 @@ describe('First Five add-on', () => {
     expect(runtime.context.overlay.publish).toHaveBeenCalled();
   });
 
+  it('marks a queue-skipping redemption as already fulfilled instead of fulfilling it twice', async () => {
+    const runtime = context();
+    await firstFive.onEvent(rewardEvent(1, 'user-1', 'Viewer', true), runtime.context);
+    expect(runtime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
+      firstFiveOperation: 'claim', firstFiveRedemptionAlreadyFulfilled: true,
+    }));
+  });
+
   it('refunds a viewer who tries to claim a second placement in the same stream', async () => {
     const runtime = context();
     await firstFive.onEvent(rewardEvent(1), runtime.context);
@@ -105,10 +114,43 @@ describe('First Five add-on', () => {
     await firstFive.onEvent({
       eventId: 'online-1', eventType: 'stream.online', platform: 'twitch', source: { eventId: 'online-source-1' }, metadata: { simulated: false },
     }, runtime.context);
-    expect(runtime.value()).toMatchObject({ streamCycleId: 'online-source-1', placements: [] });
+    const pending = runtime.value().pending as { requestId: string; operation: string };
+    expect(pending.operation).toBe('reset');
     expect(runtime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
       firstFiveOperation: 'reset', firstFiveReward1Id: 'reward-1', firstFiveReward5Id: 'reward-5',
     }));
+    await firstFive.onEvent({ eventType: 'addon.thsv.first-five.controller-result', payload: { operation: 'reset', requestId: pending.requestId, success: true }, metadata: { simulated: false } }, runtime.context);
+    expect(runtime.value()).toMatchObject({ streamCycleId: 'online-source-1', placements: [] });
+    expect(runtime.value().pending).toBeUndefined();
+
+    runtime.context.streamerbot.runApprovedAction.mockClear();
+    await firstFive.onEvent({
+      eventId: 'online-1-duplicate', eventType: 'stream.online', platform: 'twitch', source: { eventId: 'online-source-1' }, metadata: { simulated: false },
+    }, runtime.context);
+    expect(runtime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+  });
+
+  it('disables every placement reward when the Twitch stream ends', async () => {
+    const runtime = context();
+    await firstFive.onEvent({
+      eventId: 'offline-1', eventType: 'stream.offline', platform: 'twitch', source: { eventId: 'offline-source-1' }, metadata: { simulated: false },
+    }, runtime.context);
+    expect(runtime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
+      firstFiveOperation: 'deactivate', firstFiveReward1Id: 'reward-1', firstFiveReward5Id: 'reward-5',
+    }));
+  });
+
+  it('does not clear stream placements until Streamer.bot confirms the reward reset', async () => {
+    const runtime = context();
+    await firstFive.onEvent(rewardEvent(1), runtime.context);
+    const claimPending = runtime.value().pending as { requestId: string };
+    await firstFive.onEvent({ eventType: 'addon.thsv.first-five.controller-result', payload: { operation: 'claim', requestId: claimPending.requestId, success: true }, metadata: { simulated: false } }, runtime.context);
+    await firstFive.onEvent({ eventId: 'online-3', eventType: 'stream.online', platform: 'twitch', source: { eventId: 'online-source-3' }, metadata: { simulated: false } }, runtime.context);
+    const resetPending = runtime.value().pending as { requestId: string };
+    expect(runtime.value().placements as unknown[]).toHaveLength(1);
+    await firstFive.onEvent({ eventType: 'addon.thsv.first-five.controller-result', payload: { operation: 'reset', requestId: resetPending.requestId, success: false }, metadata: { simulated: false } }, runtime.context);
+    expect(runtime.value().placements as unknown[]).toHaveLength(1);
+    expect(runtime.value().pending).toBeUndefined();
   });
 
   it('preserves the prior placement state when Streamer.bot rejects a reset dispatch', async () => {

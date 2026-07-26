@@ -1,9 +1,17 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { verifyAddOnPackage } from '../../bridge/services/addon-package-manager.js';
 
 interface AddOnDescriptor {
+  entrypoint?: string;
+  manifest?: unknown;
+  packageKind?: string;
   settingsUi?: string;
+  trust?: {
+    supportUrl?: string;
+  };
 }
 
 interface ConfigurationSchema {
@@ -24,6 +32,29 @@ interface SettingsUi {
 }
 
 describe('first-party add-on wizard cohesion', () => {
+  it('keeps every shipped runtime manifest and integrity record installable', async () => {
+    const addOnNames = (await readdir('addons', { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+
+    for (const addOnName of addOnNames) {
+      const verified = await verifyAddOnPackage(join('addons', addOnName));
+      expect(verified, `${addOnName} must remain loadable by the production add-on verifier`).toBeDefined();
+
+      if (verified.descriptor.packageKind !== 'executable' || verified.descriptor.entrypoint === undefined) continue;
+      const imported = await import(pathToFileURL(join(verified.root, verified.descriptor.entrypoint)).href) as {
+        readonly default?: unknown;
+        readonly createModule?: () => unknown;
+      };
+      const candidate = imported.createModule === undefined ? imported.default : await imported.createModule();
+      expect(candidate, `${addOnName} must export its executable runtime`).toBeTypeOf('object');
+      const runtime = candidate as { readonly manifest?: unknown; readonly required?: unknown };
+      expect(runtime.required, `${addOnName} must be loadable as an optional module`).toBe(false);
+      expect(JSON.stringify(runtime.manifest), `${addOnName} runtime and package manifests must match exactly`).toBe(JSON.stringify(verified.descriptor.manifest));
+    }
+  });
+
   it('keeps every add-on complete, guided, and bounded instead of rendering one long card', async () => {
     const addOnNames = (await readdir('addons', { withFileTypes: true }))
       .filter((entry) => entry.isDirectory())
@@ -35,6 +66,7 @@ describe('first-party add-on wizard cohesion', () => {
       const root = join('addons', addOnName);
       const descriptor = JSON.parse(await readFile(join(root, 'module-package.json'), 'utf8')) as AddOnDescriptor;
       expect(descriptor.settingsUi, `${addOnName} must declare settingsUi`).toBe('ui/settings.json');
+      expect(descriptor.trust?.supportUrl, `${addOnName} must use the shared creator-support destination`).toBe('https://www.slothbloom.com/tip');
 
       const schema = JSON.parse(await readFile(join(root, 'schemas', 'config.json'), 'utf8')) as ConfigurationSchema;
       const ui = JSON.parse(await readFile(join(root, 'ui', 'settings.json'), 'utf8')) as SettingsUi;

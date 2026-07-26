@@ -35,6 +35,14 @@ describe('wizard launcher package', () => {
     expect(script).toContain("kind==='command'&&value.managed");
     expect(script).toContain('data-admin-name');
     expect(script).toContain('THSV-managed command');
+    expect(script).toContain("new Blob([contentBase64],{type:'text/plain;charset=utf-8'})");
+    expect(script).not.toContain('atob(contentBase64)');
+    expect(script).toContain("shoutoutTemplateOption.textContent='Automated Shoutouts command'");
+    expect(script).toContain("responseMode:'none',messages:{},note:'Automated Shoutouts owns");
+    expect(script).toContain("'shoutout-basic'");
+    expect(script).toContain('{targetUrl}');
+    expect(script).toContain('{channelUrl}');
+    expect(script).not.toContain('Replace with their Twitch or social link.');
     expect(shell).toContain('Reference role (not enforced)');
     expect(shell).toContain('Configure the real permission in Streamer.bot after import.');
     expect(shell).toContain('defaults to Twitch chat as its source');

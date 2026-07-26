@@ -12,7 +12,7 @@
     {
       "id": "setup",
       "title": "1. Connect the five rewards",
-      "description": "Use five unique rewards created and owned by Streamer.bot. Initially enable only the first reward.",
+      "description": "Use five unique rewards created and owned by Streamer.bot. Keep Skip Reward Queue disabled on every reward so rejected claims can be refunded. The add-on enables only first place when Twitch goes live.",
       "open": true,
       "fields": ["enabled", "reward1Id", "reward2Id", "reward3Id", "reward4Id", "reward5Id"]
     },
@@ -38,7 +38,7 @@
       "id": "privacy",
       "title": "Privacy and storage",
       "description": "First Five stores Twitch user IDs, current display names, placement counts, and compact timestamps in its private atomic state. It stores no chat text, tokens, SlothCoins, or point balances.",
-      "notice": "Import the separate First Five Streamer.bot package. Keep Controller triggerless, approve it for this add-on, and optionally attach Reset to a deck button. Trigger tests and simulated reward events never change live rewards."
+      "notice": "Import the separate First Five Streamer.bot package. Keep Controller triggerless, approve it for this add-on, and optionally attach Reset to a deck button. Skip Reward Queue must remain disabled on all five rewards. Trigger tests and simulated reward events never change live rewards. Stream resets clear placements only; monthly leaderboard scores reset only after the calendar month changes."
     }
   ]
 }

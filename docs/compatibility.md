@@ -9,13 +9,15 @@ This matrix records tested versions, not speculative compatibility ranges. A new
 | Windows | Windows 10 or later | Required for the supported installer and PowerShell lifecycle |
 | Node.js | 22 or later | Required; installer rejects older major versions |
 | Windows PowerShell | 5.1 or later | Required for release install, upgrade, verification, and uninstall |
-| Streamer.bot | Minimum `1.0.5-alpha.31`; recommended `1.0.5-alpha.33` | Alpha.31 remains the live-verified compatibility floor. Alpha.33 is recommended for new installs because it includes the Alpha.32 stability work plus WebSocket startup deadlock, Twitch EventSub/chat, and library updates; fresh live re-acceptance is still pending. |
+| Streamer.bot | Minimum `1.0.5-alpha.31`; recommended `1.0.5-beta.1` | Beta.1 has passed THSV startup, WebSocket connection, Twitch EventSub connection, focused C# compilation, controller relay, reward mutation, and reset checks. A fresh live chat plus YouTube/Kick trigger pass remains before it replaces Alpha.31 as the complete live-verified floor. |
 | Speaker.bot | `0.1.7` | Live transport/dry-run verified; playback completion acknowledgement is unavailable |
 | Meld Studio | `0.10.3.1` | Live Browser Source verification for Chat, Alerts, and Companion-compatible routes |
 | OBS Studio | Exact accepted build was not recorded | Live standards-based Browser Source verification completed July 16, 2026 |
 | Streamlabs Desktop | Exact build not separately tested | Compatibility accepted through the same Browser Source contract after OBS verification |
 
-Do not infer a version range from a single verified Alpha/build. The current packages keep alpha.31 as their evidence-backed minimum until a complete alpha.33 live compile and relay pass is recorded. After upgrading, re-import and compile every used `.sb` package, repeat relay tests, verify Action History fields, and then update the live-verification record.
+Do not infer a version range from one verified build. Existing packages keep Alpha.31 as their backward-compatible minimum; packages that require newer APIs declare a higher minimum individually. After upgrading, re-import and compile every used `.sb` package, repeat relay tests, verify Action History fields, and then update the live-verification record.
+
+Streamer.bot 1.0.5 removes the deprecated legacy Twitch WebSocket `Message` object as chat completes its move to EventSub. THSV's native intake consumes the documented action arguments (`message`, IDs, user fields, badges, and flags) rather than that legacy object, so no compatibility shim is required.
 
 Meld Studio is distributed as an MSIX/UWP app, which Windows sandboxes with loopback isolation by default; this blocks access to the local overlay and wizard URLs until an exemption is granted once per machine. See [Troubleshooting](troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard) for the fix. The same restriction can affect other MSIX-packaged broadcasting apps.
 

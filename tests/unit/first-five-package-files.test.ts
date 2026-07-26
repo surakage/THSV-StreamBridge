@@ -19,9 +19,11 @@ describe('First Five Streamer.bot package', () => {
 
   it('uses documented bounded reward methods without SlothCoin or file access', async () => {
     const source = await readFile('packages/streamerbot/first-five/src/FirstFiveController.cs', 'utf8');
-    for (const method of ['CPH.UpdateRewardTitle', 'CPH.EnableReward', 'CPH.DisableReward', 'CPH.TwitchRedemptionFulfill', 'CPH.TwitchRedemptionCancel']) {
+    for (const method of ['CPH.UpdateRewardTitle', 'CPH.EnableReward', 'CPH.DisableReward', 'CPH.TwitchRedemptionFulfill', 'CPH.TwitchRedemptionCancel', 'CPH.ShowToastNotification']) {
       expect(source).toContain(method);
     }
+    expect(source).toContain('firstFiveRedemptionAlreadyFulfilled');
+    expect(source).toContain('operation == "deactivate"');
     expect(source).toContain('CPH.TryGetArg');
     expect(source).toContain('CPH.WebsocketBroadcastJson');
     expect(source).not.toMatch(/SlothCoin|System\.IO|File\.|Directory\./u);

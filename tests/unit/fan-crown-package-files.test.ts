@@ -26,6 +26,10 @@ describe('Fan Crown Streamer.bot package', () => {
       expect(controller).toContain(method);
     }
     expect(controller).toContain('MaximumCost = 2000000000');
+    expect(controller).toContain('fanCrownRedemptionAlreadyFulfilled');
+    expect(controller).toContain('CPH.ShowToastNotification');
+    expect(controller).toContain('Monthly leaderboard reset');
+    expect(controller).toContain('Crown reset');
     expect(`${controller}\n${control}`).not.toMatch(/SlothCoin|System\.IO|File\.|Directory\.|TwitchOAuthToken|TwitchClientId/u);
   });
 

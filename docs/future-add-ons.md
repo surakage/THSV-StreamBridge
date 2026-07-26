@@ -1,4 +1,6 @@
-# Future add-ons
+# Archived future add-on source
+
+This page documents only the inert historical source preserved by the Stage 2 extraction. The authoritative status, consolidation decisions, detailed future specifications, and dependency-ordered execution plan live in the [Future projects and add-on roadmap](future-projects-and-addons.md).
 
 Stage 2 removes Viewer Progression, Bloom Companion, and Speaker.bot Orchestration from THSV StreamBridge core. Their implementations are preserved under `archive/future-add-ons/` as historical candidates, not installed modules.
 
@@ -6,7 +8,7 @@ Core never imports, discovers, or executes files from the archive. It does not e
 
 Existing `data/state/viewer-progression.json` and `data/state/companion.json` files remain creator data. Upgrade, backup, and default uninstall flows preserve the complete `data` directory. Nothing deletes excluded state unless the creator explicitly chooses full user-data removal.
 
-An archived implementation may return only after it has a valid v2 module manifest, uses public contracts exclusively, owns isolated storage, supports explicit installation/removal and migrations, reports independent health, and passes failure-isolation tests. Archived `.sb` files are retained for historical recovery only and must not be imported into the Stage 2 core action chain.
+An archived implementation may return only after it has a valid v2 module manifest, uses public contracts exclusively, owns isolated storage, supports explicit installation/removal and migrations, reports independent health, and passes failure-isolation tests. Archived `.sb` files are retained for historical recovery only and must not be imported into the Stage 2 core action chain. Viewer Progression is planned to return through the consolidated optional Viewer Foundation described in the authoritative roadmap; that plan does not reactivate this archived implementation.
 
 ## Donation providers
 

@@ -84,7 +84,8 @@
             "membership-gift": { "enabled": true, "template": "{actor} gifted {quantity} memberships" },
             "member-milestone": { "enabled": true, "template": "{actor} reached {months} months as a member" },
             "super-chat": { "enabled": true, "template": "{actor} sent a Super Chat: {amount} {currency} {message}" },
-            "super-sticker": { "enabled": true, "template": "{actor} sent a Super Sticker: {amount} {currency}" }
+            "super-sticker": { "enabled": true, "template": "{actor} sent a Super Sticker: {amount} {currency}" },
+            "jewels-gift": { "enabled": true, "template": "{actor} sent {quantity} {itemName} worth {jewelsAmount} Jewels" }
           },
           "kick": {
             "follow": { "enabled": true, "template": "{actor} followed" },

@@ -370,7 +370,7 @@ function generateCommandActionSource(design: CommandDesign, commandPhrase: strin
   const aliasList = design.aliases.length === 0 ? '(none)' : design.aliases.join(', ');
   const note = design.note.length === 0 ? '(none)' : design.note;
   const allowedSources = design.commandSources.map((platform) => `"${platform}"`).join(', ');
-  const messageDeclarations = COMMAND_PLATFORMS.map((platform) => `        string ${platform}Message = ExpandTemplate("${escapeCSharpString(design.platformMessages[platform] ?? '')}", userName, target, rawInput, channelName);`).join('\n');
+  const messageDeclarations = COMMAND_PLATFORMS.map((platform) => `        string ${platform}Message = ExpandTemplate("${escapeCSharpString(design.platformMessages[platform] ?? '')}", userName, target, targetUrl, rawInput, channelName, channelUrl);`).join('\n');
   const execution = design.responseMode === 'platform-message' ? `        string responseMessage;
         if (commandSource == "twitch") responseMessage = twitchMessage;
         else if (commandSource == "youtube") responseMessage = youtubeMessage;
@@ -378,7 +378,7 @@ function generateCommandActionSource(design: CommandDesign, commandPhrase: strin
         else if (commandSource == "tiktok") responseMessage = tiktokMessage;
         else return true;
         SendToSource(commandSource, responseMessage);`
-    : design.responseMode === 'custom-script' ? `        string responseMessage = BuildCustomResponse(commandSource, userName, target, rawInput, channelName);
+    : design.responseMode === 'custom-script' ? `        string responseMessage = BuildCustomResponse(commandSource, userName, target, targetUrl, rawInput, channelName, channelUrl);
         SendToSource(commandSource, responseMessage);`
     : '        // No automatic response was selected. Add creator-owned sub-actions here.';
   // Custom scripts are only ever the BODY of BuildCustomResponse, never a full action -- creators
@@ -388,7 +388,7 @@ function generateCommandActionSource(design: CommandDesign, commandPhrase: strin
   // producing invalid C#, and lets custom scripts reuse the same verified per-platform send methods
   // as platform-message mode instead of every creator needing to get those signatures right.
   const customResponseMethod = design.responseMode === 'custom-script' ? `
-    private string BuildCustomResponse(string commandSource, string userName, string target, string rawInput, string channelName)
+    private string BuildCustomResponse(string commandSource, string userName, string target, string targetUrl, string rawInput, string channelName, string channelUrl)
     {
 ${indentCustomScript(design.customScript)}
         return "";
@@ -420,6 +420,8 @@ public class CPHInline
         // broadcaster's display name) as a fallback. "broadcasterUserName"/"channelName" are not
         // real Streamer.bot arguments on any platform and never matched anything.
         string channelName = First(Read("broadcastUserName"), Read("broadcastUsername"), Read("broadcastUser"));
+        string targetUrl = PlatformUrl(commandSource, target);
+        string channelUrl = PlatformUrl(commandSource, channelName);
 ${messageDeclarations}
         CPH.SetArgument("generatedCommandName", "${design.name}");
         CPH.SetArgument("generatedCommandPhrase", "${escapeCSharpString(commandPhrase)}");
@@ -427,6 +429,8 @@ ${messageDeclarations}
         CPH.SetArgument("generatedCommandSource", commandSource);
         CPH.SetArgument("generatedCommandRawInput", rawInput);
         CPH.SetArgument("generatedCommandTarget", target);
+        CPH.SetArgument("generatedCommandTargetUrl", targetUrl);
+        CPH.SetArgument("generatedCommandChannelUrl", channelUrl);
         CPH.SetArgument("generatedCommandTwitchMessage", twitchMessage);
         CPH.SetArgument("generatedCommandYouTubeMessage", youtubeMessage);
         CPH.SetArgument("generatedCommandKickMessage", kickMessage);
@@ -439,9 +443,20 @@ ${execution}
     private string Read(string name) { object value; return args.TryGetValue(name, out value) && value != null ? Convert.ToString(value) ?? "" : ""; }
     private string First(params string[] values) { foreach (string value in values) if (!String.IsNullOrWhiteSpace(value)) return value; return ""; }
     private string FirstWord(string value) { if (String.IsNullOrWhiteSpace(value)) return ""; string[] parts = value.Trim().Split(new[] { ' ' }, 2); return parts[0]; }
-    private string ExpandTemplate(string template, string user, string target, string input, string channel)
+    private string ExpandTemplate(string template, string user, string target, string targetUrl, string input, string channel, string channelUrl)
     {
-        return (template ?? "").Replace("{user}", user ?? "").Replace("{target}", target ?? "").Replace("{input}", input ?? "").Replace("{channel}", channel ?? "");
+        return (template ?? "").Replace("{user}", user ?? "").Replace("{target}", target ?? "").Replace("{targetUrl}", targetUrl ?? "").Replace("{input}", input ?? "").Replace("{channel}", channel ?? "").Replace("{channelUrl}", channelUrl ?? "");
+    }
+    private string PlatformUrl(string source, string name)
+    {
+        string normalized = (name ?? "").Trim().TrimStart('@');
+        if (normalized.Length == 0) return "";
+        string segment = Uri.EscapeDataString(normalized);
+        if (source == "twitch") return "https://twitch.tv/" + segment;
+        if (source == "youtube") return "https://youtube.com/@" + segment;
+        if (source == "kick") return "https://kick.com/" + segment;
+        if (source == "tiktok") return "https://www.tiktok.com/@" + segment;
+        return "";
     }
     private void SendToSource(string source, string message)
     {

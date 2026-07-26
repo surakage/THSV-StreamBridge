@@ -8,7 +8,7 @@ function relay(platform: 'twitch' | 'youtube' | 'kick', sourceEventType: string,
     userId: 'viewer-1', userName: 'viewer_login', displayName: 'Viewer Name', profilePictureUrl: '', nameColor: '', badges: [], role: 'Viewer',
     isModerator: false, isBroadcaster: false, isSubscribed: false, isVip: false, message: '', firstMessage: false, firstMessageKnown: false,
     isReply: false, replyMessageId: '', replyUserId: '', replyUserLogin: '', replyUserName: '', replyMessage: '',
-    amount: '', currency: '', quantity: '', tier: '', itemName: '',
+    amount: '', currency: '', quantity: '', tier: '', itemName: '', jewelsAmount: '', giftAltText: '',
     channelId: 'channel-1', channelName: 'Example Channel', argumentKeys: [], ...overrides,
   };
 }
@@ -67,6 +67,17 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(event).toMatchObject({ eventType: 'engagement.super-chat', payload: { amount: '5.00', currency: 'USD', message: 'Great stream' } });
   });
 
+  it('normalizes YouTube Jewels Gifted from the captured Streamer.bot beta-1 contract', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('youtube', 'YouTubeJewelsGifted', {
+      sourceEventId: 'youtube-jewel-message-1', itemName: 'Test Gift', quantity: '3', jewelsAmount: '42', giftAltText: 'Three animated gifts',
+    }));
+    expect(event).toMatchObject({
+      eventType: 'engagement.gift',
+      source: { eventName: 'YouTubeJewelsGifted', eventId: 'youtube-jewel-message-1' },
+      payload: { itemName: 'Test Gift', quantity: 3, jewelsAmount: 42, message: 'Three animated gifts' },
+    });
+  });
+
   it('normalizes Kick mass gifts', () => {
     const event = normalizeStreamerBotPlatformRelay(relay('kick', 'KickMassGiftSubscription', { quantity: '10', tier: 'Tier 1' }));
     expect(event).toMatchObject({ eventType: 'channel.gift-subscription', payload: { quantity: 10, tier: 'Tier 1' } });
@@ -109,6 +120,13 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(event).toMatchObject({ eventType: 'reward.redemption', payload: { rewardId: 'reward-1', rewardTitle: 'Hydrate', rewardCost: 100, requiresUserInput: true, redemptionId: 'redeem-1', input: 'Water please', supportedOperations, verifiedTransport: true } });
   });
 
+  it('marks Twitch rewards that skip the queue as already fulfilled and non-refundable', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchRewardRedemption', {
+      rewardId: 'reward-1', rewardTitle: 'Fan Crown', rewardCost: '100', rewardSkipsQueue: true, redemptionId: 'redeem-1',
+    }));
+    expect(event.payload).toMatchObject({ skipsQueue: true, supportedOperations: [] });
+  });
+
   it('keeps generated relay IDs only for low-impact events', () => {
     const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchFollow', { sourceEventId: '' }));
     expect(event.metadata.unverifiedFields).toEqual(['source.eventId']);
@@ -117,6 +135,7 @@ describe('native Streamer.bot platform relay adapter', () => {
   it.each([
     ['twitch', 'TwitchCheer'],
     ['youtube', 'YouTubeSuperChat'],
+    ['youtube', 'YouTubeJewelsGifted'],
     ['kick', 'KickMassGiftSubscription'],
     ['twitch', 'TwitchRewardRedemption'],
   ] as const)('rejects high-impact %s %s events without provider-stable source IDs', (platform, sourceEventType) => {

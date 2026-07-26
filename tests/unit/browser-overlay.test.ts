@@ -127,6 +127,25 @@ describe('Browser Overlay Hub contract', () => {
     expect(projectBrowserOverlayEvents(event, config.browserOverlay).map((entry) => entry.kind)).toEqual(['alert.show']);
   });
 
+  it('routes YouTube Jewels Gifted to a gift alert and its independently configurable chat activity message', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    const config = await testConfig();
+    const event: NormalizedEvent = {
+      ...source,
+      eventId: 'youtube-jewel-message-1',
+      eventType: 'engagement.gift',
+      source: { adapter: 'streamerbot-native', eventId: 'youtube-jewel-message-1', eventName: 'YouTubeJewelsGifted' },
+      payload: { itemName: 'Test Gift', quantity: 3, jewelsAmount: 42, message: 'Three animated gifts' },
+      metadata: { ...source.metadata, bridgeSequence: 25 },
+    };
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay)).toMatchObject([
+      { kind: 'alert.show', payload: { platform: 'youtube', alertType: 'gift', itemName: 'Test Gift', quantity: 3 } },
+      { kind: 'chat.event', payload: { platform: 'youtube', category: 'jewels-gift', label: 'JEWELS GIFT', message: 'example_member sent 3 Test Gift worth 42 Jewels' } },
+    ]);
+    config.browserOverlay.chat.events.platformEvents.youtube['jewels-gift'].enabled = false;
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay).map((entry) => entry.kind)).toEqual(['alert.show']);
+  });
+
   it('projects an enabled reward redemption as a chat-only activity message', async () => {
     const source = await fixture('twitch-chat.json');
     const config = await testConfig();

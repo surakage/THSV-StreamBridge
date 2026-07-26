@@ -15,7 +15,7 @@
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
-    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "supportUrl": "https://www.slothbloom.com/tip",
     "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
     "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
   },
@@ -65,7 +65,7 @@
     ],
     "installationSteps": [
       "Install and enable the add-on in the StreamBridge wizard, then review its chat.send and overlay.publish permissions.",
-      "In Command Sync, create the configured shoutout command (recommended aliases: so and shoutout) with Moderator permission.",
+      "In Command Sync, apply Automated Shoutouts command. It creates the source, permission, and cooldown shell with no canned response so this add-on remains the only shoutout owner.",
       "Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.",
       "Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.",
       "Optional: approve Get Twitch Clip when Twitch visual popup is set to Random clip.",
@@ -87,8 +87,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 28988,
-      "sha256": "2b398222e9923ddf62a52bd0a2bd967166f8a3db761e4e8f215d11b373cf2bd7"
+      "size": 29044,
+      "sha256": "88024be0e54a65ed6aaa66c97c40f2e5f3e4a2d2e32fb5b3af01385de03f02df"
     },
     {
       "path": "schemas/config.json",
