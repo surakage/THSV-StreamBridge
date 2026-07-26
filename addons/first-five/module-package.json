@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs five Streamer.bot-owned Twitch channel-point rewards in sequence, permits one placement per viewer per stream, and maintains a compact monthly leaderboard.",
-  "changelog": "2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
+  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.first-five",
     "name": "First Five",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -65,7 +65,7 @@
     {
       "path": "dist/index.js",
       "size": 18800,
-      "sha256": "99c5554dee13106144a265f27e0de70e156428edabad3a9c75d71e97fc75cd9f"
+      "sha256": "f0280e1e46af3faa2e66fa3432fbab2316502d67559513d56fab3ddba5fb26ce"
     },
     {
       "path": "schemas/config.json",

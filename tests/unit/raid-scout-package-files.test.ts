@@ -14,7 +14,7 @@ describe('Raid Scout package files', () => {
       group: 'THSV StreamBridge - Add-ons',
     });
     expect(manifest.actions.slice(1).map((action) => action.arguments?.[0]?.value)).toEqual(['suggest', 'confirm', 'cancel']);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Raid-Scout-2.4.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Raid-Scout-2.4.1.sb']));
     expect(manifest.triggerSafety).toContain('Controller must remain triggerless');
   });
 
@@ -25,6 +25,8 @@ describe('Raid Scout package files', () => {
       'CPH.TwitchGetExtendedUserInfoById',
       'CPH.TwitchStartRaidById',
       'CPH.TwitchStartRaidByName',
+      'CPH.TwitchRedemptionFulfill',
+      'CPH.TwitchRedemptionCancel',
       'https://api.twitch.tv/helix/',
       'TimeSpan.FromSeconds(10)',
       'MaximumResponseCharacters = 262144',
@@ -46,6 +48,8 @@ describe('Raid Scout package files', () => {
     const runtime = await readFile('addons/raid-scout/dist/index.js', 'utf8');
     expect(schema.properties['confirmationMode']?.default).toBe('required');
     expect(schema.properties['showSuggestionCard']?.default).toBe(true);
+    expect(schema.properties['viewerSuggestionsEnabled']?.default).toBe(false);
+    expect(schema.properties['maximumViewerSuggestions']?.default).toBe(20);
     expect(ui.sections.map((section) => section.id)).toEqual([
       'quick-start', 'discovery', 'preferred', 'limits', 'audience', 'language-category',
       'channels-history', 'messages', 'overlay-content', 'overlay-style', 'maintenance',

@@ -1,4 +1,4 @@
-// Purpose: Performs bounded Twitch raid discovery or starts one creator-confirmed raid for Raid Scout.
+// Purpose: Performs bounded Twitch raid discovery, starts one creator-confirmed raid, and settles Raid Scout viewer-suggestion redemptions.
 // Keep this action triggerless. The wizard grants its stable ID only to the Raid Scout add-on.
 // Twitch credentials stay inside this action and are used only with fixed api.twitch.tv Helix endpoints.
 // References: mscorlib.dll, System.dll, System.Core.dll, System.Net.Http.dll, netstandard.dll, and Newtonsoft.Json.dll.
@@ -34,6 +34,8 @@ public class CPHInline
         {
             if (operation == "discover") return Discover(requestId, relayToken);
             if (operation == "raid") return StartRaid(requestId, relayToken);
+            if (operation == "redemption-fulfill") return SettleRedemption(operation, requestId, relayToken, true);
+            if (operation == "redemption-cancel") return SettleRedemption(operation, requestId, relayToken, false);
             return Fail(operation, requestId, relayToken, "Unsupported Raid Scout operation.");
         }
         catch (Exception exception)
@@ -146,6 +148,23 @@ public class CPHInline
         CPH.SetArgument("raidScoutRaidTarget", login);
         if (accepted) CPH.LogInfo("THSV Raid Scout started one creator-confirmed Twitch raid.");
         else CPH.LogWarn("THSV Raid Scout could not start the creator-confirmed Twitch raid.");
+        return accepted;
+    }
+
+    private bool SettleRedemption(string operation, string requestId, string relayToken, bool fulfill)
+    {
+        string rewardId = Bounded(Read("raidScoutRewardId"), 256);
+        string redemptionId = Bounded(Read("raidScoutRedemptionId"), 256);
+        if (rewardId.Length == 0 || redemptionId.Length == 0)
+            return Fail(operation, requestId, relayToken, "A reward ID and redemption ID are required.");
+
+        bool accepted = fulfill
+            ? CPH.TwitchRedemptionFulfill(rewardId, redemptionId)
+            : CPH.TwitchRedemptionCancel(rewardId, redemptionId);
+        Emit(operation, requestId, relayToken, accepted, accepted ? "" : "Twitch did not accept the redemption update.", new JObject());
+        CPH.SetArgument("raidScoutRedemptionSettled", accepted);
+        CPH.SetArgument("raidScoutRedemptionStatus", fulfill ? "fulfilled" : "canceled");
+        if (!accepted) CPH.LogWarn("THSV Raid Scout could not settle a viewer-suggestion redemption.");
         return accepted;
     }
 

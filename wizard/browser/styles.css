@@ -209,6 +209,44 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .message-card textarea{min-height:82px}
 .message-card small{color:var(--small)}
 
+/* ---------- Guided progressive setup ---------- */
+.timed-quick-guide,.setup-guide{display:grid;gap:8px;margin:0 0 16px;padding:15px 17px;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius-md);background:var(--panel)}
+.timed-quick-guide>strong,.setup-guide>strong{color:var(--text);font-size:1rem}
+.timed-quick-guide ol,.setup-guide ol{display:flex;flex-wrap:wrap;gap:8px 26px;margin:0;padding-left:21px;color:var(--subtle)}
+.timed-quick-guide small,.setup-guide small{color:var(--small);line-height:1.45}
+.guided-form-section{margin:0}
+.guided-form-section>summary,.form-section>summary:has(>span){display:block;padding:2px 0}
+.guided-form-section>summary span,.form-section>summary>span{display:grid;gap:3px}
+.guided-form-section>summary small,.form-section>summary>span>small{color:var(--small);font-weight:500;line-height:1.35}
+.guided-save-row{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel)}
+.guided-save-row button{margin:0}
+.guided-save-row>label{margin:0;flex:1 1 280px}
+.guided-save-row small{flex:1 1 260px;color:var(--small);line-height:1.4}
+.addon-install-section{margin:14px 0}
+.addon-install-section #addon-install-form{margin:14px 0 0}
+.addon-install-section #addon-install-form>button{margin:0}
+.timed-action-form{margin-top:0}
+.timed-action-form>.form-section{margin:0}
+.timed-action-form>.form-section>summary{display:block;padding:2px 0}
+.timed-action-form>.form-section>summary span{display:grid;gap:3px}
+.timed-action-form>.form-section>summary small{color:var(--small);font-weight:500;line-height:1.35}
+.timed-editor-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel)}
+.timed-editor-heading>div{display:grid;gap:3px}
+.timed-editor-heading strong{font-size:1.08rem;color:var(--text)}
+.timed-editor-heading small{color:var(--small)}
+.timed-enabled{display:flex;align-items:center;gap:8px;margin:0;white-space:nowrap}
+.timed-enabled input,.timed-live-toggle input{width:auto;margin:0}
+.timed-live-toggle{display:grid!important;grid-template-columns:auto 1fr;align-items:center;gap:0 8px}
+.timed-live-toggle small{grid-column:1/-1;margin-top:6px}
+.timed-platform-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:10px}
+.timed-platform-choices .check{margin:0;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel)}
+.timed-platform-choices .check:has(input:checked){border-color:var(--button);background:var(--active);color:var(--active-text)}
+.timed-save-row{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel)}
+.timed-save-row button{margin:0}
+.timed-save-row small{flex:1 1 260px;color:var(--small);line-height:1.4}
+.timed-action-form .hidden{display:none!important}
+@media(max-width:760px){.timed-editor-heading{align-items:flex-start;flex-direction:column}.timed-platform-choices{grid-template-columns:1fr}.timed-save-row button,.guided-save-row button{width:100%}.setup-guide ol{display:grid;gap:5px}}
+
 /* ---------- Buttons rows & links ---------- */
 .button-row{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
 .button-row button{margin:0}

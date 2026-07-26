@@ -2,6 +2,8 @@
   "intro": "Raid Scout searches Twitch in a creator-controlled order, filters unsafe or repetitive destinations, and suggests one live channel. Suggest then Confirm is the default; no raid starts merely because discovery completed.",
   "order": [
     "enabled", "usePreferred", "useFollowed", "useCategory", "sourceOrder", "preferredChannels", "maximumPreferredLookups",
+    "viewerSuggestionsEnabled", "viewerSuggestionRewardId", "maximumViewerSuggestions", "oneViewerSuggestionPerStream",
+    "announceViewerSuggestions", "viewerSuggestionAcceptedMessage", "viewerSuggestionRejectedMessage",
     "maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults", "minimumViewers", "maximumViewers",
     "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio", "preferredLanguage",
     "requireMatchingLanguage", "excludedChannels", "excludedCategories", "excludedTags", "recentRaidStreams",
@@ -12,6 +14,12 @@
   "fields": {
     "preferredChannels": { "visibleWhen": { "field": "usePreferred", "equals": true } },
     "maximumPreferredLookups": { "visibleWhen": { "field": "usePreferred", "equals": true } },
+    "viewerSuggestionRewardId": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
+    "maximumViewerSuggestions": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
+    "oneViewerSuggestionPerStream": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
+    "announceViewerSuggestions": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
+    "viewerSuggestionAcceptedMessage": { "visibleWhen": { "field": "announceViewerSuggestions", "equals": true } },
+    "viewerSuggestionRejectedMessage": { "visibleWhen": { "field": "announceViewerSuggestions", "equals": true } },
     "maximumFollowedResults": { "visibleWhen": { "field": "useFollowed", "equals": true } },
     "maximumFollowedPages": { "visibleWhen": { "field": "useFollowed", "equals": true } },
     "maximumCategoryResults": { "visibleWhen": { "field": "useCategory", "equals": true } },
@@ -43,7 +51,14 @@
   "sections": [
     { "id": "quick-start", "title": "1. Turn on Raid Scout", "description": "Start here. Suggest then Confirm is the safest mode and keeps the final raid under your control.", "open": true, "fields": ["enabled", "confirmationMode"] },
     { "id": "discovery", "title": "2. Where to search", "description": "Choose the Twitch sources Raid Scout may use and the order it should try them. It stops at the first source with eligible live channels.", "fields": ["usePreferred", "useFollowed", "useCategory", "sourceOrder"] },
-    { "id": "preferred", "title": "3. Preferred channels", "description": "Shown only when preferred-channel search is enabled. Paste one Twitch login per line or separate logins with commas.", "fields": ["preferredChannels", "maximumPreferredLookups"] },
+    {
+      "id": "preferred",
+      "title": "3. Preferred channels and viewer suggestions",
+      "description": "Your permanent list stays saved. Viewer reward suggestions are stored separately, searched first, and cleared when Twitch goes offline and again when the next stream starts.",
+      "notice": "Create the reward inside Streamer.bot, require viewer text input, leave Skip Queue off, and set a per-user-per-stream limit of 1. The existing Twitch Intake already relays all reward redemptions; do not add a trigger to Raid Scout itself.",
+      "links": [{ "label": "Streamer.bot Twitch reward setup", "url": "https://docs.streamer.bot/guide/platforms/twitch/" }],
+      "fields": ["preferredChannels", "maximumPreferredLookups", "viewerSuggestionsEnabled", "viewerSuggestionRewardId", "maximumViewerSuggestions", "oneViewerSuggestionPerStream", "announceViewerSuggestions", "viewerSuggestionAcceptedMessage", "viewerSuggestionRejectedMessage"]
+    },
     { "id": "limits", "title": "4. Search limits", "description": "Only limits for enabled search sources are shown. Conservative limits keep Twitch requests fast and bounded.", "fields": ["maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults"] },
     { "id": "audience", "title": "5. Audience size", "description": "Keep suggestions within a comfortable viewer range. Similar-size matching reveals its ratio controls only when enabled.", "fields": ["minimumViewers", "maximumViewers", "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio"] },
     { "id": "language-category", "title": "6. Language, category, and tags", "description": "Require a matching language when needed, then exclude categories or tags you do not want recommended.", "fields": ["requireMatchingLanguage", "preferredLanguage", "excludedCategories", "excludedTags"] },

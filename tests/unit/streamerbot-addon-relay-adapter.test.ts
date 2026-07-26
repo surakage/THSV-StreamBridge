@@ -101,6 +101,20 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'reset', seconds: 300 } }))).toThrow('relay token');
   });
 
+  it('permits only bounded, action-matched Starting Soon Countdown controls', () => {
+    const control = {
+      moduleId: 'thsv.starting-soon-countdown', eventType: 'addon.thsv.starting-soon-countdown.control', relayToken: '',
+      sourceEventType: 'THSV Addon - Starting Soon Countdown - Set & Start', relayId: 'countdown-set-1',
+      payload: { action: 'set-and-start', seconds: 600 },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({
+      eventType: 'addon.thsv.starting-soon-countdown.control', payload: { action: 'set-and-start', seconds: 600 },
+    });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'set-and-start', seconds: 0 } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Starting Soon Countdown - Start' }))).toThrow('relay token');
+    expect(normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Starting Soon Countdown - Stop', payload: { action: 'stop' } }))).toMatchObject({ payload: { action: 'stop' } });
+  });
+
   it('permits only the exact First Five manual reset control', () => {
     const control = {
       moduleId: 'thsv.first-five', eventType: 'addon.thsv.first-five.control', relayToken: '',

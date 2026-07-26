@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.",
-  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
+  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scene-actions",
     "name": "Scene Actions",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -59,7 +59,7 @@
     {
       "path": "dist/index.js",
       "size": 7852,
-      "sha256": "3467589fd76381efbeb9597bda4a025b5f751b2d08f519f17fe19e0816656abb"
+      "sha256": "4c1c062353d147770829f515ebcbdb786301bb6b4e66a88e6ea3c561533dc611"
     },
     {
       "path": "schemas/config.json",

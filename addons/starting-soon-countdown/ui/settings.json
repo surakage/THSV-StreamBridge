@@ -1,0 +1,30 @@
+{
+  "intro": "Create a Starting Soon countdown in four short sections. The timer changes only when you run one of its approved Streamer.bot controls.",
+  "order": ["enabled", "durationHours", "durationMinutes", "durationSeconds", "completionMessage", "completionTone", "toneVolume", "completionDisplaySeconds", "showOverlay", "overlayLabel", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundOpacity", "overlayShowProgressBar", "warningMinutes", "criticalSeconds", "overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor"],
+  "sections": [
+    { "id": "quick-start", "title": "1. Countdown", "description": "Choose the normal duration. At least one second is required.", "open": true, "fields": ["enabled", "durationHours", "durationMinutes", "durationSeconds"] },
+    { "id": "finish", "title": "2. Completion", "description": "Show a custom message and optionally play one core-generated tone when the timer reaches zero.", "fields": ["completionMessage", "completionTone", "toneVolume", "completionDisplaySeconds"] },
+    { "id": "layout", "title": "3. Overlay layout", "description": "Choose the label, font, background behavior, progress bar, and urgency thresholds.", "fields": ["showOverlay", "overlayLabel", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundOpacity", "overlayShowProgressBar", "warningMinutes", "criticalSeconds"] },
+    { "id": "colors", "title": "4. Overlay colors", "description": "Customize the background, accent, text, warning, critical, running, and border colors.", "fields": ["overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor"] },
+    { "id": "setup", "title": "5. Scene setup", "description": "Import the separate Streamer.bot package, attach Start to your Starting Soon scene-active trigger, and attach Stop when leaving that scene.", "notice": "Start always begins a fresh configured countdown. Stop pauses and hides it. Set & Start uses its editable countdownSeconds argument for a one-off duration. Complete Now previews the completion message and tone. The add-on makes no external calls and never reacts to follows, gifts, subscriptions, chat, or rewards.", "fields": [] }
+  ],
+  "fields": {
+    "completionTone": { "labels": { "none": "No sound", "soft-chime": "Soft chime", "digital-pop": "Digital pop", "celebration": "Celebration" } },
+    "toneVolume": { "visibleWhen": { "field": "completionTone", "notEquals": "none" } },
+    "overlayLabel": { "visibleWhen": { "field": "showOverlay", "equals": true }, "placeholder": "STARTING SOON" },
+    "overlayFontFamily": { "visibleWhen": { "field": "showOverlay", "equals": true }, "labels": { "display": "Display", "broadcast": "Broadcast", "mono": "Mono" } },
+    "overlayBackgroundMode": { "visibleWhen": { "field": "showOverlay", "equals": true }, "labels": { "glass": "Glass", "solid": "Solid", "none": "Transparent" } },
+    "overlayBackgroundColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayBackgroundOpacity": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayAccentColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayTextColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayMutedColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayWarningColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayCriticalColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayLiveColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayBorderColor": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayShowProgressBar": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "warningMinutes": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "criticalSeconds": { "visibleWhen": { "field": "showOverlay", "equals": true } }
+  }
+}

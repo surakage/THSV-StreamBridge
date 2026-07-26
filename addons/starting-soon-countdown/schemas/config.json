@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Starting Soon Countdown",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Starting Soon Countdown", "default": true },
+    "durationHours": { "type": "integer", "title": "Hours", "minimum": 0, "maximum": 24, "default": 0 },
+    "durationMinutes": { "type": "integer", "title": "Minutes", "minimum": 0, "maximum": 59, "default": 10 },
+    "durationSeconds": { "type": "integer", "title": "Seconds", "minimum": 0, "maximum": 59, "default": 0 },
+    "completionMessage": { "type": "string", "title": "Message shown when the countdown ends", "minLength": 1, "maxLength": 200, "default": "The stream is starting now!" },
+    "completionTone": { "type": "string", "title": "Optional completion tone", "enum": ["none", "soft-chime", "digital-pop", "celebration"], "default": "soft-chime" },
+    "toneVolume": { "type": "number", "title": "Tone volume", "minimum": 0, "maximum": 1, "default": 0.6 },
+    "completionDisplaySeconds": { "type": "integer", "title": "Seconds to show the completion message", "description": "Use 0 to leave the message visible until Stop or Reset is run.", "minimum": 0, "maximum": 600, "default": 10 },
+    "showOverlay": { "type": "boolean", "title": "Publish the countdown to its browser overlay", "default": true },
+    "overlayLabel": { "type": "string", "title": "Overlay label", "minLength": 1, "maxLength": 80, "default": "STARTING SOON" },
+    "overlayFontFamily": { "type": "string", "title": "Font style", "enum": ["display", "broadcast", "mono"], "default": "display" },
+    "overlayBackgroundMode": { "type": "string", "title": "Background style", "enum": ["glass", "solid", "none"], "default": "glass" },
+    "overlayBackgroundColor": { "type": "string", "title": "Background color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#0b1017" },
+    "overlayBackgroundOpacity": { "type": "number", "title": "Background opacity", "minimum": 0, "maximum": 1, "default": 0.88 },
+    "overlayAccentColor": { "type": "string", "title": "Accent color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ee0ff" },
+    "overlayTextColor": { "type": "string", "title": "Primary text color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#eff7ff" },
+    "overlayMutedColor": { "type": "string", "title": "Secondary text color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#dfefff" },
+    "overlayWarningColor": { "type": "string", "title": "Warning color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#f0c15a" },
+    "overlayCriticalColor": { "type": "string", "title": "Critical color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ff6b7d" },
+    "overlayLiveColor": { "type": "string", "title": "Running badge color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#61f2a4" },
+    "overlayBorderColor": { "type": "string", "title": "Border color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#85cbff" },
+    "overlayShowProgressBar": { "type": "boolean", "title": "Show progress bar", "default": true },
+    "warningMinutes": { "type": "integer", "title": "Warning threshold in minutes", "minimum": 1, "maximum": 60, "default": 2 },
+    "criticalSeconds": { "type": "integer", "title": "Critical threshold in seconds", "minimum": 1, "maximum": 300, "default": 30 }
+  }
+}

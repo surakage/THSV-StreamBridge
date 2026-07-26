@@ -149,6 +149,18 @@ function isCreatorControl(relay: AddOnRelay): boolean {
       : 'THSV Addon - Quote Vault - Statistics';
     return relay.sourceEventType === expectedSource && Object.keys(relay.payload).length === 2;
   }
+  if (relay.moduleId === 'thsv.starting-soon-countdown' && relay.eventType === 'addon.thsv.starting-soon-countdown.control') {
+    const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
+    if (!['start', 'stop', 'pause', 'resume', 'reset', 'complete', 'set-and-start'].includes(action)) return false;
+    const label = action === 'set-and-start' ? 'Set & Start' : action === 'complete' ? 'Complete Now' : `${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
+    if (relay.sourceEventType !== `THSV Addon - Starting Soon Countdown - ${label}`) return false;
+    const keys = Object.keys(relay.payload);
+    if (action === 'set-and-start') {
+      const seconds = relay.payload['seconds'];
+      return keys.length === 2 && typeof seconds === 'number' && Number.isInteger(seconds) && seconds >= 1 && seconds <= 86_400;
+    }
+    return keys.length === 1;
+  }
   if (relay.moduleId !== 'thsv.subathon-timer' || relay.eventType !== 'addon.thsv.subathon-timer.control') return false;
   const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
   if (!['start', 'pause', 'resume', 'reset', 'add-time'].includes(action)) return false;

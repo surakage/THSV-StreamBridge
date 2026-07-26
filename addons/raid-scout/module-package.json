@@ -2,8 +2,8 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Finds a safe live Twitch raid destination from preferred, followed-live, or same-category sources, then requires creator confirmation before starting the raid.",
-  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable discovery order, bounded Twitch searches, preferred-channel batching, viewer/language/category/tag filters, similar-size preference, stream-based recent-raid protection, shuffle-without-repeats, expiring suggestions, creator Confirm/Cancel actions, optional advanced automatic mode, editable chat output, and a styled Next Stop overlay card.",
+  "description": "Finds a safe live Twitch raid destination from creator or viewer-suggested preferred channels, followed-live channels, or the current category, then requires creator confirmation before starting the raid.",
+  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added a bounded stream-scoped viewer suggestion queue backed by a specific Twitch Channel Points reward, transactional fulfill/refund handling, one-suggestion-per-viewer protection, and automatic offline/next-stream clearing; also aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable discovery order, bounded Twitch searches, preferred-channel batching, viewer/language/category/tag filters, similar-size preference, stream-based recent-raid protection, shuffle-without-repeats, expiring suggestions, creator Confirm/Cancel actions, optional advanced automatic mode, editable chat output, and a styled Next Stop overlay card.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.raid-scout",
     "name": "Raid Scout",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -31,7 +31,9 @@
     "eventSubscriptions": [
       "addon.thsv.raid-scout.controller-result",
       "addon.thsv.raid-scout.control",
-      "stream.online"
+      "reward.redemption",
+      "stream.online",
+      "stream.offline"
     ],
     "commandsProvided": [],
     "actionsProvided": [],
@@ -44,6 +46,7 @@
       "Import the separate Raid Scout Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that stable action ID for this add-on.",
       "Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.",
+      "Optionally configure one Streamer.bot-owned Twitch reward ID for stream-scoped viewer suggestions.",
       "Configure preferred channels and filters, then test Suggest before enabling automatic mode."
     ],
     "uninstallationSteps": [
@@ -62,23 +65,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 25022,
-      "sha256": "dcd0cca8ff794dba7bdb1a171215840aa3b9018e0ad33cd679489938f3c2170e"
+      "size": 34197,
+      "sha256": "8dbe672bdbf34aa9a9b310a76eeb3ed0653be2d91a27a585917921d6ccf8dc1a"
     },
     {
       "path": "schemas/config.json",
-      "size": 6355,
-      "sha256": "dd61372fa0955c04d644cbd9f07e2bea1dc799969cfd829fdfe95c342fa9ff34"
+      "size": 7773,
+      "sha256": "2a4e20a4e936112516d003725f9f77ca2901a683f235759c203e333406f8c441"
     },
     {
       "path": "ui/settings.json",
-      "size": 6702,
-      "sha256": "3d8ec5ab3a93d2b136b019bebf02e57d8fffd0b635cce55c52b3473b652f2313"
+      "size": 8301,
+      "sha256": "c3407e76116cfe0f9bb270d9669af29364ce0cf9ffb4d80965126dc8e27dbc8a"
     },
     {
       "path": "README.md",
-      "size": 2158,
-      "sha256": "9905db0c2ebd8921fcc827226832efa899c9fd3b83073087d8ea0e14db74aba8"
+      "size": 3072,
+      "sha256": "dd2834678ae9dc82bc21b69b2cf481031f2d4dc041df06c31a99becf6c26ece1"
     }
   ]
 }

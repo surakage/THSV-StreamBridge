@@ -6,6 +6,13 @@ import raidScout, { CONTROLLER_ACTION_ID, filterCandidates, sanitizeState, selec
 const settings = {
   enabled: true,
   preferredChannels: ['alpha', 'beta'],
+  viewerSuggestionsEnabled: false,
+  viewerSuggestionRewardId: '',
+  maximumViewerSuggestions: 20,
+  oneViewerSuggestionPerStream: true,
+  announceViewerSuggestions: true,
+  viewerSuggestionAcceptedMessage: '{viewer}, added {channel}.',
+  viewerSuggestionRejectedMessage: '{viewer}, rejected {channel}.',
   usePreferred: true,
   useFollowed: true,
   useCategory: true,
@@ -69,6 +76,13 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
       settings: {
         enabled: true,
         preferredChannels: 'alpha\nbeta',
+        viewerSuggestionsEnabled: false,
+        viewerSuggestionRewardId: '',
+        maximumViewerSuggestions: 20,
+        oneViewerSuggestionPerStream: true,
+        announceViewerSuggestions: true,
+        viewerSuggestionAcceptedMessage: '{viewer}, added {channel}.',
+        viewerSuggestionRejectedMessage: '{viewer}, rejected {channel}.',
         usePreferred: true,
         useFollowed: true,
         useCategory: true,
@@ -124,6 +138,22 @@ function control(action: string) {
   };
 }
 
+function viewerSuggestionEvent(input: string, userId = 'viewer-1', skipsQueue = false) {
+  return {
+    eventId: `suggestion-${userId}-${input}`,
+    eventType: 'reward.redemption',
+    platform: 'twitch',
+    source: { eventId: `redemption-${userId}-${input}` },
+    user: { id: userId, name: userId, displayName: 'Viewer One', roles: [], actorType: 'human' },
+    payload: {
+      rewardId: 'raid-suggestion-reward', rewardTitle: 'Suggest a Raid', rewardCost: 500,
+      redemptionId: `redemption-${userId}-${input}`, input, verifiedTransport: true, skipsQueue,
+      supportedOperations: skipsQueue ? [] : ['fulfill', 'cancel'],
+    },
+    metadata: { simulated: false },
+  };
+}
+
 afterEach(async () => {
   await raidScout.stop({});
 });
@@ -155,6 +185,61 @@ describe('Raid Scout add-on', () => {
     const secondState = { ...state, bags: first.bags, suggestion: { candidate: first.candidate } };
     const second = selectCandidate(candidates, secondState, settings, 50);
     expect(second.candidate?.userId).toBe('beta');
+  });
+
+  it('fulfills and adds a bounded viewer suggestion, searches it first, and clears it after stream offline', async () => {
+    const testRuntime = runtime({
+      viewerSuggestionsEnabled: true,
+      viewerSuggestionRewardId: 'raid-suggestion-reward',
+      announceViewerSuggestions: true,
+    });
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent(viewerSuggestionEvent('https://twitch.tv/suggested_channel'), testRuntime.context);
+    const pending = (testRuntime.value().pendingViewerSuggestions as Array<{ requestId: string }>)[0];
+    expect(testRuntime.value().viewerSuggestions).toEqual([]);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
+      raidScoutOperation: 'redemption-fulfill',
+      raidScoutRewardId: 'raid-suggestion-reward',
+      raidScoutRedemptionId: 'redemption-viewer-1-https://twitch.tv/suggested_channel',
+    }));
+
+    await raidScout.onEvent({
+      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system',
+      payload: { operation: 'redemption-fulfill', requestId: pending?.requestId, success: true },
+      metadata: { simulated: false },
+    }, testRuntime.context);
+    expect(testRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'suggested_channel', userId: 'viewer-1' })]);
+    expect(testRuntime.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Viewer One, added suggested_channel.' }));
+
+    await raidScout.onEvent(control('suggest'), testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
+      raidScoutOperation: 'discover', raidScoutPreferredChannels: 'suggested_channel,alpha,beta', raidScoutUsePreferred: true,
+    }));
+
+    await raidScout.onEvent({ eventType: 'stream.offline', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
+    expect(testRuntime.value().viewerSuggestions).toEqual([]);
+    expect(testRuntime.value().pendingViewerSuggestions).toEqual([]);
+  });
+
+  it('refunds invalid or duplicate viewer suggestions without changing the stream list', async () => {
+    const testRuntime = runtime({
+      viewerSuggestionsEnabled: true,
+      viewerSuggestionRewardId: 'raid-suggestion-reward',
+      announceViewerSuggestions: false,
+    });
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent(viewerSuggestionEvent('not a twitch login'), testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
+      raidScoutOperation: 'redemption-cancel',
+    }));
+    expect(testRuntime.value().viewerSuggestions).toEqual([]);
+
+    await raidScout.onEvent(viewerSuggestionEvent('alpha', 'viewer-2'), testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
+      raidScoutOperation: 'redemption-cancel',
+      raidScoutRedemptionId: 'redemption-viewer-2-alpha',
+    }));
+    expect(testRuntime.value().viewerSuggestions).toEqual([]);
   });
 
   it('suggests first, then starts only the correlated creator-confirmed target', async () => {

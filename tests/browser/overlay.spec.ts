@@ -27,6 +27,10 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await page.locator('#new-command-batch-entry').click();
   const commandForm = page.locator('#design-command');
   await expect(commandForm.locator('[name="actionName"]')).toBeVisible();
+  await expect(commandForm.locator(':scope > details.guided-form-section')).toHaveCount(3);
+  await expect(commandForm.locator('[data-guided-section="command-basics"]')).toHaveAttribute('open', '');
+  await expect(commandForm.locator('[data-guided-section="command-response"]')).toHaveAttribute('open', '');
+  await expect(commandForm.locator('[data-guided-section="command-safety"]')).not.toHaveAttribute('open', '');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
   await expect(commandForm.locator('[name="template"] option')).toHaveCount(18);
   await expect(commandForm.locator('[name="template"] option[value="weather"]')).toHaveCount(0);
@@ -46,16 +50,76 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await page.locator('[data-view="timed-actions"]').click();
   await page.locator('#new-timed-action-entry').click();
   const timedForm = page.locator('#timed-action-form');
-  await timedForm.locator('[name="selectionMode"]').selectOption('platform-shuffle');
+  await expect(timedForm.locator('[name="id"]')).toHaveValue('social-rotation');
+  await expect(timedForm.locator('[name="selectionMode"]')).toHaveValue('platform-shuffle');
+  await expect(timedForm.locator('[name="actionId"]')).toHaveValue('7d107c29-1127-5bb1-ae8b-6f04d89a71d4');
+  await expect(timedForm.locator('[name="deliveryPlatform"]:checked')).toHaveCount(4);
+  await expect(timedForm.locator('details.form-section[open]')).toHaveCount(3);
+  await expect(timedForm.locator('summary').filter({ hasText: 'Optional controls' })).toBeVisible();
   await expect(page.locator('#timed-platform-message-editor')).toBeVisible();
   await expect(page.locator('#timed-shared-messages')).toBeHidden();
-  await page.locator('[data-add-timed-message="youtube"]').click();
-  await page.locator('[data-add-timed-message="youtube"]').click();
   const youtubeMessages = page.locator('[data-timed-platform="youtube"]');
   await expect(youtubeMessages).toHaveCount(2);
   await youtubeMessages.nth(0).fill('One message that may visually wrap but remains one card.');
   await youtubeMessages.nth(1).fill('A second independent YouTube message.');
   await expect(page.locator('[data-timed-count="youtube-0"]')).toHaveText('56/200');
+  await timedForm.locator('[name="deliveryPlatform"][value="kick"]').uncheck();
+  await expect(page.locator('[data-timed-message-platform="kick"]')).toBeHidden();
+  await timedForm.locator('[name="intervalMode"]').selectOption('random');
+  await expect(timedForm.locator('[data-timed-fixed]')).toBeHidden();
+  await expect(timedForm.locator('[data-timed-random]')).toHaveCount(2);
+  await expect(page.locator('#timed-action-summary')).toContainText('random minutes');
+});
+
+test('wizard remembers collapsed sections after a page reload', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await page.locator('[data-view="chat-overlay"]').click();
+
+  const layoutSection = page.locator('#chat-overlay-form details.form-section').filter({ hasText: '1. Layout and text' });
+  await expect(layoutSection).toHaveAttribute('open', '');
+  await layoutSection.locator('summary').click();
+  await expect(layoutSection).not.toHaveAttribute('open', '');
+
+  await page.reload();
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await page.locator('[data-view="chat-overlay"]').click();
+  await expect(page.locator('#chat-overlay-form details.form-section').filter({ hasText: '1. Layout and text' })).not.toHaveAttribute('open', '');
+});
+
+test('wizard progressively reveals advanced blocker, alert, reward, and add-on controls', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+
+  await page.locator('[data-view="blockers"]').click();
+  await page.locator('#new-blocker-entry').click();
+  const blockerForm = page.locator('#add-filter');
+  await expect(blockerForm.locator(':scope > details.guided-form-section')).toHaveCount(3);
+  await expect(blockerForm.locator('[name="moduleIds"]')).toBeHidden();
+  await blockerForm.locator('[name="scope"]').selectOption('module');
+  await blockerForm.locator('[data-guided-section="blocker-limits"] summary').click();
+  await expect(blockerForm.locator('[name="moduleIds"]')).toBeVisible();
+
+  await page.locator('[data-view="alerts"]').click();
+  await page.locator('[data-select-alert="twitch:follow"]').click();
+  const alertForm = page.locator('#alert-profile-form');
+  await expect(alertForm.locator(':scope > details.guided-form-section')).toHaveCount(5);
+  await expect(alertForm.locator('[name="aggregationWindowMs"]')).toBeHidden();
+  await alertForm.locator('[data-guided-section="alert-aggregation"] summary').click();
+  await alertForm.locator('[name="aggregationMode"]').selectOption('sum-quantity');
+  await expect(alertForm.locator('[name="aggregationWindowMs"]')).toBeVisible();
+
+  await page.locator('[data-view="rewards"]').click();
+  const rewardForm = page.locator('#reward-admin-form');
+  await expect(rewardForm.locator('[name="redemptionId"]')).toBeHidden();
+  await rewardForm.locator('[name="operation"]').selectOption('fulfill');
+  await expect(rewardForm.locator('[name="redemptionId"]')).toBeVisible();
+
+  await page.locator('[data-view="addons"]').click();
+  await expect(page.locator('[data-disclosure-key="panel:addons:install"]')).not.toHaveAttribute('open', '');
 });
 
 test('wizard shows only the selected platform events and exposes platform color modes', async ({ page }) => {
@@ -78,11 +142,11 @@ test('wizard shows only the selected platform events and exposes platform color 
   await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'regular');
   await form.locator('[name="layout"]').selectOption('compact');
   await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'compact');
-  await page.getByText('Branding & visibility', { exact: true }).click();
+  await form.locator('summary').filter({ hasText: '3. Names, badges, and profile pictures' }).click();
   await form.locator('[name="showProfilePictures"]').uncheck();
   await expect(page.locator('#chat-preview-list .preview-chat-avatar')).toHaveCount(0);
 
-  await page.getByText('Chat events', { exact: true }).click();
+  await form.locator('summary').filter({ hasText: '4. Events shown in chat' }).click();
   await form.locator('[name="showEvents"]').uncheck();
   await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(4);
   await page.locator('#chat-event-platform').selectOption('youtube');

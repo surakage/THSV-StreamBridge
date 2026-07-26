@@ -75,6 +75,8 @@ See [Portable Windows release](docs/release.md) for backup, rollback, downgrade,
 
 ## Add-ons
 
+Starting Soon Countdown is available as a separate optional add-on with its own Streamer.bot import and core-hosted `/overlay/countdown` browser source. See [Starting Soon Countdown](docs/starting-soon-countdown.md).
+
 Add-ons must use the main StreamBridge installation. They reuse its normalized event bus, Streamer.bot connection, scheduler, private state, outbound router, and overlay transport instead of opening additional bridge instances or WebSockets.
 
 Install a `.thsv-addon` through the authenticated Add-ons page, or copy it into `data/addons/inbox/` and review it there. Inbox packages are inspected but never installed or executed automatically. Executable add-ons run under the creator's Windows account, so install them only from trusted publishers. Planned projects and their safety requirements are tracked in the [future project and add-on roadmap](docs/future-projects-and-addons.md).

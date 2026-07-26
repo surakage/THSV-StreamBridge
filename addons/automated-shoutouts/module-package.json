@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Sends bounded, cooldown-protected shoutouts and welcomes after creator-selected raids, approved first chats, or moderator commands, using StreamBridge's shared platform router.",
-  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
+  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -23,7 +23,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.automated-shoutouts",
     "name": "Automated Shoutouts",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -88,7 +88,7 @@
     {
       "path": "dist/index.js",
       "size": 29044,
-      "sha256": "88024be0e54a65ed6aaa66c97c40f2e5f3e4a2d2e32fb5b3af01385de03f02df"
+      "sha256": "ddc950ba3d53b4db97be550d2c826c3d8489519dd3b49b7ba67e97b8ff25982f"
     },
     {
       "path": "schemas/config.json",

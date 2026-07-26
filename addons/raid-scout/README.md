@@ -10,6 +10,11 @@ Raid Scout is a Twitch-only raid destination finder with a safe default: suggest
 
 The order is configurable. Each source can be disabled. Search requests, pages, candidates, state, and history are bounded.
 
+The preferred tier can combine two lists:
+
+- Permanent creator-managed channels saved in the wizard.
+- Viewer suggestions submitted through one configured Twitch Channel Points reward. Viewer entries are deduplicated, bounded, optionally limited to one per viewer, searched before the permanent list, and cleared on stream offline and again on the next stream online event.
+
 ## Selection and safety
 
 - Removes the broadcaster, blocked channels, offline channels, filtered categories/tags/languages, viewer-count mismatches, recent raid destinations, and the current suggestion.
@@ -28,6 +33,8 @@ The order is configurable. Each source can be disabled. Search requests, pages, 
 5. Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.
 6. Open the add-on overlay URL as a private browser/OBS/Meld dock so you can review the suggestion.
 7. Configure preferred channels and filters, then use Suggest while live.
+
+To accept viewer suggestions, create a Streamer.bot-owned Twitch reward that requires text input, leave Skip Queue disabled, set its per-user-per-stream limit to 1, and paste its reward ID into Raid Scout's wizard settings. The existing `THSV Twitch - Intake` action already relays reward redemptions; do not add a platform trigger to Raid Scout. Valid suggestions are fulfilled only after Raid Scout reserves them, while invalid, duplicate, blocked, or over-capacity suggestions are refunded when Twitch exposes the supported operation.
 
 Suggestion cards are enabled for that private dock by default. If the same URL is placed in a public scene, disable suggestion cards unless viewers should see an unconfirmed destination. The confirmed Next Stop card has its own toggle.
 

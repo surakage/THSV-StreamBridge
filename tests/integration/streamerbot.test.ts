@@ -277,12 +277,12 @@ describe('Streamer.bot adapter', () => {
       socket.on('message', (data) => {
         const request = JSON.parse(Buffer.from(data as Buffer).toString('utf8')) as { id: string; request: string };
         observed.push(request.request);
-        if (request.request === 'GetActions') socket.send(JSON.stringify({ id: request.id, status: 'ok', actions: [{ id: 'action-1', name: 'Action', group: 'Group', enabled: true }] }));
+        if (request.request === 'GetActions') socket.send(JSON.stringify({ id: request.id, status: 'ok', actions: [{ id: 'action-1', name: 'Action', group: 'Group', enabled: true, trigger_count: 3 }] }));
         if (request.request === 'GetCommands') socket.send(JSON.stringify({ id: request.id, status: 'ok', commands: [{ id: 'command-1', name: '!test', enabled: false }] }));
       });
     });
     await adapter.start();
-    expect(await adapter.inspectActions()).toEqual([{ id: 'action-1', name: 'Action', group: 'Group', enabled: true }]);
+    expect(await adapter.inspectActions()).toEqual([{ id: 'action-1', name: 'Action', group: 'Group', enabled: true, triggerCount: 3 }]);
     expect(await adapter.inspectCommands()).toEqual([{ id: 'command-1', name: '!test', enabled: false }]);
     expect(observed).toEqual(['GetActions', 'GetCommands']);
     expect(adapter.inspectionRequests().map((entry) => entry.request)).toEqual(observed);

@@ -32,6 +32,7 @@ export interface StreamerBotActionSummary {
   readonly name: string;
   readonly group: string;
   readonly enabled: boolean;
+  readonly triggerCount?: number;
 }
 
 export interface StreamerBotCommandSummary {
@@ -385,7 +386,13 @@ function readActions(data: unknown): readonly StreamerBotActionSummary[] {
   if (!Array.isArray(payload['actions'])) throw new Error('Streamer.bot GetActions response did not contain an actions array');
   return payload['actions'].flatMap((value): StreamerBotActionSummary[] => {
     if (!isRecord(value) || typeof value['id'] !== 'string' || typeof value['name'] !== 'string') return [];
-    return [{ id: value['id'], name: value['name'], group: typeof value['group'] === 'string' ? value['group'] : '', enabled: value['enabled'] !== false }];
+    const triggerCount = typeof value['trigger_count'] === 'number' && Number.isInteger(value['trigger_count']) && value['trigger_count'] >= 0
+      ? value['trigger_count']
+      : undefined;
+    return [{
+      id: value['id'], name: value['name'], group: typeof value['group'] === 'string' ? value['group'] : '', enabled: value['enabled'] !== false,
+      ...(triggerCount === undefined ? {} : { triggerCount }),
+    }];
   });
 }
 

@@ -166,7 +166,7 @@ function renderAddOnSettings(addOn) {
     return renderAddOnField(name, byName.get(name), addOn.settings[name], fieldUi[name]);
   }).join('');
   const requestedSections = Array.isArray(addOn.settingsUi?.sections) ? addOn.settingsUi.sections : [];
-  const sections = requestedSections.filter((section) => section && typeof section.title === 'string' && Array.isArray(section.fields)).map((section) => {
+  const sections = requestedSections.filter((section) => section && typeof section.title === 'string' && Array.isArray(section.fields)).map((section, sectionIndex) => {
     const fields = renderNames(section.fields);
     const notice = typeof section.notice === 'string' && section.notice.trim() ? `<p class="addon-settings-notice">${safe(section.notice)}</p>` : '';
     const links = Array.isArray(section.links) ? section.links.map((link) => {
@@ -175,11 +175,12 @@ function renderAddOnSettings(addOn) {
     }).filter(Boolean).join('') : '';
     if (!fields && !notice && !links) return '';
     const body = `${notice}${links ? `<div class="addon-settings-links">${links}</div>` : ''}${fields ? `<div class="addon-settings-grid">${fields}</div>` : ''}`;
-    return `<details class="addon-settings-section" ${section.open === true ? 'open' : ''}><summary><span>${safe(section.title)}${section.description ? `<small>${safe(section.description)}</small>` : ''}</span></summary><div class="addon-settings-section-body">${body}</div></details>`;
+    const disclosureId = typeof section.id === 'string' && section.id.trim() ? section.id.trim() : `section-${sectionIndex}`;
+    return `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:${disclosureId}`)}" ${section.open === true ? 'open' : ''}><summary><span>${safe(section.title)}${section.description ? `<small>${safe(section.description)}</small>` : ''}</span></summary><div class="addon-settings-section-body">${body}</div></details>`;
   }).join('');
   const remaining = renderNames(entries.map(([name]) => name).filter((name) => !rendered.has(name)));
   if (!sections) return `<div class="addon-settings-grid">${remaining}</div>`;
-  return `${sections}${remaining ? `<details class="addon-settings-section"><summary><span>Other settings<small>Less commonly changed options</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>` : ''}`;
+  return `${sections}${remaining ? `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:other`)}"><summary><span>Other settings<small>Less commonly changed options</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>` : ''}`;
 }
 
 function updateAddOnFieldVisibility(form) {
@@ -195,15 +196,58 @@ function updateAddOnFieldVisibility(form) {
   });
 }
 
+const DIRECT_ADDON_TRIGGER_REQUIREMENTS = {
+  'thsv.kofi-donations': {
+    actionId: 'e61c4b43-6cf0-5d56-a1c9-2176ae09c312',
+    actionName: 'THSV Addon - Ko-fi Donations - Intake',
+    triggers: ['Ko-fi > Donation'],
+  },
+  'thsv.scene-actions': {
+    actionId: '18bdc91c-64eb-4787-8be9-6a921b272943',
+    actionName: 'THSV Scene Actions - Intake',
+    triggers: ['OBS Studio > Scene Changed', 'Streamlabs Desktop > Scene Changed', 'Meld Studio > Scene Changed'],
+  },
+};
+
+const BROKER_ROUTED_ADDONS = new Set([
+  'thsv.auto-translate', 'thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.fan-crown',
+  'thsv.first-five', 'thsv.quote-vault', 'thsv.raid-scout', 'thsv.random-clip-player',
+  'thsv.subathon-timer', 'thsv.user-translate',
+]);
+
+function renderAddOnTriggerReadiness(addOn) {
+  const requirement = DIRECT_ADDON_TRIGGER_REQUIREMENTS[addOn.moduleId];
+  if (!requirement) return BROKER_ROUTED_ADDONS.has(addOn.moduleId)
+    ? `<details class="form-section addon-trigger-readiness" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}"><summary>Streamer.bot trigger status <span class="badge">No direct trigger needed</span></summary><p class="notice">This add-on receives normalized events or approved action dispatches through StreamBridge. Do not attach it directly to platform triggers unless its documentation explicitly says otherwise.</p></details>`
+    : '';
+
+  const expected = `<ul>${requirement.triggers.map((trigger) => `<li>${safe(trigger)}</li>`).join('')}</ul>`;
+  if (!state.liveActions.length) return `<details class="form-section addon-trigger-readiness" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}" open><summary>Streamer.bot trigger status <span class="badge">Not checked</span></summary><p class="notice"><strong>Your saved Streamer.bot triggers remain active.</strong> Refresh the live action list to check the intake action and attached-trigger count.</p><p><strong>Required on ${safe(requirement.actionName)}:</strong></p>${expected}<div class="button-row"><button type="button" class="ghost" data-inspect-addon-actions>Refresh action and trigger status</button></div></details>`;
+
+  const action = state.liveActions.find((candidate) => candidate.id === requirement.actionId);
+  if (!action) return `<details class="form-section addon-trigger-readiness" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}" open><summary>Streamer.bot trigger status <span class="badge">Setup needed</span></summary><p class="error"><strong>${safe(requirement.actionName)}</strong> was not found. Import the add-on's Streamer.bot package, then attach:</p>${expected}<div class="button-row"><button type="button" class="ghost" data-inspect-addon-actions>Refresh action and trigger status</button></div></details>`;
+
+  const expectedCount = requirement.triggers.length;
+  const countKnown = Number.isInteger(action.triggerCount);
+  const countReady = countKnown && action.triggerCount >= expectedCount;
+  const actionReady = action.enabled !== false;
+  const ready = actionReady && countReady;
+  const countText = countKnown ? `${action.triggerCount} attached trigger${action.triggerCount === 1 ? '' : 's'} reported` : 'attached-trigger count unavailable';
+  const status = ready ? 'Ready' : 'Setup needed';
+  const detail = !actionReady
+    ? 'The intake action is disabled in Streamer.bot.'
+    : countReady
+      ? `${countText}. The documented GetActions read exposes a count, not trigger names, so compare the labels below after manual edits.`
+      : `${countText}; at least ${expectedCount} ${expectedCount === 1 ? 'is' : 'are'} required.`;
+  return `<details class="form-section addon-trigger-readiness" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}" ${ready ? '' : 'open'}><summary>Streamer.bot trigger status <span class="badge">${status}</span></summary><p class="${ready ? 'notice' : 'error'}"><strong>${safe(requirement.actionName)}</strong> is ${actionReady ? 'enabled' : 'disabled'}; ${safe(detail)}</p><p><strong>Required triggers:</strong></p>${expected}<div class="button-row"><button type="button" class="ghost" data-inspect-addon-actions>Refresh action and trigger status</button></div></details>`;
+}
+
 function renderAddOns() {
   const list = byId('addon-list');
   if (!state.addOns.length) {
     list.innerHTML = '<p class="notice">No add-ons are installed. Core chat, commands, alerts, timers, and rewards continue to work without add-ons.</p>';
     return;
   }
-  // Re-rendering (for example after Add/Remove on the approved-actions list) would otherwise
-  // reset every <details> section back to its default open/closed state on each click.
-  const openSummaries = new Set([...list.querySelectorAll('details[open] summary')].map((summary) => summary.textContent));
   const selected = state.addOns.find((addOn) => addOn.moduleId === state.selectedAddOnId) || state.addOns[0];
   state.selectedAddOnId = selected.moduleId;
   const selector = `<label class="addon-selector">Manage installed add-on<select id="addon-selector">${state.addOns.map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('')}</select></label>`;
@@ -215,14 +259,17 @@ function renderAddOns() {
     const updateNotice = renderAddOnUpdate(addOn);
     const liveChatWarning = addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this add-on can automatically post messages to creator-enabled platforms through StreamBridge. Review its settings and publisher before enabling it.</p>' : '';
     const providerWarning = addOn.permissions.includes('provider.events.publish') ? '<p class="notice"><strong>Financial-event permission:</strong> this add-on can publish only its assigned provider donations into the core alert pipeline. Stable provider IDs, bounded values, and core validation are enforced; review the provider connection before enabling it.</p>' : '';
+    const triggerReadiness = rejected ? '' : renderAddOnTriggerReadiness(addOn);
     const settingsIntro = typeof addOn.settingsUi?.intro === 'string' && addOn.settingsUi.intro.trim() ? addOn.settingsUi.intro : 'Open only the section you want to change. Hidden options keep their saved values.';
-    const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell" open><summary>Configure add-on</summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><div class="addon-settings-heading"><p class="addon-settings-intro">${safe(settingsIntro)}</p><div class="button-row"><button type="button" class="ghost compact" data-addon-sections="expand">Expand all</button><button type="button" class="ghost compact" data-addon-sections="collapse">Collapse all</button></div></div>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Changes take effect after StreamBridge restarts.</small></div></form></details>`;
-    const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section"><summary>Approved Streamer.bot actions</summary>${renderAddOnActionGrant(addOn)}</details>`;
-    const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section"><summary>Hosted overlay &amp; testing</summary>${renderAddOnOverlayTools(addOn)}</details>`;
+    const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell" data-disclosure-key="${safe(`addon:${addOn.moduleId}:configure`)}" open><summary>Configure add-on</summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><div class="addon-settings-heading"><p class="addon-settings-intro">${safe(settingsIntro)}</p><div class="button-row"><button type="button" class="ghost compact" data-addon-sections="expand">Expand all</button><button type="button" class="ghost compact" data-addon-sections="collapse">Collapse all</button></div></div>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Changes take effect after StreamBridge restarts.</small></div></form></details>`;
+    const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:approved-actions`)}"><summary>Approved Streamer.bot actions</summary>${renderAddOnActionGrant(addOn)}</details>`;
+    const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:overlay-tools`)}"><summary>Hosted overlay &amp; testing</summary>${renderAddOnOverlayTools(addOn)}</details>`;
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>${trustLinks}`}${liveChatWarning}${providerWarning}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>${trustLinks}`}${liveChatWarning}${providerWarning}${triggerReadiness}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
   }).join('');
-  list.querySelectorAll('details summary').forEach((summary) => { if (openSummaries.has(summary.textContent)) summary.parentElement.open = true; });
+  // Saving settings and other add-on operations rebuild this subtree. Restore both open and
+  // closed choices immediately so sections never flash or return to their package defaults.
+  restoreDisclosureStates(list);
   byId('addon-selector').addEventListener('change', (event) => { state.selectedAddOnId = event.target.value; renderAddOns(); });
   document.querySelectorAll('[data-toggle-addon]').forEach((button) => button.addEventListener('click', toggleAddOn));
   document.querySelectorAll('[data-remove-addon]').forEach((button) => button.addEventListener('click', removeAddOn));
@@ -389,8 +436,8 @@ async function saveAddOnSettings(event) {
   }
   try {
     await api(`/wizard/api/addons/${encodeURIComponent(id)}/settings`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(settings) });
-    byId('addon-state').textContent = `Settings saved for ${id}. Restart StreamBridge to apply them.`;
     await loadAddOns();
+    byId('addon-state').textContent = `Settings saved for ${id}. Restart StreamBridge to apply them.`;
   } catch (error) { byId('addon-state').textContent = error.message; }
 }
 
@@ -493,4 +540,5 @@ const ADD_ON_OVERLAY_PATHS = Object.freeze({
   'thsv.automated-shoutouts': '/overlay/shoutouts',
   'thsv.random-clip-player': '/overlay/clips',
   'thsv.subathon-timer': '/overlay/subathon',
+  'thsv.starting-soon-countdown': '/overlay/countdown',
 });

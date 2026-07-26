@@ -40,37 +40,60 @@
 <p id="command-batch-state" class="notice" role="status" aria-live="polite" aria-atomic="true">No commands queued yet.</p><p><label class="check"><input type="checkbox" id="approve-batch"> I approve generating all queued commands</label></p><p><button id="generate-batch" disabled>Check &amp; generate batch</button></p><p id="command-generation-state" class="notice" role="status" aria-live="polite" aria-atomic="true"></p><div id="command-generation-result"></div></div>
 </section>
 <section class="view hidden" data-panel="timed-actions">
-  <div class="title-row"><div><h2>Timed actions</h2><p>Bridge schedules are authoritative because Streamer.bot does not document timer creation or deletion. Existing Streamer.bot actions remain authoritative execution targets and are matched by stable ID.</p></div></div>
-  <p class="notice">Scene gates activate only when an installed provider emits <code>stream.scene-changed</code>; otherwise a scene-gated timer safely skips. Changes use the same backup and rollback transaction as platform settings.</p>
+  <div class="title-row"><div><h2>Timed actions</h2><p>Send rotating chat messages or run a Streamer.bot action every few minutes while you are live.</p></div></div>
+  <div class="timed-quick-guide" aria-label="Timed action quick start">
+    <strong>Quick setup</strong>
+    <ol><li>Choose a starter template.</li><li>Edit the timing, messages, and platforms.</li><li>Stage the timer, commit the draft, then restart StreamBridge.</li></ol>
+    <small>Timers stop when every platform goes offline. A saved test is always simulated and never posts to chat.</small>
+  </div>
   <div class="entity-editor">
   <nav id="timed-action-tree" class="entity-list" aria-label="Timed actions"></nav>
-  <div id="timed-action-editor-empty" class="entity-editor-panel"><p>Select a timer to edit it, or add a new one.</p></div>
-  <form id="timed-action-form" class="filter-form hidden">
+  <div id="timed-action-editor-empty" class="entity-editor-panel"><strong>No timer selected</strong><p>Select an existing timer to edit it, or press <em>Add timer</em> for a guided setup.</p></div>
+  <form id="timed-action-form" class="filter-form timed-action-form hidden">
     <input type="hidden" name="editingId">
-    <p class="full-row"><strong id="timed-action-editor-title">New timer</strong></p>
-    <label>Template<select name="template"><option value="custom">Custom</option><option value="social-rotation">Social message rotation</option><option value="hydration">Hydration reminder</option><option value="stretch">Stretch reminder</option></select></label>
-    <button type="button" id="apply-timer-template" class="ghost">Apply template</button>
-    <label>ID<input name="id" required maxlength="64" pattern="[a-z][a-z0-9-]*"></label>
-    <label>Name<input name="name" required maxlength="100"></label>
-    <label class="check"><input type="checkbox" name="enabled" checked> Enabled</label>
-    <label>Interval mode<select name="intervalMode"><option value="fixed">Fixed</option><option value="random">Random range</option></select></label>
-    <label>Fixed interval (minutes)<input name="everyMinutes" type="number" min="1" max="1440" value="15" required></label>
-    <label>Random minimum (minutes)<input name="minimumMinutes" type="number" min="1" max="1440" value="10"></label>
-    <label>Random maximum (minutes)<input name="maximumMinutes" type="number" min="1" max="1440" value="20"></label>
-    <label>First run after (minutes)<input name="firstRunAfterMinutes" type="number" min="0" max="1440"></label>
-    <label>Missed run policy<select name="missedRunPolicy"><option value="skip">Skip</option><option value="fire-once">Fire once</option></select></label>
-    <label>Message mode<select name="selectionMode"><option value="fixed">No message rotation</option><option value="platform-shuffle">Separate platform rotations (recommended)</option><option value="shuffle-container">Legacy shared list</option></select></label>
-    <label id="timed-shared-messages">Legacy shared list<textarea name="messages" rows="4" maxlength="20000"></textarea><small>One physical line is one message. This mode shares the same wording and 500-character limit across platforms.</small></label>
-    <fieldset id="timed-platform-message-editor" class="full-row hidden"><legend>Separate platform message rotations</legend><p>Each card is exactly one message, even when its text visually wraps. Add at least two messages for every selected delivery platform; each platform shuffles its own list without repeats.</p><div id="timed-platform-message-lists"></div></fieldset>
-    <label>Minimum chat messages<input name="minimumMessages" type="number" min="0" max="10000" value="0"></label>
-    <label>Activity window (minutes)<input name="windowMinutes" type="number" min="1" max="1440" value="5"></label>
-    <label>Live-platform gate<input name="platforms" placeholder="twitch, youtube"></label>
-    <label>Allowed scenes<input name="scenes" placeholder="Live, Just Chatting"></label>
-    <label class="check"><input type="checkbox" name="requireLive" checked> Require a live stream</label>
-    <label>Execution provider<select name="targetProvider"><option value="event-only">Event only</option><option value="run-existing-action">Run an existing Streamer.bot action</option></select></label>
-    <label>Streamer.bot action<select name="actionId"><option value="">Inspect Streamer.bot first</option></select></label>
-    <fieldset><legend>Send shuffled message to</legend><label class="check"><input type="checkbox" name="deliveryPlatform" value="twitch"> Twitch</label><label class="check"><input type="checkbox" name="deliveryPlatform" value="youtube"> YouTube</label><label class="check"><input type="checkbox" name="deliveryPlatform" value="kick"> Kick</label><label class="check"><input type="checkbox" name="deliveryPlatform" value="tiktok"> TikTok through TikFinity</label><small><strong>THSV StreamBridge - Send Timed Message is the only THSV package that automatically posts messages to your live channel.</strong> Only enable the platforms you intend to receive real scheduled messages. Test saved never posts externally.</small></fieldset>
-    <button type="submit">Stage timed action</button><button type="button" id="cancel-timer-edit" class="ghost">Clear form</button>
+    <div class="full-row timed-editor-heading"><div><strong id="timed-action-editor-title">New timer</strong><small id="timed-action-summary">Choose a template to get started.</small></div><label class="timed-enabled"><input type="checkbox" name="enabled" checked> Timer enabled</label></div>
+    <details class="form-section" open>
+      <summary><span>1. Start with a template<small>Recommended presets fill in safe starter values that you can change.</small></span></summary>
+      <div class="detail-grid">
+        <label>Starter template<select name="template"><option value="social-rotation">Social message rotation (recommended)</option><option value="hydration">Hydration reminder</option><option value="stretch">Stretch reminder</option><option value="custom">Blank custom timer</option></select></label>
+        <button type="button" id="apply-timer-template" class="ghost">Use this template</button>
+        <label>Timer name<input name="name" required maxlength="100" placeholder="Social message rotation"></label>
+        <label>Internal ID<input name="id" required maxlength="64" pattern="[a-z][a-z0-9-]*" placeholder="social-rotation"><small>Lowercase letters, numbers, and hyphens. You normally do not need to change this after creation.</small></label>
+      </div>
+    </details>
+    <details class="form-section" open>
+      <summary><span>2. Choose when it runs<small>Use a fixed interval or vary the delay to make announcements feel less repetitive.</small></span></summary>
+      <div class="detail-grid">
+        <label>Timing style<select name="intervalMode"><option value="fixed">Every X minutes</option><option value="random">Random delay range</option></select></label>
+        <label data-timed-fixed>Run every (minutes)<input name="everyMinutes" type="number" min="1" max="1440" value="15" required></label>
+        <label data-timed-random class="hidden">Shortest delay (minutes)<input name="minimumMinutes" type="number" min="1" max="1440" value="10"></label>
+        <label data-timed-random class="hidden">Longest delay (minutes)<input name="maximumMinutes" type="number" min="1" max="1440" value="20"></label>
+        <label>First run after (minutes)<input name="firstRunAfterMinutes" type="number" min="0" max="1440" placeholder="Same as interval"><small>Leave blank to use the normal interval.</small></label>
+        <label>After downtime<select name="missedRunPolicy"><option value="skip">Skip missed messages (recommended)</option><option value="fire-once">Run once after resuming</option></select></label>
+      </div>
+    </details>
+    <details class="form-section" open>
+      <summary><span>3. Choose what it does<small>Send shuffled messages or run another approved Streamer.bot action.</small></span></summary>
+      <div class="detail-grid">
+        <label>Purpose<select name="selectionMode"><option value="platform-shuffle">Send different message lists per platform (recommended)</option><option value="shuffle-container">Send from one shared message list</option><option value="fixed">Run an action without rotating messages</option></select></label>
+        <label>Execution<select name="targetProvider"><option value="run-existing-action">Run a Streamer.bot action</option><option value="event-only">Emit an event only (advanced)</option></select></label>
+        <label class="full-row" data-timed-action-target>Streamer.bot action<select name="actionId"><option value="">Inspect Streamer.bot first</option></select><small>For chat rotations, use <strong>THSV StreamBridge - Send Timed Message</strong>.</small></label>
+        <fieldset class="full-row" data-timed-delivery-platforms><legend>Platforms that receive the message</legend><div class="timed-platform-choices"><label class="check"><input type="checkbox" name="deliveryPlatform" value="twitch"> Twitch</label><label class="check"><input type="checkbox" name="deliveryPlatform" value="youtube"> YouTube</label><label class="check"><input type="checkbox" name="deliveryPlatform" value="kick"> Kick</label><label class="check"><input type="checkbox" name="deliveryPlatform" value="tiktok"> TikTok through TikFinity</label></div><small>Choose only platforms where you want real automatic chat messages. Saved tests never post externally.</small></fieldset>
+        <label id="timed-shared-messages" class="full-row hidden">Shared message list<textarea name="messages" rows="5" maxlength="20000"></textarea><small>One physical line is one complete message. The same wording is used on every selected platform.</small></label>
+        <fieldset id="timed-platform-message-editor" class="full-row"><legend>Messages for each platform</legend><p>Each card is one message even when text visually wraps. Add at least two messages for every selected platform; StreamBridge shuffles through all of them before repeating.</p><div id="timed-platform-message-lists"></div></fieldset>
+      </div>
+    </details>
+    <details class="form-section">
+      <summary><span>Optional controls<small>Quiet-chat, platform, and scene gates. Leave these alone for a normal live timer.</small></span></summary>
+      <div class="detail-grid">
+        <label class="timed-live-toggle"><input type="checkbox" name="requireLive" checked> Run only while at least one platform is live<small>Recommended. The whole timer session also stops when every platform goes offline.</small></label>
+        <label>Only when these platforms are live<input name="platforms" placeholder="twitch, youtube"><small>Comma-separated. Leave blank to allow any live platform.</small></label>
+        <label>Only in these scenes<input name="scenes" placeholder="Live, Just Chatting"><small>Leave blank unless your stream app sends scene-change events.</small></label>
+        <label>Minimum recent chat messages<input name="minimumMessages" type="number" min="0" max="10000" value="0"><small>Use 0 to disable the quiet-chat gate.</small></label>
+        <label>Chat activity window (minutes)<input name="windowMinutes" type="number" min="1" max="1440" value="5"></label>
+      </div>
+    </details>
+    <div class="full-row timed-save-row"><button type="submit">Stage this timer</button><button type="button" id="cancel-timer-edit" class="ghost">Close without staging</button><small>Staging does not activate it yet. Review the pending change, commit it, and restart StreamBridge.</small></div>
   </form>
   </div>
   <button type="button" id="new-timed-action-entry" class="entity-add-button">+ Add timer</button>

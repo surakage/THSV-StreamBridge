@@ -2,7 +2,7 @@
 
 This document separates responsibilities that belong in THSV StreamBridge core from optional creator features. The goal is a small, dependable main installation and add-ons that reuse its authenticated services instead of opening competing processes or WebSocket connections.
 
-Last organized: July 23, 2026.
+Last organized: July 26, 2026.
 
 ## How this roadmap is maintained
 
@@ -47,7 +47,7 @@ Core must not become a catalogue of stream-specific entertainment features. Opti
 
 ### Packaged first-party add-ons
 
-These twelve add-ons are present in the `2.4.0` official add-on index. **Packaged** confirms repository/release cohesion, not that every creator-specific provider credential, trigger, webhook, browser source, or live-stream path has been accepted:
+These thirteen add-ons are included in the `2.4.1` release build. **Packaged** confirms repository/release cohesion, not that every creator-specific provider credential, trigger, webhook, browser source, or live-stream path has been accepted:
 
 | Add-on | Current status | Standalone responsibility | Remaining acceptance emphasis |
 | --- | --- | --- | --- |
@@ -57,6 +57,7 @@ These twelve add-ons are present in the `2.4.0` official add-on index. **Package
 | Auto Translate | Packaged `2.4.0` | Allowlisted automatic translation | Privacy disclosure, rate limiting, moderation, and sustained-chat behavior. |
 | Ko-fi Donations | Packaged `2.4.0` | Ko-fi stable-ID donation intake | Real Ko-fi test webhook and replay/deduplication evidence. |
 | Subathon Timer | Packaged `2.4.0` | Multi-provider event-to-time rules and timer overlay | Real provider contribution rules, restart recovery, and long-running timer behavior. |
+| Starting Soon Countdown | Packaged `2.4.1` | Explicit scene countdown, finish message, and optional local tone | Package installation, Streamer.bot scene triggers, audio routing, and OBS/Meld/Streamlabs display. |
 | Scene Actions | Packaged `2.4.0` | Scene-to-approved-action routing | OBS/Meld/Streamlabs scene-name and reconnect behavior. |
 | First Five | Packaged `2.4.0` | Ordered Twitch reward positions and monthly results | Real reward mutation/refund and concurrent redemption behavior. |
 | Fan Crown | Packaged `2.4.0` | Rotating Twitch reward holder and leaderboard | Real reward cost/title mutation, rollback, monthly reset, and overlay. |

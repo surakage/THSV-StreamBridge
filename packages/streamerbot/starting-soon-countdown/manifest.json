@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Starting Soon Countdown",
+  "version": "2.4.1",
+  "author": "surakage",
+  "description": "Provides Start, Stop, Pause, Resume, Reset, Complete Now, and Set & Start controls for the Starting Soon Countdown add-on.",
+  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "actions": [
+    {
+      "id": "594f786d-53a1-51cb-a18d-14c666d1e5f1",
+      "name": "THSV Addon - Starting Soon Countdown - Start",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "countdownAction",
+          "value": "start"
+        }
+      ],
+      "source": "src/ControlCountdown.cs",
+      "importFile": "THSV-StreamBridge-Starting-Soon-Countdown-2.4.1.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "72cf5a7a-30ea-591e-aeb5-3bd58ef51bc7",
+      "name": "THSV Addon - Starting Soon Countdown - Pause",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "countdownAction",
+          "value": "pause"
+        }
+      ],
+      "source": "src/ControlCountdown.cs",
+      "importFile": "THSV-StreamBridge-Starting-Soon-Countdown-2.4.1.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "7da0ec7b-0bb1-57df-bbc8-7a7bc17f90f0",
+      "name": "THSV Addon - Starting Soon Countdown - Resume",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "countdownAction",
+          "value": "resume"
+        }
+      ],
+      "source": "src/ControlCountdown.cs",
+      "importFile": "THSV-StreamBridge-Starting-Soon-Countdown-2.4.1.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "52f1e359-8713-57c3-afb7-47a0e39045ad",
+      "name": "THSV Addon - Starting Soon Countdown - Reset",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "countdownAction",
+          "value": "reset"
+        }
+      ],
+      "source": "src/ControlCountdown.cs",
+      "importFile": "THSV-StreamBridge-Starting-Soon-Countdown-2.4.1.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "125ea59c-c65c-5940-accc-775d198c1d75",
+      "name": "THSV Addon - Starting Soon Countdown - Stop",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "countdownAction",
+          "value": "stop"
+        }
+      ],
+      "source": "src/ControlCountdown.cs",
+      "importFile": "THSV-StreamBridge-Starting-Soon-Countdown-2.4.1.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "0a898dea-b640-561b-aa10-43141d266b9b",
+      "name": "THSV Addon - Starting Soon Countdown - Complete Now",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "countdownAction",
+          "value": "complete"
+        }
+      ],
+      "source": "src/ControlCountdown.cs",
+      "importFile": "THSV-StreamBridge-Starting-Soon-Countdown-2.4.1.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "1e03b83c-66f9-5ef4-8eb1-a34095f41d52",
+      "name": "THSV Addon - Starting Soon Countdown - Set & Start",
+      "group": "THSV StreamBridge - Add-ons",
+      "arguments": [
+        {
+          "name": "countdownAction",
+          "value": "set-and-start"
+        },
+        {
+          "name": "countdownSeconds",
+          "value": "600",
+          "autoType": true
+        }
+      ],
+      "source": "src/ControlCountdown.cs",
+      "importFile": "THSV-StreamBridge-Starting-Soon-Countdown-2.4.1.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": true
+  },
+  "editableArguments": [
+    "countdownSeconds"
+  ],
+  "manualTriggerSetup": [
+    "Attach Start to the scene-active trigger for your Starting Soon scene. Attach Stop to its scene-inactive trigger, or Reset if the paused clock should remain visible."
+  ],
+  "triggerSafety": "These actions publish only bounded local countdown-control envelopes. They do not send chat, call external APIs, or run other actions.",
+  "verificationStatus": "Package structure and relay validation are automated; creator-selected scene trigger attachment remains manual."
+}

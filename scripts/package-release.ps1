@@ -142,7 +142,7 @@ try {
         'compatibility.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
         'discord-chat-archive.md', 'getting-started.md', 'production-readiness.md', 'quote-vault.md', 'release.md', 'rewards.md', 'security.md', 'setup.md',
         'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
-        'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md'
+        'starting-soon-countdown.md', 'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md'
     )
     foreach ($document in $releaseDocs) {
         Copy-Item -LiteralPath (Join-Path $repo "docs\$document") -Destination (Join-Path $appRoot 'docs')

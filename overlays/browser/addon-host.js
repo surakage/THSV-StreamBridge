@@ -4,6 +4,7 @@
     '/overlay/shoutouts': 'thsv.automated-shoutouts',
     '/overlay/clips': 'thsv.random-clip-player',
     '/overlay/subathon': 'thsv.subathon-timer',
+    '/overlay/countdown': 'thsv.starting-soon-countdown',
   });
   const moduleId = aliases[location.pathname] || location.pathname.slice('/overlay/addons/'.length);
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId)) return;
@@ -29,6 +30,7 @@
   let pendingMediaDurationMs;
   let heartbeatTimer;
   let activePlaybackId = '';
+  let lastCompletionSequence = -1;
   let sendTransport = () => undefined;
   const mediaFadeMs = 4_000;
 
@@ -73,6 +75,34 @@
     return `rgb(${parseInt(color.slice(1, 3), 16)} ${parseInt(color.slice(3, 5), 16)} ${parseInt(color.slice(5, 7), 16)} / ${alpha})`;
   }
 
+  function playCompletionTone(payload) {
+    const tone = ['soft-chime', 'digital-pop', 'celebration'].includes(payload.completionTone) ? payload.completionTone : 'none';
+    const sequence = Number.isInteger(payload.completionSequence) ? payload.completionSequence : -1;
+    if (payload.playCompletionTone !== true || tone === 'none' || sequence === lastCompletionSequence) return;
+    lastCompletionSequence = sequence;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      const audio = new AudioContextClass();
+      const volume = typeof payload.toneVolume === 'number' && Number.isFinite(payload.toneVolume) ? Math.max(0, Math.min(1, payload.toneVolume)) : 0.6;
+      const notes = tone === 'soft-chime' ? [[659.25, 0, 0.2], [880, 0.18, 0.48]]
+        : tone === 'digital-pop' ? [[440, 0, 0.08], [659.25, 0.08, 0.2]]
+          : [[523.25, 0, 0.12], [659.25, 0.11, 0.25], [783.99, 0.24, 0.5]];
+      for (const [frequency, offset, length] of notes) {
+        const oscillator = audio.createOscillator();
+        const gain = audio.createGain();
+        oscillator.type = tone === 'digital-pop' ? 'square' : 'sine';
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, audio.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume * 0.25), audio.currentTime + offset + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + offset + length);
+        oscillator.connect(gain); gain.connect(audio.destination);
+        oscillator.start(audio.currentTime + offset); oscillator.stop(audio.currentTime + offset + length + 0.02);
+      }
+      setTimeout(() => void audio.close(), 1_000);
+    } catch { /* Audio is optional and may be blocked by the browser source. */ }
+  }
+
   function showTimer(payload) {
     hideCard();
     clearMedia(activePlaybackId ? 'stopped' : undefined);
@@ -82,15 +112,18 @@
     const computedTime = `${String(Math.floor(remaining / 3600)).padStart(2, '0')}:${String(Math.floor((remaining % 3600) / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
     const livePlatforms = Array.isArray(payload.livePlatforms) ? payload.livePlatforms.filter((value) => typeof value === 'string').slice(0, 4) : [];
     timerLabel.textContent = boundedText(payload.label, 80, 'TIMER') || 'TIMER';
-    timerTime.textContent = /^\d{2,4}:\d{2}:\d{2}$/u.test(payload.remainingText) ? payload.remainingText : computedTime;
-    timerBadge.textContent = payload.running === true ? 'RUNNING' : payload.live === true ? 'PAUSED' : 'OFFLINE';
+    const completed = payload.completed === true;
+    timerTime.textContent = completed ? (boundedText(payload.completionMessage, 200, 'The stream is starting now!') || 'The stream is starting now!')
+      : (/^(?:\d{2,4}:)?\d{2}:\d{2}$/u.test(payload.remainingText) ? payload.remainingText : computedTime);
+    timerTime.classList.toggle('timer-complete-message', completed);
+    timerBadge.textContent = completed ? 'COMPLETE' : payload.running === true ? 'RUNNING' : payload.live === true ? 'PAUSED' : 'READY';
     timerReason.textContent = boundedText(payload.lastReason, 120, 'Waiting for an update').replace(/-/gu, ' ');
-    timerPlatforms.textContent = livePlatforms.length > 0 ? livePlatforms.join(' + ') : 'No live platforms';
+    timerPlatforms.textContent = boundedText(payload.contextText, 100) || (livePlatforms.length > 0 ? livePlatforms.join(' + ') : 'Ready for scene control');
     timerProgress.style.width = `${Math.max(0, Math.min(100, remaining / maximum * 100)).toFixed(2)}%`;
     timerProgressTrack.classList.toggle('hidden', style.showProgressBar === false);
     const backgroundMode = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass';
     const fontFamily = ['display', 'broadcast', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'display';
-    timerShell.dataset.state = payload.critical === true ? 'critical' : payload.warning === true ? 'warning' : payload.running === true ? 'running' : 'paused';
+    timerShell.dataset.state = completed ? 'complete' : payload.critical === true ? 'critical' : payload.warning === true ? 'warning' : payload.running === true ? 'running' : 'paused';
     timerShell.dataset.background = backgroundMode;
     timerShell.dataset.font = fontFamily;
     timerShell.style.setProperty('--timer-background', safeColor(style.backgroundColor, '#0b1017'));
@@ -103,6 +136,7 @@
     timerShell.style.setProperty('--timer-live', safeColor(style.liveColor, '#61f2a4'));
     timerShell.style.setProperty('--timer-border', safeColor(style.borderColor, '#85cbff'));
     timerShell.classList.remove('hidden');
+    playCompletionTone(payload);
   }
 
   function showCard(payload) {

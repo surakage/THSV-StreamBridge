@@ -33,6 +33,7 @@ const ADD_ON_OVERLAY_ALIASES = Object.freeze<Record<string, string>>({
   '/overlay/shoutouts': 'thsv.automated-shoutouts',
   '/overlay/clips': 'thsv.random-clip-player',
   '/overlay/subathon': 'thsv.subathon-timer',
+  '/overlay/countdown': 'thsv.starting-soon-countdown',
 });
 
 function addOnOverlayModuleId(requestPath: string | undefined): string | undefined {

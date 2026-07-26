@@ -1,0 +1,82 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Runs one creator-controlled Starting Soon countdown with a custom completion message and optional local tone.",
+  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
+  "permissions": [
+    "events.subscribe",
+    "overlay.publish",
+    "schedule.bounded",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.starting-soon-countdown",
+    "name": "Starting Soon Countdown",
+    "version": "2.4.1",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "addon.thsv.starting-soon-countdown.control"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.starting-soon-countdown/",
+      "data/addons/.state/thsv.starting-soon-countdown/"
+    ],
+    "installationSteps": [
+      "Install and enable the add-on, then configure the duration, completion message, optional tone, and overlay style.",
+      "Import the bundled Streamer.bot package.",
+      "Attach Start to the scene-active trigger for your Starting Soon scene.",
+      "Attach Stop to the scene-inactive trigger for that scene, or use Reset if the paused clock should remain visible.",
+      "Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop."
+    ],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Its small timer state remains available unless add-on data is explicitly deleted."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.starting-soon-countdown.runtime",
+        "description": "Confirms bounded countdown controls, persistence, and overlay publishing."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 13093,
+      "sha256": "2752014c1a52e2773c5143f68f6c9441c4e70ab789ff0941682fdf16ea15aa38"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3333,
+      "sha256": "3f83480a82c49017b780915a2e10ce254ce3857e5e6bb6234ae2bb59e2ecbbcb"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 4168,
+      "sha256": "5d2f11065a558616fb37113afc50b96433f8ba7221d62b8069669a958da982e7"
+    },
+    {
+      "path": "README.md",
+      "size": 1808,
+      "sha256": "5cffe644471c322f85a3c657422b1d63755e148f92ad323238493eac081fa44a"
+    }
+  ]
+}

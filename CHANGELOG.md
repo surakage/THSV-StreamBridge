@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-07-26
+
+- Added Starting Soon Countdown as a separate optional add-on with any-duration scene controls, persistent bounded state, a customizable core-hosted `/overlay/countdown` source, a custom completion message, local tone choices including silence, and seven narrowly allowlisted Streamer.bot controls: Start, Stop, Pause, Resume, Reset, Complete Now, and Set & Start.
+- Added optional stream-scoped Raid Scout viewer suggestions through one creator-owned Twitch Channel Points reward, with bounded deduplication, one-suggestion-per-viewer controls, fulfillment/refund handling, creator messages, and automatic clearing between streams.
+- Reorganized the wizard's platform, blocker, command, chat, alert, reward, timed-action, and add-on setup surfaces into short guided sections while preserving collapsed-section state after saves and reloads.
+- Improved Timed Actions with separate message cards per selected platform and automatic removal of messages belonging to disabled delivery platforms.
+- Aligned core, all first-party add-ons, and every Streamer.bot import to the `2.4.1` release baseline.
+
 ## [2.4.0] - 2026-07-23
 
 - Aligned the bridge, all 12 first-party add-ons, and all 24 Streamer.bot packages to one visible `2.4.0` release baseline while preserving the independently versioned `2.0.0-preview.1` add-on/event API contract.
