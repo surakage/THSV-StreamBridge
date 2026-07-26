@@ -14,7 +14,7 @@ export function createBuiltinModuleRegistry(logger: Logger): ModuleRegistry {
   return new ModuleRegistry([
     projectionModule('core.chat', ['chat.message'], (event) => { projectMultiChatMessage(event); }),
     projectionModule('core.commands', ['command.received'], (event) => { projectMultiCommand(event); }),
-    projectionModule('core.alerts', ['channel.follow', 'channel.subscription', 'channel.membership', 'channel.gift-subscription', 'engagement.gift', 'engagement.donation', 'engagement.cheer', 'engagement.super-chat', 'channel.raid', 'engagement.milestone'], (event) => { projectMultiAlert(event); }),
+    projectionModule('core.alerts', ['channel.follow', 'channel.subscription', 'channel.membership', 'channel.gift-subscription', 'engagement.gift', 'engagement.donation', 'engagement.purchase', 'engagement.cheer', 'engagement.super-chat', 'channel.raid', 'engagement.milestone'], (event) => { projectMultiAlert(event); }),
     projectionModule('core.timed-actions', ['system.timed'], (event) => { projectMultiTimedAction(event); }),
   ], logger);
 }
@@ -39,4 +39,3 @@ function projectionModule(moduleId: string, subscriptions: readonly string[], pr
   };
   return { manifest, required: true, onEvent: async (event) => { project(event); } };
 }
-

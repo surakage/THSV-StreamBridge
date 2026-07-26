@@ -4,7 +4,7 @@ import { normalizeStreamerBotPlatformRelay } from '../../bridge/adapters/streame
 function relay(platform: 'twitch' | 'youtube' | 'kick' | 'streamlabs' | 'kofi', sourceEventType: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     type: 'thsv.platform', version: '1.0.0', platform, sourceEventType, relayId: `relay-${platform}-${sourceEventType}`,
-    sourceEventId: `source-${platform}-${sourceEventType}`, receivedAt: '2026-07-17T00:00:00.000Z', simulated: true,
+    sourceEventId: `source-${platform}-${sourceEventType}`, sourceEventIdVerified: true, receivedAt: '2026-07-17T00:00:00.000Z', simulated: true,
     userId: 'viewer-1', userName: 'viewer_login', displayName: 'Viewer Name', profilePictureUrl: '', role: 'Viewer',
     isModerator: false, isBroadcaster: false, isSubscribed: false, message: '', amount: '', currency: '', quantity: '', tier: '', itemName: '',
     channelId: 'channel-1', channelName: 'Example Channel', argumentKeys: [], ...overrides,
@@ -27,12 +27,17 @@ describe('native Streamer.bot platform relay adapter', () => {
   });
 
   it('normalizes Twitch power-up redemption as cheer-like engagement', () => {
-    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchPowerUpRedemption', { quantity: '42', userName: 'kofistreambot', displayName: 'KofiStreamBot', message: 'message_effect' }));
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchPowerUpRedemption', {
+      quantity: '42', userName: 'kofistreambot', displayName: 'KofiStreamBot',
+      powerUpType: 'message_effect', counter: '1', tempCounter: '1', userCounter: '1', tempUserCounter: '1',
+    }));
     expect(event).toMatchObject({
       eventType: 'engagement.cheer',
       payload: {
         quantity: 42,
-        message: 'message_effect',
+        powerUpType: 'message_effect',
+        counter: 1,
+        userCounter: 1,
       },
       user: {
         name: 'kofistreambot',
@@ -50,11 +55,11 @@ describe('native Streamer.bot platform relay adapter', () => {
     });
   });
 
-  it('normalizes Twitch pay-it-forward as subscription', () => {
-    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchPayItForward', { tier: '1000', userName: 'vartaras', displayName: 'Vartaras' }));
+  it('normalizes Twitch pay-it-forward as a single gifted subscription', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchPayItForward', { userName: 'vartaras', displayName: 'Vartaras' }));
     expect(event).toMatchObject({
-      eventType: 'channel.subscription',
-      payload: { tier: '1000' },
+      eventType: 'channel.gift-subscription',
+      payload: { quantity: 1 },
       user: { name: 'vartaras', displayName: 'Vartaras' },
     });
   });
@@ -202,21 +207,20 @@ describe('native Streamer.bot platform relay adapter', () => {
     });
   });
 
-  it('normalizes Twitch modiversary as subscription', () => {
+  it('normalizes Twitch modiversary as a public milestone', () => {
     const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchModiversary', {
       userName: 'suraruisuh',
       displayName: 'Suraruisuh',
       quantity: '420',
       months: '42',
       fromSharedChat: 'True',
-      tier: '3000',
     }));
     expect(event).toMatchObject({
-      eventType: 'channel.subscription',
+      eventType: 'engagement.milestone',
       payload: {
-        tier: '3000',
-        months: '42',
-        fromSharedChat: 'True',
+        metric: 'modiversary',
+        value: 42,
+        fromSharedChat: true,
       },
       user: {
         name: 'suraruisuh',
@@ -311,6 +315,7 @@ describe('native Streamer.bot platform relay adapter', () => {
       hasVisualEffect: 'false',
       isCombo: 'false',
       comboCount: '0',
+      eventTimestamp: '7/24/2026 3:35:53 AM',
     }));
     expect(event).toMatchObject({
       eventType: 'engagement.gift',
@@ -324,6 +329,7 @@ describe('native Streamer.bot platform relay adapter', () => {
         hasVisualEffect: false,
         isCombo: false,
         comboCount: 0,
+        eventTimestamp: '7/24/2026 3:35:53 AM',
       },
     });
   });
@@ -351,7 +357,7 @@ describe('native Streamer.bot platform relay adapter', () => {
     });
   });
 
-  it('normalizes Streamlabs merchandise as custom system event', () => {
+  it('normalizes Streamlabs merchandise as a purchase alert', () => {
     const event = normalizeStreamerBotPlatformRelay(
       relay('streamlabs', 'StreamlabsMerchandise', {
         userName: 'TestUser',
@@ -362,15 +368,15 @@ describe('native Streamer.bot platform relay adapter', () => {
       }),
     );
     expect(event).toMatchObject({
-      eventType: 'system.custom',
+      eventType: 'engagement.purchase',
       user: {
         name: 'TestUser',
       },
       payload: {
-        merchandiseMessage: 'Test user bought a hat',
-        merchandiseProduct: 'Vintage Hoodie',
-        merchandiseImageUrl: 'https://example.com/image.png',
-        merchandiseImageEscaped: 'https://example.com/image-escaped.png',
+        itemName: 'Vintage Hoodie',
+        quantity: 1,
+        message: 'Test user bought a hat',
+        imageUrl: 'https://example.com/image.png',
       },
     });
   });
@@ -459,6 +465,10 @@ describe('native Streamer.bot platform relay adapter', () => {
       },
       payload: {
         tier: 'Test Tier',
+        amount: '42',
+        currency: 'USD',
+        message: 'This is a Kofi Resubscription Trigger test',
+        subscriptionKind: 'renewal',
       },
     });
   });
@@ -480,11 +490,15 @@ describe('native Streamer.bot platform relay adapter', () => {
       },
       payload: {
         tier: 'Test Tier',
+        amount: '42',
+        currency: 'USD',
+        message: 'This is a Kofi Subscription Trigger test',
+        subscriptionKind: 'new',
       },
     });
   });
 
-  it('normalizes Kofi shop order as engagement donation', () => {
+  it('normalizes Kofi shop order as a purchase alert', () => {
     const event = normalizeStreamerBotPlatformRelay(
       relay('kofi', 'KofiShopOrder', {
         userName: 'TestUser',
@@ -496,7 +510,7 @@ describe('native Streamer.bot platform relay adapter', () => {
       }),
     );
     expect(event).toMatchObject({
-      eventType: 'engagement.donation',
+      eventType: 'engagement.purchase',
       user: {
         name: 'TestUser',
       },
@@ -504,14 +518,14 @@ describe('native Streamer.bot platform relay adapter', () => {
         amount: '42',
         currency: 'USD',
         message: 'This is a Kofi Shop Order Trigger test',
-        itemCount: 1,
-        item0: 'abc123456',
+        itemName: 'abc123456',
+        quantity: 1,
       },
     });
   });
 
   it('marks generated fallback IDs as unverified', () => {
-    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchFollow', { sourceEventId: '' }));
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchFollow', { sourceEventId: '', sourceEventIdVerified: false }));
     expect(event.metadata.unverifiedFields).toEqual(['source.eventId']);
   });
 

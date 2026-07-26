@@ -74,9 +74,12 @@ export class WizardConfigurationGateway {
     if ([...this.drafts.values()].some((draft) => draft.public.status === 'draft')) throw new WizardConfigurationError(409, 'Another browser tab already holds the configuration mutation lease. Cancel or commit it first.');
     const raw = await readFile(this.configPath, 'utf8');
     const candidate = parseObject(raw);
-    bridgeConfigSchema.parse(candidate);
+    const materialized = bridgeConfigSchema.parse(candidate);
+    const candidatePlatforms = objectValue(candidate['platforms']);
+    const platformDefaults = Object.fromEntries(Object.entries(materialized.platforms).filter(([platform]) => candidatePlatforms[platform] === undefined));
+    const candidateWithDefaults = { ...candidate, platforms: { ...candidatePlatforms, ...platformDefaults } };
     const publicDraft: WizardConfigurationDraft = { id: randomUUID(), status: 'draft', createdAt: new Date().toISOString(), stagedChanges: [], restartRequired: true };
-    this.drafts.set(publicDraft.id, { public: publicDraft, sourceHash: hash(raw), candidate });
+    this.drafts.set(publicDraft.id, { public: publicDraft, sourceHash: hash(raw), candidate: candidateWithDefaults });
     return publicDraft;
   }
 

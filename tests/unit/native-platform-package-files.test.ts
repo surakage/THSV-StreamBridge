@@ -24,6 +24,14 @@ describe('native platform intake package', () => {
     expect(source).not.toContain('CPH.SetGlobalVar');
     expect(source).not.toContain('CPH.RunAction');
     expect(source).not.toMatch(/Process\.Start|PowerShell|cmd\.exe/);
+    expect(source).toContain('ReadInvariant("gift.jewelsAmount")');
+    expect(source).toContain('"power-up:" + userId');
+    expect(source).toContain('"modiversary:" + Read("userId")');
+    expect(source).toContain('"watch-streak:" + Read("userId")');
+    expect(source).toContain('["sourceEventIdVerified"]');
+    expect(source).toContain('["eventTimestamp"]');
+    expect(source).toContain('["items"] = ReadItems()');
+    expect(source).toContain('Read("broadcast.id")');
   });
 
   it('supports YouTube jewels gifts in trigger contract', async () => {

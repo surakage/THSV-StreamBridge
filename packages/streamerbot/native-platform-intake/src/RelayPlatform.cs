@@ -20,6 +20,7 @@ public class CPHInline
         var argumentKeys = new JArray();
         foreach (string key in args.Keys) argumentKeys.Add(key);
         string relayId = Guid.NewGuid().ToString("N");
+        string providerEventId = ProviderEventId(sourceEventType);
         var message = new JObject
         {
             ["type"] = "thsv.platform",
@@ -27,21 +28,22 @@ public class CPHInline
             ["platform"] = platform,
             ["sourceEventType"] = sourceEventType,
             ["relayId"] = relayId,
-            ["sourceEventId"] = First(Read("messageId"), Read("msgId"), Read("eventId"), Read("donationId"), Read("charityDonationId")),
+            ["sourceEventId"] = providerEventId,
+            ["sourceEventIdVerified"] = !String.IsNullOrWhiteSpace(providerEventId),
             ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"),
             ["simulated"] = ReadBoolean("isTest") || ReadBoolean("isSimulated"),
             ["userId"] = First(Read("userId"), Read("fromUserId")),
             ["userName"] = First(Read("userName"), Read("userLogin"), Read("fromUserName"), Read("from"), Read("donationFrom"), Read("user")),
             ["displayName"] = First(Read("user"), Read("displayName"), Read("fromUser"), Read("from"), Read("userName"), Read("donationFrom")),
-            ["profilePictureUrl"] = First(Read("userProfilePicture"), Read("profilePicture"), Read("profileImageUrl")),
+            ["profilePictureUrl"] = First(Read("userProfilePicture"), Read("userProfileUrl"), Read("profilePicture"), Read("profileImageUrl")),
             ["role"] = Read("role"),
             ["isModerator"] = ReadBoolean("isModerator"),
             ["isBroadcaster"] = ReadBoolean("isBroadcaster"),
             ["isSubscribed"] = ReadBoolean("isSubscribed") || ReadBoolean("subscribed"),
-            ["message"] = First(Read("message"), Read("messageStripped"), Read("rawInput"), Read("type"), Read("donationMessage"), Read("charityDonationMessage")),
+            ["message"] = First(Read("message"), Read("messageStripped"), Read("rawInput"), Read("donationMessage"), Read("charityDonationMessage")),
             ["amount"] = First(ReadInvariant("amount"), ReadInvariant("donationAmount"), ReadInvariant("charityDonationAmount"), NormalizeAmount(ReadInvariant("donationFormattedAmount")), NormalizeAmount(ReadInvariant("charityDonationFormattedAmount"))),
             ["currency"] = First(Read("currency"), Read("currencyCode"), Read("charityDonationCurrency")),
-            ["quantity"] = First(ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("giftCount"), ReadInvariant("jewelsAmount"), ReadInvariant("giftAmount")),
+            ["quantity"] = First(ReadInvariant("gift.jewelsAmount"), ReadInvariant("count"), ReadInvariant("bits"), ReadInvariant("viewers"), ReadInvariant("monthsSubscribed"), ReadInvariant("giftCount"), ReadInvariant("jewelsAmount"), ReadInvariant("giftAmount")),
             ["tier"] = First(Read("tier"), Read("subTier"), Read("subscriptionTier")),
             ["merchandiseFrom"] = First(Read("merchandiseFrom"), Read("from"), Read("donationFrom")),
             ["merchandiseMessage"] = First(Read("merchandiseMessage"), Read("message"), Read("donationMessage"), Read("type")),
@@ -57,9 +59,17 @@ public class CPHInline
             ["hasVisualEffect"] = First(Read("gift.hasVisualEffect"), Read("hasVisualEffect")),
             ["isCombo"] = First(Read("gift.isCombo"), Read("isCombo")),
             ["comboCount"] = First(Read("gift.comboCount"), Read("comboCount")),
+            ["powerUpType"] = First(Read("type"), Read("powerUpType")),
+            ["counter"] = ReadInvariant("counter"),
+            ["tempCounter"] = ReadInvariant("tempCounter"),
+            ["userCounter"] = ReadInvariant("userCounter"),
+            ["tempUserCounter"] = ReadInvariant("tempUserCounter"),
+            ["eventTimestamp"] = First(Read("timestamp"), Read("createdAt"), Read("charityDonationCreatedAt"), Read("publishedAt"), Read("redeemed_at"), Read("redeemedAt")),
+            ["isPublic"] = Read("isPublic"),
             ["months"] = First(Read("months")),
             ["itemCount"] = First(ReadInvariant("itemCount")),
             ["item0"] = First(Read("item0"), Read("item")),
+            ["items"] = ReadItems(),
             ["fromSharedChat"] = First(Read("fromSharedChat")),
             ["charityDonationAmount"] = ReadInvariant("charityDonationAmount"),
             ["charityDonationCurrency"] = Read("charityDonationCurrency"),
@@ -85,7 +95,7 @@ public class CPHInline
             ["minutes"] = First(Read("minutes")),
             ["nextAdAt"] = First(Read("nextAdAt")),
             ["snoozesLeft"] = First(Read("snoozesLeft")),
-            ["channelId"] = First(Read("broadcastId"), Read("broadcasterUserId"), Read("broadcasterId")),
+            ["channelId"] = First(Read("broadcast.id"), Read("broadcastId"), Read("broadcastUserId"), Read("broadcasterUserId"), Read("broadcasterId")),
             ["channelName"] = First(Read("broadcastUserName"), Read("broadcasterUserName"), Read("broadcaster")),
             ["argumentKeys"] = argumentKeys
         };
@@ -119,6 +129,42 @@ public class CPHInline
         if (platform == "streamlabs") return eventType == "StreamlabsDonation" || eventType == "StreamlabsCharityDonation" || eventType == "StreamlabsMerchandise";
         if (platform == "kofi") return eventType == "KofiDonation" || eventType == "KofiCommission" || eventType == "KofiResubscription" || eventType == "KofiSubscription" || eventType == "KofiShopOrder";
         return false;
+    }
+
+    private string ProviderEventId(string eventType)
+    {
+        string direct = First(Read("redemptionId"), Read("messageId"), Read("msgId"), Read("eventId"), Read("donationId"), Read("charityDonationId"));
+        if (!String.IsNullOrWhiteSpace(direct)) return direct;
+        if (eventType == "TwitchHypeTrainStart" || eventType == "TwitchHypeTrainLevelUp" || eventType == "TwitchHypeTrainUpdate" || eventType == "TwitchHypeTrainEnd")
+            return Read("id");
+        if (eventType == "TwitchPowerUpRedemption")
+        {
+            string userId = Read("userId");
+            string powerUpType = Read("type");
+            string userCounter = ReadInvariant("userCounter");
+            string counter = ReadInvariant("counter");
+            if (!String.IsNullOrWhiteSpace(userId) && !String.IsNullOrWhiteSpace(powerUpType) && (!String.IsNullOrWhiteSpace(userCounter) || !String.IsNullOrWhiteSpace(counter)))
+                return "power-up:" + userId + ":" + powerUpType + ":" + userCounter + ":" + counter;
+        }
+        if (eventType == "TwitchModiversary" && !String.IsNullOrWhiteSpace(Read("userId")) && !String.IsNullOrWhiteSpace(ReadInvariant("months")))
+            return "modiversary:" + Read("userId") + ":" + ReadInvariant("months");
+        if (eventType == "TwitchWatchStreak" && !String.IsNullOrWhiteSpace(Read("userId")) && !String.IsNullOrWhiteSpace(ReadInvariant("watchStreak")))
+            return "watch-streak:" + Read("userId") + ":" + ReadInvariant("watchStreak");
+        return "";
+    }
+
+    private JArray ReadItems()
+    {
+        var items = new JArray();
+        int count;
+        if (!Int32.TryParse(ReadInvariant("itemCount"), NumberStyles.Integer, CultureInfo.InvariantCulture, out count) || count <= 0) return items;
+        count = Math.Min(count, 100);
+        for (int index = 0; index < count; index++)
+        {
+            string item = Read("item" + index.ToString(CultureInfo.InvariantCulture));
+            if (!String.IsNullOrWhiteSpace(item)) items.Add(item);
+        }
+        return items;
     }
 
     private string Read(string name)

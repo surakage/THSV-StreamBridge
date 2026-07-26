@@ -74,6 +74,7 @@ public class CPHInline
         CPH.SetArgument("streamBridgeSequence", ReadOptionalPositiveInteger(metadata, "bridgeSequence"));
         CPH.SetArgument("streamBridgePlatform", platform);
         CPH.SetArgument("streamBridgeSourceAdapter", ReadRequiredString(source, "adapter", 100));
+        CPH.SetArgument("streamBridgeSourceEventType", ReadRequiredString(source, "eventName", 100));
         CPH.SetArgument("streamBridgeChannelId", ReadOptionalString(channel, "id"));
         CPH.SetArgument("streamBridgeChannelName", ReadRequiredString(channel, "name", 256));
         CPH.SetArgument("streamBridgeUserId", user == null ? string.Empty : ReadOptionalString(user, "id"));
@@ -103,6 +104,7 @@ public class CPHInline
         CPH.SetArgument("streamBridgeSequence", 0L);
         CPH.SetArgument("streamBridgePlatform", string.Empty);
         CPH.SetArgument("streamBridgeSourceAdapter", string.Empty);
+        CPH.SetArgument("streamBridgeSourceEventType", string.Empty);
         CPH.SetArgument("streamBridgeChannelId", string.Empty);
         CPH.SetArgument("streamBridgeChannelName", string.Empty);
         CPH.SetArgument("streamBridgeUserId", string.Empty);

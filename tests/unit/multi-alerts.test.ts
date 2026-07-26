@@ -44,6 +44,18 @@ describe('Multi-Alerts contract', () => {
     }))?.message).toBe('<script>alert(1)</script> 🦥');
   });
 
+  it('projects purchase alerts and retains only reviewed detail fields', () => {
+    const alert = projectMultiAlert(withPayload('engagement.purchase', {
+      itemName: 'Village Hoodie', quantity: 1, amount: '42', currency: 'USD',
+      items: ['hoodie'], imageUrl: 'https://example.com/hoodie.png', privateField: 'drop-me',
+    }));
+    expect(alert).toMatchObject({
+      alertType: 'purchase', itemName: 'Village Hoodie', quantity: 1, amount: '42', currency: 'USD',
+      details: { items: ['hoodie'], imageUrl: 'https://example.com/hoodie.png' },
+    });
+    expect(alert?.details).not.toHaveProperty('privateField');
+  });
+
   it('requires event-specific fields with readable bounded errors', () => {
     expect(() => projectMultiAlert(withPayload('engagement.gift', { quantity: 1 }))).toThrow('itemName');
     expect(() => projectMultiAlert(withPayload('channel.raid', {}))).toThrow('quantity');

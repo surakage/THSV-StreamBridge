@@ -13,9 +13,10 @@ Core receiver upgrades overwrite manually-added child actions. Re-add Multi-Chat
 
 ## Behavior
 
-- Supports follows, subscriptions, memberships, gifted subscriptions, gifts, donations, cheers, Super Chats, raids, and engagement milestones.
+- Supports follows, subscriptions, memberships, gifted subscriptions, gifts, donations, purchases, cheers, Super Chats, raids, and engagement milestones.
+- `multiAlertSourceEventType` identifies the validated Streamer.bot trigger and `multiAlertDetails` contains only reviewed, allowlisted event metadata such as Power-Up counters, Jewel combo data, subscription lifecycle, Hype Train progress, purchase item lists, and integration timestamps.
 - Monetary amounts are bounded decimal strings and currencies are uppercase three-letter ISO codes. The package never converts money through floating point.
-- Every public alert requires a stable upstream `source.eventId`; adapters must reject or quarantine an alert rather than inventing a payload-based financial identity.
+- Every public alert carries an upstream identity. When a provider does not expose a replay-stable ID, `multiAlertVerifiedTransport=False` and `multiAlertUnverifiedFields` explicitly identify the uncertainty.
 - Quantity and milestone values are bounded safe integers.
 - Optional actor identity is normalized; only actor-free milestones are valid.
 - Text is inert plain text with controls/whitespace normalized and Unicode preserved. Browser consumers must contextually escape it.

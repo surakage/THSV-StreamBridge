@@ -11,6 +11,7 @@ const relaySchema = z.object({
   sourceEventType: z.string().min(1).max(100),
   relayId: z.string().min(1).max(256),
   sourceEventId: z.string().max(256).default(''),
+  sourceEventIdVerified: z.boolean().default(false),
   receivedAt: z.iso.datetime({ offset: true }),
   simulated: z.boolean(),
   userId: z.string().max(256).default(''),
@@ -35,6 +36,13 @@ const relaySchema = z.object({
   hasVisualEffect: z.string().max(12).default(''),
   isCombo: z.string().max(12).default(''),
   comboCount: z.string().max(16).default(''),
+  powerUpType: z.string().max(100).default(''),
+  counter: z.string().max(32).default(''),
+  tempCounter: z.string().max(32).default(''),
+  userCounter: z.string().max(32).default(''),
+  tempUserCounter: z.string().max(32).default(''),
+  eventTimestamp: z.string().max(64).default(''),
+  isPublic: z.string().max(12).default(''),
   hypeTrainId: z.string().max(256).default(''),
   hypeTrainLevel: z.string().max(16).default(''),
   hypeTrainPrevLevel: z.string().max(16).default(''),
@@ -61,6 +69,7 @@ const relaySchema = z.object({
   watchStreak: z.string().max(16).default(''),
   itemCount: z.string().max(16).default(''),
   item0: z.string().max(1_024).default(''),
+  items: z.array(z.string().max(1_024)).max(100).default([]),
   charityDonationFrom: z.string().max(256).default(''),
   charityDonationAmount: z.string().max(32).default(''),
   charityDonationCurrency: z.string().max(8).default(''),
@@ -115,8 +124,8 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   const relay = relaySchema.parse(input);
   const eventType = normalizedEventType(relay);
   const sourceId = clean(relay.sourceEventId) || relay.relayId;
-  const name = clean(relay.userName) || clean(relay.displayName) || clean(relay.charityDonationFrom) || `unknown-${relay.platform}-user`;
-  const displayName = clean(relay.displayName) || clean(relay.userName) || clean(relay.charityDonationFrom) || `unknown-${relay.platform}-user`;
+  const name = clean(relay.userName) || clean(relay.displayName) || clean(relay.charityDonationFrom) || clean(relay.merchandiseFrom) || `unknown-${relay.platform}-user`;
+  const displayName = clean(relay.displayName) || clean(relay.userName) || clean(relay.charityDonationFrom) || clean(relay.merchandiseFrom) || `unknown-${relay.platform}-user`;
   const roles = normalizedRoles(relay);
   const avatarUrl = validHttps(relay.profilePictureUrl);
   const user = {
@@ -141,7 +150,7 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     user,
     metadata: {
       simulated: relay.simulated,
-      ...(clean(relay.sourceEventId) === '' ? { unverifiedFields: ['source.eventId'] } : {}),
+      ...(!relay.sourceEventIdVerified ? { unverifiedFields: ['source.eventId'] } : {}),
     },
   };
 
@@ -152,19 +161,36 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   }
   if (eventType === 'channel.follow') return { ...common, payload: {} };
   if (eventType === 'channel.subscription' || eventType === 'channel.membership') {
+    const amount = decimalString(relay.amount);
+    const currency = currencyCode(relay.currency);
     return {
       ...common,
       payload: {
         ...(clean(relay.tier) === '' ? {} : { tier: clean(relay.tier) }),
-        ...(clean(relay.months) === '' ? {} : { months: clean(relay.months) }),
-        ...(clean(relay.fromSharedChat) === '' ? {} : { fromSharedChat: clean(relay.fromSharedChat) }),
+        ...(clean(relay.months) === '' ? {} : { months: positiveInteger(relay.months, 1) }),
+        ...(clean(relay.fromSharedChat) === '' ? {} : { fromSharedChat: booleanString(relay.fromSharedChat) }),
+        ...subscriptionLifecycle(relay.sourceEventType),
+        ...(amount === undefined ? {} : { amount }),
+        ...(currency === undefined ? {} : { currency }),
+        ...(clean(relay.message) === '' ? {} : { message: clean(relay.message) }),
+        ...(clean(relay.eventTimestamp) === '' ? {} : { eventTimestamp: clean(relay.eventTimestamp) }),
+        ...(clean(relay.isPublic) === '' ? {} : { isPublic: booleanString(relay.isPublic) }),
       },
     };
   }
   if (eventType === 'channel.gift-subscription') {
     return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1), ...(clean(relay.tier) === '' ? {} : { tier: clean(relay.tier) }) } };
   }
-  if (eventType === 'engagement.cheer') return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1), ...(clean(relay.message) === '' ? {} : { message: clean(relay.message) }) } };
+  if (eventType === 'engagement.cheer') return { ...common, payload: {
+    quantity: positiveInteger(relay.quantity, 1),
+    ...(clean(relay.message) === '' ? {} : { message: clean(relay.message) }),
+    ...(clean(relay.powerUpType) === '' ? {} : { powerUpType: clean(relay.powerUpType) }),
+    ...(clean(relay.counter) === '' ? {} : { counter: nonNegativeInteger(relay.counter, 0) }),
+    ...(clean(relay.tempCounter) === '' ? {} : { tempCounter: nonNegativeInteger(relay.tempCounter, 0) }),
+    ...(clean(relay.userCounter) === '' ? {} : { userCounter: nonNegativeInteger(relay.userCounter, 0) }),
+    ...(clean(relay.tempUserCounter) === '' ? {} : { tempUserCounter: nonNegativeInteger(relay.tempUserCounter, 0) }),
+    ...(clean(relay.eventTimestamp) === '' ? {} : { eventTimestamp: clean(relay.eventTimestamp) }),
+  } };
   if (eventType === 'engagement.super-chat') {
     const amount = decimalString(relay.amount);
     const currency = currencyCode(relay.currency);
@@ -183,6 +209,28 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
         ...(clean(relay.message) === '' ? (clean(relay.charityDonationMessage) === '' ? {} : { message: clean(relay.charityDonationMessage) }) : { message: clean(relay.message) }),
         ...(clean(relay.itemCount) === '' ? {} : { itemCount: positiveInteger(relay.itemCount, 0) }),
         ...(clean(relay.item0) === '' ? {} : { item0: clean(relay.item0) }),
+        ...(relay.items.length === 0 ? {} : { items: relay.items.map(clean).filter((item) => item !== '') }),
+        ...(clean(relay.eventTimestamp) === '' ? {} : { eventTimestamp: clean(relay.eventTimestamp) }),
+        ...(clean(relay.isPublic) === '' ? {} : { isPublic: booleanString(relay.isPublic) }),
+      },
+    };
+  }
+  if (eventType === 'engagement.purchase') {
+    const amount = decimalString(relay.amount);
+    const currency = currencyCode(relay.currency);
+    const itemName = clean(relay.merchandiseProduct) || clean(relay.item0) || clean(relay.itemName) || 'Purchase';
+    return {
+      ...common,
+      payload: {
+        itemName,
+        quantity: positiveInteger(relay.itemCount, 1),
+        ...(amount === undefined ? {} : { amount }),
+        ...(currency === undefined ? {} : { currency }),
+        ...(clean(relay.message) === '' ? (clean(relay.merchandiseMessage) === '' ? {} : { message: clean(relay.merchandiseMessage) }) : { message: clean(relay.message) }),
+        ...(clean(relay.merchandiseImageUrl) === '' ? {} : { imageUrl: clean(relay.merchandiseImageUrl) }),
+        ...(relay.items.length === 0 ? {} : { items: relay.items.map(clean).filter((item) => item !== '') }),
+        ...(clean(relay.eventTimestamp) === '' ? {} : { eventTimestamp: clean(relay.eventTimestamp) }),
+        ...(clean(relay.isPublic) === '' ? {} : { isPublic: booleanString(relay.isPublic) }),
       },
     };
   }
@@ -198,6 +246,7 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
       ...(clean(relay.hasVisualEffect) === '' ? {} : { hasVisualEffect: clean(relay.hasVisualEffect).toLowerCase() === 'true' }),
       ...(clean(relay.isCombo) === '' ? {} : { isCombo: clean(relay.isCombo).toLowerCase() === 'true' }),
       ...(clean(relay.comboCount) === '' ? {} : { comboCount: positiveInteger(relay.comboCount, 0) }),
+      ...(clean(relay.eventTimestamp) === '' ? {} : { eventTimestamp: clean(relay.eventTimestamp) }),
     };
     return { ...common, payload };
   }
@@ -220,9 +269,11 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     };
   }
   if (eventType === 'engagement.milestone') {
-    const metric = 'hype-train';
+    const metric = relay.sourceEventType === 'TwitchModiversary' ? 'modiversary' : 'hype-train';
     const level = parseInt(relay.hypeTrainLevel, 10);
-    const value = Number.isSafeInteger(level) && level >= 0 ? level : 1;
+    const value = relay.sourceEventType === 'TwitchModiversary'
+      ? positiveInteger(relay.months, 1)
+      : Number.isSafeInteger(level) && level >= 0 ? level : 1;
     if (relay.sourceEventType === 'TwitchWatchStreak') {
       return {
         ...common,
@@ -249,6 +300,8 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
         ...(clean(relay.hypeTrainTopBitsUserName) === '' ? {} : { hypeTrainTopBitsUserName: clean(relay.hypeTrainTopBitsUserName) }),
         ...(clean(relay.hypeTrainTopBitsUserId) === '' ? {} : { hypeTrainTopBitsUserId: clean(relay.hypeTrainTopBitsUserId) }),
         ...(clean(relay.hypeTrainTopBitsTotal) === '' ? {} : { hypeTrainTopBitsTotal: clean(relay.hypeTrainTopBitsTotal) }),
+        ...(clean(relay.eventTimestamp) === '' ? {} : { eventTimestamp: clean(relay.eventTimestamp) }),
+        ...(clean(relay.fromSharedChat) === '' ? {} : { fromSharedChat: booleanString(relay.fromSharedChat) }),
       },
     };
   }
@@ -259,9 +312,9 @@ function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {
   const type = relay.sourceEventType;
   if (['TwitchChatMessage', 'YouTubeMessage', 'KickChatMessage'].includes(type)) return 'chat.message';
   if (['TwitchFollow', 'YouTubeNewSubscriber', 'KickFollow'].includes(type)) return 'channel.follow';
-  if (['TwitchSub', 'TwitchReSub', 'TwitchGiftPaidUpgrade', 'TwitchPayItForward', 'TwitchPrimePaidUpgrade', 'TwitchModiversary', 'KickSubscription', 'KickResubscription'].includes(type)) return 'channel.subscription';
+  if (['TwitchSub', 'TwitchReSub', 'TwitchGiftPaidUpgrade', 'TwitchPrimePaidUpgrade', 'KickSubscription', 'KickResubscription'].includes(type)) return 'channel.subscription';
   if (['YouTubeNewSponsor', 'YouTubeMemberMileStone'].includes(type)) return 'channel.membership';
-  if (['TwitchGiftSub', 'TwitchGiftBomb', 'YouTubeMembershipGift', 'KickGiftSubscription', 'KickMassGiftSubscription'].includes(type)) return 'channel.gift-subscription';
+  if (['TwitchGiftSub', 'TwitchGiftBomb', 'TwitchPayItForward', 'YouTubeMembershipGift', 'KickGiftSubscription', 'KickMassGiftSubscription'].includes(type)) return 'channel.gift-subscription';
   if (type === 'TwitchCheer') return 'engagement.cheer';
   if (type === 'TwitchPowerUpRedemption') return 'engagement.cheer';
   if (['YouTubeSuperChat', 'YouTubeSuperSticker'].includes(type)) return 'engagement.super-chat';
@@ -270,12 +323,13 @@ function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {
   if (type === 'TwitchRaid') return 'channel.raid';
   if (type === 'TwitchHypeTrainStart' || type === 'TwitchHypeTrainLevelUp' || type === 'TwitchHypeTrainUpdate' || type === 'TwitchHypeTrainEnd') return 'engagement.milestone';
   if (type === 'TwitchWatchStreak') return 'engagement.milestone';
+  if (type === 'TwitchModiversary') return 'engagement.milestone';
   if (type === 'TwitchAdRun') return 'system.custom';
   if (type === 'TwitchUpcomingAd') return 'system.custom';
-  if (type === 'StreamlabsMerchandise') return 'system.custom';
+  if (type === 'StreamlabsMerchandise') return 'engagement.purchase';
   if (type === 'StreamlabsDonation' || type === 'StreamlabsCharityDonation' || type === 'KofiDonation' || type === 'KofiCommission') return 'engagement.donation';
   if (type === 'KofiResubscription' || type === 'KofiSubscription') return 'channel.subscription';
-  if (type === 'KofiShopOrder') return 'engagement.donation';
+  if (type === 'KofiShopOrder') return 'engagement.purchase';
   throw new Error(`Unsupported native Streamer.bot event type: ${type}`);
 }
 
@@ -296,6 +350,14 @@ function normalizedRoles(relay: NativeRelay): string[] {
 
 function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim(); }
 function positiveInteger(value: string, fallback: number): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback; }
+function nonNegativeInteger(value: string, fallback: number): number { const parsed = Number(value); return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : fallback; }
+function booleanString(value: string): boolean { return clean(value).toLowerCase() === 'true'; }
 function decimalString(value: string): string | undefined { const cleaned = clean(value); return /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/.test(cleaned) ? cleaned : undefined; }
 function currencyCode(value: string): string | undefined { const cleaned = clean(value).toUpperCase(); return /^[A-Z]{3}$/.test(cleaned) ? cleaned : undefined; }
 function validHttps(value: string): string | undefined { try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : undefined; } catch { return undefined; } }
+
+function subscriptionLifecycle(sourceEventType: string): Readonly<Record<string, 'new' | 'renewal' | 'upgrade'>> {
+  if (['TwitchReSub', 'KickResubscription', 'KofiResubscription'].includes(sourceEventType)) return { subscriptionKind: 'renewal' };
+  if (['TwitchGiftPaidUpgrade', 'TwitchPrimePaidUpgrade'].includes(sourceEventType)) return { subscriptionKind: 'upgrade' };
+  return { subscriptionKind: 'new' };
+}

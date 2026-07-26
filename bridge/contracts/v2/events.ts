@@ -6,7 +6,7 @@ export const CORE_EVENT_TYPE_VALUES_V2 = [
   'command.received', 'command.private-received', 'operator.command-received',
   'channel.follow', 'channel.subscription', 'channel.membership', 'channel.gift-subscription',
   'engagement.gift', 'engagement.donation', 'engagement.cheer', 'engagement.super-chat',
-  'engagement.super-sticker', 'channel.raid', 'engagement.milestone',
+  'engagement.super-sticker', 'engagement.purchase', 'channel.raid', 'engagement.milestone',
   'reward.redemption', 'moderation.action', 'stream.online', 'stream.offline', 'system.custom', 'system.timed',
 ] as const;
 
@@ -16,7 +16,7 @@ export const coreEventTypeV2Schema = z.union([z.enum(CORE_EVENT_TYPE_VALUES_V2),
 const sourceIdRequired = new Set<string>([
   'channel.follow', 'channel.subscription', 'channel.membership', 'channel.gift-subscription',
   'engagement.gift', 'engagement.donation', 'engagement.cheer', 'engagement.super-chat',
-  'engagement.super-sticker', 'channel.raid', 'engagement.milestone', 'reward.redemption',
+  'engagement.super-sticker', 'engagement.purchase', 'channel.raid', 'engagement.milestone', 'reward.redemption',
 ]);
 
 export const normalizedEventV2Schema = z.object({
@@ -41,4 +41,3 @@ export const normalizedEventV2Schema = z.object({
 });
 
 export type NormalizedEventV2 = z.infer<typeof normalizedEventV2Schema>;
-

@@ -3,13 +3,20 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Maintains one bounded multi-platform subathon countdown that decreases over time and increases from selected live events.",
-  "changelog": "1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
+  "changelog": "1.2.0: added creator-controlled Bits and Power-Up thresholds, verified same-currency Streamlabs and Ko-fi financial awards, deduplicated Hype Train level awards, Watch Streak and Modiversary settings, simulated-event protection, and bounded session counters. 1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
   "permissions": ["events.subscribe", "overlay.publish", "schedule.bounded", "state.private"],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.subathon-timer",
     "name": "Subathon Timer",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -23,10 +30,14 @@
       "channel.membership",
       "channel.gift-subscription",
       "engagement.gift",
+      "engagement.cheer",
+      "engagement.donation",
+      "engagement.purchase",
       "engagement.milestone",
       "channel.raid",
       "command.received",
-      "system.custom"
+      "system.custom",
+      "addon.thsv.subathon-timer.control"
     ],
     "commandsProvided": [
       { "id": "subathon-timer.start", "name": "subathon-start" },
@@ -36,16 +47,15 @@
       { "id": "subathon-timer.add-time", "name": "subathon-addtime" }
     ],
     "actionsProvided": [],
-    "browserSourcesProvided": [
-      { "id": "subathon-timer.overlay", "name": "Subathon Timer Overlay", "path": "/overlay/addons/thsv.subathon-timer" }
-    ],
+    "browserSourcesProvided": [],
     "dataStorageOwned": ["data/addons/thsv.subathon-timer/", "data/addons/.state/thsv.subathon-timer/"],
     "installationSteps": [
       "Install and enable the add-on, then choose your starting time, cap, and per-event bonuses.",
       "Use stream.online and stream.offline from your connected platform relays so the timer starts and pauses from real live state.",
-      "Import or create Streamer.bot actions that send normalized system.custom control events for start, pause, resume, reset, or add-time when you change scenes or press buttons.",
+      "Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-1.2.0.sb package for Start, Pause, Resume, Reset, and Add Time actions.",
+      "Attach those optional control actions to hotkeys, scene triggers, or buttons in Streamer.bot. The imported actions relay only bounded local timer controls.",
       "Optional: enable the moderator commands if you also want chat-based controls.",
-      "This release also includes a dedicated browser-source route and creator-editable timer styling.",
+      "Use the core-owned hosted add-on overlay URL shown in the wizard. It renders the timer without executing add-on-supplied browser code.",
       "The timer uses only normalized StreamBridge events. It does not invent a separate Streamer.bot timer or external API dependency."
     ],
     "uninstallationSteps": [
@@ -59,12 +69,9 @@
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
-    { "path": "dist/index.js", "size": 19907, "sha256": "500d9446a0715a5e52e84e5d70866211634e52be5771f033f803a53ae9f9e73b" },
-    { "path": "schemas/config.json", "size": 6412, "sha256": "9e83f4172c6418bca9fd1c4546c2a083a1c8f5eb31e7e17e8c075f15fb0b7ed9" },
-    { "path": "ui/settings.json", "size": 5964, "sha256": "e831de27791e08fc357ccee9bf0588fbc0bd5f860d0233df3a1607e34618f94b" },
-    { "path": "overlay/index.html", "size": 902, "sha256": "53746ced81df30bc1b100f34b78ca3fbf056f0354eeb0d45fc35f743b3400721" },
-    { "path": "overlay/styles.css", "size": 3613, "sha256": "8b657e40bdbf88a91047ee29db6e8f627d6147ac4cca751ec1cab6e6a17dec6a" },
-    { "path": "overlay/app.js", "size": 5398, "sha256": "58d9ec4602dea2ff47269e1a3e8d6609fe94400dcd66736ffc771ea77e869fed" },
-    { "path": "README.md", "size": 1486, "sha256": "ba8b859c772a53a6db2bf73c5f74c4c2dbaae588cf6e6524425afd308fa0ae90" }
+    { "path": "dist/index.js", "size": 24808, "sha256": "542427a83376604fecade698d8db51eb8437b75ec7a92c8e2a1a6624da11cded" },
+    { "path": "schemas/config.json", "size": 8780, "sha256": "caaed9ac3f06dd6bb6e07ec064bc99b5bf7230ffa0a3cd30d1abcf46fe197c27" },
+    { "path": "ui/settings.json", "size": 7130, "sha256": "cfa245482acc4ed9aad9a45ec69cca4824ec02e9b3e767f27a9130e439455923" },
+    { "path": "README.md", "size": 2923, "sha256": "34e9b19d4756ec1d7044517bb57af9b23c58f4419e43e5d4d62dfdb25a2bf833" }
   ]
 }

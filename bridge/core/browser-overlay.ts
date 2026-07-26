@@ -25,7 +25,7 @@ export type BrowserOverlayEvent =
 export class InvalidBrowserOverlayEventError extends Error {}
 
 const HIGH_PRIORITY_ALERTS = new Set(['donation', 'cheer', 'super-chat', 'raid']);
-const NORMAL_PRIORITY_ALERTS = new Set(['subscription', 'membership', 'gift-subscription', 'gift', 'milestone']);
+const NORMAL_PRIORITY_ALERTS = new Set(['subscription', 'membership', 'gift-subscription', 'gift', 'purchase', 'milestone']);
 const MESSAGE_REMOVAL_ACTIONS = new Set(['delete-message', 'message-delete', 'remove-message']);
 
 export function projectBrowserOverlayEvent(event: NormalizedEvent): BrowserOverlayEvent | undefined {

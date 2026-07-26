@@ -20,6 +20,7 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .alerts { position: absolute; top: 9vh; left: 50%; width: min(680px, 70vw); transform: translateX(-50%); }
 .alert { position: relative; padding: 22px 28px; overflow: hidden; border: 1px solid rgba(255,255,255,.18); border-radius: 22px; background: linear-gradient(135deg, rgba(42,25,69,.94), rgba(15,28,38,.92)); box-shadow: 0 24px 90px rgba(0,0,0,.42); text-align: center; animation: alert-in .38s cubic-bezier(.2,.8,.2,1) both; }
 .alert::before { position: absolute; inset: 0 auto 0 0; width: 6px; background: var(--violet); content: ""; }
+.alert-avatar { width: clamp(52px, 5vw, 78px); height: clamp(52px, 5vw, 78px); margin: 0 auto 8px; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; object-fit: cover; }
 .alert.priority-high::before { background: #ffca62; }
 .alert h2 { margin: 5px 0; font-size: clamp(24px, 3vw, 43px); text-transform: capitalize; }
 .alert p { margin: 8px 0 0; color: #ddd5e9; font-size: clamp(16px, 1.5vw, 23px); }

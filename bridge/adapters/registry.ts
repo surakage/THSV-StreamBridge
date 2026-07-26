@@ -125,5 +125,13 @@ function nativeCapabilities(platform: string): InputProviderCapabilities {
   if (platform === 'kick') return {
     legacy: ['chatInput', 'follows', 'subscriptions', 'gifts'], supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions'], verification: 'verified', limitations: [],
   };
+  if (platform === 'streamlabs') return {
+    legacy: ['donations'], supported: ['donations'], verification: 'verified',
+    limitations: ['Streamer.bot supplies Streamlabs donation, charity donation, and merchandise triggers; Streamlabs must be connected in Streamer.bot first.'],
+  };
+  if (platform === 'kofi') return {
+    legacy: ['subscriptions', 'donations'], supported: ['subscriptions', 'donations'], verification: 'verified',
+    limitations: ['Streamer.bot supplies Ko-fi donation, commission, subscription, resubscription, and shop-order triggers; Ko-fi must be connected in Streamer.bot first.'],
+  };
   return { legacy: [], supported: [], verification: 'unverified', limitations: [`Streamer.bot native intake is not implemented for ${platform}.`] };
 }

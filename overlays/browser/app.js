@@ -139,6 +139,14 @@
 
   function buildAlertCard(alert) {
     const card = element('article', `alert priority-${alert.priority}`);
+    if (alert.presentation && alert.presentation.avatarUrl) {
+      const avatar = element('img', 'alert-avatar');
+      avatar.src = alert.presentation.avatarUrl;
+      avatar.alt = '';
+      avatar.referrerPolicy = 'no-referrer';
+      avatar.addEventListener('error', () => avatar.remove(), { once: true });
+      card.append(avatar);
+    }
     card.append(element('span', 'alert-platform', alert.platform.toUpperCase()));
     card.append(element('h2', '', alertTitle(alert)));
     const detail = alertDetail(alert);
@@ -156,16 +164,46 @@
 
   function alertTitle(alert) {
     const actor = alert.actor ? alert.actor.displayName : 'The community';
-    return `${actor} · ${alert.alertType.replaceAll('-', ' ')}`;
+    const titles = {
+      TwitchPowerUpRedemption: `${actor} used a Power-Up`,
+      TwitchModiversary: `${actor}'s Modiversary`,
+      TwitchWatchStreak: `${actor} reached a watch streak`,
+      TwitchHypeTrainStart: 'Hype Train started',
+      TwitchHypeTrainLevelUp: 'Hype Train leveled up',
+      TwitchHypeTrainUpdate: 'Hype Train progress',
+      TwitchHypeTrainEnd: 'Hype Train completed',
+      YouTubeJewelsGifted: `${actor} sent YouTube Jewels`,
+      StreamlabsCharityDonation: `${actor} supported the charity`,
+      StreamlabsMerchandise: `${actor} purchased merchandise`,
+      KofiCommission: `${actor} placed a commission`,
+      KofiSubscription: `${actor} joined on Ko-fi`,
+      KofiResubscription: `${actor} renewed on Ko-fi`,
+      KofiShopOrder: `${actor} placed a Ko-fi order`,
+    };
+    return titles[alert.sourceEventType] || `${actor} - ${alert.alertType.replaceAll('-', ' ')}`;
   }
 
   function alertDetail(alert) {
+    const details = alert.details || {};
+    if (alert.sourceEventType === 'TwitchPowerUpRedemption') {
+      const type = details.powerUpType ? String(details.powerUpType).replaceAll('_', ' ') : 'Power-Up';
+      return [alert.quantity ? `${alert.quantity} Bits` : '', type, alert.message].filter(Boolean).join(' - ');
+    }
+    if (alert.sourceEventType === 'YouTubeJewelsGifted') {
+      return [alert.quantity ? `${alert.quantity} Jewels` : '', alert.itemName, details.isCombo && details.comboCount ? `Combo x${details.comboCount}` : ''].filter(Boolean).join(' - ');
+    }
+    if (alert.sourceEventType && alert.sourceEventType.startsWith('TwitchHypeTrain')) {
+      return [alert.value !== undefined ? `Level ${alert.value}` : '', details.hypeTrainPercent, details.hypeTrainContributors ? `${details.hypeTrainContributors} contributor(s)` : ''].filter(Boolean).join(' - ');
+    }
+    if (alert.sourceEventType === 'TwitchModiversary') return `${alert.value || 1} month${alert.value === 1 ? '' : 's'}`;
     if (alert.subscription) {
       const parts = [alert.subscription.kind, alert.subscription.months ? `${alert.subscription.months} months` : '', alert.subscription.streakMonths ? `${alert.subscription.streakMonths} month streak` : '', alert.subscription.gifterName ? `gifted by ${alert.subscription.gifterName}` : ''].filter(Boolean);
-      if (parts.length) return parts.join(' · ');
+      if (alert.amount && alert.currency) parts.push(`${alert.amount} ${alert.currency}`);
+      if (alert.message) parts.push(alert.message);
+      if (parts.length) return parts.join(' - ');
     }
-    if (alert.amount && alert.currency) return `${alert.amount} ${alert.currency}${alert.message ? ` · ${alert.message}` : ''}`;
-    if (alert.quantity) return `${alert.quantity}${alert.itemName ? ` × ${alert.itemName}` : ''}`;
+    if (alert.amount && alert.currency) return `${alert.amount} ${alert.currency}${alert.message ? ` - ${alert.message}` : ''}`;
+    if (alert.quantity) return `${alert.quantity}${alert.itemName ? ` x ${alert.itemName}` : ''}${alert.message ? ` - ${alert.message}` : ''}`;
     return alert.message || alert.tier || (alert.value !== undefined ? `${alert.metric}: ${alert.value}` : '');
   }
 

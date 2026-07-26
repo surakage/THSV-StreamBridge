@@ -33,6 +33,16 @@ describe('bridge configuration', () => {
     expect(result.success).toBe(true);
   });
 
+  it('materializes disabled Streamlabs and Ko-fi integrations for existing configurations', async () => {
+    const config = await testConfig();
+    const platforms = { ...config.platforms };
+    delete platforms['streamlabs'];
+    delete platforms['kofi'];
+    const parsed = bridgeConfigSchema.parse({ ...config, platforms });
+    expect(parsed.platforms['streamlabs']).toMatchObject({ enabled: false, adapter: 'streamerbot-native', capabilities: ['donations'] });
+    expect(parsed.platforms['kofi']).toMatchObject({ enabled: false, adapter: 'streamerbot-native', capabilities: ['subscriptions', 'donations'] });
+  });
+
   it('requires explicit secure opt-in for remote Streamer.bot egress', async () => {
     const config = await testConfig();
     const implicit = bridgeConfigSchema.safeParse({ ...config, streamerbot: { ...config.streamerbot, url: 'wss://remote.example/socket', allowRemote: false } });

@@ -1,10 +1,23 @@
 # Subathon Timer
 
+Version 1.2 tracks normalized events from Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi while keeping every new award creator-controlled:
+
+- YouTube Jewels and other normalized gifts use the existing per-gift-unit setting.
+- Twitch Bits and Custom Power-Ups accumulate through a configurable threshold without repeating completed thresholds.
+- Streamlabs/Ko-fi donations and purchases can award time only in one selected currency; no currency conversion is inferred.
+- Financial events require a verified provider event ID by default.
+- Hype Train levels are counted once per train and level. Watch Streak and Modiversary awards are separate settings.
+- Streamer.bot test events do not alter the timer unless the creator explicitly enables them.
+
+New financial and Twitch milestone award values default to `0`, so upgrading cannot unexpectedly change a running timer. The add-on stores bounded counters only; it does not retain viewer identities, messages, purchase items, or payout records.
+
 This add-on keeps one bounded cross-platform subathon countdown using normalized StreamBridge events.
 
-## Streamer.bot control events
+## Streamer.bot controls
 
-If you want Streamer.bot actions, scene changes, or buttons to control the timer, send a normalized `system.custom` event through your existing StreamBridge intake path with:
+Import `THSV-StreamBridge-Subathon-Timer-1.1.0.sb` from this add-on's release bundle. It creates Start, Pause, Resume, Reset, and Add Time actions inside `THSV StreamBridge - Add-ons`. Attach them to hotkeys, deck buttons, or scene triggers. Add Time defaults to 300 seconds; edit that action's Set Argument value when you need a different amount.
+
+The imported actions send a tightly scoped local `addon.thsv.subathon-timer.control` relay. The older normalized `system.custom` shape remains supported for compatibility:
 
 - `eventType`: `system.custom`
 - `platform`: `streamerbot`
@@ -36,8 +49,8 @@ Example payload:
 
 ## Overlay note
 
-This release is paired with a bridge-side hosted route at:
+The core-owned, allowlisted add-on overlay host renders the timer at:
 
 - `http://127.0.0.1:8787/overlay/addons/thsv.subathon-timer`
 
-The add-on settings now let the creator change the overlay font family, background mode, background opacity, border color, accent color, warning and critical colors, and whether the progress bar is shown.
+The add-on settings let the creator change the overlay font family, background mode, background opacity, border color, accent color, warning and critical colors, and whether the progress bar is shown. The add-on publishes only bounded data; its package does not execute custom browser code.

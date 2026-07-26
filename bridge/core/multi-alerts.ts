@@ -3,7 +3,7 @@ import type { JsonValue, NormalizedEvent } from '../../schemas/event.js';
 export const MULTI_ALERTS_CONTRACT_VERSION = '1.0.0';
 export const MULTI_ALERTS_MAX_TEXT_LENGTH = 500;
 
-export type MultiAlertType = 'follow' | 'subscription' | 'membership' | 'gift-subscription' | 'gift' | 'donation' | 'cheer' | 'super-chat' | 'raid' | 'milestone';
+export type MultiAlertType = 'follow' | 'subscription' | 'membership' | 'gift-subscription' | 'gift' | 'donation' | 'purchase' | 'cheer' | 'super-chat' | 'raid' | 'milestone';
 
 const ALERT_TYPES: Readonly<Partial<Record<string, MultiAlertType>>> = {
   'channel.follow': 'follow',
@@ -12,6 +12,7 @@ const ALERT_TYPES: Readonly<Partial<Record<string, MultiAlertType>>> = {
   'channel.gift-subscription': 'gift-subscription',
   'engagement.gift': 'gift',
   'engagement.donation': 'donation',
+  'engagement.purchase': 'purchase',
   'engagement.cheer': 'cheer',
   'engagement.super-chat': 'super-chat',
   'channel.raid': 'raid',
@@ -25,6 +26,7 @@ export interface MultiAlert {
   readonly sequence: number;
   readonly visibility: 'public';
   readonly alertType: MultiAlertType;
+  readonly sourceEventType: string;
   readonly platform: string;
   readonly channel: { readonly id?: string; readonly name: string };
   readonly actor?: {
@@ -42,6 +44,7 @@ export interface MultiAlert {
   readonly message?: string;
   readonly metric?: string;
   readonly value?: number;
+  readonly details: Readonly<Record<string, JsonValue>>;
   readonly simulated: boolean;
   readonly verifiedTransport: boolean;
   readonly unverifiedFields: readonly string[];
@@ -69,8 +72,8 @@ export function projectMultiAlert(event: NormalizedEvent): MultiAlert | undefine
   if ((alertType === 'donation' || alertType === 'super-chat') && (amount === undefined || currency === undefined)) {
     throw new InvalidMultiAlertError(`${event.eventType} requires decimal-string payload.amount and ISO payload.currency.`);
   }
-  if (alertType === 'gift' && (itemName === undefined || quantity === undefined)) {
-    throw new InvalidMultiAlertError('engagement.gift requires payload.itemName and positive integer payload.quantity.');
+  if ((alertType === 'gift' || alertType === 'purchase') && (itemName === undefined || quantity === undefined)) {
+    throw new InvalidMultiAlertError(`${event.eventType} requires payload.itemName and positive integer payload.quantity.`);
   }
   if ((alertType === 'gift-subscription' || alertType === 'raid') && quantity === undefined) {
     throw new InvalidMultiAlertError(`${event.eventType} requires positive integer payload.quantity.`);
@@ -90,6 +93,7 @@ export function projectMultiAlert(event: NormalizedEvent): MultiAlert | undefine
     sequence,
     visibility: 'public',
     alertType,
+    sourceEventType: event.source.eventName,
     platform: event.platform,
     channel: { ...(event.channel.id === undefined ? {} : { id: event.channel.id }), name: event.channel.name },
     ...(event.user === undefined ? {} : { actor: {
@@ -107,6 +111,7 @@ export function projectMultiAlert(event: NormalizedEvent): MultiAlert | undefine
     ...(message === undefined ? {} : { message }),
     ...(metric === undefined ? {} : { metric }),
     ...(value === undefined ? {} : { value }),
+    details: alertDetails(event.payload),
     simulated: event.metadata.simulated,
     verifiedTransport: unverifiedFields.length === 0,
     unverifiedFields,
@@ -162,4 +167,18 @@ function readOptionalIdentifier(payload: Readonly<Record<string, JsonValue>>, ke
   if (value === undefined) return undefined;
   if (typeof value !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/u.test(value)) throw new InvalidMultiAlertError(`payload.${key} must be a lowercase identifier.`);
   return value;
+}
+
+const ALERT_DETAIL_KEYS = new Set([
+  'subscriptionKind', 'months', 'streakMonths', 'gifted', 'gifterName', 'fromSharedChat',
+  'powerUpType', 'counter', 'tempCounter', 'userCounter', 'tempUserCounter', 'eventTimestamp',
+  'giftUrl', 'durationInSeconds', 'altText', 'altTextLanguage', 'hasVisualEffect', 'isCombo', 'comboCount',
+  'hypeTrainId', 'hypeTrainStartedAt', 'hypeTrainExpiresAt', 'hypeTrainDuration', 'hypeTrainPercent',
+  'hypeTrainPercentDecimal', 'hypeTrainContributors', 'hypeTrainPrevLevel', 'hypeTrainTopBitsUser',
+  'hypeTrainTopBitsUserName', 'hypeTrainTopBitsUserId', 'hypeTrainTopBitsTotal',
+  'itemCount', 'item0', 'items', 'imageUrl', 'isPublic',
+]);
+
+function alertDetails(payload: Readonly<Record<string, JsonValue>>): Readonly<Record<string, JsonValue>> {
+  return Object.fromEntries(Object.entries(payload).filter(([key]) => ALERT_DETAIL_KEYS.has(key)));
 }

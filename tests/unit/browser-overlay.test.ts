@@ -67,6 +67,10 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("console.warn('Skipped an alert that could not be rendered.'");
     expect(source).toContain("avatar.addEventListener('error', () => avatar.remove()");
     expect(source).toContain('brandLabel.textContent = clientConfig.brandLabel');
+    expect(source).toContain("TwitchPowerUpRedemption: `${actor} used a Power-Up`");
+    expect(source).toContain("YouTubeJewelsGifted: `${actor} sent YouTube Jewels`");
+    expect(source).toContain("StreamlabsMerchandise: `${actor} purchased merchandise`");
+    expect(source).toContain("const avatar = element('img', 'alert-avatar')");
     expect(source).toContain('connectDirectly');
     expect(worker.match(/new WebSocket/gu)).toHaveLength(1);
     expect(worker).toContain('for (const port of ports)');

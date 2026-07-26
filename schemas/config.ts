@@ -238,6 +238,13 @@ export const bridgeConfigSchema = z.preprocess((input) => {
   delete migrated['meldOverlay'];
   delete migrated['viewerIdentity'];
   delete migrated['companion'];
+  if (migrated['platforms'] !== null && typeof migrated['platforms'] === 'object' && !Array.isArray(migrated['platforms'])) {
+    const platforms = { ...(migrated['platforms'] as Record<string, unknown>) };
+    const reconnect = { enabled: true, initialDelayMs: 500, maxDelayMs: 30_000, maxAttempts: 8 };
+    if (platforms['streamlabs'] === undefined) platforms['streamlabs'] = { enabled: false, inputEnabled: true, outputEnabled: false, adapter: 'streamerbot-native', capabilities: ['donations'], reconnect };
+    if (platforms['kofi'] === undefined) platforms['kofi'] = { enabled: false, inputEnabled: true, outputEnabled: false, adapter: 'streamerbot-native', capabilities: ['subscriptions', 'donations'], reconnect };
+    migrated['platforms'] = platforms;
+  }
   return migrated;
 }, bridgeConfigObjectSchema);
 

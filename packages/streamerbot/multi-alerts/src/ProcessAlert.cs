@@ -24,6 +24,7 @@ public class CPHInline
         if (!CPH.TryGetArg("streamBridgeReceivedAt", out string receivedAt) || string.IsNullOrWhiteSpace(receivedAt)) return Fail("Missing validated streamBridgeReceivedAt.");
         if (!CPH.TryGetArg("streamBridgeSequence", out long sequence) || sequence <= 0) return Fail("Missing validated positive streamBridgeSequence.");
         if (!CPH.TryGetArg("streamBridgePlatform", out string platform) || string.IsNullOrWhiteSpace(platform)) return Fail("Missing validated streamBridgePlatform.");
+        if (!CPH.TryGetArg("streamBridgeSourceEventType", out string sourceEventType) || string.IsNullOrWhiteSpace(sourceEventType)) return Fail("Missing validated streamBridgeSourceEventType.");
         if (!CPH.TryGetArg("streamBridgeChannelName", out string channelName) || string.IsNullOrWhiteSpace(channelName)) return Fail("Missing validated streamBridgeChannelName.");
         if (!CPH.TryGetArg("streamBridgePayload", out string payloadJson) || string.IsNullOrWhiteSpace(payloadJson)) return Fail("Missing validated streamBridgePayload.");
 
@@ -56,7 +57,7 @@ public class CPHInline
 
         if ((alertType == "donation" || alertType == "super-chat") && (amount.Length == 0 || currency.Length == 0))
             return Fail(eventType + " requires decimal-string payload.amount and ISO payload.currency.");
-        if (alertType == "gift" && (itemName.Length == 0 || quantity <= 0)) return Fail("engagement.gift requires payload.itemName and positive integer payload.quantity.");
+        if ((alertType == "gift" || alertType == "purchase") && (itemName.Length == 0 || quantity <= 0)) return Fail(eventType + " requires payload.itemName and positive integer payload.quantity.");
         if ((alertType == "gift-subscription" || alertType == "raid") && quantity <= 0) return Fail(eventType + " requires positive integer payload.quantity.");
         if (alertType == "cheer" && quantity <= 0 && amount.Length == 0) return Fail("engagement.cheer requires payload.quantity or payload.amount.");
         if (alertType == "milestone" && (metric.Length == 0 || value < 0)) return Fail("engagement.milestone requires payload.metric and non-negative integer payload.value.");
@@ -73,6 +74,7 @@ public class CPHInline
         CPH.SetArgument("multiAlertSequence", sequence);
         CPH.SetArgument("multiAlertVisibility", "public");
         CPH.SetArgument("multiAlertType", alertType);
+        CPH.SetArgument("multiAlertSourceEventType", sourceEventType);
         CPH.SetArgument("multiAlertPlatform", platform);
         CPH.SetArgument("multiAlertChannelId", ReadOptionalArgument("streamBridgeChannelId"));
         CPH.SetArgument("multiAlertChannelName", channelName);
@@ -90,6 +92,7 @@ public class CPHInline
         CPH.SetArgument("multiAlertMessage", message);
         CPH.SetArgument("multiAlertMetric", metric);
         CPH.SetArgument("multiAlertValue", value);
+        CPH.SetArgument("multiAlertDetails", ReadAlertDetails(payload).ToString(Formatting.None));
         CPH.SetArgument("multiAlertSimulated", ReadBooleanArgument("streamBridgeSimulated"));
         CPH.SetArgument("multiAlertVerifiedTransport", unverifiedFields.Count == 0);
         CPH.SetArgument("multiAlertUnverifiedFields", unverifiedFields.ToString(Formatting.None));
@@ -109,6 +112,7 @@ public class CPHInline
         CPH.SetArgument("multiAlertSequence", 0L);
         CPH.SetArgument("multiAlertVisibility", string.Empty);
         CPH.SetArgument("multiAlertType", string.Empty);
+        CPH.SetArgument("multiAlertSourceEventType", string.Empty);
         CPH.SetArgument("multiAlertPlatform", string.Empty);
         CPH.SetArgument("multiAlertChannelId", string.Empty);
         CPH.SetArgument("multiAlertChannelName", string.Empty);
@@ -126,6 +130,7 @@ public class CPHInline
         CPH.SetArgument("multiAlertMessage", string.Empty);
         CPH.SetArgument("multiAlertMetric", string.Empty);
         CPH.SetArgument("multiAlertValue", -1L);
+        CPH.SetArgument("multiAlertDetails", "{}");
         CPH.SetArgument("multiAlertSimulated", false);
         CPH.SetArgument("multiAlertVerifiedTransport", false);
         CPH.SetArgument("multiAlertUnverifiedFields", "[]");
@@ -176,11 +181,32 @@ public class CPHInline
         if (eventType == "channel.gift-subscription") return "gift-subscription";
         if (eventType == "engagement.gift") return "gift";
         if (eventType == "engagement.donation") return "donation";
+        if (eventType == "engagement.purchase") return "purchase";
         if (eventType == "engagement.cheer") return "cheer";
         if (eventType == "engagement.super-chat") return "super-chat";
         if (eventType == "channel.raid") return "raid";
         if (eventType == "engagement.milestone") return "milestone";
         return null;
+    }
+
+    private static JObject ReadAlertDetails(JObject payload)
+    {
+        string[] allowed = {
+            "subscriptionKind", "months", "streakMonths", "gifted", "gifterName", "fromSharedChat",
+            "powerUpType", "counter", "tempCounter", "userCounter", "tempUserCounter", "eventTimestamp",
+            "giftUrl", "durationInSeconds", "altText", "altTextLanguage", "hasVisualEffect", "isCombo", "comboCount",
+            "hypeTrainId", "hypeTrainStartedAt", "hypeTrainExpiresAt", "hypeTrainDuration", "hypeTrainPercent",
+            "hypeTrainPercentDecimal", "hypeTrainContributors", "hypeTrainPrevLevel", "hypeTrainTopBitsUser",
+            "hypeTrainTopBitsUserName", "hypeTrainTopBitsUserId", "hypeTrainTopBitsTotal",
+            "itemCount", "item0", "items", "imageUrl", "isPublic"
+        };
+        var details = new JObject();
+        foreach (string key in allowed)
+        {
+            JToken value = payload[key];
+            if (value != null) details[key] = value.DeepClone();
+        }
+        return details;
     }
 
     private static bool ReadOptionalAmount(JObject payload, out string value)

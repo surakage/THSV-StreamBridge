@@ -51,7 +51,7 @@ function capabilityForEvent(eventType: EventType): Capability | undefined {
   if (eventType === 'channel.follow') return 'follows';
   if (['channel.subscription', 'channel.membership', 'channel.gift-subscription'].includes(eventType)) return 'subscriptions';
   if (eventType === 'engagement.gift') return 'gifts';
-  if (['engagement.donation', 'engagement.cheer', 'engagement.super-chat'].includes(eventType)) return 'donations';
+  if (['engagement.donation', 'engagement.purchase', 'engagement.cheer', 'engagement.super-chat'].includes(eventType)) return 'donations';
   if (eventType === 'channel.raid') return 'raids';
   if (eventType === 'moderation.action') return 'moderation';
   if (eventType === 'engagement.milestone') return 'engagement';
