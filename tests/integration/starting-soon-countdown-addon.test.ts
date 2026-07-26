@@ -42,4 +42,33 @@ describe('Starting Soon Countdown installed add-on', () => {
     expect(overlays.at(-1)).toMatchObject({ topic: 'thsv.starting-soon-countdown.timer.update', payload: { completed: true, playCompletionTone: true, completionMessage: 'The stream is starting now!' } });
     await registry.stop();
   });
+
+  it('dispatches one approved completion action at zero while Complete Now remains preview-only', async () => {
+    const installed = await installAddOnPackage('addons/starting-soon-countdown', addOnsRoot, true);
+    const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
+    const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.starting-soon-countdown');
+    if (!module) throw new Error('Starting Soon Countdown must load through the installed add-on path.');
+    const actionId = '11111111-1111-4111-8111-111111111111';
+    const actions: Array<{ actionId: string; argumentsValue: Record<string, unknown> }> = [];
+    const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
+      runStreamerBotAction: async (id, argumentsValue) => { actions.push({ actionId: id, argumentsValue: { ...argumentsValue } }); },
+    });
+    const registry = new ModuleRegistry([{
+      ...module,
+      settings: { durationHours: 0, durationMinutes: 0, durationSeconds: 1, runCompletionAction: true, completionActionDelaySeconds: 0, showOverlay: false },
+      capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: [actionId] },
+    }], silentLogger, 5_000, broker);
+    await registry.start();
+    await registry.publish(control('start'));
+    await new Promise((resolve) => setTimeout(resolve, 2_300));
+    const completionState = JSON.parse(await readFile(join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json'), 'utf8')) as Record<string, unknown>;
+    expect(completionState).toMatchObject({ completed: true, completionActionSent: true });
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({ actionId, argumentsValue: { countdownModule: 'thsv.starting-soon-countdown', countdownTrigger: 'completed' } });
+    await registry.publish(control('reset'));
+    await registry.publish(control('complete'));
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    expect(actions).toHaveLength(1);
+    await registry.stop();
+  });
 });

@@ -182,12 +182,14 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const countdownSettings = page.locator('[data-addon-settings="thsv.starting-soon-countdown"]');
   await expect(page.getByRole('article').getByText('Starting Soon Countdown 2.4.1', { exact: true })).toBeVisible();
-  await expect(countdownSettings.locator('summary')).toHaveCount(5);
+  await expect(countdownSettings.locator('summary')).toHaveCount(6);
   await expect(countdownSettings.locator('input[name="durationMinutes"]')).toHaveValue('10');
   await countdownSettings.locator('summary').filter({ hasText: '2. Completion' }).click();
   await expect(countdownSettings.getByLabel('Message shown when the countdown ends')).toHaveValue('The stream is starting now!');
   await expect(countdownSettings.getByLabel('Optional completion tone')).toHaveValue('soft-chime');
-  await countdownSettings.locator('summary').filter({ hasText: '3. Overlay layout' }).click();
+  await countdownSettings.locator('summary').filter({ hasText: '3. Optional scene switch' }).click();
+  await expect(countdownSettings.getByLabel('Run an approved Streamer.bot action at zero')).not.toBeChecked();
+  await countdownSettings.locator('summary').filter({ hasText: '4. Overlay layout' }).click();
   await expect(countdownSettings.getByLabel('Background style')).toHaveValue('glass');
   await expect(page.locator('[data-addon-overlay-url="thsv.starting-soon-countdown"]')).toHaveValue('http://127.0.0.1:8799/overlay/countdown');
   const countdownOverlay = await context.newPage();

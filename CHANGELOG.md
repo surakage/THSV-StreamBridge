@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Starting Soon Countdown can now run exactly one creator-approved triggerless Streamer.bot action when a real countdown reaches zero, with an optional bounded delay, at-most-once persistence, a five-minute stale-action cutoff, and preview-safe Complete Now behavior. Subathon Timer remains a separate event-driven timer.
+
 ## [2.4.1] - 2026-07-26
 
 - Added Starting Soon Countdown as a separate optional add-on with any-duration scene controls, persistent bounded state, a customizable core-hosted `/overlay/countdown` source, a custom completion message, local tone choices including silence, and seven narrowly allowlisted Streamer.bot controls: Start, Stop, Pause, Resume, Reset, Complete Now, and Set & Start.

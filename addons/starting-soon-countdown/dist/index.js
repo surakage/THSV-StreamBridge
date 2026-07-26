@@ -19,6 +19,7 @@ const manifest = {
     'Import the bundled Streamer.bot package.',
     'Attach Start to the scene-active trigger for your Starting Soon scene.',
     'Attach Stop to the scene-inactive trigger for that scene, or use Reset if the paused clock should remain visible.',
+    'Optional: approve exactly one triggerless Streamer.bot action and enable the completion action to switch scenes at zero.',
     'Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its small timer state remains available unless add-on data is explicitly deleted.'],
@@ -29,7 +30,8 @@ const manifest = {
 const FALLBACKS = Object.freeze({
   enabled: true, durationHours: 0, durationMinutes: 10, durationSeconds: 0,
   completionMessage: 'The stream is starting now!', completionTone: 'soft-chime', toneVolume: 0.6,
-  completionDisplaySeconds: 10, showOverlay: true, overlayLabel: 'STARTING SOON',
+  completionDisplaySeconds: 10, runCompletionAction: false, completionActionDelaySeconds: 0,
+  showOverlay: true, overlayLabel: 'STARTING SOON',
   overlayFontFamily: 'display', overlayBackgroundMode: 'glass', overlayBackgroundColor: '#0b1017',
   overlayBackgroundOpacity: 0.88, overlayAccentColor: '#7ee0ff', overlayTextColor: '#eff7ff',
   overlayMutedColor: '#dfefff', overlayWarningColor: '#f0c15a', overlayCriticalColor: '#ff6b7d',
@@ -84,6 +86,8 @@ export function sanitizeState(value, configuredSeconds = 600) {
     updatedAt: integer(source.updatedAt, 0, Number.MAX_SAFE_INTEGER, Date.now()),
     completedAt: integer(source.completedAt, 0, Number.MAX_SAFE_INTEGER, 0),
     completionSequence: integer(source.completionSequence, 0, Number.MAX_SAFE_INTEGER, 0),
+    completionActionSent: source.completionActionSent === true,
+    completionActionDueAt: integer(source.completionActionDueAt, 0, Number.MAX_SAFE_INTEGER, 0),
     lastReason: cleanText(source.lastReason, 80),
   };
 }
@@ -103,7 +107,7 @@ export function applyElapsed(state, now = Date.now()) {
   next.updatedAt += elapsed * 1000;
   if (next.remainingSeconds > 0) return { state: next, completedNow: false };
   next.running = false; next.completed = true; next.completedAt = now;
-  next.completionSequence += 1; next.lastReason = 'completed';
+  next.completionSequence += 1; next.completionActionSent = false; next.completionActionDueAt = 0; next.lastReason = 'completed';
   return { state: next, completedNow: true };
 }
 
@@ -124,12 +128,41 @@ function overlayStyle(settings) {
   };
 }
 
-let tickTimer; let hideTimer; let stopped = false; let operation = Promise.resolve();
+let tickTimer; let hideTimer; let completionActionTimer; let stopped = false; let operation = Promise.resolve();
 function serialize(task) { operation = operation.then(task, task); return operation; }
 function cancelTimers(context) {
   if (tickTimer !== undefined) context.schedule.cancel(tickTimer);
   if (hideTimer !== undefined) context.schedule.cancel(hideTimer);
-  tickTimer = undefined; hideTimer = undefined;
+  if (completionActionTimer !== undefined) context.schedule.cancel(completionActionTimer);
+  tickTimer = undefined; hideTimer = undefined; completionActionTimer = undefined;
+}
+
+function approvedCompletionAction(context) {
+  return Array.isArray(context.approvedActionIds) && context.approvedActionIds.length === 1
+    ? context.approvedActionIds[0]
+    : undefined;
+}
+
+async function dispatchCompletionAction(context, settings) {
+  const configured = configuredDurationSeconds(settings);
+  const state = initializeState(sanitizeState(await context.state.read(), configured), configured);
+  if (state.completionActionSent || !state.completed || state.remainingSeconds !== 0 || state.completedAt === 0) return;
+  if (Date.now() - state.completedAt > 300_000) {
+    state.completionActionSent = true; state.lastReason = 'completion-action-expired';
+    await context.state.write(state); return;
+  }
+  const actionId = approvedCompletionAction(context);
+  if (!actionId) return;
+  state.completionActionSent = true; state.lastReason = 'completion-action-dispatched';
+  await context.state.write(state);
+  try {
+    await context.streamerbot.runApprovedAction(actionId, {
+      countdownModule: MODULE_ID,
+      countdownTrigger: 'completed',
+      countdownMessage: cleanText(settings.completionMessage, 200) || FALLBACKS.completionMessage,
+      countdownCompletedAt: new Date(state.completedAt).toISOString(),
+    });
+  } catch { /* At-most-once dispatch prevents a reconnect from switching scenes unexpectedly. */ }
 }
 
 async function publishState(context, settings, state, playCompletionTone = false) {
@@ -165,6 +198,13 @@ function schedule(context, settings, state) {
     const elapsed = Math.max(0, Math.floor((Date.now() - state.completedAt) / 1000));
     hideTimer = context.schedule.after(Math.max(1, displaySeconds - elapsed) * 1_000, () => serialize(() => hideCompleted(context)));
   }
+  if (settings.runCompletionAction === true && state.completed && !state.completionActionSent && state.completionActionDueAt > 0 && approvedCompletionAction(context)) {
+    const delay = Math.max(0, state.completionActionDueAt - Date.now());
+    completionActionTimer = context.schedule.after(Math.max(1_000, delay), () => {
+      completionActionTimer = undefined;
+      return serialize(() => dispatchCompletionAction(context, settings));
+    });
+  }
 }
 
 async function persist(context, settings, state, playCompletionTone = false) {
@@ -174,6 +214,9 @@ async function persist(context, settings, state, playCompletionTone = false) {
 async function handleTick(context) {
   const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
   const elapsed = applyElapsed(initializeState(sanitizeState(await context.state.read(), configured), configured));
+  if (elapsed.completedNow && settings.runCompletionAction === true) {
+    elapsed.state.completionActionDueAt = Date.now() + integer(settings.completionActionDelaySeconds, 0, 60, 0) * 1_000;
+  }
   await persist(context, settings, elapsed.state, elapsed.completedNow);
 }
 
@@ -200,12 +243,12 @@ async function applyControl(control, context) {
   const now = Date.now();
   if (control.action === 'start' || control.action === 'set-and-start') {
     const duration = control.action === 'set-and-start' ? control.seconds : configured;
-    Object.assign(state, { remainingSeconds: duration, maximumSeconds: duration, running: true, visible: true, completed: false, completedAt: 0 });
+    Object.assign(state, { remainingSeconds: duration, maximumSeconds: duration, running: true, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0 });
   } else if (control.action === 'pause') state.running = false;
   else if (control.action === 'resume') { if (state.remainingSeconds > 0 && !state.completed) state.running = true; state.visible = true; }
-  else if (control.action === 'reset') Object.assign(state, { remainingSeconds: configured, maximumSeconds: configured, running: false, visible: true, completed: false, completedAt: 0 });
-  else if (control.action === 'stop') { state.running = false; state.visible = false; state.completed = false; }
-  else if (control.action === 'complete') Object.assign(state, { remainingSeconds: 0, running: false, visible: true, completed: true, completedAt: now, completionSequence: state.completionSequence + 1 });
+  else if (control.action === 'reset') Object.assign(state, { remainingSeconds: configured, maximumSeconds: configured, running: false, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0 });
+  else if (control.action === 'stop') Object.assign(state, { running: false, visible: false, completed: false, completionActionSent: false, completionActionDueAt: 0 });
+  else if (control.action === 'complete') Object.assign(state, { remainingSeconds: 0, running: false, visible: true, completed: true, completedAt: now, completionSequence: state.completionSequence + 1, completionActionSent: true, completionActionDueAt: 0 });
   state.updatedAt = now; state.lastReason = control.action;
   await persist(context, settings, state, control.action === 'complete');
 }
@@ -216,6 +259,9 @@ export default {
     stopped = false; operation = Promise.resolve();
     const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
     const elapsed = applyElapsed(initializeState(sanitizeState(await context.state.read(), configured), configured));
+    if (elapsed.completedNow && settings.runCompletionAction === true) {
+      elapsed.state.completionActionDueAt = Date.now() + integer(settings.completionActionDelaySeconds, 0, 60, 0) * 1_000;
+    }
     await persist(context, settings, elapsed.state, false);
   },
   async stop(context) { stopped = true; cancelTimers(context); await operation; },

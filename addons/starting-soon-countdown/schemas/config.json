@@ -12,6 +12,8 @@
     "completionTone": { "type": "string", "title": "Optional completion tone", "enum": ["none", "soft-chime", "digital-pop", "celebration"], "default": "soft-chime" },
     "toneVolume": { "type": "number", "title": "Tone volume", "minimum": 0, "maximum": 1, "default": 0.6 },
     "completionDisplaySeconds": { "type": "integer", "title": "Seconds to show the completion message", "description": "Use 0 to leave the message visible until Stop or Reset is run.", "minimum": 0, "maximum": 600, "default": 10 },
+    "runCompletionAction": { "type": "boolean", "title": "Run an approved Streamer.bot action at zero", "default": false },
+    "completionActionDelaySeconds": { "type": "integer", "title": "Wait before running the action (seconds)", "minimum": 0, "maximum": 60, "default": 0 },
     "showOverlay": { "type": "boolean", "title": "Publish the countdown to its browser overlay", "default": true },
     "overlayLabel": { "type": "string", "title": "Overlay label", "minLength": 1, "maxLength": 80, "default": "STARTING SOON" },
     "overlayFontFamily": { "type": "string", "title": "Font style", "enum": ["display", "broadcast", "mono"], "default": "display" },

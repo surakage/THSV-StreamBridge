@@ -1,6 +1,6 @@
 # Starting Soon Countdown
 
-Starting Soon Countdown is a separate optional add-on for a stream's Starting Soon scene. It counts down from any creator-selected duration up to 24 hours, then replaces the clock with a custom completion message and optionally plays one small locally generated tone.
+Starting Soon Countdown is a separate optional add-on for a stream's Starting Soon scene. It counts down from any creator-selected duration up to 24 hours, then replaces the clock with a custom completion message, optionally plays one small locally generated tone, and can run one creator-approved Streamer.bot action.
 
 ## Install
 
@@ -17,6 +17,12 @@ Attach **THSV Addon - Starting Soon Countdown - Start** to the scene-active trig
 When leaving that scene, attach **Stop** to pause and remove the overlay, or **Reset** to restore the configured time while leaving the timer visible and paused.
 
 The imported package also provides Pause, Resume, Complete Now, and Set & Start. Set & Start exposes an editable `countdownSeconds` Set Argument from 1 through 86400 for a one-off duration. Complete Now safely previews the configured finish state and tone.
+
+## Optional scene switch at zero
+
+Create one triggerless Streamer.bot action that changes to the desired OBS Studio, Streamlabs Desktop, or Meld scene. In the add-on's wizard card, add exactly that action under **Approved Streamer.bot actions**, enable **Run an approved Streamer.bot action at zero**, and optionally set a short delay.
+
+StreamBridge dispatches the action through its existing authenticated Streamer.bot connection. It is recorded before dispatch for at-most-once behavior and expires after five minutes, preventing a later reconnect from switching scenes unexpectedly. **Complete Now is preview-only and never dispatches the scene action.**
 
 ## Sound
 

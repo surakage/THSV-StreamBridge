@@ -2,13 +2,14 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Runs one creator-controlled Starting Soon countdown with a custom completion message and optional local tone.",
-  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
+  "description": "Runs one creator-controlled Starting Soon countdown with a custom message, local tone, and optional approved completion action.",
+  "changelog": "Unreleased: added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
     "schedule.bounded",
-    "state.private"
+    "state.private",
+    "streamerbot.run-approved-action"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -42,6 +43,7 @@
       "Import the bundled Streamer.bot package.",
       "Attach Start to the scene-active trigger for your Starting Soon scene.",
       "Attach Stop to the scene-inactive trigger for that scene, or use Reset if the paused clock should remain visible.",
+      "Optional: approve exactly one triggerless Streamer.bot action and enable the completion action to switch scenes at zero.",
       "Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop."
     ],
     "uninstallationSteps": [
@@ -60,23 +62,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 13093,
-      "sha256": "2752014c1a52e2773c5143f68f6c9441c4e70ab789ff0941682fdf16ea15aa38"
+      "size": 16077,
+      "sha256": "8726286826fc4bfa40eebb82f358862cc7674f9ff7b468b7c6eb72c5ee452ed3"
     },
     {
       "path": "schemas/config.json",
-      "size": 3333,
-      "sha256": "3f83480a82c49017b780915a2e10ce254ce3857e5e6bb6234ae2bb59e2ecbbcb"
+      "size": 3612,
+      "sha256": "0e61829ae80bae0c943ec26bce8da197df316a202eddf522c506350878862137"
     },
     {
       "path": "ui/settings.json",
-      "size": 4168,
-      "sha256": "5d2f11065a558616fb37113afc50b96433f8ba7221d62b8069669a958da982e7"
+      "size": 4818,
+      "sha256": "5abe790bd80410feaeb53d4e7fbe338901d47b51fc42032986485df66d3f5be1"
     },
     {
       "path": "README.md",
-      "size": 1808,
-      "sha256": "5cffe644471c322f85a3c657422b1d63755e148f92ad323238493eac081fa44a"
+      "size": 2356,
+      "sha256": "ca9737ca8c286c826b9862a90a465d7addd6d7f2c6c68b672b33745fb78d3379"
     }
   ]
 }
