@@ -8,13 +8,16 @@ const RESULT_EVENT_TYPES = Object.freeze([
   'channel.membership',
   'channel.gift-subscription',
   'engagement.gift',
+  'engagement.cheer',
+  'engagement.donation',
+  'engagement.purchase',
   'engagement.milestone',
   'channel.raid',
   'command.received',
   'system.custom',
   'addon.thsv.subathon-timer.control',
 ]);
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi']);
 const CONTROL_ACTIONS = Object.freeze(['start', 'pause', 'resume', 'reset', 'add-time']);
 
 const manifest = {
@@ -62,6 +65,7 @@ const FALLBACKS = Object.freeze({
   autoStartWhenLive: true,
   pauseWhenOffline: true,
   resetToStartingMinutesOnStreamOnline: true,
+  allowSimulatedEvents: false,
   enableModeratorCommands: false,
   startCommandName: 'subathon-start',
   pauseCommandName: 'subathon-pause',
@@ -76,11 +80,20 @@ const FALLBACKS = Object.freeze({
   membershipSeconds: 300,
   giftSubscriptionSecondsEach: 180,
   giftSecondsEach: 15,
+  cheerBitsThreshold: 100,
+  cheerThresholdAwardSeconds: 0,
+  financialCurrency: 'USD',
+  requireVerifiedFinancialEvents: true,
+  donationSecondsPerWholeUnit: 0,
+  purchaseSecondsPerWholeUnit: 0,
   raidBaseSeconds: 300,
   raidPerViewerSeconds: 5,
   minimumRaidViewers: 1,
   likeThreshold: 100,
   likeThresholdAwardSeconds: 45,
+  hypeTrainLevelSeconds: 0,
+  watchStreakSeconds: 0,
+  modiversarySecondsPerMonth: 0,
   showOverlay: true,
   overlayLabel: 'SUBATHON',
   overlayFontFamily: 'display',
@@ -164,6 +177,15 @@ function sanitizeThresholds(value) {
     .filter((item) => item.key.length > 0);
 }
 
+function sanitizeCounters(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => item && typeof item.key === 'string' && Number.isFinite(item.value))
+    .slice(-40)
+    .map((item) => ({ key: cleanText(item.key, 120), value: nonNegativeInteger(item.value) }))
+    .filter((item) => item.key.length > 0);
+}
+
 export function sanitizeState(value) {
   const source = value && typeof value === 'object' ? value : {};
   return {
@@ -176,6 +198,7 @@ export function sanitizeState(value) {
     lastReason: cleanText(source.lastReason, 120),
     lastAwardSeconds: nonNegativeInteger(source.lastAwardSeconds),
     thresholds: sanitizeThresholds(source.thresholds),
+    counters: sanitizeCounters(source.counters),
   };
 }
 
@@ -232,8 +255,30 @@ function setThresholdBuckets(state, key, buckets) {
   return { ...state, thresholds: next.slice(-20) };
 }
 
+function counterValue(state, key) {
+  return state.counters.find((entry) => entry.key === key)?.value ?? 0;
+}
+
+function setCounterValue(state, key, value) {
+  const next = state.counters.filter((entry) => entry.key !== key);
+  next.push({ key, value: nonNegativeInteger(value) });
+  return { ...state, counters: next.slice(-40) };
+}
+
+function amountValue(value) {
+  if (typeof value !== 'string' || !/^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/u.test(value)) return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function hasVerifiedSource(event) {
+  const unverified = Array.isArray(event.metadata?.unverifiedFields) ? event.metadata.unverifiedFields : [];
+  return !unverified.includes('source.eventId');
+}
+
 export function awardForEvent(event, settings, state) {
   if (!event || !RESULT_EVENT_TYPES.includes(event.eventType)) return { seconds: 0, reason: '' };
+  if (event.metadata?.simulated === true && settings.allowSimulatedEvents !== true) return { seconds: 0, reason: '' };
   if (!platformOf(event.platform) || !settings.enabledPlatforms.includes(event.platform)) return { seconds: 0, reason: '' };
 
   if (event.eventType === 'channel.follow') return { seconds: Math.max(0, settings.followSeconds), reason: 'follow' };
@@ -246,6 +291,35 @@ export function awardForEvent(event, settings, state) {
   if (event.eventType === 'engagement.gift') {
     const quantity = positiveInteger(event.payload?.quantity, 1, 1);
     return { seconds: Math.max(0, settings.giftSecondsEach) * quantity, reason: 'gift' };
+  }
+  if (event.eventType === 'engagement.cheer') {
+    const bits = positiveInteger(event.payload?.quantity, 1, 0);
+    const threshold = positiveInteger(settings.cheerBitsThreshold, 1, 0);
+    if (bits === 0 || threshold === 0) return { seconds: 0, reason: '' };
+    const key = `${event.platform}:cheer-bits`;
+    const previous = counterValue(state, key);
+    const total = previous + bits;
+    const completed = Math.max(0, Math.floor(total / threshold) - Math.floor(previous / threshold));
+    return {
+      seconds: completed * Math.max(0, settings.cheerThresholdAwardSeconds),
+      reason: completed > 0 ? 'cheer-threshold' : '',
+      counterKey: key,
+      counterValue: total,
+    };
+  }
+  if (event.eventType === 'engagement.donation' || event.eventType === 'engagement.purchase') {
+    if (settings.requireVerifiedFinancialEvents !== false && !hasVerifiedSource(event)) return { seconds: 0, reason: '' };
+    const expectedCurrency = cleanText(settings.financialCurrency, 3).toUpperCase();
+    const currency = cleanText(event.payload?.currency, 3).toUpperCase();
+    if (!/^[A-Z]{3}$/u.test(expectedCurrency) || currency !== expectedCurrency) return { seconds: 0, reason: '' };
+    const wholeUnits = Math.floor(amountValue(event.payload?.amount));
+    const secondsPerUnit = event.eventType === 'engagement.donation'
+      ? Math.max(0, settings.donationSecondsPerWholeUnit)
+      : Math.max(0, settings.purchaseSecondsPerWholeUnit);
+    return {
+      seconds: wholeUnits * secondsPerUnit,
+      reason: wholeUnits > 0 && secondsPerUnit > 0 ? (event.eventType === 'engagement.donation' ? 'donation' : 'purchase') : '',
+    };
   }
   if (event.eventType === 'channel.raid') {
     const viewers = positiveInteger(event.payload?.quantity, 1, 0);
@@ -261,6 +335,26 @@ export function awardForEvent(event, settings, state) {
     const nextBuckets = Math.floor(totalLikes / threshold);
     const delta = Math.max(0, nextBuckets - previous);
     return { seconds: delta * Math.max(0, settings.likeThresholdAwardSeconds), reason: delta > 0 ? 'likes-threshold' : '', thresholdKey: key, thresholdBuckets: nextBuckets };
+  }
+  if (event.eventType === 'engagement.milestone' && cleanText(event.payload?.metric, 40).toLowerCase() === 'hype-train') {
+    const level = nonNegativeInteger(event.payload?.value);
+    const id = cleanText(event.payload?.hypeTrainId, 80) || 'current';
+    const key = `${event.platform}:hype-train:${id}`;
+    const previous = thresholdBuckets(state, key);
+    const delta = Math.max(0, level - previous);
+    return {
+      seconds: delta * Math.max(0, settings.hypeTrainLevelSeconds),
+      reason: delta > 0 && settings.hypeTrainLevelSeconds > 0 ? 'hype-train-level' : '',
+      thresholdKey: key,
+      thresholdBuckets: Math.max(previous, level),
+    };
+  }
+  if (event.eventType === 'engagement.milestone' && cleanText(event.payload?.metric, 40).toLowerCase() === 'watch-streak') {
+    return { seconds: Math.max(0, settings.watchStreakSeconds), reason: settings.watchStreakSeconds > 0 ? 'watch-streak' : '' };
+  }
+  if (event.eventType === 'engagement.milestone' && cleanText(event.payload?.metric, 40).toLowerCase() === 'modiversary') {
+    const months = nonNegativeInteger(event.payload?.value);
+    return { seconds: months * Math.max(0, settings.modiversarySecondsPerMonth), reason: months > 0 && settings.modiversarySecondsPerMonth > 0 ? 'modiversary' : '' };
   }
   return { seconds: 0, reason: '' };
 }
@@ -342,6 +436,7 @@ async function handleStreamLifecycle(event, context, settings) {
   if (event.eventType === 'stream.online' && !wasLive && settings.resetToStartingMinutesOnStreamOnline) {
     state.remainingSeconds = Math.min(settings.maximumMinutes * 60, Math.max(0, settings.startingMinutes * 60));
     state.thresholds = [];
+    state.counters = [];
     state.sessionCount += 1;
   }
   if (event.eventType === 'stream.online' && settings.autoStartWhenLive && state.remainingSeconds > 0) {
@@ -362,11 +457,12 @@ async function handleAward(event, context, settings) {
   let state = initializeState(sanitizeState(await context.state.read()), settings);
   state = applyElapsed(state);
   const award = awardForEvent(event, settings, state);
+  if (award.thresholdKey) state = setThresholdBuckets(state, award.thresholdKey, award.thresholdBuckets);
+  if (award.counterKey) state = setCounterValue(state, award.counterKey, award.counterValue);
   if (award.seconds <= 0) return persist(context, settings, state);
 
   const maximumSeconds = Math.max(0, settings.maximumMinutes * 60);
   state.remainingSeconds = Math.min(maximumSeconds, state.remainingSeconds + award.seconds);
-  if (award.thresholdKey) state = setThresholdBuckets(state, award.thresholdKey, award.thresholdBuckets);
   if (state.livePlatforms.length > 0) {
     state.running = true;
     state.updatedAt = Date.now();
@@ -394,6 +490,7 @@ async function applyControl(action, seconds, context, settings, reason) {
     state.running = state.livePlatforms.length > 0 ? settings.autoStartWhenLive : false;
     state.updatedAt = Date.now();
     state.thresholds = [];
+    state.counters = [];
   } else if (action === 'add-time') {
     state.remainingSeconds = Math.min(capSeconds, Math.max(0, state.remainingSeconds + Math.max(0, seconds)));
     if (state.livePlatforms.length > 0 && state.remainingSeconds > 0) state.running = true;

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Maintains one bounded multi-platform subathon countdown that decreases over time and increases from selected live events.",
-  "changelog": "2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
+  "changelog": "2.4.0: added creator-controlled Bits and Power-Up thresholds, verified same-currency Streamlabs and Ko-fi financial awards, deduplicated Hype Train level awards, Watch Streak and Modiversary settings, simulated-event protection, bounded session counters, guided wizard UI, and regenerated Streamer.bot imports. 1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -13,7 +13,7 @@
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
-    "supportUrl": "https://github.com/surakage/THSV-StreamBridge/issues",
+    "supportUrl": "https://www.slothbloom.com/tip",
     "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
     "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
   },
@@ -35,6 +35,9 @@
       "channel.membership",
       "channel.gift-subscription",
       "engagement.gift",
+      "engagement.cheer",
+      "engagement.donation",
+      "engagement.purchase",
       "engagement.milestone",
       "channel.raid",
       "command.received",
@@ -94,23 +97,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20071,
-      "sha256": "4bc44efb6cbba506c395a21e7a85e39db0864bc6732fdf740a0eed9b7e0a7ea4"
+      "size": 24808,
+      "sha256": "bbc896f514405b758509b5425b7a0894adf9a0a2a103c25324eaa79ca59975db"
     },
     {
       "path": "schemas/config.json",
-      "size": 6209,
-      "sha256": "e08b9487b4b002177b2a47db4a187f3aeff2137e1c8bca8938a823bf7be7d07a"
+      "size": 8780,
+      "sha256": "caaed9ac3f06dd6bb6e07ec064bc99b5bf7230ffa0a3cd30d1abcf46fe197c27"
     },
     {
       "path": "ui/settings.json",
-      "size": 6152,
-      "sha256": "70e5b5d748655097ba3e80754f07ff757a8e6c1b8f74a1749c8825b3f0f1e54d"
+      "size": 7510,
+      "sha256": "cb75bc4b12f6e59e003e2c957cc008a7578c4016f7ef33d69f161129882fac01"
     },
     {
       "path": "README.md",
-      "size": 1984,
-      "sha256": "fa42ea5c43b12289f9a9ecdf7569ccac5b9ba3ff44d6f88789a0faeefad7441a"
+      "size": 2984,
+      "sha256": "1447e57e4d99e9985ec1a451f63a18b471293353a897c03beecdb0f88b2bb043"
     }
   ]
 }

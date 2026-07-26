@@ -1,5 +1,16 @@
 # Subathon Timer
 
+Version 2.4 tracks normalized events from Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi while keeping every new award creator-controlled:
+
+- YouTube Jewels and other normalized gifts use the existing per-gift-unit setting.
+- Twitch Bits and Custom Power-Ups accumulate through a configurable threshold without repeating completed thresholds.
+- Streamlabs/Ko-fi donations and purchases can award time only in one selected currency; no currency conversion is inferred.
+- Financial events require a verified provider event ID by default.
+- Hype Train levels are counted once per train and level. Watch Streak and Modiversary awards are separate settings.
+- Streamer.bot test events do not alter the timer unless the creator explicitly enables them.
+
+New financial and Twitch milestone award values default to `0`, so upgrading cannot unexpectedly change a running timer. The add-on stores bounded counters only; it does not retain viewer identities, messages, purchase items, or payout records.
+
 This add-on keeps one bounded cross-platform subathon countdown using normalized StreamBridge events.
 
 ## Streamer.bot controls

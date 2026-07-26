@@ -2,10 +2,12 @@
   "intro": "Set up the timer in short sections. Start with timing and lifecycle, then open only the event bonuses, controls, or visual options you want to customize.",
   "order": [
     "enabled", "enabledPlatforms",
-    "autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline", "startingMinutes", "maximumMinutes",
+    "autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline", "allowSimulatedEvents", "startingMinutes", "maximumMinutes",
     "enableModeratorCommands", "startCommandName", "pauseCommandName", "resumeCommandName", "resetCommandName", "addTimeCommandName", "defaultManualAddSeconds",
     "followSeconds", "subscriptionSeconds", "membershipSeconds", "giftSubscriptionSecondsEach", "giftSecondsEach",
-    "raidBaseSeconds", "raidPerViewerSeconds", "minimumRaidViewers", "likeThreshold", "likeThresholdAwardSeconds",
+    "raidBaseSeconds", "raidPerViewerSeconds", "minimumRaidViewers", "likeThreshold", "likeThresholdAwardSeconds", "cheerBitsThreshold", "cheerThresholdAwardSeconds",
+    "financialCurrency", "requireVerifiedFinancialEvents", "donationSecondsPerWholeUnit", "purchaseSecondsPerWholeUnit",
+    "hypeTrainLevelSeconds", "watchStreakSeconds", "modiversarySecondsPerMonth",
     "showOverlay", "overlayLabel", "warningMinutes", "criticalMinutes"
     , "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor", "overlayShowProgressBar"
   ],
@@ -21,7 +23,7 @@
       "id": "lifecycle",
       "title": "2. Stream lifecycle",
       "description": "Decide how the timer behaves when your stream starts or ends.",
-      "fields": ["autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline"]
+      "fields": ["autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline", "allowSimulatedEvents"]
     },
     {
       "id": "controls",
@@ -42,27 +44,45 @@
       "fields": ["giftSecondsEach", "likeThreshold", "likeThresholdAwardSeconds"]
     },
     {
+      "id": "bonuses-cheers",
+      "title": "6. Bits and Power-Ups",
+      "description": "Accumulate Twitch Bits and Power-Up Bits without repeating awards for the same completed threshold.",
+      "fields": ["cheerBitsThreshold", "cheerThresholdAwardSeconds"]
+    },
+    {
+      "id": "bonuses-financial",
+      "title": "7. Donations and purchases",
+      "description": "Optional Streamlabs and Ko-fi awards. Currency conversion is never inferred, and verified provider IDs are required by default.",
+      "fields": ["financialCurrency", "requireVerifiedFinancialEvents", "donationSecondsPerWholeUnit", "purchaseSecondsPerWholeUnit"]
+    },
+    {
+      "id": "bonuses-milestones",
+      "title": "8. Twitch milestones",
+      "description": "Optionally reward unique Hype Train levels, Watch Streaks, and Modiversary months.",
+      "fields": ["hypeTrainLevelSeconds", "watchStreakSeconds", "modiversarySecondsPerMonth"]
+    },
+    {
       "id": "overlay-layout",
-      "title": "6. Overlay layout",
+      "title": "9. Overlay layout",
       "description": "Choose the timer label, font, background behavior, progress bar, and warning thresholds.",
       "fields": ["showOverlay", "overlayLabel", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundOpacity", "overlayShowProgressBar", "warningMinutes", "criticalMinutes"]
     },
     {
       "id": "overlay-colors",
-      "title": "7. Overlay colors",
+      "title": "10. Overlay colors",
       "description": "Customize the timer background, accent, text, state, and border colors.",
       "fields": ["overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor"]
     },
     {
       "id": "review",
-      "title": "8. Review before enabling",
-      "description": "This first version uses only normalized StreamBridge events and bounded private timer state.",
-      "notice": "No external API is used. The add-on stores only timer counters, session timestamps, current live-platform state, and like-threshold progress. It does not store chat text or payout data. Import the separate Subathon Timer Streamer.bot package for optional Start, Pause, Resume, Reset, and Add Time controls.",
+      "title": "11. Review before enabling",
+      "description": "Review the privacy and safety defaults before enabling production event awards.",
+      "notice": "No external API is used. The add-on stores only bounded timer counters, session timestamps, current live-platform state, and threshold progress. It does not store chat text, viewer identities, donation messages, or purchase item data. New financial and Twitch milestone awards default to 0 until you enable them. Import the separate Subathon Timer Streamer.bot package for optional Start, Pause, Resume, Reset, and Add Time controls.",
       "fields": []
     }
   ],
   "fields": {
-    "enabledPlatforms": { "rows": 4 },
+    "enabledPlatforms": { "rows": 6 },
     "startCommandName": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
     "pauseCommandName": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
     "resumeCommandName": { "visibleWhen": { "field": "enableModeratorCommands", "equals": true } },
