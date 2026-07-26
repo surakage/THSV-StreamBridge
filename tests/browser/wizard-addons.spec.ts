@@ -181,7 +181,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const countdownSettings = page.locator('[data-addon-settings="thsv.starting-soon-countdown"]');
-  await expect(page.getByRole('article').getByText('Starting Soon Countdown 2.4.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Stream Launch Countdown 2.4.1', { exact: true })).toBeVisible();
   await expect(countdownSettings.locator('summary')).toHaveCount(6);
   await expect(countdownSettings.locator('input[name="durationMinutes"]')).toHaveValue('10');
   await countdownSettings.locator('summary').filter({ hasText: '2. Completion' }).click();

@@ -1,14 +1,14 @@
-# Starting Soon Countdown
+# Stream Launch Countdown
 
-A creator-controlled countdown for a Starting Soon scene. Choose any duration up to 24 hours, show a custom message at zero, optionally play a small built-in tone, and optionally run one creator-approved Streamer.bot action.
+A creator-controlled launch countdown for a Starting Soon scene. Choose any duration up to 24 hours, show a custom message at zero, optionally play a small built-in tone, and optionally run one creator-approved Streamer.bot action.
 
 ## Setup
 
 1. Install and enable this add-on in the StreamBridge wizard.
 2. Configure the duration, completion message, optional tone, and overlay appearance.
-3. Import `Streamer.bot/THSV-StreamBridge-Starting-Soon-Countdown-2.4.1.sb` from the packaged add-on.
+3. Import `Streamer.bot/THSV-StreamBridge-Stream-Launch-Countdown-2.4.1.sb` from the packaged add-on.
 4. Add the wizard's `/overlay/countdown` URL as a 1920x1080 browser source in OBS, Meld, or Streamlabs Desktop, then crop and position it as needed.
-5. Attach **THSV Addon - Starting Soon Countdown - Start** to the scene-active trigger for your Starting Soon scene.
+5. Attach **THSV Addon - Stream Launch Countdown - Start** to the scene-active trigger for your Starting Soon scene.
 6. Attach **Stop** to the scene-inactive trigger for that scene, or use **Reset** if the paused clock should remain visible.
 7. Optional: create a triggerless Streamer.bot action that switches to your next scene, approve exactly that action in the add-on's wizard card, then enable **Run an approved Streamer.bot action at zero**.
 

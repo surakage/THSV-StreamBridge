@@ -153,7 +153,11 @@ function isCreatorControl(relay: AddOnRelay): boolean {
     const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
     if (!['start', 'stop', 'pause', 'resume', 'reset', 'complete', 'set-and-start'].includes(action)) return false;
     const label = action === 'set-and-start' ? 'Set & Start' : action === 'complete' ? 'Complete Now' : `${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
-    if (relay.sourceEventType !== `THSV Addon - Starting Soon Countdown - ${label}`) return false;
+    const validSourceNames = new Set([
+      `THSV Addon - Stream Launch Countdown - ${label}`,
+      `THSV Addon - Starting Soon Countdown - ${label}`,
+    ]);
+    if (!validSourceNames.has(relay.sourceEventType)) return false;
     const keys = Object.keys(relay.payload);
     if (action === 'set-and-start') {
       const seconds = relay.payload['seconds'];

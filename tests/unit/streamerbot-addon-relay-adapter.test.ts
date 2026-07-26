@@ -101,17 +101,18 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'reset', seconds: 300 } }))).toThrow('relay token');
   });
 
-  it('permits only bounded, action-matched Starting Soon Countdown controls', () => {
+  it('permits only bounded, action-matched Stream Launch Countdown controls while accepting the legacy package name', () => {
     const control = {
       moduleId: 'thsv.starting-soon-countdown', eventType: 'addon.thsv.starting-soon-countdown.control', relayToken: '',
-      sourceEventType: 'THSV Addon - Starting Soon Countdown - Set & Start', relayId: 'countdown-set-1',
+      sourceEventType: 'THSV Addon - Stream Launch Countdown - Set & Start', relayId: 'countdown-set-1',
       payload: { action: 'set-and-start', seconds: 600 },
     };
     expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({
       eventType: 'addon.thsv.starting-soon-countdown.control', payload: { action: 'set-and-start', seconds: 600 },
     });
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'set-and-start', seconds: 0 } }))).toThrow('relay token');
-    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Starting Soon Countdown - Start' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Stream Launch Countdown - Start' }))).toThrow('relay token');
+    expect(normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Stream Launch Countdown - Stop', payload: { action: 'stop' } }))).toMatchObject({ payload: { action: 'stop' } });
     expect(normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Starting Soon Countdown - Stop', payload: { action: 'stop' } }))).toMatchObject({ payload: { action: 'stop' } });
   });
 

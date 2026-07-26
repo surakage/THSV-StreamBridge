@@ -1,4 +1,4 @@
-// Starting Soon Countdown owns one creator-controlled countdown for a Starting Soon scene.
+// Stream Launch Countdown owns one creator-controlled countdown for a Starting Soon scene.
 // It stores only bounded timer state and accepts only the add-on's approved local controls.
 const MODULE_ID = 'thsv.starting-soon-countdown';
 const CONTROL_EVENT = 'addon.thsv.starting-soon-countdown.control';
@@ -7,7 +7,7 @@ const CONTROL_ACTIONS = Object.freeze(['start', 'stop', 'pause', 'resume', 'rese
 const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: MODULE_ID,
-  name: 'Starting Soon Countdown',
+  name: 'Stream Launch Countdown',
   version: '2.4.1',
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1',

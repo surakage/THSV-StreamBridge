@@ -1,5 +1,5 @@
 {
-  "intro": "Create a Starting Soon countdown in four short sections. The timer changes only when you run one of its approved Streamer.bot controls.",
+  "intro": "Create a Stream Launch countdown in six short sections. The timer changes only when you run one of its approved Streamer.bot controls.",
   "order": ["enabled", "durationHours", "durationMinutes", "durationSeconds", "completionMessage", "completionTone", "toneVolume", "completionDisplaySeconds", "runCompletionAction", "completionActionDelaySeconds", "showOverlay", "overlayLabel", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundOpacity", "overlayShowProgressBar", "warningMinutes", "criticalSeconds", "overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayLiveColor", "overlayBorderColor"],
   "sections": [
     { "id": "quick-start", "title": "1. Countdown", "description": "Choose the normal duration. At least one second is required.", "open": true, "fields": ["enabled", "durationHours", "durationMinutes", "durationSeconds"] },

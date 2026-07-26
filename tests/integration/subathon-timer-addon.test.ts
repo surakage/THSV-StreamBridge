@@ -62,4 +62,47 @@ describe('Subathon Timer installed add-on', () => {
     expect(overlays.at(-1)).toMatchObject({ topic: 'thsv.subathon-timer.timer.update', payload: { running: false, lastReason: 'manual-pause' } });
     await registry.stop();
   });
+
+  it('resets once per multi-platform live session and pauses only after every platform is offline', async () => {
+    const installed = await installAddOnPackage('addons/subathon-timer', addOnsRoot, true);
+    const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
+    const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.subathon-timer');
+    if (module === undefined) throw new Error('Subathon Timer must load through the installed add-on path.');
+    const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, { publishOverlay: async () => undefined });
+    const registry = new ModuleRegistry([{ ...module, capabilityGrant: {
+      moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: [],
+    } }], silentLogger, 5_000, broker);
+    const statePath = join(stateRoot, 'thsv.subathon-timer', 'runtime-state.json');
+    await registry.start();
+
+    await registry.publish(event());
+    await registry.publish(event({
+      eventId: 'follow-session-1', eventType: 'channel.follow',
+      source: { adapter: 'fixture', eventId: 'provider-follow-session-1', eventName: 'TwitchFollow' },
+    }));
+    await registry.publish(event({
+      eventId: 'youtube-online-1', platform: 'youtube',
+      source: { adapter: 'fixture', eventId: 'provider-youtube-online-1', eventName: 'YouTubeBroadcastStarted' },
+    }));
+    let state = JSON.parse(await readFile(statePath, 'utf8')) as {
+      remainingSeconds: number; running: boolean; sessionCount: number; livePlatforms: string[];
+    };
+    expect(state).toMatchObject({ remainingSeconds: 3_630, running: true, sessionCount: 1 });
+    expect(state.livePlatforms).toEqual(expect.arrayContaining(['twitch', 'youtube']));
+
+    await registry.publish(event({
+      eventId: 'twitch-offline-1', eventType: 'stream.offline',
+      source: { adapter: 'fixture', eventId: 'provider-twitch-offline-1', eventName: 'TwitchStreamOffline' },
+    }));
+    state = JSON.parse(await readFile(statePath, 'utf8')) as typeof state;
+    expect(state).toMatchObject({ running: true, sessionCount: 1, livePlatforms: ['youtube'] });
+
+    await registry.publish(event({
+      eventId: 'youtube-offline-1', eventType: 'stream.offline', platform: 'youtube',
+      source: { adapter: 'fixture', eventId: 'provider-youtube-offline-1', eventName: 'YouTubeBroadcastEnded' },
+    }));
+    state = JSON.parse(await readFile(statePath, 'utf8')) as typeof state;
+    expect(state).toMatchObject({ running: false, sessionCount: 1, livePlatforms: [] });
+    await registry.stop();
+  });
 });

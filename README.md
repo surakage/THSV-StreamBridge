@@ -75,7 +75,7 @@ See [Portable Windows release](docs/release.md) for backup, rollback, downgrade,
 
 ## Add-ons
 
-Starting Soon Countdown is available as a separate optional add-on with its own Streamer.bot import and core-hosted `/overlay/countdown` browser source. See [Starting Soon Countdown](docs/starting-soon-countdown.md).
+Stream Launch Countdown is available as a separate optional add-on with its own Streamer.bot import and core-hosted `/overlay/countdown` browser source. See [Stream Launch Countdown](docs/starting-soon-countdown.md).
 
 Add-ons must use the main StreamBridge installation. They reuse its normalized event bus, Streamer.bot connection, scheduler, private state, outbound router, and overlay transport instead of opening additional bridge instances or WebSockets.
 

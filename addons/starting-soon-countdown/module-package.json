@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one creator-controlled Starting Soon countdown with a custom message, local tone, and optional approved completion action.",
-  "changelog": "Unreleased: added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
+  "changelog": "Unreleased: renamed the creator-facing add-on to Stream Launch Countdown and added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -21,7 +21,7 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.starting-soon-countdown",
-    "name": "Starting Soon Countdown",
+    "name": "Stream Launch Countdown",
     "version": "2.4.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
@@ -63,22 +63,22 @@
     {
       "path": "dist/index.js",
       "size": 16077,
-      "sha256": "8726286826fc4bfa40eebb82f358862cc7674f9ff7b468b7c6eb72c5ee452ed3"
+      "sha256": "7d926f7d5dde0600abe2e2fddb18a4dd7c11aa90c3ca86856d105b1dbb4da9de"
     },
     {
       "path": "schemas/config.json",
       "size": 3612,
-      "sha256": "0e61829ae80bae0c943ec26bce8da197df316a202eddf522c506350878862137"
+      "sha256": "b95a6ec6db8d55e97a72062b2fdfe8953f6b52e70a0570efde63d5390ff78e80"
     },
     {
       "path": "ui/settings.json",
-      "size": 4818,
-      "sha256": "5abe790bd80410feaeb53d4e7fbe338901d47b51fc42032986485df66d3f5be1"
+      "size": 4817,
+      "sha256": "11c51b480d46e50b6e53294895d1bb940d7d490e39d4914f1883e9938754a918"
     },
     {
       "path": "README.md",
-      "size": 2356,
-      "sha256": "ca9737ca8c286c826b9862a90a465d7addd6d7f2c6c68b672b33745fb78d3379"
+      "size": 2363,
+      "sha256": "8bac5f89ff734b7373c55354f349ef6e6cff76447b890efbc97e639dc7374e5d"
     }
   ]
 }

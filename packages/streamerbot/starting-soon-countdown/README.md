@@ -1,4 +1,4 @@
-# THSV StreamBridge - Starting Soon Countdown
+# THSV StreamBridge - Stream Launch Countdown
 
 Import the generated `.sb` file into Streamer.bot and accept its reviewed custom C# warning.
 

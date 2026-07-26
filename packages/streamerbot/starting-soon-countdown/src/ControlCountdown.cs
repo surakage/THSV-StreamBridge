@@ -1,4 +1,4 @@
-// Purpose: Relays one approved Starting Soon Countdown control to the local StreamBridge process.
+// Purpose: Relays one approved Stream Launch Countdown control to the local StreamBridge process.
 // Each imported action sets countdownAction above this C# block. Set & Start also exposes
 // countdownSeconds, so creators can change a one-off duration without editing source code.
 // References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
@@ -31,7 +31,7 @@ public class CPHInline
             ["version"] = "1.0.0",
             ["moduleId"] = ModuleId,
             ["eventType"] = "addon.thsv.starting-soon-countdown.control",
-            ["sourceEventType"] = "THSV Addon - Starting Soon Countdown - " + DisplayAction(action),
+            ["sourceEventType"] = "THSV Addon - Stream Launch Countdown - " + DisplayAction(action),
             ["relayId"] = relayId,
             ["relayToken"] = "",
             ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"),
@@ -47,7 +47,7 @@ public class CPHInline
         CPH.SetArgument("countdownControlAction", action);
         CPH.SetArgument("countdownControlSeconds", seconds);
         CPH.SetArgument("countdownRelayId", relayId);
-        CPH.LogInfo("THSV Starting Soon Countdown control relayed: " + action + (seconds > 0 ? " (" + seconds.ToString(CultureInfo.InvariantCulture) + " seconds)." : "."));
+        CPH.LogInfo("THSV Stream Launch Countdown control relayed: " + action + (seconds > 0 ? " (" + seconds.ToString(CultureInfo.InvariantCulture) + " seconds)." : "."));
         return true;
     }
 
@@ -80,7 +80,7 @@ public class CPHInline
     {
         CPH.SetArgument("countdownControlValid", false);
         CPH.SetArgument("countdownControlError", reason);
-        CPH.LogError("THSV Starting Soon Countdown control failed: " + reason);
+        CPH.LogError("THSV Stream Launch Countdown control failed: " + reason);
         return false;
     }
 }

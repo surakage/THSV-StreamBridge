@@ -24,4 +24,13 @@ describe('Subathon Timer Streamer.bot package', () => {
     expect(source).not.toContain('CPH.RunAction');
     expect(source).not.toMatch(/Process\.Start|HttpClient|WebClient|powershell|cmd\.exe/iu);
   });
+
+  it('does not own scene switching or completion-action execution', async () => {
+    const descriptor = JSON.parse(await readFile('addons/subathon-timer/module-package.json', 'utf8')) as {
+      permissions: string[];
+    };
+    const runtime = await readFile('addons/subathon-timer/dist/index.js', 'utf8');
+    expect(descriptor.permissions).not.toContain('streamerbot.run-approved-action');
+    expect(runtime).not.toMatch(/completionAction|runApprovedAction|scene[ -]?switch/iu);
+  });
 });

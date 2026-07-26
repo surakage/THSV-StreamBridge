@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Starting Soon Countdown",
+  "title": "Stream Launch Countdown",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Starting Soon Countdown", "default": true },
+    "enabled": { "type": "boolean", "title": "Enable Stream Launch Countdown", "default": true },
     "durationHours": { "type": "integer", "title": "Hours", "minimum": 0, "maximum": 24, "default": 0 },
     "durationMinutes": { "type": "integer", "title": "Minutes", "minimum": 0, "maximum": 59, "default": 10 },
     "durationSeconds": { "type": "integer", "title": "Seconds", "minimum": 0, "maximum": 59, "default": 0 },

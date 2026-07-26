@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import { applyElapsed, configuredDurationSeconds, formatRemaining, sanitizeState } from '../../addons/starting-soon-countdown/dist/index.js';
 
-describe('Starting Soon Countdown add-on', () => {
+describe('Stream Launch Countdown add-on', () => {
   it('builds a bounded duration and formats short or long countdowns', () => {
     expect(configuredDurationSeconds({ durationHours: 1, durationMinutes: 2, durationSeconds: 3 })).toBe(3_723);
     expect(configuredDurationSeconds({ durationHours: 0, durationMinutes: 0, durationSeconds: 0 })).toBe(1);
