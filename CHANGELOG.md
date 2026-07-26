@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 - Renamed Starting Soon Countdown to Stream Launch Countdown. It can run exactly one creator-approved triggerless Streamer.bot action when a real countdown reaches zero, with an optional bounded delay, at-most-once persistence, a five-minute stale-action cutoff, and preview-safe Complete Now behavior. Subathon Timer remains a separate event-driven timer.
+- Regenerated four stale Streamer.bot imports and added a repository-wide byte-for-byte cohesion test so every checked-in `.sb` package must match its current manifest and C# source.
 
 ## [2.4.1] - 2026-07-26
 
