@@ -146,8 +146,8 @@ export function buildStreamerBotPackage(
           {
           name: null,
           description: null,
-          references: action.references ?? defaultCompilerReferences(action.sourceCode),
-          byteCode: Buffer.from(action.sourceCode, 'utf8').toString('base64'),
+          references: action.references ?? defaultCompilerReferences(canonicalSourceCode(action.sourceCode)),
+          byteCode: Buffer.from(canonicalSourceCode(action.sourceCode), 'utf8').toString('base64'),
           precompile: false,
           delayStart: false,
           saveResultToVariable: false,
@@ -196,6 +196,13 @@ export function buildStreamerBotPackage(
   const header = Buffer.from('SBAE', 'ascii');
   const compressed = gzipSync(Buffer.from(JSON.stringify(exported)), { level: 9 });
   return Buffer.concat([header, compressed]).toString('base64');
+}
+
+// Git may materialize C# files with CRLF on creator Windows systems and LF in CI.
+// Streamer.bot embeds the source bytes in its import, so canonicalizing here keeps checked-in
+// packages reproducible across operating systems without changing the code Streamer.bot runs.
+function canonicalSourceCode(sourceCode: string): string {
+  return sourceCode.replace(/\r\n?/gu, '\n');
 }
 
 function defaultCompilerReferences(sourceCode: string): string[] {

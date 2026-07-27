@@ -42,6 +42,13 @@ describe('Streamer.bot package builder', () => {
     expect(decoded.data.actions[0]?.triggers).toEqual([{ commandId: 'command-1', id: stableStreamerBotUuid('one-trigger:trigger'), type: 401, enabled: true, exclusions: [] }]);
   });
 
+  it('generates identical imports from LF and CRLF C# checkouts', () => {
+    const action = { name: 'Portable', group: 'Tests', stableIdentitySeed: 'portable' } as const;
+    const lf = buildStreamerBotPackage(meta, [{ ...action, sourceCode: 'using System;\nreturn true;\n' }]);
+    const crlf = buildStreamerBotPackage(meta, [{ ...action, sourceCode: 'using System;\r\nreturn true;\r\n' }]);
+    expect(crlf).toBe(lf);
+  });
+
   it('preserves pinned action, source, trigger, and command IDs', () => {
     const decoded = decode(buildStreamerBotPackage(meta, [{
       name: 'Pinned', group: 'Tests', id: 'action-id', sourceSubActionId: 'source-id', sourceCode: 'return true;', stableIdentitySeed: 'ignored',
