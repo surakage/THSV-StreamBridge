@@ -195,6 +195,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   const countdownOverlay = await context.newPage();
   await countdownOverlay.goto('http://127.0.0.1:8799/overlay/countdown');
   await expect(countdownOverlay.locator('#timer-shell')).toBeAttached();
+  await page.locator('[data-addon-id="thsv.starting-soon-countdown"]').getByText('Hosted overlay & testing', { exact: true }).click();
   await page.locator('[data-addon-id="thsv.starting-soon-countdown"] [data-preview-addon-overlay="thsv.starting-soon-countdown"]').click();
   await expect(countdownOverlay.locator('#card')).toBeVisible();
   await expect(countdownOverlay.locator('#card-title')).toHaveText('Stream Launch Countdown');

@@ -195,6 +195,10 @@ export function buildStreamerBotPackage(
   };
   const header = Buffer.from('SBAE', 'ascii');
   const compressed = gzipSync(Buffer.from(JSON.stringify(exported)), { level: 9 });
+  // RFC 1952 byte 9 identifies the compressor OS. Node writes a platform-specific value,
+  // which otherwise makes the same Streamer.bot import differ between Windows and Linux.
+  // 255 means unknown and is accepted by all gzip readers, including Streamer.bot.
+  compressed[9] = 255;
   return Buffer.concat([header, compressed]).toString('base64');
 }
 

@@ -47,6 +47,7 @@ describe('Streamer.bot package builder', () => {
     const lf = buildStreamerBotPackage(meta, [{ ...action, sourceCode: 'using System;\nreturn true;\n' }]);
     const crlf = buildStreamerBotPackage(meta, [{ ...action, sourceCode: 'using System;\r\nreturn true;\r\n' }]);
     expect(crlf).toBe(lf);
+    expect(Buffer.from(lf, 'base64')[13]).toBe(255);
   });
 
   it('preserves pinned action, source, trigger, and command IDs', () => {
