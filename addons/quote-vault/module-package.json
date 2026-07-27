@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Provides one bounded, moderated, local quote library shared by Twitch, YouTube, Kick, and TikTok with source-platform-only responses.",
-  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial cross-platform release with random, ID, search, count, viewer submission, moderator approval/rejection/edit, recoverable delete/restore, statistics, Twitch reply capture, exact ignores, bot/system/simulation/link gates, duplicate detection, cooldowns, bounded private storage, and optional creator controls.",
+  "changelog": "2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial cross-platform release with random, ID, search, count, viewer submission, moderator approval/rejection/edit, recoverable delete/restore, statistics, Twitch reply capture, exact ignores, bot/system/simulation/link gates, duplicate detection, cooldowns, bounded private storage, and optional creator controls.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -20,7 +20,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.quote-vault",
     "name": "Quote Vault",
-    "version": "2.4.1",
+    "version": "2.4.2",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -106,15 +106,17 @@
         "id": "thsv.quote-vault.runtime",
         "description": "Confirms bounded cross-platform quote commands, moderation, storage, and source-routed responses."
       }
-    ]
+    ],
+    "minimumBridgeVersion": "2.4.2",
+    "maximumTestedBridgeVersion": "2.4.2"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 35122,
-      "sha256": "e2fa6ee0be82ff77034c3894dc01cc3f82b85376f50e5a0e50aa516a0ec05b0c"
+      "size": 35190,
+      "sha256": "450a035b2a9bef8991bb9ed2072362ad3725e9791178ddd3ab28e175a5b90e03"
     },
     {
       "path": "schemas/config.json",

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Automatically translates creator-selected public chat through a disclosed provider with allowlist-first privacy controls and strict spam limits.",
-  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial privacy-gated release with disabled-by-default activation, per-platform selection, allow and ignore lists, explicit source and target languages, command/bot/system exclusion, bounded cooldowns and pending work, duplicate suppression, per-minute and translated-percentage caps, source-platform-only output, and no chat-text retention.",
+  "changelog": "2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial privacy-gated release with disabled-by-default activation, per-platform selection, allow and ignore lists, explicit source and target languages, command/bot/system exclusion, bounded cooldowns and pending work, duplicate suppression, per-minute and translated-percentage caps, source-platform-only output, and no chat-text retention.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.auto-translate",
     "name": "Auto Translate",
-    "version": "2.4.1",
+    "version": "2.4.2",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -59,15 +59,17 @@
         "id": "thsv.auto-translate.runtime",
         "description": "Confirms privacy-gated message selection, bounded provider dispatch, and source-platform response routing."
       }
-    ]
+    ],
+    "minimumBridgeVersion": "2.4.2",
+    "maximumTestedBridgeVersion": "2.4.2"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11660,
-      "sha256": "e7237fd6eddbedf85113ff0fe83255544b4a2fbdaf650230053b3db16787dd89"
+      "size": 11728,
+      "sha256": "f95529e8312862ba0fb5e66c65f6be45bcb0a024037ba812806cbf752f01697d"
     },
     {
       "path": "schemas/config.json",

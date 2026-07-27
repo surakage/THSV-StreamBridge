@@ -39,6 +39,8 @@ export interface DiscoveredAddOnSummary {
   readonly trustMetadata?: InstalledAddOnSummary['trust'];
   readonly minimumCoreVersion?: string;
   readonly maximumTestedCoreVersion?: string;
+  readonly minimumBridgeVersion?: string;
+  readonly maximumTestedBridgeVersion?: string;
   readonly trust: 'integrity-only';
   readonly error?: string;
 }
@@ -81,7 +83,7 @@ export class AddOnWizardService {
         if (!information.isFile() || information.isSymbolicLink() || information.size < 1 || information.size > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(400, `Package must be a regular file from 1 through ${String(MAXIMUM_ARCHIVE_BYTES)} bytes.`);
         const archive = await readFile(path);
         const descriptor = await inspectAddOnArchive(archive, this.packagesRoot);
-        return { filename, size: information.size, sha256: digest(archive), health: 'available', moduleId: descriptor.manifest.moduleId, name: descriptor.manifest.name, version: descriptor.manifest.version, author: descriptor.author, description: descriptor.description, packageKind: descriptor.packageKind, permissions: descriptor.permissions, trustMetadata: descriptor.trust, minimumCoreVersion: descriptor.manifest.minimumCoreVersion, maximumTestedCoreVersion: descriptor.manifest.maximumTestedCoreVersion, trust: 'integrity-only' };
+        return { filename, size: information.size, sha256: digest(archive), health: 'available', moduleId: descriptor.manifest.moduleId, name: descriptor.manifest.name, version: descriptor.manifest.version, author: descriptor.author, description: descriptor.description, packageKind: descriptor.packageKind, permissions: descriptor.permissions, trustMetadata: descriptor.trust, minimumCoreVersion: descriptor.manifest.minimumCoreVersion, maximumTestedCoreVersion: descriptor.manifest.maximumTestedCoreVersion, ...(descriptor.manifest.minimumBridgeVersion === undefined ? {} : { minimumBridgeVersion: descriptor.manifest.minimumBridgeVersion }), ...(descriptor.manifest.maximumTestedBridgeVersion === undefined ? {} : { maximumTestedBridgeVersion: descriptor.manifest.maximumTestedBridgeVersion }), trust: 'integrity-only' };
       } catch (error) { return { filename, size: 0, sha256: '0'.repeat(64), health: 'rejected', trust: 'integrity-only', error: error instanceof Error ? error.message : String(error) }; }
     }));
   }

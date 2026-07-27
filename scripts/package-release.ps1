@@ -90,6 +90,8 @@ try {
             Checksum = $addOnChecksum
             MinimumCoreVersion = [string]$descriptor.manifest.minimumCoreVersion
             MaximumTestedCoreVersion = [string]$descriptor.manifest.maximumTestedCoreVersion
+            MinimumBridgeVersion = [string]$descriptor.manifest.minimumBridgeVersion
+            MaximumTestedBridgeVersion = [string]$descriptor.manifest.maximumTestedBridgeVersion
             Permissions = @($descriptor.permissions)
             Revoked = $false
         }
@@ -111,6 +113,8 @@ try {
                 sha256 = $_.Sha256
                 minimumCoreVersion = $_.MinimumCoreVersion
                 maximumTestedCoreVersion = $_.MaximumTestedCoreVersion
+                minimumBridgeVersion = $_.MinimumBridgeVersion
+                maximumTestedBridgeVersion = $_.MaximumTestedBridgeVersion
                 permissions = @($_.Permissions)
                 revoked = $_.Revoked
             }

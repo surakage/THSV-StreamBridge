@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { Worker } from 'node:worker_threads';
 import { unzipSync } from 'fflate';
 import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
+import { STREAMBRIDGE_VERSION } from '../version.js';
 import { addOnPackageV2Schema, type AddOnPackageV2 } from '../contracts/v2/addon-package.js';
 import { isProtectedFrameworkActionId } from '../contracts/v2/addon-capability.js';
 
@@ -109,6 +110,11 @@ function migrationPath(descriptor: AddOnPackageV2, fromVersion: string, toVersio
     if (visited.has(current)) throw new AddOnPackageError(`Migration cycle detected from ${fromVersion} to ${toVersion}.`);
     visited.add(current);
     const choices = descriptor.manifest.migrations.filter((migration) => migration.from === current && compareVersions(migration.to, toVersion) <= 0);
+    if (choices.length === 0) {
+      const skippedRequiredStep = descriptor.manifest.migrations.some((migration) => compareVersions(migration.from, current) > 0 && compareVersions(migration.from, toVersion) < 0);
+      if (skippedRequiredStep) throw new AddOnPackageError(`Add-on upgrade is missing a migration step from ${current} toward ${toVersion}.`);
+      break;
+    }
     if (choices.length !== 1) throw new AddOnPackageError(`Add-on upgrade requires exactly one migration step from ${current} toward ${toVersion}; found ${String(choices.length)}.`);
     const step = choices[0];
     if (step === undefined || compareVersions(step.to, current) <= 0) throw new AddOnPackageError(`Migration ${current} must advance to a newer version.`);
@@ -139,7 +145,7 @@ async function executeMigration(scriptPath: string, context: MigrationContext, t
   });
 }
 
-export async function verifyAddOnPackage(rootPath: string, coreVersion: string = CORE_CONTRACT_VERSION, allowInstallRecord = false): Promise<VerifiedAddOnPackage> {
+export async function verifyAddOnPackage(rootPath: string, coreVersion: string = CORE_CONTRACT_VERSION, allowInstallRecord = false, bridgeVersion: string = STREAMBRIDGE_VERSION): Promise<VerifiedAddOnPackage> {
   const root = resolve(rootPath);
   const descriptorPath = safeChild(root, DESCRIPTOR_FILE);
   let raw: unknown;
@@ -160,6 +166,8 @@ export async function verifyAddOnPackage(rootPath: string, coreVersion: string =
   if (settingsUiEntry !== undefined && settingsUiEntry.size > MAXIMUM_SETTINGS_UI_BYTES) throw new AddOnPackageError(`The settings UI schema exceeds ${String(MAXIMUM_SETTINGS_UI_BYTES)} bytes.`);
   if (compareVersions(coreVersion, descriptor.manifest.minimumCoreVersion) < 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} requires core ${descriptor.manifest.minimumCoreVersion} or later.`);
   if (compareVersions(coreVersion, descriptor.manifest.maximumTestedCoreVersion) > 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} has only been tested through core ${descriptor.manifest.maximumTestedCoreVersion}.`);
+  if (descriptor.manifest.minimumBridgeVersion !== undefined && compareVersions(bridgeVersion, descriptor.manifest.minimumBridgeVersion) < 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} requires THSV StreamBridge ${descriptor.manifest.minimumBridgeVersion} or later; this installation is ${bridgeVersion}. Update StreamBridge before installing this add-on.`);
+  if (descriptor.manifest.maximumTestedBridgeVersion !== undefined && compareVersions(bridgeVersion, descriptor.manifest.maximumTestedBridgeVersion) > 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} has only been tested through THSV StreamBridge ${descriptor.manifest.maximumTestedBridgeVersion}; this installation is ${bridgeVersion}. Install a matching add-on release.`);
 
   const expected = new Set([DESCRIPTOR_FILE, ...descriptor.files.map((file) => file.path), ...(allowInstallRecord ? ['installed-package.json'] : [])]);
   const actual = await listFiles(root);
@@ -188,6 +196,7 @@ export async function installAddOnPackage(sourceRoot: string, addOnsRoot: string
   const migrationTimeoutMs = options.migrationTimeoutMs ?? MIGRATION_TIMEOUT_MS;
   if (!Number.isInteger(migrationTimeoutMs) || migrationTimeoutMs < 10 || migrationTimeoutMs > MIGRATION_TIMEOUT_MS) throw new AddOnPackageError(`Migration timeout must be an integer from 10 through ${String(MIGRATION_TIMEOUT_MS)} ms.`);
   const verified = await verifyAddOnPackage(sourceRoot);
+  if (verified.descriptor.trust.publisherId === 'thsv.streambridge' && (verified.descriptor.manifest.minimumBridgeVersion === undefined || verified.descriptor.manifest.maximumTestedBridgeVersion === undefined)) throw new AddOnPackageError(`${verified.descriptor.manifest.moduleId} is an official THSV package but does not declare its bridge release compatibility. Download the add-on from the release matching your installed StreamBridge version.`);
   const root = resolve(addOnsRoot);
   await mkdir(root, { recursive: true });
   const target = safeChild(root, verified.descriptor.manifest.moduleId);

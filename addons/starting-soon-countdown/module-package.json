@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one creator-controlled Starting Soon countdown with a custom message, local tone, and optional approved completion action.",
-  "changelog": "Unreleased: renamed the creator-facing add-on to Stream Launch Countdown and added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
+  "changelog": "2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: renamed the creator-facing add-on to Stream Launch Countdown and added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.starting-soon-countdown",
     "name": "Stream Launch Countdown",
-    "version": "2.4.1",
+    "version": "2.4.2",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -55,15 +55,17 @@
         "id": "thsv.starting-soon-countdown.runtime",
         "description": "Confirms bounded countdown controls, persistence, and overlay publishing."
       }
-    ]
+    ],
+    "minimumBridgeVersion": "2.4.2",
+    "maximumTestedBridgeVersion": "2.4.2"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 16077,
-      "sha256": "7d926f7d5dde0600abe2e2fddb18a4dd7c11aa90c3ca86856d105b1dbb4da9de"
+      "size": 16145,
+      "sha256": "1d700b4d808b72f838ee82ca391758598f2f8f6f4f02b6062cc4d41ff1f8dc3f"
     },
     {
       "path": "schemas/config.json",
@@ -78,7 +80,7 @@
     {
       "path": "README.md",
       "size": 2363,
-      "sha256": "8bac5f89ff734b7373c55354f349ef6e6cff76447b890efbc97e639dc7374e5d"
+      "sha256": "0854638c3f418979fbd28ef2febd20b30dec8be23f528814823e34c81c54d367"
     }
   ]
 }

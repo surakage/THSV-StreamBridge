@@ -53,6 +53,8 @@ async function alignAddOns(): Promise<void> {
     manifest['version'] = targetVersion;
     manifest['minimumCoreVersion'] = contractVersion;
     manifest['maximumTestedCoreVersion'] = contractVersion;
+    manifest['minimumBridgeVersion'] = targetVersion;
+    manifest['maximumTestedBridgeVersion'] = targetVersion;
     descriptor['changelog'] = stableChangelog(descriptor['changelog']);
 
     const runtimePath = join(addOnRoot, 'dist', 'index.js');
@@ -60,9 +62,12 @@ async function alignAddOns(): Promise<void> {
     const match = /const manifest = \{[\s\S]*?\n\};/u.exec(runtime);
     if (match === null) throw new Error(`${folder.name} runtime has no manifest block.`);
     const alignedManifest = match[0]
+      .replace(/\s*minimumBridgeVersion:\s*'[^']+',?/u, '')
+      .replace(/\s*maximumTestedBridgeVersion:\s*'[^']+',?/u, '')
       .replace(/(\bversion:\s*')[^']+(')/u, `$1${targetVersion}$2`)
       .replace(/(\bminimumCoreVersion:\s*')[^']+(')/u, `$1${contractVersion}$2`)
       .replace(/(\bmaximumTestedCoreVersion:\s*')[^']+(')/u, `$1${contractVersion}$2`)
+      .replace(/(\bmaximumTestedCoreVersion:\s*'[^']+',?)/u, `$1 minimumBridgeVersion: '${targetVersion}', maximumTestedBridgeVersion: '${targetVersion}',`)
       .replace(/-\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\.sb\b/gu, `-${targetVersion}.sb`);
     runtime = runtime.slice(0, match.index) + alignedManifest + runtime.slice(match.index + match[0].length);
     await writeFile(runtimePath, runtime, 'utf8');

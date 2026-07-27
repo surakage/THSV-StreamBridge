@@ -8,8 +8,8 @@ const DISCORD_CONTENT_LIMIT = 1900;
 const RESULT_TIMEOUT_MS = 15_000;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.discord-chat-archive', name: 'Discord Chat Archive', version: '2.4.1',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.discord-chat-archive', name: 'Discord Chat Archive', version: '2.4.2',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.2', maximumTestedBridgeVersion: '2.4.2', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', DELIVERY_EVENT], commandsProvided: [],
   actionsProvided: [{ id: 'discord-chat-archive.deliver', name: 'Required Discord webhook delivery' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.discord-chat-archive/', 'data/addons/.state/thsv.discord-chat-archive/'],

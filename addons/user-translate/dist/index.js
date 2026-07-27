@@ -6,8 +6,8 @@ const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const LANGUAGE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/u;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.user-translate', name: 'User Translate', version: '2.4.1',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.user-translate', name: 'User Translate', version: '2.4.2',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.2', maximumTestedBridgeVersion: '2.4.2', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', RESULT_EVENT],
   commandsProvided: [
     { id: 'user-translate.generic', name: 'translate (usage: !translate es hello)' },

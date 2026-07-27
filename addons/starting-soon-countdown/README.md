@@ -6,7 +6,7 @@ A creator-controlled launch countdown for a Starting Soon scene. Choose any dura
 
 1. Install and enable this add-on in the StreamBridge wizard.
 2. Configure the duration, completion message, optional tone, and overlay appearance.
-3. Import `Streamer.bot/THSV-StreamBridge-Stream-Launch-Countdown-2.4.1.sb` from the packaged add-on.
+3. Import `Streamer.bot/THSV-StreamBridge-Stream-Launch-Countdown-2.4.2.sb` from the packaged add-on.
 4. Add the wizard's `/overlay/countdown` URL as a 1920x1080 browser source in OBS, Meld, or Streamlabs Desktop, then crop and position it as needed.
 5. Attach **THSV Addon - Stream Launch Countdown - Start** to the scene-active trigger for your Starting Soon scene.
 6. Attach **Stop** to the scene-inactive trigger for that scene, or use **Reset** if the paused clock should remain visible.

@@ -444,6 +444,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/worker-1.1.0.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.2.1.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.3.1.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker-1.3.2.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.6.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },

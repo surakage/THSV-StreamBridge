@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one rotating Streamer.bot-owned Twitch Fan Crown reward with bounded pricing, stable-identity eligibility, result-confirmed mutations, and a private monthly leaderboard.",
-  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with fixed or multiplier price progression, a hard cost cap, current-holder and per-user cooldown rules, optional stream reset, local-calendar monthly rollover, points-spent ranking, reign tracking, editable chat messages, a styled hosted overlay card, and separate controller/reset Streamer.bot actions.",
+  "changelog": "2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with fixed or multiplier price progression, a hard cost cap, current-holder and per-user cooldown rules, optional stream reset, local-calendar monthly rollover, points-spent ranking, reign tracking, editable chat messages, a styled hosted overlay card, and separate controller/reset Streamer.bot actions.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -23,7 +23,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.fan-crown",
     "name": "Fan Crown",
-    "version": "2.4.1",
+    "version": "2.4.2",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -57,15 +57,17 @@
         "id": "thsv.fan-crown.runtime",
         "description": "Confirms serialized crown captures, result-correlated reward administration, bounded pricing, and private monthly ranking state."
       }
-    ]
+    ],
+    "minimumBridgeVersion": "2.4.2",
+    "maximumTestedBridgeVersion": "2.4.2"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 27347,
-      "sha256": "9a2ca00e9337901b6bea9d244bd6a1ea1190f5d9109f37f1a5cf85d91bd125fd"
+      "size": 27415,
+      "sha256": "1ab22e448c947ccc131f457f90bc76c4ea0bd4c7237b08030654624b9158c96d"
     },
     {
       "path": "schemas/config.json",

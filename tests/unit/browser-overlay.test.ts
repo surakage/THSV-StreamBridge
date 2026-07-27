@@ -163,7 +163,7 @@ describe('Browser Overlay Hub contract', () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.1.js', 'thsv-browser-overlay-1.3.1'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.2.js', 'thsv-browser-overlay-1.3.2'");
     expect(source).toContain("oldest.classList.add('message-expiring')");
     expect(source).toContain('new AlertPresentationController({');
     expect(source).toContain('alertController.enqueue(alert)');

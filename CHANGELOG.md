@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-07-26
+
 - Renamed Starting Soon Countdown to Stream Launch Countdown. It can run exactly one creator-approved triggerless Streamer.bot action when a real countdown reaches zero, with an optional bounded delay, at-most-once persistence, a five-minute stale-action cutoff, and preview-safe Complete Now behavior. Subathon Timer remains a separate event-driven timer.
 - Regenerated four stale Streamer.bot imports and added a repository-wide byte-for-byte cohesion test so every checked-in `.sb` package must match its current manifest and C# source.
+- Added explicit bridge-release compatibility bounds alongside the stable add-on API contract. Official add-ons built for a newer or older host are now rejected with an actionable update message instead of installing into an incompatible core.
+- Fixed packaging-only add-on upgrades so completed historical data migrations are not demanded or rerun when no migration exists in the current upgrade path.
+- Aligned the core, all thirteen first-party add-ons, all Streamer.bot manifests/imports, the add-on update index, and the portable Windows installer to `2.4.2`.
+- Bumped the browser-overlay SharedWorker identity to `1.3.2` while retaining the previous asset route, preventing OBS, Meld, Streamlabs, and ordinary browsers from reusing stale cross-release overlay transport code. Added a hosted add-on preview rendering regression check.
 
 ## [2.4.1] - 2026-07-26
 

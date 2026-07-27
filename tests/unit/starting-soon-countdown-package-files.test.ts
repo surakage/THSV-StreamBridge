@@ -13,7 +13,7 @@ describe('Stream Launch Countdown Streamer.bot package', () => {
       'THSV Addon - Stream Launch Countdown - Set & Start',
     ]);
     expect(manifest.actions.every((action) => action.group === 'THSV StreamBridge - Add-ons')).toBe(true);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Stream-Launch-Countdown-2.4.1.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Stream-Launch-Countdown-2.4.2.sb']));
     expect(manifest.actions.at(-1)?.arguments).toContainEqual({ name: 'countdownSeconds', value: '600', autoType: true });
   });
 

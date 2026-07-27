@@ -65,7 +65,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   function connect() {
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-1.3.1.js', 'thsv-browser-overlay-1.3.1');
+        const worker = new SharedWorker('/overlay/worker-1.3.2.js', 'thsv-browser-overlay-1.3.2');
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);

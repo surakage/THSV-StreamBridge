@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Translates only explicit viewer requests through a disclosed no-key provider, then returns bounded results to the originating platform without retaining message text.",
-  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
+  "changelog": "2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.user-translate",
     "name": "User Translate",
-    "version": "2.4.1",
+    "version": "2.4.2",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -68,15 +68,17 @@
         "id": "thsv.user-translate.runtime",
         "description": "Confirms bounded command handling, provider dispatch, and source-platform response routing."
       }
-    ]
+    ],
+    "minimumBridgeVersion": "2.4.2",
+    "maximumTestedBridgeVersion": "2.4.2"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11498,
-      "sha256": "d714493a124e40db3d57f6611d5c1b769d73de5b9b428ed382aa79a5323b1097"
+      "size": 11566,
+      "sha256": "c4312b441f1b798c76c9f226d922b663a424f5f02182e02578e1e90bc0a5ced3"
     },
     {
       "path": "schemas/config.json",

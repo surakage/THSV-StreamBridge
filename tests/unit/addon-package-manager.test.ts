@@ -68,6 +68,24 @@ describe('Stage 9 add-on packages', () => {
     await expect(verifyAddOnPackage('examples/addons/no-op', '1.0.0')).rejects.toThrow('requires core');
   });
 
+  it('rejects add-ons built for a different StreamBridge release while retaining legacy v2 readability', async () => {
+    const root = await workspace();
+    await cp('examples/addons/no-op', root, { recursive: true });
+    const descriptorPath = join(root, 'module-package.json');
+    const descriptor = JSON.parse(await readFile(descriptorPath, 'utf8')) as { manifest: Record<string, unknown>; trust?: Record<string, unknown> };
+    descriptor.manifest['minimumBridgeVersion'] = '2.4.2';
+    descriptor.manifest['maximumTestedBridgeVersion'] = '2.4.2';
+    await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
+    await expect(verifyAddOnPackage(root, undefined, false, '2.4.1')).rejects.toThrow('Update StreamBridge before installing');
+    await expect(verifyAddOnPackage(root, undefined, false, '2.4.2')).resolves.toMatchObject({ descriptor: { manifest: { minimumBridgeVersion: '2.4.2' } } });
+
+    delete descriptor.manifest['minimumBridgeVersion']; delete descriptor.manifest['maximumTestedBridgeVersion'];
+    descriptor.trust = { publisherId: 'thsv.streambridge' };
+    await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
+    await expect(verifyAddOnPackage(root)).resolves.toBeDefined();
+    await expect(installAddOnPackage(root, join(await workspace(), 'addons'), true)).rejects.toThrow('does not declare its bridge release compatibility');
+  });
+
   it('requires approval, installs atomically, loads the sample, and removes code without deleting owned state', async () => {
     const root = await workspace();
     const addOns = join(root, 'addons');
@@ -147,6 +165,15 @@ describe('Stage 9 add-on packages', () => {
     await expect(installAddOnPackage(hanging, addOns, true, { migrationTimeoutMs: 100, stateRoot })).rejects.toThrow('exceeded 100 ms');
     await expect(readFile(join(storage, 'state.json'), 'utf8')).resolves.toContain('"format":2');
     await expect(readFile(join(addOns, 'sample.migrating', 'installed-package.json'), 'utf8')).resolves.toContain('"version": "2.0.0"');
+  });
+
+  it('does not rerun completed historical migrations during a later packaging-only release', async () => {
+    const root = await workspace(); const addOns = join(root, 'addons'); const stateRoot = join(root, 'state');
+    const v1 = join(root, 'v1'); await mkdir(v1); await migrationPackage(v1, '1.4.0', []);
+    await installAddOnPackage(v1, addOns, true, { stateRoot });
+    const v2 = join(root, 'v2'); await mkdir(v2); await migrationPackage(v2, '2.0.0', [{ from: '1.0.0', to: '1.1.0', script: 'migrations/old.mjs' }],
+      `export async function migrate() { throw new Error('historical migration must not run'); }\n`);
+    await expect(installAddOnPackage(v2, addOns, true, { stateRoot })).resolves.toMatchObject({ descriptor: { manifest: { version: '2.0.0' } } });
   });
 
   it('rejects one corrupted installed add-on without preventing a verified neighbor from loading', async () => {

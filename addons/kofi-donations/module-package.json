@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Receives verified Ko-fi Donation triggers through Streamer.bot and publishes stable-ID donations into StreamBridge's durable alert pipeline with privacy controls.",
-  "changelog": "2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
+  "changelog": "2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
   "permissions": [
     "events.subscribe",
     "provider.events.publish"
@@ -19,7 +19,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.kofi-donations",
     "name": "Ko-fi Donations",
-    "version": "2.4.1",
+    "version": "2.4.2",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -53,15 +53,17 @@
         "id": "thsv.kofi-donations.runtime",
         "description": "Confirms stable-ID Ko-fi donations can enter the validated durable alert pipeline."
       }
-    ]
+    ],
+    "minimumBridgeVersion": "2.4.2",
+    "maximumTestedBridgeVersion": "2.4.2"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 3610,
-      "sha256": "ca94d95d5c543e9353797f6ddbe2b10f451bb5bec9a478cb94787ca39e6ca845"
+      "size": 3678,
+      "sha256": "8a9178f8901f14a80f323ba78a1e50ba55f29125270784982b63b90f41435783"
     },
     {
       "path": "schemas/config.json",

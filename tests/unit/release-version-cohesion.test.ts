@@ -9,6 +9,8 @@ interface AddOnDescriptor {
     version: string;
     minimumCoreVersion: string;
     maximumTestedCoreVersion: string;
+    minimumBridgeVersion: string;
+    maximumTestedBridgeVersion: string;
   };
 }
 
@@ -30,6 +32,8 @@ describe('stable release version cohesion', () => {
       expect(descriptor.manifest.version, `${folder.name} add-on version`).toBe(stableVersion);
       expect(descriptor.manifest.minimumCoreVersion, `${folder.name} minimum API contract`).toBe(descriptor.manifest.contractVersion);
       expect(descriptor.manifest.maximumTestedCoreVersion, `${folder.name} tested API contract`).toBe(descriptor.manifest.contractVersion);
+      expect(descriptor.manifest.minimumBridgeVersion, `${folder.name} minimum bridge release`).toBe(stableVersion);
+      expect(descriptor.manifest.maximumTestedBridgeVersion, `${folder.name} tested bridge release`).toBe(stableVersion);
     }
 
     const packageFolders = (await readdir(join('packages', 'streamerbot'), { withFileTypes: true })).filter((entry) => entry.isDirectory());

@@ -129,4 +129,14 @@ describe('AddOnUpdateService', () => {
     const malformed = responses(index([published('thsv.sample', '1.0.0junk')]));
     await expect(new AddOnUpdateService('2.0.0-preview.1', undefined, malformed).check([])).resolves.toMatchObject({ available: false, error: expect.stringContaining('version') as unknown });
   });
+
+  it('uses the product release boundary in addition to the stable API contract', async () => {
+    const request = responses(index([
+      published('thsv.future-host', '2.4.2', { minimumBridgeVersion: '2.4.2', maximumTestedBridgeVersion: '2.4.2' }),
+    ]));
+    const result = await new AddOnUpdateService('2.0.0-preview.1', undefined, request, '2.4.1').check([
+      installed('thsv.future-host', '2.4.1'),
+    ]);
+    expect(result.addOns).toEqual([expect.objectContaining({ state: 'requires-newer-core', warning: expect.stringContaining('2.4.2') as unknown })]);
+  });
 });

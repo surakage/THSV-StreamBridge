@@ -1,4 +1,5 @@
 import { compareVersions, type InstalledAddOnSummary } from './addon-package-manager.js';
+import { STREAMBRIDGE_VERSION } from '../version.js';
 
 const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge';
 const INDEX_ASSET_NAME = 'THSV-StreamBridge-AddOns-index.json';
@@ -20,6 +21,8 @@ interface AddOnIndexPackage {
   readonly sha256: string;
   readonly minimumCoreVersion: string;
   readonly maximumTestedCoreVersion: string;
+  readonly minimumBridgeVersion?: string;
+  readonly maximumTestedBridgeVersion?: string;
   readonly revoked: boolean;
 }
 
@@ -56,8 +59,10 @@ export class AddOnUpdateService {
     private readonly currentCoreVersion: string,
     private readonly repository = DEFAULT_REPOSITORY,
     private readonly request: typeof fetch = fetch,
+    private readonly currentBridgeVersion: string = STREAMBRIDGE_VERSION,
   ) {
     compareVersions(currentCoreVersion, currentCoreVersion);
+    compareVersions(currentBridgeVersion, currentBridgeVersion);
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repository)) throw new Error('GitHub repository must be owner/name.');
   }
 
@@ -82,6 +87,7 @@ export class AddOnUpdateService {
         index.packages,
         index.revoked,
         this.currentCoreVersion,
+        this.currentBridgeVersion,
         (archiveName) => findPackageAssetUrl(release.assets, archiveName, this.repository),
       ));
       return {
@@ -150,6 +156,8 @@ function parseIndex(value: unknown, repository: string): { readonly packages: re
       sha256: sha256(item['sha256']),
       minimumCoreVersion: version(item['minimumCoreVersion'], 'minimum core version'),
       maximumTestedCoreVersion: version(item['maximumTestedCoreVersion'], 'maximum tested core version'),
+      ...(item['minimumBridgeVersion'] === undefined ? {} : { minimumBridgeVersion: version(item['minimumBridgeVersion'], 'minimum bridge version') }),
+      ...(item['maximumTestedBridgeVersion'] === undefined ? {} : { maximumTestedBridgeVersion: version(item['maximumTestedBridgeVersion'], 'maximum tested bridge version') }),
       revoked: item['revoked'] === true,
     };
     if (seen.has(parsed.moduleId)) throw new Error(`The published add-on index contains duplicate package ${parsed.moduleId}.`);
@@ -164,6 +172,7 @@ function evaluateAddOn(
   packages: readonly AddOnIndexPackage[],
   revoked: ReadonlySet<string>,
   coreVersion: string,
+  bridgeVersion: string,
   packageUrl: (archiveName: string) => string,
 ): AddOnUpdateItem {
   const base = { moduleId: installed.moduleId, name: installed.name, installedVersion: installed.version };
@@ -173,11 +182,17 @@ function evaluateAddOn(
   if (published === undefined) return { ...base, state: 'not-listed', warning: 'This installed add-on is not listed in the official THSV add-on index. No update or publisher claim was inferred.' };
   const installedPublisher = installed.trust.publisherId;
   if (installedPublisher !== published.publisherId) return { ...base, state: 'publisher-mismatch', ...publishedFields(published), warning: `Publisher mismatch: installed ${installedPublisher ?? 'not declared'}; index ${published.publisherId ?? 'not declared'}. No update should be installed.` };
-  const compatibility: AddOnCompatibility = compareVersions(coreVersion, published.minimumCoreVersion) < 0 ? 'requires-newer-core' : (compareVersions(coreVersion, published.maximumTestedCoreVersion) > 0 ? 'newer-than-tested' : 'compatible');
+  const requiresNewerCore = compareVersions(coreVersion, published.minimumCoreVersion) < 0;
+  const coreNewerThanTested = compareVersions(coreVersion, published.maximumTestedCoreVersion) > 0;
+  const requiresNewerBridge = published.minimumBridgeVersion !== undefined && compareVersions(bridgeVersion, published.minimumBridgeVersion) < 0;
+  const bridgeNewerThanTested = published.maximumTestedBridgeVersion !== undefined && compareVersions(bridgeVersion, published.maximumTestedBridgeVersion) > 0;
+  const compatibility: AddOnCompatibility = requiresNewerCore || requiresNewerBridge ? 'requires-newer-core' : (coreNewerThanTested || bridgeNewerThanTested ? 'newer-than-tested' : 'compatible');
   const newer = compareVersions(installed.version, published.version) < 0;
   const downloadUrl = packageUrl(published.archiveName);
-  if (newer && compatibility === 'requires-newer-core') return { ...base, state: 'requires-newer-core', compatibility, ...publishedFields(published), downloadUrl, warning: `Version ${published.version} requires StreamBridge ${published.minimumCoreVersion} or newer.` };
-  return { ...base, state: newer ? 'update-available' : 'current', compatibility, ...publishedFields(published), downloadUrl, ...(compatibility === 'newer-than-tested' ? { warning: `This add-on was tested through StreamBridge ${published.maximumTestedCoreVersion}; your core is newer.` } : {}) };
+  const requiredVersion = requiresNewerBridge ? published.minimumBridgeVersion : published.minimumCoreVersion;
+  const testedVersion = bridgeNewerThanTested ? published.maximumTestedBridgeVersion : published.maximumTestedCoreVersion;
+  if (newer && compatibility === 'requires-newer-core') return { ...base, state: 'requires-newer-core', compatibility, ...publishedFields(published), downloadUrl, warning: `Version ${published.version} requires StreamBridge ${requiredVersion} or newer.` };
+  return { ...base, state: newer ? 'update-available' : 'current', compatibility, ...publishedFields(published), downloadUrl, ...(compatibility === 'newer-than-tested' ? { warning: `This add-on was tested through StreamBridge ${testedVersion}; your bridge is newer.` } : {}) };
 }
 
 function publishedFields(value: AddOnIndexPackage): Pick<AddOnUpdateItem, 'latestVersion' | 'publisherId' | 'archiveName' | 'sha256'> {
