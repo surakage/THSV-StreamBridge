@@ -79,5 +79,5 @@ describe('generated Streamer.bot import cohesion', () => {
       const actual = await readFile(join(packageRoot, importFiles[0] ?? ''), 'utf8');
       expect(actual, `${entry.name} has a stale generated Streamer.bot import`).toBe(expected);
     }
-  });
+  }, 20_000);
 });

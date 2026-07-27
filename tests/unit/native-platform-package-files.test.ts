@@ -37,6 +37,14 @@ describe('native platform intake package', () => {
     expect(source).toContain('["firstMessageKnown"] = firstMessageKnown');
   });
 
+  it('clears a persisted lurk marker only on a later native chat message', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('private void AutoUnlurk(');
+    expect(source).toContain('"thsv.command.lurk.v1." + platform');
+    expect(source).toContain('TimeSpan.FromSeconds(3).Ticks');
+    expect(source).toContain('CPH.UnsetGlobalVar(key, true)');
+  });
+
   it('relays only Streamer.bot documented Twitch reply fields and restores escaped spaces', async () => {
     const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
     expect(source).toContain('"isReply", "reply.msgId", "reply.userId", "reply.userLogin", "reply.userName", "reply.msgBody"');
@@ -51,6 +59,14 @@ describe('native platform intake package', () => {
   it('uses redemptionId and id as stable-ID fallbacks alongside the standard message/event ID fields', async () => {
     const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
     expect(source).toMatch(/SourceEventId\(sourceEventType, First\(Read\("messageId"\), Read\("msgId"\), Read\("eventId"\), Read\("redemptionId"\), Read\("id"\)\)\)/);
+  });
+
+  it('relays stable stream identity and bounded live metadata for downstream notification add-ons', async () => {
+    const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
+    expect(source).toContain('["streamId"]');
+    expect(source).toContain('["streamTitle"]');
+    expect(source).toContain('["streamCategoryName"]');
+    expect(source).toContain('"stream-start:" + startedAt');
   });
 
   it('supports the real Streamer.bot event name for Kicks Gifted, not the documented-but-wrong one', async () => {
@@ -112,7 +128,7 @@ describe('native platform intake package', () => {
   it('packages the current reviewed relay source into all three actions', async () => {
     const root = 'packages/streamerbot/native-platform-intake';
     const reviewed = (await readFile(`${root}/src/RelayPlatform.cs`, 'utf8')).replaceAll('\r\n', '\n').trimEnd();
-    const decoded = Buffer.from((await readFile(`${root}/THSV-StreamBridge-Native-Platform-Intake-2.4.2.sb`, 'utf8')).trim(), 'base64');
+    const decoded = Buffer.from((await readFile(`${root}/THSV-StreamBridge-Native-Platform-Intake-2.4.3.sb`, 'utf8')).trim(), 'base64');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as {
       data: { actions: Array<{ subActions: Array<{ type: number; enabled: boolean; byteCode?: string }> }> };
     };

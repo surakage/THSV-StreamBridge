@@ -1,0 +1,10 @@
+{
+  "intro": "Voice Relay sends selected normalized events through one approved Streamer.bot Speaker.bot action. It is disabled by default, strips links/control characters, applies local blocked terms, and retains no speech history.",
+  "order": ["enabled", "eventTypes", "voiceAlias", "maximumCharacters", "queueLimit", "gapSeconds", "allowChatRoles", "blockedTerms"],
+  "sections": [
+    { "id": "setup", "title": "1. Speaker.bot setup", "open": true, "fields": ["enabled", "voiceAlias"], "notice": "Connect Speaker.bot inside Streamer.bot, import Voice Relay, approve Speak, then test a harmless phrase before enabling." },
+    { "id": "events", "title": "2. What may be spoken", "fields": ["eventTypes", "allowChatRoles"], "notice": "Public chat is excluded by default. If enabled, start with broadcaster/moderator roles only." },
+    { "id": "safety", "title": "3. Safety and queue", "fields": ["maximumCharacters", "queueLimit", "gapSeconds", "blockedTerms"] },
+    { "id": "emergency", "title": "4. Emergency controls", "fields": [], "notice": "Pause/Resume/Stop controls affect new StreamBridge requests. Use Speaker.bot's native Clear Pending or Stop Speaking control to immediately clear speech already queued inside Speaker.bot." }
+  ], "fields": { "allowChatRoles": { "visibleWhen": { "field": "eventTypes", "contains": "chat.message" } }, "blockedTerms": { "rows": 6 } }
+}

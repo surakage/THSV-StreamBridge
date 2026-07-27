@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Live Beacon",
+  "version": "2.4.3",
+  "author": "surakage",
+  "description": "Delivers one broker-authorized Live Beacon message to a creator-owned Discord channel or forum webhook.",
+  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "actions": [
+    {
+      "id": "b99f5eae-d962-4b71-b2c5-64c19917189f",
+      "name": "THSV Addon - Live Beacon - Deliver",
+      "group": "THSV Addon - Live Beacon",
+      "source": "src/DeliverDiscord.cs",
+      "importFile": "THSV-StreamBridge-Live-Beacon-2.4.3.sb",
+      "arguments": [
+        {
+          "name": "liveBeaconWebhookUrl",
+          "value": "REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL",
+          "autoType": false,
+          "id": "0a0579be-3730-410b-87fc-3f519368eb01"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
+  "manualTriggerSetup": [],
+  "triggerSafety": "Deliver must remain triggerless and requires a one-use broker token. The webhook secret stays in its Set Argument and is never returned, logged, or sent to StreamBridge.",
+  "verificationStatus": "Streamer.bot channel delivery and Discord Execute Webhook forum thread_name contracts are source-verified; each creator must live-test their private webhook."
+}

@@ -12,6 +12,6 @@ An archived implementation may return only after it has a valid v2 module manife
 
 ## Donation providers
 
-Direct donations are intentionally absent from the setup wizard until provider-specific integrations exist. A future Streamlabs provider and Ko-fi provider must authenticate independently, preserve each provider's stable event ID, keep monetary values as decimal strings, verify webhook signatures or trusted Streamer.bot trigger provenance, and never infer a donation from a platform-native event. Streamlabs will default to its teal presentation and Ko-fi to its blue presentation while still supporting the same creator color overrides as native platforms.
+Direct donations use provider-specific intake rather than being inferred from platform-native events. Ko-fi uses its packaged provider add-on. Streamlabs reuses Streamer.bot's existing authenticated `Streamlabs.Donation` WebSocket event, so StreamBridge stores no Streamlabs credential and opens no second connection. Both providers require stable event IDs, keep monetary values as decimal strings, and retain separate presentation colors and creator overrides.
 
 Adding either provider also requires its own event matrix, normalized-variable mapping, deduplication fixtures, replay tests, and live acceptance evidence. YouTube Super Chats, Twitch Bits, Kick KICKs, and TikTok gifts remain distinct native platform events; they are not relabeled as donations.

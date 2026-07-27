@@ -59,7 +59,9 @@ async function alignAddOns(): Promise<void> {
 
     const runtimePath = join(addOnRoot, 'dist', 'index.js');
     let runtime = await readFile(runtimePath, 'utf8');
-    const match = /const manifest = \{[\s\S]*?\n\};/u.exec(runtime);
+    // Add-on authors may format the closing brace on its own line or after the final property.
+    // Match the first complete manifest declaration rather than coupling release packaging to style.
+    const match = /const manifest = \{[\s\S]*?\};/u.exec(runtime);
     if (match === null) throw new Error(`${folder.name} runtime has no manifest block.`);
     const alignedManifest = match[0]
       .replace(/\s*minimumBridgeVersion:\s*'[^']+',?/u, '')

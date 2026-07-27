@@ -1,0 +1,5 @@
+import { describe, expect, it } from 'vitest';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-on entrypoints are plain JavaScript */
+// @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
+import { projection, stateFor } from '../../addons/viewer-lobby/dist/index.js';
+describe('Viewer Lobby', () => { it('keeps stable identities private in the public projection', () => { const state = stateFor({ status: 'open', revision: 2, entries: [{ entryId: 'e1', identity: 'twitch:id:42', platform: 'twitch', displayName: 'Alex', gamertag: 'private-tag', joinedAt: 'x', state: 'waiting' }] }); const value = projection(state, { showGamertags: false }); expect(value.entries[0]).toEqual(expect.objectContaining({ displayName: 'Alex', position: 1 })); expect(JSON.stringify(value)).not.toContain('twitch:id:42'); expect(JSON.stringify(value)).not.toContain('private-tag'); }); });

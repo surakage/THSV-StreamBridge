@@ -1,0 +1,78 @@
+// Viewer Spotlight is presentation-only. Identity and progression remain in Viewer Foundation;
+// observed counters remain in Community Analytics; names and avatars live only in this process queue.
+const MODULE_ID = 'thsv.viewer-spotlight';
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const VIEWER_ID = /^[a-z][a-z0-9-]{0,63}$/u;
+const COLOR = /^#[0-9a-f]{6}$/iu;
+const FALLBACKS = Object.freeze({ enabled: false, disclosureAccepted: false, commandName: 'card', enabledPlatforms: PLATFORMS,
+  viewerCooldownMinutes: 15, globalCooldownSeconds: 10, maximumQueueSize: 8, queueExpirySeconds: 120, maximumCardsPerSession: 50, durationSeconds: 10,
+  ignoredViewerIds: [], showPlatformBadge: true, showAvatar: true, showPoints: true, showLevel: true, showObservedSessions: false, showObservedMessages: false, showObservedCommands: false, showEngagementScore: false, showSeasonRank: false,
+  backgroundMode: 'glass', backgroundColor: '#140d1f', backgroundOpacity: 0.94, accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast' });
+const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Viewer Spotlight', version: '2.4.3', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3',
+  dependencies: ['thsv.viewer-foundation', 'thsv.community-analytics'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received', 'stream.online', 'stream.offline'],
+  commandsProvided: [{ id: 'viewer-spotlight.card', name: 'card' }], actionsProvided: [], browserSourcesProvided: [],
+  dataStorageOwned: ['data/addons/thsv.viewer-spotlight/', 'data/addons/.state/thsv.viewer-spotlight/'], installationSteps: ['Install and enable Viewer Foundation and Community Analytics first.', 'Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.', 'Create the card command through Command Sync with no generated response.', 'Add /overlay/addons/thsv.viewer-spotlight as a browser source.'],
+  uninstallationSteps: ['Uninstall the add-on. Its pseudonymous cooldown state remains preserved for a later reinstall.'], migrations: [], healthChecks: [{ id: 'thsv.viewer-spotlight.runtime', description: 'Confirms bounded self-request handling and projection-only overlay publication.' }] };
+
+let operation = Promise.resolve(); let queue = []; let active = false; let activeViewerId; let scheduledDrain; let unregisterDeletion; let stopped = true; const livePlatforms = new Set();
+function clean(value, maximum = 256) { return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join(''); }
+function integer(value, minimum, maximum, fallback) { return Number.isSafeInteger(value) ? Math.min(maximum, Math.max(minimum, value)) : fallback; }
+function settingsFor(context) { const raw = { ...FALLBACKS, ...(context.settings || {}) }; return { ...raw, commandName: clean(raw.commandName, 64).toLowerCase(), enabledPlatforms: new Set(Array.isArray(raw.enabledPlatforms) ? raw.enabledPlatforms.filter((item) => PLATFORMS.includes(item)) : PLATFORMS),
+  ignoredViewerIds: new Set(Array.isArray(raw.ignoredViewerIds) ? raw.ignoredViewerIds.filter((item) => VIEWER_ID.test(item)).slice(0, 500) : []), viewerCooldownMinutes: integer(raw.viewerCooldownMinutes, 1, 1440, 15), globalCooldownSeconds: integer(raw.globalCooldownSeconds, 2, 3600, 10), maximumQueueSize: integer(raw.maximumQueueSize, 1, 20, 8), queueExpirySeconds: integer(raw.queueExpirySeconds, 15, 600, 120), maximumCardsPerSession: integer(raw.maximumCardsPerSession, 1, 500, 50), durationSeconds: integer(raw.durationSeconds, 3, 60, 10), backgroundMode: ['glass', 'solid', 'none'].includes(raw.backgroundMode) ? raw.backgroundMode : 'glass', backgroundColor: COLOR.test(raw.backgroundColor) ? raw.backgroundColor : '#140d1f', backgroundOpacity: typeof raw.backgroundOpacity === 'number' ? Math.max(0, Math.min(1, raw.backgroundOpacity)) : 0.94, accentColor: COLOR.test(raw.accentColor) ? raw.accentColor : '#7ff5cc', textColor: COLOR.test(raw.textColor) ? raw.textColor : '#ffffff', fontFamily: ['broadcast', 'display', 'serif', 'mono'].includes(raw.fontFamily) ? raw.fontFamily : 'broadcast' }; }
+function sanitizeState(value) { const source = value && typeof value === 'object' ? value : {}; const cooldowns = {}; if (source.cooldowns && typeof source.cooldowns === 'object') for (const [id, at] of Object.entries(source.cooldowns).filter(([id, at]) => VIEWER_ID.test(id) && Number.isSafeInteger(at)).sort((a, b) => b[1] - a[1]).slice(0, 500)) cooldowns[id] = at;
+  return { cooldowns, lastShownAt: integer(source.lastShownAt, 0, Number.MAX_SAFE_INTEGER, 0), cardsThisSession: integer(source.cardsThisSession, 0, 500, 0) }; }
+function safeAvatar(value) { const url = clean(value, 2048); if (!url.startsWith('https://')) return undefined; try { const parsed = new URL(url); return parsed.protocol === 'https:' && !parsed.username && !parsed.password ? parsed.href : undefined; } catch { return undefined; } }
+function requestFromEvent(event, viewerId, now) { const avatarUrl = safeAvatar(event.user?.avatarUrl); return { viewerId, platform: event.platform, displayName: clean(event.user?.displayName || event.user?.name, 80) || 'Viewer', ...(avatarUrl ? { avatarUrl } : {}), queuedAt: now }; }
+async function enqueueRequest(request, context, settings, state, now) {
+  if (settings.ignoredViewerIds.has(request.viewerId)) return { accepted: false, reason: 'ignored-or-unavailable' };
+  if (state.cardsThisSession >= settings.maximumCardsPerSession) return { accepted: false, reason: 'session-limit' };
+  const previous = state.cooldowns[request.viewerId] || 0; if (previous > 0 && now - previous < settings.viewerCooldownMinutes * 60000) return { accepted: false, reason: 'viewer-cooldown' };
+  if (queue.length >= settings.maximumQueueSize) return { accepted: false, reason: 'queue-full' };
+  state.cooldowns[request.viewerId] = now; await context.state.write(state); queue.push(request); await drain(context, now);
+  return { accepted: true, viewerId: request.viewerId, queued: active || queue.length > 0 };
+}
+export function buildViewerSpotlightCard(request, foundation, analytics, settings) { const title = `${request.displayName}${settings.showPlatformBadge ? ` • ${request.platform === 'tiktok' ? 'TikTok' : request.platform[0].toUpperCase() + request.platform.slice(1)}` : ''}`; const fields = [];
+  if (settings.showPoints) fields.push(`${foundation.points.toLocaleString('en-US')} points`); if (settings.showLevel) fields.push(`Level ${foundation.level}`);
+  if (settings.showObservedSessions && analytics.observed) fields.push(`${analytics.sessions.toLocaleString('en-US')} observed sessions`);
+  if (settings.showObservedMessages && analytics.observed) fields.push(`${analytics.counters.messages.toLocaleString('en-US')} observed messages`);
+  if (settings.showObservedCommands && analytics.observed) fields.push(`${analytics.counters.commands.toLocaleString('en-US')} observed commands`);
+  if (settings.showEngagementScore && Number.isSafeInteger(analytics.engagementScore)) fields.push(`${analytics.engagementScore.toLocaleString('en-US')} engagement score`);
+  if (settings.showSeasonRank && Number.isSafeInteger(analytics.seasonRank) && Number.isSafeInteger(analytics.rankCohortSize)) fields.push(`#${analytics.seasonRank.toLocaleString('en-US')} of ${analytics.rankCohortSize.toLocaleString('en-US')} this month`);
+  return { title, text: fields.join(' • ') || 'Viewer card', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}), durationMs: settings.durationSeconds * 1000,
+    style: { backgroundMode: settings.backgroundMode, backgroundColor: settings.backgroundColor, backgroundOpacity: settings.backgroundOpacity, accentColor: settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily } };
+}
+async function armDrain(context, delayMs) { if (scheduledDrain !== undefined || stopped) return; scheduledDrain = context.schedule.after(Math.max(1000, Math.min(86400000, Math.ceil(delayMs))), () => { scheduledDrain = undefined; active = false; activeViewerId = undefined; return serialize(() => drain(context)); }); }
+async function drain(context, now = Date.now()) { if (stopped || active) return; const settings = settingsFor(context); const state = sanitizeState(await context.state.read());
+  queue = queue.filter((item) => now - item.queuedAt <= settings.queueExpirySeconds * 1000); if (!queue.length || state.cardsThisSession >= settings.maximumCardsPerSession) { if (state.cardsThisSession >= settings.maximumCardsPerSession) queue = []; return; }
+  const remainingGlobal = state.lastShownAt > 0 ? state.lastShownAt + settings.globalCooldownSeconds * 1000 - now : 0; if (remainingGlobal > 0) return armDrain(context, remainingGlobal);
+  const request = queue.shift(); if (!request) return; const foundation = await context.viewerFoundation.getProjection({ viewerId: request.viewerId }); const analytics = await context.communityAnalytics.getViewerProjection(request.viewerId);
+  if (!foundation || !analytics.observed || settings.ignoredViewerIds.has(request.viewerId)) return drain(context, now);
+  await context.overlay.publish(`${MODULE_ID}.card.show`, buildViewerSpotlightCard(request, foundation, analytics, settings)); state.lastShownAt = now; state.cardsThisSession += 1; await context.state.write(state); active = true; activeViewerId = request.viewerId; await armDrain(context, settings.durationSeconds * 1000 + 1000); }
+export async function processViewerSpotlightEvent(event, context, now = Date.now()) { const settings = settingsFor(context); const state = sanitizeState(await context.state.read());
+  if (event.eventType === 'stream.online') { const wasOffline = livePlatforms.size === 0; livePlatforms.add(event.platform); if (wasOffline) { state.cardsThisSession = 0; await context.state.write(state); } return { session: 'active' }; }
+  if (event.eventType === 'stream.offline') { livePlatforms.delete(event.platform); if (livePlatforms.size === 0) { queue = []; active = false; activeViewerId = undefined; if (scheduledDrain !== undefined) context.schedule.cancel(scheduledDrain); scheduledDrain = undefined; await context.overlay.publish(`${MODULE_ID}.card.hide`, {}); } return { session: livePlatforms.size ? 'active' : 'closed' }; }
+  if (!settings.enabled || !settings.disclosureAccepted || event.eventType !== 'command.received' || event.metadata?.simulated === true || event.user?.actorType !== 'human' || !settings.enabledPlatforms.has(event.platform) || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return undefined;
+  if (Array.isArray(event.payload?.arguments) && event.payload.arguments.length > 0) return { accepted: false, reason: 'self-only' }; const userId = clean(event.user?.id, 256); if (!userId) return { accepted: false, reason: 'stable-user-id-required' };
+  const foundation = await context.viewerFoundation.getProjection({ platform: event.platform, userId }); if (!foundation) return { accepted: false, reason: 'ignored-or-unavailable' };
+  return enqueueRequest(requestFromEvent(event, foundation.viewerId, now), context, settings, state, now);
+}
+export async function administerViewerSpotlight(request, context, now = Date.now()) {
+  const settings = settingsFor(context); const state = sanitizeState(await context.state.read());
+  if (request.operation === 'status') return { operation: 'status', enabled: settings.enabled === true, disclosureAccepted: settings.disclosureAccepted === true, activeCard: active, queuedRequests: queue.length, cardsThisSession: state.cardsThisSession, maximumCardsPerSession: settings.maximumCardsPerSession };
+  if (!settings.enabled || !settings.disclosureAccepted) return { operation: 'display', accepted: false, reason: 'disabled-or-disclosure-required' };
+  const platform = clean(request.platform, 64); const userId = clean(request.userId, 256); const displayName = clean(request.displayName, 80); if (!PLATFORMS.includes(platform) || !userId || !displayName || request.approvedByCreator !== true) return { operation: 'display', accepted: false, reason: 'invalid-request' };
+  const foundation = await context.viewerFoundation.getProjection({ platform, userId }); if (!foundation) return { operation: 'display', accepted: false, reason: 'viewer-unavailable' };
+  const analytics = await context.communityAnalytics.getViewerProjection(foundation.viewerId); if (!analytics.observed) return { operation: 'display', accepted: false, reason: 'viewer-unobserved' };
+  const avatarUrl = safeAvatar(request.avatarUrl); const result = await enqueueRequest({ viewerId: foundation.viewerId, platform, displayName, ...(avatarUrl ? { avatarUrl } : {}), queuedAt: now }, context, settings, state, now);
+  return { operation: 'display', ...result };
+}
+export async function purgeViewerSpotlightViewer(viewerId, context) {
+  const id = clean(viewerId, 64); if (!VIEWER_ID.test(id)) return false; const state = sanitizeState(await context.state.read());
+  const queuedBefore = queue.length; queue = queue.filter((request) => request.viewerId !== id); const hadCooldown = Object.hasOwn(state.cooldowns, id); delete state.cooldowns[id];
+  const wasActive = activeViewerId === id; if (wasActive) { active = false; activeViewerId = undefined; if (scheduledDrain !== undefined) context.schedule.cancel(scheduledDrain); scheduledDrain = undefined; await context.overlay.publish(`${MODULE_ID}.card.hide`, {}); }
+  if (hadCooldown) await context.state.write(state); if (wasActive || queue.length < queuedBefore) await drain(context); return hadCooldown || wasActive || queue.length < queuedBefore;
+}
+function serialize(task) { operation = operation.then(task, task); return operation; }
+export function resetViewerSpotlightRuntime() { operation = Promise.resolve(); queue = []; active = false; activeViewerId = undefined; scheduledDrain = undefined; unregisterDeletion = undefined; stopped = true; livePlatforms.clear(); }
+export { sanitizeState as sanitizeViewerSpotlightState };
+export default { manifest, required: false, async start(context) { operation = Promise.resolve(); queue = []; active = false; activeViewerId = undefined; scheduledDrain = undefined; stopped = false; livePlatforms.clear(); await context.state.write(sanitizeState(await context.state.read())); unregisterDeletion = context.viewerFoundation.onDeleted?.((viewerId) => serialize(() => purgeViewerSpotlightViewer(viewerId, context))); await serialize(() => drain(context)); }, async stop(context) { stopped = true; unregisterDeletion?.(); unregisterDeletion = undefined; if (scheduledDrain !== undefined) context.schedule.cancel(scheduledDrain); scheduledDrain = undefined; queue = []; active = false; activeViewerId = undefined; await operation; operation = Promise.resolve(); }, async onEvent(event, context) { await serialize(() => processViewerSpotlightEvent(event, context)); }, async administerViewerSpotlight(request, context) { return serialize(() => administerViewerSpotlight(request, context)); } };

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Clip Courier",
+  "version": "2.4.3",
+  "author": "surakage",
+  "description": "Discovers Twitch clips and publishes broker-authorized clips to a private Discord channel or forum.",
+  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "actions": [
+    {
+      "id": "b8a8e9d4-6d14-41cc-a298-f218e8f3c1a8",
+      "name": "THSV Addon - Clip Courier - Get Clips",
+      "group": "THSV Addon - Clip Courier",
+      "source": "src/GetClips.cs",
+      "importFile": "THSV-StreamBridge-Clip-Courier-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "d4c4d0c6-5466-4a30-b437-7fd582f69038",
+      "name": "THSV Addon - Clip Courier - Deliver",
+      "group": "THSV Addon - Clip Courier",
+      "source": "src/DeliverDiscord.cs",
+      "importFile": "THSV-StreamBridge-Clip-Courier-2.4.3.sb",
+      "arguments": [
+        {
+          "name": "clipCourierWebhookUrl",
+          "value": "REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL",
+          "autoType": false,
+          "id": "16d77c56-925b-45e6-aa4b-e2ac935a2159"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
+  "manualTriggerSetup": [],
+  "triggerSafety": "Both actions remain triggerless and require one-use broker tokens. The webhook stays only in Deliver's Set Argument.",
+  "verificationStatus": "Source and automated contract verified; creator Twitch and Discord live acceptance remains required."
+}

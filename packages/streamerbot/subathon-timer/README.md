@@ -1,6 +1,6 @@
 # THSV StreamBridge - Subathon Timer
 
-Import the `.sb` file once. It creates five optional actions in `THSV StreamBridge - Add-ons`:
+Import the `.sb` file once. It creates five optional actions in `THSV Addon - Subathon Timer`:
 
 - Start
 - Pause

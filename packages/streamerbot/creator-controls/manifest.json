@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Creator Controls",
+  "version": "2.4.3",
+  "author": "surakage",
+  "description": "Provides three creator-controlled profile requests and one shared triggerless Twitch, YouTube, and Kick channel-metadata controller.",
+  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "actions": [
+    {
+      "id": "183afef4-fc53-4337-859f-c9fe6d1961e1",
+      "name": "THSV Addon - Creator Controls - Provider Controller",
+      "group": "THSV Addon - Creator Controls",
+      "source": "src/ProviderController.cs",
+      "importFile": "THSV-StreamBridge-Creator-Controls-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "2eaf6785-f3f4-472c-9593-b3689494930c",
+      "name": "THSV Addon - Creator Controls - Apply Profile 1",
+      "group": "THSV Addon - Creator Controls",
+      "source": "src/RequestProfile.cs",
+      "importFile": "THSV-StreamBridge-Creator-Controls-2.4.3.sb",
+      "arguments": [
+        {
+          "name": "creatorControlProfileId",
+          "value": "profile-1",
+          "autoType": false,
+          "id": "1a3b0f8b-3959-47c4-bf3e-7ed51781e6d7"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "eded2e28-2831-4480-9102-14d98742e275",
+      "name": "THSV Addon - Creator Controls - Apply Profile 2",
+      "group": "THSV Addon - Creator Controls",
+      "source": "src/RequestProfile.cs",
+      "importFile": "THSV-StreamBridge-Creator-Controls-2.4.3.sb",
+      "arguments": [
+        {
+          "name": "creatorControlProfileId",
+          "value": "profile-2",
+          "autoType": false,
+          "id": "692cbd79-4e00-4f07-b6d7-f65e89f5bc57"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "38a1093d-e788-4879-9b03-69477cc94f61",
+      "name": "THSV Addon - Creator Controls - Apply Profile 3",
+      "group": "THSV Addon - Creator Controls",
+      "source": "src/RequestProfile.cs",
+      "importFile": "THSV-StreamBridge-Creator-Controls-2.4.3.sb",
+      "arguments": [
+        {
+          "name": "creatorControlProfileId",
+          "value": "profile-3",
+          "autoType": false,
+          "id": "64bcf065-1990-486f-975a-aa56af56d231"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
+  "manualTriggerSetup": {
+    "controller": [],
+    "profiles": [
+      "Optional: attach Apply Profile 1/2/3 only to creator-controlled hotkeys, deck buttons, or approved Scene Actions targets."
+    ]
+  },
+  "triggerSafety": "Provider Controller must remain triggerless and requires a one-use broker token. Profile request actions only relay an exact profile ID; StreamBridge validates saved fields before dispatch.",
+  "verificationStatus": "Streamer.bot Twitch, YouTube, and Kick title/category method signatures are source-verified against current official documentation; live mutations remain creator acceptance-tested."
+}

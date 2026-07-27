@@ -14,6 +14,7 @@ import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.j
 import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/timed-actions-adapter.js';
 import { ModuleRegistry } from './module-registry.js';
 import { EventFilterEngine, type FilterDecision } from './event-filters.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1 } from '../contracts/v2/addon-capability.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -256,6 +257,22 @@ export class StreamBridge {
       modules: this.modules.statuses(),
       addOnCapabilities: this.modules.capabilityDiagnostics(),
     };
+  }
+
+  public administerViewerFoundation(request: ViewerFoundationAdminRequestV1): Promise<ViewerFoundationAdminResultV1> {
+    return this.modules.administerViewerFoundation(request);
+  }
+
+  public administerCommunityAnalytics(request: CommunityAnalyticsAdminRequestV1): Promise<CommunityAnalyticsAdminResultV1> {
+    return this.modules.administerCommunityAnalytics(request);
+  }
+
+  public administerViewerSpotlight(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1> {
+    return this.modules.administerViewerSpotlight(request);
+  }
+
+  public administerChatGuard(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1> {
+    return this.modules.administerChatGuard(request);
   }
 
   private async publishEvents(events: readonly NormalizedEvent[], initialDecision: FilterDecision): Promise<readonly string[]> {

@@ -87,6 +87,20 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...provider, payload: { ...provider.payload, unexpected: 'no' } }))).toThrow('relay token');
   });
 
+  it('permits only exact Creator Controls profile request actions', () => {
+    const control = {
+      moduleId: 'thsv.creator-controls', eventType: 'addon.thsv.creator-controls.control', relayToken: '',
+      sourceEventType: 'THSV Addon - Creator Controls - Apply Profile 2', relayId: 'creator-profile-2',
+      payload: { profileId: 'profile-2' },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({
+      eventType: 'addon.thsv.creator-controls.control', payload: { profileId: 'profile-2' },
+    });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { profileId: 'profile-4' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Creator Controls - Apply Profile 1' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { profileId: 'profile-2', title: 'untrusted' } }))).toThrow('relay token');
+  });
+
   it('permits only bounded, action-matched Subathon Timer creator controls', () => {
     const control = {
       moduleId: 'thsv.subathon-timer', eventType: 'addon.thsv.subathon-timer.control', relayToken: '',
@@ -193,5 +207,22 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...random, payload: { action: 'random', sourcePlatform: 'facebook' } }))).toThrow('relay token');
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...random, sourceEventType: 'THSV Addon - Quote Vault - Statistics' }))).toThrow('relay token');
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...random, payload: { action: 'random', sourcePlatform: 'twitch', quoteId: 1 } }))).toThrow('relay token');
+  });
+
+  it('permits only exact Viewer Lobby and Voice Relay creator controls', () => {
+    const lobby = { moduleId: 'thsv.viewer-lobby', eventType: 'addon.thsv.viewer-lobby.control', sourceEventType: 'THSV Addon - Viewer Lobby - Open', relayId: 'lobby-open', relayToken: '', payload: { action: 'open' } };
+    expect(normalizeStreamerBotAddOnRelay(relay(lobby))).toMatchObject({ payload: { action: 'open' } });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...lobby, payload: { action: 'clear' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...lobby, payload: { action: 'open', revision: 1 } }))).toThrow('relay token');
+    const voice = { moduleId: 'thsv.voice-relay', eventType: 'addon.thsv.voice-relay.control', sourceEventType: 'THSV Addon - Voice Relay - Stop', relayId: 'voice-stop', relayToken: '', payload: { action: 'stop' } };
+    expect(normalizeStreamerBotAddOnRelay(relay(voice))).toMatchObject({ payload: { action: 'stop' } });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...voice, sourceEventType: 'THSV Addon - Voice Relay - Resume' }))).toThrow('relay token');
+  });
+
+  it('permits only the exact Follower Pulse reconciliation control', () => {
+    const control = { moduleId: 'thsv.follower-pulse', eventType: 'addon.thsv.follower-pulse.control', sourceEventType: 'THSV Addon - Follower Pulse - Reconcile Now', relayId: 'follower-pulse-reconcile', relayToken: '', payload: { action: 'reconcile-now' } };
+    expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({ payload: { action: 'reconcile-now' } });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Follower Pulse - Snapshot Page' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'reconcile-now', force: true } }))).toThrow('relay token');
   });
 });

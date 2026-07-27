@@ -4,7 +4,7 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type ModuleRuntimeContextV2 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { Logger } from '../services/logger.js';
@@ -24,6 +24,9 @@ const MAXIMUM_PENDING_ACTIONS_PER_MODULE = 2;
 const MAXIMUM_ACTIONS_PER_MINUTE = 30;
 const MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE = 10;
 const MAXIMUM_PROVIDER_EVENTS_PER_MINUTE = 120;
+const VIEWER_FOUNDATION_MODULE_ID = 'thsv.viewer-foundation';
+const COMMUNITY_ANALYTICS_MODULE_ID = 'thsv.community-analytics';
+const VIEWER_PROVIDER_TIMEOUT_MS = 2_000;
 const jsonRecordSchema = z.record(z.string().min(1).max(100), jsonValueV2Schema);
 const providerDonationSchema = z.object({
   sourceEventId: z.string().trim().min(1).max(256),
@@ -37,13 +40,40 @@ const providerDonationSchema = z.object({
   simulated: z.boolean(),
 }).strict();
 const PROVIDER_MODULES: Readonly<Record<string, string>> = Object.freeze({ 'thsv.kofi-donations': 'kofi' });
+const viewerIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u);
+const viewerProjectionQuerySchema = z.object({
+  viewerId: viewerIdSchema.optional(),
+  platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']).optional(),
+  userId: z.string().trim().min(1).max(256).optional(),
+}).strict().superRefine((query, context) => {
+  const byViewer = query.viewerId !== undefined;
+  const byAccount = query.platform !== undefined && query.userId !== undefined;
+  if (byViewer === byAccount) context.addIssue({ code: 'custom', message: 'Supply exactly one viewerId or one platform/userId account pair.' });
+  if ((query.platform === undefined) !== (query.userId === undefined)) context.addIssue({ code: 'custom', message: 'platform and userId must be supplied together.' });
+});
+const viewerProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), viewerId: viewerIdSchema, linked: z.boolean(), points: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), level: z.number().int().positive().max(1_000_000), nextLevelAt: z.number().int().positive().max(Number.MAX_SAFE_INTEGER) }).strict();
+const viewerMutationSchema = z.object({ viewerId: viewerIdSchema, operation: z.enum(['add', 'spend', 'refund']), amount: z.number().int().min(1).max(1_000_000), reason: z.string().trim().min(1).max(200), idempotencyKey: z.string().trim().min(1).max(128) }).strict();
+const viewerMutationResultSchema = viewerProjectionSchema.extend({ operation: z.enum(['add', 'spend', 'refund']), amount: z.number().int().min(1).max(1_000_000), previousPoints: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), duplicate: z.boolean() }).strict();
+const viewerAdminSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('status') }).strict(),
+  z.object({ operation: z.literal('export'), viewerId: viewerIdSchema }).strict(),
+  z.object({ operation: z.literal('delete'), viewerId: viewerIdSchema, approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('correct'), viewerId: viewerIdSchema, adjustment: z.enum(['add', 'remove', 'reset']), amount: z.number().int().min(1).max(1_000_000).optional(), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict()
+    .superRefine((value, context) => {
+      if (value.adjustment !== 'reset' && value.amount === undefined) context.addIssue({ code: 'custom', message: 'Add and remove corrections require an amount.' });
+      if (value.adjustment === 'reset' && value.amount !== undefined) context.addIssue({ code: 'custom', message: 'Reset corrections must not include an amount.' });
+    }),
+]);
+const analyticsCountersSchema = z.object({ messages: z.number().int().nonnegative(), commands: z.number().int().nonnegative(), follows: z.number().int().nonnegative(), subscriptions: z.number().int().nonnegative(), memberships: z.number().int().nonnegative(), giftSubscriptions: z.number().int().nonnegative(), gifts: z.number().int().nonnegative(), cheers: z.number().int().nonnegative(), superChats: z.number().int().nonnegative(), raids: z.number().int().nonnegative(), rewardRedemptions: z.number().int().nonnegative() }).strict();
+const analyticsViewerProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), viewerId: viewerIdSchema, observed: z.boolean(), firstSeenAt: z.number().int().nonnegative().optional(), lastSeenAt: z.number().int().nonnegative().optional(), sessions: z.number().int().nonnegative(), counters: analyticsCountersSchema, activeSession: z.boolean(), activeLastSeenAt: z.number().int().nonnegative().optional(), scoreSeason: z.string().regex(/^\d{4}-\d{2}$/u).optional(), engagementScore: z.number().int().nonnegative().optional(), seasonRank: z.number().int().positive().optional(), rankCohortSize: z.number().int().nonnegative().optional() }).strict();
+const analyticsSessionProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), active: z.boolean(), startedAt: z.number().int().nonnegative().optional(), approximate: z.boolean(), livePlatforms: z.array(z.enum(['twitch', 'youtube', 'kick', 'tiktok'])).max(4), uniqueViewers: z.number().int().nonnegative(), counters: analyticsCountersSchema, retainedSessionCount: z.number().int().nonnegative().max(100) }).strict();
 
 export interface ModuleCapabilityGrant {
   readonly moduleId: string;
   readonly permissions: readonly AddOnPermissionV2[];
   readonly approvedActionIds: readonly string[];
 }
-interface ActiveModuleCapabilityGrant extends ModuleCapabilityGrant { readonly generation: number }
+interface ActiveModuleCapabilityGrant extends ModuleCapabilityGrant { readonly generation: number; readonly dependencies: readonly string[] }
 
 export interface AddOnCapabilityBrokerDependencies {
   readonly runStreamerBotAction?: (actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>;
@@ -65,6 +95,7 @@ interface CapabilityAudit {
 interface ScheduledEntry { readonly moduleId: string; readonly timer: NodeJS.Timeout }
 interface ActionActivity { pending: number; readonly startedAt: number[]; readonly controllers: Set<AbortController> }
 interface OutboundActivity { pending: number; readonly startedAt: number[]; readonly controllers: Set<AbortController> }
+interface ViewerDeletionListener { readonly grant: ActiveModuleCapabilityGrant; readonly listener: (viewerId: string) => void | Promise<void> }
 
 export class CapabilityDeniedError extends Error {
   public constructor(public readonly moduleId: string, public readonly permission: AddOnPermissionV2, message: string) {
@@ -80,14 +111,17 @@ export class AddOnCapabilityBroker {
   private readonly outboundActivity = new Map<string, OutboundActivity>();
   private readonly providerEventStarts = new Map<string, number[]>();
   private readonly generations = new Map<string, number>();
+  private viewerFoundationProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: ViewerFoundationProviderV1 } | undefined;
+  private readonly viewerDeletionListeners = new Map<string, Set<ViewerDeletionListener>>();
+  private communityAnalyticsProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: CommunityAnalyticsProviderV1 } | undefined;
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {}
 
-  public contextFor(rawGrant: ModuleCapabilityGrant, settings: Readonly<Record<string, unknown>> = {}): ModuleRuntimeContextV2 {
+  public contextFor(rawGrant: ModuleCapabilityGrant, settings: Readonly<Record<string, unknown>> = {}, dependencies: readonly string[] = []): ModuleRuntimeContextV2 {
     const validatedGrant = validateGrant(rawGrant);
     const generation = (this.generations.get(validatedGrant.moduleId) ?? 0) + 1;
     this.generations.set(validatedGrant.moduleId, generation);
-    const grant: ActiveModuleCapabilityGrant = Object.freeze({ ...validatedGrant, generation });
+    const grant: ActiveModuleCapabilityGrant = Object.freeze({ ...validatedGrant, generation, dependencies: Object.freeze([...dependencies]) });
     const permissions = Object.freeze([...grant.permissions]);
     const approvedActionIds = Object.freeze([...grant.approvedActionIds]);
     const has = (permission: AddOnPermissionV2): boolean => permissions.includes(permission);
@@ -114,6 +148,18 @@ export class AddOnCapabilityBroker {
       }),
       chat: Object.freeze({ send: (request: AddOnOutboundMessageRequestV2) => this.sendChat(grant, request) }),
       provider: Object.freeze({ publishDonation: (request: AddOnProviderDonationRequestV2) => this.publishProviderDonation(grant, request) }),
+      viewerFoundation: Object.freeze({
+        provide: (provider: ViewerFoundationProviderV1) => this.provideViewerFoundation(grant, provider),
+        getProjection: (query: ViewerFoundationProjectionQueryV1) => this.getViewerProjection(grant, query),
+        mutate: (request: ViewerFoundationMutationRequestV1) => this.mutateViewerFoundation(grant, request),
+        notifyDeleted: (viewerId: string) => this.notifyViewerDeleted(grant, viewerId),
+        onDeleted: (listener: (viewerId: string) => void | Promise<void>) => this.subscribeViewerDeleted(grant, listener),
+      }),
+      communityAnalytics: Object.freeze({
+        provide: (provider: CommunityAnalyticsProviderV1) => this.provideCommunityAnalytics(grant, provider),
+        getViewerProjection: (viewerId: string) => this.getCommunityAnalyticsViewerProjection(grant, viewerId),
+        getSessionProjection: () => this.getCommunityAnalyticsSessionProjection(grant),
+      }),
     };
     return Object.freeze(context);
   }
@@ -135,6 +181,9 @@ export class AddOnCapabilityBroker {
     if (outbound !== undefined) for (const controller of outbound.controllers) controller.abort(new Error(`Add-on ${moduleId} stopped before its outbound chat request completed.`));
     this.outboundActivity.delete(moduleId);
     this.providerEventStarts.delete(moduleId);
+    this.viewerDeletionListeners.delete(moduleId);
+    if (this.viewerFoundationProvider?.grant.moduleId === moduleId) this.viewerFoundationProvider = undefined;
+    if (this.communityAnalyticsProvider?.grant.moduleId === moduleId) this.communityAnalyticsProvider = undefined;
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
@@ -144,6 +193,9 @@ export class AddOnCapabilityBroker {
       actionRequests: Object.fromEntries([...this.actionActivity.entries()].map(([moduleId, activity]) => [moduleId, { pending: activity.pending, startsInCurrentWindow: activity.startedAt.filter((startedAt) => startedAt >= Date.now() - 60_000).length }])),
       outboundRequests: Object.fromEntries([...this.outboundActivity.entries()].map(([moduleId, activity]) => [moduleId, { pending: activity.pending, startsInCurrentWindow: activity.startedAt.filter((time) => time >= Date.now() - 60_000).length }])),
       providerEvents: Object.fromEntries([...this.providerEventStarts.entries()].map(([moduleId, starts]) => [moduleId, { startsInCurrentWindow: starts.filter((time) => time >= Date.now() - 60_000).length }])),
+      viewerFoundation: { available: this.viewerFoundationProvider !== undefined, providerModuleId: this.viewerFoundationProvider?.grant.moduleId },
+      viewerDeletionSubscribers: this.viewerDeletionListeners.size,
+      communityAnalytics: { available: this.communityAnalyticsProvider !== undefined, providerModuleId: this.communityAnalyticsProvider?.grant.moduleId },
       limits: { maximumJsonBytes: MAXIMUM_JSON_BYTES, maximumRecordKeys: MAXIMUM_RECORD_KEYS, maximumArguments: MAXIMUM_ARGUMENTS, minimumDelayMs: MINIMUM_DELAY_MS, maximumDelayMs: MAXIMUM_DELAY_MS, maximumTimersPerModule: MAXIMUM_TIMERS_PER_MODULE, taskTimeoutMs: TASK_TIMEOUT_MS, maximumPendingActionsPerModule: MAXIMUM_PENDING_ACTIONS_PER_MODULE, maximumActionsPerMinute: MAXIMUM_ACTIONS_PER_MINUTE, maximumOutboundRequestsPerMinute: MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE, maximumProviderEventsPerMinute: MAXIMUM_PROVIDER_EVENTS_PER_MINUTE },
       modules: Object.fromEntries([...this.audits.entries()].map(([moduleId, audit]) => [moduleId, { ...audit }])),
     };
@@ -297,6 +349,131 @@ export class AddOnCapabilityBroker {
     catch (error) { this.record(grant.moduleId, 'provider.events.publishDonation', 'failed'); throw error; }
   }
 
+  private provideViewerFoundation(grant: ActiveModuleCapabilityGrant, provider: ViewerFoundationProviderV1): () => void {
+    this.require(grant, 'viewer.foundation.provide', 'viewer.foundation.provide');
+    if (grant.moduleId !== VIEWER_FOUNDATION_MODULE_ID) return this.deny(grant.moduleId, 'viewer.foundation.provide', 'viewer.foundation.provide', 'Only thsv.viewer-foundation may provide the Viewer Foundation service.');
+    if (typeof provider !== 'object' || typeof provider.getProjection !== 'function' || typeof provider.mutate !== 'function' || typeof provider.administer !== 'function') throw new Error('Viewer Foundation provider must implement getProjection, mutate, and administer.');
+    if (this.viewerFoundationProvider !== undefined) throw new Error('Viewer Foundation already has an active provider.');
+    const entry = { grant, provider: Object.freeze(provider) };
+    this.viewerFoundationProvider = entry; this.record(grant.moduleId, 'viewer.foundation.provide', 'granted');
+    return () => { if (this.viewerFoundationProvider === entry) this.viewerFoundationProvider = undefined; };
+  }
+
+  private async getViewerProjection(grant: ActiveModuleCapabilityGrant, query: ViewerFoundationProjectionQueryV1): Promise<ViewerFoundationProjectionV1 | undefined> {
+    this.requireViewerConsumer(grant, 'viewer.foundation.read', 'viewer.foundation.getProjection');
+    const parsedValue = viewerProjectionQuerySchema.parse(query);
+    const parsed: ViewerFoundationProjectionQueryV1 = parsedValue.viewerId === undefined
+      ? { platform: parsedValue.platform as 'twitch' | 'youtube' | 'kick' | 'tiktok', userId: parsedValue.userId as string }
+      : { viewerId: parsedValue.viewerId };
+    const provider = this.activeViewerProvider(grant);
+    try {
+      const result = await withTimeout(provider.getProjection(parsed), VIEWER_PROVIDER_TIMEOUT_MS, 'Viewer Foundation projection');
+      this.record(grant.moduleId, 'viewer.foundation.getProjection', 'granted');
+      return result === undefined ? undefined : Object.freeze(viewerProjectionSchema.parse(result));
+    } catch (error) { this.record(grant.moduleId, 'viewer.foundation.getProjection', 'failed'); throw error; }
+  }
+
+  private async mutateViewerFoundation(grant: ActiveModuleCapabilityGrant, request: ViewerFoundationMutationRequestV1): Promise<ViewerFoundationMutationResultV1> {
+    this.requireViewerConsumer(grant, 'viewer.foundation.mutate', 'viewer.foundation.mutate');
+    const parsed = viewerMutationSchema.parse(request);
+    const provider = this.activeViewerProvider(grant);
+    try {
+      const result = await withTimeout(provider.mutate({ ...parsed, callerModuleId: grant.moduleId }), VIEWER_PROVIDER_TIMEOUT_MS, 'Viewer Foundation mutation');
+      this.record(grant.moduleId, 'viewer.foundation.mutate', 'granted');
+      return Object.freeze(viewerMutationResultSchema.parse(result));
+    } catch (error) { this.record(grant.moduleId, 'viewer.foundation.mutate', 'failed'); throw error; }
+  }
+
+  private subscribeViewerDeleted(grant: ActiveModuleCapabilityGrant, listener: (viewerId: string) => void | Promise<void>): () => void {
+    this.requireViewerConsumer(grant, 'viewer.foundation.read', 'viewer.foundation.onDeleted');
+    if (typeof listener !== 'function') throw new Error('Viewer deletion listener must be a function.');
+    const entry: ViewerDeletionListener = { grant, listener };
+    const listeners = this.viewerDeletionListeners.get(grant.moduleId) ?? new Set<ViewerDeletionListener>();
+    listeners.add(entry); this.viewerDeletionListeners.set(grant.moduleId, listeners);
+    let active = true;
+    const unsubscribe = (): void => {
+      if (!active) return; active = false; listeners.delete(entry);
+      if (listeners.size === 0) this.viewerDeletionListeners.delete(grant.moduleId);
+    };
+    this.record(grant.moduleId, 'viewer.foundation.onDeleted', 'granted');
+    return unsubscribe;
+  }
+
+  private async notifyViewerDeleted(grant: ActiveModuleCapabilityGrant, viewerId: string): Promise<void> {
+    this.require(grant, 'viewer.foundation.provide', 'viewer.foundation.notifyDeleted');
+    if (grant.moduleId !== VIEWER_FOUNDATION_MODULE_ID) return this.deny(grant.moduleId, 'viewer.foundation.provide', 'viewer.foundation.notifyDeleted', 'Only thsv.viewer-foundation may publish viewer deletion notices.');
+    const parsedViewerId = viewerIdSchema.parse(viewerId);
+    for (const listeners of this.viewerDeletionListeners.values()) {
+      for (const entry of [...listeners]) {
+        if (!this.isActive(entry.grant)) continue;
+        try {
+          await withTimeout(Promise.resolve(entry.listener(parsedViewerId)), VIEWER_PROVIDER_TIMEOUT_MS, `Viewer deletion cleanup for ${entry.grant.moduleId}`);
+          this.record(entry.grant.moduleId, 'viewer.foundation.deleteCleanup', 'granted');
+        } catch (error) {
+          this.record(entry.grant.moduleId, 'viewer.foundation.deleteCleanup', 'failed');
+          this.logger.error('Viewer deletion cleanup failed in a dependent add-on', { moduleId: entry.grant.moduleId, error });
+        }
+      }
+    }
+    this.record(grant.moduleId, 'viewer.foundation.notifyDeleted', 'granted');
+  }
+
+  /** Authenticated core/wizard entry point. Add-on contexts intentionally receive no reference to it. */
+  public async administerViewerFoundation(request: ViewerFoundationAdminRequestV1): Promise<ViewerFoundationAdminResultV1> {
+    const parsed = viewerAdminSchema.parse(request) as ViewerFoundationAdminRequestV1;
+    const entry = this.viewerFoundationProvider;
+    if (entry === undefined || !this.isActive(entry.grant)) throw new Error('Viewer Foundation is unavailable. Enable it and restart StreamBridge.');
+    const result = await withTimeout(entry.provider.administer(parsed), VIEWER_PROVIDER_TIMEOUT_MS, 'Viewer Foundation administration');
+    const validated = jsonRecordSchema.parse(result);
+    if (Buffer.byteLength(JSON.stringify(validated), 'utf8') > MAXIMUM_JSON_BYTES) throw new Error('Viewer Foundation administration result exceeded the safe response size.');
+    this.record(VIEWER_FOUNDATION_MODULE_ID, `viewer.foundation.admin.${parsed.operation}`, 'granted');
+    return Object.freeze(validated);
+  }
+
+  private requireViewerConsumer(grant: ActiveModuleCapabilityGrant, permission: 'viewer.foundation.read' | 'viewer.foundation.mutate', operation: string): void {
+    this.require(grant, permission, operation);
+    if (!grant.dependencies.includes(VIEWER_FOUNDATION_MODULE_ID)) this.deny(grant.moduleId, permission, operation, 'Viewer Foundation consumers must declare thsv.viewer-foundation as a module dependency.');
+  }
+
+  private activeViewerProvider(grant: ActiveModuleCapabilityGrant): ViewerFoundationProviderV1 {
+    const entry = this.viewerFoundationProvider;
+    if (entry === undefined || !this.isActive(entry.grant)) return this.deny(grant.moduleId, 'viewer.foundation.read', 'viewer.foundation.provider', 'Viewer Foundation is unavailable.');
+    return entry.provider;
+  }
+
+  private provideCommunityAnalytics(grant: ActiveModuleCapabilityGrant, provider: CommunityAnalyticsProviderV1): () => void {
+    this.require(grant, 'community.analytics.provide', 'community.analytics.provide');
+    if (grant.moduleId !== COMMUNITY_ANALYTICS_MODULE_ID) return this.deny(grant.moduleId, 'community.analytics.provide', 'community.analytics.provide', 'Only thsv.community-analytics may provide the Community Analytics service.');
+    if (typeof provider !== 'object' || typeof provider.getViewerProjection !== 'function' || typeof provider.getSessionProjection !== 'function') throw new Error('Community Analytics provider must implement viewer and session projections.');
+    if (this.communityAnalyticsProvider !== undefined) throw new Error('Community Analytics already has an active provider.');
+    const entry = { grant, provider: Object.freeze(provider) };
+    this.communityAnalyticsProvider = entry; this.record(grant.moduleId, 'community.analytics.provide', 'granted');
+    return () => { if (this.communityAnalyticsProvider === entry) this.communityAnalyticsProvider = undefined; };
+  }
+
+  private async getCommunityAnalyticsViewerProjection(grant: ActiveModuleCapabilityGrant, viewerId: string): Promise<CommunityAnalyticsViewerProjectionV1> {
+    this.requireAnalyticsConsumer(grant, 'community.analytics.getViewerProjection'); const parsedViewerId = viewerIdSchema.parse(viewerId); const provider = this.activeAnalyticsProvider(grant);
+    try { const result = await withTimeout(provider.getViewerProjection(parsedViewerId), VIEWER_PROVIDER_TIMEOUT_MS, 'Community Analytics viewer projection'); this.record(grant.moduleId, 'community.analytics.getViewerProjection', 'granted'); return Object.freeze(analyticsViewerProjectionSchema.parse(result)) as CommunityAnalyticsViewerProjectionV1; }
+    catch (error) { this.record(grant.moduleId, 'community.analytics.getViewerProjection', 'failed'); throw error; }
+  }
+
+  private async getCommunityAnalyticsSessionProjection(grant: ActiveModuleCapabilityGrant): Promise<CommunityAnalyticsSessionProjectionV1> {
+    this.requireAnalyticsConsumer(grant, 'community.analytics.getSessionProjection'); const provider = this.activeAnalyticsProvider(grant);
+    try { const result = await withTimeout(provider.getSessionProjection(), VIEWER_PROVIDER_TIMEOUT_MS, 'Community Analytics session projection'); this.record(grant.moduleId, 'community.analytics.getSessionProjection', 'granted'); return Object.freeze(analyticsSessionProjectionSchema.parse(result)) as CommunityAnalyticsSessionProjectionV1; }
+    catch (error) { this.record(grant.moduleId, 'community.analytics.getSessionProjection', 'failed'); throw error; }
+  }
+
+  private requireAnalyticsConsumer(grant: ActiveModuleCapabilityGrant, operation: string): void {
+    this.require(grant, 'community.analytics.read', operation);
+    if (!grant.dependencies.includes(COMMUNITY_ANALYTICS_MODULE_ID)) this.deny(grant.moduleId, 'community.analytics.read', operation, 'Community Analytics consumers must declare thsv.community-analytics as a module dependency.');
+  }
+
+  private activeAnalyticsProvider(grant: ActiveModuleCapabilityGrant): CommunityAnalyticsProviderV1 {
+    const entry = this.communityAnalyticsProvider;
+    if (entry === undefined || !this.isActive(entry.grant)) return this.deny(grant.moduleId, 'community.analytics.read', 'community.analytics.provider', 'Community Analytics is unavailable.');
+    return entry.provider;
+  }
+
   private statePath(moduleId: string): string {
     const root = resolve(this.stateRoot); const path = resolve(root, moduleId, 'runtime-state.json');
     if (!path.startsWith(root.replace(/[\\/]+$/u, '') + sep)) throw new Error('Add-on state path escaped its private root.');
@@ -319,6 +496,12 @@ export class AddOnCapabilityBroker {
     const audit = this.audits.get(moduleId) ?? { granted: 0, denied: 0, failed: 0 };
     audit[result] += 1; audit.lastOperation = operation; audit.lastResult = result; audit.lastAt = new Date().toISOString(); this.audits.set(moduleId, audit);
   }
+}
+
+async function withTimeout<T>(pending: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try { return await Promise.race([pending, new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error(`${label} exceeded ${String(timeoutMs)} ms.`)), timeoutMs); })]); }
+  finally { if (timer !== undefined) clearTimeout(timer); }
 }
 
 function validateGrant(value: ModuleCapabilityGrant): ModuleCapabilityGrant {

@@ -135,7 +135,7 @@ function projectChatActivity(event: NormalizedEvent, alert: MultiAlert | undefin
     sequence,
     platform: event.platform,
     category,
-    label: chatActivityLabel(category),
+    label: chatActivityLabel(category, event.platform),
     message: truncateCodePoints(rawMessage, config.chat.events.characterLimits[platform]),
     ...(actor === undefined ? {} : { actor }),
     ...(event.user === undefined ? {} : { presentation: actorPresentation(event) }),
@@ -164,6 +164,7 @@ function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | unde
     YouTubeNewSubscriber: 'subscriber', YouTubeNewSponsor: 'member', YouTubeMembershipGift: 'membership-gift', YouTubeMemberMileStone: 'member-milestone', YouTubeSuperChat: 'super-chat', YouTubeSuperSticker: 'super-sticker', YouTubeJewelsGifted: 'jewels-gift',
     KickFollow: 'follow', KickSubscription: 'subscription', KickResubscription: 'resubscription', KickGiftSubscription: 'gift-subscription', KickMassGiftSubscription: 'mass-gift-subscription', KickKicksGifted: 'gifted-kicks', KickRewardRedemption: 'reward-redemption',
     'TikFinity.follow': 'follow', 'TikFinity.gift': 'gift', 'TikFinity.subscription': 'subscription', 'TikFinity.like': 'likes',
+    StreamlabsDonation: 'donation',
     KofiDonation: 'donation',
   };
   const matched = exact[source];
@@ -172,6 +173,7 @@ function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | unde
   if (event.platform === 'youtube') return ({ 'channel.follow': 'subscriber', 'channel.membership': 'member', 'channel.gift-subscription': 'membership-gift', 'engagement.super-chat': 'super-chat', 'engagement.gift': 'jewels-gift' } as const)[event.eventType as 'channel.follow'];
   if (event.platform === 'kick') return ({ 'channel.follow': 'follow', 'channel.subscription': 'subscription', 'channel.gift-subscription': 'gift-subscription', 'engagement.gift': 'gifted-kicks', 'reward.redemption': 'reward-redemption' } as const)[event.eventType as 'channel.follow'];
   if (event.platform === 'tiktok') return ({ 'channel.follow': 'follow', 'channel.subscription': 'subscription', 'engagement.gift': 'gift', 'engagement.milestone': 'likes' } as const)[event.eventType as 'channel.follow'];
+  if (event.platform === 'streamlabs') return ({ 'engagement.donation': 'donation' } as const)[event.eventType as 'engagement.donation'];
   if (event.platform === 'kofi') return ({ 'engagement.donation': 'donation' } as const)[event.eventType as 'engagement.donation'];
   return undefined;
 }
@@ -181,8 +183,9 @@ function platformEventSetting(config: BrowserOverlayConfig, platform: keyof Brow
   return platformEvents[eventId];
 }
 
-function chatActivityLabel(category: OverlayChatActivity['category']): string {
-  return ({ follow: 'FOLLOW', subscription: 'SUBSCRIPTION', resubscription: 'RESUBSCRIPTION', 'gift-subscription': 'GIFT SUB', 'gift-bomb': 'GIFT BOMB', cheer: 'BITS', raid: 'RAID', 'reward-redemption': 'REWARD', subscriber: 'SUBSCRIBER', member: 'MEMBER', 'membership-gift': 'MEMBERSHIP GIFT', 'member-milestone': 'MEMBER MILESTONE', 'super-chat': 'SUPER CHAT', 'super-sticker': 'SUPER STICKER', 'jewels-gift': 'JEWELS GIFT', 'mass-gift-subscription': 'MASS GIFT', 'gifted-kicks': 'KICKS GIFTED', gift: 'GIFT', likes: 'LIKES', donation: 'KO-FI' })[category];
+function chatActivityLabel(category: OverlayChatActivity['category'], platform: string): string {
+  if (category === 'donation') return platform === 'kofi' ? 'KO-FI' : 'STREAMLABS';
+  return ({ follow: 'FOLLOW', subscription: 'SUBSCRIPTION', resubscription: 'RESUBSCRIPTION', 'gift-subscription': 'GIFT SUB', 'gift-bomb': 'GIFT BOMB', cheer: 'BITS', raid: 'RAID', 'reward-redemption': 'REWARD', subscriber: 'SUBSCRIBER', member: 'MEMBER', 'membership-gift': 'MEMBERSHIP GIFT', 'member-milestone': 'MEMBER MILESTONE', 'super-chat': 'SUPER CHAT', 'super-sticker': 'SUPER STICKER', 'jewels-gift': 'JEWELS GIFT', 'mass-gift-subscription': 'MASS GIFT', 'gifted-kicks': 'KICKS GIFTED', gift: 'GIFT', likes: 'LIKES' })[category];
 }
 
 function rewardActivityMessage(event: NormalizedEvent): string {

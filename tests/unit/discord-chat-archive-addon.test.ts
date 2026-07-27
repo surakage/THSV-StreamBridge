@@ -14,6 +14,9 @@ const settings = {
   includeSimulatedMessages: false,
   messageTemplate: '[{platform}] {displayName}: {message}',
   webhookDisplayName: 'THSV Chat Archive',
+  destinationMode: 'channel',
+  forumThreadName: 'Stream chat archive · {date}',
+  forumTagIds: [],
   useViewerIdentityForSingleMessage: false,
   useViewerAvatarForSingleMessage: false,
   batchWindowSeconds: 5,
@@ -113,6 +116,8 @@ describe('Discord Chat Archive add-on', () => {
     expect(runApprovedAction).toHaveBeenCalledTimes(1);
     expect(runApprovedAction).toHaveBeenCalledWith(DELIVERY_ACTION_ID, expect.objectContaining({
       discordArchiveContent: expect.stringContaining('Hello chat'),
+      discordArchiveDestinationMode: 'channel',
+      discordArchiveThreadId: '',
       discordArchiveSimulated: false,
     }));
 
@@ -121,6 +126,41 @@ describe('Discord Chat Archive add-on', () => {
       eventType: 'addon.thsv.discord-chat-archive.delivery-received',
       payload: { requestId, succeeded: true },
     }, context);
+    await discordChatArchive.stop(context);
+  });
+
+  it('reuses one confirmed forum thread until the last live platform goes offline', async () => {
+    const callbacks: Array<{ delay: number; callback: () => unknown }> = [];
+    const runApprovedAction = vi.fn(async (actionId: string, actionArguments: Record<string, unknown>) => { void actionId; void actionArguments; });
+    const context = {
+      settings: { ...settings, destinationMode: 'forum' },
+      approvedActionIds: [DELIVERY_ACTION_ID],
+      streamerbot: { runApprovedAction },
+      schedule: {
+        after: vi.fn((delay: number, callback: () => unknown) => { callbacks.push({ delay, callback }); return `task-${String(callbacks.length)}`; }),
+        cancel: vi.fn(() => true),
+      },
+    };
+
+    await discordChatArchive.start(context);
+    await discordChatArchive.onEvent({ eventType: 'stream.online', platform: 'twitch' }, context);
+    await discordChatArchive.onEvent(event, context);
+    await callbacks.find((entry) => entry.delay === 5_000)?.callback();
+    const firstArguments = runApprovedAction.mock.calls[0]?.[1];
+    expect(firstArguments).toBeDefined();
+    if (firstArguments === undefined) throw new Error('The first forum delivery was not dispatched.');
+    expect(firstArguments).toMatchObject({ discordArchiveDestinationMode: 'forum', discordArchiveThreadId: '' });
+    await discordChatArchive.onEvent({ eventType: 'addon.thsv.discord-chat-archive.delivery-received', payload: { requestId: firstArguments.discordArchiveRequestId, succeeded: true, threadId: '987654321' } }, context);
+
+    await discordChatArchive.onEvent({ ...event, eventId: 'chat-2' }, context);
+    const flushes = callbacks.filter((entry) => entry.delay === 5_000);
+    await flushes.at(-1)?.callback();
+    expect(runApprovedAction.mock.calls[1]?.[1]).toMatchObject({ discordArchiveThreadId: '987654321' });
+
+    await discordChatArchive.onEvent({ eventType: 'stream.offline', platform: 'twitch' }, context);
+    await discordChatArchive.onEvent({ ...event, eventId: 'chat-3' }, context);
+    await callbacks.filter((entry) => entry.delay === 5_000).at(-1)?.callback();
+    expect(runApprovedAction.mock.calls[2]?.[1]).toMatchObject({ discordArchiveThreadId: '' });
     await discordChatArchive.stop(context);
   });
 });

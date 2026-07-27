@@ -1,0 +1,14 @@
+{
+  "intro": "Category Pilot checks only the exact process names entered below. Begin with Suggest only; automatic profile changes should be enabled only after the matches are proven on this computer.",
+  "order": ["enabled", "mode", "requireLive", "intervalSeconds", "confirmationCount", "mapping1Enabled", "mapping1ProcessName", "mapping1Profile", "mapping2Enabled", "mapping2ProcessName", "mapping2Profile", "mapping3Enabled", "mapping3ProcessName", "mapping3Profile", "mapping4Enabled", "mapping4ProcessName", "mapping4Profile", "mapping5Enabled", "mapping5ProcessName", "mapping5Profile"],
+  "sections": [
+    { "id": "quick-start", "title": "1. Quick start", "open": true, "fields": ["enabled", "mode", "requireLive"], "notice": "Install and configure Creator Controls first. Approve Process Probe plus only the profile actions used below." },
+    { "id": "timing", "title": "2. Detection timing", "fields": ["intervalSeconds", "confirmationCount"] },
+    { "id": "mapping-1", "title": "3. Game mapping 1", "fields": ["mapping1Enabled", "mapping1ProcessName", "mapping1Profile"] },
+    { "id": "mapping-2", "title": "4. Game mapping 2", "fields": ["mapping2Enabled", "mapping2ProcessName", "mapping2Profile"] },
+    { "id": "mapping-3", "title": "5. Game mapping 3", "fields": ["mapping3Enabled", "mapping3ProcessName", "mapping3Profile"] },
+    { "id": "mapping-4", "title": "6. Game mapping 4", "fields": ["mapping4Enabled", "mapping4ProcessName", "mapping4Profile"] },
+    { "id": "mapping-5", "title": "7. Game mapping 5", "fields": ["mapping5Enabled", "mapping5ProcessName", "mapping5Profile"] }
+  ],
+  "fields": { "mode": { "labels": { "suggest": "Suggest only (recommended)", "automatic": "Apply automatically" } }, "mapping1Profile": { "labels": { "profile-1": "Creator Controls profile 1", "profile-2": "Creator Controls profile 2", "profile-3": "Creator Controls profile 3" } }, "mapping2Profile": { "labels": { "profile-1": "Creator Controls profile 1", "profile-2": "Creator Controls profile 2", "profile-3": "Creator Controls profile 3" } }, "mapping3Profile": { "labels": { "profile-1": "Creator Controls profile 1", "profile-2": "Creator Controls profile 2", "profile-3": "Creator Controls profile 3" } }, "mapping4Profile": { "labels": { "profile-1": "Creator Controls profile 1", "profile-2": "Creator Controls profile 2", "profile-3": "Creator Controls profile 3" } }, "mapping5Profile": { "labels": { "profile-1": "Creator Controls profile 1", "profile-2": "Creator Controls profile 2", "profile-3": "Creator Controls profile 3" } } }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Follower Pulse",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Follower Pulse", "default": false },
+    "reconciliationHours": { "type": "integer", "title": "Check every (hours)", "minimum": 1, "maximum": 168, "default": 12 },
+    "confirmMissingScans": { "type": "integer", "title": "Complete scans before confirming an unfollow", "minimum": 2, "maximum": 3, "default": 2 },
+    "maximumTrackedFollowers": { "type": "integer", "title": "Maximum followers to track", "description": "Follower Pulse fails closed when Twitch reports more than this bounded local limit.", "minimum": 25, "maximum": 500, "default": 500 },
+    "retainedChanges": { "type": "integer", "title": "Recent changes retained", "minimum": 10, "maximum": 100, "default": 50 },
+    "retentionDays": { "type": "integer", "title": "Change-history retention (days)", "minimum": 1, "maximum": 365, "default": 90 }
+  }
+}

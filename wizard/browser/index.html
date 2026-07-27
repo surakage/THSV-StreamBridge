@@ -55,7 +55,7 @@
     <details class="form-section" open>
       <summary><span>1. Start with a template<small>Recommended presets fill in safe starter values that you can change.</small></span></summary>
       <div class="detail-grid">
-        <label>Starter template<select name="template"><option value="social-rotation">Social message rotation (recommended)</option><option value="hydration">Hydration reminder</option><option value="stretch">Stretch reminder</option><option value="custom">Blank custom timer</option></select></label>
+        <label>Starter template<select name="template"><option value="social-rotation">Social message rotation (recommended)</option><option value="community-links">Community links pack</option><option value="rules-help">Rules and help pack</option><option value="support">Support reminder pack</option><option value="schedule">Schedule reminder pack</option><option value="hydration">Hydration reminder</option><option value="stretch">Stretch reminder</option><option value="custom">Blank custom timer</option></select><small>Templates containing creator-specific links or schedules start disabled until you review every platform message.</small></label>
         <button type="button" id="apply-timer-template" class="ghost">Use this template</button>
         <label>Timer name<input name="name" required maxlength="100" placeholder="Social message rotation"></label>
         <label>Internal ID<input name="id" required maxlength="64" pattern="[a-z][a-z0-9-]*" placeholder="social-rotation"><small>Lowercase letters, numbers, and hyphens. You normally do not need to change this after creation.</small></label>
@@ -118,7 +118,7 @@
     <label>Message-card color<input name="messageBackgroundColor" type="color" required></label>
     <label>Message-card opacity<input name="messageBackgroundOpacity" type="number" min="0" max="1" step="0.01" required></label>
     <label>Message background style<select name="messageColorMode"><option value="platform">Use each platform color</option><option value="single">Use one color for every platform</option><option value="transparent">No message background</option></select></label>
-    <fieldset class="full-row"><legend>Platform message colors</legend><p><small>These are the default platform themes. Choose one-color mode above to use the Message-card color for every platform, or transparent mode to remove card backgrounds.</small></p><div class="event-option-grid"><label>Twitch purple<input name="platformColorTwitch" type="color" required></label><label>YouTube red<input name="platformColorYoutube" type="color" required></label><label>Kick green<input name="platformColorKick" type="color" required></label><label>TikTok midnight<input name="platformColorTiktok" type="color" required></label><label>Ko-fi blue<input name="platformColorKofi" type="color" required></label></div></fieldset>
+    <fieldset class="full-row"><legend>Platform message colors</legend><p><small>These are the default platform themes. Choose one-color mode above to use the Message-card color for every platform, or transparent mode to remove card backgrounds.</small></p><div class="event-option-grid"><label>Twitch purple<input name="platformColorTwitch" type="color" required></label><label>YouTube red<input name="platformColorYoutube" type="color" required></label><label>Kick green<input name="platformColorKick" type="color" required></label><label>TikTok midnight<input name="platformColorTiktok" type="color" required></label><label>Streamlabs green<input name="platformColorStreamlabs" type="color" required></label><label>Ko-fi blue<input name="platformColorKofi" type="color" required></label></div></fieldset>
     </div></details>
     <details class="form-section"><summary>Branding &amp; visibility</summary><div class="detail-grid">
     <label>Combined-view label<input name="brandLabel" maxlength="60" placeholder="THE HIDDEN SLOTH VILLAGE"></label>
@@ -130,7 +130,7 @@
     <details class="form-section"><summary>Chat events</summary>
     <fieldset id="chat-events-fieldset" class="full-row"><legend>Events in chat</legend>
       <label class="check"><input type="checkbox" name="showEvents"> Show enabled platform events in the chat feed</label>
-      <p><small>Events remain available to the alert overlay. Select a platform below to edit its real provider events individually. Ko-fi donations are supported; Streamlabs remains unavailable until stable provider event IDs can be verified.</small></p>
+      <p><small>Events remain available to the alert overlay. Select a platform below to edit its real provider events individually. Ko-fi and Streamlabs donations are supported through their existing Streamer.bot integrations.</small></p>
     </fieldset>
     <fieldset class="full-row"><legend>Platform event limits</legend>
       <p><small>Turn a platform off to hide all of its activity messages from chat. The character cap is Unicode-safe and includes the final ellipsis when text is shortened.</small></p>
@@ -139,6 +139,7 @@
         <label class="check"><input type="checkbox" name="eventPlatform" value="youtube"> YouTube events</label><label>YouTube characters<input type="number" name="eventLimitYoutube" min="40" max="500" required></label>
         <label class="check"><input type="checkbox" name="eventPlatform" value="kick"> Kick events</label><label>Kick characters<input type="number" name="eventLimitKick" min="40" max="500" required></label>
         <label class="check"><input type="checkbox" name="eventPlatform" value="tiktok"> TikTok events</label><label>TikTok characters<input type="number" name="eventLimitTiktok" min="40" max="500" required></label>
+        <label class="check"><input type="checkbox" name="eventPlatform" value="streamlabs"> Streamlabs events</label><label>Streamlabs characters<input type="number" name="eventLimitStreamlabs" min="40" max="500" required></label>
         <label class="check"><input type="checkbox" name="eventPlatform" value="kofi"> Ko-fi events</label><label>Ko-fi characters<input type="number" name="eventLimitKofi" min="40" max="500" required></label>
       </div>
     </fieldset>
@@ -156,11 +157,11 @@
 </section>
 <section class="view hidden" data-panel="alerts">
   <div class="title-row"><div><h2>Alerts</h2><p>Configure how normalized alerts appear in Meld, OBS, Streamlabs, or any compatible browser source. Pick a platform, then an event, to edit it — each is independent.</p></div></div>
-  <p class="notice"><strong>Preview is always simulated.</strong> It never charges, subscribes, raids, or posts to chat. Ko-fi donation previews are available; Streamlabs remains pending stable provider event IDs.</p>
+  <p class="notice"><strong>Preview is always simulated.</strong> It never charges, subscribes, raids, or posts to chat. Ko-fi and Streamlabs donation previews are available.</p>
   <details class="form-section"><summary>Donation provider setup</summary><div class="detail-grid">
     <div class="full-row notice"><strong>Connect the provider in Streamer.bot before enabling its StreamBridge intake.</strong> StreamBridge does not log in to payment providers or store their API tokens.</div>
     <div><h3>Ko-fi — supported</h3><p>Create the verified Ko-fi webhook through the Streamer.bot website, import the Ko-fi Donations <code>.sb</code> package, and attach <strong>Integrations &gt; Ko-Fi &gt; Donation</strong> to its intake action. Then install and enable the Ko-fi add-on here.</p><a href="https://docs.streamer.bot/guide/integrations/ko-fi" target="_blank" rel="noreferrer noopener">Official Ko-fi setup guide</a></div>
-    <div><h3>Streamlabs — connection available, intake pending</h3><p>Connect its Socket API Token under <strong>Streamer.bot &gt; Integrations &gt; Streamlabs</strong> and enable Auto Connect and Auto Reconnect. StreamBridge does not enable financial intake yet because Streamer.bot's documented Donation variables do not include a stable transaction ID.</p><a href="https://docs.streamer.bot/guide/integrations/streamlabs" target="_blank" rel="noreferrer noopener">Official Streamlabs setup guide</a></div>
+    <div><h3>Streamlabs — supported through Streamer.bot</h3><p>Connect Streamlabs under <strong>Streamer.bot &gt; Integrations &gt; Streamlabs</strong> and enable Auto Connect and Auto Reconnect. StreamBridge reuses that authenticated WebSocket event and never stores the provider token. Live donations fail closed if Streamer.bot does not include a stable Streamlabs event or donation ID.</p><a href="https://docs.streamer.bot/guide/integrations/streamlabs" target="_blank" rel="noreferrer noopener">Official Streamlabs setup guide</a></div>
   </div></details>
   <form id="alert-global-form" class="filter-form">
     <label>Maximum queued alerts<input name="maxAlertQueue" type="number" min="1" max="100" required></label>
@@ -173,6 +174,8 @@
     <div id="alert-editor-empty" class="alert-editor-panel"><p>Select an event on the left to edit it.</p></div>
   <form id="alert-profile-form" class="filter-form hidden">
     <p class="full-row alert-editor-heading"><strong id="alert-editor-title">—</strong></p>
+    <label>Wording preset<select name="alertStyle"><option value="minimal">Minimal</option><option value="warm">Warm</option><option value="hype">Hype</option></select><small>Applies editable wording only; it does not change sounds, timing, aggregation, or spam controls.</small></label>
+    <button type="button" id="apply-alert-style" class="ghost">Apply wording preset</button>
     <div class="full-row preview-alert-wrap"><strong class="preview-label">Live preview (example values, not connected to an overlay)</strong><div id="alert-preview-card" class="preview-alert-card"><div class="preview-alert-video-wrap"></div><div class="preview-alert-video-overlay"></div><div class="preview-alert-identity"><div class="preview-alert-avatar">?</div><div class="preview-alert-media-inset hidden"></div><div class="preview-alert-copy"><span class="preview-alert-platform"></span><h3 id="preview-alert-title"></h3><p id="preview-alert-detail"></p></div></div><div class="preview-alert-media-banner hidden"></div></div></div>
     <label class="check"><input type="checkbox" name="enabled" checked> Enabled</label>
     <label>Priority<select name="priority"><option value="">Automatic</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></label>

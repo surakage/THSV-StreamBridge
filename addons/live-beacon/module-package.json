@@ -1,0 +1,83 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Coalesces verified Twitch, YouTube, Kick, and optional TikTok live starts into one guarded Discord channel or forum notification.",
+  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "schedule.bounded",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.live-beacon",
+    "name": "Live Beacon",
+    "version": "2.4.3",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "stream.online",
+      "addon.thsv.live-beacon.delivery-result"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.live-beacon/",
+      "data/addons/.state/thsv.live-beacon/"
+    ],
+    "installationSteps": [
+      "Import the Live Beacon Streamer.bot package.",
+      "Put a private Discord webhook URL in its Set Argument, compile it, and run a harmless manual test.",
+      "Approve only its triggerless Deliver action, configure platform links/templates, then enable the add-on."
+    ],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Its bounded stream deduplication history remains preserved."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.live-beacon.runtime",
+        "description": "Confirms verified online events can coalesce into one guarded Discord delivery."
+      }
+    ],
+    "minimumBridgeVersion": "2.4.3",
+    "maximumTestedBridgeVersion": "2.4.3"
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 7547,
+      "sha256": "05bbb3a5a92fcafea0ecf67aa117f66eea0c3b95af2149258c4cca1fb28e6b4f"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 1918,
+      "sha256": "c03f012e6b9d19e2f8221fab3c97afbd878035a221f3132f083733dbd1f05bf6"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1334,
+      "sha256": "ce86baa253f5966b81aacd65b9e729cc4c2eee0d869bfbb865e87d9d99c5a3d8"
+    },
+    {
+      "path": "README.md",
+      "size": 678,
+      "sha256": "ba6229ad6eb4999c87f041272da3d8af76df3bba79257305441ac4e3510e73ab"
+    }
+  ]
+}

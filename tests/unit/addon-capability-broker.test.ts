@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AddOnCapabilityBroker, CapabilityDeniedError } from '../../bridge/core/addon-capability-broker.js';
-import type { AddOnActionArgumentsV2, AddOnOverlayLifecycleV2 } from '../../bridge/contracts/v2/addon-capability.js';
+import type { AddOnActionArgumentsV2, AddOnOverlayLifecycleV2, ViewerFoundationMutationRequestV1 } from '../../bridge/contracts/v2/addon-capability.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { silentLogger } from '../helpers.js';
 
@@ -195,5 +195,64 @@ describe('AddOnCapabilityBroker', () => {
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
     expect(() => broker.contextFor({ moduleId: 'sample.privileged', permissions: ['streamerbot.run-approved-action'], approvedActionIds: ['04ca0087-578d-5c2e-9e06-249dc072e9f8'] }))
       .toThrow('framework actions cannot be granted');
+  });
+
+  it('brokers Viewer Foundation projections and mutations only to explicit dependent consumers', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const providerContext = broker.contextFor({ moduleId: 'thsv.viewer-foundation', permissions: ['viewer.foundation.provide'], approvedActionIds: [] });
+    const getProjection = vi.fn(async () => ({ contractVersion: '1.0.0' as const, viewerId: 'viewer-one', linked: false, points: 25, level: 1, nextLevelAt: 100 }));
+    const mutate = vi.fn(async (request: ViewerFoundationMutationRequestV1 & { readonly callerModuleId: string }) => ({ contractVersion: '1.0.0' as const, viewerId: request.viewerId, linked: false, points: 15, level: 1, nextLevelAt: 100, operation: request.operation, amount: request.amount, previousPoints: 25, duplicate: false }));
+    const administer = vi.fn(async () => ({ operation: 'status', viewerCount: 1 }));
+    providerContext.viewerFoundation.provide({ getProjection, mutate, administer });
+
+    const noPermission = broker.contextFor({ moduleId: 'sample.no-viewer', permissions: [], approvedActionIds: [] }, {}, ['thsv.viewer-foundation']);
+    await expect(noPermission.viewerFoundation.getProjection({ viewerId: 'viewer-one' })).rejects.toBeInstanceOf(CapabilityDeniedError);
+    const noDependency = broker.contextFor({ moduleId: 'sample.no-dependency', permissions: ['viewer.foundation.read'], approvedActionIds: [] });
+    await expect(noDependency.viewerFoundation.getProjection({ viewerId: 'viewer-one' })).rejects.toThrow('must declare thsv.viewer-foundation');
+
+    const consumer = broker.contextFor({ moduleId: 'sample.consumer', permissions: ['viewer.foundation.read', 'viewer.foundation.mutate'], approvedActionIds: [] }, {}, ['thsv.viewer-foundation']);
+    const deleted = vi.fn(); const unsubscribeDeleted = consumer.viewerFoundation.onDeleted(deleted);
+    await expect(consumer.viewerFoundation.getProjection({ viewerId: 'viewer-one' })).resolves.toEqual({ contractVersion: '1.0.0', viewerId: 'viewer-one', linked: false, points: 25, level: 1, nextLevelAt: 100 });
+    await expect(consumer.viewerFoundation.mutate({ viewerId: 'viewer-one', operation: 'spend', amount: 10, reason: 'game entry', idempotencyKey: 'game-1' })).resolves.toMatchObject({ points: 15, operation: 'spend' });
+    expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ callerModuleId: 'sample.consumer', reason: 'game entry' }));
+    await expect(broker.administerViewerFoundation({ operation: 'status' })).resolves.toEqual({ operation: 'status', viewerCount: 1 });
+    await expect(broker.administerViewerFoundation({ operation: 'delete', viewerId: 'viewer-one', approvedByCreator: false })).rejects.toThrow();
+    await expect(consumer.viewerFoundation.getProjection({ viewerId: 'Viewer Name' })).rejects.toThrow();
+    await providerContext.viewerFoundation.notifyDeleted('viewer-one');
+    expect(deleted).toHaveBeenCalledWith('viewer-one');
+    unsubscribeDeleted(); await providerContext.viewerFoundation.notifyDeleted('viewer-one');
+    expect(deleted).toHaveBeenCalledOnce();
+
+    broker.cleanup('thsv.viewer-foundation');
+    await expect(consumer.viewerFoundation.getProjection({ viewerId: 'viewer-one' })).rejects.toThrow('unavailable');
+  });
+
+  it('does not allow another add-on to impersonate the Viewer Foundation provider', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const impostor = broker.contextFor({ moduleId: 'sample.impostor', permissions: ['viewer.foundation.provide'], approvedActionIds: [] });
+    expect(() => impostor.viewerFoundation.provide({ getProjection: async () => undefined, mutate: async () => { throw new Error('unused'); }, administer: async () => ({ operation: 'status' }) })).toThrow('Only thsv.viewer-foundation');
+  });
+
+  it('brokers bounded Community Analytics projections only to explicit dependent consumers', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const providerContext = broker.contextFor({ moduleId: 'thsv.community-analytics', permissions: ['community.analytics.provide'], approvedActionIds: [] });
+    providerContext.communityAnalytics.provide({
+      getViewerProjection: async (viewerId) => ({ contractVersion: '1.0.0', viewerId, observed: true, firstSeenAt: 1, lastSeenAt: 2, sessions: 1, counters: { messages: 3, commands: 0, follows: 0, subscriptions: 0, memberships: 0, giftSubscriptions: 0, gifts: 0, cheers: 0, superChats: 0, raids: 0, rewardRedemptions: 0 }, activeSession: true, activeLastSeenAt: 2 }),
+      getSessionProjection: async () => ({ contractVersion: '1.0.0', active: true, startedAt: 1, approximate: false, livePlatforms: ['twitch'], uniqueViewers: 1, counters: { messages: 3, commands: 0, follows: 0, subscriptions: 0, memberships: 0, giftSubscriptions: 0, gifts: 0, cheers: 0, superChats: 0, raids: 0, rewardRedemptions: 0 }, retainedSessionCount: 0 }),
+    });
+    const missingDependency = broker.contextFor({ moduleId: 'sample.analytics-no-dependency', permissions: ['community.analytics.read'], approvedActionIds: [] });
+    await expect(missingDependency.communityAnalytics.getSessionProjection()).rejects.toThrow('must declare thsv.community-analytics');
+    const consumer = broker.contextFor({ moduleId: 'sample.analytics-consumer', permissions: ['community.analytics.read'], approvedActionIds: [] }, {}, ['thsv.community-analytics']);
+    await expect(consumer.communityAnalytics.getViewerProjection('viewer-one')).resolves.toMatchObject({ viewerId: 'viewer-one', observed: true, counters: { messages: 3 } });
+    await expect(consumer.communityAnalytics.getSessionProjection()).resolves.toMatchObject({ active: true, uniqueViewers: 1 });
+    await expect(consumer.communityAnalytics.getViewerProjection('Viewer Name')).rejects.toThrow();
+    broker.cleanup('thsv.community-analytics');
+    await expect(consumer.communityAnalytics.getSessionProjection()).rejects.toThrow('unavailable');
+  });
+
+  it('does not allow another add-on to impersonate the Community Analytics provider', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const impostor = broker.contextFor({ moduleId: 'sample.analytics-impostor', permissions: ['community.analytics.provide'], approvedActionIds: [] });
+    expect(() => impostor.communityAnalytics.provide({ getViewerProjection: async () => { throw new Error('unused'); }, getSessionProjection: async () => { throw new Error('unused'); } })).toThrow('Only thsv.community-analytics');
   });
 });

@@ -13,6 +13,28 @@ $resolvedStaging = [System.IO.Path]::GetFullPath($staging)
 if (-not $resolvedStaging.StartsWith($resolvedPackages, [System.StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe release staging path.' }
 $temporary = Join-Path ([System.IO.Path]::GetTempPath()) ('.thsv-package-' + [guid]::NewGuid().ToString('N'))
 
+function Invoke-VerifiedDownload {
+    param(
+        [Parameter(Mandatory = $true)][string]$Uri,
+        [string]$OutFile
+    )
+
+    $lastError = $null
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            if ([string]::IsNullOrWhiteSpace($OutFile)) {
+                return Invoke-WebRequest -UseBasicParsing -Uri $Uri
+            }
+            Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile $OutFile
+            return
+        } catch {
+            $lastError = $_
+            if ($attempt -lt 3) { Start-Sleep -Seconds (2 * $attempt) }
+        }
+    }
+    throw "Download failed after 3 attempts: $Uri. $($lastError.Exception.Message)"
+}
+
 Push-Location $repo
 try {
     npm.cmd run clean
@@ -44,33 +66,45 @@ try {
         $addOnHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $addOnArchive).Hash.ToLowerInvariant()
         $streamerBotPackageRoot = Join-Path $repo "packages\streamerbot\$($_.Name)"
         $streamerBotManifestPath = Join-Path $streamerBotPackageRoot 'manifest.json'
-        if (-not (Test-Path -LiteralPath $streamerBotManifestPath)) { throw "$($descriptor.manifest.name) is missing its separate Streamer.bot package." }
-        $streamerBotManifest = Get-Content -Raw -LiteralPath $streamerBotManifestPath | ConvertFrom-Json
-        $streamerBotImports = @($streamerBotManifest.action.importFile) + @($streamerBotManifest.actions | ForEach-Object { $_.importFile }) |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
-        if ($streamerBotImports.Count -eq 0) { throw "$($descriptor.manifest.name) has no Streamer.bot import file declared." }
-        foreach ($importFile in $streamerBotImports) {
-            if (-not (Test-Path -LiteralPath (Join-Path $streamerBotPackageRoot $importFile))) { throw "$($descriptor.manifest.name) is missing Streamer.bot import $importFile." }
+        $hasStreamerBotPackage = Test-Path -LiteralPath $streamerBotManifestPath
+        $streamerBotImports = @()
+        if ($hasStreamerBotPackage) {
+            $streamerBotManifest = Get-Content -Raw -LiteralPath $streamerBotManifestPath | ConvertFrom-Json
+            $streamerBotImports = @($streamerBotManifest.action.importFile) + @($streamerBotManifest.actions | ForEach-Object { $_.importFile }) |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+            if ($streamerBotImports.Count -eq 0) { throw "$($descriptor.manifest.name) has a Streamer.bot package but no import file declared." }
+            foreach ($importFile in $streamerBotImports) {
+                if (-not (Test-Path -LiteralPath (Join-Path $streamerBotPackageRoot $importFile))) { throw "$($descriptor.manifest.name) is missing Streamer.bot import $importFile." }
+            }
         }
 
         $bundleName = "THSV-StreamBridge-AddOn-$safeName-$($descriptor.manifest.version)"
         $bundleRoot = Join-Path $temporary $bundleName
         $bundleStreamerBotRoot = Join-Path $bundleRoot 'Streamer.bot'
-        New-Item -ItemType Directory -Path $bundleStreamerBotRoot -Force | Out-Null
+        New-Item -ItemType Directory -Path $bundleRoot -Force | Out-Null
         Copy-Item -LiteralPath $addOnArchive -Destination (Join-Path $bundleRoot ([System.IO.Path]::GetFileName($addOnArchive)))
         Set-Content -LiteralPath (Join-Path $bundleRoot "$([System.IO.Path]::GetFileName($addOnArchive)).sha256") -Encoding ascii -Value "$addOnHash  $([System.IO.Path]::GetFileName($addOnArchive))"
-        foreach ($importFile in $streamerBotImports) { Copy-Item -LiteralPath (Join-Path $streamerBotPackageRoot $importFile) -Destination $bundleStreamerBotRoot }
-        if (Test-Path -LiteralPath (Join-Path $streamerBotPackageRoot 'README.md')) { Copy-Item -LiteralPath (Join-Path $streamerBotPackageRoot 'README.md') -Destination (Join-Path $bundleStreamerBotRoot 'README.md') }
-        $installText = @(
-            "$($descriptor.manifest.name) $($descriptor.manifest.version)",
-            '',
-            '1. Open THSV StreamBridge Setup Wizard -> Add-ons.',
-            "2. Install $([System.IO.Path]::GetFileName($addOnArchive)) and approve its requested permissions.",
-            '3. In Streamer.bot, choose Import and import every .sb file from the Streamer.bot folder.',
-            '4. Return to the wizard, enable the add-on, approve only its required Streamer.bot actions, save settings, and restart StreamBridge.',
-            '',
-            'The Streamer.bot imports in this bundle belong only to this add-on. They are intentionally not included in the main StreamBridge package.'
-        )
+        if ($hasStreamerBotPackage) {
+            New-Item -ItemType Directory -Path $bundleStreamerBotRoot -Force | Out-Null
+            foreach ($importFile in $streamerBotImports) { Copy-Item -LiteralPath (Join-Path $streamerBotPackageRoot $importFile) -Destination $bundleStreamerBotRoot }
+            if (Test-Path -LiteralPath (Join-Path $streamerBotPackageRoot 'README.md')) { Copy-Item -LiteralPath (Join-Path $streamerBotPackageRoot 'README.md') -Destination (Join-Path $bundleStreamerBotRoot 'README.md') }
+            $installText = @(
+                "$($descriptor.manifest.name) $($descriptor.manifest.version)", '',
+                '1. Open THSV StreamBridge Setup Wizard -> Add-ons.',
+                "2. Install $([System.IO.Path]::GetFileName($addOnArchive)) and approve its requested permissions.",
+                '3. In Streamer.bot, choose Import and import every .sb file from the Streamer.bot folder.',
+                '4. Return to the wizard, enable the add-on, approve only its required Streamer.bot actions, save settings, and restart StreamBridge.', '',
+                'The Streamer.bot imports in this bundle belong only to this add-on. They are intentionally not included in the main StreamBridge package.'
+            )
+        } else {
+            $installText = @(
+                "$($descriptor.manifest.name) $($descriptor.manifest.version)", '',
+                '1. Open THSV StreamBridge Setup Wizard -> Add-ons.',
+                "2. Install $([System.IO.Path]::GetFileName($addOnArchive)) and approve its requested permissions.",
+                '3. Enable the add-on, save its settings, and restart StreamBridge.', '',
+                'No Streamer.bot import is required. This add-on uses the existing normalized-event and capability-broker connection.'
+            )
+        }
         Set-Content -LiteralPath (Join-Path $bundleRoot 'INSTALL.txt') -Encoding utf8 -Value $installText
         $addOnBundle = Join-Path $resolvedPackages "$bundleName.zip"
         Compress-Archive -Path "$bundleRoot\*" -DestinationPath $addOnBundle -CompressionLevel Optimal
@@ -144,9 +178,10 @@ try {
     $releaseDocs = @(
         'add-on-capabilities.md', 'add-on-development.md', 'architecture.md', 'auto-translate.md', 'automated-shoutouts.md', 'browser-overlay.md',
         'compatibility.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
-        'discord-chat-archive.md', 'getting-started.md', 'production-readiness.md', 'quote-vault.md', 'release.md', 'rewards.md', 'security.md', 'setup.md',
+        'discord-chat-archive.md', 'future-add-ons.md', 'future-projects-and-addons.md', 'getting-started.md', 'kofi-donations.md', 'module-system.md',
+        'product-scope.md', 'production-readiness.md', 'quote-vault.md', 'release-candidate-status.md', 'release.md', 'rewards.md', 'scene-actions.md', 'security.md', 'setup.md',
         'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
-        'starting-soon-countdown.md', 'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md'
+        'starting-soon-countdown.md', 'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md', 'viewer-foundation.md'
     )
     foreach ($document in $releaseDocs) {
         Copy-Item -LiteralPath (Join-Path $repo "docs\$document") -Destination (Join-Path $appRoot 'docs')
@@ -167,7 +202,12 @@ try {
     }
     Push-Location $appRoot
     try {
-        npm.cmd ci --omit=dev --ignore-scripts
+        # Release dependency installation must not depend on or mutate the creator's
+        # machine-global npm cache. Antivirus and other npm processes commonly lock
+        # that cache on Windows, which previously made otherwise valid builds fail.
+        $releaseNpmCache = Join-Path $temporary 'npm-cache'
+        New-Item -ItemType Directory -Path $releaseNpmCache -Force | Out-Null
+        npm.cmd ci --omit=dev --ignore-scripts --no-audit --no-fund --cache $releaseNpmCache
         if ($LASTEXITCODE -ne 0) { throw 'Production dependency installation failed.' }
     } finally { Pop-Location }
     Remove-Item -LiteralPath (Join-Path $appRoot 'package-lock.json') -Force
@@ -184,16 +224,43 @@ try {
     $nodeArchiveName = "node-v$NodeVersion-win-x64.zip"
     $nodeArchive = Join-Path $temporary $nodeArchiveName
     $nodeBaseUrl = "https://nodejs.org/download/release/v$NodeVersion"
-    Invoke-WebRequest -UseBasicParsing -Uri "$nodeBaseUrl/$nodeArchiveName" -OutFile $nodeArchive
-    $checksums = (Invoke-WebRequest -UseBasicParsing -Uri "$nodeBaseUrl/SHASUMS256.txt").Content
-    $checksumMatch = [regex]::Match($checksums, "(?m)^([a-f0-9]{64})\s+$([regex]::Escape($nodeArchiveName))$")
-    if (-not $checksumMatch.Success) { throw "The official Node.js checksum list did not contain $nodeArchiveName." }
-    $actualNodeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nodeArchive).Hash.ToLowerInvariant()
-    if ($actualNodeHash -ne $checksumMatch.Groups[1].Value) { throw 'The downloaded Node.js runtime failed its official SHA-256 verification.' }
-    Expand-Archive -LiteralPath $nodeArchive -DestinationPath $temporary
-    $nodeExtracted = Join-Path $temporary "node-v$NodeVersion-win-x64"
-    Copy-Item -LiteralPath (Join-Path $nodeExtracted 'node.exe') -Destination $runtimeRoot
-    Copy-Item -LiteralPath (Join-Path $nodeExtracted 'LICENSE') -Destination (Join-Path $runtimeRoot 'NODE-LICENSE.txt')
+    $actualNodeHash = $null
+    try {
+        Invoke-VerifiedDownload -Uri "$nodeBaseUrl/$nodeArchiveName" -OutFile $nodeArchive
+        $checksums = (Invoke-VerifiedDownload -Uri "$nodeBaseUrl/SHASUMS256.txt").Content
+        $checksumMatch = [regex]::Match($checksums, "(?m)^([a-f0-9]{64})\s+$([regex]::Escape($nodeArchiveName))$")
+        if (-not $checksumMatch.Success) { throw "The official Node.js checksum list did not contain $nodeArchiveName." }
+        $actualNodeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nodeArchive).Hash.ToLowerInvariant()
+        if ($actualNodeHash -ne $checksumMatch.Groups[1].Value) { throw 'The downloaded Node.js runtime failed its official SHA-256 verification.' }
+        Expand-Archive -LiteralPath $nodeArchive -DestinationPath $temporary
+        $nodeExtracted = Join-Path $temporary "node-v$NodeVersion-win-x64"
+        Copy-Item -LiteralPath (Join-Path $nodeExtracted 'node.exe') -Destination $runtimeRoot
+        Copy-Item -LiteralPath (Join-Path $nodeExtracted 'LICENSE') -Destination (Join-Path $runtimeRoot 'NODE-LICENSE.txt')
+    } catch {
+        $cachedRuntime = Get-ChildItem -LiteralPath $resolvedPackages -Directory -Filter 'THSV-StreamBridge-*' |
+            Sort-Object LastWriteTime -Descending |
+            ForEach-Object {
+                $manifestPath = Join-Path $_.FullName 'release-manifest.json'
+                $nodePath = Join-Path $_.FullName 'runtime\node.exe'
+                $licensePath = Join-Path $_.FullName 'runtime\NODE-LICENSE.txt'
+                if (-not (Test-Path -LiteralPath $manifestPath) -or -not (Test-Path -LiteralPath $nodePath) -or -not (Test-Path -LiteralPath $licensePath)) { return }
+                $cachedManifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+                $cachedNodeFile = $cachedManifest.files | Where-Object { $_.path -eq 'runtime/node.exe' } | Select-Object -First 1
+                $cachedHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nodePath).Hash.ToLowerInvariant()
+                $cachedVersion = (& $nodePath --version 2>$null)
+                if ($cachedVersion -eq "v$NodeVersion" -and
+                    $cachedManifest.runtime.nodeVersion -eq $NodeVersion -and
+                    $cachedNodeFile.sha256 -eq $cachedHash -and
+                    $cachedManifest.runtime.upstreamSha256 -match '^[a-f0-9]{64}$') {
+                    [pscustomobject]@{ Node = $nodePath; License = $licensePath; UpstreamSha256 = $cachedManifest.runtime.upstreamSha256; Source = $_.Name }
+                }
+            } | Select-Object -First 1
+        if ($null -eq $cachedRuntime) { throw }
+        Write-Warning "Official Node.js download failed; reusing verified runtime from $($cachedRuntime.Source)."
+        Copy-Item -LiteralPath $cachedRuntime.Node -Destination $runtimeRoot
+        Copy-Item -LiteralPath $cachedRuntime.License -Destination (Join-Path $runtimeRoot 'NODE-LICENSE.txt')
+        $actualNodeHash = $cachedRuntime.UpstreamSha256
+    }
     Set-Content -LiteralPath (Join-Path $runtimeRoot 'node-version.txt') -Encoding ascii -Value "v$NodeVersion"
 
     @('archive','app\packages\streamerbot\viewer-progression','app\packages\streamerbot\companion-actions','app\packages\streamerbot\speaker-orchestration','app\overlays\browser\bloom-idle-sprite.png') | ForEach-Object {

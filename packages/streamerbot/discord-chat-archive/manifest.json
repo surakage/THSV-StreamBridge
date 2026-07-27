@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Discord Chat Archive",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "author": "surakage",
   "description": "Delivers bounded, filtered multi-platform public-chat batches to a creator-owned Discord webhook and returns correlated delivery results to StreamBridge.",
   "minimumStreamerBotVersion": "1.0.5-alpha.33",
@@ -10,9 +10,9 @@
       "id": "df40969d-5923-4432-bdca-ecdee451f150",
       "sourceSubActionId": "e50aefd9-a1a6-49d0-82f8-38a8c5a874b0",
       "name": "THSV Addon - Discord Chat Archive - Deliver",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Discord Chat Archive",
       "source": "src/DeliverToDiscord.cs",
-      "importFile": "THSV-StreamBridge-Discord-Chat-Archive-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Discord-Chat-Archive-2.4.3.sb",
       "arguments": [
         {
           "name": "discordArchiveWebhookUrl",
@@ -24,6 +24,8 @@
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
       ]

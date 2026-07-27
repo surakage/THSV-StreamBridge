@@ -21,6 +21,11 @@ export const ADD_ON_PERMISSION_VALUES = [
   'provider.events.publish',
   'schedule.bounded',
   'state.private',
+  'viewer.foundation.provide',
+  'viewer.foundation.read',
+  'viewer.foundation.mutate',
+  'community.analytics.provide',
+  'community.analytics.read',
 ] as const;
 export const addOnPermissionV2Schema = z.enum(ADD_ON_PERMISSION_VALUES);
 export type AddOnPermissionV2 = z.infer<typeof addOnPermissionV2Schema>;

@@ -97,6 +97,147 @@ export interface AddOnProviderCapabilityV2 {
   publishDonation(request: AddOnProviderDonationRequestV2): Promise<void>;
 }
 
+export interface ViewerFoundationProjectionV1 {
+  readonly contractVersion: '1.0.0';
+  readonly viewerId: string;
+  readonly linked: boolean;
+  readonly points: number;
+  readonly level: number;
+  readonly nextLevelAt: number;
+}
+
+export interface ViewerFoundationProjectionQueryV1 {
+  readonly viewerId?: string;
+  readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok';
+  readonly userId?: string;
+}
+
+export interface ViewerFoundationMutationRequestV1 {
+  readonly viewerId: string;
+  readonly operation: 'add' | 'spend' | 'refund';
+  readonly amount: number;
+  readonly reason: string;
+  readonly idempotencyKey: string;
+}
+
+export interface ViewerFoundationMutationResultV1 extends ViewerFoundationProjectionV1 {
+  readonly operation: 'add' | 'spend' | 'refund';
+  readonly amount: number;
+  readonly previousPoints: number;
+  readonly duplicate: boolean;
+}
+
+export interface ViewerFoundationAdminRequestV1 {
+  readonly operation: 'status' | 'export' | 'correct' | 'delete';
+  readonly viewerId?: string;
+  readonly adjustment?: 'add' | 'remove' | 'reset';
+  readonly amount?: number;
+  readonly reason?: string;
+  readonly approvedByCreator?: boolean;
+}
+
+export type ViewerFoundationAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
+
+export interface CommunityAnalyticsAdminRequestV1 {
+  readonly operation: 'status' | 'export' | 'delete' | 'report';
+  readonly viewerId?: string;
+  readonly approvedByCreator?: boolean;
+  readonly reportKind?: 'session-json' | 'viewers-csv';
+}
+
+export type CommunityAnalyticsAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
+
+export type ViewerSpotlightAdminRequestV1 =
+  | { readonly operation: 'status' }
+  | { readonly operation: 'display'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly displayName: string; readonly avatarUrl?: string; readonly approvedByCreator: true };
+
+export type ViewerSpotlightAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
+
+export type ChatGuardAdminRequestV1 =
+  | { readonly operation: 'status' }
+  | { readonly operation: 'test'; readonly message: string; readonly priorMatchingMessages: number }
+  | { readonly operation: 'permit'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly durationMinutes: number; readonly maximumUses: number; readonly approvedByCreator: true }
+  | { readonly operation: 'clear-permits'; readonly approvedByCreator: true }
+  | { readonly operation: 'review'; readonly incidentId: string; readonly decision: 'confirmed' | 'false-positive'; readonly approvedByCreator: true }
+  | { readonly operation: 'clear'; readonly approvedByCreator: true };
+
+export type ChatGuardAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
+
+export interface ViewerFoundationProviderV1 {
+  getProjection(query: ViewerFoundationProjectionQueryV1): Promise<ViewerFoundationProjectionV1 | undefined>;
+  mutate(request: ViewerFoundationMutationRequestV1 & { readonly callerModuleId: string }): Promise<ViewerFoundationMutationResultV1>;
+  /** Host-only administration. This method is never exposed through an add-on runtime context. */
+  administer(request: ViewerFoundationAdminRequestV1): Promise<ViewerFoundationAdminResultV1>;
+}
+
+export interface AddOnViewerFoundationCapabilityV2 {
+  /** Registers the one official provider. Only thsv.viewer-foundation may receive the provide permission. */
+  provide(provider: ViewerFoundationProviderV1): () => void;
+  /** Returns a frozen, schema-bounded projection; private state and installation salt are never exposed. */
+  getProjection(query: ViewerFoundationProjectionQueryV1): Promise<ViewerFoundationProjectionV1 | undefined>;
+  /** Performs an idempotent, audited point mutation through the foundation authority. */
+  mutate(request: ViewerFoundationMutationRequestV1): Promise<ViewerFoundationMutationResultV1>;
+  /** Provider-only privacy signal containing only the deleted pseudonymous Viewer Foundation ID. */
+  notifyDeleted(viewerId: string): Promise<void>;
+  /** Removes consumer-owned caches and projections as soon as Viewer Foundation deletes a viewer. */
+  onDeleted(listener: (viewerId: string) => void | Promise<void>): () => void;
+}
+
+export interface CommunityAnalyticsCountersV1 {
+  readonly messages: number;
+  readonly commands: number;
+  readonly follows: number;
+  readonly subscriptions: number;
+  readonly memberships: number;
+  readonly giftSubscriptions: number;
+  readonly gifts: number;
+  readonly cheers: number;
+  readonly superChats: number;
+  readonly raids: number;
+  readonly rewardRedemptions: number;
+}
+
+export interface CommunityAnalyticsViewerProjectionV1 {
+  readonly contractVersion: '1.0.0';
+  readonly viewerId: string;
+  readonly observed: boolean;
+  readonly firstSeenAt?: number;
+  readonly lastSeenAt?: number;
+  readonly sessions: number;
+  readonly counters: CommunityAnalyticsCountersV1;
+  readonly activeSession: boolean;
+  readonly activeLastSeenAt?: number;
+  readonly scoreSeason?: string;
+  readonly engagementScore?: number;
+  readonly seasonRank?: number;
+  readonly rankCohortSize?: number;
+}
+
+export interface CommunityAnalyticsSessionProjectionV1 {
+  readonly contractVersion: '1.0.0';
+  readonly active: boolean;
+  readonly startedAt?: number;
+  readonly approximate: boolean;
+  readonly livePlatforms: readonly ('twitch' | 'youtube' | 'kick' | 'tiktok')[];
+  readonly uniqueViewers: number;
+  readonly counters: CommunityAnalyticsCountersV1;
+  readonly retainedSessionCount: number;
+}
+
+export interface CommunityAnalyticsProviderV1 {
+  getViewerProjection(viewerId: string): Promise<CommunityAnalyticsViewerProjectionV1>;
+  getSessionProjection(): Promise<CommunityAnalyticsSessionProjectionV1>;
+}
+
+export interface AddOnCommunityAnalyticsCapabilityV2 {
+  /** Registers the official provider. Only thsv.community-analytics may receive the provide permission. */
+  provide(provider: CommunityAnalyticsProviderV1): () => void;
+  /** Returns one bounded pseudonymous viewer projection; names, accounts, raw events, and state are never exposed. */
+  getViewerProjection(viewerId: string): Promise<CommunityAnalyticsViewerProjectionV1>;
+  /** Returns only the active aggregate session projection. */
+  getSessionProjection(): Promise<CommunityAnalyticsSessionProjectionV1>;
+}
+
 export interface ModuleRuntimeContextV2 {
   readonly moduleId: string;
   readonly grantedPermissions: readonly AddOnPermissionV2[];
@@ -110,4 +251,6 @@ export interface ModuleRuntimeContextV2 {
   readonly overlay: AddOnOverlayCapabilityV2;
   readonly chat: AddOnChatCapabilityV2;
   readonly provider: AddOnProviderCapabilityV2;
+  readonly viewerFoundation: AddOnViewerFoundationCapabilityV2;
+  readonly communityAnalytics: AddOnCommunityAnalyticsCapabilityV2;
 }

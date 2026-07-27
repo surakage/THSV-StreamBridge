@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Voice Relay", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Voice Relay", "default": false },
+    "eventTypes": { "type": "array", "title": "Events Speaker.bot may read", "items": { "type": "string", "enum": ["engagement.donation", "channel.subscription", "channel.membership", "channel.gift-subscription", "engagement.raid", "engagement.super-chat", "chat.message"] }, "minItems": 1, "maxItems": 7, "uniqueItems": true, "default": ["engagement.donation", "channel.subscription", "channel.membership", "channel.gift-subscription", "engagement.raid", "engagement.super-chat"] },
+    "voiceAlias": { "type": "string", "title": "Speaker.bot voice alias", "maxLength": 80, "default": "" },
+    "maximumCharacters": { "type": "integer", "title": "Maximum spoken characters", "minimum": 20, "maximum": 400, "default": 240 },
+    "queueLimit": { "type": "integer", "title": "Maximum waiting phrases", "minimum": 1, "maximum": 30, "default": 10 },
+    "gapSeconds": { "type": "integer", "title": "Gap between requests (seconds)", "minimum": 1, "maximum": 30, "default": 2 },
+    "allowChatRoles": { "type": "array", "title": "Roles whose chat may be read", "items": { "type": "string", "enum": ["broadcaster", "moderator", "subscriber", "viewer"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["broadcaster", "moderator"] },
+    "blockedTerms": { "type": "array", "title": "Never speak text containing", "items": { "type": "string", "minLength": 1, "maxLength": 80 }, "maxItems": 200, "uniqueItems": true, "default": [] }
+  }
+}

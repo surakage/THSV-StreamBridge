@@ -11,4 +11,4 @@ One accepted donation feeds both presentation surfaces through the existing over
 
 The two controls are independent. Disabling the Ko-fi chat activity message does not suppress its alert, and neither path opens another Streamer.bot or browser-overlay WebSocket connection.
 
-Live acceptance requires a Ko-fi test webhook after the `.sb` trigger is attached. Streamlabs remains deferred because its documented Streamer.bot Donation variables do not expose a provider-stable event ID.
+Live acceptance requires a Ko-fi test webhook after the `.sb` trigger is attached. Streamlabs uses a separate native intake path that subscribes to `Streamlabs.Donation` over the existing Streamer.bot WebSocket and requires the raw event's provider-stable ID.

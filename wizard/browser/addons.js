@@ -111,11 +111,11 @@ function parseSceneMappingRows(value) {
 function sceneActionOptions(selectedId = '') {
   const prohibited = new Set(['143fce1d-c5b0-4108-b766-ee2d0249e2d4', '18bdc91c-64eb-4787-8be9-6a921b272943']);
   const starterActions = [
-    { id: '68fa3646-8b6c-4ef0-bf96-19474de8b620', name: 'THSV Scene - Starting Soon', group: 'THSV Scene Actions', enabled: true },
-    { id: '93ff064c-dd73-44fd-9a7e-f0b9499e4760', name: 'THSV Scene - Just Chatting', group: 'THSV Scene Actions', enabled: true },
-    { id: '6f22b156-ad06-42c2-bc5d-92ce89c02510', name: 'THSV Scene - Gameplay', group: 'THSV Scene Actions', enabled: true },
-    { id: '8b58b594-06c3-45e9-9fc1-f2655b02b92f', name: 'THSV Scene - Be Right Back', group: 'THSV Scene Actions', enabled: true },
-    { id: 'c7f5238b-33e1-4095-9dbe-06a331218c74', name: 'THSV Scene - Ending Soon', group: 'THSV Scene Actions', enabled: true },
+    { id: '68fa3646-8b6c-4ef0-bf96-19474de8b620', name: 'THSV Scene - Starting Soon', group: 'THSV Addon - Scene Actions', enabled: true },
+    { id: '93ff064c-dd73-44fd-9a7e-f0b9499e4760', name: 'THSV Scene - Just Chatting', group: 'THSV Addon - Scene Actions', enabled: true },
+    { id: '6f22b156-ad06-42c2-bc5d-92ce89c02510', name: 'THSV Scene - Gameplay', group: 'THSV Addon - Scene Actions', enabled: true },
+    { id: '8b58b594-06c3-45e9-9fc1-f2655b02b92f', name: 'THSV Scene - Be Right Back', group: 'THSV Addon - Scene Actions', enabled: true },
+    { id: 'c7f5238b-33e1-4095-9dbe-06a331218c74', name: 'THSV Scene - Ending Soon', group: 'THSV Addon - Scene Actions', enabled: true },
   ];
   const byId = new Map(starterActions.map((action) => [action.id, action]));
   for (const action of state.liveActions) if (!prohibited.has(action.id.toLowerCase())) byId.set(action.id, action);
@@ -200,11 +200,13 @@ const DIRECT_ADDON_TRIGGER_REQUIREMENTS = {
   'thsv.kofi-donations': {
     actionId: 'e61c4b43-6cf0-5d56-a1c9-2176ae09c312',
     actionName: 'THSV Addon - Ko-fi Donations - Intake',
+    groupName: 'THSV Addon - Ko-fi Donations',
     triggers: ['Ko-fi > Donation'],
   },
   'thsv.scene-actions': {
     actionId: '18bdc91c-64eb-4787-8be9-6a921b272943',
     actionName: 'THSV Scene Actions - Intake',
+    groupName: 'THSV Addon - Scene Actions',
     triggers: ['OBS Studio > Scene Changed', 'Streamlabs Desktop > Scene Changed', 'Meld Studio > Scene Changed'],
   },
 };
@@ -212,7 +214,14 @@ const DIRECT_ADDON_TRIGGER_REQUIREMENTS = {
 const BROKER_ROUTED_ADDONS = new Set([
   'thsv.auto-translate', 'thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.fan-crown',
   'thsv.first-five', 'thsv.quote-vault', 'thsv.raid-scout', 'thsv.random-clip-player',
-  'thsv.subathon-timer', 'thsv.user-translate',
+  'thsv.subathon-timer', 'thsv.user-translate', 'thsv.chat-guard', 'thsv.community-analytics', 'thsv.viewer-foundation', 'thsv.viewer-spotlight',
+  'thsv.creator-controls',
+  'thsv.category-pilot',
+  'thsv.live-beacon',
+  'thsv.clip-courier',
+  'thsv.viewer-lobby',
+  'thsv.voice-relay',
+  'thsv.follower-pulse',
 ]);
 
 function renderAddOnTriggerReadiness(addOn) {
@@ -231,15 +240,51 @@ function renderAddOnTriggerReadiness(addOn) {
   const countKnown = Number.isInteger(action.triggerCount);
   const countReady = countKnown && action.triggerCount >= expectedCount;
   const actionReady = action.enabled !== false;
-  const ready = actionReady && countReady;
+  const nameReady = action.name === requirement.actionName;
+  const currentGroup = actionGroupName(action);
+  const groupReady = currentGroup === requirement.groupName;
+  const ready = actionReady && countReady && nameReady && groupReady;
   const countText = countKnown ? `${action.triggerCount} attached trigger${action.triggerCount === 1 ? '' : 's'} reported` : 'attached-trigger count unavailable';
   const status = ready ? 'Ready' : 'Setup needed';
   const detail = !actionReady
     ? 'The intake action is disabled in Streamer.bot.'
-    : countReady
+    : !nameReady
+      ? `The stable action ID is present, but it is named "${action.name}" instead of "${requirement.actionName}".`
+      : !groupReady
+        ? `The action is in "${currentGroup}" instead of its expected "${requirement.groupName}" group.`
+        : countReady
       ? `${countText}. The documented GetActions read exposes a count, not trigger names, so compare the labels below after manual edits.`
       : `${countText}; at least ${expectedCount} ${expectedCount === 1 ? 'is' : 'are'} required.`;
-  return `<details class="form-section addon-trigger-readiness" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}" ${ready ? '' : 'open'}><summary>Streamer.bot trigger status <span class="badge">${status}</span></summary><p class="${ready ? 'notice' : 'error'}"><strong>${safe(requirement.actionName)}</strong> is ${actionReady ? 'enabled' : 'disabled'}; ${safe(detail)}</p><p><strong>Required triggers:</strong></p>${expected}<div class="button-row"><button type="button" class="ghost" data-inspect-addon-actions>Refresh action and trigger status</button></div></details>`;
+  return `<details class="form-section addon-trigger-readiness" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}" ${ready ? '' : 'open'}><summary>Streamer.bot trigger status <span class="badge">${status}</span></summary><p class="${ready ? 'notice' : 'error'}"><strong>${safe(requirement.actionName)}</strong> is ${actionReady ? 'enabled' : 'disabled'}; ${safe(detail)}</p><p><strong>Expected group:</strong> ${safe(requirement.groupName)}</p><p><strong>Required triggers:</strong></p>${expected}<div class="button-row"><button type="button" class="ghost" data-inspect-addon-actions>Refresh action and trigger status</button></div></details>`;
+}
+
+function renderViewerFoundationAdmin(addOn) {
+  if (addOn.moduleId !== 'thsv.viewer-foundation' || !addOn.enabled) return '';
+  return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-foundation:administration"><summary>Identity, points &amp; privacy administration</summary><p class="notice">These live operations use the active Viewer Foundation provider and its serialized state queue. Account links are edited in Configure add-on above and require a bridge restart.</p><div class="button-row"><button type="button" class="ghost" data-viewer-admin-status>Refresh private-state summary</button></div><pre class="diagnostic" data-viewer-admin-output>Choose an operation. Viewer records are identified only by their lowercase Viewer Foundation ID.</pre><form class="addon-settings-grid" data-viewer-export-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="alex"></label><div class="button-row full-row"><button type="submit" class="ghost">Prepare privacy export</button></div></form><form class="addon-settings-grid" data-viewer-correction-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label>Correction<select name="adjustment"><option value="add">Add points</option><option value="remove">Remove points</option><option value="reset">Reset to zero</option></select></label><label>Amount<input name="amount" type="number" min="1" max="1000000" step="1" value="1"></label><label>Audit reason<input name="reason" required minlength="3" maxlength="200" placeholder="Creator correction"></label><div class="button-row full-row"><button type="submit">Apply correction</button></div></form><form class="addon-settings-grid" data-viewer-delete-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label class="check full-row"><input name="approved" type="checkbox" required> I understand this permanently erases the viewer record and its mutation history.</label><div class="button-row full-row"><button type="submit" class="danger">Delete viewer record</button></div></form></details>`;
+}
+
+function renderCommunityAnalyticsAdmin(addOn) {
+  if (addOn.moduleId !== 'thsv.community-analytics' || !addOn.enabled) return '';
+  return `<details class="form-section" data-disclosure-key="addon:thsv.community-analytics:administration"><summary>Reports, session summary &amp; privacy</summary><p class="notice">Reports contain local StreamBridge observations only—not official platform analytics, revenue, payout, or tax data. They exclude names, account IDs, chat text, raw events, and financial amounts.</p><div class="button-row"><button type="button" class="ghost" data-analytics-admin-status>Refresh session summary</button><button type="button" class="ghost" data-analytics-report="session-json">Download session JSON</button><button type="button" class="ghost" data-analytics-report="viewers-csv">Download viewer CSV</button></div><pre class="diagnostic" data-analytics-admin-output>Choose an operation. Viewer records use lowercase Viewer Foundation IDs.</pre><form class="addon-settings-grid" data-analytics-export-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="alex"></label><div class="button-row full-row"><button type="submit" class="ghost">Prepare one-viewer privacy export</button></div></form><form class="addon-settings-grid" data-analytics-delete-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label class="check full-row"><input name="approved" type="checkbox" required> I understand this permanently erases this viewer's private analytics record and active-session attendance.</label><div class="button-row full-row"><button type="submit" class="danger">Delete analytics record</button></div></form></details>`;
+}
+
+function renderViewerSpotlightAdmin(addOn) {
+  if (addOn.moduleId !== 'thsv.viewer-spotlight' || !addOn.enabled) return '';
+  return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-spotlight:manual-display"><summary>Manual viewer card</summary><p class="notice">This creator-only tool resolves the platform account through Viewer Foundation, rechecks Community Analytics, and uses the normal cooldown and queue. The display name and optional HTTPS avatar exist only in the in-memory request and overlay message.</p><div class="button-row"><button type="button" class="ghost" data-spotlight-admin-status>Refresh queue status</button></div><pre class="diagnostic" data-spotlight-admin-output>Enter the stable platform account ID, not the display name or channel URL.</pre><form class="addon-settings-grid" data-spotlight-display-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Display name<input name="displayName" required maxlength="80" autocomplete="off" placeholder="Name shown on the card"></label><label>Profile picture URL (optional)<input name="avatarUrl" type="url" maxlength="2048" pattern="https://.*" placeholder="https://..."></label><label class="check full-row"><input name="approved" type="checkbox" required> Display this viewer's selected public fields on the live Viewer Spotlight overlay.</label><div class="button-row full-row"><button type="submit">Queue manual card</button></div></form></details>`;
+}
+
+function renderChatGuardAdmin(addOn) {
+  if (addOn.moduleId !== 'thsv.chat-guard' || !addOn.enabled) return '';
+  return [
+    '<details class="form-section" data-disclosure-key="addon:thsv.chat-guard:observations"><summary>Observe-only results &amp; rule tester</summary>',
+    '<p class="notice">This view contains aggregate counts and salted identifiers only. Chat text, names, avatars, and platform account IDs are never returned.</p>',
+    '<div class="button-row"><button type="button" class="ghost" data-chat-guard-status>Refresh observation summary</button><button type="button" class="danger" data-chat-guard-clear>Clear retained observations</button></div>',
+    '<pre class="diagnostic" data-chat-guard-output>Refresh to inspect rule counts and confirm every provider remains observe-only.</pre>',
+    '<form class="addon-settings-grid" data-chat-guard-test-form><label class="full-row">Sample public-chat message<textarea name="message" required minlength="1" maxlength="2000" rows="4" placeholder="Paste a safe test sample. It will not be saved."></textarea></label><label>Prior matching messages<input name="priorMatchingMessages" type="number" min="0" max="9" step="1" value="0"></label><div class="button-row full-row"><button type="submit" class="ghost">Test current rules</button></div><small class="full-row">Only the character count and matched rule IDs are returned. The sample is not persisted or echoed back.</small></form>',
+    '<details data-disclosure-key="addon:thsv.chat-guard:temporary-permit"><summary>Temporary link permit</summary><p class="notice">A permit bypasses blocked/unapproved-domain signals only. Other spam rules continue to observe the message.</p><form class="addon-settings-grid" data-chat-guard-permit-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Expires after (minutes)<input name="durationMinutes" type="number" min="1" max="1440" step="1" value="15"></label><label>Maximum uses<input name="maximumUses" type="number" min="1" max="20" step="1" value="1"></label><label class="check full-row"><input name="approved" type="checkbox" required> I approve this time- and use-bounded domain exception.</label><div class="button-row full-row"><button type="submit">Create permit</button><button type="button" class="danger" data-chat-guard-clear-permits>Clear all permits</button></div></form></details>',
+    '<details data-disclosure-key="addon:thsv.chat-guard:incident-review"><summary>Review a recent incident</summary><p class="notice">Copy an incident ID from the observation summary. Review labels measure false positives without retaining the message or viewer identity.</p><form class="addon-settings-grid" data-chat-guard-review-form><label class="full-row">Incident ID<input name="incidentId" required pattern="[a-f0-9]{64}" maxlength="64" autocomplete="off"></label><label>Decision<select name="decision"><option value="confirmed">Confirmed match</option><option value="false-positive">False positive</option></select></label><label class="check full-row"><input name="approved" type="checkbox" required> Save this review label to the private incident record.</label><div class="button-row full-row"><button type="submit">Save review</button></div></form></details>',
+    '</details>',
+  ].join('');
 }
 
 function renderAddOns() {
@@ -259,13 +304,15 @@ function renderAddOns() {
     const updateNotice = renderAddOnUpdate(addOn);
     const liveChatWarning = addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this add-on can automatically post messages to creator-enabled platforms through StreamBridge. Review its settings and publisher before enabling it.</p>' : '';
     const providerWarning = addOn.permissions.includes('provider.events.publish') ? '<p class="notice"><strong>Financial-event permission:</strong> this add-on can publish only its assigned provider donations into the core alert pipeline. Stable provider IDs, bounded values, and core validation are enforced; review the provider connection before enabling it.</p>' : '';
+    const viewerWarning = addOn.permissions.some((permission) => permission.startsWith('viewer.foundation.') || permission.startsWith('community.analytics.')) ? '<p class="notice"><strong>Viewer-data permission:</strong> this add-on participates in the optional Viewer Foundation or Community Analytics services. Review whether it provides or reads pseudonymous viewer data before enabling it.</p>' : '';
     const triggerReadiness = rejected ? '' : renderAddOnTriggerReadiness(addOn);
     const settingsIntro = typeof addOn.settingsUi?.intro === 'string' && addOn.settingsUi.intro.trim() ? addOn.settingsUi.intro : 'Open only the section you want to change. Hidden options keep their saved values.';
     const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell" data-disclosure-key="${safe(`addon:${addOn.moduleId}:configure`)}" open><summary>Configure add-on</summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><div class="addon-settings-heading"><p class="addon-settings-intro">${safe(settingsIntro)}</p><div class="button-row"><button type="button" class="ghost compact" data-addon-sections="expand">Expand all</button><button type="button" class="ghost compact" data-addon-sections="collapse">Collapse all</button></div></div>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Changes take effect after StreamBridge restarts.</small></div></form></details>`;
     const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:approved-actions`)}"><summary>Approved Streamer.bot actions</summary>${renderAddOnActionGrant(addOn)}</details>`;
     const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:overlay-tools`)}"><summary>Hosted overlay &amp; testing</summary>${renderAddOnOverlayTools(addOn)}</details>`;
+    const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderChatGuardAdmin(addOn)}`;
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>${trustLinks}`}${liveChatWarning}${providerWarning}${triggerReadiness}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>${trustLinks}`}${liveChatWarning}${providerWarning}${viewerWarning}${triggerReadiness}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${viewerAdministration}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
   }).join('');
   // Saving settings and other add-on operations rebuild this subtree. Restore both open and
   // closed choices immediately so sections never flash or return to their package defaults.
@@ -290,6 +337,172 @@ function renderAddOns() {
   document.querySelectorAll('[data-save-addon-action-grants]').forEach((button) => button.addEventListener('click', saveAddOnActionGrants));
   document.querySelectorAll('[data-copy-addon-overlay]').forEach((button) => button.addEventListener('click', copyAddOnOverlayUrl));
   document.querySelectorAll('[data-preview-addon-overlay]').forEach((button) => button.addEventListener('click', previewAddOnOverlay));
+  document.querySelector('[data-viewer-admin-status]')?.addEventListener('click', refreshViewerFoundationStatus);
+  document.querySelector('[data-viewer-export-form]')?.addEventListener('submit', exportViewerFoundationRecord);
+  document.querySelector('[data-viewer-correction-form]')?.addEventListener('submit', correctViewerFoundationRecord);
+  document.querySelector('[data-viewer-delete-form]')?.addEventListener('submit', deleteViewerFoundationRecord);
+  document.querySelector('[data-analytics-admin-status]')?.addEventListener('click', refreshCommunityAnalyticsStatus);
+  document.querySelector('[data-analytics-export-form]')?.addEventListener('submit', exportCommunityAnalyticsRecord);
+  document.querySelector('[data-analytics-delete-form]')?.addEventListener('submit', deleteCommunityAnalyticsRecord);
+  document.querySelectorAll('[data-analytics-report]').forEach((button) => button.addEventListener('click', downloadCommunityAnalyticsReport));
+  document.querySelector('[data-spotlight-admin-status]')?.addEventListener('click', refreshViewerSpotlightStatus);
+  document.querySelector('[data-spotlight-display-form]')?.addEventListener('submit', displayViewerSpotlightCard);
+  document.querySelector('[data-chat-guard-status]')?.addEventListener('click', refreshChatGuardStatus);
+  document.querySelector('[data-chat-guard-clear]')?.addEventListener('click', clearChatGuardObservations);
+  document.querySelector('[data-chat-guard-test-form]')?.addEventListener('submit', testChatGuardRules);
+  document.querySelector('[data-chat-guard-permit-form]')?.addEventListener('submit', createChatGuardPermit);
+  document.querySelector('[data-chat-guard-clear-permits]')?.addEventListener('click', clearChatGuardPermits);
+  document.querySelector('[data-chat-guard-review-form]')?.addEventListener('submit', reviewChatGuardIncident);
+}
+
+function viewerAdminOutput(value) {
+  const output = document.querySelector('[data-viewer-admin-output]');
+  if (output) output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+async function viewerFoundationAdmin(request) {
+  const result = await api('/wizard/api/viewer-foundation/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+  viewerAdminOutput(result); return result;
+}
+
+async function refreshViewerFoundationStatus() {
+  try { await viewerFoundationAdmin({ operation: 'status' }); } catch (error) { viewerAdminOutput(error.message); }
+}
+
+async function exportViewerFoundationRecord(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try { await viewerFoundationAdmin({ operation: 'export', viewerId: form.elements.viewerId.value.trim() }); } catch (error) { viewerAdminOutput(error.message); }
+}
+
+async function correctViewerFoundationRecord(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  const adjustment = form.elements.adjustment.value; const viewerId = form.elements.viewerId.value.trim();
+  if (!confirm(`Apply the ${adjustment} point correction to ${viewerId}? This changes live private progression state.`)) return;
+  const request = { operation: 'correct', viewerId, adjustment, reason: form.elements.reason.value.trim(), approvedByCreator: true };
+  if (adjustment !== 'reset') request.amount = Number(form.elements.amount.value);
+  try { await viewerFoundationAdmin(request); } catch (error) { viewerAdminOutput(error.message); }
+}
+
+async function deleteViewerFoundationRecord(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  const viewerId = form.elements.viewerId.value.trim();
+  if (!confirm(`Permanently delete Viewer Foundation record ${viewerId}? This cannot be undone.`)) return;
+  try {
+    const result = await viewerFoundationAdmin({ operation: 'delete', viewerId, approvedByCreator: true });
+    if (result.accountLinksRequireRemoval) viewerAdminOutput(`${JSON.stringify(result, null, 2)}\n\nRemove this viewer's entries from Explicit account links, save settings, and restart StreamBridge to complete link-data removal.`);
+    form.reset();
+  } catch (error) { viewerAdminOutput(error.message); }
+}
+
+function analyticsAdminOutput(value) {
+  const output = document.querySelector('[data-analytics-admin-output]');
+  if (output) output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+async function communityAnalyticsAdmin(request) {
+  const result = await api('/wizard/api/community-analytics/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+  analyticsAdminOutput(result); return result;
+}
+
+async function refreshCommunityAnalyticsStatus() {
+  try { await communityAnalyticsAdmin({ operation: 'status' }); } catch (error) { analyticsAdminOutput(error.message); }
+}
+
+async function exportCommunityAnalyticsRecord(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try { await communityAnalyticsAdmin({ operation: 'export', viewerId: form.elements.viewerId.value.trim() }); } catch (error) { analyticsAdminOutput(error.message); }
+}
+
+async function deleteCommunityAnalyticsRecord(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  const viewerId = form.elements.viewerId.value.trim();
+  if (!confirm(`Permanently delete Community Analytics record ${viewerId}? Completed aggregate session totals will remain because they contain no viewer identity.`)) return;
+  try { await communityAnalyticsAdmin({ operation: 'delete', viewerId, approvedByCreator: true }); form.reset(); } catch (error) { analyticsAdminOutput(error.message); }
+}
+
+async function downloadCommunityAnalyticsReport(event) {
+  const reportKind = event.currentTarget.dataset.analyticsReport;
+  try {
+    const result = await api('/wizard/api/community-analytics/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'report', reportKind }) });
+    const blob = new Blob([result.content], { type: `${result.mimeType};charset=utf-8` }); const url = URL.createObjectURL(blob); const link = document.createElement('a');
+    link.href = url; link.download = result.filename; link.click(); URL.revokeObjectURL(url);
+    analyticsAdminOutput(`Downloaded ${result.filename}. The file contains local, pseudonymous observations only.`);
+  } catch (error) { analyticsAdminOutput(error.message); }
+}
+
+function spotlightAdminOutput(value) {
+  const output = document.querySelector('[data-spotlight-admin-output]');
+  if (output) output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+async function viewerSpotlightAdmin(request) {
+  const result = await api('/wizard/api/viewer-spotlight/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+  spotlightAdminOutput(result); return result;
+}
+
+async function refreshViewerSpotlightStatus() {
+  try { await viewerSpotlightAdmin({ operation: 'status' }); } catch (error) { spotlightAdminOutput(error.message); }
+}
+
+async function displayViewerSpotlightCard(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  const displayName = form.elements.displayName.value.trim();
+  if (!confirm(`Display a live Viewer Spotlight card for ${displayName}?`)) return;
+  const avatarUrl = form.elements.avatarUrl.value.trim();
+  const request = { operation: 'display', platform: form.elements.platform.value, userId: form.elements.userId.value.trim(), displayName, approvedByCreator: true };
+  if (avatarUrl) request.avatarUrl = avatarUrl;
+  try { await viewerSpotlightAdmin(request); } catch (error) { spotlightAdminOutput(error.message); }
+}
+
+function chatGuardOutput(value) {
+  const output = document.querySelector('[data-chat-guard-output]');
+  if (output) output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+async function chatGuardAdmin(request) {
+  const result = await api('/wizard/api/chat-guard/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+  chatGuardOutput(result); return result;
+}
+
+async function refreshChatGuardStatus() {
+  try { await chatGuardAdmin({ operation: 'status' }); } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function clearChatGuardObservations() {
+  if (!confirm('Clear all retained Chat Guard incidents, repeat observations, and replay fingerprints? This cannot be undone.')) return;
+  try { await chatGuardAdmin({ operation: 'clear', approvedByCreator: true }); } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function testChatGuardRules(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try { await chatGuardAdmin({ operation: 'test', message: form.elements.message.value, priorMatchingMessages: Number(form.elements.priorMatchingMessages.value) }); } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function createChatGuardPermit(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try {
+    await chatGuardAdmin({ operation: 'permit', platform: form.elements.platform.value, userId: form.elements.userId.value.trim(), durationMinutes: Number(form.elements.durationMinutes.value), maximumUses: Number(form.elements.maximumUses.value), approvedByCreator: true });
+    form.reset();
+  } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function clearChatGuardPermits() {
+  if (!confirm('Clear every active Chat Guard temporary link permit?')) return;
+  try { await chatGuardAdmin({ operation: 'clear-permits', approvedByCreator: true }); } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function reviewChatGuardIncident(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try { await chatGuardAdmin({ operation: 'review', incidentId: form.elements.incidentId.value.trim(), decision: form.elements.decision.value, approvedByCreator: true }); form.reset(); } catch (error) { chatGuardOutput(error.message); }
 }
 
 function renderDiscoveredAddOns() {
@@ -297,7 +510,7 @@ function renderDiscoveredAddOns() {
   if (!state.discoveredAddOns.length) { list.innerHTML = '<p class="notice">No packages are waiting in the add-on inbox.</p>'; return; }
   list.innerHTML = state.discoveredAddOns.map((addOn) => addOn.health === 'rejected'
     ? `<article class="item muted"><strong>${safe(addOn.filename)}</strong><small>Rejected before installation</small><p class="error">${safe(addOn.error)}</p></article>`
-    : `<article class="item"><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.filename)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small><p>${safe(addOn.description)}</p><small><strong>Permissions:</strong> ${safe(addOn.permissions.length ? addOn.permissions.join(', ') : 'none')} - integrity checked, publisher identity not authenticated</small>${renderAddOnTrustLinks(addOn.trustMetadata)}${addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this package can automatically post messages after installation and enablement.</p>' : ''}${addOn.permissions.includes('provider.events.publish') ? '<p class="notice"><strong>Financial-event permission:</strong> this package can publish bounded donations for its assigned provider into core alerts.</p>' : ''}<label class="check"><input type="checkbox" data-approve-discovered="${safe(addOn.filename)}"> I reviewed and trust this publisher and permission request</label><button type="button" data-install-discovered="${safe(addOn.filename)}">Verify and install</button></article>`).join('');
+    : `<article class="item"><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.filename)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small><p>${safe(addOn.description)}</p><small><strong>Permissions:</strong> ${safe(addOn.permissions.length ? addOn.permissions.join(', ') : 'none')} - integrity checked, publisher identity not authenticated</small>${renderAddOnTrustLinks(addOn.trustMetadata)}${addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this package can automatically post messages after installation and enablement.</p>' : ''}${addOn.permissions.includes('provider.events.publish') ? '<p class="notice"><strong>Financial-event permission:</strong> this package can publish bounded donations for its assigned provider into core alerts.</p>' : ''}${addOn.permissions.some((permission) => permission.startsWith('viewer.foundation.') || permission.startsWith('community.analytics.')) ? '<p class="notice"><strong>Viewer-data permission:</strong> this package can provide or read optional pseudonymous viewer data according to its exact permission list.</p>' : ''}<label class="check"><input type="checkbox" data-approve-discovered="${safe(addOn.filename)}"> I reviewed and trust this publisher and permission request</label><button type="button" data-install-discovered="${safe(addOn.filename)}">Verify and install</button></article>`).join('');
   document.querySelectorAll('[data-install-discovered]').forEach((button) => button.addEventListener('click', installDiscoveredAddOn));
 }
 
@@ -328,6 +541,7 @@ function renderAddOnActionGrant(addOn) {
   // very differently from a genuinely missing action: the first just needs a fresh Inspect to
   // confirm, the second means the action was actually removed or renamed in Streamer.bot.
   const notYetInspected = state.liveActions.length === 0;
+  if (!state.addOnActionNameCache) state.addOnActionNameCache = loadAddOnActionNameCache();
   rememberInspectedActionNames(state.liveActions);
   if (!state.addOnActionDrafts) state.addOnActionDrafts = {};
   if (!state.addOnActionDrafts[addOn.moduleId]) state.addOnActionDrafts[addOn.moduleId] = [...(addOn.approvedActionIds || [])];
@@ -335,7 +549,12 @@ function renderAddOnActionGrant(addOn) {
 
   const approvedEntries = draft.map((id) => {
     const live = liveById.get(id);
-    if (live) return { id, name: live.name, group: actionGroupName(live), suffix: live.enabled === false ? ' · disabled in Streamer.bot' : '' };
+    if (live) {
+      const currentGroup = actionGroupName(live);
+      const changes = [...(state.addOnActionDrift?.[id] || [])];
+      if (live.enabled === false) changes.push('disabled in Streamer.bot');
+      return { id, name: live.name, group: currentGroup, suffix: changes.length ? ` · ${changes.join(' · ')}` : '' };
+    }
     const remembered = state.addOnActionNameCache?.[id];
     if (remembered) return { id, name: remembered.name, group: remembered.group, suffix: ' · saved grant remains active; status not checked this session' };
     return { id, name: notYetInspected ? 'Approved action ID' : 'Approved action no longer found in Streamer.bot', group: '', suffix: notYetInspected ? ' · saved grant remains active' : ' · missing from Streamer.bot' };
@@ -373,8 +592,17 @@ function loadAddOnActionNameCache() {
 function rememberInspectedActionNames(actions) {
   if (!actions.length) return;
   if (!state.addOnActionNameCache) state.addOnActionNameCache = loadAddOnActionNameCache();
+  if (!state.addOnActionDrift) state.addOnActionDrift = {};
   const inspectedAt = new Date().toISOString();
-  for (const action of actions) state.addOnActionNameCache[action.id] = { name: action.name, group: actionGroupName(action), inspectedAt };
+  for (const action of actions) {
+    const previous = state.addOnActionNameCache[action.id];
+    const currentGroup = actionGroupName(action);
+    const changes = [];
+    if (previous?.name && previous.name !== action.name) changes.push(`renamed from ${previous.name}`);
+    if (previous?.group && previous.group !== currentGroup) changes.push(`moved from ${previous.group}`);
+    if (changes.length) state.addOnActionDrift[action.id] = changes;
+    state.addOnActionNameCache[action.id] = { name: action.name, group: currentGroup, inspectedAt };
+  }
   const newest = Object.entries(state.addOnActionNameCache)
     .sort((left, right) => String(right[1]?.inspectedAt || '').localeCompare(String(left[1]?.inspectedAt || '')))
     .slice(0, 500);

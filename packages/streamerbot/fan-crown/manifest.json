@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Fan Crown",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "author": "surakage",
   "description": "Provides one triggerless Twitch reward controller and two optional creator-controlled maintenance actions for the Fan Crown add-on.",
   "minimumStreamerBotVersion": "1.0.5-alpha.33",
@@ -9,9 +9,9 @@
     {
       "id": "ad2b29a1-4e8e-4f0b-9ac2-6c4e5f473e12",
       "name": "THSV Addon - Fan Crown - Controller",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Fan Crown",
       "source": "src/FanCrownController.cs",
-      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.3.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -23,9 +23,9 @@
     {
       "id": "c18f8f80-6ed9-4c30-85aa-09c11ed066b8",
       "name": "THSV Addon - Fan Crown - Reset Crown",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Fan Crown",
       "source": "src/FanCrownControl.cs",
-      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.3.sb",
       "arguments": [
         {
           "name": "fanCrownControlAction",
@@ -45,9 +45,9 @@
     {
       "id": "8d34fce6-2c31-4db3-9a67-b3c44e42ed1f",
       "name": "THSV Addon - Fan Crown - Reset Month",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Fan Crown",
       "source": "src/FanCrownControl.cs",
-      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Fan-Crown-2.4.3.sb",
       "arguments": [
         {
           "name": "fanCrownControlAction",

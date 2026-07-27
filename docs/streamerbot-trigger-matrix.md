@@ -1,6 +1,6 @@
 # Streamer.bot trigger matrix
 
-Add triggers only to the actions listed below. Streamer.bot owns provider connections and trigger objects, so the portable import installs reviewed actions but does not silently create or replace creator-owned trigger bindings.
+Add triggers only to the actions listed below. Streamer.bot owns provider connections and trigger objects, so a first portable import installs the reviewed actions without creating creator-owned trigger bindings. **Do not use Streamer.bot's overwrite import as an in-place code updater:** overwriting an existing intake action replaces its trigger collection with the package's empty collection. Back up Streamer.bot first and either reattach the matrix below after an overwrite or use a reviewed migration that preserves the existing trigger objects.
 
 ## THSV Twitch - Intake
 

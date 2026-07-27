@@ -116,9 +116,24 @@ describe('ModuleRegistry', () => {
     expect(registry.statuses()[0]).toMatchObject({ moduleId: 'test.required', status: 'failed', message: 'required failure' });
   });
 
-  it('rejects duplicate, missing, cyclic, and self dependencies before startup', () => {
+  it('fails only an optional module when its dependency is absent', async () => {
+    const healthy = vi.fn();
+    const registry = new ModuleRegistry([
+      moduleDefinition('test.optional-child', { dependencies: ['test.not-installed'], start: async () => { throw new Error('must not start'); } }),
+      moduleDefinition('test.healthy', { start: async () => { healthy(); } }),
+    ], silentLogger);
+    await registry.start();
+    expect(healthy).toHaveBeenCalledOnce();
+    expect(registry.ready()).toBe(true);
+    expect(registry.statuses()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ moduleId: 'test.optional-child', status: 'failed', message: 'Dependency test.not-installed is unavailable.' }),
+      expect.objectContaining({ moduleId: 'test.healthy', status: 'healthy' }),
+    ]));
+  });
+
+  it('rejects duplicate, required-missing, cyclic, and self dependencies before startup', () => {
     expect(() => new ModuleRegistry([moduleDefinition('test.same'), moduleDefinition('test.same')], silentLogger)).toThrow('registered more than once');
-    expect(() => new ModuleRegistry([moduleDefinition('test.child', { dependencies: ['test.missing'] })], silentLogger)).toThrow('is not installed');
+    expect(() => new ModuleRegistry([moduleDefinition('test.child', { required: true, dependencies: ['test.missing'] })], silentLogger)).toThrow('is not installed');
     expect(() => new ModuleRegistry([
       moduleDefinition('test.one', { dependencies: ['test.two'] }),
       moduleDefinition('test.two', { dependencies: ['test.one'] }),

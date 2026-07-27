@@ -1,0 +1,90 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Provides privacy-conscious, salted cross-platform viewer identity and bounded replay-safe progression as an optional foundation for later community add-ons.",
+  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "viewer.foundation.provide"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.viewer-foundation",
+    "name": "Viewer Foundation",
+    "version": "2.4.3",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "chat.message",
+      "channel.follow",
+      "channel.subscription",
+      "channel.membership",
+      "channel.gift-subscription",
+      "engagement.gift",
+      "engagement.cheer",
+      "engagement.super-chat",
+      "channel.raid",
+      "reward.redemption"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.viewer-foundation/",
+      "data/addons/.state/thsv.viewer-foundation/"
+    ],
+    "installationSteps": [
+      "Install Viewer Foundation in the wizard and review its private-state permission.",
+      "Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.",
+      "Choose point awards and cooldowns, save, and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Its pseudonymous progression state remains preserved for a later reinstall or privacy export."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.viewer-foundation.runtime",
+        "description": "Confirms salted identity resolution, bounded replay protection, and atomic private progression state."
+      }
+    ],
+    "minimumBridgeVersion": "2.4.3",
+    "maximumTestedBridgeVersion": "2.4.3"
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 20322,
+      "sha256": "f1e1d6d609611a627b934fb4bb89d0767d17a998b34ab9d18373725698022cfa"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2798,
+      "sha256": "0a1983e2e1b6a1fbad5690453046ef99378b4ed1bd401123a654307d39cdf58f"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 2247,
+      "sha256": "f5ecfb504d434ade716f2715d8bd1cfb6b42a2fe0227f27266e1467d7484b48f"
+    },
+    {
+      "path": "README.md",
+      "size": 1850,
+      "sha256": "04830f76d084c990efdd5a346401e7cad35e3bd060a03257d72509cb73c33a56"
+    }
+  ]
+}

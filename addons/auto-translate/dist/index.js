@@ -6,8 +6,8 @@ const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const LANGUAGE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/u;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.auto-translate', name: 'Auto Translate', version: '2.4.2',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.2', maximumTestedBridgeVersion: '2.4.2', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.auto-translate', name: 'Auto Translate', version: '2.4.3',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', RESULT_EVENT], commandsProvided: [],
   actionsProvided: [{ id: 'auto-translate.translate', name: 'Required no-key MyMemory translation request' }],
   browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.auto-translate/', 'data/addons/.state/thsv.auto-translate/'],

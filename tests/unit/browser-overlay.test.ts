@@ -127,6 +127,25 @@ describe('Browser Overlay Hub contract', () => {
     expect(projectBrowserOverlayEvents(event, config.browserOverlay).map((entry) => entry.kind)).toEqual(['alert.show']);
   });
 
+  it('routes a stable Streamlabs donation to its own alert and chat presentation', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    const config = await testConfig();
+    const event: NormalizedEvent = {
+      ...source,
+      eventId: 'streamlabs-donation-001',
+      platform: 'streamlabs',
+      eventType: 'engagement.donation',
+      source: { adapter: 'streamerbot-streamlabs', eventId: 'streamlabs-donation-001', eventName: 'StreamlabsDonation' },
+      payload: { amount: '10.00', currency: 'USD', message: 'Great stream!' },
+      metadata: { ...source.metadata, bridgeSequence: 25, simulated: false },
+    };
+
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay)).toMatchObject([
+      { kind: 'alert.show', payload: { platform: 'streamlabs', alertType: 'donation', amount: '10.00', currency: 'USD' } },
+      { kind: 'chat.event', payload: { platform: 'streamlabs', category: 'donation', label: 'STREAMLABS', message: 'example_member donated 10.00 USD Great stream!' } },
+    ]);
+  });
+
   it('routes YouTube Jewels Gifted to a gift alert and its independently configurable chat activity message', async () => {
     const source = await fixture('youtube-super-chat.json');
     const config = await testConfig();

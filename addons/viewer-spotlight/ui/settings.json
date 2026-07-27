@@ -1,0 +1,17 @@
+{
+  "intro": "Start with Quick setup and Privacy. Viewer Spotlight stays disabled until you accept the public-display disclosure.",
+  "order": ["enabled", "commandName", "enabledPlatforms", "disclosureAccepted", "ignoredViewerIds", "showPlatformBadge", "showAvatar", "showPoints", "showLevel", "showObservedSessions", "showObservedMessages", "showObservedCommands", "showEngagementScore", "showSeasonRank", "viewerCooldownMinutes", "globalCooldownSeconds", "maximumQueueSize", "queueExpirySeconds", "maximumCardsPerSession", "durationSeconds", "backgroundMode", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "fontFamily"],
+  "sections": [
+    { "id": "quick", "title": "1. Quick setup", "description": "Enable the add-on and match the self-request command.", "open": true, "fields": ["enabled", "commandName", "enabledPlatforms"] },
+    { "id": "privacy", "title": "2. Privacy approval", "description": "Choose whether the selected local statistics may appear publicly.", "open": true, "notice": "Viewer cards never include raw account IDs, linked-account records, chat text, private messages, money, or provider payloads.", "fields": ["disclosureAccepted", "ignoredViewerIds"] },
+    { "id": "fields", "title": "3. Public card fields", "description": "Only enabled fields are rendered; unsupported values disappear instead of showing invented zeroes.", "fields": ["showPlatformBadge", "showAvatar", "showPoints", "showLevel", "showObservedSessions", "showObservedMessages", "showObservedCommands", "showEngagementScore", "showSeasonRank"], "notice": "Engagement score uses only creator-weighted, capped sessions, messages, and commands. Exact monthly rank stays hidden until the Community Analytics minimum cohort is reached." },
+    { "id": "requests", "title": "4. Requests and spam protection", "description": "Bound the queue, expiry, per-viewer repeats, and total cards per stream.", "fields": ["viewerCooldownMinutes", "globalCooldownSeconds", "maximumQueueSize", "queueExpirySeconds", "maximumCardsPerSession", "durationSeconds"] },
+    { "id": "appearance", "title": "5. Appearance", "description": "Use a crisp fixed card whose text clamps safely in cropped browser sources.", "fields": ["backgroundMode", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "fontFamily"] }
+  ],
+  "fields": {
+    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity" } },
+    "ignoredViewerIds": { "rows": 4 },
+    "backgroundMode": { "labels": { "glass": "Translucent glass", "solid": "Solid color", "none": "Transparent" } },
+    "fontFamily": { "labels": { "broadcast": "Clean broadcast", "display": "Bold display", "serif": "Serif", "mono": "Monospace" } }
+  }
+}

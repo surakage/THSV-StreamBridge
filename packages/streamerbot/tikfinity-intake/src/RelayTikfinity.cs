@@ -26,6 +26,8 @@ public class CPHInline
             return false;
         }
 
+        if (kind == "chat") AutoUnlurk(Read("userId"), First(Read("username"), Read("nickname")));
+
         var argumentKeys = new JArray();
         foreach (string key in KnownArguments)
         {
@@ -70,6 +72,20 @@ public class CPHInline
         CPH.SetArgument("tikfinityRelayKind", kind);
         CPH.SetArgument("tikfinityRelaySimulated", simulated);
         return true;
+    }
+
+    // Mirrors the native intake behavior so TikFinity viewers are automatically marked back on
+    // their first later chat message without creating another WebSocket connection.
+    private void AutoUnlurk(string userId, string userName)
+    {
+        string identity = String.IsNullOrWhiteSpace(userId) ? (userName ?? "").Trim().ToLowerInvariant() : userId.Trim();
+        if (identity.Length == 0) return;
+        string encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identity)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        string key = "thsv.command.lurk.v1.tiktok." + encoded;
+        long startedAt = CPH.GetGlobalVar<long?>(key, true) ?? 0L;
+        if (startedAt <= 0L || DateTime.UtcNow.Ticks - startedAt <= TimeSpan.FromSeconds(3).Ticks) return;
+        CPH.UnsetGlobalVar(key, true);
+        CPH.SetArgument("thsvAutoUnlurked", true);
     }
 
     private string Read(string name)

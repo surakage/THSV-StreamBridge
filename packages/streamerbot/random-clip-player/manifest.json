@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Random Clip Player",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "author": "surakage",
   "description": "Fetches the broadcaster's Twitch clips and resolves a direct playable download URL per clip on request, for the Random Clip Player add-on.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
@@ -9,7 +9,7 @@
     {
       "id": "f89e397b-7106-5101-a620-b0f5da4facf9",
       "name": "THSV Addon - Random Clip Player - Get Clips",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Random Clip Player",
       "arguments": [
         {
           "name": "clipCount",
@@ -17,7 +17,7 @@
         }
       ],
       "source": "src/GetClips.cs",
-      "importFile": "THSV-StreamBridge-Random-Clip-Player-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Random-Clip-Player-2.4.3.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -28,9 +28,9 @@
     {
       "id": "ad3cf90f-b320-5ae2-a493-485a5485e0ce",
       "name": "THSV Addon - Random Clip Player - Get Clip Download",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Random Clip Player",
       "source": "src/GetClipDownload.cs",
-      "importFile": "THSV-StreamBridge-Random-Clip-Player-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Random-Clip-Player-2.4.3.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -41,7 +41,7 @@
     {
       "id": "b7ecc52e-6fe5-55d3-9f37-d370d36d5cfb",
       "name": "THSV Addon - Random Clip Player - Enable",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Random Clip Player",
       "arguments": [
         {
           "name": "randomClipPlayerEnabled",
@@ -50,7 +50,7 @@
         }
       ],
       "source": "src/ControlPlayback.cs",
-      "importFile": "THSV-StreamBridge-Random-Clip-Player-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Random-Clip-Player-2.4.3.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -61,7 +61,7 @@
     {
       "id": "7c2ebb26-1dd7-5013-b54e-fdc7a582edc7",
       "name": "THSV Addon - Random Clip Player - Disable",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Random Clip Player",
       "arguments": [
         {
           "name": "randomClipPlayerEnabled",
@@ -70,7 +70,7 @@
         }
       ],
       "source": "src/ControlPlayback.cs",
-      "importFile": "THSV-StreamBridge-Random-Clip-Player-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Random-Clip-Player-2.4.3.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

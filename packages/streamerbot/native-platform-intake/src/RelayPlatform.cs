@@ -21,7 +21,8 @@ public class CPHInline
         "currencyCode", "count", "bits", "viewers", "monthsSubscribed", "months", "cumulative", "gifts", "giftCount", "monthStreak",
         "streakMonths", "tier", "subTier", "subscriptionTier", "giftName", "itemName", "rewardName", "rewardId", "reward.id",
         "reward.title", "rewardCost", "reward.cost", "requiresUserInput", "reward.requiresUserInput", "skipsQueue", "redemptionId", "broadcastId",
-        "broadcastUserId", "broadcastUserName", "broadcastUsername", "broadcastUser",
+        "broadcastUserId", "broadcastUserName", "broadcastUsername", "broadcastUser", "title", "game", "gameId", "startedAt",
+        "category.id", "category.name", "category.thumbnail", "broadcast.id", "broadcast.title", "broadcast.publishedAt", "broadcast.thumbnailUrl",
         "recipientId", "cumulativeMonths", "totalGifts", "totalSubsGifted", "id",
         "recipient.userId", "subscribedAt", "expiresAt", "kicks.amount", "kicks.name", "microAmount",
         "gift.jewelsAmount", "gift.name", "gift.comboCount", "gift.altText", "gift.isCombo", "gift.hasVisualEffect", "gift.durationInSeconds", "gift.url"
@@ -56,6 +57,7 @@ public class CPHInline
         }
         string relayId = Guid.NewGuid().ToString("N");
         string userName = First(Read("userName"), Read("userLogin"), Read("fromUserName"));
+        AutoUnlurk(platform, sourceEventType, First(Read("userId"), Read("fromUserId")), userName);
         object firstMessageValue;
         bool firstMessageKnown = CPH.TryGetArg("firstMessage", out firstMessageValue);
         var message = new JObject
@@ -119,6 +121,12 @@ public class CPHInline
             // (the broadcaster's display name) as a fallback. "broadcasterUserName"/"broadcaster"
             // are not real Streamer.bot arguments on any platform and never matched anything.
             ["channelName"] = First(Read("broadcastUserName"), Read("broadcastUsername"), Read("broadcastUser")),
+            ["streamId"] = First(Read("broadcast.id"), Read("broadcastId")),
+            ["streamTitle"] = First(Read("broadcast.title"), Read("title")),
+            ["streamCategoryId"] = First(ReadInvariant("gameId"), ReadInvariant("category.id")),
+            ["streamCategoryName"] = First(Read("game"), Read("category.name")),
+            ["streamThumbnailUrl"] = First(Read("broadcast.thumbnailUrl"), Read("category.thumbnail")),
+            ["streamStartedAt"] = First(Read("startedAt"), Read("broadcast.publishedAt")),
             ["argumentKeys"] = argumentKeys
         };
         try { CPH.WebsocketBroadcastJson(message.ToString(Formatting.None)); }
@@ -135,6 +143,23 @@ public class CPHInline
         CPH.SetArgument("platformRelayEventType", sourceEventType);
         CPH.SetArgument("platformRelayId", relayId);
         return true;
+    }
+
+    // The generated !lurk command persists only a platform-qualified viewer marker. A later
+    // ordinary chat message clears it here, where all native chat sources already converge.
+    // The short grace window prevents the !lurk message itself from racing this intake action.
+    private void AutoUnlurk(string platform, string sourceEventType, string userId, string userName)
+    {
+        bool isChat = sourceEventType == "TwitchChatMessage" || sourceEventType == "YouTubeMessage" || sourceEventType == "KickChatMessage";
+        if (!isChat) return;
+        string identity = String.IsNullOrWhiteSpace(userId) ? (userName ?? "").Trim().ToLowerInvariant() : userId.Trim();
+        if (identity.Length == 0) return;
+        string encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identity)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        string key = "thsv.command.lurk.v1." + platform + "." + encoded;
+        long startedAt = CPH.GetGlobalVar<long?>(key, true) ?? 0L;
+        if (startedAt <= 0L || DateTime.UtcNow.Ticks - startedAt <= TimeSpan.FromSeconds(3).Ticks) return;
+        CPH.UnsetGlobalVar(key, true);
+        CPH.SetArgument("thsvAutoUnlurked", true);
     }
 
     private string PlatformName()
@@ -169,6 +194,13 @@ public class CPHInline
     private string SourceEventId(string sourceEventType, string realId)
     {
         if (realId.Length > 0) return realId;
+        if (sourceEventType == "TwitchStreamOnline" || sourceEventType == "YouTubeBroadcastStarted" || sourceEventType == "KickStreamOnline")
+        {
+            string startedAt = First(Read("startedAt"), Read("broadcast.publishedAt"));
+            string streamId = First(Read("broadcast.id"), Read("broadcastId"));
+            if (streamId.Length > 0) return "stream:" + streamId;
+            return startedAt.Length == 0 ? "" : "stream-start:" + startedAt;
+        }
         string userId = Read("userId");
         if (userId.Length == 0) return "";
         if (sourceEventType == "TwitchSub" || sourceEventType == "KickSubscription") return "synthetic:" + sourceEventType + ":" + userId;

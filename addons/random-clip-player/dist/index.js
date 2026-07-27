@@ -47,9 +47,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '2.4.2',
+  version: '2.4.3',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.2', maximumTestedBridgeVersion: '2.4.2',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -59,7 +59,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.4.2.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.4.3.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Optionally bind the imported Enable and Disable actions to Streamer.bot scene-active and scene-inactive triggers.',
     'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.',
@@ -184,7 +184,10 @@ async function handleClipsReceived(event, context) {
   // Drop seen-IDs for clips no longer in the refreshed list (deleted, or aged out of the fetch
   // window) so the rotation pool cannot shrink forever as the underlying clip library changes.
   const clipIds = new Set(clips.map((clip) => clip.id));
-  const seenClipIds = state.seenClipIds.filter((id) => clipIds.has(id));
+  const stillSeenClipIds = state.seenClipIds.filter((id) => clipIds.has(id));
+  // A refresh after every returned clip has already played begins the next shuffle cycle. Keeping
+  // the completed bag would make requestNextClip immediately request the same list again forever.
+  const seenClipIds = clips.length > 0 && clips.every((clip) => stillSeenClipIds.includes(clip.id)) ? [] : stillSeenClipIds;
   await context.state.write(toJsonState({ ...state, clips, seenClipIds }));
   await requestNextClip(context);
 }

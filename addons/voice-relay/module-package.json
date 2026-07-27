@@ -1,0 +1,88 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Safely routes selected normalized alerts and opt-in chat to Speaker.bot through one bounded filtered queue.",
+  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe rebuild with alert-first allowlist, role-gated chat, local filtering, bounded queue, link stripping, and creator pause/resume/stop controls.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "schedule.bounded"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.voice-relay",
+    "name": "Voice Relay",
+    "version": "2.4.3",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "engagement.donation",
+      "channel.subscription",
+      "channel.membership",
+      "channel.gift-subscription",
+      "engagement.raid",
+      "engagement.super-chat",
+      "chat.message",
+      "addon.thsv.voice-relay.control"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.voice-relay/",
+      "data/addons/.state/thsv.voice-relay/"
+    ],
+    "installationSteps": [
+      "Connect Speaker.bot in Streamer.bot.",
+      "Import Voice Relay, approve only Speak, and test a harmless phrase.",
+      "Review filters and event types before enabling; attach Pause/Resume/Stop only to creator controls."
+    ],
+    "uninstallationSteps": [
+      "Uninstall Voice Relay. It retains no spoken text history."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.voice-relay.runtime",
+        "description": "Confirms bounded filtered Speaker.bot dispatch is available."
+      }
+    ],
+    "minimumBridgeVersion": "2.4.3",
+    "maximumTestedBridgeVersion": "2.4.3"
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 5194,
+      "sha256": "3d41c2ff1a4faa3c05c293e27b4c9db85b772624e578b9db1eb85ccc5c2395ac"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 1686,
+      "sha256": "4dcc7a4cd6d6d5bf4465c4029e8d381da22c00922d7d0bb7a2c1ebe4f53f419a"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1386,
+      "sha256": "3a3a3b73ca4c1fa40c82a2c82c2a8ae9dd05a4f0ab76654e29c26c31ab2fe68c"
+    },
+    {
+      "path": "README.md",
+      "size": 385,
+      "sha256": "312d0aa2933fe6846460d609a1c0cd97b11920edacf0b711bcb1ed77ad379f50"
+    }
+  ]
+}

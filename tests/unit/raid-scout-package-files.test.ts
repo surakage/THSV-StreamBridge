@@ -11,10 +11,10 @@ describe('Raid Scout package files', () => {
     expect(manifest.actions[0]).toMatchObject({
       id: '6a78d950-17b5-4a98-9de7-1a5b4275f31c',
       name: 'THSV Addon - Raid Scout - Controller',
-      group: 'THSV StreamBridge - Add-ons',
+      group: 'THSV Addon - Raid Scout',
     });
     expect(manifest.actions.slice(1).map((action) => action.arguments?.[0]?.value)).toEqual(['suggest', 'confirm', 'cancel']);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Raid-Scout-2.4.2.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Raid-Scout-2.4.3.sb']));
     expect(manifest.triggerSafety).toContain('Controller must remain triggerless');
   });
 

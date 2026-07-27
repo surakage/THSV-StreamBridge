@@ -2,7 +2,7 @@
   "intro": "Discord Chat Archive copies selected public chat to one creator-owned Discord channel. Set up the private webhook in Streamer.bot first, then review platforms, filters, appearance, delivery limits, and privacy before enabling.",
   "order": [
     "enabled", "enabledPlatforms", "ignoreBots", "ignoredUsers", "ignoreCommands", "commandPrefix", "includeSimulatedMessages",
-    "messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage",
+    "destinationMode", "forumThreadName", "forumTagIds", "messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage",
     "batchWindowSeconds", "maximumMessagesPerBatch", "maximumQueueMessages", "maximumMessageCharacters",
     "retryCount", "retryDelaySeconds", "showDroppedMessageNotice"
   ],
@@ -16,7 +16,7 @@
       "links": [
         { "label": "Open the official Streamer.bot Discord setup guide", "url": "https://docs.streamer.bot/guide/integrations/discord" }
       ],
-      "fields": ["enabled", "enabledPlatforms"]
+      "fields": ["enabled", "enabledPlatforms", "destinationMode"]
     },
     {
       "id": "filters",
@@ -29,7 +29,7 @@
       "id": "appearance",
       "title": "3. Discord message appearance",
       "description": "Customize the archived line without exposing the private webhook URL.",
-      "fields": ["messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage"]
+      "fields": ["forumThreadName", "forumTagIds", "messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage"]
     },
     {
       "id": "delivery",
@@ -49,6 +49,8 @@
     "ignoredUsers": { "rows": 6 },
     "commandPrefix": { "visibleWhen": { "field": "ignoreCommands", "equals": true } },
     "messageTemplate": { "rows": 3 },
+    "forumThreadName": { "visibleWhen": { "field": "destinationMode", "equals": "forum" } },
+    "forumTagIds": { "rows": 4, "visibleWhen": { "field": "destinationMode", "equals": "forum" } },
     "useViewerAvatarForSingleMessage": { "visibleWhen": { "field": "useViewerIdentityForSingleMessage", "equals": true } }
   }
 }

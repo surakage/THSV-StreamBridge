@@ -16,7 +16,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.goto('/wizard/');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
-  await expect(page.getByText('Authenticated', { exact: false })).toBeVisible();
+  await expect(page.locator('#mode')).toContainText('Authenticated');
   await page.getByRole('button', { name: 'Add-ons' }).click();
   await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Check updates' })).toBeVisible();
@@ -88,7 +88,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const userTranslateSettings = page.locator('[data-addon-settings="thsv.user-translate"]');
-  await expect(page.getByRole('article').getByText('User Translate 2.4.2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('User Translate 2.4.3', { exact: true })).toBeVisible();
   await expect(userTranslateSettings.getByText('Set up viewer-requested translation in five short sections.', { exact: false })).toBeVisible();
   await expect(userTranslateSettings.locator('input[name="enabledPlatforms"][value="twitch"]')).toBeChecked();
   await expect(userTranslateSettings.locator('input[name="enabledPlatforms"][value="youtube"]')).toBeChecked();
@@ -113,7 +113,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const autoTranslateSettings = page.locator('[data-addon-settings="thsv.auto-translate"]');
-  await expect(page.getByRole('article').getByText('Auto Translate 2.4.2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Auto Translate 2.4.3', { exact: true })).toBeVisible();
   await expect(autoTranslateSettings.getByText('Auto Translate sends selected public chat text', { exact: false })).toBeVisible();
   await expect(autoTranslateSettings.locator('input[name="enabled"]')).not.toBeChecked();
   await autoTranslateSettings.locator('summary').filter({ hasText: '2. Audience' }).click();
@@ -132,7 +132,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const shoutoutSettings = page.locator('[data-addon-settings="thsv.automated-shoutouts"]');
-  await expect(page.getByRole('article').getByText('Automated Shoutouts 2.4.2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Automated Shoutouts 2.4.3', { exact: true })).toBeVisible();
   await expect(shoutoutSettings.locator('summary')).toHaveCount(8);
   await shoutoutSettings.locator('summary').filter({ hasText: '8. Twitch visual popup' }).click();
   await expect(shoutoutSettings.getByLabel('Show a Twitch visual popup')).toBeChecked();
@@ -156,7 +156,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const subathonSettings = page.locator('[data-addon-settings="thsv.subathon-timer"]');
-  await expect(page.getByRole('article').getByText('Subathon Timer 2.4.2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Subathon Timer 2.4.3', { exact: true })).toBeVisible();
   await expect(subathonSettings.locator('summary')).toHaveCount(11);
   await expect(subathonSettings.getByLabel('Enable Subathon Timer')).toBeChecked();
   await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(6);
@@ -181,7 +181,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const countdownSettings = page.locator('[data-addon-settings="thsv.starting-soon-countdown"]');
-  await expect(page.getByRole('article').getByText('Stream Launch Countdown 2.4.2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Stream Launch Countdown 2.4.3', { exact: true })).toBeVisible();
   await expect(countdownSettings.locator('summary')).toHaveCount(6);
   await expect(countdownSettings.locator('input[name="durationMinutes"]')).toHaveValue('10');
   await countdownSettings.locator('summary').filter({ hasText: '2. Completion' }).click();
@@ -207,16 +207,26 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const sceneSettings = page.locator('[data-addon-settings="thsv.scene-actions"]');
-  await expect(page.getByRole('article').getByText('Scene Actions 2.4.2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Scene Actions 2.4.3', { exact: true })).toBeVisible();
   const sceneTriggerStatus = page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness');
   await expect(sceneTriggerStatus).toContainText('Not checked');
   await expect(sceneTriggerStatus).toContainText('OBS Studio > Scene Changed');
   await page.evaluate(`state.liveActions = [{
     id: '18bdc91c-64eb-4787-8be9-6a921b272943', name: 'THSV Scene Actions - Intake',
-    group: 'THSV StreamBridge - Add-ons', enabled: true, triggerCount: 3
+    group: 'THSV Addon - Scene Actions', enabled: true, triggerCount: 3
   }]; renderAddOns();`);
   await expect(page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness')).toContainText('Ready');
   await expect(page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness')).toContainText('3 attached triggers reported');
+  await page.evaluate(`state.liveActions = [{
+    id: '18bdc91c-64eb-4787-8be9-6a921b272943', name: 'THSV Scene Actions - Intake',
+    group: 'Old Combined Add-ons', enabled: true, triggerCount: 3
+  }]; renderAddOns();`);
+  await expect(page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness')).toContainText('Setup needed');
+  await expect(page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness')).toContainText('instead of its expected "THSV Addon - Scene Actions" group');
+  await page.evaluate(`state.liveActions = [{
+    id: '18bdc91c-64eb-4787-8be9-6a921b272943', name: 'THSV Scene Actions - Intake',
+    group: 'THSV Addon - Scene Actions', enabled: true, triggerCount: 3
+  }]; renderAddOns();`);
   await expect(sceneSettings.getByText('Scene-to-action mappings')).toBeVisible();
   await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(5);
   await expect(sceneSettings.locator('[data-scene-mapping-field="sceneName"]').first()).toHaveValue('Starting Soon');
@@ -237,7 +247,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByRole('button', { name: 'Verify and install' }).click();
   await page.evaluate(`state.liveActions = [{
     id: 'e61c4b43-6cf0-5d56-a1c9-2176ae09c312', name: 'THSV Addon - Ko-fi Donations - Intake',
-    group: 'THSV StreamBridge - Add-ons', enabled: true, triggerCount: 1
+    group: 'THSV Addon - Ko-fi Donations', enabled: true, triggerCount: 1
   }]; renderAddOns();`);
   const kofiTriggerStatus = page.locator('[data-addon-id="thsv.kofi-donations"] .addon-trigger-readiness');
   await expect(kofiTriggerStatus).toContainText('Ready');
@@ -249,7 +259,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
-  await expect(page.getByRole('article').getByText('Raid Scout 2.4.2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Raid Scout 2.4.3', { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.raid-scout"] .addon-trigger-readiness')).toContainText('No direct trigger needed');
   await expect(raidScoutSettings.locator('summary')).toHaveCount(11);
   await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
@@ -277,6 +287,26 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(noCandidateMessage).toBeVisible();
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
+  const chatGuardArchive = await packageAddOn('addons/chat-guard');
+  await page.getByLabel('Add-on package').setInputFiles({ name: 'chat-guard.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(chatGuardArchive) });
+  await page.getByLabel(/I reviewed and trust/u).check();
+  await page.getByRole('button', { name: 'Verify and install' }).click();
+  const chatGuardSettings = page.locator('[data-addon-settings="thsv.chat-guard"]');
+  await expect(page.getByRole('article').getByText('Chat Guard 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.locator('[data-addon-id="thsv.chat-guard"] .addon-trigger-readiness')).toContainText('No direct trigger needed');
+  await expect(chatGuardSettings.locator(':scope > details')).toHaveCount(5);
+  await expect(chatGuardSettings.getByLabel('Enable observe-only Chat Guard')).not.toBeChecked();
+  await page.evaluate(`state.addOns.find((addOn) => addOn.moduleId === 'thsv.chat-guard').enabled = true; renderAddOns();`);
+  await expect(page.getByText('Observe-only results & rule tester', { exact: true })).toBeVisible();
+  await page.getByText('Observe-only results & rule tester', { exact: true }).click();
+  await expect(page.getByLabel('Sample public-chat message')).toBeVisible();
+  await expect(page.getByLabel('Prior matching messages')).toHaveValue('0');
+  await page.getByText('Temporary link permit', { exact: true }).click();
+  await expect(page.getByLabel('Stable platform user ID')).toBeVisible();
+  await page.getByText('Review a recent incident', { exact: true }).click();
+  await expect(page.getByLabel('Decision')).toHaveValue('confirmed');
+  expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+
   const executableRoot = 'examples/addons/no-op';
   const descriptor = JSON.parse(await readFile(join(executableRoot, 'module-package.json'), 'utf8')) as { permissions: string[] };
   descriptor.permissions.push('streamerbot.run-approved-action', 'overlay.publish');
@@ -292,29 +322,36 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByText('Approved Streamer.bot actions', { exact: true }).click();
   await expect(page.getByText('Your saved action grants remain active.', { exact: false })).toBeVisible();
   await page.evaluate(`state.liveActions = [
-    { id: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce', name: 'THSV Addon - Random Clip Player - Get Clip Download', group: 'THSV StreamBridge - Add-ons', enabled: true },
-    { id: 'f89e397b-7106-5101-a620-b0f5da4facf9', name: 'THSV Addon - Random Clip Player - Get Clips', group: 'THSV StreamBridge - Add-ons', enabled: true },
+    { id: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce', name: 'THSV Addon - Random Clip Player - Get Clip Download', group: 'THSV Addon - Random Clip Player', enabled: true },
+    { id: 'f89e397b-7106-5101-a620-b0f5da4facf9', name: 'THSV Addon - Random Clip Player - Get Clips', group: 'THSV Addon - Random Clip Player', enabled: true },
     { id: 'e32d29f1-fc2a-58e5-a1f2-a7731f29d940', name: 'THSV Command - Lurk', group: 'THSV StreamBridge - Commands', enabled: true },
   ]; renderAddOns();`);
   await expect(page.getByText('No actions approved yet.')).toBeVisible();
   const groupPicker = page.locator('[data-addon-action-group="sample.no-op"]');
   const actionPicker = page.locator('[data-addon-action-picker="sample.no-op"]');
-  await expect(groupPicker).toHaveValue('THSV StreamBridge - Add-ons');
+  await expect(groupPicker).toHaveValue('THSV Addon - Random Clip Player');
   await expect(actionPicker.locator('option')).toHaveCount(3);
   await expect(actionPicker).not.toContainText('THSV Command - Lurk');
   await groupPicker.selectOption('THSV StreamBridge - Commands');
   await expect(actionPicker.locator('option')).toHaveCount(2);
   await expect(actionPicker).toContainText('THSV Command - Lurk');
   await expect(actionPicker).not.toContainText('Random Clip Player');
-  await groupPicker.selectOption('THSV StreamBridge - Add-ons');
+  await groupPicker.selectOption('THSV Addon - Random Clip Player');
   await actionPicker.selectOption('f89e397b-7106-5101-a620-b0f5da4facf9');
   await page.getByRole('button', { name: 'Add selected action' }).click();
   await expect(page.locator('.addon-approved-actions')).toContainText('THSV Addon - Random Clip Player - Get Clips');
-  await expect(page.locator('.addon-approved-actions')).toContainText('THSV StreamBridge - Add-ons');
+  await expect(page.locator('.addon-approved-actions')).toContainText('THSV Addon - Random Clip Player');
   await page.evaluate('state.liveActions = []; renderAddOns();');
   await expect(page.locator('.addon-approved-actions')).toContainText('THSV Addon - Random Clip Player - Get Clips');
   await expect(page.locator('.addon-approved-actions')).toContainText('saved grant remains active; status not checked this session');
   await expect(page.getByRole('button', { name: 'Refresh action names' })).toBeVisible();
+  await page.evaluate(`state.liveActions = [{
+    id: 'f89e397b-7106-5101-a620-b0f5da4facf9', name: 'My Clip Lookup',
+    group: 'Creator Clip Tools', enabled: true
+  }]; renderAddOns();`);
+  await expect(page.locator('.addon-approved-actions')).toContainText('My Clip Lookup');
+  await expect(page.locator('.addon-approved-actions')).toContainText('renamed from THSV Addon - Random Clip Player - Get Clips');
+  await expect(page.locator('.addon-approved-actions')).toContainText('moved from THSV Addon - Random Clip Player');
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Save action grants' }).click();
   await expect(page.getByText('Action grants saved for sample.no-op')).toBeVisible();

@@ -24,6 +24,10 @@ describe('wizard HTTP surface', () => {
     stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
     expect((await fetch(`${baseUrl}/wizard/api/addons`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/viewer-foundation/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/community-analytics/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/viewer-spotlight/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/chat-guard/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
     const inventory = await fetch(`${baseUrl}/wizard/api/addons`, { headers });
     expect(inventory.status).toBe(200);
@@ -389,6 +393,10 @@ describe('wizard HTTP surface', () => {
     expect(kofiResponse.status).toBe(202);
     expect(await kofiResponse.json()).toMatchObject({ accepted: true, simulated: true, platform: 'kofi', alertType: 'donation' });
     expect(observed[1]).toMatchObject({ platform: 'kofi', eventType: 'engagement.donation', metadata: { simulated: true } });
+    const streamlabsResponse = await fetch(`${baseUrl}/wizard/api/alerts/streamlabs/donation/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect(streamlabsResponse.status).toBe(202);
+    expect(await streamlabsResponse.json()).toMatchObject({ accepted: true, simulated: true, platform: 'streamlabs', alertType: 'donation' });
+    expect(observed[2]).toMatchObject({ platform: 'streamlabs', eventType: 'engagement.donation', metadata: { simulated: true } });
     // A platform that never produces a given alert type is rejected, not silently defaulted.
     expect((await fetch(`${baseUrl}/wizard/api/alerts/twitch/super-chat/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);
     expect((await fetch(`${baseUrl}/wizard/api/alerts/not-real/follow/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(400);

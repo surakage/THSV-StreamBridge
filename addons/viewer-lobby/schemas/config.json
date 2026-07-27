@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Viewer Lobby", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Viewer Lobby", "default": false },
+    "platforms": { "type": "array", "title": "Platforms", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "commandPrefix": { "type": "string", "title": "Command prefix", "minLength": 1, "maxLength": 1, "default": "!" },
+    "joinCommand": { "type": "string", "title": "Join command", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "join" },
+    "leaveCommand": { "type": "string", "title": "Leave command", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "leave" },
+    "positionCommand": { "type": "string", "title": "Position command", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "position" },
+    "queueCommand": { "type": "string", "title": "Queue summary command", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "queue" },
+    "maximumEntries": { "type": "integer", "title": "Maximum waiting viewers", "minimum": 1, "maximum": 200, "default": 30 },
+    "allowGamertag": { "type": "boolean", "title": "Allow !join gamertag", "default": true },
+    "showGamertags": { "type": "boolean", "title": "Show gamertags on public overlay", "default": false },
+    "offlinePolicy": { "type": "string", "title": "When the stream ends", "enum": ["close", "clear"], "default": "close" },
+    "ignoredUsers": { "type": "array", "title": "Ignored viewers/bots", "items": { "type": "string", "minLength": 1, "maxLength": 200 }, "maxItems": 500, "uniqueItems": true, "default": [] }
+  }
+}

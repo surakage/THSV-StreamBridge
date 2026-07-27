@@ -31,12 +31,16 @@ describe('public release scripts', () => {
     expect(source).toContain("trustModel = 'GitHub release asset hashes plus GitHub artifact attestations; no silent install or auto-enable.'");
     expect(source).toContain('revoked = @()');
     expect(source).toContain("Join-Path $bundleRoot 'Streamer.bot'");
+    expect(source).toContain('$hasStreamerBotPackage = Test-Path -LiteralPath $streamerBotManifestPath');
+    expect(source).toContain('No Streamer.bot import is required. This add-on uses the existing normalized-event and capability-broker connection.');
+    expect(source).not.toContain('is missing its separate Streamer.bot package');
     expect(source).toContain("Where-Object { $_.Name -notin $addOnPackageFolderNames }");
     expect(source).toContain('They are intentionally not included in the main StreamBridge package.');
     expect(source).toContain('*.thsv-addon*');
     expect(source).toContain("'wizard'");
     expect(source).toContain('$releaseDocs');
     expect(source).toContain("'streamerbot-csharp-references.md'");
+    for (const currentGuide of ['future-add-ons.md', 'future-projects-and-addons.md', 'kofi-donations.md', 'module-system.md', 'product-scope.md', 'release-candidate-status.md', 'scene-actions.md', 'viewer-foundation.md']) expect(source).toContain(`'${currentGuide}'`);
     expect(source).toContain("Get-ChildItem -LiteralPath $_.FullName -Filter '*.sb'");
     expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'package-lock.json')");
     expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'node_modules\\.package-lock.json')");

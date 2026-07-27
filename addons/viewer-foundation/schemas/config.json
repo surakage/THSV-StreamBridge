@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Viewer Foundation",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Viewer Foundation", "default": true },
+    "includeSimulated": { "type": "boolean", "title": "Award points for simulated events", "description": "Keep disabled outside deliberate testing.", "default": false },
+    "accountLinks": { "type": "array", "title": "Explicit account links", "description": "One per entry: viewer-id|platform|stable-user-id. Example: alex|twitch|123456. Never use a display name. IDs shaped like generated platform hashes are reserved.", "items": { "type": "string", "minLength": 5, "maxLength": 600 }, "maxItems": 100, "uniqueItems": true, "default": [] },
+    "chatMessagePoints": { "type": "integer", "title": "Chat message points", "minimum": 0, "maximum": 10000, "default": 1 },
+    "chatCooldownSeconds": { "type": "integer", "title": "Chat award cooldown per viewer (seconds)", "minimum": 0, "maximum": 86400, "default": 60 },
+    "followPoints": { "type": "integer", "title": "Follow points", "minimum": 0, "maximum": 10000, "default": 25 },
+    "subscriptionPoints": { "type": "integer", "title": "Twitch/Kick subscription points", "minimum": 0, "maximum": 10000, "default": 100 },
+    "membershipPoints": { "type": "integer", "title": "YouTube membership points", "minimum": 0, "maximum": 10000, "default": 100 },
+    "giftSubscriptionPoints": { "type": "integer", "title": "Gifted subscription points", "minimum": 0, "maximum": 10000, "default": 75 },
+    "giftPoints": { "type": "integer", "title": "Platform gift points", "minimum": 0, "maximum": 10000, "default": 50 },
+    "cheerPoints": { "type": "integer", "title": "Cheer / bits event points", "minimum": 0, "maximum": 10000, "default": 25 },
+    "superChatPoints": { "type": "integer", "title": "Super Chat / Jewels event points", "minimum": 0, "maximum": 10000, "default": 100 },
+    "raidPoints": { "type": "integer", "title": "Raid points", "minimum": 0, "maximum": 10000, "default": 100 },
+    "rewardRedemptionPoints": { "type": "integer", "title": "Reward redemption points", "minimum": 0, "maximum": 10000, "default": 25 },
+    "levelStepPoints": { "type": "integer", "title": "Points required per level", "minimum": 10, "maximum": 1000000, "default": 100 },
+    "maximumViewers": { "type": "integer", "title": "Maximum tracked viewers", "minimum": 25, "maximum": 500, "default": 250 },
+    "processedEventLimit": { "type": "integer", "title": "Replay-protection event limit", "minimum": 25, "maximum": 500, "default": 200 },
+    "processedEventTtlHours": { "type": "integer", "title": "Replay-protection retention (hours)", "minimum": 1, "maximum": 720, "default": 168 }
+  }
+}

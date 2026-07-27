@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Quote Vault",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "author": "surakage",
   "description": "Provides optional creator-triggered random-quote and library-statistics controls for the cross-platform Quote Vault add-on.",
   "minimumStreamerBotVersion": "1.0.5-alpha.33",
@@ -10,9 +10,9 @@
       "id": "4f4b1d42-8b8c-4a47-9c98-2a10d194ba31",
       "sourceSubActionId": "235e3e5f-41d9-4b52-a6a4-e2f2218c83a1",
       "name": "THSV Addon - Quote Vault - Random Quote",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Quote Vault",
       "source": "src/QuoteVaultControl.cs",
-      "importFile": "THSV-StreamBridge-Quote-Vault-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Quote-Vault-2.4.3.sb",
       "arguments": [
         {
           "name": "quoteVaultControlAction",
@@ -38,9 +38,9 @@
       "id": "9c73e218-34ae-4bf7-a926-1c5340a28d70",
       "sourceSubActionId": "6d5bc006-dbd5-463d-a32f-ae90d13d30e6",
       "name": "THSV Addon - Quote Vault - Statistics",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Quote Vault",
       "source": "src/QuoteVaultControl.cs",
-      "importFile": "THSV-StreamBridge-Quote-Vault-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Quote-Vault-2.4.3.sb",
       "arguments": [
         {
           "name": "quoteVaultControlAction",

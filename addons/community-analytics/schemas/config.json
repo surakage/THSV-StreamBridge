@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Community Analytics",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Community Analytics", "default": true },
+    "includeSimulated": { "type": "boolean", "title": "Count simulated events", "description": "Keep disabled outside deliberate testing.", "default": false },
+    "enabledPlatforms": { "type": "array", "title": "Platforms included", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "ignoredAccounts": { "type": "array", "title": "Ignored platform accounts", "description": "One stable account per line using platform|stable-user-id. Display names are not accepted.", "items": { "type": "string", "minLength": 3, "maxLength": 330, "pattern": "^(twitch|youtube|kick|tiktok)\\|.+$" }, "maxItems": 500, "uniqueItems": true, "default": [] },
+    "ignoredViewerIds": { "type": "array", "title": "Ignored Viewer Foundation IDs", "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" }, "maxItems": 500, "uniqueItems": true, "default": [] },
+    "maximumViewers": { "type": "integer", "title": "Maximum viewer records", "minimum": 25, "maximum": 2000, "default": 500 },
+    "retainedSessions": { "type": "integer", "title": "Completed sessions retained", "minimum": 1, "maximum": 100, "default": 30 },
+    "processedEventLimit": { "type": "integer", "title": "Replay identities retained", "minimum": 50, "maximum": 2000, "default": 500 },
+    "engagementScoreEnabled": { "type": "boolean", "title": "Calculate monthly engagement score", "description": "Uses only capped observed sessions, messages, and commands. It never uses money or provider support.", "default": false },
+    "scoreMessagePoints": { "type": "integer", "title": "Points per observed message", "minimum": 0, "maximum": 100, "default": 1 },
+    "scoreMessageCap": { "type": "integer", "title": "Maximum scored messages per month", "minimum": 1, "maximum": 10000, "default": 200 },
+    "scoreCommandPoints": { "type": "integer", "title": "Points per observed command", "minimum": 0, "maximum": 100, "default": 2 },
+    "scoreCommandCap": { "type": "integer", "title": "Maximum scored commands per month", "minimum": 1, "maximum": 5000, "default": 50 },
+    "scoreSessionPoints": { "type": "integer", "title": "Points per observed stream session", "minimum": 0, "maximum": 1000, "default": 10 },
+    "scoreSessionCap": { "type": "integer", "title": "Maximum scored sessions per month", "minimum": 1, "maximum": 1000, "default": 20 },
+    "minimumRankCohort": { "type": "integer", "title": "Minimum viewers before showing exact rank", "minimum": 2, "maximum": 100, "default": 5 }
+  }
+}

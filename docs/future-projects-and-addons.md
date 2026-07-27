@@ -2,7 +2,7 @@
 
 This document separates responsibilities that belong in THSV StreamBridge core from optional creator features. The goal is a small, dependable main installation and add-ons that reuse its authenticated services instead of opening competing processes or WebSocket connections.
 
-Last organized: July 26, 2026.
+Last organized: July 27, 2026.
 
 ## How this roadmap is maintained
 
@@ -22,7 +22,7 @@ Status meanings:
 | Idea | Recorded but not yet fully designed. |
 | Specified | Ownership, dependencies, phases, safety, UI, and acceptance are documented. |
 | Implemented | Reviewed source and tests exist in the repository. |
-| Packaged | A versioned `.thsv-addon` and matching Streamer.bot package are present in the official release index. |
+| Packaged | A versioned `.thsv-addon` is present in the official release index, with a matching Streamer.bot package only when the add-on requires Streamer.bot actions. |
 | Live accepted | The relevant real provider, Streamer.bot action, wizard flow, and overlay/output were observed successfully. |
 | Archived candidate | Historical source is preserved but is inert, unsupported by current core, and must not be imported as a current package. |
 
@@ -47,50 +47,60 @@ Core must not become a catalogue of stream-specific entertainment features. Opti
 
 ### Packaged first-party add-ons
 
-These thirteen add-ons are included in the `2.4.2` release build. **Packaged** confirms repository/release cohesion, not that every creator-specific provider credential, trigger, webhook, browser source, or live-stream path has been accepted:
+These twenty-four add-ons are included in the expanded `2.4.3` release build. **Packaged** confirms repository/release cohesion, not that every creator-specific provider credential, trigger, webhook, browser source, or live-stream path has been accepted:
 
 | Add-on | Current status | Standalone responsibility | Remaining acceptance emphasis |
 | --- | --- | --- | --- |
-| Random Clip Player | Packaged `2.4.0` | Twitch clip rotation and hosted playback | Live clip retrieval and playback in each intended browser-source host. |
-| Automated Shoutouts | Packaged `2.4.0` | Category-aware Twitch promotion plus allowlisted platform welcomes | Real first-chat/manual paths and optional Twitch clip/native shoutout actions. |
-| User Translate | Packaged `2.4.0` | Viewer-requested translation | Provider timeout, Unicode, reply attribution, splitting, and source-only routing. |
-| Auto Translate | Packaged `2.4.0` | Allowlisted automatic translation | Privacy disclosure, rate limiting, moderation, and sustained-chat behavior. |
-| Ko-fi Donations | Packaged `2.4.0` | Ko-fi stable-ID donation intake | Real Ko-fi test webhook and replay/deduplication evidence. |
-| Subathon Timer | Packaged `2.4.0` | Multi-provider event-to-time rules and timer overlay | Real provider contribution rules, restart recovery, and long-running timer behavior. |
-| Stream Launch Countdown | Packaged `2.4.2` | Explicit scene countdown, finish message, optional local tone, and optional approved scene-switch action | Package installation, Streamer.bot scene triggers, audio routing, and OBS/Meld/Streamlabs display. |
-| Scene Actions | Packaged `2.4.0` | Scene-to-approved-action routing | OBS/Meld/Streamlabs scene-name and reconnect behavior. |
-| First Five | Packaged `2.4.0` | Ordered Twitch reward positions and monthly results | Real reward mutation/refund and concurrent redemption behavior. |
-| Fan Crown | Packaged `2.4.0` | Rotating Twitch reward holder and leaderboard | Real reward cost/title mutation, rollback, monthly reset, and overlay. |
-| Raid Scout | Packaged `2.4.0` | Safe Twitch raid suggestions and confirmation | Real followed/category candidate lookup and confirmed raid action. |
-| Quote Vault | Packaged `2.4.0` | Moderated cross-platform quote library | Live commands, role checks, moderation queue, and restart-safe state. |
-| Discord Chat Archive | Packaged `2.4.0` | Filtered public-chat delivery to Discord | Private webhook acceptance; forum mode remains a future shared-delivery upgrade. |
+| Random Clip Player | Packaged `2.4.3` | Twitch clip rotation and hosted playback | Live clip retrieval and playback in each intended browser-source host. |
+| Automated Shoutouts | Packaged `2.4.3` | Category-aware Twitch promotion plus allowlisted platform welcomes | Real first-chat/manual paths and optional Twitch clip/native shoutout actions. |
+| User Translate | Packaged `2.4.3` | Viewer-requested translation | Provider timeout, Unicode, reply attribution, splitting, and source-only routing. |
+| Auto Translate | Packaged `2.4.3` | Allowlisted automatic translation | Privacy disclosure, rate limiting, moderation, and sustained-chat behavior. |
+| Ko-fi Donations | Packaged `2.4.3` | Ko-fi stable-ID donation intake | Real Ko-fi test webhook and replay/deduplication evidence. |
+| Subathon Timer | Packaged `2.4.3` | Multi-provider event-to-time rules and timer overlay | Real provider contribution rules, restart recovery, and long-running timer behavior. |
+| Stream Launch Countdown | Packaged `2.4.3` | Explicit scene countdown, finish message, optional local tone, and optional approved scene-switch action | Package installation, Streamer.bot scene triggers, audio routing, and OBS/Meld/Streamlabs display. |
+| Scene Actions | Packaged `2.4.3` | Scene-to-approved-action routing | OBS/Meld/Streamlabs scene-name and reconnect behavior. |
+| First Five | Packaged `2.4.3` | Ordered Twitch reward positions and monthly results | Real reward mutation/refund and concurrent redemption behavior. |
+| Fan Crown | Packaged `2.4.3` | Rotating Twitch reward holder and leaderboard | Real reward cost/title mutation, rollback, monthly reset, and overlay. |
+| Raid Scout | Packaged `2.4.3` | Safe Twitch raid suggestions and confirmation | Real followed/category candidate lookup and confirmed raid action. |
+| Quote Vault | Packaged `2.4.3` | Moderated cross-platform quote library | Live commands, role checks, moderation queue, and restart-safe state. |
+| Discord Chat Archive | Packaged `2.4.3` | Filtered public-chat delivery to a Discord channel or one session-scoped forum thread | Private channel/forum webhook acceptance, batching, reconnect, and end-of-session thread reset. |
+| Viewer Foundation | Packaged `2.4.3` | Pseudonymous linked identity, bounded progression, privacy administration, and consumer projections | Genuine cross-platform identity/progression events plus export, correction, and deletion on the installed system. |
+| Community Analytics | Packaged `2.4.3` | Bounded local session attendance, counters, reports, and viewer/session projections | Real stream lifecycle rollover, cross-platform observations, reports, and deletion propagation. |
+| Viewer Spotlight | Packaged `2.4.3` | Disclosure-gated viewer cards using Viewer Foundation and Community Analytics projections | Intentional enablement, real self-requested command, manual card, overlay host, cooldown, and deletion behavior. |
+| Chat Guard | Packaged `2.4.3` | Disabled-by-default observe-only public-chat rule evaluation and pseudonymous incident review | Real-chat false-positive review, temporary permits, retention, and provider capability reporting with zero enforcement. |
+| Creator Controls | Packaged `2.4.3` | Guarded Twitch, YouTube, and Kick title/category profiles through one shared provider controller | Live provider mutation and result readback on each connected platform. |
+| Category Pilot | Packaged `2.4.3` | Suggest-first Windows process-to-profile mapping with privacy-bounded exact-name probes | Live process matching, debounce, creator apply/dismiss, and opt-in automatic mode. |
+| Live Beacon | Packaged `2.4.3` | Coalesced multi-platform Discord go-live notifications | Real stream lifecycle deduplication plus private channel/forum webhook acceptance. |
+| Clip Courier | Packaged `2.4.3` | Stable-ID Twitch clip discovery and Discord channel/forum publication | Silent baseline, new clip discovery, duplicate suppression, and confirmed Discord result. |
+| Viewer Lobby | Packaged `2.4.3` | Multi-platform play queue with source-routed commands and creator controls | Live join/leave/position flows, restart recovery, overlay ordering, and operator controls. |
+| Voice Relay | Packaged `2.4.3` | Filtered, bounded Speaker.bot event orchestration | Live voice alias, bad-word filtering, queue pressure, and emergency control acceptance. |
+| Follower Pulse | Packaged `2.4.3` | Private bounded Twitch follower reconciliation | Live broadcaster authorization, first baseline, pagination, two-scan confirmation, and refollow behavior. |
 
 ### Shared foundations and archived candidates
 
 | Foundation | Status | Decision |
 | --- | --- | --- |
-| Viewer Foundation | Specified consolidation target; Viewer Progression source is an archived candidate | Combine explicit cross-platform account links, pseudonymous viewer identity, points, levels, achievements, privacy export/deletion, and correction into one optional authority. Core must not own viewer profiles. |
-| Community Analytics | Specified | Build as a module of or tightly versioned companion to Viewer Foundation so attendance and counters never create a second viewer identity/database. |
-| Speaker.bot Orchestration | Archived candidate | Rebuild as an independent add-on using public contracts, filtering, bounded queues, and an emergency stop. |
-| Bloom Companion | Archived candidate | Rebuild only after Viewer Foundation is accepted; consume points/achievements without owning identity or progression. |
-| Shared Discord delivery | Specified shared contract | Live Beacon, Clip Courier, Discord Chat Archive, reports, and optional Viewer Spotlight delivery reuse one reviewed secret-handling and forum/channel implementation while remaining separate add-ons. |
-| Shared provider control | Specified shared contract | Category Pilot and Creator Controls reuse provider mappings and controller methods; Scene Actions provides scene state/action dispatch without merging their user interfaces. |
-| Shared clip discovery | Specified shared contract | Random Clip Player, Automated Shoutouts, and Clip Courier may reuse bounded Twitch clip lookup/cache contracts but keep independent scheduling and outputs. |
+| Viewer Foundation | Packaged `2.4.3`; live acceptance pending | Salted pseudonymous identities, explicit stable-ID links, fixed awards, cooldowns, replay protection, bounded private state, a permission/dependency-gated broker, and authenticated status/export/correction/deletion now exist as `thsv.viewer-foundation`. Archived migration and achievements remain later work. Core does not own viewer profiles. |
+| Community Analytics | Packaged `2.4.3`; live acceptance pending | `thsv.community-analytics` resolves identities only through Viewer Foundation, records bounded session attendance/counters without chat text, names, raw IDs, money, or payloads, provides authenticated summaries/export/deletion and local JSON/CSV reports, and exposes permission-gated pseudonymous viewer plus aggregate-session projections. |
+| Speaker.bot Orchestration | Rebuilt as Voice Relay `2.4.3` | Independent filtered queue using the public `CPH.TtsSpeak` contract; Speaker.bot remains authoritative for clearing speech already queued inside it. |
+| Bloom Companion | Back burner | Explicitly deferred. Reconsider only after the non-companion safety, creator-control, and viewer-service tracks are accepted. |
+| Shared Discord delivery | Implemented pattern | Live Beacon, Clip Courier, and Discord Chat Archive use the same reviewed secret boundary, explicit mention rules, confirmed channel/forum responses, bounded rate-limit retry, and correlated Discord IDs. Each retains its own content, lifecycle, and privacy policy. |
+| Shared provider control | Implemented | Category Pilot reuses Creator Controls profiles and provider controller methods; Scene Actions remains separate. |
+| Shared clip discovery | Implemented pattern | Random Clip Player and Clip Courier use bounded Streamer.bot clip lookup with stable IDs while retaining independent scheduling and outputs. |
 
 ### Planned standalone add-ons
 
 | Project | Status | Why it stays standalone |
 | --- | --- | --- |
-| Viewer Spotlight | Specified | Public card/score projection has different privacy, overlay, queue, and Discord permissions from the private viewer ledger. |
-| Viewer Lobby | Specified | A play-with-viewers queue needs independent operator controls, fairness, session state, public overlay policy, and gamertag privacy. |
-| Live Beacon | Specified | Go-live notification policy and secrets should not couple to chat archives. |
-| Clip Courier | Specified | Clip publication and Discord thread identity are independent of clip playback. |
-| Category Pilot | Specified | Windows process detection and provider mapping are optional and high privilege. |
-| Follower Pulse | Specified | Private follower reconciliation has distinct authorization and retention risks. |
-| Chat Guard | Specified | Moderation enforcement and incident response must fail independently from core chat. |
-| Creator Controls | Specified | Provider mutations require explicit operator permissions and audit. |
+| Viewer Lobby | Packaged `2.4.3` | Queue state, operator controls, fairness and gamertag privacy remain independent. |
+| Live Beacon | Packaged `2.4.3` | Go-live notification policy and secrets remain separate from chat archives. |
+| Clip Courier | Packaged `2.4.3` | Clip publication and Discord thread identity remain independent of clip playback. |
+| Category Pilot | Packaged `2.4.3` | Windows process detection and provider mapping are optional and high privilege. |
+| Follower Pulse | Packaged `2.4.3` | A triggerless approved Streamer.bot controller pages only Twitch's fixed Helix follower endpoint; credentials never cross the relay and StreamBridge compares only complete bounded snapshots. |
+| Creator Controls | Packaged `2.4.3` | Provider mutations require explicit operator permissions and audit. |
+| Voice Relay | Packaged `2.4.3` | Speaker.bot filtering, bounded queueing and creator emergency controls remain optional. |
 | Chat Play Pack | Specified, optional | Stateful games require identity/cooldown/anti-spam boundaries that stateless command templates do not. |
-| Streamlabs Donations | Idea pending stable-ID capture | Financial provider intake remains separate from Ko-fi and native platform support events. |
+| Streamlabs Donations | Implemented in core; live acceptance pending | Reuses Streamer.bot's authenticated `Streamlabs.Donation` WebSocket event, stores no provider credential, and fails closed unless the raw live event contains `event_id`, `donation_id`, `_id`, or `id`. |
 | Free Game Check | Idea | Scheduled deal discovery/posting is unrelated to stream event processing. |
 | Creator Utility Pack | Idea | Counter, giveaway, and poll tools may share one optional package with independent feature switches. |
 
@@ -112,18 +122,18 @@ Features should share authoritative services without becoming one oversized add-
 | Coin Flip + Chat Play Pack | Start Coin Flip as a stateless main-wizard template. | Move shared statistics/multi-round state into Chat Play Pack only when those features are enabled. |
 | Scene Actions + other add-ons | Share normalized scene state and approved action dispatch. | Other add-ons must not duplicate scene triggers or depend on Scene Actions being installed. |
 
-## Main wizard template backlog
+## Main wizard template status
 
 The following S•Kit-inspired features are small, bounded command or presentation templates rather than add-ons. They should extend the existing wizard generators without adding new background services, sockets, schedulers, or persistent modules:
 
-| Template | Planned behavior |
+| Template | Current state and behavior |
 | --- | --- |
-| Follow Age | Twitch-only command using Streamer.bot's documented follow-age operation and variables. It must show a neutral editable response for viewers who are not following and must hide unsupported destination platforms rather than imply cross-platform parity. |
-| Commands / Help | Generate an editable help response from commands staged in the same wizard batch, or accept a creator-provided command list/help URL. Never hard-code commands that may not be installed or enabled. |
-| Coin Flip | Cross-platform random-response command with editable choices and neutral win/loss messages. It must use the existing source gate and reply only to the platform that invoked it. |
+| Follow Age | **Implemented as a main Command Sync template.** The generated action is Twitch-only and queries the invoking viewer against Twitch's fixed `GET /helix/channels/followers` endpoint. Streamer.bot retains its broadcaster OAuth token; the action stores and logs no credential or API body, applies global/user cooldowns, and reports missing follower permission without pretending account age or `IsFollowing` is follow age. |
+| Commands / Help | **Implemented.** Builds an editable, platform-length-bounded help response from commands already staged in the same wizard batch. An empty batch receives an explicit placeholder for a creator-maintained list or help URL rather than claiming unavailable commands exist. |
+| Coin Flip | **Implemented.** Generates a stateless source-gated C# response with editable Heads/Tails choices. It uses the existing platform reply gate and sends only to the platform that invoked it. |
 | Random Joke | Optional random-list command using creator-authored or clearly licensed entries. Prefer one bounded response; do not block a shared action queue with long waits between a setup and punchline. |
-| Timed message packs | Ready-to-edit Community Links, Hydration, Rules/Help, Support, and Schedule presets for Multi-Timed Actions. Presets start disabled until creator-specific links and wording are reviewed. |
-| Event-message styles | Original Minimal, Warm, and Hype wording presets for chat activity and alert presentation. They must retain the existing per-platform event types, character limits, aggregation, and spam gates. |
+| Timed message packs | **Implemented.** Community Links, Rules/Help, Support, and Schedule join the existing Social, Hydration, and Stretch presets. Presets containing creator-specific links or schedules start disabled until their per-platform cards are reviewed. |
+| Event-message styles | **Implemented.** Minimal, Warm, and Hype wording can be applied independently to one chat-event platform or one alert profile. They alter editable wording only and preserve event types, character limits, sounds, aggregation, and spam gates. |
 
 Existing Lurk, Socials, Discord, Hug, Shoutout, timed announcements, first-message welcomes, and follow/subscription/gift/raid acknowledgements should be improved in place rather than duplicated from third-party starter packages.
 
@@ -137,7 +147,7 @@ Package hashes prove that installed bytes match the package descriptor. They do 
 
 ## Detailed specifications and completion notes
 
-### 1. Random Clip Player — Packaged 2.4.0
+### 1. Random Clip Player — Packaged 2.4.3
 
 Random Clip Player serves as the reference executable media add-on because it exercises the public action, scheduler, state, overlay, lifecycle, settings, and update APIs without changing core scope.
 
@@ -156,27 +166,29 @@ Responsibilities:
 
 Acceptance requires live Twitch retrieval plus playback checks in OBS, Meld, and Streamlabs-compatible Browser Sources. A simulated clip list can test rotation without going live.
 
-### 2. Automated Shoutouts — Packaged 2.4.0
+### 2. Automated Shoutouts — Packaged 2.4.3
 
-Implemented and packaged as `thsv.automated-shoutouts` `2.4.0`. It category-verifies Twitch targets with Streamer.bot's documented extended-user lookup before automatic promotion; uses platform-specific welcomes for allowlisted YouTube/Kick/TikTok first chats; accepts moderator/broadcaster manual commands; enforces a bounded queue, expiry, per-user/global/per-stream gates and strict destination limits; and sends through the shared source/selected-platform router. It optionally calls Streamer.bot's documented native Twitch shoutout method through a separate approved action. Pronouns and team membership remain deferred. See [Automated Shoutouts](automated-shoutouts.md).
+Implemented and packaged as `thsv.automated-shoutouts` `2.4.3`. It category-verifies Twitch targets with Streamer.bot's documented extended-user lookup before automatic promotion; uses platform-specific welcomes for allowlisted YouTube/Kick/TikTok first chats; accepts moderator/broadcaster manual commands; enforces a bounded queue, expiry, per-user/global/per-stream gates and strict destination limits; and sends through the shared source/selected-platform router. It optionally calls Streamer.bot's documented native Twitch shoutout method through a separate approved action. Pronouns and team membership remain deferred. See [Automated Shoutouts](automated-shoutouts.md).
 
-### 3. User Translate — Packaged 2.4.0
+### 3. User Translate — Packaged 2.4.3
 
-Implemented and packaged as `thsv.user-translate` `2.4.0`. It supports explicit language commands (`!es text`), a generic command (`!translate es text`), and Twitch reply translation using Streamer.bot's documented reply arguments. Results preserve the original reply author, route only to the source platform, split using the shared platform-aware router, and are protected by bounded pending work, timeouts, and per-user/global cooldowns. The default documented no-key MyMemory provider requires an explicit source language; the wizard states that requested text leaves the local machine and the add-on never retains source or translated messages. See [User Translate](user-translate.md).
+Implemented and packaged as `thsv.user-translate` `2.4.3`. It supports explicit language commands (`!es text`), a generic command (`!translate es text`), and Twitch reply translation using Streamer.bot's documented reply arguments. Results preserve the original reply author, route only to the source platform, split using the shared platform-aware router, and are protected by bounded pending work, timeouts, and per-user/global cooldowns. The default documented no-key MyMemory provider requires an explicit source language; the wizard states that requested text leaves the local machine and the add-on never retains source or translated messages. See [User Translate](user-translate.md).
 
-### 4. Auto Translate — Packaged 2.4.0
+### 4. Auto Translate — Packaged 2.4.3
 
-Implemented and packaged as `thsv.auto-translate` `2.4.0` and kept separate from User Translate because automatic translation has greater privacy, moderation, rate-limit, and chat-spam impact. It starts disabled and allowlist-only, uses explicit source and target languages, skips commands/bots/system actors/simulations, supports allow and ignore lists, bounds concurrency and provider requests, suppresses duplicates, caps translations per minute, and enforces a maximum translated-message percentage. Results route only to the original platform and source/translated text is never persisted. See [Auto Translate](auto-translate.md).
+Implemented and packaged as `thsv.auto-translate` `2.4.3` and kept separate from User Translate because automatic translation has greater privacy, moderation, rate-limit, and chat-spam impact. It starts disabled and allowlist-only, uses explicit source and target languages, skips commands/bots/system actors/simulations, supports allow and ignore lists, bounds concurrency and provider requests, suppresses duplicates, caps translations per minute, and enforces a maximum translated-message percentage. Results route only to the original platform and source/translated text is never persisted. See [Auto Translate](auto-translate.md).
 
-### 5. Donation providers — Ko-fi packaged; Streamlabs planned
+### 5. Donation providers — Ko-fi packaged; Streamlabs native intake implemented
 
-Streamlabs and Ko-fi should be separate provider add-ons. Each must preserve its provider event ID, verify webhook signatures or trusted Streamer.bot provenance, carry money as decimal strings, and maintain distinct alert identity and colors. Do not merge them with Twitch Bits, YouTube Super Chats, Kick KICKs, or TikTok gifts. Financial intake must use durable delivery and dead letters before public release.
+Streamlabs and Ko-fi remain separate provider identities. Each preserves its provider event ID, uses trusted Streamer.bot provenance, carries money as decimal strings, and maintains distinct alert identity and colors. Do not merge them with Twitch Bits, YouTube Super Chats, Kick KICKs, or TikTok gifts. Financial intake uses core durable delivery and dead letters.
 
-Current progress: Ko-fi Donations `2.4.0` is implemented and packaged for stable-ID donation intake; live Ko-fi test-webhook acceptance remains pending. Streamlabs remains deferred until a provider-stable donation ID is documented or confirmed from a real trigger capture.
+Current progress: Ko-fi Donations `2.4.3` is implemented and packaged for stable-ID donation intake; live Ko-fi test-webhook acceptance remains pending. Streamlabs donation intake is implemented directly in core by adding `Streamlabs.Donation` to the existing authenticated Streamer.bot WebSocket subscription. This avoids copying or storing Streamlabs credentials and avoids another connection. The raw event must carry `event_id`, `donation_id`, `_id`, or `id`; incomplete trigger arguments are never fingerprinted as a substitute. Live acceptance must confirm the installed Streamer.bot build preserves one of those identifiers.
 
-### 6. Community Analytics — Specified Viewer Foundation module
+### 6. Community Analytics — Initial Viewer Foundation package implemented
 
 Build the StreamSuite-inspired feature set as an optional analytics add-on, not core. The useful pieces are attendance, first-chat/check-in tracking, stream start/end sessions, returning-viewer detection, per-stream summaries, simple interaction counters, and exportable local reports. The add-on should store its own private state through StreamBridge instead of scattering persistent Streamer.bot globals across unrelated actions.
+
+Current status: `thsv.community-analytics` now includes Viewer Foundation-only identity resolution, explicit/approximate session lifecycle, bounded attendance and interaction counters, stable-ID ignore controls, bot/system/simulation gates, replay fingerprints, atomic private state, authenticated aggregate summaries, per-viewer privacy export, confirmed deletion, local size-bounded session JSON and pseudonymous viewer CSV downloads, and permission/dependency-gated viewer/session projections through its serialized writer. Completed sessions retain only non-identifying aggregate totals. Live multi-platform acceptance remains next work.
 
 Responsibilities:
 
@@ -190,9 +202,9 @@ Responsibilities:
 
 Do not include private contact messages, carrier email-to-SMS, personal local paths, or credential-bearing report delivery. Those are intentionally out of scope for public add-ons.
 
-### 7. Subathon Timer — Packaged 2.4.0
+### 7. Subathon Timer — Packaged 2.4.3
 
-Subathon Timer is implemented and packaged as `thsv.subathon-timer` `2.4.0`. It consumes normalized events and publishes a core-hosted timer overlay that counts down and increases through creator-defined event rules. Providers or event types without stable identity must remain unavailable for production mutations until their intake is accepted.
+Subathon Timer is implemented and packaged as `thsv.subathon-timer` `2.4.3`. It consumes normalized events and publishes a core-hosted timer overlay that counts down and increases through creator-defined event rules. Providers or event types without stable identity must remain unavailable for production mutations until their intake is accepted.
 
 Responsibilities:
 
@@ -205,15 +217,17 @@ Responsibilities:
 
 The add-on should not use a downloaded UI DLL or direct OBS control. The wizard and hosted overlay already provide the safer configuration and display layer.
 
-### 8. Speaker.bot Orchestration — Archived candidate
+### 8. Voice Relay — Packaged 2.4.3
 
-Rebuild the archived feature against normalized events and the public capability API. Add content filtering, per-event allowlists, voice selection, queue limits, interruption rules, and a creator-visible emergency stop before allowing alert text to be spoken aloud.
+The archived Speaker.bot feature is rebuilt as `thsv.voice-relay`. It uses normalized events and one approved, triggerless `CPH.TtsSpeak` action; starts disabled; defaults to alert events; strips links/control characters; applies a local blocked-term list; role-gates opt-in chat; and bounds phrase length, waiting work, and request spacing. Pause, Resume, and Stop prevent future StreamBridge requests. Speaker.bot's native Clear Pending or Stop Speaking control remains required to immediately clear audio already queued inside Speaker.bot because Streamer.bot exposes no equivalent documented C# method.
 
-### 9. Viewer Foundation — Specified consolidation target
+### 9. Viewer Foundation — Foundation slice implemented
 
 Rebuild the archived Viewer Progression work as the optional `thsv.viewer-foundation` authority. It combines explicit platform account-linking, pseudonymous viewer identity, privacy export/deletion, moderator correction, replay-safe rewards, levels, achievements, and migration rules. Community Analytics must use this authority rather than creating a second identity store. Viewer Spotlight, games, companions, cooldown systems, Fan Crown, and First Five may consume its public projections without putting viewer profiles in core.
 
 Implementation phases:
+
+Current status: phases 1, 3, and 4 plus the safe new-install portion of phase 2 are implemented in [Viewer Foundation contract and threat model](viewer-foundation.md). The authenticated local wizard now provides status, privacy export, audited correction, and confirmed deletion through the active provider's serialized queue. Account links remain validated creator settings. Archived migration, achievements, link-management refinement, and live acceptance remain incomplete.
 
 1. **Contract and threat model**
    - define stable internal viewer IDs, platform-account keys, link provenance, unlink behavior, and exactly which consumers may read which projections;
@@ -243,15 +257,15 @@ Implementation phases:
    - test identity collision, replay, simulation, corrupted state, failed writes, restart, migration rollback, concurrent awards/spends, unlink, deletion during in-flight activity, and consumer version mismatch;
    - live-test a linked cross-platform viewer, an unlinked platform-scoped viewer, correction, export, deletion, progression award/spend/refund, and downstream projection invalidation.
 
-### 10. Bloom Companion — Archived candidate
+### 10. Bloom Companion — Back burner
 
-Depends on the progression add-on and hosted media lifecycle. Keep artwork, animation state, interaction rules, and companion storage entirely optional. It should continue a sleep pose until a wake event, use non-looping transition animations, and remain visually stable across browser-source sizes.
+Bloom Companion is intentionally deferred at the creator's request. Do not schedule implementation or acceptance work for it while the non-companion safety, creator-control, viewer-service, and accessibility tracks remain open. If reconsidered later, keep artwork, animation state, interaction rules, and companion storage entirely optional.
 
 ### 11. Games and interactive extensions — Idea collection
 
 Choose the Adventure, Chat Arena, Prediction Game, Companion Care, Fishing, and Trivia should remain add-ons or later Twitch Extensions. Browser-heavy, account-linked games are better Twitch Extension candidates; chat-command versions can use the bridge add-on API. Rewards must be cosmetic or creator-defined until viewer identity and anti-abuse controls are complete.
 
-### 12. Category Pilot — Specified
+### 12. Category Pilot — Packaged 2.4.3
 
 Build a clean-room, Windows-only automatic game/category add-on inspired by the useful workflow of Automatic Game Switcher, without copying its implementation. `thsv.category-pilot` should use StreamBridge's existing authenticated Streamer.bot connection, private add-on state, live-session tracking, scene state, capability broker, and wizard instead of creating another socket, timer system, desktop dialog, or broad Streamer.bot global.
 
@@ -281,7 +295,7 @@ Wizard sections should be compact and collapsible: Quick start, Detection and pr
 
 Do not carry forward direct OAuth-token access, raw Helix calls, Windows Forms configuration, a ten-action/timer package, forced Just Chatting on startup, automatic low-confidence matches, full-path diagnostic output, or unverified accuracy claims.
 
-### 13. Live Beacon — Specified
+### 13. Live Beacon — Packaged 2.4.3
 
 Build `thsv.live-beacon` as a multi-platform Discord go-live notification add-on. It should consume StreamBridge's normalized `stream.online` lifecycle instead of adding platform-specific WebSocket connections, then dispatch exactly one creator-approved, triggerless Streamer.bot Discord action through the existing capability broker.
 
@@ -317,7 +331,7 @@ Wizard sections should remain short and collapsible:
 
 Replace the reference automation's random 1.5–3.5-second delay with a meaningful configurable 10–20-second metadata/coalescing delay. Chat-like human timing is unnecessary for a webhook notification. Live acceptance must cover individual platforms, simultaneous multistream startup, reconnect/restart replay, missing metadata, a failed Discord action, role-mention validation, simulations, and TikTok's explicitly degraded fallback.
 
-### 14. Clip Courier — Specified
+### 14. Clip Courier — Packaged 2.4.3
 
 Build `thsv.clip-courier` as a clean-room Twitch clip-to-Discord add-on. It should publish each accepted clip either as a normal Discord channel message or as a new forum/media-channel post with its own comment thread. The add-on must not depend on a third-party clip scanner, creator-authored JSON file, direct Twitch OAuth access, or another WebSocket connection.
 
@@ -353,15 +367,15 @@ Wizard sections should be compact and conditional: Quick setup, Clip discovery, 
 
 The supplied reference package should not be copied directly. It stores the webhook, JSON path, clip data, creator identity and tag IDs in broad persisted globals; reads an arbitrary file; logs the complete JSON; has no stable clip deduplication; and performs an unrestricted raw webhook request without a correlated result. Clip Courier replaces those boundaries with one-use relay authorization, private bounded state and a reviewed Discord delivery contract.
 
-### 15. Follower Pulse — Specified
+### 15. Follower Pulse — Packaged 2.4.3
 
-Build `thsv.follower-pulse` as a private Twitch follower-change and retention add-on, not a public unfollower callout tool. Twitch supplies new-follow events and an authorized paginated follower list, but no documented unfollow event. A removal is therefore an inference that a stable Twitch user ID no longer appears in repeated complete snapshots; the UI must say **No longer in follower list**, not claim that the viewer intentionally unfollowed.
+`thsv.follower-pulse` now uses one approved triggerless Streamer.bot action to page Twitch's official `GET /helix/channels/followers` endpoint. Streamer.bot retains its broadcaster OAuth token; each page is returned with a fresh one-use relay token, and StreamBridge performs the private comparison only after a complete bounded scan. Twitch still has no unfollow event, so the result means **no longer listed**, not a provider-confirmed reason.
 
 Initial platform support:
 
 | Platform | Planned behavior |
 | --- | --- |
-| Twitch | Supported only after an authorized, complete and bounded follower-snapshot capability is available. |
+| Twitch | Packaged with authorized 100-item Helix pages, a silent first baseline, a 500-follower safety ceiling, and two complete missing scans by default. |
 | YouTube | Unsupported for individual removal tracking because subscriber results can be private and the returned list may be limited. Aggregate subscriber trends may be a separate future feature. |
 | Kick | Unsupported until a documented complete follower-list and removal contract exists. |
 | TikTok/TikFinity | Unsupported until a documented complete follower-list and removal contract exists. |
@@ -374,22 +388,22 @@ Required safety and correctness:
 - mark a missing ID as **Pending confirmation**, then require a second complete snapshot after a configurable grace period and, when supported, an individual follow-status confirmation before recording the change;
 - clear a pending removal when a follow event or later snapshot contains the ID again;
 - allow the same viewer to follow, leave and follow again without permanent suppression;
-- serialize scans, persist a restart-safe scan cursor, cap pages and retained identities, and show creators when their audience is too large for the configured scan budget;
+- serialize scans, discard any incomplete in-memory scan after restart, cap pages and retained identities, and show creators when their audience is too large for the configured scan budget;
 - default to a daily scan with conservative configurable intervals; never poll every few minutes or while an earlier scan is incomplete;
 - store follower IDs and change history only in private add-on state with bounded retention, export and explicit deletion controls;
 - keep all identity-level results inside the authenticated wizard. Do not post names to chat, overlays, Discord, logs, safe exports or public reports;
 - expose aggregate gained, no-longer-listed and net-change trends separately from the private identity review;
 - distinguish unfollow-like removal from deleted, suspended, blocked or otherwise unavailable accounts whenever the provider supplies enough evidence; otherwise label the reason unknown.
 
-The add-on should reuse normalized `channel.follow` events to update the local baseline promptly and schedule reconciliation through StreamBridge. It must not open another socket or read `CPH.TwitchOAuthToken` directly. Before implementation, core needs a reviewed `provider.followers.snapshot` capability that lets one approved Streamer.bot controller obtain provider-authorized results and return bounded, correlated chunks without exposing credentials.
+The add-on reuses normalized `channel.follow` events to update its baseline promptly and schedules reconciliation through StreamBridge. Its fixed controller reads the already-authenticated Streamer.bot broadcaster credential only inside the action and never relays, logs, or persists it. The add-on opens no additional socket.
 
 Wizard sections should be compact and privacy-first: Overview, Twitch authorization and scan budget, Schedule, Pending confirmations, Private change history, Aggregate trends, Retention and deletion, and Diagnostics. Identity history should be collapsed and protected by an additional confirmation before export.
 
 Do not copy the supplied export's implementation. It accesses Twitch OAuth directly, stores the full follower ID/name dictionary in a broad persistent Streamer.bot global, performs an hourly full-list scan, omits the final follower due to an off-by-one loop, does not validate HTTP status or pagination completeness, can interpret authorization/API failures as removals, and suppresses legitimate repeat follow/remove cycles for the rest of the session.
 
-### 16. Chat Guard — Specified
+### 16. Chat Guard — Packaged 2.4.3, observe-only
 
-Build `thsv.chat-guard` as an optional platform-aware moderation add-on. Its first release should focus on link and domain policy plus temporary creator-approved permits, not attempt to replace every provider's native AutoMod system.
+The first `thsv.chat-guard` observe-only slice is now implemented. It is disabled by default, subscribes only to normalized public `chat.message`, applies bounded literal and heuristic signals plus normalized exact parent/subdomain allow/deny policy, accepts stable-ID and role exemptions, and persists only salted hashes plus incident metadata. Its authenticated wizard view exposes aggregate counts, an explicit observe-only provider-capability matrix, confirmed clearing, a non-persisting sample-message rule tester, creator-approved temporary link permits bounded by expiry and use count, and recent pseudonymous incident labels for confirmed/false-positive acceptance tracking. Permits bypass domain policy only; all other observation rules remain active. It exposes no Streamer.bot action, outbound-chat permission, or provider-moderation capability and must not attempt to replace every provider's native AutoMod system.
 
 Required behavior:
 
@@ -420,7 +434,7 @@ The incident-response implementation must use reviewed source and one approved S
 
 Do not copy the reviewed starter package's null-unsafe group checks, scheme-only URL expression, hard-coded timeouts, direct Twitch-only deletion assumptions, or creator-editable control flow.
 
-### 17. Creator Controls — Specified
+### 17. Creator Controls — Packaged 2.4.3
 
 Build `thsv.creator-controls` as a disabled-by-default moderator and broadcaster control surface for safe stream administration. It should combine title changes, category changes, and supported chat-mode controls without turning ordinary public commands into unrestricted channel-management operations.
 
@@ -456,7 +470,9 @@ Wizard sections should be Game selector, Shared rules, Per-game settings, Messag
 
 Do not copy the reviewed package's temporary VIP reward, rude default responses, blocking delays, variable-name mistakes, or unlicensed joke/message corpus.
 
-### 19. Viewer Spotlight — Specified
+### 19. Viewer Spotlight — Packaged 2.4.3, single-card foundation
+
+The packaged `2.4.3` foundation now covers the narrow first slice: a disabled-by-default, disclosure-gated, self-only `!card` path; a creator-only manual display using stable platform account IDs; stable Viewer Foundation resolution; Community Analytics revalidation; creator-selected points, level, observed counters, capped monthly engagement score, and cohort-protected monthly rank; a bounded expiring in-memory queue; per-viewer/global/session limits; the generic hosted route `/overlay/addons/thsv.viewer-spotlight`; and an authenticated style-aware preview that uses fake values only. Only pseudonymous cooldown IDs and timestamps are persisted. Score and rank are disabled by default, use only capped observed sessions/messages/commands, and never incorporate money or provider support. Automated visual acceptance now covers 1920x1080 and 520x280 sources with long Unicode names, maximum enabled fields, missing avatars, and true transparency. Automated isolation acceptance also proves clean reconnect/restart without stale-card replay, graceful failure when a dependency is absent, continued core/unrelated-module delivery when overlay publication fails, and immediate pseudonymous cache/projection cleanup after Viewer Foundation deletion. Reward requests, carousel/credits, achievements, provider-support fields, Stream Score, Discord snapshots, live broadcast-host inspection, and live cross-platform acceptance remain future work. Paid reward requests must not ship until the queue has a defined fulfill/refund controller so failed displays cannot silently consume Channel Points.
 
 Build `thsv.viewer-spotlight` as a standalone presentation add-on that turns explicitly approved Viewer Foundation and Community Analytics projections into customizable viewer cards and a separate stream-score overlay. It must never become the authority for identity, points, ranks, achievements, attendance, or financial/support history.
 
@@ -616,7 +632,7 @@ Unsupported fields must disappear instead of being greyed out. The wizard should
 
 #### Acceptance gates
 
-Viewer Spotlight is not ready to package until:
+The single-card foundation is package-testable but the full Viewer Spotlight product is not ready to mark complete until:
 
 - Viewer Foundation is installed, version-compatible, and live accepted for identity/progression/privacy operations;
 - no second viewer identity or authoritative points database exists;
@@ -627,7 +643,7 @@ Viewer Spotlight is not ready to package until:
 - overlay reconnect, lifecycle failure, and a missing dependency cannot block core chat, alerts, or unrelated add-ons;
 - live tests confirm that one command/reward produces one card and one explicit Discord send produces at most one post.
 
-### 20. Viewer Lobby — Specified
+### 20. Viewer Lobby — Packaged 2.4.3
 
 Build `thsv.viewer-lobby` as a clean-room, multi-platform play-with-viewers queue. Viewers can join or leave from their source-platform chat, while the broadcaster and approved moderators manage the queue through a local authenticated dock or the StreamBridge wizard. A separate public browser-source overlay shows only creator-approved queue fields.
 
@@ -883,30 +899,30 @@ Completed packaging work remains listed in the portfolio table. This sequence de
 
 ### Track A — Stabilize the released baseline
 
-1. Complete clean-install, update, rollback, uninstall, backup/restore, custom-port, wizard, and Streamer.bot connection acceptance for core `2.4.0`.
-2. Run and record the remaining live acceptance for all twelve packaged add-ons, prioritizing financial and reward mutations before cosmetic outputs.
+1. Complete clean-install, update, rollback, uninstall, backup/restore, custom-port, wizard, and Streamer.bot connection acceptance for core `2.4.3`.
+2. Run and record the remaining live acceptance for all seventeen packaged add-ons, prioritizing financial and reward mutations before cosmetic outputs.
 3. Fix resulting defects in the smallest affected package, rerun the full automated gate, regenerate matching packages/index/checksums, and establish the next stable patch baseline before adding executable add-ons.
 4. Add a creator-facing acceptance ledger to the wizard/docs so **Packaged** and **Live accepted** remain visibly different.
 
 ### Track B — Finish bounded main and shared contracts
 
-5. Add the main-wizard Follow Age, Commands/Help, Coin Flip, timed-message-pack, and event-style templates; keep Random Joke optional and use only original or compatible licensed content.
-6. Upgrade the shared Discord destination controller for confirmed normal-channel and forum delivery, secret isolation, mention neutralization, correlated results, and bounded rate-limit retries.
-7. Live-accept Ko-fi stable-ID/replay behavior, then capture and validate a provider-stable Streamlabs donation identity before implementing Streamlabs Donations.
+5. Main-wizard Commands/Help, Coin Flip, Twitch Follow Age, timed-message packs, and event-style templates are implemented. Follow Age uses the reviewed Helix path rather than unstable native-sub-action serialization; keep Random Joke optional and use only original or compatible licensed content.
+6. Live-accept the completed shared Discord destination controller for normal-channel and forum delivery, including secret isolation, explicit mention rules, correlated results, bounded rate-limit retries, and Chat Archive's one-thread-per-session behavior.
+7. Live-accept Ko-fi stable-ID/replay behavior and confirm Streamer.bot preserves a raw stable ID in one live Streamlabs donation event; keep both providers fail-closed until their acceptance evidence is recorded.
 8. Extract shared clip lookup/cache, provider category-control, moderation-capability, and scene-state contracts only when two accepted consumers require them; avoid speculative framework layers.
 
 ### Track C — Build the viewer stack in order
 
-9. Implement Viewer Foundation phases 1–4: contract/threat model, isolated storage/migration, identity linking, and progression.
-10. Complete Viewer Foundation administration, privacy export/deletion/correction, consumer projections, failure isolation, and live cross-platform acceptance.
-11. Implement Community Analytics through Viewer Foundation's identity/storage boundary; accept session rollover, bounded counters, ignored viewers/bots, approximate-presence labels, and deletion propagation.
-12. Implement Viewer Spotlight phases 1–3: projection contracts, single-card Spotlight mode, command/reward/manual requests, selected analytics, achievements, and protected rank.
+9. Live-accept the packaged Viewer Foundation identity, progression, privacy export/deletion/correction, consumer projections, and failure isolation across supported platforms.
+10. Live-accept packaged Community Analytics session rollover, bounded counters, ignored viewers/bots, approximate-presence labels, reports, and deletion propagation.
+11. Live-accept packaged Viewer Spotlight self-requested and creator-manual single cards, disclosure, cooldowns, protected rank, overlay hosts, reconnects, and deletion cleanup.
+12. Add Viewer Foundation archived migration and achievements only after the packaged new-install/privacy path is accepted.
 13. Add Viewer Spotlight provider-specific support fields only after each event mapping has stable identity and honest labels.
-14. Add fade-carousel, credits-scroll, Stream Score, and explicit Discord snapshot phases; complete visual, privacy, overload, reconnect, and live-host acceptance.
+14. Add reward requests, fade-carousel, credits-scroll, Stream Score, and explicit Discord snapshot phases only after their fulfillment, privacy, overload, reconnect, and live-host policies are accepted.
 
 ### Track D — Moderation and creator controls
 
-15. Build Chat Guard in Observe only mode; accept rule matching, trusted-user handling, false positives, audit retention, and provider capability reporting before enabling Warn/Delete/Timeout/Ban.
+15. Validate Chat Guard Observe only mode; literal rule matching, stable-ID trust controls, bounded pseudonymous retention, and zero enforcement authority are implemented. Accept false-positive behavior and provider capability reporting before designing Warn/Delete/Timeout/Ban.
 16. Add Chat Guard Incident Response only after preview, two-step confirmation, per-run caps, serialization, abort thresholds, and per-user result reporting are proven.
 17. Build Category Pilot in Suggest only mode and live-accept Windows detection, privacy, debounce, mapping review, and manual locks.
 18. Build Creator Controls on the accepted provider mapping/controller contract; keep manual title/category/chat-mode mutations separate from Category Pilot's automatic detection.
@@ -916,14 +932,14 @@ Completed packaging work remains listed in the portfolio table. This sequence de
 19. Build Viewer Lobby's clean-room state engine, normalized commands, and wizard operator panel; accept stable identity, revision conflicts, queue fairness, restart recovery, and privacy before adding the dock.
 20. Add Viewer Lobby's authenticated dock and public Full/Compact/Now-and-next overlays; add Viewer Foundation, Scene Actions, and Viewer Spotlight integrations only after their base capabilities are independently accepted.
 21. Build Live Beacon after normalized online events preserve stable stream/broadcast identity and metadata.
-22. Build Clip Courier after the shared Discord forum controller and shared clip lookup contract are accepted.
-23. Upgrade Discord Chat Archive to the same channel/forum contract without changing its one-thread-per-session privacy boundary.
-24. Build Follower Pulse only after the bounded follower-snapshot capability and private reconciliation controls are accepted.
+22. Live-accept Clip Courier's shared Discord forum controller and bounded clip lookup contract.
+23. Live-accept Discord Chat Archive's channel/forum contract without changing its one-thread-per-session privacy boundary.
+24. Follower Pulse packaged with bounded follower snapshots and private two-scan reconciliation; complete live Twitch authorization and refollow acceptance.
 25. Add Free Game Check and the Creator Utility Pack after their provider/source, licensing, delivery, and moderation requirements are separately specified.
 
 ### Track F — Optional entertainment and accessibility
 
 26. Rebuild Speaker.bot Orchestration with filtering, emergency stop, queue/interruption policy, and live speech acceptance.
-27. Rebuild Bloom Companion against Viewer Foundation projections and the accepted media lifecycle.
+27. Back burner: reconsider Bloom Companion against Viewer Foundation projections and the accepted media lifecycle only after the higher-priority non-companion tracks are complete.
 28. Build Chat Play Pack only after Viewer Foundation cooldown/state/anti-spam behavior is accepted; retain Coin Flip as a main template when no persistent game state is required.
 29. Evaluate larger games as independent add-ons or Twitch Extensions, then add accessibility packs and local clip prefetch only when their privacy, storage, and platform dependencies are specified.

@@ -18,6 +18,8 @@ describe('TikFinity intake package', () => {
       expect(Buffer.from(action.subActions[0]?.byteCode ?? '', 'base64').toString('utf8').replaceAll('\r\n', '\n').trimEnd()).toBe(reviewed);
     }
     expect(reviewed).toContain('CPH.WebsocketBroadcastJson');
+    expect(reviewed).toContain('"thsv.command.lurk.v1.tiktok."');
+    expect(reviewed).toContain('CPH.UnsetGlobalVar(key, true)');
     expect(reviewed).not.toContain('CPH.SetGlobalVar');
     expect(reviewed).not.toMatch(/Process\.Start|powershell|cmd\.exe/iu);
   });

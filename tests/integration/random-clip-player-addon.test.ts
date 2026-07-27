@@ -169,6 +169,13 @@ describe('Random Clip Player add-on package', () => {
     await expect.poll(() => dispatchedActions.length, { timeout: 7_000 }).toBe(4);
     expect(dispatchedActions[3]).toMatchObject({ actionId: 'f89e397b-7106-5101-a620-b0f5da4facf9' });
 
+    // Streamer.bot can legitimately return the same clip window after a completed rotation. The
+    // refreshed response must reset the exhausted shuffle bag once and select a clip, not enter an
+    // immediate Get Clips -> response -> Get Clips loop until the broker rate limit is exhausted.
+    await registry.publish({ ...twoClips, eventId: 'test-clips-new-cycle', source: { ...twoClips.source, eventId: 'relay-2' } });
+    expect(dispatchedActions).toHaveLength(5);
+    expect(dispatchedActions[4]).toMatchObject({ actionId: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce' });
+
     await registry.stop();
   }, 20_000);
 

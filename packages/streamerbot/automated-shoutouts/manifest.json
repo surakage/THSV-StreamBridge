@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Automated Shoutouts",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "author": "surakage",
   "description": "Looks up Twitch creator profiles, optionally sends native shoutouts, and resolves one bounded target clip for the Automated Shoutouts add-on.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
@@ -9,9 +9,9 @@
     {
       "id": "e3d92d7e-193a-5bba-8b8c-4f17e605c9d2",
       "name": "THSV Addon - Automated Shoutouts - Lookup Twitch Creator",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Automated Shoutouts",
       "source": "src/LookupTwitchCreator.cs",
-      "importFile": "THSV-StreamBridge-Automated-Shoutouts-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Automated-Shoutouts-2.4.3.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -22,9 +22,9 @@
     {
       "id": "c84fdb40-d06f-5b0a-9ddf-f6d21c68922e",
       "name": "THSV Addon - Automated Shoutouts - Twitch Native Shoutout",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Automated Shoutouts",
       "source": "src/TwitchNativeShoutout.cs",
-      "importFile": "THSV-StreamBridge-Automated-Shoutouts-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Automated-Shoutouts-2.4.3.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
@@ -33,9 +33,9 @@
     {
       "id": "e47c65a2-09d2-5c5b-9c99-c98e3e1d9362",
       "name": "THSV Addon - Automated Shoutouts - Get Twitch Clip",
-      "group": "THSV StreamBridge - Add-ons",
+      "group": "THSV Addon - Automated Shoutouts",
       "source": "src/GetTwitchClip.cs",
-      "importFile": "THSV-StreamBridge-Automated-Shoutouts-2.4.2.sb",
+      "importFile": "THSV-StreamBridge-Automated-Shoutouts-2.4.3.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

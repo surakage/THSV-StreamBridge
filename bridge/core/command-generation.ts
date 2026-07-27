@@ -326,6 +326,7 @@ export function generateCommandsPackage(designs: readonly CommandDesign[], prefi
         'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll',
         'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll',
         'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll',
+        '.\\Newtonsoft.Json.dll',
       ] } : {}),
       stableIdentitySeed: identitySeed,
       triggers: [{ commandId, id: triggerId, stableIdentitySeed: identitySeed }],
@@ -461,6 +462,13 @@ ${execution}
     private void SendToSource(string source, string message)
     {
         if (String.IsNullOrWhiteSpace(message)) return;
+        int maximum = source == "youtube" ? 200 : source == "tiktok" ? 150 : 500;
+        if (message.Length > maximum)
+        {
+            int length = maximum;
+            if (length > 0 && Char.IsHighSurrogate(message[length - 1])) length--;
+            message = message.Substring(0, length);
+        }
         CPH.SetArgument("generatedCommandResponseMessage", message);
         if (source == "twitch") CPH.SendMessage(message, true, true);
         else if (source == "youtube") CPH.SendYouTubeMessageToLatestMonitored(message, true, true);

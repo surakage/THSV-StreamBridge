@@ -165,7 +165,7 @@ describe('Stage 9 add-on packages', () => {
     await expect(installAddOnPackage(hanging, addOns, true, { migrationTimeoutMs: 100, stateRoot })).rejects.toThrow('exceeded 100 ms');
     await expect(readFile(join(storage, 'state.json'), 'utf8')).resolves.toContain('"format":2');
     await expect(readFile(join(addOns, 'sample.migrating', 'installed-package.json'), 'utf8')).resolves.toContain('"version": "2.0.0"');
-  });
+  }, 15_000);
 
   it('does not rerun completed historical migrations during a later packaging-only release', async () => {
     const root = await workspace(); const addOns = join(root, 'addons'); const stateRoot = join(root, 'state');

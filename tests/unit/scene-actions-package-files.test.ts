@@ -5,9 +5,9 @@ describe('Scene Actions Streamer.bot package', () => {
   it('ships one protected intake and five editable stable-ID starter actions', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/scene-actions/manifest.json', 'utf8')) as { actions: Array<{ id: string; name: string; group: string; importFile: string }>; manualTriggerSetup: string[] };
     expect(manifest.actions).toHaveLength(6);
-    expect(manifest.actions[0]).toMatchObject({ id: '18bdc91c-64eb-4787-8be9-6a921b272943', name: 'THSV Scene Actions - Intake', group: 'THSV StreamBridge - Add-ons' });
-    expect(manifest.actions.slice(1).every((action) => action.group === 'THSV Scene Actions')).toBe(true);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Scene-Actions-2.4.2.sb']));
+    expect(manifest.actions[0]).toMatchObject({ id: '18bdc91c-64eb-4787-8be9-6a921b272943', name: 'THSV Scene Actions - Intake', group: 'THSV Addon - Scene Actions' });
+    expect(manifest.actions.slice(1).every((action) => action.group === 'THSV Addon - Scene Actions')).toBe(true);
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Scene-Actions-2.4.3.sb']));
     expect(manifest.manualTriggerSetup.join(' ')).toMatch(/OBS Studio.*Streamlabs Desktop.*Meld Studio/u);
   });
 

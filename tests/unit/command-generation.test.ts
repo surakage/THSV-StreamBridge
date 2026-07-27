@@ -243,6 +243,8 @@ describe('command package generation', () => {
     expect(source).toContain('CPH.SendMessage(message, true, true)');
     expect(source).toContain('CPH.SendYouTubeMessageToLatestMonitored(message, true, true)');
     expect(source).toContain('CPH.SendKickMessage(message, true, true)');
+    expect(source).toContain('int maximum = source == "youtube" ? 200 : source == "tiktok" ? 150 : 500;');
+    expect(source).toContain('if (length > 0 && Char.IsHighSurrogate(message[length - 1])) length--;');
     expect(source).toContain('string targetUrl = PlatformUrl(commandSource, target);');
     expect(source).toContain('string channelUrl = PlatformUrl(commandSource, channelName);');
     expect(source).toContain('Replace("{targetUrl}", targetUrl ?? "")');
@@ -295,6 +297,11 @@ describe('command package generation', () => {
     expect(source).toContain('        return "hi";');
     expect(source).toContain('string responseMessage = BuildCustomResponse(commandSource, userName, target, targetUrl, rawInput, channelName, channelUrl);');
     expect(source).toContain('SendToSource(commandSource, responseMessage);');
+    const decoded = Buffer.from(generateCommandsPackage([design], '!').contentBase64, 'base64');
+    const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: Array<{ subActions: Array<{ references?: string[] }> }> } };
+    const references = exported.data.actions[0]?.subActions.find((subAction) => subAction.references !== undefined)?.references ?? [];
+    expect(references).toContain('C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll');
+    expect(references).toContain('.\\Newtonsoft.Json.dll');
   });
 
   it('a custom script that calls CPH directly and falls through still compiles, since BuildCustomResponse always returns a string', () => {

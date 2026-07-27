@@ -165,6 +165,38 @@ function isCreatorControl(relay: AddOnRelay): boolean {
     }
     return keys.length === 1;
   }
+  if (relay.moduleId === 'thsv.creator-controls' && relay.eventType === 'addon.thsv.creator-controls.control') {
+    const profileId = typeof relay.payload['profileId'] === 'string' ? relay.payload['profileId'] : '';
+    if (!['profile-1', 'profile-2', 'profile-3'].includes(profileId)) return false;
+    const profileNumber = profileId.slice(-1);
+    return relay.sourceEventType === `THSV Addon - Creator Controls - Apply Profile ${profileNumber}`
+      && Object.keys(relay.payload).length === 1;
+  }
+  if (relay.moduleId === 'thsv.category-pilot' && relay.eventType === 'addon.thsv.category-pilot.control') {
+    const action = relay.payload['action'];
+    if (action !== 'apply' && action !== 'dismiss') return false;
+    const expectedSource = action === 'apply'
+      ? 'THSV Addon - Category Pilot - Apply Suggestion'
+      : 'THSV Addon - Category Pilot - Dismiss Suggestion';
+    return relay.sourceEventType === expectedSource && Object.keys(relay.payload).length === 1;
+  }
+  if (relay.moduleId === 'thsv.viewer-lobby' && relay.eventType === 'addon.thsv.viewer-lobby.control') {
+    const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
+    if (!['open', 'close', 'pause', 'resume', 'next', 'random', 'clear'].includes(action)) return false;
+    const label = `${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
+    return relay.sourceEventType === `THSV Addon - Viewer Lobby - ${label}` && Object.keys(relay.payload).length === 1;
+  }
+  if (relay.moduleId === 'thsv.voice-relay' && relay.eventType === 'addon.thsv.voice-relay.control') {
+    const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
+    if (!['pause', 'resume', 'stop'].includes(action)) return false;
+    const label = `${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
+    return relay.sourceEventType === `THSV Addon - Voice Relay - ${label}` && Object.keys(relay.payload).length === 1;
+  }
+  if (relay.moduleId === 'thsv.follower-pulse' && relay.eventType === 'addon.thsv.follower-pulse.control') {
+    return relay.sourceEventType === 'THSV Addon - Follower Pulse - Reconcile Now'
+      && relay.payload['action'] === 'reconcile-now'
+      && Object.keys(relay.payload).length === 1;
+  }
   if (relay.moduleId !== 'thsv.subathon-timer' || relay.eventType !== 'addon.thsv.subathon-timer.control') return false;
   const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
   if (!['start', 'pause', 'resume', 'reset', 'add-time'].includes(action)) return false;

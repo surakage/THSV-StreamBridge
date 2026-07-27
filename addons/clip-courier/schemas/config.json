@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Clip Courier", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Clip Courier", "default": false },
+    "destinationMode": { "type": "string", "title": "Discord destination", "description": "Choose the channel type that owns the private webhook. One webhook cannot safely target both types.", "enum": ["channel", "forum"], "default": "channel" },
+    "scanMinutes": { "type": "integer", "title": "Check for new clips every (minutes)", "minimum": 5, "maximum": 1440, "default": 15 },
+    "clipCount": { "type": "integer", "title": "Recent clips checked per scan", "minimum": 1, "maximum": 100, "default": 20 },
+    "publishExistingOnFirstScan": { "type": "boolean", "title": "Publish an existing clip on first scan", "description": "Off creates a silent baseline so installation does not repost old clips.", "default": false },
+    "maximumHistory": { "type": "integer", "title": "Remember published clip IDs", "minimum": 20, "maximum": 1000, "default": 300 },
+    "webhookName": { "type": "string", "title": "Discord display name", "minLength": 1, "maxLength": 80, "default": "THSV Clip Courier" },
+    "messageTemplate": { "type": "string", "format": "multiline", "title": "Clip message", "description": "Tokens: {title}, {creator}, {url}.", "minLength": 1, "maxLength": 1000, "default": "{title} — clipped by {creator}\n{url}" },
+    "forumTagIds": { "type": "array", "title": "Forum tag IDs", "items": { "type": "string", "pattern": "^[0-9]{5,30}$" }, "maxItems": 5, "uniqueItems": true, "default": [] }
+  }
+}

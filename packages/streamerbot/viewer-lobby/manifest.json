@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Viewer Lobby",
+  "version": "2.4.3",
+  "author": "surakage",
+  "description": "Creator-only controls for the local multi-platform Viewer Lobby queue.",
+  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "actions": [
+    {
+      "id": "3e45e39d-41be-4fbb-9e2c-5075b507e5ab",
+      "name": "THSV Addon - Viewer Lobby - Open",
+      "group": "THSV Addon - Viewer Lobby",
+      "arguments": [
+        {
+          "name": "viewerLobbyAction",
+          "value": "open"
+        }
+      ],
+      "source": "src/Control.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "115305ae-7873-40bf-ad28-aa77a82f826d",
+      "name": "THSV Addon - Viewer Lobby - Close",
+      "group": "THSV Addon - Viewer Lobby",
+      "arguments": [
+        {
+          "name": "viewerLobbyAction",
+          "value": "close"
+        }
+      ],
+      "source": "src/Control.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "5558e4b7-acde-49c8-9a95-2fb70e862a44",
+      "name": "THSV Addon - Viewer Lobby - Pause",
+      "group": "THSV Addon - Viewer Lobby",
+      "arguments": [
+        {
+          "name": "viewerLobbyAction",
+          "value": "pause"
+        }
+      ],
+      "source": "src/Control.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "9942ac72-5aeb-477b-b8d5-f7755cba97f7",
+      "name": "THSV Addon - Viewer Lobby - Resume",
+      "group": "THSV Addon - Viewer Lobby",
+      "arguments": [
+        {
+          "name": "viewerLobbyAction",
+          "value": "resume"
+        }
+      ],
+      "source": "src/Control.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "109e2d48-b8a4-48ab-a548-b92b5dbf55c2",
+      "name": "THSV Addon - Viewer Lobby - Next",
+      "group": "THSV Addon - Viewer Lobby",
+      "arguments": [
+        {
+          "name": "viewerLobbyAction",
+          "value": "next"
+        }
+      ],
+      "source": "src/Control.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "7b6f782f-bc67-4344-a80c-355bf3550264",
+      "name": "THSV Addon - Viewer Lobby - Random",
+      "group": "THSV Addon - Viewer Lobby",
+      "arguments": [
+        {
+          "name": "viewerLobbyAction",
+          "value": "random"
+        }
+      ],
+      "source": "src/Control.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "010d9005-6772-4e4c-b7be-0fd48e8984ce",
+      "name": "THSV Addon - Viewer Lobby - Clear",
+      "group": "THSV Addon - Viewer Lobby",
+      "arguments": [
+        {
+          "name": "viewerLobbyAction",
+          "value": "clear"
+        }
+      ],
+      "source": "src/Control.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-2.4.3.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
+  "manualTriggerSetup": [
+    "Attach only to creator-controlled hotkeys, deck buttons, or scene actions."
+  ],
+  "triggerSafety": "Controls use an exact action-name/payload allowlist in StreamBridge. Clear is destructive and should be attached only to a deliberate creator control.",
+  "verificationStatus": "Automated contract verified; live multi-platform commands and host overlay acceptance remain required."
+}

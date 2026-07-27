@@ -106,6 +106,17 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(event.user).toBeUndefined();
   });
 
+  it('preserves bounded stream identity and presentation metadata for notification add-ons', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('kick', 'KickStreamOnline', {
+      streamId: 'kick-stream-42', streamTitle: 'Community night', streamCategoryId: '5787', streamCategoryName: 'Cats & Soup',
+      streamThumbnailUrl: 'https://example.com/category.webp', streamStartedAt: '2026-07-27T12:00:00.000Z',
+    }));
+    expect(event).toMatchObject({ eventType: 'stream.online', payload: {
+      streamId: 'kick-stream-42', title: 'Community night', categoryId: '5787', categoryName: 'Cats & Soup',
+      thumbnailUrl: 'https://example.com/category.webp', startedAt: '2026-07-27T12:00:00.000Z',
+    } });
+  });
+
   it('translates resubscription month variables into the normalized contract', () => {
     expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchReSub', { quantity: '8', streakMonths: '5', tier: 'Tier 1' }))).toMatchObject({
       eventType: 'channel.subscription', payload: { subscriptionKind: 'renewal', months: 8, streakMonths: 5, tier: 'Tier 1' },

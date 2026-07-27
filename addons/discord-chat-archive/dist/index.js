@@ -8,9 +8,9 @@ const DISCORD_CONTENT_LIMIT = 1900;
 const RESULT_TIMEOUT_MS = 15_000;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.discord-chat-archive', name: 'Discord Chat Archive', version: '2.4.2',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.2', maximumTestedBridgeVersion: '2.4.2', dependencies: [], requiredCapabilities: [],
-  configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', DELIVERY_EVENT], commandsProvided: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.discord-chat-archive', name: 'Discord Chat Archive', version: '2.4.3',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3', dependencies: [], requiredCapabilities: [],
+  configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'stream.online', 'stream.offline', DELIVERY_EVENT], commandsProvided: [],
   actionsProvided: [{ id: 'discord-chat-archive.deliver', name: 'Required Discord webhook delivery' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.discord-chat-archive/', 'data/addons/.state/thsv.discord-chat-archive/'],
   installationSteps: [
@@ -30,6 +30,9 @@ const FALLBACKS = Object.freeze({
   ignoreCommands: false,
   commandPrefix: '!',
   includeSimulatedMessages: false,
+  destinationMode: 'channel',
+  forumThreadName: 'Stream chat archive · {date}',
+  forumTagIds: [],
   messageTemplate: '[{time}] [{platform}] {displayName}: {message}',
   webhookDisplayName: 'THSV Chat Archive',
   useViewerIdentityForSingleMessage: false,
@@ -48,6 +51,8 @@ let droppedMessages = 0;
 let flushTaskId;
 let stopped = true;
 let requestSequence = 0;
+let forumThreadId = '';
+const livePlatforms = new Set();
 let operation = Promise.resolve();
 const pendingDeliveries = new Map();
 const resultTimeouts = new Map();
@@ -69,6 +74,9 @@ function settingsFor(context) {
     ...raw,
     enabledPlatforms: Array.isArray(raw.enabledPlatforms) ? raw.enabledPlatforms.filter((entry) => PLATFORMS.includes(entry)) : PLATFORMS,
     ignoredUsers: Array.isArray(raw.ignoredUsers) ? raw.ignoredUsers.slice(0, 500) : [],
+    destinationMode: raw.destinationMode === 'forum' ? 'forum' : 'channel',
+    forumThreadName: cleanText(raw.forumThreadName, 100) || FALLBACKS.forumThreadName,
+    forumTagIds: Array.isArray(raw.forumTagIds) ? raw.forumTagIds.filter((id) => /^\d{5,30}$/u.test(id)).slice(0, 5) : [],
     batchWindowSeconds: clampInteger(raw.batchWindowSeconds, 5, 5, 30),
     maximumMessagesPerBatch: clampInteger(raw.maximumMessagesPerBatch, 10, 1, 20),
     maximumQueueMessages: clampInteger(raw.maximumQueueMessages, 100, 10, 500),
@@ -245,7 +253,7 @@ function flush(context, settings) {
   if (!batch) return;
   droppedMessages = 0;
   const requestId = `discord-archive-${Date.now().toString(36)}-${String(++requestSequence)}`;
-  const delivery = { requestId, ...batch, attempts: 0 };
+  const delivery = { requestId, ...batch, mode: settings.destinationMode, attempts: 0 };
   pendingDeliveries.set(requestId, delivery);
   void sendAttempt(delivery, context, settings);
   scheduleFlush(context, settings);
@@ -260,6 +268,10 @@ async function sendAttempt(delivery, context, settings) {
       discordArchiveContent: delivery.content,
       discordArchiveUsername: delivery.username,
       discordArchiveAvatarUrl: delivery.avatarUrl,
+      discordArchiveDestinationMode: delivery.mode,
+      discordArchiveThreadId: delivery.mode === 'forum' ? forumThreadId : '',
+      discordArchiveThreadName: settings.forumThreadName.replaceAll('{date}', new Date().toISOString().slice(0, 10)),
+      discordArchiveForumTagIds: settings.forumTagIds.join(','),
       discordArchiveSimulated: false,
     });
     if (!pendingDeliveries.has(delivery.requestId)) return;
@@ -296,6 +308,7 @@ function receiveDeliveryResult(event, context, settings) {
   cancelTask(context, resultTimeouts.get(requestId));
   resultTimeouts.delete(requestId);
   if (event.payload?.succeeded === true) {
+    if (delivery.mode === 'forum' && /^\d{5,30}$/u.test(cleanText(event.payload?.threadId, 30))) forumThreadId = cleanText(event.payload.threadId, 30);
     pendingDeliveries.delete(requestId);
     return;
   }
@@ -320,6 +333,8 @@ export function resetDiscordChatArchiveRuntime() {
   flushTaskId = undefined;
   stopped = true;
   requestSequence = 0;
+  forumThreadId = '';
+  livePlatforms.clear();
   operation = Promise.resolve();
   pendingDeliveries.clear();
   resultTimeouts.clear();
@@ -345,10 +360,14 @@ const module = {
     resultTimeouts.clear();
     retryTasks.clear();
     recentEventIds.clear();
+    forumThreadId = '';
+    livePlatforms.clear();
   },
   async onEvent(event, context) {
     const settings = settingsFor(context);
     if (event?.eventType === DELIVERY_EVENT) return serialize(async () => receiveDeliveryResult(event, context, settings));
+    if (event?.eventType === 'stream.online') { livePlatforms.add(event.platform); return; }
+    if (event?.eventType === 'stream.offline') { livePlatforms.delete(event.platform); if (livePlatforms.size === 0) forumThreadId = ''; return; }
     return serialize(async () => enqueueMessage(event, context, settings));
   },
 };

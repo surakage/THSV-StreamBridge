@@ -54,6 +54,12 @@ const relaySchema = z.object({
   redemptionId: z.string().max(256).default(''),
   channelId: z.string().max(256).default(''),
   channelName: z.string().max(256).default(''),
+  streamId: z.string().max(256).default(''),
+  streamTitle: z.string().max(500).default(''),
+  streamCategoryId: z.string().max(100).default(''),
+  streamCategoryName: z.string().max(256).default(''),
+  streamThumbnailUrl: z.string().max(2_048).default(''),
+  streamStartedAt: z.string().max(100).default(''),
   argumentKeys: z.array(z.string().max(100)).max(100).default([]),
 }).strict();
 
@@ -168,7 +174,17 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     } };
   }
   if (eventType === 'channel.follow') return { ...common, payload: {} };
-  if (eventType === 'stream.online' || eventType === 'stream.offline') return { ...common, user: undefined, payload: {} };
+  if (eventType === 'stream.online' || eventType === 'stream.offline') {
+    const thumbnailUrl = validHttps(relay.streamThumbnailUrl);
+    return { ...common, user: undefined, payload: {
+      ...(clean(relay.streamId) === '' ? {} : { streamId: clean(relay.streamId) }),
+      ...(clean(relay.streamTitle) === '' ? {} : { title: clean(relay.streamTitle) }),
+      ...(clean(relay.streamCategoryId) === '' ? {} : { categoryId: clean(relay.streamCategoryId) }),
+      ...(clean(relay.streamCategoryName) === '' ? {} : { categoryName: clean(relay.streamCategoryName) }),
+      ...(thumbnailUrl === undefined ? {} : { thumbnailUrl }),
+      ...(clean(relay.streamStartedAt) === '' ? {} : { startedAt: clean(relay.streamStartedAt) }),
+    } };
+  }
   if (eventType === 'channel.subscription' || eventType === 'channel.membership') {
     const months = optionalPositiveInteger(relay.quantity);
     const streakMonths = optionalPositiveInteger(relay.streakMonths);

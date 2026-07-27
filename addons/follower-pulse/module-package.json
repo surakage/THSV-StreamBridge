@@ -1,0 +1,84 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Privately detects delayed Twitch unfollows through complete, bounded, two-scan follower reconciliation.",
+  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with silent baseline creation, paginated Twitch snapshots, two-scan removal confirmation, and fail-closed private history.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "schedule.bounded",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.follower-pulse",
+    "name": "Follower Pulse",
+    "version": "2.4.3",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "channel.follow",
+      "addon.thsv.follower-pulse.snapshot-page",
+      "addon.thsv.follower-pulse.control"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.follower-pulse/",
+      "data/addons/.state/thsv.follower-pulse/"
+    ],
+    "installationSteps": [
+      "Import the Follower Pulse Streamer.bot package.",
+      "Keep Snapshot Page triggerless and approve only its stable action ID for Follower Pulse.",
+      "Reconnect the Twitch broadcaster in Streamer.bot if moderator:read:followers is unavailable, then enable Follower Pulse."
+    ],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Its private bounded follower history remains preserved until the creator deletes it."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.follower-pulse.runtime",
+        "description": "Confirms bounded Twitch follower reconciliation is scheduled and fail-closed."
+      }
+    ],
+    "minimumBridgeVersion": "2.4.3",
+    "maximumTestedBridgeVersion": "2.4.3"
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 11693,
+      "sha256": "4bb6a40adb81c4ce3b4b601219aab750f0eef37260cf69eb02182eefc6ed5114"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 1037,
+      "sha256": "e84165e5525ba54f303aaead02e71572003cb0130dee8b21f02a7505e0172fc1"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1672,
+      "sha256": "a724cd6b4d645418406007912d940b81ba790efd91b341b46ba3d05cdb91ef53"
+    },
+    {
+      "path": "README.md",
+      "size": 521,
+      "sha256": "9fc2ba38a9bb54402659a4e5e42426649068a33619920abc9affdcb21c8a262b"
+    }
+  ]
+}

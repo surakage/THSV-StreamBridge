@@ -1,0 +1,88 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Suggests or applies saved Creator Controls profiles from privacy-bounded allowlisted Windows process checks.",
+  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial suggest-first release with exact-name-only process probes, live-session gating, debounce, bounded state, creator Apply/Dismiss controls, and opt-in automatic profile dispatch.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "schedule.bounded",
+    "state.private",
+    "overlay.publish"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.category-pilot",
+    "name": "Category Pilot",
+    "version": "2.4.3",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [
+      "thsv.creator-controls"
+    ],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "stream.online",
+      "stream.offline",
+      "addon.thsv.category-pilot.processes-received",
+      "addon.thsv.category-pilot.control"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.category-pilot/",
+      "data/addons/.state/thsv.category-pilot/"
+    ],
+    "installationSteps": [
+      "Install and configure Creator Controls first.",
+      "Import Category Pilot, approve its Process Probe and the Creator Controls profile actions used by mappings.",
+      "Start in Suggest only mode and attach Apply/Dismiss only to creator-controlled triggers."
+    ],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Its bounded last decision remains preserved for later review."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.category-pilot.runtime",
+        "description": "Confirms allowlisted process probes and suggestion controls are available."
+      }
+    ],
+    "minimumBridgeVersion": "2.4.3",
+    "maximumTestedBridgeVersion": "2.4.3"
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 7781,
+      "sha256": "1f25e201ff691d95a5b220e30eb0021e01f8bbab64cba54f6b2d99d73f14f2d4"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2780,
+      "sha256": "8ae10897ba4ac7883b4b28c8bacd9572c9912fdd2eb343340e8d5a4695371d71"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 2562,
+      "sha256": "a2c5493942d2853fd330dc3836698b4a14ab9b9b3d00b315398700f3abb5c6b9"
+    },
+    {
+      "path": "README.md",
+      "size": 589,
+      "sha256": "88e39ddd444ae9b1527d8bbfdf451102670a87788051235a2a6a3d27f4a062d8"
+    }
+  ]
+}

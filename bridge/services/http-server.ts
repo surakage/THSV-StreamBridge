@@ -16,6 +16,7 @@ import type { BrowserOverlayHub } from './browser-overlay-hub.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1 } from '../contracts/v2/addon-capability.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -24,6 +25,10 @@ export interface DiagnosticsTarget {
   simulate(input: unknown, byteLength?: number): Promise<IngestResult>;
   controlTimedActions(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>>;
   testTimedAction?(id: string): Promise<Readonly<Record<string, unknown>>>;
+  administerViewerFoundation?(request: ViewerFoundationAdminRequestV1): Promise<ViewerFoundationAdminResultV1>;
+  administerCommunityAnalytics?(request: CommunityAnalyticsAdminRequestV1): Promise<CommunityAnalyticsAdminResultV1>;
+  administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1>;
+  administerChatGuard?(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1>;
 }
 
 class UnsupportedContentEncodingError extends Error {}
@@ -190,6 +195,30 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.diagnostics());
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/viewer-foundation/admin' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerViewerFoundation === undefined) return this.reply(response, 503, { error: 'Viewer Foundation administration is unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.target.administerViewerFoundation(JSON.parse(body.text) as ViewerFoundationAdminRequestV1));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/community-analytics/admin' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerCommunityAnalytics === undefined) return this.reply(response, 503, { error: 'Community Analytics administration is unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.target.administerCommunityAnalytics(JSON.parse(body.text) as CommunityAnalyticsAdminRequestV1));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/viewer-spotlight/admin' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerViewerSpotlight === undefined) return this.reply(response, 503, { error: 'Viewer Spotlight administration is unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.target.administerViewerSpotlight(JSON.parse(body.text) as ViewerSpotlightAdminRequestV1));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/chat-guard/admin' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerChatGuard === undefined) return this.reply(response, 503, { error: 'Chat Guard administration is unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.target.administerChatGuard(JSON.parse(body.text) as ChatGuardAdminRequestV1));
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/configuration/export' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.exportConfiguration());
@@ -234,7 +263,7 @@ export class DiagnosticsServer {
         const moduleId = decodeURIComponent(addOnOverlayPreviewMatch[1]);
         const addOn = (await this.wizard.listAddOns()).find((candidate) => candidate.moduleId === moduleId);
         if (!this.overlayHub.clientConfig().enabled || addOn === undefined || addOn.health !== 'installed' || !addOn.enabled || !addOn.permissions.includes('overlay.publish')) return this.reply(response, 404, { error: 'Enabled add-on overlay not found' });
-        this.overlayHub.publishAddOn(moduleId, `${moduleId}.card.show`, { title: addOn.name, text: 'Overlay connection and scoped publication are working.', durationMs: 5_000, preview: true });
+        this.overlayHub.publishAddOn(moduleId, `${moduleId}.card.show`, buildAddOnOverlayPreview(addOn));
         return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic: `${moduleId}.card.show` });
       }
       const addOnRemoveMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/remove$/u.exec(request.url ?? '') : null;
@@ -335,7 +364,17 @@ export class DiagnosticsServer {
       if (error instanceof OutputUnavailableError) return this.reply(response, 503, { error: error.message });
       if (error instanceof UnsupportedContentEncodingError) return this.reply(response, 415, { error: error.message });
       if (error instanceof OverlayAssetError) return this.reply(response, 400, { error: error.message });
-      if (error instanceof SyntaxError || isValidationError(error)) return this.reply(response, 400, { error: 'Request body is not a valid normalized event' });
+      if (error instanceof SyntaxError || isValidationError(error)) return this.reply(response, 400, {
+        error: request.url === '/wizard/api/viewer-foundation/admin'
+          ? 'Request body is not a valid Viewer Foundation administration request'
+          : request.url === '/wizard/api/community-analytics/admin'
+            ? 'Request body is not a valid Community Analytics administration request'
+            : request.url === '/wizard/api/viewer-spotlight/admin'
+              ? 'Request body is not a valid Viewer Spotlight administration request'
+            : request.url === '/wizard/api/chat-guard/admin'
+              ? 'Request body is not a valid Chat Guard administration request'
+          : 'Request body is not a valid normalized event',
+      });
       this.logger.error('HTTP request failed', { method: request.method, url: request.url, error });
       return this.reply(response, 500, { error: 'Internal bridge error' });
     } finally { release?.(); }
@@ -384,6 +423,52 @@ export class DiagnosticsServer {
     response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
     response.end(body);
   }
+}
+
+interface AddOnPreviewSource {
+  readonly moduleId: string;
+  readonly name: string;
+  readonly settings: Readonly<Record<string, unknown>>;
+}
+
+export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource): Readonly<Record<string, unknown>> {
+  if (addOn.moduleId !== 'thsv.viewer-spotlight') return { title: addOn.name, text: 'Overlay connection and scoped publication are working.', durationMs: 5_000, preview: true };
+  const settings = addOn.settings;
+  const fields: string[] = [];
+  if (settings['showPoints'] !== false) fields.push('2,450 points');
+  if (settings['showLevel'] !== false) fields.push('Level 25');
+  if (settings['showObservedSessions'] === true) fields.push('14 observed sessions');
+  if (settings['showObservedMessages'] === true) fields.push('328 observed messages');
+  if (settings['showObservedCommands'] === true) fields.push('41 observed commands');
+  if (settings['showEngagementScore'] === true) fields.push('512 engagement score');
+  if (settings['showSeasonRank'] === true) fields.push('#3 of 24 this month');
+  const platform = settings['showPlatformBadge'] === false ? '' : ' • Twitch';
+  return {
+    title: `Preview Viewer${platform}`,
+    text: fields.join(' • ') || 'Viewer card preview',
+    durationMs: boundedPreviewInteger(settings['durationSeconds'], 3, 60, 10) * 1_000,
+    preview: true,
+    style: {
+      backgroundMode: previewEnum(settings['backgroundMode'], ['glass', 'solid', 'none'], 'glass'),
+      backgroundColor: previewColor(settings['backgroundColor'], '#140d1f'),
+      backgroundOpacity: typeof settings['backgroundOpacity'] === 'number' && Number.isFinite(settings['backgroundOpacity']) ? Math.max(0, Math.min(1, settings['backgroundOpacity'])) : 0.94,
+      accentColor: previewColor(settings['accentColor'], '#7ff5cc'),
+      textColor: previewColor(settings['textColor'], '#ffffff'),
+      fontFamily: previewEnum(settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
+    },
+  };
+}
+
+function boundedPreviewInteger(value: unknown, minimum: number, maximum: number, fallback: number): number {
+  return Number.isSafeInteger(value) ? Math.max(minimum, Math.min(maximum, value as number)) : fallback;
+}
+
+function previewColor(value: unknown, fallback: string): string {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/iu.test(value) ? value : fallback;
+}
+
+function previewEnum<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return typeof value === 'string' && allowed.includes(value as T) ? value as T : fallback;
 }
 
 function isValidPlatformAlertType(platform: string, alertType: string): boolean {

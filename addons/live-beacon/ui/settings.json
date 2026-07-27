@@ -1,0 +1,11 @@
+{
+  "intro": "Live Beacon combines verified platform start events into one Discord notification. The webhook stays only in Streamer.bot and is never stored, logged, or exported by StreamBridge.",
+  "order": ["enabled", "platforms", "destinationMode", "coalesceSeconds", "webhookName", "roleMentionId", "messageTemplate", "twitchLogin", "youtubeChannelUrl", "kickLogin", "tiktokLogin"],
+  "sections": [
+    { "id": "quick-start", "title": "1. Quick setup", "open": true, "fields": ["enabled", "platforms", "destinationMode"], "notice": "Create a private webhook in the chosen Discord channel or forum, put it in the imported Deliver action, Save and Compile, test it manually, then approve that action here." },
+    { "id": "delivery", "title": "2. Delivery behavior", "fields": ["coalesceSeconds", "webhookName", "roleMentionId"] },
+    { "id": "message", "title": "3. Message", "fields": ["messageTemplate"] },
+    { "id": "links", "title": "4. Channel links", "fields": ["twitchLogin", "youtubeChannelUrl", "kickLogin", "tiktokLogin"] }
+  ],
+  "fields": { "platforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok (manual live-event fallback required)" } }, "destinationMode": { "labels": { "channel": "Regular Discord channel", "forum": "Discord forum (new thread per session)" } } }
+}

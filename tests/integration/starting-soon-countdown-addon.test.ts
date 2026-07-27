@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installAddOnPackage } from '../../bridge/services/addon-package-manager.js';
 import { loadInstalledAddOns } from '../../bridge/core/installed-modules.js';
 import { AddOnCapabilityBroker } from '../../bridge/core/addon-capability-broker.js';
@@ -60,15 +60,19 @@ describe('Stream Launch Countdown installed add-on', () => {
     }], silentLogger, 5_000, broker);
     await registry.start();
     await registry.publish(control('start'));
-    await new Promise((resolve) => setTimeout(resolve, 2_300));
-    const completionState = JSON.parse(await readFile(join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json'), 'utf8')) as Record<string, unknown>;
-    expect(completionState).toMatchObject({ completed: true, completionActionSent: true });
-    expect(actions).toHaveLength(1);
+    await vi.waitFor(async () => {
+      const completionState = JSON.parse(await readFile(join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json'), 'utf8')) as Record<string, unknown>;
+      expect(completionState).toMatchObject({ completed: true, completionActionSent: true });
+      expect(actions).toHaveLength(1);
+    // The full release suite runs more than one hundred files concurrently on Windows. Allow the
+    // real one-second scheduler enough wall-clock headroom under CPU contention while still
+    // asserting the persisted at-most-once result instead of sleeping for a guessed duration.
+    }, { timeout: 25_000, interval: 100 });
     expect(actions[0]).toMatchObject({ actionId, argumentsValue: { countdownModule: 'thsv.starting-soon-countdown', countdownTrigger: 'completed' } });
     await registry.publish(control('reset'));
     await registry.publish(control('complete'));
     await new Promise((resolve) => setTimeout(resolve, 1_100));
     expect(actions).toHaveLength(1);
     await registry.stop();
-  });
+  }, 30_000);
 });

@@ -11,9 +11,9 @@ describe('First Five Streamer.bot package', () => {
     expect(manifest.actions[0]).toMatchObject({
       id: '5807e453-1cdb-49bf-bad8-d50f785cbc77',
       name: 'THSV Addon - First Five - Controller',
-      group: 'THSV StreamBridge - Add-ons',
+      group: 'THSV Addon - First Five',
     });
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-First-Five-2.4.2.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-First-Five-2.4.3.sb']));
     expect(manifest.triggerSafety).toContain('Controller must remain triggerless');
   });
 

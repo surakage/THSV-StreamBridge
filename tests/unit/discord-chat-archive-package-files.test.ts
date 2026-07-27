@@ -2,16 +2,18 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('Discord Chat Archive Streamer.bot package', () => {
-  it('uses the documented Discord webhook method and relays bounded correlated results', async () => {
+  it('uses confirmed Discord channel/forum delivery and relays bounded correlated results', async () => {
     const source = await readFile('packages/streamerbot/discord-chat-archive/src/DeliverToDiscord.cs', 'utf8');
-    expect(source).toContain('CPH.DiscordPostTextToWebhook(');
+    expect(source).toContain('wait=true');
+    expect(source).toContain('["thread_name"]');
+    expect(source).toContain('thread_id=');
+    expect(source).toContain('["allowed_mentions"]');
+    expect(source).toContain('retry_after');
     expect(source).toContain('addon.thsv.discord-chat-archive.delivery-received');
-    expect(source).toContain('MaximumContentCharacters = 1900');
     expect(source).toContain('missing-relay-token');
     expect(source).toContain('simulated-delivery-blocked');
-    expect(source).toContain('Regex.Replace(content, "@(?!\\u200B)", "@\\u200B")');
     expect(source).not.toMatch(/System\.IO|File\.|StreamWriter|Process\.Start|powershell|cmd\.exe/iu);
-    expect(source).not.toMatch(/CPH\.Log(?:Info|Debug|Warn|Error)\([^\n]*(?:webhookUrl|content)/u);
+    expect(source).not.toMatch(/CPH\.Log(?:Info|Debug|Warn|Error)\([^\n]*(?:webhookUrl|content|body)/u);
   });
 
   it('pins one triggerless broker action with an editable webhook Set Argument', async () => {

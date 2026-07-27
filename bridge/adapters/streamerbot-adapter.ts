@@ -296,7 +296,9 @@ export class StreamerBotAdapter {
     this.relayAuthorized = true;
     if (this.eventRelay !== undefined) {
       const id = randomUUID();
-      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'] } });
+      // Reuse Streamer.bot's authenticated Streamlabs integration. This adds no provider
+      // credential to StreamBridge and no second WebSocket connection.
+      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Streamlabs: ['Donation'] } });
     }
     this.markReady();
   }
@@ -371,6 +373,7 @@ function decodeMessage(data: WebSocket.RawData): string {
 
 function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
   if (isSupportedRelay(message)) return message;
+  if (message.event?.source === 'Streamlabs' && message.event.type === 'Donation' && isRecord(message.data)) return message;
   if (message.event?.source !== 'General' || message.event.type !== 'Custom' || !isRecord(message.data)) return undefined;
   return isSupportedRelay(message.data) ? message.data : undefined;
 }

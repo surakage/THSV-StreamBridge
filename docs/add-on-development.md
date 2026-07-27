@@ -17,8 +17,13 @@ Supported permission declarations are:
 - `provider.events.publish` (first-party provider modules only; never a generic event emitter)
 - `schedule.bounded`
 - `state.private`
+- `viewer.foundation.provide` (reserved for the official `thsv.viewer-foundation` authority)
+- `viewer.foundation.read` (requires an explicit `thsv.viewer-foundation` module dependency)
+- `viewer.foundation.mutate` (requires the same dependency and permits bounded, idempotent point changes)
+- `community.analytics.provide` (reserved for the official `thsv.community-analytics` provider)
+- `community.analytics.read` (requires an explicit `thsv.community-analytics` dependency and exposes bounded viewer/session projections)
 
-The capability broker turns these declarations into frozen, narrowly scoped runtime handles for private state, bounded scheduling, exact creator-approved Streamer.bot action IDs, source/selected-platform outbound messages, and namespaced publication to a core-hosted add-on overlay. Executable event subscribers must declare `events.subscribe`. See [Add-on capability broker](add-on-capabilities.md).
+The capability broker turns these declarations into frozen, narrowly scoped runtime handles for private state, bounded scheduling, exact creator-approved Streamer.bot action IDs, source/selected-platform outbound messages, namespaced publication to a core-hosted add-on overlay, and bounded Viewer Foundation projections/mutations. Viewer consumers receive no salt, raw account-link table, or backing-state access; calls fail closed when the provider or consumer stops. Consumers may subscribe to pseudonymous Viewer Foundation deletion notices so their own caches are removed promptly, but only the official provider can publish those notices. Executable event subscribers must declare `events.subscribe`. See [Add-on capability broker](add-on-capabilities.md).
 
 The broker is a supported least-privilege API, not an operating-system sandbox: executable packages remain a full-trust expert path and should undergo source review. Public third-party add-ons should prefer the declarative tier.
 
@@ -59,9 +64,11 @@ These fields do not silently install or trust code. They give the wizard a stabl
 When an add-on requires Streamer.bot actions, keep its package under `packages/streamerbot/<add-on-folder>/` and declare the current `.sb` filename in that package's `manifest.json`. The folder name must match its source folder under `addons/`. The public release process creates one `THSV-StreamBridge-AddOn-<Name>-<version>.zip` per add-on containing:
 
 - the wizard-installable `.thsv-addon` and its SHA-256 checksum;
-- only that add-on's Streamer.bot `.sb` import under `Streamer.bot/`;
+- that add-on's Streamer.bot `.sb` import under `Streamer.bot/`, when it needs Streamer.bot actions;
 - the Streamer.bot package README when supplied; and
-- a short `INSTALL.txt` describing the two-part installation.
+- a short `INSTALL.txt` that clearly says whether a Streamer.bot import is required.
+
+Broker-only add-ons do not need an empty or placeholder Streamer.bot package. Their release bundle contains the `.thsv-addon`, checksum, and instructions explaining that the existing normalized-event and capability-broker connection is sufficient.
 
 Add-on Streamer.bot packages are excluded from the main StreamBridge ZIP. This prevents creators from importing actions for optional features they did not install and lets every add-on be downloaded, upgraded, and removed independently.
 

@@ -1,0 +1,11 @@
+{
+  "intro": "Viewer Lobby is a local, multi-platform play queue. Viewer commands can only change the invoking viewer's entry. Imported controls are creator-only, and the overlay is read-only.",
+  "order": ["enabled", "platforms", "commandPrefix", "joinCommand", "leaveCommand", "positionCommand", "queueCommand", "maximumEntries", "allowGamertag", "showGamertags", "offlinePolicy", "ignoredUsers"],
+  "sections": [
+    { "id": "quick", "title": "1. Quick setup", "open": true, "fields": ["enabled", "platforms", "maximumEntries"], "notice": "Import the controls and attach them only to creator hotkeys/deck buttons. Use /overlay/addons/thsv.viewer-lobby as the read-only browser source." },
+    { "id": "commands", "title": "2. Viewer commands", "fields": ["commandPrefix", "joinCommand", "leaveCommand", "positionCommand", "queueCommand"] },
+    { "id": "privacy", "title": "3. Gamertags and privacy", "fields": ["allowGamertag", "showGamertags", "ignoredUsers"] },
+    { "id": "lifecycle", "title": "4. Stream lifecycle", "fields": ["offlinePolicy"] }
+  ],
+  "fields": { "showGamertags": { "visibleWhen": { "field": "allowGamertag", "equals": true } }, "ignoredUsers": { "rows": 6 } }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Category Pilot", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Category Pilot", "default": false },
+    "mode": { "type": "string", "title": "Decision mode", "enum": ["suggest", "automatic"], "default": "suggest" },
+    "requireLive": { "type": "boolean", "title": "Check only while a stream is live", "default": true },
+    "intervalSeconds": { "type": "integer", "title": "Check every (seconds)", "minimum": 10, "maximum": 300, "default": 20 },
+    "confirmationCount": { "type": "integer", "title": "Matching checks before a suggestion", "minimum": 1, "maximum": 6, "default": 2 },
+    "mapping1Enabled": { "type": "boolean", "title": "Enable mapping 1", "default": true }, "mapping1ProcessName": { "type": "string", "title": "Mapping 1 process name", "description": "Exact executable name without .exe. Paths and window titles are never collected.", "pattern": "^[A-Za-z0-9._ -]{0,100}$", "maxLength": 100, "default": "" }, "mapping1Profile": { "type": "string", "title": "Mapping 1 profile", "enum": ["profile-1", "profile-2", "profile-3"], "default": "profile-2" },
+    "mapping2Enabled": { "type": "boolean", "title": "Enable mapping 2", "default": false }, "mapping2ProcessName": { "type": "string", "title": "Mapping 2 process name", "pattern": "^[A-Za-z0-9._ -]{0,100}$", "maxLength": 100, "default": "" }, "mapping2Profile": { "type": "string", "title": "Mapping 2 profile", "enum": ["profile-1", "profile-2", "profile-3"], "default": "profile-2" },
+    "mapping3Enabled": { "type": "boolean", "title": "Enable mapping 3", "default": false }, "mapping3ProcessName": { "type": "string", "title": "Mapping 3 process name", "pattern": "^[A-Za-z0-9._ -]{0,100}$", "maxLength": 100, "default": "" }, "mapping3Profile": { "type": "string", "title": "Mapping 3 profile", "enum": ["profile-1", "profile-2", "profile-3"], "default": "profile-2" },
+    "mapping4Enabled": { "type": "boolean", "title": "Enable mapping 4", "default": false }, "mapping4ProcessName": { "type": "string", "title": "Mapping 4 process name", "pattern": "^[A-Za-z0-9._ -]{0,100}$", "maxLength": 100, "default": "" }, "mapping4Profile": { "type": "string", "title": "Mapping 4 profile", "enum": ["profile-1", "profile-2", "profile-3"], "default": "profile-2" },
+    "mapping5Enabled": { "type": "boolean", "title": "Enable mapping 5", "default": false }, "mapping5ProcessName": { "type": "string", "title": "Mapping 5 process name", "pattern": "^[A-Za-z0-9._ -]{0,100}$", "maxLength": 100, "default": "" }, "mapping5Profile": { "type": "string", "title": "Mapping 5 profile", "enum": ["profile-1", "profile-2", "profile-3"], "default": "profile-2" }
+  }
+}
