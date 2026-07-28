@@ -25,7 +25,7 @@ describe('add-on setup documentation', () => {
     ]);
     const folders = (await readdir(join(root, 'addons'), { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
     for (const folder of folders) expect(index).toContain(`./${folder}.md`);
-    expect(client).toContain('Setup guide');
-    expect(client).toContain('Open full setup document');
+    expect(client).toContain('Start here');
+    expect(client).toContain('Open full setup guide');
   });
 });

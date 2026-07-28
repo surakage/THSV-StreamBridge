@@ -14,6 +14,12 @@ async function packageAddOn(root: string): Promise<Uint8Array> {
 test('wizard installs and configures add-ons without injecting package code', async ({ page, context }) => {
   test.setTimeout(60_000);
   await page.goto('/wizard/');
+  const initialTheme = await page.locator('html').getAttribute('data-theme');
+  await page.locator('#theme-toggle').click();
+  const selectedTheme = initialTheme === 'dark' ? 'light' : 'dark';
+  await expect(page.locator('html')).toHaveAttribute('data-theme', selectedTheme);
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', selectedTheme);
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
   await expect(page.locator('#mode')).toContainText('Authenticated');
@@ -22,6 +28,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.locator('#overview-cards .stat').filter({ hasText: 'Preview' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Add-ons' }).click();
   await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
+  await expect(page.locator('[data-panel="addons"] > .page-header')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Check updates' })).toBeVisible();
   await expect(page.getByText('Update checks are creator-started and never silently install or enable code.', { exact: false })).toBeVisible();
   await expect(page.getByText('No add-ons are installed')).toBeVisible();
@@ -37,6 +44,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   await expect(page.getByRole('article').getByText('Declarative Settings Example 1.0.0', { exact: true })).toBeVisible();
+  await page.getByText('Package and publisher details', { exact: true }).click();
   await expect(page.getByText('THSV StreamBridge Project', { exact: false })).toBeVisible();
   await expect(page.getByText('state.private', { exact: false })).toBeVisible();
   await page.evaluate(`state.addOnUpdates = { available: true, updateCount: 1, revokedCount: 0, addOns: [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', installedVersion: '1.0.0', latestVersion: '1.1.0', state: 'update-available', sha256: '${'a'.repeat(64)}', downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.4.1/sample.zip' }] }; renderAddOns();`);

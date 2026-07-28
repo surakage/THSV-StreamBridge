@@ -191,8 +191,8 @@ describe('wizard HTTP surface', () => {
     expect(addOnClient.status).toBe(200);
     expect(await addOnClient.text()).toContain('/wizard/api/addons');
     const theme = await fetch(`${baseUrl}/wizard/styles.css`).then((response) => response.text());
-    expect(theme).toContain('color-scheme:light dark');
-    expect(theme).toContain('@media(prefers-color-scheme:light)');
+    expect(theme).toContain('color-scheme:dark');
+    expect(theme).toContain(':root[data-theme="light"]');
     expect((await fetch(`${baseUrl}/wizard/api/overview`)).status).toBe(401);
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, origin: baseUrl };
     expect((await fetch(`${baseUrl}/wizard/api/overview`, { headers })).status).toBe(200);

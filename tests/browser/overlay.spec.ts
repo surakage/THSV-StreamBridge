@@ -52,6 +52,24 @@ async function publishViewerSpotlightCard(page: Page, payload: Record<string, un
   }), payload);
 }
 
+test('wizard stays readable at a narrow width and remembers its selected theme', async ({ page }) => {
+  await page.setViewportSize({ width: 420, height: 850 });
+  await page.goto('/wizard/');
+  const initialTheme = await page.locator('html').getAttribute('data-theme');
+  await page.locator('#theme-toggle').click();
+  const selectedTheme = initialTheme === 'dark' ? 'light' : 'dark';
+  await expect(page.locator('html')).toHaveAttribute('data-theme', selectedTheme);
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', selectedTheme);
+  await expect(page.locator('header')).toHaveCSS('flex-direction', 'column');
+  expect(await page.locator('body').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('[data-panel="overview"] > .page-header')).toBeVisible();
+  expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+});
+
 test('wizard exposes source-gated command templates and explicit per-platform timed-message cards', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/wizard/');

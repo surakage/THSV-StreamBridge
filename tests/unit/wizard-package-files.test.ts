@@ -21,15 +21,17 @@ describe('wizard launcher package', () => {
     expect(Buffer.from(executeCode, 'base64').toString('utf8').replaceAll('\r\n', '\n').trim()).toBe(source.replaceAll('\r\n', '\n').trim());
   });
 
-  it('announces asynchronous results and follows the operating-system color scheme', async () => {
+  it('announces asynchronous results and supports a persistent system-aware color theme', async () => {
     const shell = await readFile('wizard/browser/index.html', 'utf8');
     const styles = await readFile('wizard/browser/styles.css', 'utf8');
     const script = await readFile('wizard/browser/app.js', 'utf8');
     const addOnScript = await readFile('wizard/browser/addons.js', 'utf8');
     expect(shell.match(/aria-live="polite"/g)).toHaveLength(15);
     expect(shell.match(/role="status"/g)).toHaveLength(15);
-    expect(styles).toContain('color-scheme:light dark');
-    expect(styles).toContain('@media(prefers-color-scheme:light)');
+    expect(styles).toContain('color-scheme:dark');
+    expect(styles).toContain(':root[data-theme="light"]');
+    expect(script).toContain("matchMedia('(prefers-color-scheme: light)')");
+    expect(script).toContain("localStorage.setItem(themeStorageKey,next)");
     expect(script).toContain("status.setAttribute('aria-busy','true')");
     expect(script).toContain("status.removeAttribute('aria-busy')");
     expect(script).toContain("kind==='command'&&value.managed");
