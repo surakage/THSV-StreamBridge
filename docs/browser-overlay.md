@@ -20,7 +20,7 @@ After upgrading StreamBridge, manually refresh or reload each Browser Source onc
 
 ### Crisp OBS chat sizing
 
-For a chat panel that will occupy only part of the OBS canvas, use `/overlay/chat/dock` as the Browser Source URL and start with a Browser Source **Width** of `680` and **Height** of `800`. Adjust those source dimensions to the final pixel dimensions you want on the canvas, then position the source without scaling its transform. The page reflows at the source's native resolution, so text remains sharper than a cropped 1920 by 1080 page that OBS must shrink afterward.
+For a chat panel that will occupy only part of the OBS canvas, use `/overlay/chat/dock` as the Browser Source URL and start with a Browser Source **Width** of `680` and **Height** of `800`. Adjust those source dimensions to the final pixel dimensions you want on the canvas, then position the source without scaling its transform. Cards fill the browser source from left to right and stay bottom-anchored inside its safe area. The page reflows at the source's native resolution, so text remains sharper than a cropped 1920 by 1080 page that OBS must shrink afterward.
 
 The full `/overlay/chat` source remains appropriate when it stays at canvas size and is cropped without transform scaling. Cropping preserves rendered pixels; enlarging or shrinking a browser-source transform makes OBS resample those pixels and can soften text. If the panel size changes substantially, update the Browser Source Width and Height instead of stretching the transform.
 

@@ -210,11 +210,19 @@ function ignoredActor(user: NonNullable<NormalizedEvent['user']>, ignoredNames: 
 
 function actorPresentation(event: NormalizedEvent): OverlayActorPresentation {
   if (event.user === undefined) throw new InvalidBrowserOverlayEventError(`${event.eventType} requires an actor for overlay presentation.`);
+  const badges = (event.user.badges ?? []).filter((badge) => !isRedundantModeratorBadge(event.user?.roles ?? [], badge));
   return {
     ...(event.user.avatarUrl === undefined ? {} : { avatarUrl: event.user.avatarUrl }),
     ...(event.user.nameColor === undefined ? {} : { nameColor: event.user.nameColor }),
-    badges: event.user.badges ?? [],
+    badges,
   };
+}
+
+function isRedundantModeratorBadge(roles: readonly string[], badge: { readonly id: string; readonly label: string }): boolean {
+  if (!roles.some((role) => ['mod', 'moderator'].includes(role.trim().toLocaleLowerCase('en-US')))) return false;
+  const id = badge.id.trim().toLocaleLowerCase('en-US');
+  const label = badge.label.trim().toLocaleLowerCase('en-US');
+  return ['mod', 'moderator'].includes(id) || ['mod', 'moderator'].includes(label);
 }
 
 function subscriptionLifecycle(event: NormalizedEvent, alert: MultiAlert): { readonly subscription?: OverlaySubscriptionLifecycle } {

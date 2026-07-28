@@ -10,7 +10,6 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   const dockMode = location.pathname.endsWith('/dock');
   const mode = location.pathname.startsWith('/overlay/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
   const requestedLayout = new URLSearchParams(location.search).get('layout');
-  const platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab', streamlabs: '#e7c6ff', kofi: '#ffd0a8' };
   document.body.dataset.mode = mode;
   document.body.dataset.dock = dockMode ? 'true' : 'false';
 
@@ -87,7 +86,6 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
     if (clientConfig.chat.showProfilePictures) identity.append(buildAvatar(message.user, message.presentation, message.platform, 'chat-avatar'));
     if (clientConfig.chat.showPlatformLabels) identity.append(element('span', 'platform', message.platform.toUpperCase()));
     const displayName = element('strong', 'display-name', message.user.displayName);
-    if (message.presentation.nameColor) displayName.style.color = readableNameColor(message.presentation.nameColor, message.platform);
     identity.append(displayName);
     if (clientConfig.chat.showBadges && message.user.isBroadcaster) identity.append(element('span', 'role', 'HOST'));
     else if (clientConfig.chat.showBadges && message.user.isModerator) identity.append(element('span', 'role', 'MOD'));
@@ -277,25 +275,6 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
     const id = String(badge && badge.id ? badge.id : '').trim().toLowerCase();
     const label = String(badge && badge.label ? badge.label : '').trim().toLowerCase();
     return id === 'mod' || id === 'moderator' || label === 'mod' || label === 'moderator';
-  }
-
-  function readableNameColor(proposed, platform) {
-    if (clientConfig.chat.messageColorMode === 'platform') return platformNameColors[platform] || clientConfig.chat.textColor;
-    if (clientConfig.chat.messageColorMode === 'transparent') return clientConfig.chat.textColor;
-    const background = clientConfig.chat.messageBackgroundColor;
-    return contrastRatio(proposed, background) >= 4.5 ? proposed : clientConfig.chat.textColor;
-  }
-
-  function contrastRatio(first, second) {
-    const light = Math.max(relativeLuminance(first), relativeLuminance(second));
-    const dark = Math.min(relativeLuminance(first), relativeLuminance(second));
-    return (light + 0.05) / (dark + 0.05);
-  }
-
-  function relativeLuminance(hex) {
-    const value = String(hex).replace('#', '');
-    const channels = [value.slice(0, 2), value.slice(2, 4), value.slice(4, 6)].map((channel) => Number.parseInt(channel, 16) / 255).map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
   }
 
   function applyChatAppearance() {

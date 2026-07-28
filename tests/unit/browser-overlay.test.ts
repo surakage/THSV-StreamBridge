@@ -16,6 +16,27 @@ describe('Browser Overlay Hub contract', () => {
     });
   });
 
+  it('removes a redundant moderator presentation badge before browser delivery', async () => {
+    const source = await fixture();
+    if (source.user === undefined) throw new Error('Fixture requires an actor');
+    const event: NormalizedEvent = {
+      ...source,
+      user: {
+        ...source.user,
+        roles: ['moderator'],
+        badges: [
+          { id: 'moderator', label: 'Moderator' },
+          { id: 'subscriber', label: 'Subscriber' },
+        ],
+      },
+      metadata: { ...source.metadata, bridgeSequence: 8 },
+    };
+    expect(projectBrowserOverlayEvent(event)).toMatchObject({
+      kind: 'chat.add',
+      payload: { presentation: { badges: [{ id: 'subscriber', label: 'Subscriber' }] } },
+    });
+  });
+
   it('projects reviewed presentation metadata and subscription lifecycle fields', async () => {
     const source = await fixture('youtube-super-chat.json');
     if (source.user === undefined) throw new Error('Fixture requires an actor');
@@ -194,7 +215,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain('function addEventMessage(activity)');
     expect(source).toContain("element('img', 'badge-icon')");
     expect(source).toContain('if (message.user.isModerator && isModeratorBadge(badge)) continue;');
-    expect(source).toContain('readableNameColor(message.presentation.nameColor, message.platform)');
+    expect(source).not.toContain('displayName.style.color');
+    expect(source).not.toContain('readableNameColor');
     expect(source).toContain('brandLabel.textContent = clientConfig.brandLabel');
     expect(source).toContain('connectDirectly');
     expect(worker.match(/new WebSocket/gu)).toHaveLength(1);
@@ -260,7 +282,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('width: min(680px, calc(100vw - 32px))');
     expect(styles).toContain('background: var(--message-platform-bg, var(--chat-message-bg));');
     expect(source).toContain("chatConfig.messageColorMode === 'platform'");
-    expect(source).toContain("platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab'");
+    expect(styles).toContain('.display-name { min-width: 0; max-width: 100%; color: #fff;');
+    expect(styles).toContain('.message { width: 100%; min-width: 0;');
     expect(styles).toContain('font-size: var(--chat-font-size)');
     expect(styles).toContain('font-family: var(--chat-font-family)');
     expect(styles).toContain('text-rendering: geometricPrecision');
@@ -270,6 +293,7 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('body[data-mode="chat"] .chat-shell header { display: none; }');
     expect(styles).toContain('body[data-mode="chat"] .message.message-expiring');
     expect(styles).toContain('body[data-dock="true"] .chat-shell');
+    expect(styles).toContain('@media (max-aspect-ratio: 4 / 3)');
     expect(styles).toContain('body[data-mode="chat"] .connection-status[data-state="reconnecting"]');
     expect(styles).toContain('@keyframes chat-expire');
   });
