@@ -16,7 +16,18 @@ No normalized event, add-on API, WebSocket request, C# reference, or package-man
 
 The Twitch fixes should improve first-time-chatter automation, moderator gates, Chat Guard decisions, and Automated Shoutouts. The Kick changes affect connection reliability rather than THSV's normalized contract. The OBS v5 change benefits Scene Actions and Stream Launch Countdown when their approved Streamer.bot actions control OBS. The HTTP-server fixes concern Streamer.bot's server and do not replace StreamBridge's separate loopback service on port `8787`.
 
-Do not call beta.2 the complete THSV live-verified baseline yet. Beta.1 remains the last build with recorded THSV startup, WebSocket/EventSub connection, focused C# compilation, controller relay, reward mutation, and reset evidence.
+Do not call beta.2 the complete THSV live-verified baseline yet. Beta.1 remains the last build with recorded THSV startup, focused C# compilation, controller relay, reward mutation, and reset evidence. The beta.2 intake-routing evidence below is narrower and does not replace those provider and mutation checks.
+
+## Recorded beta.2 evidence
+
+On July 28, 2026, the installed Streamer.bot `1.0.5-beta.2` instance was inspected directly with THSV `2.5.0`:
+
+- Streamer.bot displayed `93` actions, with core platform actions in their existing THSV groups and every installed action-bearing add-on in its own `THSV Addon - <Name>` group.
+- StreamBridge connected to Streamer.bot's authenticated WebSocket at `ws://127.0.0.1:8081/` and reported `healthy` and `ready`.
+- Streamer.bot's harmless **Test Trigger** was run once for Twitch Chat Message, YouTube Message, and Kick Chat Message.
+- StreamBridge recorded exactly one accepted, non-duplicate, durably queued `chat.message` event for each platform.
+
+This proves the three installed native intake actions, normalized routing, and durable bridge ingress on beta.2. It does not prove a genuine viewer event, first-message or moderator fields, provider reconnect behavior, public chat output, rewards, financial events, or scene mutations.
 
 ## Focused re-acceptance checklist
 

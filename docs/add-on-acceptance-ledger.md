@@ -54,6 +54,7 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 - On July 28, the local bridge reported `healthy`/`ready`; its creator-selected `19` add-ons were upgraded to compatible `2.5.0` packages and all reported `installed`. Their private acceptance entries now carry version `2.5.0`.
 - Disposable Windows lifecycle coverage passed `21` focused installer/package tests plus custom-port start, replacement-start, stale-build rebuilding, active-config shutdown, upgrade data preservation, downgrade/tamper rejection, and conservative uninstall behavior.
 - Safe local overlay smoke on July 28 returned HTTP `200` and accepted simulated wizard previews for Automated Shoutouts, Fan Crown, First Five, Raid Scout, Random Clip Player, Stream Launch Countdown, Subathon Timer, and Viewer Spotlight. Their rows remain pending because control/state, Streamer.bot, and genuine-provider behavior was not covered by that visual-only smoke.
+- Streamer.bot `1.0.5-beta.2` was inspected directly with `93` actions and separate add-on groups. One harmless Twitch, YouTube, and Kick chat **Test Trigger** per platform reached the installed bridge exactly once as an accepted, non-duplicate, durably queued event. This validates shared native intake routing only and does not change any add-on or provider-acceptance row.
 - None of this local or automated evidence changes a pending provider-acceptance row. Provider status requires the exact real-event evidence described in the table.
 
 ### Isolated runtime smoke — July 27, 2026
