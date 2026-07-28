@@ -387,15 +387,15 @@ test('compact cropped chat and alert storms stay within their containers after r
   await page.screenshot({ path: testInfo.outputPath('alert-storm.png') });
 });
 
-test('all chat platforms use white names, one moderator badge, and full-width bounded cards', async ({ page, request }, testInfo) => {
+test('all chat platforms use accessible contrasting names, one moderator badge, and full-width bounded cards', async ({ page, request }, testInfo) => {
   await page.setViewportSize({ width: 680, height: 800 });
   await page.goto('/overlay/chat/dock');
   await expect(page.locator('#status')).toHaveText('LIVE');
   const cases = [
-    ['twitch', 'twitch-chat.json'],
-    ['youtube', 'youtube-chat.json'],
-    ['kick', 'kick-chat.json'],
-    ['tiktok', 'tiktok-tikfinity-chat.json'],
+    ['twitch', 'twitch-chat.json', 'rgb(255, 209, 102)'],
+    ['youtube', 'youtube-chat.json', 'rgb(114, 229, 255)'],
+    ['kick', 'kick-chat.json', 'rgb(216, 180, 255)'],
+    ['tiktok', 'tiktok-tikfinity-chat.json', 'rgb(255, 143, 171)'],
   ] as const;
   for (const [platform, fixtureName] of cases) {
     const input = await fixture(fixtureName);
@@ -406,9 +406,9 @@ test('all chat platforms use white names, one moderator badge, and full-width bo
       payload: { message: `${platform} readability check with enough text to verify the wider native chat card.` },
     }, `readability-${platform}`);
   }
-  for (const [platform] of cases) {
+  for (const [platform, , color] of cases) {
     const card = page.locator(`#chat .message.platform-${platform}`);
-    await expect(card.locator('.display-name')).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await expect(card.locator('.display-name')).toHaveCSS('color', color);
     await expect(card.locator('.role', { hasText: 'MOD' })).toHaveCount(1);
     await expect(card.getByText('Moderator', { exact: true })).toHaveCount(0);
   }
