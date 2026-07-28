@@ -52,6 +52,7 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 - lint, typecheck, configuration validation, production build, release packaging, and the production dependency audit pass; the audit reports zero known vulnerabilities.
 - All `29` indexed add-on archives and `36` Streamer.bot imports are generated from synchronized `2.5.0` source and covered by the release integrity gate.
 - On July 28, the local bridge reported `healthy`/`ready`; its creator-selected `19` add-ons were upgraded to compatible `2.5.0` packages and all reported `installed`. Their private acceptance entries now carry version `2.5.0`.
+- Disposable Windows lifecycle coverage passed `21` focused installer/package tests plus custom-port start, replacement-start, stale-build rebuilding, active-config shutdown, upgrade data preservation, downgrade/tamper rejection, and conservative uninstall behavior.
 - None of this local or automated evidence changes a pending provider-acceptance row. Provider status requires the exact real-event evidence described in the table.
 
 ### Isolated runtime smoke — July 27, 2026

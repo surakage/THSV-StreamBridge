@@ -61,4 +61,6 @@ Bloom Companion remains on the back burner by explicit creator decision. Creator
 - The installed `2.5.0` bridge reports `healthy` and `ready` on loopback.
 - The creator-selected set of `19` installed add-ons was upgraded from rejected `2.4.2` packages to matching `2.5.0` packages without replacing settings, private state, enabled flags, or approved action grants.
 - All `19` report `installed` at `2.5.0`; their private wizard acceptance entries now report `2.5.0` instead of `unknown`.
+- Disposable Windows installer tests passed install, upgrade preservation, downgrade protection, tamper rejection, normal uninstall preservation, full removal, and locked-directory cleanup. The live source lifecycle passed custom-port start, replacement-start, stale-build detection, and active-configuration shutdown.
+- A separate fresh-machine walkthrough of the exact public ZIP remains pending; automated disposable evidence is not mislabeled as an external clean-machine observation.
 - This is local installation evidence only. It does not mark a pending genuine-provider row as passed.

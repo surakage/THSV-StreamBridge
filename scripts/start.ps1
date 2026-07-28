@@ -66,7 +66,30 @@ try {
     $env:THSV_STREAMBRIDGE_CONFIG = $Config
     $stdout = Join-Path $repo 'data\logs\service.stdout.log'
     $stderr = Join-Path $repo 'data\logs\service.stderr.log'
-    $process = Start-Process -FilePath 'node' -ArgumentList 'dist/apps/bridge-service.js' -WorkingDirectory $repo -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru -WindowStyle Hidden
+    # Some Windows launch hosts can expose the same environment variable twice
+    # with different casing (for example Path and PATH). Start-Process builds a
+    # case-insensitive dictionary and otherwise crashes before Node starts.
+    # Temporarily collapse duplicate aliases, then restore the caller's exact
+    # environment after the child has inherited the normalized copy.
+    $environment = [Environment]::GetEnvironmentVariables()
+    $removedEnvironmentAliases = @()
+    $duplicateGroups = @($environment.Keys | ForEach-Object { [string]$_ } | Group-Object { $_.ToUpperInvariant() } | Where-Object Count -gt 1)
+    foreach ($group in $duplicateGroups) {
+        $preferred = @($group.Group | Where-Object { $_ -ceq 'Path' } | Select-Object -First 1)
+        if ($preferred.Count -eq 0) { $preferred = @($group.Group | Select-Object -First 1) }
+        foreach ($alias in $group.Group) {
+            if ($alias -ceq $preferred[0]) { continue }
+            $removedEnvironmentAliases += [pscustomobject]@{ Name = $alias; Value = [string]$environment[$alias] }
+            [Environment]::SetEnvironmentVariable($alias, $null, [EnvironmentVariableTarget]::Process)
+        }
+    }
+    try {
+        $process = Start-Process -FilePath 'node' -ArgumentList 'dist/apps/bridge-service.js' -WorkingDirectory $repo -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru -WindowStyle Hidden
+    } finally {
+        foreach ($entry in $removedEnvironmentAliases) {
+            [Environment]::SetEnvironmentVariable($entry.Name, $entry.Value, [EnvironmentVariableTarget]::Process)
+        }
+    }
     Set-Content -LiteralPath $pidFile -Value $process.Id -Encoding ascii
     Set-Content -LiteralPath $activeConfigFile -Value $Config -Encoding utf8
     Start-Sleep -Milliseconds 500

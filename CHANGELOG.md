@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Fixed source-checkout startup on Windows launch hosts that expose duplicate case variants such as `Path` and `PATH`; the launcher now normalizes aliases only while creating the child process and restores the caller environment afterward.
 - Fixed add-on upgrades across bridge releases: the installer now verifies the outgoing package's schema, file list, and hashes without incorrectly requiring that older package to support the newly installed bridge. The incoming replacement still must pass current core and bridge compatibility checks.
 - Synchronized the public status, production gate, acceptance ledger, offline guide, and future roadmap around the published `2.5.0` baseline, `29` packaged add-ons, `135` Vitest files / `709` tests, and `11` browser checks.
 - Fixed the wizard Setup overview card so it is labeled **Version** and reads the synchronized installed StreamBridge release instead of displaying the internal `2.0.0-preview.1` contract identifier as a product preview version.
