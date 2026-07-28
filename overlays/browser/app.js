@@ -10,6 +10,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   const dockMode = location.pathname.endsWith('/dock');
   const mode = location.pathname.startsWith('/overlay/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
   const requestedLayout = new URLSearchParams(location.search).get('layout');
+  const platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab', streamlabs: '#e7c6ff', kofi: '#ffd0a8' };
   document.body.dataset.mode = mode;
   document.body.dataset.dock = dockMode ? 'true' : 'false';
 
@@ -279,8 +280,9 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   }
 
   function readableNameColor(proposed, platform) {
+    if (clientConfig.chat.messageColorMode === 'platform') return platformNameColors[platform] || clientConfig.chat.textColor;
     if (clientConfig.chat.messageColorMode === 'transparent') return clientConfig.chat.textColor;
-    const background = clientConfig.chat.messageColorMode === 'platform' ? clientConfig.chat.platformMessageColors[platform] || clientConfig.chat.messageBackgroundColor : clientConfig.chat.messageBackgroundColor;
+    const background = clientConfig.chat.messageBackgroundColor;
     return contrastRatio(proposed, background) >= 4.5 ? proposed : clientConfig.chat.textColor;
   }
 

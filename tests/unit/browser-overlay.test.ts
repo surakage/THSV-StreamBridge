@@ -257,9 +257,10 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("clientConfig.chat.showBadges");
     expect(source).not.toContain('verticalScale');
     expect(styles).not.toMatch(/body\[data-mode="chat"\][^{]*\{[^}]*scaleY/u);
-    expect(styles).toContain('width: min(540px, calc(100vw - 32px))');
+    expect(styles).toContain('width: min(680px, calc(100vw - 32px))');
     expect(styles).toContain('background: var(--message-platform-bg, var(--chat-message-bg));');
     expect(source).toContain("chatConfig.messageColorMode === 'platform'");
+    expect(source).toContain("platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab'");
     expect(styles).toContain('font-size: var(--chat-font-size)');
     expect(styles).toContain('font-family: var(--chat-font-family)');
     expect(styles).toContain('text-rendering: geometricPrecision');

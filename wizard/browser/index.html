@@ -152,7 +152,7 @@
   <div class="transaction"><h3>Browser source and dock URLs</h3><p>Use the source URL for the on-stream layer. Use the dock URL in OBS Custom Browser Docks or any streaming host that accepts a local browser/web panel. If a host does not support custom docks, keep using its Browser Source with the source URL.</p>
     <label>On-stream chat source<input id="chat-source-url" readonly></label><button type="button" data-copy-overlay-url="chat-source-url" class="ghost">Copy source URL</button>
     <label>Responsive chat source / operator dock<input id="chat-dock-url" readonly></label><button type="button" data-copy-overlay-url="chat-dock-url" class="ghost">Copy responsive URL</button>
-    <p class="full-row"><small>For the crispest OBS chat, use the responsive URL as a Browser Source and set its Width and Height to the final on-canvas pixel size. Move it without scaling the transform. Use the full-canvas source only when you plan to crop it without enlarging or shrinking it.</small></p>
+    <p class="full-row"><small>For the crispest OBS chat, use the responsive URL as a Browser Source and start at 680 × 800. Set Width and Height to the final on-canvas pixel size, then move it without scaling the transform. Use the full-canvas source only when you plan to crop it without enlarging or shrinking it.</small></p>
   </div>
   <p id="chat-overlay-state" class="notice" role="status" aria-live="polite" aria-atomic="true"></p>
 </section>
