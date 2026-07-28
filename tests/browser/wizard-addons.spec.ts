@@ -17,6 +17,9 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
   await expect(page.locator('#mode')).toContainText('Authenticated');
+  const versionCard = page.locator('#overview-cards .stat').filter({ hasText: 'Version' });
+  await expect(versionCard).toContainText('2.5.0');
+  await expect(page.locator('#overview-cards .stat').filter({ hasText: 'Preview' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Add-ons' }).click();
   await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Check updates' })).toBeVisible();

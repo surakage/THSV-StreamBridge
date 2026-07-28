@@ -40,6 +40,13 @@ function commandSyncStore(commandIds: readonly string[]): CommandSyncStore {
 }
 
 describe('Stage 3 wizard service', () => {
+  it('reports the creator-facing release version separately from the internal contract version', async () => {
+    await expect(new WizardService(undefined).overview()).resolves.toMatchObject({
+      version: '2.5.0',
+      contractVersion: '2.0.0-preview.1',
+    });
+  });
+
   it('inspects with documented reads and recognizes ownership only by exact id and name', async () => {
     const service = new WizardService(inspector());
     const result = await service.inspect();

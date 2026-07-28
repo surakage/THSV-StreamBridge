@@ -26,6 +26,7 @@ import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } f
 import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, WizardAddOnSummary } from './addon-wizard-service.js';
 import type { ReleaseUpdateService, ReleaseUpdateStatus } from './release-update-service.js';
 import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
+import { STREAMBRIDGE_VERSION } from '../version.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -154,7 +155,8 @@ export class WizardService {
 
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
     return {
-      version: '2.0.0-preview.1',
+      version: STREAMBRIDGE_VERSION,
+      contractVersion: CORE_CONTRACT_VERSION,
       stage: 8,
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
