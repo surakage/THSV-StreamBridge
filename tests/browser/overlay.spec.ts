@@ -388,6 +388,20 @@ test('compact cropped chat and alert storms stay within their containers after r
   }
   await expect(page.locator('.alert')).toHaveCount(1);
   expect(await page.locator('.alert').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await page.setViewportSize({ width: 520, height: 320 });
+  await page.waitForTimeout(100);
+  const fittedTitle = await page.locator('.alert h2').evaluate((title) => {
+    const style = getComputedStyle(title);
+    const detail = title.parentElement?.querySelector('.alert-detail');
+    return {
+      lines: Math.round(title.getBoundingClientRect().height / Number.parseFloat(style.lineHeight)),
+      fontSize: Number.parseFloat(style.fontSize),
+      separated: detail ? title.getBoundingClientRect().bottom <= detail.getBoundingClientRect().top : true,
+    };
+  });
+  expect(fittedTitle.lines).toBeLessThanOrEqual(2);
+  expect(fittedTitle.fontSize).toBeGreaterThanOrEqual(16);
+  expect(fittedTitle.separated).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('alert-storm.png') });
 });
 

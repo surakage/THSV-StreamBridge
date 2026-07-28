@@ -24,7 +24,11 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
   const alertController = new AlertPresentationController({
     capacity: clientConfig.maxAlertQueue,
     defaultDurationMs: clientConfig.alertDurationMs,
-    render: (alert) => alerts.replaceChildren(buildAlertCard(alert)),
+    render: (alert) => {
+      const card = buildAlertCard(alert);
+      alerts.replaceChildren(card);
+      requestAnimationFrame(() => fitAlertTitle(card));
+    },
     clear: () => alerts.replaceChildren(),
     dismiss: (_alert, done) => {
       const card = alerts.querySelector('.alert');
@@ -210,6 +214,24 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     return card;
   }
 
+  function fitAlertTitle(card) {
+    const title = card.querySelector('h2');
+    if (!title) return;
+    title.classList.remove('title-clamped');
+    title.style.removeProperty('font-size');
+    const minimumSize = 16;
+    let size = Number.parseFloat(getComputedStyle(title).fontSize);
+    const fitsTwoLines = () => {
+      const lineHeight = Number.parseFloat(getComputedStyle(title).lineHeight);
+      return title.scrollHeight <= lineHeight * 2 + 1;
+    };
+    while (!fitsTwoLines() && size > minimumSize) {
+      size = Math.max(minimumSize, size - 1);
+      title.style.fontSize = `${String(size)}px`;
+    }
+    if (!fitsTwoLines()) title.classList.add('title-clamped');
+  }
+
   function buildAlertMediaElement(cardStyle, hasVideo, className) {
     if (hasVideo) {
       const video = element('video', className);
@@ -345,6 +367,10 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
   chatResizeObserver.observe(chat);
   const chatShell = chat.closest('.chat-shell');
   if (chatShell) chatResizeObserver.observe(chatShell);
+  addEventListener('resize', () => {
+    const activeAlert = alerts.querySelector('.alert');
+    if (activeAlert) fitAlertTitle(activeAlert);
+  });
 
   fetch('/overlay/config').then((response) => response.ok ? response.json() : undefined).then((config) => {
     if (config) { clientConfig = config; alertController.configure(config.maxAlertQueue, config.alertDurationMs); }

@@ -207,6 +207,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("from '/overlay/alert-queue-1.2.3.js'");
     expect(source).toContain("card.dataset.transition = cardStyle.transition || 'slide-vertical'");
     expect(source).toContain("card.classList.add('alert-exit')");
+    expect(source).toContain('function fitAlertTitle(card)');
+    expect(source).toContain('while (!fitsTwoLines() && size > minimumSize)');
     expect(source).toContain("oldest.classList.add('message-expiring')");
     expect(source).toContain('function updateChatOverflow()');
     expect(source).toContain('new ResizeObserver(updateChatOverflow)');
@@ -312,6 +314,7 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('body[data-mode="alerts"] .alert { width: min(800px, 100%)');
     expect(styles).toContain('@keyframes alert-slide-down');
     expect(styles).toContain('@keyframes alert-slide-up');
+    expect(styles).toContain('.alert h2.title-clamped');
     expect(styles).toContain('background-color: var(--alert-card-bg, #171120);');
     expect(styles).toContain('.alert-identity { display: grid; grid-template-columns: 76px minmax(0, 1fr)');
     expect(styles).toContain('.alert-copy { min-width: 0; text-align: left; }');
