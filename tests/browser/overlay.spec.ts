@@ -345,7 +345,7 @@ test('chat remains bottom-aligned, bounded, crisp, and unclipped at 1920x1080', 
   await expect(page.locator('#chat .message')).toHaveCount(8);
   await expect(page.locator('#chat .message').last().locator('.role', { hasText: 'MOD' })).toHaveCount(1);
   await expect(page.locator('#chat .message').last().getByText('Moderator', { exact: true })).toHaveCount(0);
-  await expect(page.locator('#chat .message').last().locator('.display-name')).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(page.locator('#chat .message').last().locator('.display-name')).toHaveCSS('color', 'rgb(255, 209, 102)');
   const layout = await page.locator('.chat-shell').evaluate((element) => {
     const bounds = element.getBoundingClientRect();
     return { left: bounds.left, right: bounds.right, bottom: bounds.bottom, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
@@ -420,6 +420,18 @@ test('all chat platforms use accessible contrasting names, one moderator badge, 
   expect(layout.every((card) => card.left >= 7 && card.right <= 673 && card.bottom <= 792)).toBe(true);
   expect(new Set(layout.map((card) => Math.round(card.width))).size).toBe(1);
   expect(layout[0]?.width).toBeGreaterThanOrEqual(660);
+
+  for (const [platform, fixtureName] of cases) {
+    const input = await fixture(fixtureName);
+    await simulate(request, { ...input, payload: { message: `${platform} second row checks upward overflow without cutting the newest card.` } }, `overflow-${platform}`);
+  }
+  const overflowLayout = await page.locator('#chat .message').evaluateAll((cards) => cards.map((card) => {
+    const bounds = card.getBoundingClientRect();
+    return { top: bounds.top, bottom: bounds.bottom, text: card.textContent || '' };
+  }));
+  expect(overflowLayout.length).toBeLessThan(8);
+  expect(overflowLayout.every((card) => card.top >= 7 && card.bottom <= 792)).toBe(true);
+  expect(overflowLayout.at(-1)?.text).toContain('tiktok second row');
   await page.screenshot({ path: testInfo.outputPath('chat-all-platform-readability.png') });
 });
 
