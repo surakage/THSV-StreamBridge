@@ -242,7 +242,8 @@ const chatPlatformEventsSchema = z.object({
   streamlabs: z.object({ donation: chatEventSettingSchema }).strict(),
   kofi: z.object({ donation: chatEventSettingSchema }).strict(),
 }).strict();
-export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31', streamlabs: '#1f8f6a', kofi: '#174a63' } as const;
+const LEGACY_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31', streamlabs: '#1f8f6a', kofi: '#174a63' } as const;
+export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' } as const;
 
 export const chatOverlaySchema = z.object({
   layout: z.enum(['regular', 'compact']).default('regular'),
@@ -477,7 +478,12 @@ export const bridgeConfigSchema = z.preprocess((input) => {
 function migrateLegacyChatEventConfiguration(overlay: Record<string, unknown>): void {
   if (overlay['chat'] === null || typeof overlay['chat'] !== 'object' || Array.isArray(overlay['chat'])) return;
   const chat = { ...(overlay['chat'] as Record<string, unknown>) };
-  chat['platformMessageColors'] = { ...DEFAULT_CHAT_PLATFORM_COLORS, ...objectRecord(chat['platformMessageColors']) };
+  const savedPlatformColors = objectRecord(chat['platformMessageColors']);
+  const platformMessageColors: Record<string, unknown> = { ...DEFAULT_CHAT_PLATFORM_COLORS, ...savedPlatformColors };
+  for (const platform of Object.keys(DEFAULT_CHAT_PLATFORM_COLORS) as (keyof typeof DEFAULT_CHAT_PLATFORM_COLORS)[]) {
+    if (savedPlatformColors[platform] === LEGACY_CHAT_PLATFORM_COLORS[platform]) platformMessageColors[platform] = DEFAULT_CHAT_PLATFORM_COLORS[platform];
+  }
+  chat['platformMessageColors'] = platformMessageColors;
   if (chat['events'] === null || typeof chat['events'] !== 'object' || Array.isArray(chat['events'])) { overlay['chat'] = chat; return; }
   const events = { ...(chat['events'] as Record<string, unknown>) };
   const categories = objectRecord(events['categories']);

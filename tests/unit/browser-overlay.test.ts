@@ -193,6 +193,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("event.kind === 'chat.event'");
     expect(source).toContain('function addEventMessage(activity)');
     expect(source).toContain("element('img', 'badge-icon')");
+    expect(source).toContain('if (message.user.isModerator && isModeratorBadge(badge)) continue;');
+    expect(source).toContain('readableNameColor(message.presentation.nameColor, message.platform)');
     expect(source).toContain('brandLabel.textContent = clientConfig.brandLabel');
     expect(source).toContain('connectDirectly');
     expect(worker.match(/new WebSocket/gu)).toHaveLength(1);
@@ -260,6 +262,7 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("chatConfig.messageColorMode === 'platform'");
     expect(styles).toContain('font-size: var(--chat-font-size)');
     expect(styles).toContain('font-family: var(--chat-font-family)');
+    expect(styles).toContain('text-rendering: geometricPrecision');
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .overlay { display: flex; flex-direction: column; justify-content: flex-end; }');
     expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .chat-shell { position: relative; inset: auto;');
     expect(styles).toContain('background: transparent;');

@@ -247,10 +247,10 @@ test('wizard shows only the selected platform events and exposes platform color 
   const form = page.locator('#chat-overlay-form');
   await expect(form.locator('[name="eventCategory"]')).toHaveCount(0);
   await expect(form.locator('[name="messageColorMode"]')).toHaveValue('platform');
-  await expect(form.locator('[name="platformColorTwitch"]')).toHaveValue('#4b267b');
-  await expect(form.locator('[name="platformColorYoutube"]')).toHaveValue('#7d1717');
-  await expect(form.locator('[name="platformColorKick"]')).toHaveValue('#245c18');
-  await expect(form.locator('[name="platformColorTiktok"]')).toHaveValue('#172b31');
+  await expect(form.locator('[name="platformColorTwitch"]')).toHaveValue('#321b52');
+  await expect(form.locator('[name="platformColorYoutube"]')).toHaveValue('#571313');
+  await expect(form.locator('[name="platformColorKick"]')).toHaveValue('#153e12');
+  await expect(form.locator('[name="platformColorTiktok"]')).toHaveValue('#10272c');
 
   // Live chat preview reflects settings without staging or connecting to an overlay.
   // "Layout & text" is open by default; other settings sections start collapsed.
@@ -343,6 +343,9 @@ test('chat remains bottom-aligned, bounded, crisp, and unclipped at 1920x1080', 
     }, `chat-${String(index)}`);
   }
   await expect(page.locator('#chat .message')).toHaveCount(8);
+  await expect(page.locator('#chat .message').last().locator('.role', { hasText: 'MOD' })).toHaveCount(1);
+  await expect(page.locator('#chat .message').last().getByText('Moderator', { exact: true })).toHaveCount(0);
+  await expect(page.locator('#chat .message').last().locator('.display-name')).toHaveCSS('color', 'rgb(255, 255, 255)');
   const layout = await page.locator('.chat-shell').evaluate((element) => {
     const bounds = element.getBoundingClientRect();
     return { left: bounds.left, right: bounds.right, bottom: bounds.bottom, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };

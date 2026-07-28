@@ -9,7 +9,7 @@ Milestone 8 serves transparent local browser overlays for combined, chat-only, a
 3. Choose one of these URLs:
    - Combined: `http://127.0.0.1:8787/overlay/` (normally 1920 by 1080)
    - Chat only: `http://127.0.0.1:8787/overlay/chat`
-   - Dock-friendly Chat: `http://127.0.0.1:8787/overlay/chat/dock`
+   - Responsive Chat / operator dock: `http://127.0.0.1:8787/overlay/chat/dock`
    - Alerts only: `http://127.0.0.1:8787/overlay/alerts` (use a 1920 by 1080 source in Meld, then crop the transparent area)
 4. For independent placement, add Chat and Alerts as separate browser sources. Move, crop, resize, hide, or assign each source to scenes normally in the broadcasting app.
 5. Run a harmless simulated chat or alert fixture and confirm it appears.
@@ -17,6 +17,12 @@ Milestone 8 serves transparent local browser overlays for combined, chat-only, a
 Chat and Alerts opened by the same browser-source host share a `SharedWorker`, which owns one event WebSocket and fans events out locally. This keeps the independently movable sources from doubling the normal WebSocket traffic. If a broadcasting app isolates browser sources or lacks `SharedWorker`, each source safely falls back to its own reconnecting WebSocket; presentation still works, but the host will show one connection per isolated source.
 
 After upgrading StreamBridge, manually refresh or reload each Browser Source once so the host picks up the new versioned overlay assets. Keep OBS/Streamlabs **Shutdown source when not visible** disabled when you want recent chat to remain visible across scene changes; destroying the source intentionally clears its privacy-bounded in-memory feed.
+
+### Crisp OBS chat sizing
+
+For a chat panel that will occupy only part of the OBS canvas, use `/overlay/chat/dock` as the Browser Source URL and set the source **Width** and **Height** to the final pixel dimensions you want on the canvas (for example, `540` by `800`). Position that source without scaling its transform. The page reflows at the source's native resolution, so text remains sharper than a cropped 1920 by 1080 page that OBS must shrink afterward.
+
+The full `/overlay/chat` source remains appropriate when it stays at canvas size and is cropped without transform scaling. Cropping preserves rendered pixels; enlarging or shrinking a browser-source transform makes OBS resample those pixels and can soften text. If the panel size changes substantially, update the Browser Source Width and Height instead of stretching the transform.
 
 ### Meld Studio sizing
 

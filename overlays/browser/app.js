@@ -16,7 +16,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   const chatFadeMs = 240;
   let clientConfig = {
     brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
-    chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31', streamlabs: '#1f8f6a', kofi: '#174a63' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
+    chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
   };
   brandLabel.textContent = clientConfig.brandLabel;
   const alertController = new AlertPresentationController({
@@ -86,13 +86,16 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
     if (clientConfig.chat.showProfilePictures) identity.append(buildAvatar(message.user, message.presentation, message.platform, 'chat-avatar'));
     if (clientConfig.chat.showPlatformLabels) identity.append(element('span', 'platform', message.platform.toUpperCase()));
     const displayName = element('strong', 'display-name', message.user.displayName);
-    if (message.presentation.nameColor) displayName.style.color = message.presentation.nameColor;
+    if (message.presentation.nameColor) displayName.style.color = readableNameColor(message.presentation.nameColor, message.platform);
     identity.append(displayName);
     if (clientConfig.chat.showBadges && message.user.isBroadcaster) identity.append(element('span', 'role', 'HOST'));
     else if (clientConfig.chat.showBadges && message.user.isModerator) identity.append(element('span', 'role', 'MOD'));
     else if (clientConfig.chat.showBadges && message.user.isSubscriber) identity.append(element('span', 'role', 'MEMBER'));
     if (clientConfig.chat.showBadges && message.user.isBot) identity.append(element('span', 'role bot', 'BOT'));
     for (const badge of clientConfig.chat.showBadges ? message.presentation.badges : []) {
+      // Streamer.bot can supply a Moderator presentation badge as well as the normalized role.
+      // Keep one platform-neutral MOD marker instead of rendering MOD + Moderator side by side.
+      if (message.user.isModerator && isModeratorBadge(badge)) continue;
       const badgeElement = element('span', 'role badge');
       if (badge.iconUrl) {
         const icon = element('img', 'badge-icon');
@@ -267,6 +270,30 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
     if (chatConfig.messageColorMode === 'transparent') return 'transparent';
     const color = chatConfig.messageColorMode === 'platform' ? chatConfig.platformMessageColors[platform] || chatConfig.messageBackgroundColor : chatConfig.messageBackgroundColor;
     return rgba(color, chatConfig.messageBackgroundOpacity);
+  }
+
+  function isModeratorBadge(badge) {
+    const id = String(badge && badge.id ? badge.id : '').trim().toLowerCase();
+    const label = String(badge && badge.label ? badge.label : '').trim().toLowerCase();
+    return id === 'mod' || id === 'moderator' || label === 'mod' || label === 'moderator';
+  }
+
+  function readableNameColor(proposed, platform) {
+    if (clientConfig.chat.messageColorMode === 'transparent') return clientConfig.chat.textColor;
+    const background = clientConfig.chat.messageColorMode === 'platform' ? clientConfig.chat.platformMessageColors[platform] || clientConfig.chat.messageBackgroundColor : clientConfig.chat.messageBackgroundColor;
+    return contrastRatio(proposed, background) >= 4.5 ? proposed : clientConfig.chat.textColor;
+  }
+
+  function contrastRatio(first, second) {
+    const light = Math.max(relativeLuminance(first), relativeLuminance(second));
+    const dark = Math.min(relativeLuminance(first), relativeLuminance(second));
+    return (light + 0.05) / (dark + 0.05);
+  }
+
+  function relativeLuminance(hex) {
+    const value = String(hex).replace('#', '');
+    const channels = [value.slice(0, 2), value.slice(2, 4), value.slice(4, 6)].map((channel) => Number.parseInt(channel, 16) / 255).map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
   }
 
   function applyChatAppearance() {

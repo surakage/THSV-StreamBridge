@@ -3,8 +3,8 @@
   color-scheme: dark;
   font-family: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif;
   font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: subpixel-antialiased;
   --ink: #fff;
   --muted: #cfc8da;
   --violet: #a98cff;
@@ -89,9 +89,9 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 body[data-mode="chat"] { background: var(--chat-canvas-bg); }
 body[data-mode="chat"] .alerts, body[data-mode="alerts"] .chat-shell { display: none; }
 body[data-mode="chat"] .overlay, body[data-mode="alerts"] .overlay { padding: 0; }
-body[data-mode="chat"] .chat-shell { right: clamp(16px, 2vw, 40px); bottom: clamp(24px, 5vh, 56px); width: min(540px, calc(100vw - 32px)); max-height: 82vh; padding: 8px 8px clamp(20px, 3vh, 36px); border: 0; background: transparent; box-shadow: none; }
+body[data-mode="chat"] .chat-shell { right: 16px; bottom: 16px; width: min(540px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 8px 8px 20px; border: 0; background: transparent; box-shadow: none; }
 body[data-mode="chat"] .chat-shell header { display: none; }
-body[data-mode="chat"] .chat { max-height: 82vh; }
+body[data-mode="chat"] .chat { max-height: calc(100vh - 60px); }
 body[data-mode="chat"] .message.message-expiring { overflow: hidden; animation: chat-expire .24s ease-in forwards; }
 body[data-mode="chat"] .connection-status[data-state="reconnecting"] { right: 2vw; bottom: 1vh; top: auto; }
 body[data-mode="alerts"] .connection-status[data-state="reconnecting"] { top: 1vh; right: auto; left: 50%; transform: translateX(-50%); }

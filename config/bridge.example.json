@@ -59,7 +59,7 @@
       "messageBackgroundColor": "#171120",
       "messageBackgroundOpacity": 0.96,
       "messageColorMode": "platform",
-      "platformMessageColors": { "twitch": "#4b267b", "youtube": "#7d1717", "kick": "#245c18", "tiktok": "#172b31", "streamlabs": "#1f8f6a", "kofi": "#174a63" },
+      "platformMessageColors": { "twitch": "#321b52", "youtube": "#571313", "kick": "#153e12", "tiktok": "#10272c", "streamlabs": "#125a47", "kofi": "#123b52" },
       "showPlatformLabels": true,
       "showProfilePictures": true,
       "showBadges": true,
