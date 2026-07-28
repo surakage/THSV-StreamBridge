@@ -120,20 +120,17 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
       const oldest = visible.shift();
       if (!oldest) return;
       oldest.classList.add('message-expiring');
-      setTimeout(() => oldest.remove(), chatFadeMs);
+      setTimeout(() => { oldest.remove(); updateChatOverflow(); }, chatFadeMs);
     }
-    trimChatToViewport();
+    updateChatOverflow();
   }
 
-  function trimChatToViewport() {
+  function updateChatOverflow() {
     const styles = getComputedStyle(chat);
     const gap = Number.parseFloat(styles.rowGap || styles.gap) || 0;
     const items = [...chat.children];
-    const usedHeight = () => items.reduce((height, item) => height + item.getBoundingClientRect().height, 0) + gap * Math.max(0, items.length - 1);
-    while (items.length > 1 && usedHeight() > chat.clientHeight + 1) {
-      const oldest = items.shift();
-      if (oldest) oldest.remove();
-    }
+    const usedHeight = items.reduce((height, item) => height + item.getBoundingClientRect().height, 0) + gap * Math.max(0, items.length - 1);
+    chat.classList.toggle('chat-overflowing', usedHeight > chat.clientHeight + 1);
   }
 
   function addEventMessage(activity) {
@@ -336,7 +333,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
     return `rgba(${red}, ${green}, ${blue}, ${Math.max(0, Math.min(1, Number(opacity)))})`;
   }
 
-  const chatResizeObserver = new ResizeObserver(trimChatToViewport);
+  const chatResizeObserver = new ResizeObserver(updateChatOverflow);
   chatResizeObserver.observe(chat);
   const chatShell = chat.closest('.chat-shell');
   if (chatShell) chatResizeObserver.observe(chatShell);

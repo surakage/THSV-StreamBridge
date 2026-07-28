@@ -205,8 +205,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain('textContent');
     expect(source).toContain("new SharedWorker('/overlay/worker-1.3.2.js', 'thsv-browser-overlay-1.3.2'");
     expect(source).toContain("oldest.classList.add('message-expiring')");
-    expect(source).toContain('function trimChatToViewport()');
-    expect(source).toContain('new ResizeObserver(trimChatToViewport)');
+    expect(source).toContain('function updateChatOverflow()');
+    expect(source).toContain('new ResizeObserver(updateChatOverflow)');
     expect(source).toContain('new AlertPresentationController({');
     expect(source).toContain('alertController.enqueue(alert)');
     expect(source).toContain("console.warn('Skipped an alert that could not be rendered.'");
@@ -287,6 +287,7 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('.display-name { min-width: 0; max-width: 100%; color: #fff;');
     expect(styles).toContain('.message { flex: 0 0 auto; width: 100%; min-width: 0;');
     expect(styles).toContain('justify-content: flex-end;');
+    expect(styles).toContain('.chat.chat-overflowing { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 34px');
     expect(source).toContain("platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab'");
     expect(styles).toContain('font-size: var(--chat-font-size)');
     expect(styles).toContain('font-family: var(--chat-font-family)');

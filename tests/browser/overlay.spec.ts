@@ -425,12 +425,15 @@ test('all chat platforms use accessible contrasting names, one moderator badge, 
     const input = await fixture(fixtureName);
     await simulate(request, { ...input, payload: { message: `${platform} second row checks upward overflow without cutting the newest card.` } }, `overflow-${platform}`);
   }
+  await page.waitForTimeout(300);
   const overflowLayout = await page.locator('#chat .message').evaluateAll((cards) => cards.map((card) => {
     const bounds = card.getBoundingClientRect();
     return { top: bounds.top, bottom: bounds.bottom, text: card.textContent || '' };
   }));
-  expect(overflowLayout.length).toBeLessThan(8);
-  expect(overflowLayout.every((card) => card.top >= 7 && card.bottom <= 792)).toBe(true);
+  expect(overflowLayout).toHaveLength(8);
+  await expect(page.locator('#chat')).toHaveClass(/chat-overflowing/u);
+  expect(overflowLayout[0]?.top).toBeLessThan(8);
+  expect(overflowLayout.at(-1)?.bottom).toBeLessThanOrEqual(792);
   expect(overflowLayout.at(-1)?.text).toContain('tiktok second row');
   await page.screenshot({ path: testInfo.outputPath('chat-all-platform-readability.png') });
 });

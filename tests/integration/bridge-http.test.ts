@@ -112,12 +112,12 @@ describe('bridge HTTP integration', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
     }
-    const source = await fetch(`${baseUrl}/overlay/app-1.4.4.js`).then((response) => response.text());
+    const source = await fetch(`${baseUrl}/overlay/app-1.4.5.js`).then((response) => response.text());
     expect(source).not.toContain('companion');
     expect((await fetch(`${baseUrl}/overlay/alert-queue-1.2.2.js`)).status).toBe(200);
     expect((await fetch(`${baseUrl}/overlay/worker-1.3.1.js`)).status).toBe(200);
     expect((await fetch(`${baseUrl}/overlay/worker-1.3.2.js`)).status).toBe(200);
-    expect((await fetch(`${baseUrl}/overlay/styles-1.3.3.css`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/styles-1.3.4.css`)).status).toBe(200);
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
     expect((await fetch(`${baseUrl}/overlay/addons/unknown.module`)).status).toBe(404);
     expect((await fetch(`${baseUrl}/overlay/addons/host.js`)).status).toBe(200);
