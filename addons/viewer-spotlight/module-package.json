@@ -2,15 +2,16 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Displays privacy-gated, self-requested viewer cards from bounded Viewer Foundation and Community Analytics projections.",
-  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
+  "description": "Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Score from bounded projections.",
+  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
   "permissions": [
     "events.subscribe",
     "state.private",
     "overlay.publish",
     "schedule.bounded",
     "viewer.foundation.read",
-    "community.analytics.read"
+    "community.analytics.read",
+    "streamerbot.run-approved-action"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -23,11 +24,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-spotlight",
     "name": "Viewer Spotlight",
-    "version": "2.4.3",
+    "version": "2.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.4.3",
-    "maximumTestedBridgeVersion": "2.4.3",
+    "minimumBridgeVersion": "2.5.0",
+    "maximumTestedBridgeVersion": "2.5.0",
     "dependencies": [
       "thsv.viewer-foundation",
       "thsv.community-analytics"
@@ -36,6 +37,7 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "command.received",
+      "reward.redemption",
       "stream.online",
       "stream.offline"
     ],
@@ -45,7 +47,16 @@
         "name": "card"
       }
     ],
-    "actionsProvided": [],
+    "actionsProvided": [
+      {
+        "id": "viewer-spotlight.settle-reward",
+        "name": "THSV Addon - Viewer Spotlight - Settle Reward"
+      },
+      {
+        "id": "viewer-spotlight.discord-snapshot",
+        "name": "THSV Addon - Viewer Spotlight - Discord Snapshot"
+      }
+    ],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
       "data/addons/thsv.viewer-spotlight/",
@@ -73,23 +84,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 15196,
-      "sha256": "74e2b397de0be66a8114c519cb14ec0b36376f5a61db51928c5383ea3a5b02d4"
+      "size": 20831,
+      "sha256": "f3be1010165e94a9fafc79f87c0761f30573a284c8da67b3f696210d28068698"
     },
     {
       "path": "schemas/config.json",
-      "size": 4207,
-      "sha256": "186cec4a2e82c0c9714e6f2c6b8a6c113db641ddfa7d27f3b52d6b9daff31edb"
+      "size": 5515,
+      "sha256": "600b7111fb13b263e51a91fda410c296db747a1b664b70f4c68b2f38a5f098d0"
     },
     {
       "path": "ui/settings.json",
-      "size": 2768,
-      "sha256": "06bef794da60fa58cdf8236f32e18fc86ee9a4f9e74afc8cbdf4dda12f46dfbc"
+      "size": 4294,
+      "sha256": "0fce71ba36957bffbdced2bcf3db805e93907821f207f120a109693603bd8dfd"
     },
     {
       "path": "README.md",
-      "size": 2470,
-      "sha256": "25dc433d4c0f1f75c48a5203c463fab7a1e98d6a228b58e1d8ccfd569c57cee0"
+      "size": 2885,
+      "sha256": "bd789a714cc84af1a2167b1cc4300348d8d9633792c0f4412976680f4212d9bc"
     }
   ]
 }

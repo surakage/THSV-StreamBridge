@@ -48,8 +48,8 @@ describe('Chat Guard integration', () => {
 
     const status = await registry.administerChatGuard({ operation: 'status' });
     expect(status).toMatchObject({
-      mode: 'observe-only', incidentCount: 1, byRule: { 'blocked-domain': 1 },
-      providerCapabilities: { twitch: { observe: true, warn: false, delete: false, timeout: false, ban: false } },
+      mode: 'observe', incidentCount: 1, byRule: { 'blocked-domain': 1 },
+      providerCapabilities: { twitch: { observe: true, warn: true, delete: true, timeout: true, ban: true } },
     });
     const serialized = JSON.stringify(status);
     expect(serialized).not.toContain('private-stable-id');

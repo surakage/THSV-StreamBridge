@@ -61,7 +61,7 @@ export class DiagnosticsServer {
     private readonly requestShutdown?: () => void,
     private readonly overlayHub?: BrowserOverlayHub,
     private readonly wizard?: WizardService,
-    dataRoot = 'data',
+    private readonly dataRoot = 'data',
   ) {
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
     // Must be derived from the configured data root, not a bare relative literal: the portable
@@ -201,6 +201,19 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerViewerFoundation(JSON.parse(body.text) as ViewerFoundationAdminRequestV1));
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/viewer-foundation/migration' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await readLegacyViewerMigration(this.dataRoot));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/viewer-foundation/migration' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerViewerFoundation === undefined) return this.reply(response, 503, { error: 'Viewer Foundation administration is unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes); const input = JSON.parse(body.text) as Record<string, unknown>;
+        if (input['approvedByCreator'] !== true || typeof input['migrationDigest'] !== 'string') return this.reply(response, 403, { error: 'Legacy migration requires explicit creator approval and the preview digest.' });
+        const preview = await readLegacyViewerMigration(this.dataRoot);
+        if (!preview.found || preview.digest !== input['migrationDigest']) return this.reply(response, 409, { error: 'The legacy state changed after preview. Preview it again before importing.' });
+        return this.reply(response, 200, await this.target.administerViewerFoundation({ operation: 'import-legacy', approvedByCreator: true, migrationDigest: preview.digest, legacyViewers: preview.records }));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/community-analytics/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         if (this.target.administerCommunityAnalytics === undefined) return this.reply(response, 503, { error: 'Community Analytics administration is unavailable.' });
@@ -226,6 +239,10 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/wizard/api/addons' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), discovered: await this.wizard.discoverAddOns() });
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/addons/acceptance' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { acceptance: await this.wizard.listAddOnAcceptance() });
       }
       if (request.method === 'POST' && request.url === '/wizard/api/updates/check' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -277,6 +294,12 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.saveAddOnSettings(decodeURIComponent(addOnSettingsMatch[1]), JSON.parse(body.text) as unknown));
+      }
+      const addOnAcceptanceMatch = request.method === 'PUT' ? /^\/wizard\/api\/addons\/([^/]+)\/acceptance$/u.exec(request.url ?? '') : null;
+      if (addOnAcceptanceMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.saveAddOnAcceptance(decodeURIComponent(addOnAcceptanceMatch[1]), JSON.parse(body.text) as unknown));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/overlay-assets' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
@@ -431,12 +454,48 @@ interface AddOnPreviewSource {
   readonly settings: Readonly<Record<string, unknown>>;
 }
 
+interface LegacyViewerMigrationPreview {
+  readonly found: boolean;
+  readonly source: string;
+  readonly digest?: string;
+  readonly records: readonly Readonly<{ viewerId: string; points: number; lastAwardAt: Readonly<Record<string, number>> }>[];
+  readonly rejectedRecords: number;
+  readonly totalPoints: number;
+}
+
+async function readLegacyViewerMigration(dataRoot: string): Promise<LegacyViewerMigrationPreview> {
+  const path = resolve(dataRoot, 'state', 'viewer-progression.json');
+  try {
+    const information = await stat(path);
+    if (!information.isFile() || information.size > 2_000_000) throw new Error('Legacy Viewer Progression state must be a regular file no larger than 2 MB.');
+    const bytes = await readFile(path); const parsed = JSON.parse(bytes.toString('utf8')) as unknown;
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Legacy Viewer Progression state must be a JSON object.');
+    const viewers = (parsed as Record<string, unknown>)['viewers'];
+    if (viewers === null || typeof viewers !== 'object' || Array.isArray(viewers)) throw new Error('Legacy Viewer Progression state has no valid viewers object.');
+    const records: Array<{ viewerId: string; points: number; lastAwardAt: Record<string, number> }> = []; let rejectedRecords = 0;
+    for (const [viewerId, raw] of Object.entries(viewers).slice(0, 5_000)) {
+      if (!/^[a-z][a-z0-9-]{0,63}$/u.test(viewerId) || raw === null || typeof raw !== 'object' || Array.isArray(raw)) { rejectedRecords += 1; continue; }
+      const source = raw as Record<string, unknown>; const points = source['points'];
+      if (!Number.isSafeInteger(points) || (points as number) < 0) { rejectedRecords += 1; continue; }
+      const lastAwardAt: Record<string, number> = {}; const awards = source['lastAwardAt'];
+      if (awards !== null && typeof awards === 'object' && !Array.isArray(awards)) for (const [eventType, at] of Object.entries(awards).slice(0, 50)) if (/^[a-z][a-z0-9.-]{0,63}$/u.test(eventType) && Number.isSafeInteger(at) && (at as number) >= 0) lastAwardAt[eventType] = at as number;
+      records.push({ viewerId, points: points as number, lastAwardAt });
+    }
+    const boundedRecords = records.slice(0, 500);
+    return { found: true, source: 'data/state/viewer-progression.json', digest: createHash('sha256').update(bytes).digest('hex'), records: boundedRecords, rejectedRecords: rejectedRecords + Math.max(0, Object.keys(viewers).length - 5_000) + Math.max(0, records.length - boundedRecords.length), totalPoints: boundedRecords.reduce((total, record) => Math.min(Number.MAX_SAFE_INTEGER, total + record.points), 0) };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { found: false, source: 'data/state/viewer-progression.json', records: [], rejectedRecords: 0, totalPoints: 0 };
+    throw error;
+  }
+}
+
 export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource): Readonly<Record<string, unknown>> {
   if (addOn.moduleId !== 'thsv.viewer-spotlight') return { title: addOn.name, text: 'Overlay connection and scoped publication are working.', durationMs: 5_000, preview: true };
   const settings = addOn.settings;
   const fields: string[] = [];
   if (settings['showPoints'] !== false) fields.push('2,450 points');
   if (settings['showLevel'] !== false) fields.push('Level 25');
+  if (settings['showLatestAchievement'] !== false) fields.push('Community Supporter');
   if (settings['showObservedSessions'] === true) fields.push('14 observed sessions');
   if (settings['showObservedMessages'] === true) fields.push('328 observed messages');
   if (settings['showObservedCommands'] === true) fields.push('41 observed commands');
@@ -447,6 +506,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource): Readonly<Re
     title: `Preview Viewer${platform}`,
     text: fields.join(' • ') || 'Viewer card preview',
     durationMs: boundedPreviewInteger(settings['durationSeconds'], 3, 60, 10) * 1_000,
+    presentationMode: previewEnum(settings['displayMode'], ['single', 'fade-carousel', 'credits-scroll'], 'single'),
     preview: true,
     style: {
       backgroundMode: previewEnum(settings['backgroundMode'], ['glass', 'solid', 'none'], 'glass'),

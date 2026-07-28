@@ -25,6 +25,9 @@ export interface StreamerBotPackageActionInput {
   readonly sourceCode: string;
   readonly references?: readonly string[];
   readonly arguments?: readonly StreamerBotPackageArgumentInput[];
+  /** Hide high-frequency internal broker actions from Streamer.bot's Pending and History views. */
+  readonly excludeFromHistory?: boolean;
+  readonly excludeFromPending?: boolean;
   // Used only when id/sourceSubActionId are not pinned. Callers with a single action should
   // pass the same seed a legacy single-action manifest used (`manifest.name`) so an existing
   // package's already-pinned IDs remain reproducible if it ever drops its explicit pins.
@@ -117,8 +120,8 @@ export function buildStreamerBotPackage(
         id: action.id ?? stableStreamerBotUuid(`${action.stableIdentitySeed}:action`),
         queue: '00000000-0000-0000-0000-000000000000',
         enabled: true,
-        excludeFromHistory: false,
-        excludeFromPending: false,
+        excludeFromHistory: action.excludeFromHistory ?? false,
+        excludeFromPending: action.excludeFromPending ?? false,
         name: action.name,
         group: action.group,
         alwaysRun: false,

@@ -68,7 +68,7 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[data-guided-section="command-response"]')).toHaveAttribute('open', '');
   await expect(commandForm.locator('[data-guided-section="command-safety"]')).not.toHaveAttribute('open', '');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
-  await expect(commandForm.locator('[name="template"] option')).toHaveCount(17);
+  await expect(commandForm.locator('[name="template"] option')).toHaveCount(18);
   await expect(commandForm.locator('[name="template"] option[value="weather"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="discord"]')).toHaveCount(1);
   for (const removed of ['rules', 'love', 'specs', 'emotes', 'bot']) {
@@ -79,6 +79,7 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="template"] option[value="timezone"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="commands-help"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="coin-flip"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="random-joke"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="follow-age"]')).toBeEnabled();
   await expect(commandForm.locator('[name="commandDeliveryPlatform"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="commandSource"][value="tiktok"]')).toHaveCount(1);
@@ -420,6 +421,11 @@ test('Viewer Spotlight stays crisp and bounded with long names, maximum fields, 
   });
   expect(transparentStyle).toEqual({ background: 'rgba(0, 0, 0, 0)', shadow: 'none', border: 'rgba(0, 0, 0, 0)' });
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+
+  await publishViewerSpotlightCard(page, { title: 'Fade card', text: 'Animated without changing layout', durationMs: 8_000, presentationMode: 'fade-carousel' });
+  await expect(page.locator('#card')).toHaveAttribute('data-presentation', 'fade-carousel');
+  await publishViewerSpotlightCard(page, { title: 'Credits card', text: 'Moves vertically inside the fixed browser canvas', durationMs: 10_000, presentationMode: 'credits-scroll' });
+  await expect(page.locator('#card')).toHaveAttribute('data-presentation', 'credits-scroll');
 
   await page.reload();
   await expect(page.locator('#status')).toHaveText('LIVE');

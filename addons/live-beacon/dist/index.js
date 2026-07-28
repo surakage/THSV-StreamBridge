@@ -5,7 +5,7 @@ const DELIVERY_ACTION_ID = 'b99f5eae-d962-4b71-b2c5-64c19917189f';
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const pending = new Map(); let taskId; let stopped = true;
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.live-beacon', name: 'Live Beacon', version: '2.4.3', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.live-beacon', name: 'Live Beacon', version: '2.5.0', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.0', maximumTestedBridgeVersion: '2.5.0', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.online', RESULT_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.live-beacon/', 'data/addons/.state/thsv.live-beacon/'],
   installationSteps: ['Import the Live Beacon Streamer.bot package.', 'Put a private Discord webhook URL in its Set Argument, compile it, and run a harmless manual test.', 'Approve only its triggerless Deliver action, configure platform links/templates, then enable the add-on.'],
   uninstallationSteps: ['Uninstall the add-on. Its bounded stream deduplication history remains preserved.'], migrations: [], healthChecks: [{ id: 'thsv.live-beacon.runtime', description: 'Confirms verified online events can coalesce into one guarded Discord delivery.' }],

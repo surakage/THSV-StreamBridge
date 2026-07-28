@@ -4,15 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import chatGuard, { administerChatGuard, processChatGuardEvent, sanitizeChatGuardState, summarizeChatGuardState } from '../../addons/chat-guard/dist/index.js';
 
 function event(message: string, overrides: Record<string, unknown> = {}) { return { eventId: `event-${message}`, eventType: 'chat.message', platform: 'twitch', receivedAt: '2026-07-26T12:00:00.000Z', user: { id: 'stable-user-id', name: 'Visible Name', displayName: 'Visible Name', actorType: 'human', roles: [] }, payload: { message }, metadata: { simulated: false }, ...overrides }; }
-function runtime(settings: Record<string, unknown> = {}) { let state: Record<string, unknown> = {}; return { value: () => state, context: { settings: { enabled: true, ...settings }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) } } }; }
+function runtime(settings: Record<string, unknown> = {}) { let state: Record<string, unknown> = {}; return { value: () => state, context: { settings: { enabled: true, ...settings }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) }, streamerbot: { runApprovedAction: vi.fn(async () => undefined) }, chat: { send: vi.fn(async () => [{ platform: 'twitch', accepted: true, parts: 1 }]) } } }; }
 
-describe('Chat Guard observe-only add-on', () => {
-  it('flags configured signals but exposes no moderation or approved-action capability', async () => {
+describe('Chat Guard add-on', () => {
+  it('flags configured signals while enforcement stays off by default', async () => {
     const testRuntime = runtime({ blockedTerms: ['unsafe term'], maximumLinks: 1, minimumCapsLetters: 4, maximumCapsPercent: 75, maximumCharacterRun: 3, maximumMessageCharacters: 40 });
     const result = await processChatGuardEvent(event('UNSAFE TERM AAAAA HTTPS://ONE.TEST HTTPS://TWO.TEST THIS MESSAGE IS DELIBERATELY LONG'), testRuntime.context, 1000);
     expect(result).toMatchObject({ flagged: true, enforcement: 'none' });
     expect(result.rules).toEqual(expect.arrayContaining(['blocked-term', 'excessive-links', 'excessive-caps', 'repeated-characters', 'long-message']));
-    expect(chatGuard.manifest.actionsProvided).toEqual([]); expect(chatGuard.manifest.requiredCapabilities).toEqual([]);
+    expect(chatGuard.manifest.actionsProvided).toEqual([{ id: 'chat-guard.moderate', name: 'THSV Addon - Chat Guard - Moderate' }]); expect(chatGuard.manifest.requiredCapabilities).toEqual([]);
   });
 
   it('detects bounded repeated messages only at the configured threshold', async () => {
@@ -53,14 +53,14 @@ describe('Chat Guard observe-only add-on', () => {
   it('bounds and expires incident state while returning aggregate-only status', () => {
     const hash = 'a'.repeat(64); const state = sanitizeChatGuardState({ salt: 'b'.repeat(64), observations: Array.from({ length: 100 }, (_, index) => ({ accountHash: hash, messageHash: hash, at: index + 9000 })), processed: Array.from({ length: 100 }, (_, index) => ({ id: hash, at: index + 9000 })), incidents: Array.from({ length: 100 }, (_, index) => ({ id: hash, accountHash: hash, messageHash: hash, at: index + 9000, platform: 'twitch', rules: ['excessive-links'] })) }, { retentionHours: 1, retainedIncidents: 10, maximumTrackedObservations: 50 }, 10_000);
     expect(state.incidents).toHaveLength(10); expect(state.observations).toHaveLength(50); expect(state.processed).toHaveLength(50); expect(JSON.stringify(state).length).toBeLessThanOrEqual(60_000);
-    expect(summarizeChatGuardState(state, { retentionHours: 1, retainedIncidents: 10, maximumTrackedObservations: 50 }, 10_000)).toMatchObject({ mode: 'observe-only', incidentCount: 10, byRule: { 'excessive-links': 10 }, byPlatform: { twitch: 10 } });
+    expect(summarizeChatGuardState(state, { retentionHours: 1, retainedIncidents: 10, maximumTrackedObservations: 50 }, 10_000)).toMatchObject({ mode: 'observe', incidentCount: 10, byRule: { 'excessive-links': 10 }, byPlatform: { twitch: 10 } });
   });
 
   it('returns aggregate provider capability status and clears retained observations only with approval', async () => {
     const testRuntime = runtime({ blockedTerms: ['flag'] });
     await processChatGuardEvent(event('flag this message'), testRuntime.context, 1000);
     const status = await administerChatGuard({ operation: 'status' }, testRuntime.context, 2000);
-    expect(status).toMatchObject({ mode: 'observe-only', incidentCount: 1, byRule: { 'blocked-term': 1 }, providerCapabilities: { twitch: { observe: true, warn: false, delete: false, timeout: false, ban: false } } });
+    expect(status).toMatchObject({ mode: 'observe', incidentCount: 1, byRule: { 'blocked-term': 1 }, providerCapabilities: { twitch: { observe: true, warn: true, delete: true, timeout: true, ban: true }, youtube: { delete: false }, tiktok: { timeout: false } } });
     expect(JSON.stringify(status)).not.toContain('flag this message'); expect(JSON.stringify(status)).not.toContain('stable-user-id');
     const incidentId = status.recentIncidents[0].incidentId;
     await expect(administerChatGuard({ operation: 'review', incidentId, decision: 'false-positive', approvedByCreator: true }, testRuntime.context, 2000)).resolves.toMatchObject({ incidentId, decision: 'false-positive', enforcementPerformed: false });
@@ -82,5 +82,16 @@ describe('Chat Guard observe-only add-on', () => {
     await administerChatGuard({ operation: 'permit', platform: 'twitch', userId: 'stable-user-id', durationMinutes: 15, maximumUses: 2, approvedByCreator: true }, testRuntime.context, 4000);
     await expect(administerChatGuard({ operation: 'clear-permits', approvedByCreator: true }, testRuntime.context, 5000)).resolves.toMatchObject({ removedPermits: 1, enforcementPerformed: false });
     await expect(administerChatGuard({ operation: 'status' }, testRuntime.context, 5000)).resolves.toMatchObject({ activePermitCount: 0 });
+  });
+
+  it('requires both approval gates, caps actions, and never enforces simulations', async () => {
+    const testRuntime = runtime({ blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'timeout', maximumEnforcementsPerMinute: 1 });
+    await expect(processChatGuardEvent(event('flag once'), testRuntime.context, 1000)).resolves.toMatchObject({ enforcement: 'dispatched' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith('9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9', expect.objectContaining({ chatGuardPlatform: 'twitch', chatGuardMode: 'timeout', chatGuardUserId: 'stable-user-id' }));
+    await expect(processChatGuardEvent(event('flag twice', { eventId: 'second' }), testRuntime.context, 2000)).resolves.toMatchObject({ enforcement: 'unsupported' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    const simulation = runtime({ blockedTerms: ['flag'], includeSimulated: true, enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'ban' });
+    await expect(processChatGuardEvent(event('flag simulation', { eventId: 'sim', metadata: { simulated: true } }), simulation.context, 1000)).resolves.toMatchObject({ enforcement: 'none' });
+    expect(simulation.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
   });
 });

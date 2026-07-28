@@ -1,15 +1,18 @@
-// Chat Guard observes normalized public chat for creator-configured safety signals.
-// This release is deliberately non-enforcing: it cannot warn, delete, timeout, ban, or call Streamer.bot.
+// Chat Guard classifies normalized public chat and can optionally dispatch one creator-approved,
+// fail-closed moderation controller. Enforcement is disabled until both approval switches are saved.
+const MODERATE_ACTION_ID = '9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9';
+const RESULT_EVENT = 'addon.thsv.chat-guard.moderation-result';
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.chat-guard', name: 'Chat Guard', version: '2.4.3',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3',
-  dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message'], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.chat-guard', name: 'Chat Guard', version: '2.5.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.0', maximumTestedBridgeVersion: '2.5.0',
+  dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', RESULT_EVENT], commandsProvided: [], actionsProvided: [{ id: 'chat-guard.moderate', name: 'THSV Addon - Chat Guard - Moderate' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.chat-guard/', 'data/addons/.state/thsv.chat-guard/'],
-  installationSteps: ['Install Chat Guard, review every observe-only rule, and leave it disabled until the preview matches your community.', 'Enable it to collect bounded pseudonymous incident metadata. No moderation action is performed.'],
+  installationSteps: ['Install Chat Guard and validate rules in Observe mode first.', 'To enforce, import its Streamer.bot package, keep Moderate triggerless, approve only its stable action ID, then explicitly approve enforcement in the wizard.'],
   uninstallationSteps: ['Uninstall the add-on. Its private pseudonymous incident state remains preserved for a later reinstall or creator review.'], migrations: [],
-  healthChecks: [{ id: 'thsv.chat-guard.runtime', description: 'Confirms bounded observe-only public-chat classification is available without moderation authority.' }],
+  healthChecks: [{ id: 'thsv.chat-guard.runtime', description: 'Confirms bounded public-chat classification and fail-closed optional moderation dispatch are available.' }],
 };
 const FALLBACKS = Object.freeze({ enabled: false, includeSimulated: false, enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], ignoredAccounts: [], exemptBroadcaster: true, exemptModerators: true, exemptVips: true, exemptSubscribers: false,
+  enforcementEnabled: false, creatorApprovedEnforcement: false, enforcementMode: 'observe', timeoutSeconds: 60, warningMessage: 'Please keep chat safe and follow the channel rules.', maximumEnforcementsPerMinute: 5,
   blockedTerms: [], blockedDomains: [], allowedDomains: [], detectLinks: true, maximumLinks: 2, detectCaps: true, minimumCapsLetters: 12, maximumCapsPercent: 80, detectRepeatedCharacters: true, maximumCharacterRun: 8,
   detectLongMessages: true, maximumMessageCharacters: 500, detectRepeatedMessages: true, repeatWindowSeconds: 30, repeatMessageCount: 3, retainedIncidents: 200, retentionHours: 24, maximumTrackedObservations: 500 });
 const PLATFORM = /^(twitch|youtube|kick|tiktok)$/u;
@@ -31,6 +34,7 @@ function settingsFor(context) {
     allowedDomains: Array.isArray(raw.allowedDomains) ? [...new Set(raw.allowedDomains.map(normalizeDomain).filter(Boolean))].slice(0, 200) : [],
     maximumLinks: integer(raw.maximumLinks, 0, 20, 2), minimumCapsLetters: integer(raw.minimumCapsLetters, 4, 100, 12), maximumCapsPercent: integer(raw.maximumCapsPercent, 50, 100, 80),
     maximumCharacterRun: integer(raw.maximumCharacterRun, 3, 50, 8), maximumMessageCharacters: integer(raw.maximumMessageCharacters, 40, 2000, 500), repeatWindowSeconds: integer(raw.repeatWindowSeconds, 5, 300, 30), repeatMessageCount: integer(raw.repeatMessageCount, 2, 10, 3),
+    enforcementMode: ['observe', 'warn', 'delete', 'timeout', 'ban'].includes(raw.enforcementMode) ? raw.enforcementMode : 'observe', timeoutSeconds: integer(raw.timeoutSeconds, 10, 86_400, 60), warningMessage: clean(raw.warningMessage, 300) || FALLBACKS.warningMessage, maximumEnforcementsPerMinute: integer(raw.maximumEnforcementsPerMinute, 1, 20, 5),
     retainedIncidents: integer(raw.retainedIncidents, 10, 1000, 200), retentionHours: integer(raw.retentionHours, 1, 168, 24), maximumTrackedObservations: integer(raw.maximumTrackedObservations, 50, 2000, 500) };
 }
 function sanitizeState(value, settings = FALLBACKS, now = Date.now()) {
@@ -40,15 +44,41 @@ function sanitizeState(value, settings = FALLBACKS, now = Date.now()) {
   const processed = Array.isArray(source.processed) ? source.processed.filter((item) => item && typeof item === 'object' && HEX_64.test(item.id) && Number.isSafeInteger(item.at) && item.at >= cutoff).map((item) => ({ id: item.id, at: item.at })).slice(-integer(settings.maximumTrackedObservations, 50, 2000, 500)) : [];
   const incidents = Array.isArray(source.incidents) ? source.incidents.filter((item) => item && typeof item === 'object' && HEX_64.test(item.id) && HEX_64.test(item.accountHash) && HEX_64.test(item.messageHash) && Number.isSafeInteger(item.at) && item.at >= cutoff && PLATFORM.test(item.platform) && Array.isArray(item.rules)).map((item) => ({ id: item.id, at: item.at, platform: item.platform, accountHash: item.accountHash, messageHash: item.messageHash, rules: [...new Set(item.rules.filter((rule) => typeof rule === 'string' && /^[a-z][a-z0-9-]{0,63}$/u.test(rule)))].slice(0, 10), simulated: item.simulated === true, review: item.review === 'confirmed' || item.review === 'false-positive' ? item.review : 'unreviewed' })).filter((item) => item.rules.length > 0).slice(-integer(settings.retainedIncidents, 10, 1000, 200)) : [];
   const permits = Array.isArray(source.permits) ? source.permits.filter((item) => item && typeof item === 'object' && HEX_64.test(item.accountHash) && Number.isSafeInteger(item.expiresAt) && item.expiresAt > now && Number.isSafeInteger(item.remainingUses) && item.remainingUses > 0).map((item) => ({ accountHash: item.accountHash, expiresAt: item.expiresAt, remainingUses: integer(item.remainingUses, 1, 20, 1) })).sort((left, right) => left.expiresAt - right.expiresAt).slice(0, 500) : [];
-  const state = { version: 1, salt, observations, processed, incidents, permits };
+  const enforcementResults = Array.isArray(source.enforcementResults) ? source.enforcementResults.filter((item) => item && typeof item === 'object' && HEX_64.test(item.incidentId) && Number.isSafeInteger(item.at) && item.at >= cutoff && ['dispatched', 'succeeded', 'failed', 'unsupported'].includes(item.status)).map((item) => ({ incidentId: item.incidentId, at: item.at, platform: PLATFORM.test(item.platform) ? item.platform : 'system', mode: ['warn', 'delete', 'timeout', 'ban'].includes(item.mode) ? item.mode : 'warn', status: item.status, error: clean(item.error, 160) })).slice(-100) : [];
+  const state = { version: 1, salt, observations, processed, incidents, permits, enforcementResults };
   while (JSON.stringify(state).length > MAXIMUM_STATE_BYTES) {
     if (state.observations.length > 10) { state.observations.shift(); continue; }
     if (state.processed.length > 10) { state.processed.shift(); continue; }
     if (state.incidents.length > 10) { state.incidents.shift(); continue; }
     if (state.permits.length > 10) { state.permits.shift(); continue; }
+    if (state.enforcementResults.length > 10) { state.enforcementResults.shift(); continue; }
     throw new Error('Chat Guard state cannot fit within its private-state safety limit.');
   }
   return state;
+}
+function canEnforce(platform, mode, event) {
+  if (mode === 'warn') return true;
+  if (mode === 'delete') return (platform === 'twitch' || platform === 'kick') && clean(event.source?.eventId, 256).length > 0;
+  return platform === 'twitch' || platform === 'youtube' || platform === 'kick';
+}
+async function enforceIncident(event, incident, context, settings, state, now) {
+  const mode = settings.enforcementMode;
+  if (!settings.enforcementEnabled || !settings.creatorApprovedEnforcement || mode === 'observe' || incident.simulated) return 'none';
+  const recent = state.enforcementResults.filter((item) => item.at >= now - 60_000 && item.status !== 'unsupported').length;
+  if (recent >= settings.maximumEnforcementsPerMinute || !canEnforce(event.platform, mode, event)) { state.enforcementResults.push({ incidentId: incident.id, at: now, platform: event.platform, mode, status: 'unsupported', error: recent >= settings.maximumEnforcementsPerMinute ? 'Per-minute enforcement cap reached.' : 'Mode is unsupported for this platform or missing a stable message ID.' }); return 'unsupported'; }
+  if (mode === 'warn') {
+    const delivered = await context.chat.send({ message: settings.warningMessage, routing: 'source', sourcePlatform: event.platform, overflow: 'reject' });
+    const succeeded = delivered.some((item) => item.accepted === true); state.enforcementResults.push({ incidentId: incident.id, at: now, platform: event.platform, mode, status: succeeded ? 'succeeded' : 'failed', error: succeeded ? '' : 'Warning delivery was rejected.' }); return succeeded ? 'succeeded' : 'failed';
+  }
+  const requestId = incident.id.slice(0, 32);
+  await context.streamerbot.runApprovedAction(MODERATE_ACTION_ID, { chatGuardRequestId: requestId, chatGuardIncidentId: incident.id, chatGuardPlatform: event.platform, chatGuardMode: mode, chatGuardUserId: clean(event.user?.id, 256), chatGuardUserName: clean(event.user?.name, 256), chatGuardMessageId: clean(event.source?.eventId, 256), chatGuardBroadcastId: clean(event.channel?.id, 256), chatGuardTimeoutSeconds: settings.timeoutSeconds, chatGuardReason: `THSV Chat Guard: ${incident.rules.join(', ')}`.slice(0, 200) });
+  state.enforcementResults.push({ incidentId: incident.id, at: now, platform: event.platform, mode, status: 'dispatched', error: '' }); return 'dispatched';
+}
+async function handleModerationResult(event, context, now = Date.now()) {
+  const incidentId = clean(event.payload?.incidentId, 64); if (!HEX_64.test(incidentId)) return;
+  const settings = settingsFor(context); const state = sanitizeState(await context.state.read(), settings, now); const pending = [...state.enforcementResults].reverse().find((item) => item.incidentId === incidentId && item.status === 'dispatched'); if (!pending) return;
+  pending.status = event.payload?.success === true ? 'succeeded' : 'failed'; pending.error = pending.status === 'failed' ? clean(event.payload?.error, 160) || 'Streamer.bot moderation was not confirmed.' : '';
+  await context.state.write(sanitizeState(state, settings, now));
 }
 function roleSet(user) { return new Set(Array.isArray(user?.roles) ? user.roles.map((role) => clean(role, 64).toLowerCase()) : []); }
 function isExempt(user, settings) { const roles = roleSet(user); return (settings.exemptBroadcaster && roles.has('broadcaster')) || (settings.exemptModerators && (roles.has('moderator') || roles.has('mod'))) || (settings.exemptVips && roles.has('vip')) || (settings.exemptSubscribers && (roles.has('subscriber') || roles.has('member'))); }
@@ -87,9 +117,10 @@ export async function processChatGuardEvent(event, context, now = Date.now()) {
   state.observations.push({ accountHash, messageHash, at: now }); state.processed.push({ id: eventHash, at: now });
   let incident;
   if (rules.length > 0) { incident = { id: await digest(`${state.salt}|incident|${clean(event.eventId, 256)}|${rules.join(',')}`), at: now, platform: event.platform, accountHash, messageHash, rules, simulated: event.metadata?.simulated === true, review: 'unreviewed' }; state.incidents.push(incident); }
-  await context.state.write(sanitizeState(state, settings, now)); return { observed: true, flagged: incident !== undefined, rules, enforcement: 'none', permitApplied };
+  let enforcement = 'none'; if (incident !== undefined) { try { enforcement = await enforceIncident(event, incident, context, settings, state, now); } catch { state.enforcementResults.push({ incidentId: incident.id, at: now, platform: event.platform, mode: settings.enforcementMode, status: 'failed', error: 'Moderation dispatch failed before provider confirmation.' }); enforcement = 'failed'; } }
+  await context.state.write(sanitizeState(state, settings, now)); return { observed: true, flagged: incident !== undefined, rules, enforcement, permitApplied };
 }
-export function summarizeChatGuardState(value, settings = FALLBACKS, now = Date.now()) { const state = sanitizeState(value, settings, now); const byRule = {}; const byPlatform = {}; const byReview = { unreviewed: 0, confirmed: 0, 'false-positive': 0 }; for (const incident of state.incidents) { byPlatform[incident.platform] = (byPlatform[incident.platform] || 0) + 1; byReview[incident.review] += 1; for (const rule of incident.rules) byRule[rule] = (byRule[rule] || 0) + 1; } const recentIncidents = state.incidents.slice(-20).reverse().map((incident) => ({ incidentId: incident.id, at: incident.at, platform: incident.platform, rules: incident.rules, simulated: incident.simulated, review: incident.review })); return { mode: 'observe-only', incidentCount: state.incidents.length, trackedObservationCount: state.observations.length, byRule, byPlatform, byReview, recentIncidents }; }
+export function summarizeChatGuardState(value, settings = FALLBACKS, now = Date.now()) { const state = sanitizeState(value, settings, now); const byRule = {}; const byPlatform = {}; const byReview = { unreviewed: 0, confirmed: 0, 'false-positive': 0 }; for (const incident of state.incidents) { byPlatform[incident.platform] = (byPlatform[incident.platform] || 0) + 1; byReview[incident.review] += 1; for (const rule of incident.rules) byRule[rule] = (byRule[rule] || 0) + 1; } const recentIncidents = state.incidents.slice(-20).reverse().map((incident) => ({ incidentId: incident.id, at: incident.at, platform: incident.platform, rules: incident.rules, simulated: incident.simulated, review: incident.review })); const enforcement = { dispatched: 0, succeeded: 0, failed: 0, unsupported: 0 }; for (const result of state.enforcementResults) enforcement[result.status] += 1; return { mode: settings.enforcementEnabled && settings.creatorApprovedEnforcement ? settings.enforcementMode : 'observe', incidentCount: state.incidents.length, trackedObservationCount: state.observations.length, byRule, byPlatform, byReview, enforcement, recentIncidents }; }
 export async function administerChatGuard(request, context, now = Date.now()) {
   const settings = settingsFor(context); const state = sanitizeState(await context.state.read(), settings, now);
   if (request.operation === 'test') {
@@ -121,13 +152,13 @@ export async function administerChatGuard(request, context, now = Date.now()) {
   }
   if (request.operation !== 'status') throw new Error('Unsupported Chat Guard administration operation.');
   const summary = summarizeChatGuardState(state, settings, now); const timestamps = state.incidents.map((item) => item.at);
-  const capability = { observe: true, warn: false, delete: false, timeout: false, ban: false, reason: 'Observe-only release; no provider-moderation or Streamer.bot action capability is granted.' };
+  const capabilities = { twitch: { observe: true, warn: true, delete: true, timeout: true, ban: true }, youtube: { observe: true, warn: true, delete: false, timeout: true, ban: true }, kick: { observe: true, warn: true, delete: true, timeout: true, ban: true }, tiktok: { observe: true, warn: true, delete: false, timeout: false, ban: false } };
   return { operation: 'status', ...summary, enabled: settings.enabled === true, enabledPlatforms: [...settings.enabledPlatforms], includeSimulated: settings.includeSimulated === true,
     retentionHours: settings.retentionHours, retainedIncidentLimit: settings.retainedIncidents, activePermitCount: state.permits.length, nextPermitExpiryAt: state.permits.length ? Math.min(...state.permits.map((item) => item.expiresAt)) : null, oldestIncidentAt: timestamps.length ? Math.min(...timestamps) : null, newestIncidentAt: timestamps.length ? Math.max(...timestamps) : null,
     configuredSignals: { literalTerms: settings.blockedTerms.length, blockedDomains: settings.blockedDomains.length, allowedDomains: settings.allowedDomains.length, excessiveLinks: settings.detectLinks === true, excessiveCaps: settings.detectCaps === true, repeatedCharacters: settings.detectRepeatedCharacters === true, longMessages: settings.detectLongMessages === true, repeatedMessages: settings.detectRepeatedMessages === true },
-    providerCapabilities: Object.fromEntries(['twitch', 'youtube', 'kick', 'tiktok'].map((platform) => [platform, capability])) };
+    providerCapabilities: capabilities };
 }
 function serialize(task) { operation = operation.then(task, task); return operation; }
 export function resetChatGuardRuntime() { operation = Promise.resolve(); }
 export { sanitizeState as sanitizeChatGuardState, classify as classifyChatGuardMessage };
-export default { manifest, required: false, async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); if (settings.enabled) await context.state.write(sanitizeState(await context.state.read(), settings)); }, async stop() { await operation; operation = Promise.resolve(); }, async onEvent(event, context) { return serialize(() => processChatGuardEvent(event, context)); }, async administerChatGuard(request, context) { return serialize(() => administerChatGuard(request, context)); } };
+export default { manifest, required: false, async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); if (settings.enabled) await context.state.write(sanitizeState(await context.state.read(), settings)); }, async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); }, async onEvent(event, context) { return serialize(() => event.eventType === RESULT_EVENT ? handleModerationResult(event, context) : processChatGuardEvent(event, context)); }, async administerChatGuard(request, context) { return serialize(() => administerChatGuard(request, context)); } };

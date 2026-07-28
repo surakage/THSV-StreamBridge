@@ -2,11 +2,13 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Observes normalized public chat for bounded creator-configured safety signals without performing moderation actions.",
-  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default observe-only release with literal, normalized-domain, link, caps, repeated-character, length, and repeat-message signals; stable-ID and role trust controls; temporary hashed link permits; bounded pseudonymous incident state; authenticated aggregate capability/status; non-persisting rule tests; and confirmed/false-positive review labels.",
+  "description": "Classifies normalized public chat and optionally performs capped, creator-approved, platform-aware moderation through one triggerless controller.",
+  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default observe-only release with literal, normalized-domain, link, caps, repeated-character, length, and repeat-message signals; stable-ID and role trust controls; temporary hashed link permits; bounded pseudonymous incident state; authenticated aggregate capability/status; non-persisting rule tests; and confirmed/false-positive review labels.",
   "permissions": [
     "events.subscribe",
-    "state.private"
+    "state.private",
+    "chat.send",
+    "streamerbot.run-approved-action"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -19,27 +21,33 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.chat-guard",
     "name": "Chat Guard",
-    "version": "2.4.3",
+    "version": "2.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.4.3",
-    "maximumTestedBridgeVersion": "2.4.3",
+    "minimumBridgeVersion": "2.5.0",
+    "maximumTestedBridgeVersion": "2.5.0",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
-      "chat.message"
+      "chat.message",
+      "addon.thsv.chat-guard.moderation-result"
     ],
     "commandsProvided": [],
-    "actionsProvided": [],
+    "actionsProvided": [
+      {
+        "id": "chat-guard.moderate",
+        "name": "THSV Addon - Chat Guard - Moderate"
+      }
+    ],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
       "data/addons/thsv.chat-guard/",
       "data/addons/.state/thsv.chat-guard/"
     ],
     "installationSteps": [
-      "Install Chat Guard, review every observe-only rule, and leave it disabled until the preview matches your community.",
-      "Enable it to collect bounded pseudonymous incident metadata. No moderation action is performed."
+      "Install Chat Guard and validate rules in Observe mode first.",
+      "To enforce, import its Streamer.bot package, keep Moderate triggerless, approve only its stable action ID, then explicitly approve enforcement in the wizard."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its private pseudonymous incident state remains preserved for a later reinstall or creator review."
@@ -48,7 +56,7 @@
     "healthChecks": [
       {
         "id": "thsv.chat-guard.runtime",
-        "description": "Confirms bounded observe-only public-chat classification is available without moderation authority."
+        "description": "Confirms bounded public-chat classification and fail-closed optional moderation dispatch are available."
       }
     ]
   },
@@ -57,23 +65,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 19620,
-      "sha256": "05f559be2d94157ee97f8cb587f6f51cc600d7ef75230583d00eb27b7cbfc840"
+      "size": 24996,
+      "sha256": "120a71eb93a4a4b6899256c000fdb6d5c497b065e3a177504b95f4dfc13531e0"
     },
     {
       "path": "schemas/config.json",
-      "size": 4346,
-      "sha256": "93beaafcd002b14247936a134944f9df4d1df36f2ecf3fe457929f338285a398"
+      "size": 5430,
+      "sha256": "44b9e21fcece03d4beeca5614dfba1253376772b3b6e213a4a0bf2c22de5e6cd"
     },
     {
       "path": "ui/settings.json",
-      "size": 3263,
-      "sha256": "aa95cbfb2ff59ca2858fa5a5211470fb6bf7e7b8d8879781442d4ce457af5057"
+      "size": 4351,
+      "sha256": "ff7475c25d9d94159f53fd3f25b412481e25ec180de678d7294f9d7594e1129d"
     },
     {
       "path": "README.md",
-      "size": 2030,
-      "sha256": "d60f5db212ada8df1cb196b79f30e67f4b86e1ae783703ee317b4ce7a8cb8b56"
+      "size": 2365,
+      "sha256": "c2a1d976e1cd41cceffaa6988c5222300000711d0062b2ace0ce1a5291447c95"
     }
   ]
 }

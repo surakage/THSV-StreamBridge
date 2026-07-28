@@ -56,6 +56,14 @@ describe('wizard add-on management', () => {
     await expect(service.install({ filename: 'status-card.thsv-addon', contentBase64: Buffer.from(archive).toString('base64'), approvedByCreator: true })).resolves.toMatchObject({ installed: true, moduleId: 'sample.status-card', restartRequired: true });
     await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.status-card', packageKind: 'declarative', enabled: true, settings: { label: 'Hello, stream!', interval: 30, enabled: true, color: 'purple', labels: ['one'] } })]);
 
+    const initialAcceptance = await service.listAcceptance();
+    expect(initialAcceptance['sample.status-card']).toMatchObject({ version: '1.0.0', offlineStatus: 'pending', providerStatus: 'pending' });
+    await expect(service.saveAcceptance('sample.status-card', { offlineStatus: 'passed', providerStatus: 'pending', evidence: 'Simulator routing and overlay preview passed.', approvedByCreator: false })).rejects.toThrow('explicit creator approval');
+    await expect(service.saveAcceptance('sample.status-card', { offlineStatus: 'passed', providerStatus: 'pending', evidence: 'token=secret-value', approvedByCreator: true })).rejects.toThrow('Do not store');
+    await expect(service.saveAcceptance('sample.status-card', { offlineStatus: 'passed', providerStatus: 'pending', evidence: 'Simulator routing and overlay preview passed.', approvedByCreator: true })).resolves.toMatchObject({ moduleId: 'sample.status-card', version: '1.0.0', offlineStatus: 'passed', providerStatus: 'pending' });
+    const savedAcceptance = await service.listAcceptance();
+    expect(savedAcceptance['sample.status-card']).toMatchObject({ offlineStatus: 'passed', evidence: 'Simulator routing and overlay preview passed.' });
+
     await expect(service.saveSettings('sample.status-card', { label: '', interval: 30, enabled: true, color: 'purple' })).rejects.toThrow('from 1 through 40');
     await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', surprise: true })).rejects.toThrow('Unknown add-on setting');
     await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green' })).resolves.toMatchObject({ saved: true });

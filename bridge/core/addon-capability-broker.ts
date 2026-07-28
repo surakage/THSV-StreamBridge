@@ -51,9 +51,18 @@ const viewerProjectionQuerySchema = z.object({
   if (byViewer === byAccount) context.addIssue({ code: 'custom', message: 'Supply exactly one viewerId or one platform/userId account pair.' });
   if ((query.platform === undefined) !== (query.userId === undefined)) context.addIssue({ code: 'custom', message: 'platform and userId must be supplied together.' });
 });
-const viewerProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), viewerId: viewerIdSchema, linked: z.boolean(), points: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), level: z.number().int().positive().max(1_000_000), nextLevelAt: z.number().int().positive().max(Number.MAX_SAFE_INTEGER) }).strict();
+const achievementSchema = z.object({ id: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u), label: z.string().trim().min(1).max(80), points: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
+const viewerProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), viewerId: viewerIdSchema, linked: z.boolean(), points: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), level: z.number().int().positive().max(1_000_000), nextLevelAt: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), achievements: z.array(achievementSchema).max(20).optional(), latestAchievement: achievementSchema.optional() }).strict();
 const viewerMutationSchema = z.object({ viewerId: viewerIdSchema, operation: z.enum(['add', 'spend', 'refund']), amount: z.number().int().min(1).max(1_000_000), reason: z.string().trim().min(1).max(200), idempotencyKey: z.string().trim().min(1).max(128) }).strict();
 const viewerMutationResultSchema = viewerProjectionSchema.extend({ operation: z.enum(['add', 'spend', 'refund']), amount: z.number().int().min(1).max(1_000_000), previousPoints: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), duplicate: z.boolean() }).strict();
+function parsedViewerProjection(value: unknown): ViewerFoundationProjectionV1 {
+  const parsed = viewerProjectionSchema.parse(value);
+  return Object.freeze({ contractVersion: parsed.contractVersion, viewerId: parsed.viewerId, linked: parsed.linked, points: parsed.points, level: parsed.level, nextLevelAt: parsed.nextLevelAt, ...(parsed.achievements === undefined ? {} : { achievements: Object.freeze(parsed.achievements.map((item) => Object.freeze(item))) }), ...(parsed.latestAchievement === undefined ? {} : { latestAchievement: Object.freeze(parsed.latestAchievement) }) });
+}
+function parsedViewerMutation(value: unknown): ViewerFoundationMutationResultV1 {
+  const parsed = viewerMutationResultSchema.parse(value); const projection = parsedViewerProjection({ contractVersion: parsed.contractVersion, viewerId: parsed.viewerId, linked: parsed.linked, points: parsed.points, level: parsed.level, nextLevelAt: parsed.nextLevelAt, ...(parsed.achievements === undefined ? {} : { achievements: parsed.achievements }), ...(parsed.latestAchievement === undefined ? {} : { latestAchievement: parsed.latestAchievement }) });
+  return Object.freeze({ ...projection, operation: parsed.operation, amount: parsed.amount, previousPoints: parsed.previousPoints, duplicate: parsed.duplicate });
+}
 const viewerAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   z.object({ operation: z.literal('export'), viewerId: viewerIdSchema }).strict(),
@@ -63,6 +72,7 @@ const viewerAdminSchema = z.discriminatedUnion('operation', [
       if (value.adjustment !== 'reset' && value.amount === undefined) context.addIssue({ code: 'custom', message: 'Add and remove corrections require an amount.' });
       if (value.adjustment === 'reset' && value.amount !== undefined) context.addIssue({ code: 'custom', message: 'Reset corrections must not include an amount.' });
     }),
+  z.object({ operation: z.literal('import-legacy'), migrationDigest: z.string().regex(/^[a-f0-9]{64}$/u), approvedByCreator: z.literal(true), legacyViewers: z.array(z.object({ viewerId: viewerIdSchema, points: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), lastAwardAt: z.record(z.string().regex(/^[a-z][a-z0-9.-]{0,63}$/u), z.number().int().nonnegative()).refine((value) => Object.keys(value).length <= 50) }).strict()).max(500) }).strict(),
 ]);
 const analyticsCountersSchema = z.object({ messages: z.number().int().nonnegative(), commands: z.number().int().nonnegative(), follows: z.number().int().nonnegative(), subscriptions: z.number().int().nonnegative(), memberships: z.number().int().nonnegative(), giftSubscriptions: z.number().int().nonnegative(), gifts: z.number().int().nonnegative(), cheers: z.number().int().nonnegative(), superChats: z.number().int().nonnegative(), raids: z.number().int().nonnegative(), rewardRedemptions: z.number().int().nonnegative() }).strict();
 const analyticsViewerProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), viewerId: viewerIdSchema, observed: z.boolean(), firstSeenAt: z.number().int().nonnegative().optional(), lastSeenAt: z.number().int().nonnegative().optional(), sessions: z.number().int().nonnegative(), counters: analyticsCountersSchema, activeSession: z.boolean(), activeLastSeenAt: z.number().int().nonnegative().optional(), scoreSeason: z.string().regex(/^\d{4}-\d{2}$/u).optional(), engagementScore: z.number().int().nonnegative().optional(), seasonRank: z.number().int().positive().optional(), rankCohortSize: z.number().int().nonnegative().optional() }).strict();
@@ -369,7 +379,7 @@ export class AddOnCapabilityBroker {
     try {
       const result = await withTimeout(provider.getProjection(parsed), VIEWER_PROVIDER_TIMEOUT_MS, 'Viewer Foundation projection');
       this.record(grant.moduleId, 'viewer.foundation.getProjection', 'granted');
-      return result === undefined ? undefined : Object.freeze(viewerProjectionSchema.parse(result));
+      return result === undefined ? undefined : parsedViewerProjection(result);
     } catch (error) { this.record(grant.moduleId, 'viewer.foundation.getProjection', 'failed'); throw error; }
   }
 
@@ -380,7 +390,7 @@ export class AddOnCapabilityBroker {
     try {
       const result = await withTimeout(provider.mutate({ ...parsed, callerModuleId: grant.moduleId }), VIEWER_PROVIDER_TIMEOUT_MS, 'Viewer Foundation mutation');
       this.record(grant.moduleId, 'viewer.foundation.mutate', 'granted');
-      return Object.freeze(viewerMutationResultSchema.parse(result));
+      return parsedViewerMutation(result);
     } catch (error) { this.record(grant.moduleId, 'viewer.foundation.mutate', 'failed'); throw error; }
   }
 

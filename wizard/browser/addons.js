@@ -3,9 +3,10 @@ async function loadAddOns() {
   status.setAttribute('aria-busy', 'true');
   status.textContent = 'Verifying installed add-ons...';
   try {
-    const result = await api('/wizard/api/addons');
+    const [result, acceptanceResult] = await Promise.all([api('/wizard/api/addons'), api('/wizard/api/addons/acceptance')]);
     state.addOns = result.addOns;
     state.discoveredAddOns = result.discovered || [];
+    state.addOnAcceptance = acceptanceResult.acceptance || {};
     if (!state.addOnActionDrafts) state.addOnActionDrafts = {};
     if (!state.addOnActionGroupDrafts) state.addOnActionGroupDrafts = {};
     if (!state.addOnActionNameCache) state.addOnActionNameCache = loadAddOnActionNameCache();
@@ -183,6 +184,16 @@ function renderAddOnSettings(addOn) {
   return `${sections}${remaining ? `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:other`)}"><summary><span>Other settings<small>Less commonly changed options</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>` : ''}`;
 }
 
+function renderAddOnSetupGuide(addOn) {
+  if (addOn.health === 'rejected') return '';
+  const steps = Array.isArray(addOn.installationSteps) ? addOn.installationSteps : [];
+  const removals = Array.isArray(addOn.uninstallationSteps) ? addOn.uninstallationSteps : [];
+  const checks = Array.isArray(addOn.healthChecks) ? addOn.healthChecks : [];
+  const guideSlug = String(addOn.moduleId).replace(/^thsv\./u, '');
+  const onlineGuide = `https://github.com/surakage/THSV-StreamBridge/blob/main/docs/addons/${encodeURIComponent(guideSlug)}.md`;
+  return `<details class="form-section addon-setup-guide" data-disclosure-key="${safe(`addon:${addOn.moduleId}:setup-guide`)}"><summary>Setup guide</summary><div class="addon-settings-section-body"><p>Follow these steps before enabling the add-on. The complete versioned guide is also included in its release ZIP.</p><ol>${steps.map((step) => `<li>${safe(step)}</li>`).join('') || '<li>No extra installation step is declared.</li>'}</ol>${checks.length ? `<h4>Verify</h4><ul>${checks.map((check) => `<li><strong>${safe(check.id)}</strong>: ${safe(check.description)}</li>`).join('')}</ul>` : ''}${removals.length ? `<h4>Remove or repair</h4><ul>${removals.map((step) => `<li>${safe(step)}</li>`).join('')}</ul>` : ''}<div class="button-row"><a href="${safe(onlineGuide)}" target="_blank" rel="noreferrer noopener">Open full setup document</a></div></div></details>`;
+}
+
 function updateAddOnFieldVisibility(form) {
   form.querySelectorAll('[data-addon-visible-field]').forEach((container) => {
     const controller = form.elements.namedItem(container.dataset.addonVisibleField);
@@ -260,7 +271,7 @@ function renderAddOnTriggerReadiness(addOn) {
 
 function renderViewerFoundationAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.viewer-foundation' || !addOn.enabled) return '';
-  return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-foundation:administration"><summary>Identity, points &amp; privacy administration</summary><p class="notice">These live operations use the active Viewer Foundation provider and its serialized state queue. Account links are edited in Configure add-on above and require a bridge restart.</p><div class="button-row"><button type="button" class="ghost" data-viewer-admin-status>Refresh private-state summary</button></div><pre class="diagnostic" data-viewer-admin-output>Choose an operation. Viewer records are identified only by their lowercase Viewer Foundation ID.</pre><form class="addon-settings-grid" data-viewer-export-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="alex"></label><div class="button-row full-row"><button type="submit" class="ghost">Prepare privacy export</button></div></form><form class="addon-settings-grid" data-viewer-correction-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label>Correction<select name="adjustment"><option value="add">Add points</option><option value="remove">Remove points</option><option value="reset">Reset to zero</option></select></label><label>Amount<input name="amount" type="number" min="1" max="1000000" step="1" value="1"></label><label>Audit reason<input name="reason" required minlength="3" maxlength="200" placeholder="Creator correction"></label><div class="button-row full-row"><button type="submit">Apply correction</button></div></form><form class="addon-settings-grid" data-viewer-delete-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label class="check full-row"><input name="approved" type="checkbox" required> I understand this permanently erases the viewer record and its mutation history.</label><div class="button-row full-row"><button type="submit" class="danger">Delete viewer record</button></div></form></details>`;
+  return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-foundation:administration"><summary>Identity, points &amp; privacy administration</summary><p class="notice">These live operations use the active Viewer Foundation provider and its serialized state queue. Account links are edited in Configure add-on above and require a bridge restart.</p><div class="button-row"><button type="button" class="ghost" data-viewer-admin-status>Refresh private-state summary</button></div><pre class="diagnostic" data-viewer-admin-output>Choose an operation. Viewer records are identified only by their lowercase Viewer Foundation ID.</pre><form class="addon-settings-grid" data-viewer-export-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="alex"></label><div class="button-row full-row"><button type="submit" class="ghost">Prepare privacy export</button></div></form><form class="addon-settings-grid" data-viewer-correction-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label>Correction<select name="adjustment"><option value="add">Add points</option><option value="remove">Remove points</option><option value="reset">Reset to zero</option></select></label><label>Amount<input name="amount" type="number" min="1" max="1000000" step="1" value="1"></label><label>Audit reason<input name="reason" required minlength="3" maxlength="200" placeholder="Creator correction"></label><div class="button-row full-row"><button type="submit">Apply correction</button></div></form><form class="addon-settings-grid" data-viewer-delete-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label class="check full-row"><input name="approved" type="checkbox" required> I understand this permanently erases the viewer record and its mutation history.</label><div class="button-row full-row"><button type="submit" class="danger">Delete viewer record</button></div></form><details data-disclosure-key="addon:thsv.viewer-foundation:legacy-migration"><summary>Import preserved Viewer Progression state</summary><p class="notice">Preview reads the preserved local data/state/viewer-progression.json file without changing it. Import keeps the higher point total when an ID already exists and records the file digest so the same snapshot cannot run twice.</p><div class="button-row"><button type="button" class="ghost" data-viewer-migration-preview>Preview legacy records</button><button type="button" data-viewer-migration-apply disabled>Import exact preview</button></div><pre class="diagnostic" data-viewer-migration-output>No legacy file has been previewed.</pre></details></details>`;
 }
 
 function renderCommunityAnalyticsAdmin(addOn) {
@@ -270,7 +281,7 @@ function renderCommunityAnalyticsAdmin(addOn) {
 
 function renderViewerSpotlightAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.viewer-spotlight' || !addOn.enabled) return '';
-  return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-spotlight:manual-display"><summary>Manual viewer card</summary><p class="notice">This creator-only tool resolves the platform account through Viewer Foundation, rechecks Community Analytics, and uses the normal cooldown and queue. The display name and optional HTTPS avatar exist only in the in-memory request and overlay message.</p><div class="button-row"><button type="button" class="ghost" data-spotlight-admin-status>Refresh queue status</button></div><pre class="diagnostic" data-spotlight-admin-output>Enter the stable platform account ID, not the display name or channel URL.</pre><form class="addon-settings-grid" data-spotlight-display-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Display name<input name="displayName" required maxlength="80" autocomplete="off" placeholder="Name shown on the card"></label><label>Profile picture URL (optional)<input name="avatarUrl" type="url" maxlength="2048" pattern="https://.*" placeholder="https://..."></label><label class="check full-row"><input name="approved" type="checkbox" required> Display this viewer's selected public fields on the live Viewer Spotlight overlay.</label><div class="button-row full-row"><button type="submit">Queue manual card</button></div></form></details>`;
+  return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-spotlight:manual-display"><summary>Manual cards and Stream Score</summary><p class="notice">These creator-only tools use bounded Viewer Foundation and Community Analytics projections. Display names and optional HTTPS avatars exist only in the in-memory request and overlay message.</p><div class="button-row"><button type="button" class="ghost" data-spotlight-admin-status>Refresh queue status</button><button type="button" class="ghost" data-spotlight-stream-score>Show current Stream Score</button></div><pre class="diagnostic" data-spotlight-admin-output>Enter the stable platform account ID, not the display name or channel URL.</pre><form class="addon-settings-grid" data-spotlight-display-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Display name<input name="displayName" required maxlength="80" autocomplete="off" placeholder="Name shown on the card"></label><label>Profile picture URL (optional)<input name="avatarUrl" type="url" maxlength="2048" pattern="https://.*" placeholder="https://..."></label><label class="check full-row"><input name="sendDiscord" type="checkbox"> Also send this card as a Discord snapshot (requires configured approved action).</label><label class="check full-row"><input name="approved" type="checkbox" required> Display this viewer's selected public fields on the live Viewer Spotlight overlay.</label><div class="button-row full-row"><button type="submit">Queue manual card</button></div></form></details>`;
 }
 
 function renderChatGuardAdmin(addOn) {
@@ -311,8 +322,10 @@ function renderAddOns() {
     const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:approved-actions`)}"><summary>Approved Streamer.bot actions</summary>${renderAddOnActionGrant(addOn)}</details>`;
     const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:overlay-tools`)}"><summary>Hosted overlay &amp; testing</summary>${renderAddOnOverlayTools(addOn)}</details>`;
     const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderChatGuardAdmin(addOn)}`;
+    const setupGuide = renderAddOnSetupGuide(addOn);
+    const acceptance = rejected ? '' : renderAddOnAcceptance(addOn);
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>${trustLinks}`}${liveChatWarning}${providerWarning}${viewerWarning}${triggerReadiness}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${viewerAdministration}${actionGrant}${overlayTools}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="title-row"><div><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.moduleId)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p>${safe(addOn.description)}</p>${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : `<small><strong>Permissions:</strong> ${safe(permissions)}</small>${trustLinks}`}${liveChatWarning}${providerWarning}${viewerWarning}${triggerReadiness}${addOn.packageKind === 'executable' && !rejected ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}${setupGuide}${!rejected && !fields ? '<p class="notice">This add-on has no configurable settings.</p>' : ''}${settings}${viewerAdministration}${actionGrant}${overlayTools}${acceptance}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Installed package changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></article>`;
   }).join('');
   // Saving settings and other add-on operations rebuild this subtree. Restore both open and
   // closed choices immediately so sections never flash or return to their package defaults.
@@ -337,15 +350,19 @@ function renderAddOns() {
   document.querySelectorAll('[data-save-addon-action-grants]').forEach((button) => button.addEventListener('click', saveAddOnActionGrants));
   document.querySelectorAll('[data-copy-addon-overlay]').forEach((button) => button.addEventListener('click', copyAddOnOverlayUrl));
   document.querySelectorAll('[data-preview-addon-overlay]').forEach((button) => button.addEventListener('click', previewAddOnOverlay));
+  document.querySelector('[data-addon-acceptance-form]')?.addEventListener('submit', saveAddOnAcceptance);
   document.querySelector('[data-viewer-admin-status]')?.addEventListener('click', refreshViewerFoundationStatus);
   document.querySelector('[data-viewer-export-form]')?.addEventListener('submit', exportViewerFoundationRecord);
   document.querySelector('[data-viewer-correction-form]')?.addEventListener('submit', correctViewerFoundationRecord);
   document.querySelector('[data-viewer-delete-form]')?.addEventListener('submit', deleteViewerFoundationRecord);
+  document.querySelector('[data-viewer-migration-preview]')?.addEventListener('click', previewViewerFoundationMigration);
+  document.querySelector('[data-viewer-migration-apply]')?.addEventListener('click', applyViewerFoundationMigration);
   document.querySelector('[data-analytics-admin-status]')?.addEventListener('click', refreshCommunityAnalyticsStatus);
   document.querySelector('[data-analytics-export-form]')?.addEventListener('submit', exportCommunityAnalyticsRecord);
   document.querySelector('[data-analytics-delete-form]')?.addEventListener('submit', deleteCommunityAnalyticsRecord);
   document.querySelectorAll('[data-analytics-report]').forEach((button) => button.addEventListener('click', downloadCommunityAnalyticsReport));
   document.querySelector('[data-spotlight-admin-status]')?.addEventListener('click', refreshViewerSpotlightStatus);
+  document.querySelector('[data-spotlight-stream-score]')?.addEventListener('click', showViewerSpotlightStreamScore);
   document.querySelector('[data-spotlight-display-form]')?.addEventListener('submit', displayViewerSpotlightCard);
   document.querySelector('[data-chat-guard-status]')?.addEventListener('click', refreshChatGuardStatus);
   document.querySelector('[data-chat-guard-clear]')?.addEventListener('click', clearChatGuardObservations);
@@ -353,6 +370,26 @@ function renderAddOns() {
   document.querySelector('[data-chat-guard-permit-form]')?.addEventListener('submit', createChatGuardPermit);
   document.querySelector('[data-chat-guard-clear-permits]')?.addEventListener('click', clearChatGuardPermits);
   document.querySelector('[data-chat-guard-review-form]')?.addEventListener('submit', reviewChatGuardIncident);
+}
+
+function acceptanceOptions(selected) {
+  const labels = { pending: 'Pending', passed: 'Passed', failed: 'Failed', 'not-required': 'Not required' };
+  return Object.entries(labels).map(([value, label]) => `<option value="${value}" ${selected === value ? 'selected' : ''}>${label}</option>`).join('');
+}
+
+function renderAddOnAcceptance(addOn) {
+  const entry = state.addOnAcceptance?.[addOn.moduleId] || { offlineStatus: 'pending', providerStatus: 'pending', evidence: '', updatedAt: '' };
+  const updated = entry.updatedAt ? `Last updated ${new Date(entry.updatedAt).toLocaleString()}.` : 'No acceptance result has been recorded on this installation.';
+  return `<details class="form-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:acceptance`)}"><summary>Acceptance status</summary><p class="notice"><strong>Published is not the same as provider accepted.</strong> Simulators and Test triggers may pass Offline/manual only. Record Provider as Passed only after the responsible service returned a genuine acknowledgement.</p><form class="addon-settings-grid" data-addon-acceptance-form="${safe(addOn.moduleId)}"><label>Offline/manual status<select name="offlineStatus">${acceptanceOptions(entry.offlineStatus)}</select></label><label>Genuine provider status<select name="providerStatus">${acceptanceOptions(entry.providerStatus)}</select></label><label class="full-row">Evidence note<textarea name="evidence" rows="3" maxlength="500" placeholder="Date, app/provider build, exact test, and observed result. Never paste secrets or viewer IDs.">${safe(entry.evidence || '')}</textarea><small>${safe(updated)} URLs, tokens, passwords, and webhook secrets are rejected. Do not enter raw viewer identifiers.</small></label><label class="check full-row"><input name="approved" type="checkbox" required> I confirm this status accurately distinguishes simulation from a genuine provider result.</label><div class="button-row full-row"><button type="submit">Save acceptance status</button><a href="https://github.com/surakage/THSV-StreamBridge/blob/main/docs/offline-acceptance.md" target="_blank" rel="noreferrer noopener">Open testing guide</a></div></form></details>`;
+}
+
+async function saveAddOnAcceptance(event) {
+  event.preventDefault(); const form = event.currentTarget; const id = form.dataset.addonAcceptanceForm;
+  if (!form.checkValidity()) return form.reportValidity();
+  try {
+    const result = await api(`/wizard/api/addons/${encodeURIComponent(id)}/acceptance`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ offlineStatus: form.elements.offlineStatus.value, providerStatus: form.elements.providerStatus.value, evidence: form.elements.evidence.value.trim(), approvedByCreator: true }) });
+    state.addOnAcceptance[id] = result; renderAddOns(); byId('addon-state').textContent = `Acceptance status saved for ${id}.`;
+  } catch (error) { byId('addon-state').textContent = error.message; }
 }
 
 function viewerAdminOutput(value) {
@@ -395,6 +432,40 @@ async function deleteViewerFoundationRecord(event) {
     if (result.accountLinksRequireRemoval) viewerAdminOutput(`${JSON.stringify(result, null, 2)}\n\nRemove this viewer's entries from Explicit account links, save settings, and restart StreamBridge to complete link-data removal.`);
     form.reset();
   } catch (error) { viewerAdminOutput(error.message); }
+}
+
+let viewerMigrationPreview;
+
+function viewerMigrationOutput(value) {
+  const output = document.querySelector('[data-viewer-migration-output]');
+  if (output) output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+async function previewViewerFoundationMigration() {
+  const apply = document.querySelector('[data-viewer-migration-apply]');
+  if (apply) apply.disabled = true;
+  viewerMigrationPreview = undefined;
+  try {
+    const result = await api('/wizard/api/viewer-foundation/migration');
+    if (!result.found) {
+      viewerMigrationOutput(`No preserved legacy state was found at ${result.source}.`);
+      return;
+    }
+    viewerMigrationPreview = result;
+    if (apply) apply.disabled = result.records.length === 0;
+    viewerMigrationOutput({ source: result.source, digest: result.digest, recordCount: result.records.length, rejectedRecords: result.rejectedRecords, totalPoints: result.totalPoints, exactRecords: result.records });
+  } catch (error) { viewerMigrationOutput(error.message); }
+}
+
+async function applyViewerFoundationMigration() {
+  if (!viewerMigrationPreview?.digest || !viewerMigrationPreview.records?.length) return viewerMigrationOutput('Preview the legacy state before importing it.');
+  if (!confirm(`Import the exact ${viewerMigrationPreview.records.length} previewed record(s) with ${viewerMigrationPreview.totalPoints} total points? Existing viewers keep the higher point total.`)) return;
+  try {
+    const result = await api('/wizard/api/viewer-foundation/migration', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ migrationDigest: viewerMigrationPreview.digest, approvedByCreator: true }) });
+    viewerMigrationPreview = undefined;
+    const apply = document.querySelector('[data-viewer-migration-apply]'); if (apply) apply.disabled = true;
+    viewerMigrationOutput(result);
+  } catch (error) { viewerMigrationOutput(error.message); }
 }
 
 function analyticsAdminOutput(value) {
@@ -449,13 +520,18 @@ async function refreshViewerSpotlightStatus() {
   try { await viewerSpotlightAdmin({ operation: 'status' }); } catch (error) { spotlightAdminOutput(error.message); }
 }
 
+async function showViewerSpotlightStreamScore() {
+  if (!confirm('Show the current local Stream Score on the Viewer Spotlight overlay?')) return;
+  try { await viewerSpotlightAdmin({ operation: 'stream-score', approvedByCreator: true }); } catch (error) { spotlightAdminOutput(error.message); }
+}
+
 async function displayViewerSpotlightCard(event) {
   event.preventDefault(); const form = event.currentTarget;
   if (!form.checkValidity()) return form.reportValidity();
   const displayName = form.elements.displayName.value.trim();
   if (!confirm(`Display a live Viewer Spotlight card for ${displayName}?`)) return;
   const avatarUrl = form.elements.avatarUrl.value.trim();
-  const request = { operation: 'display', platform: form.elements.platform.value, userId: form.elements.userId.value.trim(), displayName, approvedByCreator: true };
+  const request = { operation: 'display', platform: form.elements.platform.value, userId: form.elements.userId.value.trim(), displayName, sendDiscord: form.elements.sendDiscord.checked, approvedByCreator: true };
   if (avatarUrl) request.avatarUrl = avatarUrl;
   try { await viewerSpotlightAdmin(request); } catch (error) { spotlightAdminOutput(error.message); }
 }

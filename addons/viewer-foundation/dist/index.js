@@ -12,14 +12,21 @@ const EVENT_POINTS = Object.freeze({
   'channel.raid': 'raidPoints',
   'reward.redemption': 'rewardRedemptionPoints',
 });
+const ACHIEVEMENTS = Object.freeze([
+  Object.freeze({ id: 'first-steps', label: 'First Steps', points: 100 }),
+  Object.freeze({ id: 'village-regular', label: 'Village Regular', points: 500 }),
+  Object.freeze({ id: 'community-supporter', label: 'Community Supporter', points: 1_000 }),
+  Object.freeze({ id: 'village-veteran', label: 'Village Veteran', points: 2_500 }),
+  Object.freeze({ id: 'village-legend', label: 'Village Legend', points: 5_000 }),
+]);
 
 const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.viewer-foundation',
   name: 'Viewer Foundation',
-  version: '2.4.3',
+  version: '2.5.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.0', maximumTestedBridgeVersion: '2.5.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: Object.keys(EVENT_POINTS), commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.viewer-foundation/', 'data/addons/.state/thsv.viewer-foundation/'],
@@ -40,7 +47,7 @@ const FALLBACKS = Object.freeze({
   giftSubscriptionPoints: 75, giftPoints: 50, cheerPoints: 25,
   superChatPoints: 100, raidPoints: 100, rewardRedemptionPoints: 25,
   maximumViewers: 250, processedEventLimit: 200, processedEventTtlHours: 168,
-  levelStepPoints: 100,
+  levelStepPoints: 100, achievementsEnabled: true,
 });
 
 const PLATFORM = /^(twitch|youtube|kick|tiktok)$/u;
@@ -149,18 +156,22 @@ export function sanitizeViewerFoundationState(value, settings = FALLBACKS, now =
       callerModuleId: clean(item.callerModuleId, 128), reason: clean(item.reason, 120) }))
     .slice(-200) : [];
   const adminAudit = Array.isArray(source.adminAudit) ? source.adminAudit
-    .filter((item) => item && typeof item === 'object' && ['correct', 'delete'].includes(item.operation)
+    .filter((item) => item && typeof item === 'object' && ['correct', 'delete', 'import-legacy'].includes(item.operation)
       && typeof item.subject === 'string' && Number.isSafeInteger(item.at) && item.at >= 0
       && typeof item.reason === 'string')
     .map((item) => ({ operation: item.operation, subject: clean(item.subject, 64), at: item.at,
       reason: clean(item.reason, 200), ...(Number.isSafeInteger(item.previousPoints) ? { previousPoints: item.previousPoints } : {}),
       ...(Number.isSafeInteger(item.totalPoints) ? { totalPoints: item.totalPoints } : {}) }))
     .slice(-100) : [];
-  const state = { version: 1, salt, viewers, processed, mutations, adminAudit };
+  const legacyImports = Array.isArray(source.legacyImports) ? source.legacyImports
+    .filter((item) => item && typeof item === 'object' && /^[a-f0-9]{64}$/u.test(item.digest) && Number.isSafeInteger(item.at) && item.at >= 0 && Number.isSafeInteger(item.records) && item.records >= 0)
+    .map((item) => ({ digest: item.digest, at: item.at, records: item.records })).slice(-10) : [];
+  const state = { version: 1, salt, viewers, processed, mutations, adminAudit, legacyImports };
   while (JSON.stringify(state).length > MAXIMUM_STATE_BYTES) {
     if (state.processed.length > 25) { state.processed.shift(); continue; }
     if (state.mutations.length > 25) { state.mutations.shift(); continue; }
     if (state.adminAudit.length > 25) { state.adminAudit.shift(); continue; }
+    if (state.legacyImports.length > 2) { state.legacyImports.shift(); continue; }
     const viewerIds = Object.keys(state.viewers);
     if (viewerIds.length > 25) { delete state.viewers[viewerIds.at(-1)]; continue; }
     throw new Error('Viewer Foundation state cannot fit within the private-state safety limit.');
@@ -187,6 +198,12 @@ async function eventIdentity(event) {
 function pointValue(settings, eventType) {
   const key = EVENT_POINTS[eventType];
   return key ? settings[key] : 0;
+}
+
+function achievementProjection(points, settings) {
+  if (settings.achievementsEnabled !== true) return {};
+  const achievements = ACHIEVEMENTS.filter((achievement) => points >= achievement.points).map((achievement) => ({ ...achievement }));
+  return achievements.length > 0 ? { achievements, latestAchievement: achievements.at(-1) } : {};
 }
 
 export async function processViewerEvent(event, context, now = Date.now()) {
@@ -222,7 +239,7 @@ export function viewerProjection(stateValue, viewerId, settingsValue = {}) {
   const state = sanitizeViewerFoundationState(stateValue, settings);
   const viewer = state.viewers[viewerId];
   if (!viewer) return undefined;
-  return Object.freeze({ contractVersion: '1.0.0', viewerId, linked: settings.links.viewerIds.has(viewerId), points: viewer.points, level: viewer.level, nextLevelAt: viewer.level * settings.levelStepPoints });
+  return Object.freeze({ contractVersion: '1.0.0', viewerId, linked: settings.links.viewerIds.has(viewerId), points: viewer.points, level: viewer.level, nextLevelAt: viewer.level * settings.levelStepPoints, ...achievementProjection(viewer.points, settings) });
 }
 
 export function deleteViewerRecord(stateValue, viewerId, settingsValue = {}) {
@@ -252,7 +269,7 @@ async function projectionForQuery(query, context) {
   const viewer = state.viewers[viewerId];
   const points = viewer?.points || 0;
   const level = viewer?.level || 1;
-  return Object.freeze({ contractVersion: '1.0.0', viewerId, linked, points, level, nextLevelAt: level * settings.levelStepPoints });
+  return Object.freeze({ contractVersion: '1.0.0', viewerId, linked, points, level, nextLevelAt: level * settings.levelStepPoints, ...achievementProjection(points, settings) });
 }
 
 async function mutateViewer(request, context, now = Date.now()) {
@@ -265,6 +282,7 @@ async function mutateViewer(request, context, now = Date.now()) {
     const level = Math.floor(previous.totalPoints / settings.levelStepPoints) + 1;
     return { contractVersion: '1.0.0', viewerId: previous.viewerId, linked: settings.links.viewerIds.has(previous.viewerId),
       points: previous.totalPoints, level, nextLevelAt: level * settings.levelStepPoints,
+      ...achievementProjection(previous.totalPoints, settings),
       operation: previous.operation, amount: previous.amount, previousPoints: previous.previousPoints, duplicate: true };
   }
   const current = state.viewers[request.viewerId] || { points: 0, level: 1, lastAwardAt: {}, lastSeenAt: 0 };
@@ -279,6 +297,7 @@ async function mutateViewer(request, context, now = Date.now()) {
   await context.state.write(sanitizeViewerFoundationState(state, settings, now));
   return { contractVersion: '1.0.0', viewerId: request.viewerId, linked: settings.links.viewerIds.has(request.viewerId),
     points: totalPoints, level, nextLevelAt: level * settings.levelStepPoints,
+    ...achievementProjection(totalPoints, settings),
     operation: request.operation, amount: request.amount, previousPoints: current.points, duplicate: false };
 }
 
@@ -288,7 +307,27 @@ async function administerViewer(request, context, now = Date.now()) {
   if (request.operation === 'status') {
     return { operation: 'status', enabled: Boolean(settings.enabled), viewerCount: Object.keys(state.viewers).length,
       linkedViewerCount: settings.links.viewerIds.size, processedEventCount: state.processed.length,
-      mutationCount: state.mutations.length, auditCount: state.adminAudit.length };
+      mutationCount: state.mutations.length, auditCount: state.adminAudit.length, legacyImportCount: state.legacyImports.length };
+  }
+  if (request.operation === 'import-legacy') {
+    if (request.approvedByCreator !== true || !/^[a-f0-9]{64}$/u.test(clean(request.migrationDigest, 64))) throw new Error('Legacy import requires explicit creator approval and the exact preview digest.');
+    const migrationDigest = clean(request.migrationDigest, 64);
+    if (state.legacyImports.some((item) => item.digest === migrationDigest)) return { operation: 'import-legacy', duplicate: true, imported: 0, merged: 0, skipped: 0 };
+    const records = Array.isArray(request.legacyViewers) ? request.legacyViewers.slice(0, settings.maximumViewers) : [];
+    let imported = 0; let merged = 0; let skipped = 0;
+    for (const record of records) {
+      const importedViewerId = clean(record?.viewerId, 64); const points = record?.points;
+      if (!VIEWER_ID.test(importedViewerId) || !Number.isSafeInteger(points) || points < 0) { skipped += 1; continue; }
+      const current = state.viewers[importedViewerId];
+      if (current && current.points >= points) { skipped += 1; continue; }
+      const sanitized = sanitizeViewer({ points, lastAwardAt: record?.lastAwardAt, lastSeenAt: now }, settings.levelStepPoints);
+      if (!sanitized) { skipped += 1; continue; }
+      state.viewers[importedViewerId] = sanitized; if (current) merged += 1; else imported += 1;
+    }
+    state.legacyImports.push({ digest: migrationDigest, at: now, records: records.length });
+    state.adminAudit.push({ operation: 'import-legacy', subject: 'legacy-state', at: now, reason: `Creator-approved legacy migration ${migrationDigest.slice(0, 12)}`, totalPoints: imported + merged });
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { operation: 'import-legacy', duplicate: false, imported, merged, skipped, sourceRecords: records.length };
   }
   const viewerId = clean(request.viewerId, 64);
   if (!VIEWER_ID.test(viewerId)) throw new Error('viewerId must be a lowercase identifier.');
@@ -298,7 +337,7 @@ async function administerViewer(request, context, now = Date.now()) {
       .filter((entry) => entry[1] === viewerId)
       .map(([key]) => { const [platform, userId] = key.split('\u0000'); return { platform, userId }; });
     return { operation: 'export', found: viewer !== undefined || linkedAccounts.length > 0, viewerId,
-      projection: viewer ? { points: viewer.points, level: viewer.level, lastSeenAt: viewer.lastSeenAt, lastAwardAt: viewer.lastAwardAt } : null,
+      projection: viewer ? { points: viewer.points, level: viewer.level, lastSeenAt: viewer.lastSeenAt, lastAwardAt: viewer.lastAwardAt, ...achievementProjection(viewer.points, settings) } : null,
       linkedAccounts, mutations: state.mutations.filter((item) => item.viewerId === viewerId) };
   }
   if (request.operation === 'delete') {
@@ -321,7 +360,7 @@ async function administerViewer(request, context, now = Date.now()) {
     previousPoints: existing.points, totalPoints });
   await context.state.write(sanitizeViewerFoundationState(state, settings, now));
   return { operation: 'correct', viewerId, adjustment: request.adjustment, previousPoints: existing.points,
-    points: totalPoints, level, nextLevelAt: level * settings.levelStepPoints };
+    points: totalPoints, level, nextLevelAt: level * settings.levelStepPoints, ...achievementProjection(totalPoints, settings) };
 }
 
 export function resetViewerFoundationRuntime() { operation = Promise.resolve(); unregisterProvider = undefined; }
@@ -340,6 +379,6 @@ export default {
       administer: (request) => serialize(() => administerViewer(request, context)),
     }));
   },
-  async stop() { await operation; unregisterProvider?.(); unregisterProvider = undefined; operation = Promise.resolve(); },
+  async stop() { await operation.catch(() => undefined); unregisterProvider?.(); unregisterProvider = undefined; operation = Promise.resolve(); },
   async onEvent(event, context) { await serialize(() => processViewerEvent(event, context)); },
 };

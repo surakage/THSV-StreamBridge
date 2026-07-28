@@ -24,6 +24,8 @@ interface ExportAction {
     readonly importFile: string;
     readonly references?: readonly string[];
     readonly arguments?: readonly ExportArgument[];
+    readonly excludeFromHistory?: boolean;
+    readonly excludeFromPending?: boolean;
 }
 
 interface ExportArgument {
@@ -61,6 +63,8 @@ const encoded = buildStreamerBotPackage(
     ...(action.id === undefined ? {} : { id: action.id }),
     ...(action.sourceSubActionId === undefined ? {} : { sourceSubActionId: action.sourceSubActionId }),
     ...(action.references === undefined ? {} : { references: action.references }),
+    ...(action.excludeFromHistory === undefined ? {} : { excludeFromHistory: action.excludeFromHistory }),
+    ...(action.excludeFromPending === undefined ? {} : { excludeFromPending: action.excludeFromPending }),
     ...(action.arguments === undefined ? {} : {
       arguments: action.arguments.map((argument) => ({
         name: argument.name,

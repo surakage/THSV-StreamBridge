@@ -8,9 +8,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: MODULE_ID,
   name: 'Stream Launch Countdown',
-  version: '2.4.3',
+  version: '2.5.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.0', maximumTestedBridgeVersion: '2.5.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
@@ -214,10 +214,14 @@ async function persist(context, settings, state, playCompletionTone = false) {
 async function handleTick(context) {
   const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
   const elapsed = applyElapsed(initializeState(sanitizeState(await context.state.read(), configured), configured));
+  const completionActionDelaySeconds = integer(settings.completionActionDelaySeconds, 0, 60, 0);
   if (elapsed.completedNow && settings.runCompletionAction === true) {
-    elapsed.state.completionActionDueAt = Date.now() + integer(settings.completionActionDelaySeconds, 0, 60, 0) * 1_000;
+    elapsed.state.completionActionDueAt = Date.now() + completionActionDelaySeconds * 1_000;
   }
   await persist(context, settings, elapsed.state, elapsed.completedNow);
+  if (elapsed.completedNow && settings.runCompletionAction === true && completionActionDelaySeconds === 0) {
+    await dispatchCompletionAction(context, settings);
+  }
 }
 
 async function hideCompleted(context) {
@@ -259,10 +263,14 @@ export default {
     stopped = false; operation = Promise.resolve();
     const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
     const elapsed = applyElapsed(initializeState(sanitizeState(await context.state.read(), configured), configured));
+    const completionActionDelaySeconds = integer(settings.completionActionDelaySeconds, 0, 60, 0);
     if (elapsed.completedNow && settings.runCompletionAction === true) {
-      elapsed.state.completionActionDueAt = Date.now() + integer(settings.completionActionDelaySeconds, 0, 60, 0) * 1_000;
+      elapsed.state.completionActionDueAt = Date.now() + completionActionDelaySeconds * 1_000;
     }
     await persist(context, settings, elapsed.state, false);
+    if (elapsed.completedNow && settings.runCompletionAction === true && completionActionDelaySeconds === 0) {
+      await dispatchCompletionAction(context, settings);
+    }
   },
   async stop(context) { stopped = true; cancelTimers(context); await operation; },
   async onEvent(event, context) {

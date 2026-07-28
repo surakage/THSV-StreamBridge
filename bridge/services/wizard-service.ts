@@ -23,7 +23,7 @@ import {
   type CommandAdministrationRequest,
 } from '../core/command-administration.js';
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
-import type { AddOnWizardService, DiscoveredAddOnSummary, WizardAddOnSummary } from './addon-wizard-service.js';
+import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, WizardAddOnSummary } from './addon-wizard-service.js';
 import type { ReleaseUpdateService, ReleaseUpdateStatus } from './release-update-service.js';
 import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
 
@@ -451,6 +451,16 @@ export class WizardService {
   public async saveAddOnSettings(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.saveSettings(moduleId, input);
+  }
+
+  public async listAddOnAcceptance(): Promise<Readonly<Record<string, AddOnAcceptanceEntry>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.listAcceptance();
+  }
+
+  public async saveAddOnAcceptance(moduleId: string, input: unknown): Promise<AddOnAcceptanceEntry> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.saveAcceptance(moduleId, input);
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {

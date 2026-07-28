@@ -4,7 +4,7 @@ import { buildStreamerBotPackage, stableStreamerBotUuid } from '../../bridge/ser
 
 interface DecodedPackage {
   readonly data: {
-    readonly actions: ReadonlyArray<{ readonly id: string; readonly subActions: ReadonlyArray<{ readonly id: string; readonly type: number; readonly index: number; readonly variableName?: string; readonly value?: string; readonly autoType?: boolean; readonly references?: readonly string[] }>; readonly triggers: ReadonlyArray<{ readonly id: string; readonly commandId: string }> }>;
+    readonly actions: ReadonlyArray<{ readonly id: string; readonly excludeFromHistory: boolean; readonly excludeFromPending: boolean; readonly subActions: ReadonlyArray<{ readonly id: string; readonly type: number; readonly index: number; readonly variableName?: string; readonly value?: string; readonly autoType?: boolean; readonly references?: readonly string[] }>; readonly triggers: ReadonlyArray<{ readonly id: string; readonly commandId: string }> }>;
     readonly commands: ReadonlyArray<{
       readonly id: string; readonly command: string; readonly sources?: number; readonly globalCooldown?: number; readonly userCooldown?: number;
       readonly ignoreBotAccount?: boolean;
@@ -48,6 +48,14 @@ describe('Streamer.bot package builder', () => {
     const crlf = buildStreamerBotPackage(meta, [{ ...action, sourceCode: 'using System;\r\nreturn true;\r\n' }]);
     expect(crlf).toBe(lf);
     expect(Buffer.from(lf, 'base64')[13]).toBe(255);
+  });
+
+  it('can keep high-frequency internal actions out of Pending and Action History', () => {
+    const decoded = decode(buildStreamerBotPackage(meta, [{
+      name: 'Background lookup', group: 'Tests', sourceCode: 'return true;', stableIdentitySeed: 'background',
+      excludeFromHistory: true, excludeFromPending: true,
+    }]));
+    expect(decoded.data.actions[0]).toMatchObject({ excludeFromHistory: true, excludeFromPending: true });
   });
 
   it('preserves pinned action, source, trigger, and command IDs', () => {

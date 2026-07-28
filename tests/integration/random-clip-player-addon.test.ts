@@ -28,12 +28,15 @@ describe('Random Clip Player add-on package', () => {
 
   it('installs, loads, starts, and reacts to its own relay events without any framework code changes', async () => {
     const installed = await installAddOnPackage('addons/random-clip-player', addOnsRoot, true);
+    const cacheInstalled = await installAddOnPackage('addons/clip-library-cache', addOnsRoot, true);
     expect(installed.descriptor.manifest.moduleId).toBe('thsv.random-clip-player');
 
     const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.random-clip-player');
+    const cacheModule = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.clip-library-cache');
     if (module === undefined) throw new Error('The add-on must load through the exact same path a real install uses.');
-    expect(module.manifest.eventSubscriptions).toEqual(['addon.thsv.random-clip-player.clips-received', 'addon.thsv.random-clip-player.clip-download-received', 'addon.thsv.random-clip-player.control']);
+    if (cacheModule === undefined) throw new Error('The shared clip cache dependency must load.');
+    expect(module.manifest.eventSubscriptions).toEqual(['addon.thsv.random-clip-player.clips-received', 'addon.thsv.clip-library-cache.snapshot', 'addon.thsv.random-clip-player.clip-download-received', 'addon.thsv.random-clip-player.control']);
     expect(module.settings).toEqual({ secondsBetweenClips: 5, clipCount: 20, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1 });
 
     const publishedTopics: Array<{ topic: string; payload: unknown }> = [];
@@ -44,13 +47,14 @@ describe('Random Clip Player add-on package', () => {
       subscribeOverlayLifecycle: () => () => undefined,
     });
     const grantedModule = { ...module, capabilityGrant: { moduleId: 'thsv.random-clip-player', permissions: installed.descriptor.permissions, approvedActionIds: ['f89e397b-7106-5101-a620-b0f5da4facf9', 'ad3cf90f-b320-5ae2-a493-485a5485e0ce'] } };
-    const registry = new ModuleRegistry([grantedModule], silentLogger, 5_000, broker);
+    const cacheGrant = { ...cacheModule, settings: { enabled: false }, capabilityGrant: { moduleId: 'thsv.clip-library-cache', permissions: cacheInstalled.descriptor.permissions, approvedActionIds: [] } };
+    const registry = new ModuleRegistry([cacheGrant, grantedModule], silentLogger, 5_000, broker);
     await registry.start();
-    expect(registry.statuses()).toEqual([expect.objectContaining({ moduleId: 'thsv.random-clip-player', status: 'healthy' })]);
+    expect(registry.statuses()).toEqual(expect.arrayContaining([expect.objectContaining({ moduleId: 'thsv.random-clip-player', status: 'healthy' })]));
 
-    // start() should have already requested the clip list, since no clips are cached yet.
-    expect(dispatchedActions).toHaveLength(1);
-    expect(dispatchedActions[0]).toMatchObject({ actionId: 'f89e397b-7106-5101-a620-b0f5da4facf9', args: { clipCount: 20 } });
+    // The shared cache gets a short opportunity to answer before the legacy Get Clips fallback.
+    expect(dispatchedActions).toHaveLength(0);
+    expect(broker.diagnostics()['scheduledTasks']).toBe(1);
 
     const clipsEvent: NormalizedEvent = {
       schemaVersion: '1.0.0', eventId: 'test-clips-1', eventType: 'addon.thsv.random-clip-player.clips-received', platform: 'system',
@@ -60,8 +64,8 @@ describe('Random Clip Player add-on package', () => {
       metadata: { simulated: true },
     };
     await registry.publish(clipsEvent);
-    expect(dispatchedActions).toHaveLength(2);
-    expect(dispatchedActions[1]).toMatchObject({ actionId: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce', args: { clipId: 'ClipOne' } });
+    expect(dispatchedActions).toHaveLength(1);
+    expect(dispatchedActions[0]).toMatchObject({ actionId: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce', args: { clipId: 'ClipOne' } });
 
     await registry.publish({
       ...clipsEvent, eventId: 'test-download-stale', eventType: 'addon.thsv.random-clip-player.clip-download-received',
@@ -99,12 +103,15 @@ describe('Random Clip Player add-on package', () => {
 
   it('adds the fixed four-second fade buffer, then refreshes after every clip in the pool has played once', async () => {
     const installed = await installAddOnPackage('addons/random-clip-player', addOnsRoot, true);
+    const cacheInstalled = await installAddOnPackage('addons/clip-library-cache', addOnsRoot, true);
     // A short, schema-valid pause (minimum is 1 second) keeps this test's real wall-clock wait brief.
     await mkdir(join(stateRoot, 'thsv.random-clip-player'), { recursive: true });
     await writeFile(join(stateRoot, 'thsv.random-clip-player', 'settings.json'), JSON.stringify({ secondsBetweenClips: 1 }));
     const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.random-clip-player');
+    const cacheModule = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.clip-library-cache');
     if (module === undefined) throw new Error('The add-on must load through the exact same path a real install uses.');
+    if (cacheModule === undefined) throw new Error('The shared clip cache dependency must load.');
     expect(module.settings).toMatchObject({ secondsBetweenClips: 1 });
 
     const dispatchedActions: Array<{ actionId: string; args: unknown }> = [];
@@ -116,10 +123,11 @@ describe('Random Clip Player add-on package', () => {
       subscribeOverlayLifecycle: (_moduleId, listener) => { lifecycleListener = listener; return () => undefined; },
     });
     const grantedModule = { ...module, capabilityGrant: { moduleId: 'thsv.random-clip-player', permissions: installed.descriptor.permissions, approvedActionIds: ['f89e397b-7106-5101-a620-b0f5da4facf9', 'ad3cf90f-b320-5ae2-a493-485a5485e0ce'] } };
-    const registry = new ModuleRegistry([grantedModule], silentLogger, 5_000, broker);
+    const cacheGrant = { ...cacheModule, settings: { enabled: false }, capabilityGrant: { moduleId: 'thsv.clip-library-cache', permissions: cacheInstalled.descriptor.permissions, approvedActionIds: [] } };
+    const registry = new ModuleRegistry([cacheGrant, grantedModule], silentLogger, 5_000, broker);
 
     await registry.start();
-    expect(dispatchedActions).toHaveLength(1); // Get Clips, immediately on start -- no cache yet.
+    expect(dispatchedActions).toHaveLength(0); // Wait briefly for the shared cache before falling back.
 
     const twoClips: NormalizedEvent = {
       schemaVersion: '1.0.0', eventId: 'test-clips-2', eventType: 'addon.thsv.random-clip-player.clips-received', platform: 'system',
@@ -129,8 +137,8 @@ describe('Random Clip Player add-on package', () => {
       metadata: { simulated: true },
     };
     await registry.publish(twoClips);
-    expect(dispatchedActions).toHaveLength(2); // Get Clip Download for whichever clip was picked.
-    const firstClipId = (dispatchedActions[1]?.args as { clipId: string }).clipId;
+    expect(dispatchedActions).toHaveLength(1); // Get Clip Download for whichever clip was picked.
+    const firstClipId = (dispatchedActions[0]?.args as { clipId: string }).clipId;
 
     await registry.publish({
       ...twoClips, eventId: 'test-download-first', eventType: 'addon.thsv.random-clip-player.clip-download-received',
@@ -141,7 +149,7 @@ describe('Random Clip Player add-on package', () => {
     expect(broker.diagnostics()['scheduledTasks']).toBe(1); // Overlay-start safety net remains armed after publish.
     lifecycleListener?.({ playbackId: 'irrelevant', phase: 'ended', occurredAt: new Date().toISOString() });
     await new Promise((resolve) => setTimeout(resolve, 200));
-    expect(dispatchedActions).toHaveLength(2); // A stale lifecycle ID cannot advance the active clip.
+    expect(dispatchedActions).toHaveLength(1); // A stale lifecycle ID cannot advance the active clip.
     expect(broker.diagnostics()['scheduledTasks']).toBe(1);
 
     lifecycleListener?.({ playbackId: String(firstPlaybackId), phase: 'started', occurredAt: new Date().toISOString() });
@@ -149,12 +157,12 @@ describe('Random Clip Player add-on package', () => {
     lifecycleListener?.({ playbackId: String(firstPlaybackId), phase: 'ended', occurredAt: new Date().toISOString() });
     const firstEndedAt = Date.now();
     await new Promise((resolve) => setTimeout(resolve, 200));
-    expect(dispatchedActions).toHaveLength(2); // Not immediate: still waiting out the configured pause.
+    expect(dispatchedActions).toHaveLength(1); // Not immediate: still waiting out the configured pause.
 
-    await expect.poll(() => dispatchedActions.length, { timeout: 7_000 }).toBe(3);
+    await expect.poll(() => dispatchedActions.length, { timeout: 7_000 }).toBe(2);
     expect(Date.now() - firstEndedAt).toBeGreaterThanOrEqual(4_900); // 1 configured second + hidden 4-second fade buffer.
-    expect(dispatchedActions[2]).toMatchObject({ actionId: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce' });
-    const secondClipId = (dispatchedActions[2]?.args as { clipId: string }).clipId;
+    expect(dispatchedActions[1]).toMatchObject({ actionId: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce' });
+    const secondClipId = (dispatchedActions[1]?.args as { clipId: string }).clipId;
     expect(secondClipId).not.toBe(firstClipId); // No-repeat: the other clip, not the one just played.
 
     await registry.publish({
@@ -163,18 +171,18 @@ describe('Random Clip Player add-on package', () => {
     });
     const secondPlaybackId = publishedTopics[1]?.payload['playbackId'];
     expect(secondPlaybackId).toEqual(expect.any(String));
-    // Both clips have now been played once -- the pool is exhausted, so ending playback again
-    // should refresh the clip list instead of silently replaying an already-seen clip.
+    // Both clips have now been played once. The shared cache may provide the next snapshot before
+    // the legacy fallback, avoiding a duplicate Twitch lookup.
     lifecycleListener?.({ playbackId: String(secondPlaybackId), phase: 'ended', occurredAt: new Date().toISOString() });
-    await expect.poll(() => dispatchedActions.length, { timeout: 7_000 }).toBe(4);
-    expect(dispatchedActions[3]).toMatchObject({ actionId: 'f89e397b-7106-5101-a620-b0f5da4facf9' });
+    await new Promise((resolve) => setTimeout(resolve, 5_100));
+    expect(dispatchedActions).toHaveLength(2);
 
     // Streamer.bot can legitimately return the same clip window after a completed rotation. The
     // refreshed response must reset the exhausted shuffle bag once and select a clip, not enter an
     // immediate Get Clips -> response -> Get Clips loop until the broker rate limit is exhausted.
-    await registry.publish({ ...twoClips, eventId: 'test-clips-new-cycle', source: { ...twoClips.source, eventId: 'relay-2' } });
-    expect(dispatchedActions).toHaveLength(5);
-    expect(dispatchedActions[4]).toMatchObject({ actionId: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce' });
+    await registry.publish({ ...twoClips, eventId: 'test-clips-new-cycle', eventType: 'addon.thsv.clip-library-cache.snapshot', source: { ...twoClips.source, eventId: 'relay-2' } });
+    expect(dispatchedActions).toHaveLength(3);
+    expect(dispatchedActions[2]).toMatchObject({ actionId: 'ad3cf90f-b320-5ae2-a493-485a5485e0ce' });
 
     await registry.stop();
   }, 20_000);

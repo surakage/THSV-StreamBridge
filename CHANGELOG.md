@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-07-27
+
+- Completed the practical add-on expansion with Creator Utility Pack, Chat Play Pack, Free Game Check, Accessibility Captions, and Clip Library Cache, bringing the release to 29 separately installable first-party add-ons and 36 reproducibly generated Streamer.bot imports.
+- Added optional Chat Guard enforcement modes with double approval, provider-capability checks, simulation suppression, and rolling action limits while retaining observe-only defaults.
+- Expanded Viewer Foundation and Viewer Spotlight with digest-locked migration, achievements, carousel and credits modes, Stream Score, reward requests, Discord snapshots, and immediate privacy-deletion propagation.
+- Added a creator-facing acceptance ledger that keeps automated, offline/manual, and genuine-provider evidence separate in the wizard.
+- Reduced Streamer.bot Action History pressure by excluding only high-frequency triggerless background lookup workers from pending/history views; moderation, rewards, public delivery, controls, and other auditable actions remain visible.
+- Added a generated, versioned setup guide for every first-party add-on, a complete guide index, inline wizard setup steps, health checks, repair guidance, and a `SETUP.md` inside every public add-on bundle.
+- Aligned the bridge, all 29 add-ons, all Streamer.bot manifests/imports, documentation, release assets, and update metadata on the stable `2.5.0` version baseline.
+
 ## [2.4.3] - 2026-07-27
 
 - Refined Command Sync starter templates: every template now identifies its platform coverage; removed Rules, Love, PC Specs/Gear, Emotes, and Bot Credit; added stateful multi-platform Lurk and Hug templates; made Streamer Time report the Streamer.bot computer's live local time and timezone; and clamped every generated response to Twitch, YouTube, Kick, or TikTok limits after variable expansion.

@@ -22,6 +22,9 @@ const EXPECTED_GROUPS: Readonly<Record<string, string>> = Object.freeze({
   'viewer-lobby': 'THSV Addon - Viewer Lobby',
   'voice-relay': 'THSV Addon - Voice Relay',
   'follower-pulse': 'THSV Addon - Follower Pulse',
+  'chat-guard': 'THSV Addon - Chat Guard',
+  'clip-library-cache': 'THSV Addon - Clip Library Cache',
+  'viewer-spotlight': 'THSV Addon - Viewer Spotlight',
 });
 
 describe('Streamer.bot add-on groups', () => {

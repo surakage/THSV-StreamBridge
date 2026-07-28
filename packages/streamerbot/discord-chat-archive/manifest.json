@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Discord Chat Archive",
-  "version": "2.4.3",
+  "version": "2.5.0",
   "author": "surakage",
   "description": "Delivers bounded, filtered multi-platform public-chat batches to a creator-owned Discord webhook and returns correlated delivery results to StreamBridge.",
   "minimumStreamerBotVersion": "1.0.5-alpha.33",
@@ -12,7 +12,7 @@
       "name": "THSV Addon - Discord Chat Archive - Deliver",
       "group": "THSV Addon - Discord Chat Archive",
       "source": "src/DeliverToDiscord.cs",
-      "importFile": "THSV-StreamBridge-Discord-Chat-Archive-2.4.3.sb",
+      "importFile": "THSV-StreamBridge-Discord-Chat-Archive-2.5.0.sb",
       "arguments": [
         {
           "name": "discordArchiveWebhookUrl",

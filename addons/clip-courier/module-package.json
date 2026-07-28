@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Discovers bounded Twitch clips and publishes each stable clip once to a Discord channel or forum.",
-  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe-baseline release with stable clip deduplication, bounded polling, channel/forum delivery, and private webhook isolation.",
+  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe-baseline release with stable clip deduplication, bounded polling, channel/forum delivery, and private webhook isolation.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,14 +21,17 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-courier",
     "name": "Clip Courier",
-    "version": "2.4.3",
+    "version": "2.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "dependencies": [],
+    "dependencies": [
+      "thsv.clip-library-cache"
+    ],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "addon.thsv.clip-courier.clips-received",
+      "addon.thsv.clip-library-cache.snapshot",
       "addon.thsv.clip-courier.delivery-result"
     ],
     "commandsProvided": [],
@@ -53,16 +56,16 @@
         "description": "Confirms bounded Twitch discovery and idempotent Discord publication are available."
       }
     ],
-    "minimumBridgeVersion": "2.4.3",
-    "maximumTestedBridgeVersion": "2.4.3"
+    "minimumBridgeVersion": "2.5.0",
+    "maximumTestedBridgeVersion": "2.5.0"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 7192,
-      "sha256": "26f9dfc11c9663204571a679b764fcb6d5b6df3e8548e077f44f0c774335d09b"
+      "size": 7445,
+      "sha256": "84c9d002a79a070ab43cd62178ce1615f504849c67591d94c3d3c653c2cd0a7d"
     },
     {
       "path": "schemas/config.json",

@@ -178,7 +178,8 @@ const communityAnalyticsAdminSchema = z.discriminatedUnion('operation', [
 const communityAnalyticsAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Community Analytics administration result exceeded the safe response size.');
 const viewerSpotlightAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
-  z.object({ operation: z.literal('display'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), displayName: z.string().trim().min(1).max(80), avatarUrl: z.url().max(2_048).refine((value) => new URL(value).protocol === 'https:', 'avatarUrl must use HTTPS').optional(), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('stream-score'), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('display'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), displayName: z.string().trim().min(1).max(80), avatarUrl: z.url().max(2_048).refine((value) => new URL(value).protocol === 'https:', 'avatarUrl must use HTTPS').optional(), sendDiscord: z.boolean().optional(), approvedByCreator: z.literal(true) }).strict(),
 ]);
 const viewerSpotlightAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Viewer Spotlight administration result exceeded the safe response size.');
 const chatGuardAdminSchema = z.discriminatedUnion('operation', [

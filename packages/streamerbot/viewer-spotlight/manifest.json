@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Viewer Spotlight",
+  "version": "2.5.0",
+  "author": "surakage",
+  "description": "Settles Twitch Viewer Spotlight rewards and optionally sends creator-approved Discord snapshots.",
+  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "actions": [
+    {
+      "id": "764a4658-e7fc-4b25-a792-e262759c76b7",
+      "name": "THSV Addon - Viewer Spotlight - Settle Reward",
+      "group": "THSV Addon - Viewer Spotlight",
+      "source": "src/SettleReward.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Spotlight-2.5.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll"
+      ]
+    },
+    {
+      "id": "e0907527-94ec-466b-a05f-b5b21930ac55",
+      "name": "THSV Addon - Viewer Spotlight - Discord Snapshot",
+      "group": "THSV Addon - Viewer Spotlight",
+      "source": "src/DiscordSnapshot.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Spotlight-2.5.0.sb",
+      "arguments": [
+        {
+          "name": "viewerSpotlightDiscordWebhookUrl",
+          "value": "REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL",
+          "autoType": false,
+          "id": "eabf84b4-129f-478c-945d-f598546c51f7"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
+  "manualTriggerSetup": {
+    "settle-reward": [],
+    "discord-snapshot": []
+  },
+  "triggerSafety": "Both actions remain triggerless and require one-use broker tokens. The Discord webhook remains only in its Set Argument.",
+  "verificationStatus": "Twitch redemption methods and Discord webhook contract are source-verified; live provider acceptance remains creator-tested."
+}

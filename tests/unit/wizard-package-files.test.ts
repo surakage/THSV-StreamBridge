@@ -6,7 +6,7 @@ describe('wizard launcher package', () => {
   it('contains author, description, reviewed source, and only a loopback wizard URL', async () => {
     const root = 'packages/streamerbot/wizard-launcher';
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as { name: string; version: string; author: string; description: string; action: { source: string; importFile: string } };
-    expect(manifest).toMatchObject({ version: '2.4.3', author: 'surakage' });
+    expect(manifest).toMatchObject({ version: '2.5.0', author: 'surakage' });
     expect(manifest.description.length).toBeGreaterThan(20);
     const source = await readFile(`${root}/${manifest.action.source}`, 'utf8');
     expect(source).toContain('open-wizard.mjs');
@@ -45,6 +45,7 @@ describe('wizard launcher package', () => {
     expect(script).toContain("'shoutout-basic'");
     expect(script).toContain("'commands-help':{name:'commands'");
     expect(script).toContain("'coin-flip':{name:'coinflip'");
+    expect(script).toContain("'random-joke':{name:'joke'");
     expect(script).toContain("'follow-age':{name:'followage'");
     expect(script).toContain('https://api.twitch.tv/helix/channels/followers');
     expect(script).toContain("commandSources:['twitch']");
@@ -80,6 +81,8 @@ describe('wizard launcher package', () => {
     expect(shell).not.toContain('Bits, donations, and Super Chats');
     expect(shell).toContain('data-panel="addons"');
     expect(addOnScript).toContain('/wizard/api/addons');
+    expect(addOnScript).toContain('/wizard/api/addons/acceptance');
+    expect(addOnScript).toContain('Published is not the same as provider accepted.');
     expect(addOnScript).toContain('not an operating-system sandbox');
     expect(addOnScript).toContain('/action-grants');
     expect(addOnScript).toContain('/overlay-preview');
@@ -87,6 +90,7 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain('/wizard/api/community-analytics/admin');
     expect(addOnScript).toContain('/wizard/api/viewer-spotlight/admin');
     expect(addOnScript).toContain('data-spotlight-display-form');
+    expect(addOnScript).toContain('data-spotlight-stream-score');
     expect(addOnScript).toContain('data-analytics-report');
     expect(addOnScript).toContain('data-viewer-correction-form');
     expect(addOnScript).toContain('data-viewer-delete-form');

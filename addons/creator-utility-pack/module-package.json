@@ -1,0 +1,104 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Adds bounded cross-platform counters, casual giveaways, and polls.",
+  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "chat.send",
+    "overlay.publish"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.creator-utility-pack",
+    "name": "Creator Utility Pack",
+    "version": "2.5.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "2.5.0",
+    "maximumTestedBridgeVersion": "2.5.0",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "command.received",
+      "stream.offline"
+    ],
+    "commandsProvided": [
+      {
+        "id": "creator-utility.counter",
+        "name": "counter"
+      },
+      {
+        "id": "creator-utility.enter",
+        "name": "enter"
+      },
+      {
+        "id": "creator-utility.giveaway",
+        "name": "giveaway"
+      },
+      {
+        "id": "creator-utility.vote",
+        "name": "vote"
+      },
+      {
+        "id": "creator-utility.poll",
+        "name": "poll"
+      }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.creator-utility-pack/",
+      "data/addons/.state/thsv.creator-utility-pack/"
+    ],
+    "installationSteps": [
+      "Install and choose command names.",
+      "Create matching no-response commands in Command Sync.",
+      "Use moderator/broadcaster commands to manage counters, giveaways, and polls."
+    ],
+    "uninstallationSteps": [
+      "Uninstalling preserves bounded counters and the current poll definition, but not in-memory giveaway identities."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.creator-utility-pack.runtime",
+        "description": "Confirms bounded utility state and source-routed replies are available."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 10256,
+      "sha256": "ae7340cdc36b420bec0ec103713d45c243052565c87303d2e906a9f65bed989e"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 1275,
+      "sha256": "f0ba19e1a9b3b221b4083fd495f69106dd8f7ea6eb7872a256abf055e9bdcbc2"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1103,
+      "sha256": "e95c227a0d76c79883f07bc225449fb288b4f97a5fe68a3b08c5bfb056e0f76d"
+    },
+    {
+      "path": "README.md",
+      "size": 378,
+      "sha256": "4f259e29a823783059bd48175dd3913670428d273801ae4701c69e8a7a460880"
+    }
+  ]
+}

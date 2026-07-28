@@ -104,6 +104,8 @@ export interface ViewerFoundationProjectionV1 {
   readonly points: number;
   readonly level: number;
   readonly nextLevelAt: number;
+  readonly achievements?: readonly Readonly<{ id: string; label: string; points: number }>[];
+  readonly latestAchievement?: Readonly<{ id: string; label: string; points: number }>;
 }
 
 export interface ViewerFoundationProjectionQueryV1 {
@@ -128,12 +130,14 @@ export interface ViewerFoundationMutationResultV1 extends ViewerFoundationProjec
 }
 
 export interface ViewerFoundationAdminRequestV1 {
-  readonly operation: 'status' | 'export' | 'correct' | 'delete';
+  readonly operation: 'status' | 'export' | 'correct' | 'delete' | 'import-legacy';
   readonly viewerId?: string;
   readonly adjustment?: 'add' | 'remove' | 'reset';
   readonly amount?: number;
   readonly reason?: string;
   readonly approvedByCreator?: boolean;
+  readonly migrationDigest?: string;
+  readonly legacyViewers?: readonly Readonly<{ viewerId: string; points: number; lastAwardAt: Readonly<Record<string, number>> }>[];
 }
 
 export type ViewerFoundationAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
@@ -149,7 +153,8 @@ export type CommunityAnalyticsAdminResultV1 = Readonly<Record<string, JsonValueV
 
 export type ViewerSpotlightAdminRequestV1 =
   | { readonly operation: 'status' }
-  | { readonly operation: 'display'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly displayName: string; readonly avatarUrl?: string; readonly approvedByCreator: true };
+  | { readonly operation: 'stream-score'; readonly approvedByCreator: true }
+  | { readonly operation: 'display'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly displayName: string; readonly avatarUrl?: string; readonly sendDiscord?: boolean; readonly approvedByCreator: true };
 
 export type ViewerSpotlightAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 

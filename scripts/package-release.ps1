@@ -106,6 +106,9 @@ try {
             )
         }
         Set-Content -LiteralPath (Join-Path $bundleRoot 'INSTALL.txt') -Encoding utf8 -Value $installText
+        $setupGuide = Join-Path $repo "docs\addons\$($_.Name).md"
+        if (-not (Test-Path -LiteralPath $setupGuide)) { throw "$($descriptor.manifest.name) is missing its setup guide." }
+        Copy-Item -LiteralPath $setupGuide -Destination (Join-Path $bundleRoot 'SETUP.md')
         $addOnBundle = Join-Path $resolvedPackages "$bundleName.zip"
         Compress-Archive -Path "$bundleRoot\*" -DestinationPath $addOnBundle -CompressionLevel Optimal
         $addOnBundleHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $addOnBundle).Hash.ToLowerInvariant()
@@ -261,6 +264,7 @@ try {
         Copy-Item -LiteralPath $cachedRuntime.License -Destination (Join-Path $runtimeRoot 'NODE-LICENSE.txt')
         $actualNodeHash = $cachedRuntime.UpstreamSha256
     }
+    Copy-Item -LiteralPath (Join-Path $repo 'docs\addons') -Destination (Join-Path $appRoot 'docs\addons') -Recurse
     Set-Content -LiteralPath (Join-Path $runtimeRoot 'node-version.txt') -Encoding ascii -Value "v$NodeVersion"
 
     @('archive','app\packages\streamerbot\viewer-progression','app\packages\streamerbot\companion-actions','app\packages\streamerbot\speaker-orchestration','app\overlays\browser\bloom-idle-sprite.png') | ForEach-Object {

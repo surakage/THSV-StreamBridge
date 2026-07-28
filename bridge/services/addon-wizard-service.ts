@@ -15,6 +15,8 @@ import {
 const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const MAXIMUM_ARCHIVE_BYTES = 7_500_000;
 const MAXIMUM_SETTINGS_BYTES = 65_536;
+const MAXIMUM_ACCEPTANCE_BYTES = 131_072;
+const ACCEPTANCE_STATUS = new Set(['pending', 'passed', 'failed', 'not-required']);
 
 export class AddOnWizardError extends Error {
   public constructor(public readonly statusCode: number, message: string) { super(message); this.name = 'AddOnWizardError'; }
@@ -22,6 +24,15 @@ export class AddOnWizardError extends Error {
 
 export interface WizardAddOnSummary extends InstalledAddOnSummary {
   readonly settings: Readonly<Record<string, unknown>>;
+}
+
+export interface AddOnAcceptanceEntry {
+  readonly moduleId: string;
+  readonly version: string;
+  readonly offlineStatus: 'pending' | 'passed' | 'failed' | 'not-required';
+  readonly providerStatus: 'pending' | 'passed' | 'failed' | 'not-required';
+  readonly evidence: string;
+  readonly updatedAt: string;
 }
 
 export interface DiscoveredAddOnSummary {
@@ -152,8 +163,45 @@ export class AddOnWizardService {
     return { moduleId, saved: true, restartRequired: true, settings };
   }
 
+  public async listAcceptance(): Promise<Readonly<Record<string, AddOnAcceptanceEntry>>> {
+    const installed = new Map((await listInstalledAddOnPackages(this.packagesRoot)).map((addOn) => [addOn.moduleId, addOn.version]));
+    const saved = await this.readAcceptanceFile();
+    return Object.freeze(Object.fromEntries([...installed.entries()].map(([moduleId, version]) => {
+      const entry = saved[moduleId];
+      const current: AddOnAcceptanceEntry = entry === undefined
+        ? { moduleId, version, offlineStatus: 'pending', providerStatus: 'pending', evidence: '', updatedAt: '' }
+        : { ...entry, moduleId, version };
+      return [moduleId, current];
+    })));
+  }
+
+  public async saveAcceptance(moduleId: string, input: unknown): Promise<AddOnAcceptanceEntry> {
+    assertModuleId(moduleId);
+    const installed = (await listInstalledAddOnPackages(this.packagesRoot)).find((candidate) => candidate.moduleId === moduleId);
+    if (installed === undefined) throw new AddOnWizardError(404, 'The add-on is not installed.');
+    const body = objectInput(input);
+    if (body['approvedByCreator'] !== true) throw new AddOnWizardError(403, 'Saving acceptance evidence requires explicit creator approval.');
+    const offlineStatus = acceptanceStatus(body['offlineStatus'], 'offlineStatus');
+    const providerStatus = acceptanceStatus(body['providerStatus'], 'providerStatus');
+    const evidence = typeof body['evidence'] === 'string' ? cleanAcceptanceEvidence(body['evidence']) : '';
+    if (evidence.length > 500) throw new AddOnWizardError(400, 'Acceptance evidence must be no longer than 500 characters.');
+    if ((offlineStatus === 'passed' || providerStatus === 'passed') && evidence.length < 8) throw new AddOnWizardError(400, 'A passed acceptance status requires a short evidence note.');
+    if (/https?:\/\/|(?:bearer|token|password)\s*[:=]|gh[opsu]_[A-Za-z0-9_]+/iu.test(evidence)) throw new AddOnWizardError(400, 'Do not store URLs, tokens, passwords, or webhook secrets in acceptance evidence.');
+    const entry: AddOnAcceptanceEntry = { moduleId, version: installed.version, offlineStatus, providerStatus, evidence, updatedAt: new Date().toISOString() };
+    const saved = await this.readAcceptanceFile();
+    saved[moduleId] = entry;
+    const encoded = `${JSON.stringify(saved, null, 2)}\n`;
+    if (Buffer.byteLength(encoded) > MAXIMUM_ACCEPTANCE_BYTES) throw new AddOnWizardError(413, 'The add-on acceptance ledger exceeds its private storage limit.');
+    const path = acceptancePath(this.stateRoot);
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    const temporary = `${path}.${randomUUID()}.tmp`;
+    await writeFile(temporary, encoded, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, path);
+    return entry;
+  }
+
   public diagnostics(): Readonly<Record<string, unknown>> {
-    return { packagesRoot: resolve(this.packagesRoot), stateRoot: resolve(this.stateRoot), inboxRoot: resolve(this.inboxRoot), archiveLimitBytes: MAXIMUM_ARCHIVE_BYTES, settingsLimitBytes: MAXIMUM_SETTINGS_BYTES };
+    return { packagesRoot: resolve(this.packagesRoot), stateRoot: resolve(this.stateRoot), inboxRoot: resolve(this.inboxRoot), archiveLimitBytes: MAXIMUM_ARCHIVE_BYTES, settingsLimitBytes: MAXIMUM_SETTINGS_BYTES, acceptanceLimitBytes: MAXIMUM_ACCEPTANCE_BYTES };
   }
 
   private async readSettings(moduleId: string, schema: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -167,6 +215,24 @@ export class AddOnWizardService {
       throw error;
     }
   }
+
+  private async readAcceptanceFile(): Promise<Record<string, AddOnAcceptanceEntry>> {
+    try {
+      const parsed = JSON.parse(await readFile(acceptancePath(this.stateRoot), 'utf8')) as unknown;
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error('Acceptance ledger must be a JSON object.');
+      const result: Record<string, AddOnAcceptanceEntry> = {};
+      for (const [moduleId, value] of Object.entries(parsed).slice(0, 100)) {
+        if (!MODULE_ID.test(moduleId) || typeof value !== 'object' || value === null || Array.isArray(value)) continue;
+        const item = value as Record<string, unknown>;
+        if (!ACCEPTANCE_STATUS.has(String(item['offlineStatus'])) || !ACCEPTANCE_STATUS.has(String(item['providerStatus']))) continue;
+        result[moduleId] = { moduleId, version: typeof item['version'] === 'string' ? item['version'].slice(0, 64) : '', offlineStatus: item['offlineStatus'] as AddOnAcceptanceEntry['offlineStatus'], providerStatus: item['providerStatus'] as AddOnAcceptanceEntry['providerStatus'], evidence: typeof item['evidence'] === 'string' ? item['evidence'].slice(0, 500) : '', updatedAt: typeof item['updatedAt'] === 'string' ? item['updatedAt'].slice(0, 64) : '' };
+      }
+      return result;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {};
+      throw new AddOnWizardError(500, `Saved add-on acceptance ledger is invalid: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 }
 
 function assertInboxFilename(value: string): void {
@@ -178,6 +244,17 @@ function settingsPath(root: string, moduleId: string): string {
   const path = resolve(base, moduleId, 'settings.json');
   if (!path.startsWith(base.replace(/[\\/]+$/u, '') + sep)) throw new AddOnWizardError(400, 'Invalid module ID.');
   return path;
+}
+
+function acceptancePath(root: string): string { return resolve(root, '.acceptance-ledger.json'); }
+
+function acceptanceStatus(value: unknown, field: string): AddOnAcceptanceEntry['offlineStatus'] {
+  if (typeof value !== 'string' || !ACCEPTANCE_STATUS.has(value)) throw new AddOnWizardError(400, `${field} is invalid.`);
+  return value as AddOnAcceptanceEntry['offlineStatus'];
+}
+
+function cleanAcceptanceEvidence(value: string): string {
+  return Array.from(value).map((character) => { const point = character.codePointAt(0) ?? 0; return point <= 31 || point === 127 ? ' ' : character; }).join('').replace(/\s+/gu, ' ').trim();
 }
 
 function assertModuleId(value: string): void {

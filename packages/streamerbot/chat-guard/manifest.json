@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Chat Guard",
+  "version": "2.5.0",
+  "author": "surakage",
+  "description": "Provides one triggerless, creator-approved moderation controller for Chat Guard.",
+  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "actions": [
+    {
+      "id": "9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9",
+      "name": "THSV Addon - Chat Guard - Moderate",
+      "group": "THSV Addon - Chat Guard",
+      "source": "src/Moderate.cs",
+      "importFile": "THSV-StreamBridge-Chat-Guard-2.5.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": false
+  },
+  "manualTriggerSetup": {
+    "moderate": []
+  },
+  "triggerSafety": "Moderate must remain triggerless. It accepts only a one-use add-on relay token issued by StreamBridge.",
+  "verificationStatus": "Method signatures are source-verified against Streamer.bot 1.0.5 documentation; genuine provider moderation remains creator-accepted."
+}

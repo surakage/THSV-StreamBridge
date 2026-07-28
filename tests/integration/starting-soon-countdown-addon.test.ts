@@ -1,7 +1,7 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { installAddOnPackage } from '../../bridge/services/addon-package-manager.js';
 import { loadInstalledAddOns } from '../../bridge/core/installed-modules.js';
 import { AddOnCapabilityBroker } from '../../bridge/core/addon-capability-broker.js';
@@ -58,21 +58,21 @@ describe('Stream Launch Countdown installed add-on', () => {
       settings: { durationHours: 0, durationMinutes: 0, durationSeconds: 1, runCompletionAction: true, completionActionDelaySeconds: 0, showOverlay: false },
       capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: [actionId] },
     }], silentLogger, 5_000, broker);
+    const statePath = join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json');
+    await mkdir(join(stateRoot, 'thsv.starting-soon-countdown'), { recursive: true });
+    await writeFile(statePath, JSON.stringify({
+      initialized: true, remainingSeconds: 1, maximumSeconds: 1, running: true, visible: true, completed: false,
+      updatedAt: Date.now() - 2_000, completedAt: 0, completionSequence: 0, completionActionSent: false,
+      completionActionDueAt: 0, lastReason: 'started',
+    }), 'utf8');
     await registry.start();
-    await registry.publish(control('start'));
-    await vi.waitFor(async () => {
-      const completionState = JSON.parse(await readFile(join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json'), 'utf8')) as Record<string, unknown>;
-      expect(completionState).toMatchObject({ completed: true, completionActionSent: true });
-      expect(actions).toHaveLength(1);
-    // The full release suite runs more than one hundred files concurrently on Windows. Allow the
-    // real one-second scheduler enough wall-clock headroom under CPU contention while still
-    // asserting the persisted at-most-once result instead of sleeping for a guessed duration.
-    }, { timeout: 25_000, interval: 100 });
+    const completionState = JSON.parse(await readFile(statePath, 'utf8')) as Record<string, unknown>;
+    expect(completionState).toMatchObject({ completed: true, completionActionSent: true });
+    expect(actions).toHaveLength(1);
     expect(actions[0]).toMatchObject({ actionId, argumentsValue: { countdownModule: 'thsv.starting-soon-countdown', countdownTrigger: 'completed' } });
     await registry.publish(control('reset'));
     await registry.publish(control('complete'));
-    await new Promise((resolve) => setTimeout(resolve, 1_100));
     expect(actions).toHaveLength(1);
     await registry.stop();
-  }, 30_000);
+  });
 });

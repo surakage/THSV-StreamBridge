@@ -7,8 +7,8 @@ const PROFILE_IDS = Object.freeze(['profile-1', 'profile-2', 'profile-3']);
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick']);
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.creator-controls', name: 'Creator Controls', version: '2.4.3',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.4.3', maximumTestedBridgeVersion: '2.4.3', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.creator-controls', name: 'Creator Controls', version: '2.5.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.0', maximumTestedBridgeVersion: '2.5.0', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: [CONTROL_EVENT, RESULT_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.creator-controls/', 'data/addons/.state/thsv.creator-controls/'],
   installationSteps: ['Import the bundled Creator Controls Streamer.bot package.', 'Approve only its triggerless Provider Controller action in the wizard.', 'Edit the three profiles, then attach Profile 1/2/3 only to creator-controlled hotkeys, deck buttons, or scene actions.'],

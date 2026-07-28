@@ -6,7 +6,7 @@ import type { CommandSyncState } from '../../bridge/contracts/v2/command-sync.js
 import { createTestBridge, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { AddOnWizardService } from '../../bridge/services/addon-wizard-service.js';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -14,6 +14,32 @@ const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
 
 describe('wizard HTTP surface', () => {
+  it('previews and digest-locks a creator-approved Viewer Foundation legacy migration', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-viewer-migration-'));
+    await mkdir(join(root, 'state'), { recursive: true });
+    const legacyPath = join(root, 'state', 'viewer-progression.json');
+    await writeFile(legacyPath, JSON.stringify({ viewers: { alex: { points: 125, lastAwardAt: { 'chat.message': 1000 } }, invalid: { points: -1 } } }));
+    const config = await testConfig(); config.service.port = 0;
+    const bridge = createTestBridge(config); const requests: Record<string, unknown>[] = [];
+    (bridge as unknown as { administerViewerFoundation(request: Record<string, unknown>): Promise<Record<string, unknown>> }).administerViewerFoundation = (request) => { requests.push(request); return Promise.resolve({ operation: 'import-legacy', imported: 1 }); };
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined), root);
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`; const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    expect((await fetch(`${baseUrl}/wizard/api/viewer-foundation/migration`)).status).toBe(401);
+    const previewResponse = await fetch(`${baseUrl}/wizard/api/viewer-foundation/migration`, { headers });
+    expect(previewResponse.status).toBe(200);
+    const preview = await previewResponse.json() as { digest: string; records: unknown[]; rejectedRecords: number; totalPoints: number };
+    expect(preview).toMatchObject({ records: [{ viewerId: 'alex', points: 125, lastAwardAt: { 'chat.message': 1000 } }], rejectedRecords: 1, totalPoints: 125 });
+    await writeFile(legacyPath, JSON.stringify({ viewers: { alex: { points: 126 } } }));
+    const stale = await fetch(`${baseUrl}/wizard/api/viewer-foundation/migration`, { method: 'POST', headers, body: JSON.stringify({ migrationDigest: preview.digest, approvedByCreator: true }) });
+    expect(stale.status).toBe(409); expect(requests).toHaveLength(0);
+    const current = await (await fetch(`${baseUrl}/wizard/api/viewer-foundation/migration`, { headers })).json() as { digest: string };
+    const applied = await fetch(`${baseUrl}/wizard/api/viewer-foundation/migration`, { method: 'POST', headers, body: JSON.stringify({ migrationDigest: current.digest, approvedByCreator: true }) });
+    expect(applied.status).toBe(200); expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ operation: 'import-legacy', approvedByCreator: true, migrationDigest: current.digest, legacyViewers: [{ viewerId: 'alex', points: 126 }] });
+  });
+
   it('protects the add-on inventory and mutation API with the local control token and creator approval', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-addon-http-'));
     const config = await testConfig(); config.service.port = 0;
@@ -24,6 +50,7 @@ describe('wizard HTTP surface', () => {
     stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
     expect((await fetch(`${baseUrl}/wizard/api/addons`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/addons/acceptance`)).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-foundation/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/community-analytics/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-spotlight/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
@@ -32,6 +59,9 @@ describe('wizard HTTP surface', () => {
     const inventory = await fetch(`${baseUrl}/wizard/api/addons`, { headers });
     expect(inventory.status).toBe(200);
     expect(await inventory.json()).toEqual({ addOns: [], discovered: [] });
+    const acceptance = await fetch(`${baseUrl}/wizard/api/addons/acceptance`, { headers });
+    expect(acceptance.status).toBe(200);
+    expect(await acceptance.json()).toEqual({ acceptance: {} });
     const install = await fetch(`${baseUrl}/wizard/api/addons/install`, { method: 'POST', headers, body: JSON.stringify({ filename: 'sample.thsv-addon', contentBase64: Buffer.from('not a zip').toString('base64'), approvedByCreator: false }) });
     expect(install.status).toBe(403);
     expect(await install.text()).toContain('approve');
@@ -39,6 +69,8 @@ describe('wizard HTTP surface', () => {
     const grant = await fetch(`${baseUrl}/wizard/api/addons/sample.missing/action-grants`, { method: 'PUT', headers, body: JSON.stringify({ actionIds: [], approvedByCreator: false }) });
     expect(grant.status).toBe(403);
     expect(await grant.text()).toContain('explicit creator approval');
+    const missingAcceptance = await fetch(`${baseUrl}/wizard/api/addons/sample.missing/acceptance`, { method: 'PUT', headers, body: JSON.stringify({ offlineStatus: 'passed', providerStatus: 'pending', evidence: 'Local simulator passed.', approvedByCreator: true }) });
+    expect(missingAcceptance.status).toBe(404);
   });
 
   it('rejects non-canonical or content-type-confused overlay uploads before writing files', async () => {

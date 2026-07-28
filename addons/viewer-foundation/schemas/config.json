@@ -19,6 +19,7 @@
     "raidPoints": { "type": "integer", "title": "Raid points", "minimum": 0, "maximum": 10000, "default": 100 },
     "rewardRedemptionPoints": { "type": "integer", "title": "Reward redemption points", "minimum": 0, "maximum": 10000, "default": 25 },
     "levelStepPoints": { "type": "integer", "title": "Points required per level", "minimum": 10, "maximum": 1000000, "default": 100 },
+    "achievementsEnabled": { "type": "boolean", "title": "Enable milestone achievements", "description": "Derives bounded achievements from points without storing another viewer identity record.", "default": true },
     "maximumViewers": { "type": "integer", "title": "Maximum tracked viewers", "minimum": 25, "maximum": 500, "default": 250 },
     "processedEventLimit": { "type": "integer", "title": "Replay-protection event limit", "minimum": 25, "maximum": 500, "default": 200 },
     "processedEventTtlHours": { "type": "integer", "title": "Replay-protection retention (hours)", "minimum": 1, "maximum": 720, "default": 168 }

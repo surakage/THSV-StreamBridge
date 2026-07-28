@@ -1,0 +1,9 @@
+{
+  "intro": "One bounded Twitch metadata refresh serves Random Clip Player, Clip Courier, and future clip tools. It never downloads videos or persists short-lived signed playback URLs.",
+  "order": ["enabled", "refreshMinutes", "clipCount", "maximumCache"],
+  "sections": [
+    { "id": "setup", "title": "1. Shared cache", "description": "Enable the one shared source used by clip add-ons.", "open": true, "fields": ["enabled"] },
+    { "id": "limits", "title": "2. Refresh and bounds", "description": "Keep the interval moderate to avoid duplicate Twitch API work.", "fields": ["refreshMinutes", "clipCount", "maximumCache"] }
+  ],
+  "fields": {}
+}

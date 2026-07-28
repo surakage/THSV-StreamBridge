@@ -68,6 +68,13 @@ describe('Viewer Foundation add-on', () => {
     expect(deleted.removed).toBe(true); expect(deleted.state.viewers['viewer-39']).toBeUndefined();
   });
 
+  it('derives bounded milestone achievements from points without storing another profile', () => {
+    const projection = viewerProjection({ viewers: { alex: { points: 2_600, level: 27, lastSeenAt: 1 } } }, 'alex', { levelStepPoints: 100, achievementsEnabled: true });
+    expect(projection).toMatchObject({ points: 2_600, latestAchievement: { id: 'village-veteran', label: 'Village Veteran', points: 2_500 } });
+    expect(projection.achievements).toHaveLength(4);
+    expect(viewerProjection({ viewers: { alex: { points: 2_600, level: 27, lastSeenAt: 1 } } }, 'alex', { levelStepPoints: 100, achievementsEnabled: false })).not.toHaveProperty('achievements');
+  });
+
   it('shrinks hostile persisted collections below the broker state ceiling', () => {
     const state = sanitizeViewerFoundationState({
       viewers: Object.fromEntries(Array.from({ length: 500 }, (_, index) => [`viewer-${String(index)}`, { points: index, lastSeenAt: index }])),
@@ -99,5 +106,19 @@ describe('Viewer Foundation add-on', () => {
     const serialized = JSON.stringify(testRuntime.value());
     expect(serialized).not.toContain('round-1');
     expect(serialized).not.toContain('thsv.chat-play-pack');
+  });
+
+  it('imports one creator-approved legacy snapshot once and keeps higher current totals', async () => {
+    const testRuntime = runtime({ levelStepPoints: 100 }, { viewers: { alex: { points: 250, level: 3, lastSeenAt: 1 } } });
+    let provider: { administer(request: Record<string, unknown>): Promise<Record<string, unknown>> } | undefined;
+    await viewerFoundation.start({ ...testRuntime.context, viewerFoundation: { provide: vi.fn((value) => { provider = value; return vi.fn(); }) } });
+    const request = { operation: 'import-legacy', approvedByCreator: true, migrationDigest: 'a'.repeat(64), legacyViewers: [
+      { viewerId: 'alex', points: 100, lastAwardAt: {} }, { viewerId: 'sam', points: 450, lastAwardAt: { 'chat.message': 1234 } }, { viewerId: 'bad', points: -1, lastAwardAt: {} },
+    ] };
+    await expect(provider?.administer(request)).resolves.toMatchObject({ duplicate: false, imported: 1, merged: 0, skipped: 2, sourceRecords: 3 });
+    await expect(provider?.administer(request)).resolves.toMatchObject({ duplicate: true, imported: 0, merged: 0, skipped: 0 });
+    await expect(provider?.administer({ operation: 'export', viewerId: 'alex' })).resolves.toMatchObject({ projection: { points: 250 } });
+    await expect(provider?.administer({ operation: 'export', viewerId: 'sam' })).resolves.toMatchObject({ projection: { points: 450, level: 5 } });
+    await expect(provider?.administer({ ...request, migrationDigest: 'b'.repeat(64), approvedByCreator: false })).rejects.toThrow('explicit creator approval');
   });
 });

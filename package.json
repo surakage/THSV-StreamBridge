@@ -1,6 +1,6 @@
 {
   "name": "@thsv/streambridge",
-  "version": "2.4.3",
+  "version": "2.5.0",
   "private": true,
   "license": "MIT",
   "description": "A modular, local-first cross-platform livestream automation framework",
@@ -16,6 +16,7 @@
     "addon:remove": "tsx tools/manage-addon.ts remove",
     "clean": "node tools/clean.mjs",
     "config:validate": "tsx tools/validate-config.ts",
+    "docs:addons": "tsx tools/generate-addon-setup-docs.ts",
     "dev": "node tools/dev.mjs",
     "lint": "eslint .",
     "package:streamerbot": "tsx tools/build-streamerbot-export.ts",

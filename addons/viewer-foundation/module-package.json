@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Provides privacy-conscious, salted cross-platform viewer identity and bounded replay-safe progression as an optional foundation for later community add-ons.",
-  "changelog": "2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
+  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -20,7 +20,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-foundation",
     "name": "Viewer Foundation",
-    "version": "2.4.3",
+    "version": "2.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -60,31 +60,31 @@
         "description": "Confirms salted identity resolution, bounded replay protection, and atomic private progression state."
       }
     ],
-    "minimumBridgeVersion": "2.4.3",
-    "maximumTestedBridgeVersion": "2.4.3"
+    "minimumBridgeVersion": "2.5.0",
+    "maximumTestedBridgeVersion": "2.5.0"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20322,
-      "sha256": "f1e1d6d609611a627b934fb4bb89d0767d17a998b34ab9d18373725698022cfa"
+      "size": 23856,
+      "sha256": "feae8824a9c35251e09af31f0531eaa1e1204cfe0794acc7c0c26f63a705754d"
     },
     {
       "path": "schemas/config.json",
-      "size": 2798,
-      "sha256": "0a1983e2e1b6a1fbad5690453046ef99378b4ed1bd401123a654307d39cdf58f"
+      "size": 3014,
+      "sha256": "49f0accb648c5fa7fa5d465c71e587da072486209795c41254c7142e6400e406"
     },
     {
       "path": "ui/settings.json",
-      "size": 2247,
-      "sha256": "f5ecfb504d434ade716f2715d8bd1cfb6b42a2fe0227f27266e1467d7484b48f"
+      "size": 2354,
+      "sha256": "7f96f39a85d334fc08af03a33477bca16ef3f0180259c695430057818ecce71e"
     },
     {
       "path": "README.md",
-      "size": 1850,
-      "sha256": "04830f76d084c990efdd5a346401e7cad35e3bd060a03257d72509cb73c33a56"
+      "size": 2722,
+      "sha256": "50de4597cf21aa059da032088a92c22b24b37e19601a6225376c48cf88c024cb"
     }
   ]
 }

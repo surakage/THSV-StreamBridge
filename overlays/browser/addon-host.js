@@ -149,13 +149,19 @@
     if (imageUrl) { cardImage.src = imageUrl; cardImage.classList.remove('hidden'); }
     const backgroundMode = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass';
     const fontFamily = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
+    const presentationMode = ['single', 'fade-carousel', 'credits-scroll'].includes(payload.presentationMode) ? payload.presentationMode : 'single';
     card.dataset.background = backgroundMode;
     card.dataset.font = fontFamily;
+    card.dataset.presentation = presentationMode;
+    card.style.setProperty('--card-duration', `${boundedDuration(payload.durationMs, 8_000)}ms`);
     card.style.setProperty('--card-background', safeColor(style.backgroundColor, '#140d1f'));
     card.style.setProperty('--card-background-rendered', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#140d1f', 0.94));
     card.style.setProperty('--card-accent', safeColor(style.accentColor, '#ffffff'));
     card.style.setProperty('--card-border', colorWithOpacity(style.accentColor, 0.36, '#ffffff', 0.18));
     card.style.setProperty('--card-text', safeColor(style.textColor, '#ffffff'));
+    const fontSize = Number.isFinite(style.fontSize) ? Math.max(20, Math.min(72, style.fontSize)) : 36;
+    card.style.setProperty('--card-title-size', `${Math.min(84, Math.round(fontSize * 1.25))}px`);
+    card.style.setProperty('--card-text-size', `${fontSize}px`);
     cardTitle.textContent = title;
     cardText.textContent = text;
     card.classList.remove('hidden');

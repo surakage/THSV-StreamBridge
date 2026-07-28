@@ -88,7 +88,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const userTranslateSettings = page.locator('[data-addon-settings="thsv.user-translate"]');
-  await expect(page.getByRole('article').getByText('User Translate 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('User Translate 2.5.0', { exact: true })).toBeVisible();
   await expect(userTranslateSettings.getByText('Set up viewer-requested translation in five short sections.', { exact: false })).toBeVisible();
   await expect(userTranslateSettings.locator('input[name="enabledPlatforms"][value="twitch"]')).toBeChecked();
   await expect(userTranslateSettings.locator('input[name="enabledPlatforms"][value="youtube"]')).toBeChecked();
@@ -113,7 +113,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const autoTranslateSettings = page.locator('[data-addon-settings="thsv.auto-translate"]');
-  await expect(page.getByRole('article').getByText('Auto Translate 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Auto Translate 2.5.0', { exact: true })).toBeVisible();
   await expect(autoTranslateSettings.getByText('Auto Translate sends selected public chat text', { exact: false })).toBeVisible();
   await expect(autoTranslateSettings.locator('input[name="enabled"]')).not.toBeChecked();
   await autoTranslateSettings.locator('summary').filter({ hasText: '2. Audience' }).click();
@@ -132,7 +132,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const shoutoutSettings = page.locator('[data-addon-settings="thsv.automated-shoutouts"]');
-  await expect(page.getByRole('article').getByText('Automated Shoutouts 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Automated Shoutouts 2.5.0', { exact: true })).toBeVisible();
   await expect(shoutoutSettings.locator('summary')).toHaveCount(8);
   await shoutoutSettings.locator('summary').filter({ hasText: '8. Twitch visual popup' }).click();
   await expect(shoutoutSettings.getByLabel('Show a Twitch visual popup')).toBeChecked();
@@ -156,7 +156,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const subathonSettings = page.locator('[data-addon-settings="thsv.subathon-timer"]');
-  await expect(page.getByRole('article').getByText('Subathon Timer 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Subathon Timer 2.5.0', { exact: true })).toBeVisible();
   await expect(subathonSettings.locator('summary')).toHaveCount(11);
   await expect(subathonSettings.getByLabel('Enable Subathon Timer')).toBeChecked();
   await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(6);
@@ -181,7 +181,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const countdownSettings = page.locator('[data-addon-settings="thsv.starting-soon-countdown"]');
-  await expect(page.getByRole('article').getByText('Stream Launch Countdown 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Stream Launch Countdown 2.5.0', { exact: true })).toBeVisible();
   await expect(countdownSettings.locator('summary')).toHaveCount(6);
   await expect(countdownSettings.locator('input[name="durationMinutes"]')).toHaveValue('10');
   await countdownSettings.locator('summary').filter({ hasText: '2. Completion' }).click();
@@ -207,7 +207,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const sceneSettings = page.locator('[data-addon-settings="thsv.scene-actions"]');
-  await expect(page.getByRole('article').getByText('Scene Actions 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Scene Actions 2.5.0', { exact: true })).toBeVisible();
   const sceneTriggerStatus = page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness');
   await expect(sceneTriggerStatus).toContainText('Not checked');
   await expect(sceneTriggerStatus).toContainText('OBS Studio > Scene Changed');
@@ -259,7 +259,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
-  await expect(page.getByRole('article').getByText('Raid Scout 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Raid Scout 2.5.0', { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.raid-scout"] .addon-trigger-readiness')).toContainText('No direct trigger needed');
   await expect(raidScoutSettings.locator('summary')).toHaveCount(11);
   await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
@@ -292,12 +292,14 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const chatGuardSettings = page.locator('[data-addon-settings="thsv.chat-guard"]');
-  await expect(page.getByRole('article').getByText('Chat Guard 2.4.3', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Chat Guard 2.5.0', { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.chat-guard"] .addon-trigger-readiness')).toContainText('No direct trigger needed');
-  await expect(chatGuardSettings.locator(':scope > details')).toHaveCount(5);
+  await expect(chatGuardSettings.locator(':scope > details')).toHaveCount(6);
   await expect(chatGuardSettings.getByLabel('Enable observe-only Chat Guard')).not.toBeChecked();
   await page.evaluate(`state.addOns.find((addOn) => addOn.moduleId === 'thsv.chat-guard').enabled = true; renderAddOns();`);
   await expect(page.getByText('Observe-only results & rule tester', { exact: true })).toBeVisible();
+  await expect(chatGuardSettings.getByLabel('Enable moderation enforcement')).toHaveCount(1);
+  await expect(chatGuardSettings.getByLabel('I approve automated moderation')).toHaveCount(1);
   await page.getByText('Observe-only results & rule tester', { exact: true }).click();
   await expect(page.getByLabel('Sample public-chat message')).toBeVisible();
   await expect(page.getByLabel('Prior matching messages')).toHaveValue('0');

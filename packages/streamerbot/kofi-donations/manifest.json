@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Ko-fi Donations",
-  "version": "2.4.3",
+  "version": "2.5.0",
   "author": "surakage",
   "description": "Relays verified Ko-fi Donation triggers into the stable-ID, durable StreamBridge alert pipeline.",
   "minimumStreamerBotVersion": "1.0.5-alpha.32",
@@ -10,7 +10,7 @@
     "name": "THSV Addon - Ko-fi Donations - Intake",
     "group": "THSV Addon - Ko-fi Donations",
     "source": "src/RelayKoFiDonation.cs",
-    "importFile": "THSV-StreamBridge-KoFi-Donations-2.4.3.sb",
+    "importFile": "THSV-StreamBridge-KoFi-Donations-2.5.0.sb",
     "references": [
       "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
       "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
