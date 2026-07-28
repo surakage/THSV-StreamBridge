@@ -1,6 +1,6 @@
 # Compatibility and platform matrix
 
-This matrix records tested versions, not speculative compatibility ranges. A newer Alpha or application build is unsupported until its relevant package and live acceptance checks pass.
+This matrix records tested versions separately from recommended updates. A newer pre-release build does not become the complete live-verified baseline until its relevant package and live acceptance checks pass.
 
 ## Runtime and host applications
 
@@ -9,13 +9,15 @@ This matrix records tested versions, not speculative compatibility ranges. A new
 | Windows | Windows 10 or later | Required for the supported installer and PowerShell lifecycle |
 | Node.js | 22 or later | Required; installer rejects older major versions |
 | Windows PowerShell | 5.1 or later | Required for release install, upgrade, verification, and uninstall |
-| Streamer.bot | Minimum `1.0.5-alpha.31`; recommended `1.0.5-beta.1` | Beta.1 has passed THSV startup, WebSocket connection, Twitch EventSub connection, focused C# compilation, controller relay, reward mutation, and reset checks. A fresh live chat plus YouTube/Kick trigger pass remains before it replaces Alpha.31 as the complete live-verified floor. |
+| Streamer.bot | Minimum `1.0.5-alpha.31`; recommended `1.0.5-beta.2` | Beta.1 has passed THSV startup, WebSocket connection, Twitch EventSub connection, focused C# compilation, controller relay, reward mutation, and reset checks. Beta.2 is recommended for its Twitch moderator/first-message fixes, Kick authentication and presence updates, OBS v5 connection changes, and runtime crash fixes, but still needs the focused THSV live re-acceptance pass below. |
 | Speaker.bot | `0.1.7` | Live transport/dry-run verified; playback completion acknowledgement is unavailable |
 | Meld Studio | `0.10.3.1` | Live Browser Source verification for Chat, Alerts, and Companion-compatible routes |
 | OBS Studio | Exact accepted build was not recorded | Live standards-based Browser Source verification completed July 16, 2026 |
 | Streamlabs Desktop | Exact build not separately tested | Compatibility accepted through the same Browser Source contract after OBS verification |
 
-Do not infer a version range from one verified build. Existing packages keep Alpha.31 as their backward-compatible minimum; packages that require newer APIs declare a higher minimum individually. After upgrading, re-import and compile every used `.sb` package, repeat relay tests, verify Action History fields, and then update the live-verification record.
+Do not infer a version range from one verified build. Existing packages keep their declared backward-compatible minimum; packages that require newer APIs declare a higher minimum individually. After upgrading, compile every installed THSV C# action, repeat relay tests, verify Action History fields, and then update the live-verification record. Re-importing unchanged `.sb` files is not required solely because Streamer.bot was upgraded.
+
+See [Streamer.bot 1.0.5-beta.2 adoption](streamerbot-1.0.5-beta.2.md) for the change impact and focused acceptance checklist.
 
 Streamer.bot 1.0.5 removes the deprecated legacy Twitch WebSocket `Message` object as chat completes its move to EventSub. THSV's native intake consumes the documented action arguments (`message`, IDs, user fields, badges, and flags) rather than that legacy object, so no compatibility shim is required.
 

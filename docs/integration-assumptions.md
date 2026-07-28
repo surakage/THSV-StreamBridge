@@ -27,7 +27,7 @@
 
 Third-party platform and output providers must still be explicitly registered by trusted application composition code. The framework does not dynamically execute arbitrary packages named by untrusted configuration.
 
-Streamer.bot Alpha compatibility is verified one adopted release at a time. When the project adopts a newer Alpha, the receiver must be recompiled, its live QA matrix rerun, and `minimumStreamerBotVersion` updated if required.
+Streamer.bot pre-release compatibility is verified one adopted build at a time. When the project recommends a newer alpha or beta, the installed C# actions must be recompiled and the focused live QA matrix rerun. `minimumStreamerBotVersion` changes only when the package actually adopts an API or behavior unavailable at its existing floor.
 
 Speaker.bot executes speech decisions made by Streamer.bot; it does not decide whether a message may speak. The Milestone 6 package denies raw actor names, item names, tiers, and alert messages by default and requires a creator-authored template or explicit creator-side approval before text reaches TTS.
 

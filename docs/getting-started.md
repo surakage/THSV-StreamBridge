@@ -7,7 +7,7 @@ This is the recommended path for a first installation of THSV StreamBridge on Wi
 You need:
 
 - Windows 10 or later on a 64-bit computer
-- Streamer.bot `1.0.5-alpha.31` or later; `1.0.5-beta.1` is recommended for new installations
+- Streamer.bot `1.0.5-alpha.31` or later; `1.0.5-beta.2` is recommended for new installations (beta builds are optional pre-release software, so back up the Streamer.bot folder before upgrading)
 - Twitch, YouTube, and/or Kick connected inside Streamer.bot
 - TikFinity connected to Streamer.bot if you want TikTok support
 - Meld Studio, OBS Studio, Streamlabs Desktop, or another Chromium-compatible browser-source host if you want overlays
@@ -17,7 +17,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 ## 1. Download and verify core
 
 1. Open the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest).
-2. Download `THSV-StreamBridge-2.4.0.zip` and `THSV-StreamBridge-2.4.0.zip.sha256`.
+2. Download `THSV-StreamBridge-2.5.0.zip` and `THSV-StreamBridge-2.5.0.zip.sha256`.
 3. Follow [Release verification](../RELEASE-VERIFICATION.md) to verify the SHA-256 digest and GitHub artifact attestation.
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
 5. Extract the ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.

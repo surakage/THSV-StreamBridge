@@ -1,6 +1,6 @@
 # Streamer.bot C# compiler references
 
-THSV StreamBridge keeps Streamer.bot `1.0.5-alpha.31` as its backward-compatible minimum and recommends `1.0.5-beta.1` for new installs. Beta.1 has passed THSV startup, WebSocket/EventSub connection, focused C# compilation, controller relay, reward mutation, and reset checks. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning. Live chat and YouTube/Kick trigger re-acceptance remain before Beta.1 becomes the complete live-verification floor.
+THSV StreamBridge keeps Streamer.bot `1.0.5-alpha.31` as its backward-compatible minimum and recommends `1.0.5-beta.2` for new installs. Beta.1 remains the latest build with recorded THSV startup, WebSocket/EventSub connection, focused C# compilation, controller relay, reward mutation, and reset checks. Beta.2 does not introduce a new C# method requirement for THSV, so existing package minimums remain valid; complete the [focused beta.2 re-acceptance checklist](streamerbot-1.0.5-beta.2.md) after upgrading. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning.
 
 ## Required references
 

@@ -7,7 +7,7 @@ The action validates the normalized event envelope supplied in `streamBridgeEven
 ## Install
 
 1. Open Streamer.bot and select **Import**.
-2. Drag `THSV-StreamBridge-Core-Receiver-2.4.0.sb` into the import field, or paste the file contents.
+2. Drag `THSV-StreamBridge-Core-Receiver-2.5.0.sb` into the import field, or paste the file contents.
 3. Confirm the package metadata and import the `THSV StreamBridge - Receive Event` action.
 4. Keep the bridge configuration `streamerbot.actionAlias` set to that exact action name.
 5. Enable the Streamer.bot WebSocket server, start the bridge, and run `npm run simulate`.
@@ -26,7 +26,7 @@ The exported action uses Streamer.bot's non-blocking **Default** queue with **Co
 
 Contract `1.2.0` retains receive time, bridge sequence, and actor type while adding the optional unified viewer identity. The bridge overwrites caller-supplied sequence and viewer identity values after validation; sequence numbers are process-local and may contain gaps after rejected delivery attempts.
 
-For each adopted Streamer.bot Alpha release, recompile the receiver, rerun the manual QA matrix below, and update `minimumStreamerBotVersion` if compatibility changes.
+For each adopted Streamer.bot pre-release build, recompile the receiver and rerun the manual QA matrix below. Update `minimumStreamerBotVersion` only if compatibility actually changes.
 
 ## Manual QA matrix
 

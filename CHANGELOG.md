@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Updated current Streamer.bot guidance to recommend `1.0.5-beta.2`, documented its THSV impact and re-acceptance checklist, and preserved `1.0.5-alpha.31` plus package-specific versions as compatibility floors rather than forcing an unnecessary package rebuild.
+- Corrected active setup documentation that still named `2.4.0` downloads and Streamer.bot imports after the synchronized `2.5.0` release.
+
 ## [2.5.0] - 2026-07-27
 
 - Completed the practical add-on expansion with Creator Utility Pack, Chat Play Pack, Free Game Check, Accessibility Captions, and Clip Library Cache, bringing the release to 29 separately installable first-party add-ons and 36 reproducibly generated Streamer.bot imports.
