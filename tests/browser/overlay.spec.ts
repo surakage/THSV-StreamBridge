@@ -223,6 +223,10 @@ test('wizard progressively reveals advanced blocker, alert, reward, and add-on c
   await page.locator('[data-select-alert="twitch:follow"]').click();
   const alertForm = page.locator('#alert-profile-form');
   await expect(alertForm.locator(':scope > details.guided-form-section')).toHaveCount(5);
+  await alertForm.locator('[data-guided-section="alert-appearance"] summary').click();
+  await expect(alertForm.locator('[name="cardTransition"]')).toHaveValue('slide-vertical');
+  await alertForm.locator('[name="cardTransition"]').selectOption('fade');
+  await expect(page.locator('#alert-preview-card')).toHaveAttribute('data-transition', 'fade');
   await expect(alertForm.locator('[name="aggregationWindowMs"]')).toBeHidden();
   await alertForm.locator('[data-guided-section="alert-aggregation"] summary').click();
   await alertForm.locator('[name="aggregationMode"]').selectOption('sum-quantity');

@@ -58,7 +58,16 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .display-name { min-width: 0; max-width: 100%; color: #fff; font-size: var(--chat-font-size); font-weight: 750; line-height: 1.18; overflow-wrap: anywhere; }
 .body { margin: 7px 0 0; color: var(--chat-text-color); font-family: var(--chat-font-family); font-size: var(--chat-font-size); font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
 .alerts { position: absolute; top: 9vh; left: 50%; width: min(760px, 76vw); transform: translateX(-50%); }
-.alert { position: relative; width: 100%; min-width: 0; padding: 24px 28px; overflow: hidden; border: 1px solid rgba(255,255,255,.22); border-radius: 18px; background-color: var(--alert-card-bg, #171120); background-image: linear-gradient(rgba(12,8,18,.32),rgba(12,8,18,.32)),var(--alert-card-image, none); background-position: center; background-size: cover; box-shadow: 0 16px 54px rgba(0,0,0,.42); font-family: var(--alert-font-family, "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif); animation: alert-fade .18s linear both; }
+.alert { position: relative; width: 100%; min-width: 0; padding: 22px 26px; overflow: hidden; border: 1px solid rgba(255,255,255,.22); border-radius: 16px; background-color: var(--alert-card-bg, #171120); background-image: linear-gradient(rgba(12,8,18,.32),rgba(12,8,18,.32)),var(--alert-card-image, none); background-position: center; background-size: cover; box-shadow: 0 16px 54px rgba(0,0,0,.42); font-family: var(--alert-font-family, "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif); animation: alert-slide-down .34s cubic-bezier(.22,.8,.28,1) both; }
+.alert[data-transition="fade"] { animation-name: alert-fade-in; }
+.alert[data-transition="slide-horizontal"] { animation-name: alert-slide-in-right; }
+.alert[data-transition="pop"] { animation-name: alert-pop-in; }
+.alert[data-transition="none"] { animation: none; }
+.alert.alert-exit[data-transition="slide-vertical"] { animation: alert-slide-up .3s ease-in both; }
+.alert.alert-exit[data-transition="fade"] { animation: alert-fade-out .3s ease-in both; }
+.alert.alert-exit[data-transition="slide-horizontal"] { animation: alert-slide-out-right .3s ease-in both; }
+.alert.alert-exit[data-transition="pop"] { animation: alert-pop-out .25s ease-in both; }
+.alert.alert-exit[data-transition="none"] { animation: none; }
 .alert::before { position: absolute; inset: 0 auto 0 0; width: 6px; background: var(--violet); content: ""; }
 .alert.priority-high::before { background: #ffca62; }
 .alert.priority-critical::before { background: #ff5f7a; }
@@ -86,7 +95,14 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .alert[data-layout="stacked"] .alert-copy, .alert[data-layout="centered"] .alert-copy { text-align: center; }
 @keyframes chat-arrive { from { opacity: 0; } }
 @keyframes chat-expire { to { max-height: 0; margin: 0; padding-top: 0; padding-bottom: 0; border-width: 0; opacity: 0; } }
-@keyframes alert-fade { from { opacity: 0; } }
+@keyframes alert-slide-down { from { opacity: 0; transform: translateY(-52px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes alert-slide-up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-52px); } }
+@keyframes alert-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes alert-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes alert-slide-in-right { from { opacity: 0; transform: translateX(72px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes alert-slide-out-right { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(72px); } }
+@keyframes alert-pop-in { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes alert-pop-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.92); } }
 body[data-mode="chat"] { background: var(--chat-canvas-bg); }
 body[data-mode="chat"] .alerts, body[data-mode="alerts"] .chat-shell { display: none; }
 body[data-mode="chat"] .overlay, body[data-mode="alerts"] .overlay { padding: 0; }

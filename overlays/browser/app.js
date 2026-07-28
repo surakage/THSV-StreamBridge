@@ -1,4 +1,4 @@
-import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
+import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
 
 // Compatible with standard Chromium/CEF browser sources.
 (() => {
@@ -15,6 +15,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
   document.body.dataset.dock = dockMode ? 'true' : 'false';
 
   const chatFadeMs = 240;
+  const alertExitMs = 320;
   let clientConfig = {
     brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
     chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
@@ -25,6 +26,12 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
     defaultDurationMs: clientConfig.alertDurationMs,
     render: (alert) => alerts.replaceChildren(buildAlertCard(alert)),
     clear: () => alerts.replaceChildren(),
+    dismiss: (_alert, done) => {
+      const card = alerts.querySelector('.alert');
+      if (!card) { done(); return; }
+      card.classList.add('alert-exit');
+      setTimeout(done, alertExitMs);
+    },
     playSound: playAlertSound,
     onError: (error) => console.warn('Skipped an alert that could not be rendered.', error),
   });
@@ -168,6 +175,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.2.js';
     const mediaPlacement = hasMedia ? cardStyle.mediaPlacement || 'behind' : 'behind';
     card.dataset.layout = layout;
     card.dataset.mediaPlacement = mediaPlacement;
+    card.dataset.transition = cardStyle.transition || 'slide-vertical';
     card.style.setProperty('--alert-card-bg', cardStyle.backgroundColor || '#171120');
     card.style.setProperty('--alert-font-family', alertFamilies[cardStyle.fontFamily] || alertFamilies.system);
     if (hasMedia && mediaPlacement === 'behind') {

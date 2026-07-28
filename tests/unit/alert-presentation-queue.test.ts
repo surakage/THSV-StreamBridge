@@ -52,6 +52,28 @@ describe('browser alert presentation queue', () => {
     expect(rendered).toEqual([1, 2]);
   });
 
+  it('waits for the exit transition before rendering the next queued alert', () => {
+    vi.useFakeTimers();
+    const rendered: number[] = [];
+    const controller = new AlertPresentationController({
+      capacity: 20,
+      defaultDurationMs: 1000,
+      render: (item) => rendered.push(item.sequence ?? -1),
+      clear: () => undefined,
+      dismiss: (_item, done) => { setTimeout(done, 320); },
+      playSound: () => undefined,
+      onError: (error) => { throw error; },
+    });
+    controller.enqueue({ ...alert(1), display: { durationMs: 1000 } });
+    controller.enqueue({ ...alert(2), display: { durationMs: 1000 } });
+    vi.advanceTimersByTime(1000);
+    expect(rendered).toEqual([1]);
+    vi.advanceTimersByTime(319);
+    expect(rendered).toEqual([1]);
+    vi.advanceTimersByTime(1);
+    expect(rendered).toEqual([1, 2]);
+  });
+
   it('invokes browser timer callbacks without binding them to the controller', () => {
     let scheduled: (() => void) | undefined;
     const controller = new AlertPresentationController({

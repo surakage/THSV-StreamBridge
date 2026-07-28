@@ -47,6 +47,7 @@ export class AlertPresentationController {
     this.defaultDurationMs = options.defaultDurationMs;
     this.render = options.render;
     this.clear = options.clear;
+    this.dismiss = options.dismiss || ((_alert, done) => done());
     this.playSound = options.playSound;
     this.onError = options.onError;
     const schedule = options.schedule || ((callback, delay) => globalThis.setTimeout(callback, delay));
@@ -129,9 +130,14 @@ export class AlertPresentationController {
   }
 
   finish() {
-    this.clear();
-    this.activeAlert = undefined;
+    const completed = this.activeAlert;
     this.timer = undefined;
-    this.showNext();
+    if (completed === undefined) return;
+    this.dismiss(completed, () => {
+      if (this.activeAlert !== completed) return;
+      this.clear();
+      this.activeAlert = undefined;
+      this.showNext();
+    });
   }
 }

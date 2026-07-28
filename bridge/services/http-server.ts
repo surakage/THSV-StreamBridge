@@ -585,7 +585,9 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/app-1.4.3.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.4.4.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-1.4.5.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/app-1.4.6.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/alert-queue-1.2.2.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/alert-queue-1.2.3.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.8.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.9.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
@@ -607,6 +609,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/styles-1.3.2.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.3.3.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-1.3.4.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/styles-1.3.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/addons/host.js': { file: 'addon-host.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/addons/host.css': { file: 'addon-host.css', contentType: 'text/css; charset=utf-8' },
 };

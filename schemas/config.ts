@@ -163,9 +163,10 @@ const alertPresentationProfileSchema = z.object({
     backgroundVideoUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:mp4|webm)$/u).optional(),
     layout: z.enum(['classic', 'stacked', 'centered']).default('classic'),
     mediaPlacement: z.enum(['behind', 'below', 'inset']).default('behind'),
+    transition: z.enum(['slide-vertical', 'fade', 'slide-horizontal', 'pop', 'none']).default('slide-vertical'),
   }).strict().superRefine((card, context) => {
     if (card.backgroundImageUrl !== undefined && card.backgroundVideoUrl !== undefined) context.addIssue({ code: 'custom', path: ['backgroundVideoUrl'], message: 'Use either a background image or a background video, not both.' });
-  }).default({ backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind' }),
+  }).default({ backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' }),
   aggregation: z.object({ mode: z.enum(['none', 'sum-quantity']).default('none'), windowMs: z.number().int().min(500).max(30_000).default(5_000) }).strict().default({ mode: 'none', windowMs: 5_000 }),
 }).strict();
 // Alert presentation can include provider-only integrations that are not chat-output

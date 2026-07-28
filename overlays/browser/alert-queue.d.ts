@@ -21,6 +21,7 @@ export class AlertPresentationController {
     readonly defaultDurationMs: number;
     readonly render: (alert: QueuedAlert) => void;
     readonly clear: () => void;
+    readonly dismiss?: (alert: QueuedAlert, done: () => void) => void;
     readonly playSound: (alert: QueuedAlert) => void;
     readonly onError: (error: unknown) => void;
     readonly schedule?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;

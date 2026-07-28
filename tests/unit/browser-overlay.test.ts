@@ -204,6 +204,9 @@ describe('Browser Overlay Hub contract', () => {
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
     expect(source).toContain("new SharedWorker('/overlay/worker-1.3.2.js', 'thsv-browser-overlay-1.3.2'");
+    expect(source).toContain("from '/overlay/alert-queue-1.2.3.js'");
+    expect(source).toContain("card.dataset.transition = cardStyle.transition || 'slide-vertical'");
+    expect(source).toContain("card.classList.add('alert-exit')");
     expect(source).toContain("oldest.classList.add('message-expiring')");
     expect(source).toContain('function updateChatOverflow()');
     expect(source).toContain('new ResizeObserver(updateChatOverflow)');
@@ -233,7 +236,7 @@ describe('Browser Overlay Hub contract', () => {
     const source = await fixture('youtube-super-chat.json');
     const config: BrowserOverlayConfig = {
       ...(await testConfig()).browserOverlay, brandLabel: '',
-      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind' }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
+      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
       kind: 'alert.show', payload: { priority: 'critical', display: { title: 'example_member supported with 5.00 USD', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
@@ -253,7 +256,7 @@ describe('Browser Overlay Hub contract', () => {
     const videoUrl = `/overlay/assets/${'d'.repeat(64)}.webm`;
     const config: BrowserOverlayConfig = {
       ...(await testConfig()).browserOverlay, brandLabel: '',
-      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', backgroundVideoUrl: videoUrl }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
+      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'fade', backgroundVideoUrl: videoUrl }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 16 } }, config)).toMatchObject({
       kind: 'alert.show', payload: { display: { card: { backgroundVideoUrl: videoUrl } } },
@@ -265,10 +268,10 @@ describe('Browser Overlay Hub contract', () => {
     const imageUrl = `/overlay/assets/${'e'.repeat(64)}.png`;
     const config: BrowserOverlayConfig = {
       ...(await testConfig()).browserOverlay, brandLabel: '',
-      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'stacked', mediaPlacement: 'inset', backgroundImageUrl: imageUrl }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
+      alerts: { profiles: { youtube: { 'super-chat': { enabled: true, sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'stacked', mediaPlacement: 'inset', transition: 'pop', backgroundImageUrl: imageUrl }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 17 } }, config)).toMatchObject({
-      kind: 'alert.show', payload: { display: { card: { layout: 'stacked', mediaPlacement: 'inset', backgroundImageUrl: imageUrl } } },
+      kind: 'alert.show', payload: { display: { card: { layout: 'stacked', mediaPlacement: 'inset', transition: 'pop', backgroundImageUrl: imageUrl } } },
     });
   });
 
@@ -307,6 +310,8 @@ describe('Browser Overlay Hub contract', () => {
     const styles = await readFile('overlays/browser/styles.css', 'utf8');
     expect(styles).toContain('body[data-mode="alerts"] .alerts { inset: 0; display: flex;');
     expect(styles).toContain('body[data-mode="alerts"] .alert { width: min(800px, 100%)');
+    expect(styles).toContain('@keyframes alert-slide-down');
+    expect(styles).toContain('@keyframes alert-slide-up');
     expect(styles).toContain('background-color: var(--alert-card-bg, #171120);');
     expect(styles).toContain('.alert-identity { display: grid; grid-template-columns: 76px minmax(0, 1fr)');
     expect(styles).toContain('.alert-copy { min-width: 0; text-align: left; }');

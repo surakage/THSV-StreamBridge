@@ -23,7 +23,7 @@ export interface OverlayAlertDisplay {
   readonly detail?: string;
   readonly durationMs: number;
   readonly sound: { readonly mode: 'none' | 'chime' | 'soft-bell' | 'digital-pop' | 'celebration' | 'custom'; readonly volume: number; readonly customUrl?: string };
-  readonly card: { readonly backgroundColor: string; readonly fontFamily: 'system' | 'rounded' | 'serif' | 'monospace'; readonly backgroundImageUrl?: string; readonly backgroundVideoUrl?: string; readonly layout: 'classic' | 'stacked' | 'centered'; readonly mediaPlacement: 'behind' | 'below' | 'inset' };
+  readonly card: { readonly backgroundColor: string; readonly fontFamily: 'system' | 'rounded' | 'serif' | 'monospace'; readonly backgroundImageUrl?: string; readonly backgroundVideoUrl?: string; readonly layout: 'classic' | 'stacked' | 'centered'; readonly mediaPlacement: 'behind' | 'below' | 'inset'; readonly transition: 'slide-vertical' | 'fade' | 'slide-horizontal' | 'pop' | 'none' };
   readonly aggregation?: { readonly key: string; readonly windowMs: number; readonly mode: 'sum-quantity' };
 }
 export type BrowserOverlayEvent =
@@ -278,7 +278,7 @@ function alertDisplay(
     ...(detail.length === 0 ? {} : { detail }),
     durationMs: profile?.durationMs ?? defaultDurationMs,
     sound: profile?.sound === undefined ? { mode: 'none', volume: 0.35 } : { mode: profile.sound.mode, volume: profile.sound.volume, ...(profile.sound.customUrl === undefined ? {} : { customUrl: profile.sound.customUrl }) },
-    card: profile?.card === undefined ? { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind' } : { backgroundColor: profile.card.backgroundColor, fontFamily: profile.card.fontFamily, layout: profile.card.layout, mediaPlacement: profile.card.mediaPlacement, ...(profile.card.backgroundImageUrl === undefined ? {} : { backgroundImageUrl: profile.card.backgroundImageUrl }), ...(profile.card.backgroundVideoUrl === undefined ? {} : { backgroundVideoUrl: profile.card.backgroundVideoUrl }) },
+    card: profile?.card === undefined ? { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' } : { backgroundColor: profile.card.backgroundColor, fontFamily: profile.card.fontFamily, layout: profile.card.layout, mediaPlacement: profile.card.mediaPlacement, transition: profile.card.transition, ...(profile.card.backgroundImageUrl === undefined ? {} : { backgroundImageUrl: profile.card.backgroundImageUrl }), ...(profile.card.backgroundVideoUrl === undefined ? {} : { backgroundVideoUrl: profile.card.backgroundVideoUrl }) },
     ...(aggregation === undefined ? {} : { aggregation }),
   };
 }

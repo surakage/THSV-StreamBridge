@@ -178,19 +178,22 @@ describe('bridge configuration', () => {
     } } } }).success).toBe(false);
   });
 
-  it('defaults an alert card to classic layout and behind media placement, and accepts explicit overrides', async () => {
+  it('defaults an alert card to a classic rectangle with vertical slide and accepts explicit overrides', async () => {
     const config = await testConfig();
     const defaulted = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
       twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system' } } },
     } } } });
-    expect(defaulted.browserOverlay.alerts.profiles.twitch?.follow?.card).toMatchObject({ layout: 'classic', mediaPlacement: 'behind' });
+    expect(defaulted.browserOverlay.alerts.profiles.twitch?.follow?.card).toMatchObject({ layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' });
     const overridden = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
-      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'stacked', mediaPlacement: 'inset' } } },
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'stacked', mediaPlacement: 'inset', transition: 'fade' } } },
     } } } });
-    expect(overridden.browserOverlay.alerts.profiles.twitch?.follow?.card).toMatchObject({ layout: 'stacked', mediaPlacement: 'inset' });
+    expect(overridden.browserOverlay.alerts.profiles.twitch?.follow?.card).toMatchObject({ layout: 'stacked', mediaPlacement: 'inset', transition: 'fade' });
     // An unrecognized layout or placement is rejected, not silently coerced to a default.
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
       twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'floating' } } },
+    } } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, alerts: { profiles: {
+      twitch: { follow: { sound: { mode: 'none', volume: 0.35 }, aggregation: { mode: 'none', windowMs: 5_000 }, card: { backgroundColor: '#171120', fontFamily: 'system', transition: 'spin' } } },
     } } } }).success).toBe(false);
   });
 
