@@ -24,6 +24,7 @@ On July 28, 2026, the installed Streamer.bot `1.0.5-beta.2` instance was inspect
 
 - Streamer.bot displayed `93` actions, with core platform actions in their existing THSV groups and every installed action-bearing add-on in its own `THSV Addon - <Name>` group.
 - StreamBridge connected to Streamer.bot's authenticated WebSocket at `ws://127.0.0.1:8081/` and reported `healthy` and `ready`.
+- Streamer.bot displayed `Partially Connected (8/10)` because the creator intentionally does not use the Meld and Speaker.bot connections. OBS and the integrations required by the currently tested add-ons were connected, so this status is not an add-on acceptance failure.
 - Streamer.bot's harmless **Test Trigger** was run once for Twitch Chat Message, YouTube Message, and Kick Chat Message.
 - StreamBridge recorded exactly one accepted, non-duplicate, durably queued `chat.message` event for each platform.
 
