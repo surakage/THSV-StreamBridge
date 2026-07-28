@@ -1,15 +1,15 @@
-# Published release status and next-add-on decision
+# Published release and acceptance status
 
-Snapshot: July 27, 2026. Version baseline: `2.5.0`.
+Snapshot: July 28, 2026. Version baseline: `2.5.0`.
 
-Release `2.5.0` is the current synchronized release candidate, with the main Windows archive, an add-on index, and `29` separately downloadable first-party add-ons prepared by the release pipeline. The detailed ownership, privacy, dependency, and implementation plans remain in [Future projects and add-on roadmap](future-projects-and-addons.md). Per-package evidence is tracked in [Add-on acceptance ledger](add-on-acceptance-ledger.md). **Published**, **offline accepted**, and **provider accepted** are deliberately different states.
+Release `2.5.0` is the current published stable baseline, with the main Windows archive, an add-on index, and `29` separately downloadable first-party add-ons. The detailed ownership, privacy, dependency, and implementation plans remain in [Future projects and add-on roadmap](future-projects-and-addons.md). Per-package evidence is tracked in [Add-on acceptance ledger](add-on-acceptance-ledger.md). **Published**, **offline accepted**, and **provider accepted** are deliberately different states.
 
-## Completed in the current candidate
+## Completed in the published baseline
 
 | Area | Confirmed state |
 | --- | --- |
 | Bridge core | Normalized Twitch, YouTube, Kick, and TikTok intake; one Streamer.bot connection; durable outbox; deduplication; authenticated loopback wizard; browser overlays; safe lifecycle and recovery. |
-| Automated validation | Lint, typecheck, build, configuration validation, 135 test files / 707 tests, and 10 browser tests passed for the release candidate. Production dependency packaging reported zero known vulnerabilities. |
+| Automated validation | Lint, typecheck, build, configuration validation, 135 test files / 709 tests, and 11 browser tests pass on the current source baseline. Production dependency packaging reports zero known vulnerabilities. |
 | Windows package | The expanded 29-add-on self-contained `THSV-StreamBridge-2.5.0.zip` is produced with its SHA-256 checksum by the refreshed source, test, configuration, dependency, integrity, and portable-package gate. A separate clean-machine install/update walkthrough remains an acceptance task, not a publication blocker. |
 | Add-on packaging | Twenty-nine first-party implementations are present. Each builds as a separate verified download; an `.sb` import is included only when the add-on needs Streamer.bot actions. |
 | Streamer.bot source packages | Twenty add-ons require Streamer.bot actions and use distinct `THSV Addon - <Name>` groups in source. Core packages remain in their existing core groups. |
@@ -30,28 +30,35 @@ Release `2.5.0` is the current synchronized release candidate, with the main Win
 
 High-impact financial, reward, raid, or moderation paths still require their provider-specific live evidence. Missing evidence must keep those operations gated; it is not permission to simulate success in release notes.
 
-## Creator decision: finish the remaining practical add-ons
+## Acceptance order for the completed package set
 
-The earlier recommendation to freeze at seventeen packages was superseded by the creator on July 27, 2026. The release scope now includes the remaining practical automation add-ons, built in dependency order and accepted independently. This expands schedule and validation surface; **Packaged** still must not be presented as **Live accepted**.
+The earlier recommendation to freeze at seventeen packages was superseded by the creator on July 27, 2026. The release now contains the practical non-companion add-ons selected for this cycle. Implementation and packaging are complete; the remaining sequence is acceptance work. **Packaged** must not be presented as **Live accepted**.
 
-Implementation order:
+Acceptance order:
 
-1. creator-facing acceptance ledger — implemented locally; finish full validation and carry it into the next synchronized patch package;
-2. shared Discord channel/forum delivery contract — source-complete; live private-webhook acceptance remains;
+1. creator-facing acceptance ledger plus clean-machine Windows install/update/rollback/uninstall acceptance;
+2. shared Discord channel/forum delivery through a private test webhook;
 3. live Ko-fi acceptance and one live Streamlabs donation-ID capture through the shared Streamer.bot connection;
-4. Chat Guard Observe-only acceptance, followed by a separate decision on safe enforcement;
-5. Category Pilot in Suggest-only mode, then Creator Controls;
-6. Viewer Lobby;
-7. Live Beacon and Clip Courier;
-8. Follower Pulse and the Speaker.bot Orchestration rebuild;
+4. Chat Guard Observe-only acceptance, followed by separately approved enforcement tests;
+5. Category Pilot Suggest-only behavior and Creator Controls provider mutations;
+6. Viewer Lobby operator and overlay flows;
+7. Live Beacon and Clip Courier provider/Discord delivery;
+8. Follower Pulse and Speaker.bot Orchestration;
 9. final cohesion, clean-install, update, rollback, package, and live-acceptance pass.
 
-Bloom Companion remains on the back burner by explicit creator decision. The working-tree expansion adds Creator Utility Pack, Chat Play Pack, Free Game Check, Accessibility Captions, shared clip metadata caching, digest-locked Viewer Foundation migration/achievements, and Viewer Spotlight reward requests plus Discord snapshots. Provider-mutating features do not become accepted through simulation.
+Bloom Companion remains on the back burner by explicit creator decision. Creator Utility Pack, Chat Play Pack, Free Game Check, Accessibility Captions, shared clip metadata caching, digest-locked Viewer Foundation migration/achievements, and Viewer Spotlight reward requests plus Discord snapshots are packaged. Provider-mutating features do not become accepted through simulation.
 
-## Working-tree expansion validated for release packaging
+## Current source validation
 
 - The authenticated add-on ledger is creator-editable and keeps automated, offline, and genuine-provider evidence separate.
 - Clip Library Cache supplies bounded metadata to Random Clip Player and Clip Courier; signed playback URLs and video files are never persisted.
 - The Random Joke Command Sync template is original, source-gated, cooldown-bounded, and needs no external API.
 - Creator Utility Pack, Chat Play Pack, Free Game Check, and Accessibility Captions are complete in source and remain disabled or conservative by default where they can create public output.
-- The full repository and browser gates pass: `135` Vitest files / `707` tests, `10` Playwright checks, and `36` regenerated Streamer.bot imports. The release packaging gate produces and verifies all `29` add-on archives before publication. Genuine provider acceptance remains deliberately separate and pending where listed in the ledger.
+- The full repository and browser gates pass: `135` Vitest files / `709` tests, `11` Playwright checks, and `36` regenerated Streamer.bot imports. The release packaging gate produces and verifies all `29` add-on archives. Genuine provider acceptance remains deliberately separate and pending where listed in the ledger.
+
+### Local synchronized-install evidence — July 28, 2026
+
+- The installed `2.5.0` bridge reports `healthy` and `ready` on loopback.
+- The creator-selected set of `19` installed add-ons was upgraded from rejected `2.4.2` packages to matching `2.5.0` packages without replacing settings, private state, enabled flags, or approved action grants.
+- All `19` report `installed` at `2.5.0`; their private wizard acceptance entries now report `2.5.0` instead of `unknown`.
+- This is local installation evidence only. It does not mark a pending genuine-provider row as passed.

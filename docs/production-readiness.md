@@ -1,6 +1,6 @@
 # Production-readiness gate
 
-`2.5.0` is the current release-candidate baseline. The bridge, all twenty-nine first-party add-ons, and every required Streamer.bot import share that visible version while the add-on/event API contract remains independently versioned. The automated, packaging, installed-update, and visual gates below pass; the live-runtime items listed under "Remaining live verification" are still in progress. Publishing stable is a deliberate maintainer decision: the runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
+`2.5.0` is the current published stable baseline. The bridge, all twenty-nine first-party add-ons, and every required Streamer.bot import share that visible version while the add-on/event API contract remains independently versioned. The automated, packaging, installed-update, and visual gates below pass; the live-runtime items listed under "Remaining live verification" are still in progress. The runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
 
 ## Automated gate
 
@@ -41,7 +41,7 @@
 - Twitch, YouTube, and Kick trigger field names and provider-stable identifiers have been captured and corrected against real Streamer.bot Action History argument dumps for most high-impact events (see the platform matrix in [integration assumptions](integration-assumptions.md)); Kick Mass Gift Subscription is the one exception, confirmed only against Streamer.bot's published variable reference because its live test trigger crashes Streamer.bot. None of the three has a genuine live-stream, real-viewer soak test yet.
 - TikFinity does not document a stable event ID or trustworthy simulation marker; TikTok financial/progression use remains unsuitable.
 - Kick reward mutations remain disabled because Streamer.bot does not document them.
-- GitHub release publishing and attestations require an authenticated maintainer session.
+- GitHub release `v2.5.0` and its downloadable assets are published. Future releases still require an authenticated maintainer session and fresh attestations.
 - A paid Windows executable certificate is not used. Users verify the SHA-256 file and GitHub artifact attestation instead.
 
 Do not describe unverified high-impact events as production-ready for financial, reward, or destructive automation until the remaining live-verification items above have dated evidence in the release notes.

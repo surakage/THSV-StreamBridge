@@ -132,6 +132,26 @@ describe('Stage 9 add-on packages', () => {
     await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['143fce1d-c5b0-4108-b766-ee2d0249e2d4'], true)).rejects.toThrow('framework actions cannot be granted');
   });
 
+  it('upgrades a verified package that only supports the previously installed bridge release', async () => {
+    const root = await workspace(); const addOns = join(root, 'addons');
+    await installAddOnPackage('examples/addons/no-op', addOns, true);
+    const installedDescriptorPath = join(addOns, 'sample.no-op', 'module-package.json');
+    const installedDescriptor = JSON.parse(await readFile(installedDescriptorPath, 'utf8')) as { manifest: Record<string, unknown> };
+    installedDescriptor.manifest['minimumBridgeVersion'] = '2.4.2';
+    installedDescriptor.manifest['maximumTestedBridgeVersion'] = '2.4.2';
+    await writeFile(installedDescriptorPath, `${JSON.stringify(installedDescriptor, null, 2)}\n`);
+
+    await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([
+      expect.objectContaining({ moduleId: 'sample.no-op', health: 'rejected' }),
+    ]);
+    await expect(installAddOnPackage('examples/addons/no-op', addOns, true)).resolves.toMatchObject({
+      descriptor: { manifest: { moduleId: 'sample.no-op' } },
+    });
+    await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([
+      expect.objectContaining({ moduleId: 'sample.no-op', health: 'installed' }),
+    ]);
+  });
+
   it('re-verifies the creator-private staging copy before any add-on code can execute', async () => {
     const root = await workspace();
     const addOns = join(root, 'addons');

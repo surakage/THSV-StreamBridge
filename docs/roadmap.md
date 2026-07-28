@@ -1,5 +1,7 @@
 # Roadmap
 
+> Historical milestone record: this file preserves the original milestone sequence and acceptance history. For the current published baseline, completed add-ons, and remaining work, use [Published release and acceptance status](release-candidate-status.md), [Add-on acceptance ledger](add-on-acceptance-ledger.md), and [Future projects and add-on roadmap](future-projects-and-addons.md). Items below are not a second active backlog when a current-status document marks them complete, superseded, or deferred.
+
 Completion status is tracked in the [milestone checklist](milestones.md).
 
 ## Milestone 1: Bridge Core

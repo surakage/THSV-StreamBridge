@@ -1,6 +1,6 @@
 # Add-on acceptance ledger
 
-Snapshot: July 27, 2026. Published baseline: `2.5.0`.
+Snapshot: July 28, 2026. Published baseline: `2.5.0`.
 
 This ledger prevents **packaged**, **offline accepted**, and **provider accepted** from being treated as the same claim. A package is production-capable only for the rows and environments whose evidence has actually been recorded.
 
@@ -45,21 +45,14 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | Free Game Check | Passed | Pending | Fixed-provider lookup, silent baseline, deduplication, attribution, and selected-platform announcements. |
 | Accessibility Captions | Passed | Pending | Browser-host readability, public-chat consent, bot suppression, bounds, cropping, transparency, and reconnect behavior. |
 
-## Release gate already recorded
+## Current automated and local evidence
 
-- `125` Vitest files and `688` tests passed.
-- `10` Playwright browser checks passed.
-- lint, typecheck, configuration validation, production build, and release packaging passed.
-- the production dependency audit reported zero known vulnerabilities.
-- the main archive and all `24` indexed add-on archives matched their SHA-256 values.
-
-## Current expansion validation
-
-- `134` Vitest files and `705` tests passed after adding the private wizard acceptance ledger, Chat Guard enforcement, Viewer Foundation migration and achievements, Viewer Spotlight expansion, the shared clip cache, Creator Utility Pack, Chat Play Pack, Free Game Check, Accessibility Captions, and background-action history suppression for high-frequency internal workers.
-- `10` Playwright checks passed, including add-on installation and configuration, persisted collapsible UI state, Chat Guard safety controls, fade and credits presentation attributes, and crop-safe overlays.
-- lint, typecheck, configuration validation, and production build passed.
-- generated Streamer.bot imports were regenerated after package integrity synchronization; no import artifacts remain deleted.
-- The working-tree expansion adds five add-ons plus four Streamer.bot packages, Chat Guard enforcement, Viewer Foundation migration, Viewer Spotlight reward/Discord flows, and shared clip consumption. All `29` add-on archives and `36` Streamer.bot imports were regenerated from synchronized `2.5.0` source.
+- `135` Vitest files and `709` tests pass on the current source baseline.
+- `11` Playwright checks pass, including add-on installation/configuration, persisted collapsible UI state, Chat Guard safety controls, overlay presentation, crop-safe layouts, and the acceptance ledger.
+- lint, typecheck, configuration validation, production build, release packaging, and the production dependency audit pass; the audit reports zero known vulnerabilities.
+- All `29` indexed add-on archives and `36` Streamer.bot imports are generated from synchronized `2.5.0` source and covered by the release integrity gate.
+- On July 28, the local bridge reported `healthy`/`ready`; its creator-selected `19` add-ons were upgraded to compatible `2.5.0` packages and all reported `installed`. Their private acceptance entries now carry version `2.5.0`.
+- None of this local or automated evidence changes a pending provider-acceptance row. Provider status requires the exact real-event evidence described in the table.
 
 ### Isolated runtime smoke — July 27, 2026
 

@@ -89,7 +89,12 @@ interface MigrationContext { readonly moduleId: string; readonly fromVersion: st
 
 async function installedRecord(target: string, moduleId: string): Promise<InstalledPackageRecord | undefined> {
   if (!await pathExists(target)) return undefined;
-  await verifyAddOnPackage(target, undefined, true);
+  // The package being replaced may correctly target the previously installed
+  // bridge release. Verify its schema, file list, and hashes without requiring
+  // it to remain compatible with the newer bridge that is performing the
+  // upgrade. The replacement package is still checked against the current
+  // bridge before this function is reached.
+  await verifyAddOnPackage(target, undefined, true, undefined, false);
   const record = JSON.parse(await readFile(safeChild(target, 'installed-package.json'), 'utf8')) as Partial<InstalledPackageRecord>;
   if (record.moduleId !== moduleId || typeof record.version !== 'string') throw new AddOnPackageError('The installed add-on record does not match the package being upgraded.');
   return record as InstalledPackageRecord;
@@ -145,7 +150,7 @@ async function executeMigration(scriptPath: string, context: MigrationContext, t
   });
 }
 
-export async function verifyAddOnPackage(rootPath: string, coreVersion: string = CORE_CONTRACT_VERSION, allowInstallRecord = false, bridgeVersion: string = STREAMBRIDGE_VERSION): Promise<VerifiedAddOnPackage> {
+export async function verifyAddOnPackage(rootPath: string, coreVersion: string = CORE_CONTRACT_VERSION, allowInstallRecord = false, bridgeVersion: string = STREAMBRIDGE_VERSION, enforceCompatibility = true): Promise<VerifiedAddOnPackage> {
   const root = resolve(rootPath);
   const descriptorPath = safeChild(root, DESCRIPTOR_FILE);
   let raw: unknown;
@@ -164,10 +169,12 @@ export async function verifyAddOnPackage(rootPath: string, coreVersion: string =
   if (configurationEntry !== undefined && configurationEntry.size > MAXIMUM_CONFIGURATION_SCHEMA_BYTES) throw new AddOnPackageError(`The configuration schema exceeds ${String(MAXIMUM_CONFIGURATION_SCHEMA_BYTES)} bytes.`);
   const settingsUiEntry = descriptor.settingsUi === undefined ? undefined : descriptor.files.find((file) => file.path === descriptor.settingsUi);
   if (settingsUiEntry !== undefined && settingsUiEntry.size > MAXIMUM_SETTINGS_UI_BYTES) throw new AddOnPackageError(`The settings UI schema exceeds ${String(MAXIMUM_SETTINGS_UI_BYTES)} bytes.`);
-  if (compareVersions(coreVersion, descriptor.manifest.minimumCoreVersion) < 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} requires core ${descriptor.manifest.minimumCoreVersion} or later.`);
-  if (compareVersions(coreVersion, descriptor.manifest.maximumTestedCoreVersion) > 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} has only been tested through core ${descriptor.manifest.maximumTestedCoreVersion}.`);
-  if (descriptor.manifest.minimumBridgeVersion !== undefined && compareVersions(bridgeVersion, descriptor.manifest.minimumBridgeVersion) < 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} requires THSV StreamBridge ${descriptor.manifest.minimumBridgeVersion} or later; this installation is ${bridgeVersion}. Update StreamBridge before installing this add-on.`);
-  if (descriptor.manifest.maximumTestedBridgeVersion !== undefined && compareVersions(bridgeVersion, descriptor.manifest.maximumTestedBridgeVersion) > 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} has only been tested through THSV StreamBridge ${descriptor.manifest.maximumTestedBridgeVersion}; this installation is ${bridgeVersion}. Install a matching add-on release.`);
+  if (enforceCompatibility) {
+    if (compareVersions(coreVersion, descriptor.manifest.minimumCoreVersion) < 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} requires core ${descriptor.manifest.minimumCoreVersion} or later.`);
+    if (compareVersions(coreVersion, descriptor.manifest.maximumTestedCoreVersion) > 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} has only been tested through core ${descriptor.manifest.maximumTestedCoreVersion}.`);
+    if (descriptor.manifest.minimumBridgeVersion !== undefined && compareVersions(bridgeVersion, descriptor.manifest.minimumBridgeVersion) < 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} requires THSV StreamBridge ${descriptor.manifest.minimumBridgeVersion} or later; this installation is ${bridgeVersion}. Update StreamBridge before installing this add-on.`);
+    if (descriptor.manifest.maximumTestedBridgeVersion !== undefined && compareVersions(bridgeVersion, descriptor.manifest.maximumTestedBridgeVersion) > 0) throw new AddOnPackageError(`${descriptor.manifest.moduleId} has only been tested through THSV StreamBridge ${descriptor.manifest.maximumTestedBridgeVersion}; this installation is ${bridgeVersion}. Install a matching add-on release.`);
+  }
 
   const expected = new Set([DESCRIPTOR_FILE, ...descriptor.files.map((file) => file.path), ...(allowInstallRecord ? ['installed-package.json'] : [])]);
   const actual = await listFiles(root);

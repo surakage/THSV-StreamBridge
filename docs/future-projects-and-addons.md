@@ -902,7 +902,7 @@ Completed packaging work remains listed in the portfolio table. This sequence de
 ### Track A — Stabilize the released baseline
 
 1. Complete clean-install, update, rollback, uninstall, backup/restore, custom-port, wizard, and Streamer.bot connection acceptance for published core `2.5.0`.
-2. Run and record the remaining offline and provider acceptance for all twenty-four packaged add-ons, prioritizing financial and reward mutations before cosmetic outputs.
+2. Run and record the remaining offline and provider acceptance for all twenty-nine packaged add-ons, prioritizing financial and reward mutations before cosmetic outputs.
 3. Fix resulting defects in the smallest affected package, rerun the full automated gate, regenerate matching packages/index/checksums, and establish the next stable patch baseline before adding executable add-ons.
 4. Maintain the creator-facing [acceptance ledger](add-on-acceptance-ledger.md) so **Published**, **Offline accepted**, and **Provider accepted** remain visibly different.
 
@@ -926,22 +926,21 @@ Completed packaging work remains listed in the portfolio table. This sequence de
 
 15. Validate Chat Guard Observe only mode; literal rule matching, stable-ID trust controls, bounded pseudonymous retention, and zero enforcement authority are implemented. Accept false-positive behavior and provider capability reporting before designing Warn/Delete/Timeout/Ban.
 16. Add Chat Guard Incident Response only after preview, two-step confirmation, per-run caps, serialization, abort thresholds, and per-user result reporting are proven.
-17. Build Category Pilot in Suggest only mode and live-accept Windows detection, privacy, debounce, mapping review, and manual locks.
-18. Build Creator Controls on the accepted provider mapping/controller contract; keep manual title/category/chat-mode mutations separate from Category Pilot's automatic detection.
+17. Category Pilot is packaged in Suggest only mode; live-accept Windows detection, privacy, debounce, mapping review, manual locks, and the opt-in automatic mode.
+18. Creator Controls is packaged on the provider mapping/controller contract; live-accept manual title/category/chat-mode mutations separately from Category Pilot's automatic detection.
 
 ### Track E — Independent participation, communication, and discovery add-ons
 
-19. Build Viewer Lobby's clean-room state engine, normalized commands, and wizard operator panel; accept stable identity, revision conflicts, queue fairness, restart recovery, and privacy before adding the dock.
-20. Add Viewer Lobby's authenticated dock and public Full/Compact/Now-and-next overlays; add Viewer Foundation, Scene Actions, and Viewer Spotlight integrations only after their base capabilities are independently accepted.
-21. Build Live Beacon after normalized online events preserve stable stream/broadcast identity and metadata.
-22. Live-accept Clip Courier's shared Discord forum controller and bounded clip lookup contract.
-23. Live-accept Discord Chat Archive's channel/forum contract without changing its one-thread-per-session privacy boundary.
-24. Follower Pulse packaged with bounded follower snapshots and private two-scan reconciliation; complete live Twitch authorization and refollow acceptance.
-25. Free Game Check and Creator Utility Pack are packaged and automated-accepted; complete their offline and genuine-provider rows in the acceptance ledger.
+19. Viewer Lobby's clean-room state engine, normalized commands, wizard operator panel, authenticated dock, and public Full/Compact/Now-and-next overlays are packaged; live-accept stable identity, revision conflicts, queue fairness, restart recovery, privacy, and integrations.
+20. Live Beacon is packaged with normalized stream identity, metadata, deduplication, and coalescing; live-accept each enabled provider and private Discord destination.
+21. Live-accept Clip Courier's shared Discord forum controller and bounded clip lookup contract.
+22. Live-accept Discord Chat Archive's channel/forum contract without changing its one-thread-per-session privacy boundary.
+23. Follower Pulse is packaged with bounded follower snapshots and private two-scan reconciliation; complete live Twitch authorization and refollow acceptance.
+24. Free Game Check and Creator Utility Pack are packaged and automated-accepted; complete their offline and genuine-provider rows in the acceptance ledger.
 
 ### Track F — Optional entertainment and accessibility
 
-26. Rebuild Speaker.bot Orchestration with filtering, emergency stop, queue/interruption policy, and live speech acceptance.
-27. Back burner: reconsider Bloom Companion against Viewer Foundation projections and the accepted media lifecycle only after the higher-priority non-companion tracks are complete.
-28. Chat Play Pack is packaged with Viewer Foundation award idempotency; retain Coin Flip and Random Joke as main templates when persistent game state is unnecessary.
-29. Evaluate larger games as independent add-ons or Twitch Extensions. Accessibility Captions and shared clip metadata caching are packaged; binary clip prefetch remains deferred pending privacy, storage, expiry, and provider-policy decisions.
+25. Rebuild Speaker.bot Orchestration with filtering, emergency stop, queue/interruption policy, and live speech acceptance.
+26. Back burner: reconsider Bloom Companion against Viewer Foundation projections and the accepted media lifecycle only after the higher-priority non-companion tracks are complete.
+27. Chat Play Pack is packaged with Viewer Foundation award idempotency; retain Coin Flip and Random Joke as main templates when persistent game state is unnecessary.
+28. Evaluate larger games as independent add-ons or Twitch Extensions. Accessibility Captions and shared clip metadata caching are packaged; binary clip prefetch remains deferred pending privacy, storage, expiry, and provider-policy decisions.

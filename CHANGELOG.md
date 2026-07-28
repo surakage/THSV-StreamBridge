@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Fixed add-on upgrades across bridge releases: the installer now verifies the outgoing package's schema, file list, and hashes without incorrectly requiring that older package to support the newly installed bridge. The incoming replacement still must pass current core and bridge compatibility checks.
+- Synchronized the public status, production gate, acceptance ledger, offline guide, and future roadmap around the published `2.5.0` baseline, `29` packaged add-ons, `135` Vitest files / `709` tests, and `11` browser checks.
 - Fixed the wizard Setup overview card so it is labeled **Version** and reads the synchronized installed StreamBridge release instead of displaying the internal `2.0.0-preview.1` contract identifier as a product preview version.
 - Updated current Streamer.bot guidance to recommend `1.0.5-beta.2`, documented its THSV impact and re-acceptance checklist, and preserved `1.0.5-alpha.31` plus package-specific versions as compatibility floors rather than forcing an unnecessary package rebuild.
 - Corrected active setup documentation that still named `2.4.0` downloads and Streamer.bot imports after the synchronized `2.5.0` release.
