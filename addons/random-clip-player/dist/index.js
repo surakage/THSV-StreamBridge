@@ -15,12 +15,15 @@ const CONTROL_EVENT = 'addon.thsv.random-clip-player.control';
 // simply dropped), this is how long to wait before trying again rather than stalling forever.
 // Cancelled the moment the expected response actually arrives -- see arm/disarmSafetyNet.
 const SAFETY_NET_MS = 90_000;
-const SHARED_CACHE_WAIT_MS = 5_000;
+const CONNECTION_RETRY_MS = 1_000;
+// The shared cache normally answers immediately. Keep the fallback window short so enabling the
+// player never appears unresponsive when the cache is cold, disabled, or still starting.
+const SHARED_CACHE_WAIT_MS = 1_000;
 // A failed or timed-out clip is retried quickly rather than waiting a full between-clips gap.
 const RETRY_DELAY_MS = 5_000;
-// The creator-facing pause remains the value they chose. This fixed, non-configurable buffer gives
-// the hosted overlay four seconds to fade away before the next rotation begins: 60 becomes 64.
-const FADE_BUFFER_MS = 4_000;
+// A valid response can still contain no clips inside the creator's duration range. Back off
+// before refreshing again so an empty/filtered library cannot flood Streamer.bot's action queue.
+const EMPTY_POOL_RETRY_MS = 30_000;
 
 // Fallbacks only for a context built without going through the real install/load path (bare unit
 // tests, for instance). A real installed context always has a complete settings object, since the
@@ -49,9 +52,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '2.5.0',
+  version: '2.5.1',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.0', maximumTestedBridgeVersion: '2.5.0',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.1', maximumTestedBridgeVersion: '2.5.1',
   dependencies: ['thsv.clip-library-cache'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -61,9 +64,9 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.5.0.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.5.1.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
-    'Optionally bind the imported Enable and Disable actions to Streamer.bot scene-active and scene-inactive triggers.',
+    'Bind or manually run the imported Enable and Disable actions. Playback always starts off after StreamBridge launches and cannot begin until Enable is triggered.',
     'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.',
   ],
   uninstallationSteps: ['Remove the add-on package; its separately owned rotation state remains preserved.'],
@@ -95,7 +98,7 @@ function sanitizeState(raw) {
     seenClipIds: Array.isArray(value.seenClipIds) ? value.seenClipIds.filter((id) => typeof id === 'string') : [],
     pendingClipId: typeof value.pendingClipId === 'string' ? value.pendingClipId : undefined,
     pendingPlaybackId: typeof value.pendingPlaybackId === 'string' ? value.pendingPlaybackId : undefined,
-    playbackEnabled: value.playbackEnabled !== false,
+    playbackEnabled: value.playbackEnabled === true,
   };
 }
 
@@ -119,6 +122,11 @@ let nextTaskId;
 function armSafetyNet(context, task) {
   if (safetyTaskId !== undefined) context.schedule.cancel(safetyTaskId);
   safetyTaskId = context.schedule.after(SAFETY_NET_MS, task);
+}
+
+function armConnectionRetry(context, task) {
+  if (safetyTaskId !== undefined) context.schedule.cancel(safetyTaskId);
+  safetyTaskId = context.schedule.after(CONNECTION_RETRY_MS, task);
 }
 
 function disarmSafetyNet(context) {
@@ -150,9 +158,10 @@ async function requestClipList(context) {
   disarmSafetyNet(context);
   safetyTaskId = context.schedule.after(SHARED_CACHE_WAIT_MS, async () => {
     safetyTaskId = undefined;
-    try { await context.streamerbot.runApprovedAction(GET_CLIPS_ACTION_ID, { clipCount: settings.clipCount }); }
-    catch { /* Not yet approved, or Streamer.bot unavailable; the safety net retries. */ }
+    // Arm before dispatch so an unusually fast relay response cannot race with timer setup.
     armSafetyNet(context, () => requestClipList(context));
+    try { await context.streamerbot.runApprovedAction(GET_CLIPS_ACTION_ID, { clipCount: settings.clipCount }); }
+    catch { armConnectionRetry(context, () => requestClipList(context)); }
   });
 }
 
@@ -161,13 +170,14 @@ async function requestClipDownload(context, clipId) {
   if (!state.playbackEnabled || state.pendingClipId !== clipId) return;
   armSafetyNet(context, () => requestClipDownload(context, clipId));
   try { await context.streamerbot.runApprovedAction(GET_CLIP_DOWNLOAD_ACTION_ID, { clipId }); }
-  catch { /* Not yet approved, or Streamer.bot unavailable; the safety net retries. */ }
+  catch { armConnectionRetry(context, () => requestClipDownload(context, clipId)); }
 }
 
 // The single entry point for "what should happen now": called on first start, after a fresh clip
-// list arrives, and (via onLifecycle below) a fixed pause after each clip finishes. Refreshes the
-// clip list whenever there is nothing cached yet or the whole rotation pool has been played
-// through, instead of on any independent timer.
+// list arrives, and (via onLifecycle below) a fixed pause after each clip finishes. An exhausted
+// playable pool asks for one refreshed batch; handleClipsReceived then resets the completed bag
+// against that response. This admits newly created clips without repeatedly fetching an unchanged
+// response when some returned clips are outside the configured duration range.
 async function requestNextClip(context) {
   const settings = readSettings(context);
   const state = sanitizeState(await context.state.read());
@@ -193,10 +203,19 @@ async function handleClipsReceived(event, context) {
   // window) so the rotation pool cannot shrink forever as the underlying clip library changes.
   const clipIds = new Set(clips.map((clip) => clip.id));
   const stillSeenClipIds = state.seenClipIds.filter((id) => clipIds.has(id));
-  // A refresh after every returned clip has already played begins the next shuffle cycle. Keeping
-  // the completed bag would make requestNextClip immediately request the same list again forever.
-  const seenClipIds = clips.length > 0 && clips.every((clip) => stillSeenClipIds.includes(clip.id)) ? [] : stillSeenClipIds;
+  const settings = readSettings(context);
+  const eligible = filterClipsByDuration(clips, settings.minDurationSeconds, settings.maxDurationSeconds);
+  // Reset only the playable bag. An unseen clip outside the configured duration range must not
+  // prevent a completed playable batch from beginning its next no-repeat cycle.
+  const eligibleIds = new Set(eligible.map((clip) => clip.id));
+  const seenClipIds = eligible.length > 0 && eligible.every((clip) => stillSeenClipIds.includes(clip.id))
+    ? stillSeenClipIds.filter((id) => !eligibleIds.has(id))
+    : stillSeenClipIds;
   await context.state.write(toJsonState({ ...state, clips, seenClipIds }));
+  if (eligible.length === 0) {
+    scheduleNext(context, EMPTY_POOL_RETRY_MS);
+    return;
+  }
   await requestNextClip(context);
 }
 
@@ -230,9 +249,12 @@ export default {
   required: false,
   async start(context) {
     context.overlay.onLifecycle((event) => { void onLifecycle(event, context); });
-    // A fresh start asks for a list through the empty-pool path. The shared cache gets a short
-    // opportunity to answer before the legacy per-add-on action is used as a fallback.
-    await requestNextClip(context);
+    // Playback is deliberately session-scoped. A prior run's enabled flag must never make clips
+    // start merely because StreamBridge restarted; only the creator-controlled Enable action may
+    // begin a new session. Preserve the rotation bag, but clear stale in-flight playback state.
+    const state = sanitizeState(await context.state.read());
+    await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false }));
+    try { await context.overlay.publish(`${context.moduleId}.media.stop`, {}); } catch { /* Optional overlay may be closed. */ }
   },
   async stop(context) { disarmSafetyNet(context); cancelNextTask(context); },
   async onEvent(event, context) {
@@ -272,8 +294,10 @@ async function onLifecycle(event, context) {
   // excluded from the rotation, per the retry-or-skip contract these phases are documented to
   // represent (see docs/add-on-capabilities.md).
   const seenClipIds = event.phase === 'ended' ? [...new Set([...state.seenClipIds, state.pendingClipId])] : state.seenClipIds;
-  await context.state.write(toJsonState({ clips: state.clips, seenClipIds }));
+  await context.state.write(toJsonState({ clips: state.clips, seenClipIds, playbackEnabled: true }));
   const settings = readSettings(context);
-  const delayMs = event.phase === 'ended' ? Math.max(settings.secondsBetweenClips * 1_000, 1_000) + FADE_BUFFER_MS : RETRY_DELAY_MS;
+  // The configured pause is the complete post-clip wait. The overlay's short fade runs inside
+  // that window instead of adding an undocumented delay on top of the creator's setting.
+  const delayMs = event.phase === 'ended' ? Math.max(settings.secondsBetweenClips * 1_000, 1_000) : RETRY_DELAY_MS;
   scheduleNext(context, delayMs);
 }

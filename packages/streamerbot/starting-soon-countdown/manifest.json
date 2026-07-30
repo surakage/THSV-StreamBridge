@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Stream Launch Countdown",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "surakage",
   "description": "Provides Start, Stop, Pause, Resume, Reset, Complete Now, and Set & Start controls for the Stream Launch Countdown add-on.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
@@ -17,7 +17,7 @@
         }
       ],
       "source": "src/ControlCountdown.cs",
-      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -35,7 +35,7 @@
         }
       ],
       "source": "src/ControlCountdown.cs",
-      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -53,7 +53,7 @@
         }
       ],
       "source": "src/ControlCountdown.cs",
-      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -71,7 +71,7 @@
         }
       ],
       "source": "src/ControlCountdown.cs",
-      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -89,7 +89,7 @@
         }
       ],
       "source": "src/ControlCountdown.cs",
-      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -107,7 +107,7 @@
         }
       ],
       "source": "src/ControlCountdown.cs",
-      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -130,7 +130,7 @@
         }
       ],
       "source": "src/ControlCountdown.cs",
-      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Stream-Launch-Countdown-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

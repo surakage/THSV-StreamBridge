@@ -12,7 +12,7 @@ describe('Chat Guard add-on', () => {
     const result = await processChatGuardEvent(event('UNSAFE TERM AAAAA HTTPS://ONE.TEST HTTPS://TWO.TEST THIS MESSAGE IS DELIBERATELY LONG'), testRuntime.context, 1000);
     expect(result).toMatchObject({ flagged: true, enforcement: 'none' });
     expect(result.rules).toEqual(expect.arrayContaining(['blocked-term', 'excessive-links', 'excessive-caps', 'repeated-characters', 'long-message']));
-    expect(chatGuard.manifest.actionsProvided).toEqual([{ id: 'chat-guard.moderate', name: 'THSV Addon - Chat Guard - Moderate' }]); expect(chatGuard.manifest.requiredCapabilities).toEqual([]);
+    expect(chatGuard.manifest.actionsProvided).toEqual([{ id: 'chat-guard.moderate', name: 'THSV Addon - Chat Guard - Moderate' }, { id: 'chat-guard.trust-viewer', name: 'THSV Addon - Chat Guard - Trust Viewer' }]); expect(chatGuard.manifest.requiredCapabilities).toEqual([]);
   });
 
   it('detects bounded repeated messages only at the configured threshold', async () => {
@@ -84,6 +84,16 @@ describe('Chat Guard add-on', () => {
     await expect(administerChatGuard({ operation: 'status' }, testRuntime.context, 5000)).resolves.toMatchObject({ activePermitCount: 0 });
   });
 
+  it('manages deliberate trusted stable IDs and masks them in wizard status', async () => {
+    const testRuntime = runtime({ blockedTerms: ['flag'] });
+    await expect(administerChatGuard({ operation: 'trust-add', platform: 'twitch', userId: 'private-stable-user-123456', label: 'Helpful Mod', approvedByCreator: true }, testRuntime.context, 1000)).resolves.toMatchObject({ trustedAccountCount: 1 });
+    await expect(processChatGuardEvent(event('flag', { user: { id: 'private-stable-user-123456', name: 'Different Name', actorType: 'human', roles: [] } }), testRuntime.context, 2000)).resolves.toBeUndefined();
+    const status = await administerChatGuard({ operation: 'status' }, testRuntime.context, 3000);
+    expect(status.trustedAccounts).toEqual([expect.objectContaining({ platform: 'twitch', label: 'Helpful Mod', idSuffix: '123456' })]);
+    expect(JSON.stringify(status)).not.toContain('private-stable-user-123456');
+    await expect(administerChatGuard({ operation: 'trust-remove', accountKey: status.trustedAccounts[0].accountKey, approvedByCreator: true }, testRuntime.context, 4000)).resolves.toMatchObject({ removed: 1, trustedAccountCount: 0 });
+  });
+
   it('requires both approval gates, caps actions, and never enforces simulations', async () => {
     const testRuntime = runtime({ blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'timeout', maximumEnforcementsPerMinute: 1 });
     await expect(processChatGuardEvent(event('flag once'), testRuntime.context, 1000)).resolves.toMatchObject({ enforcement: 'dispatched' });
@@ -93,5 +103,14 @@ describe('Chat Guard add-on', () => {
     const simulation = runtime({ blockedTerms: ['flag'], includeSimulated: true, enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'ban' });
     await expect(processChatGuardEvent(event('flag simulation', { eventId: 'sim', metadata: { simulated: true } }), simulation.context, 1000)).resolves.toMatchObject({ enforcement: 'none' });
     expect(simulation.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+  });
+
+  it('limits enforcement by selected platform, selected signals, threshold, and per-viewer cooldown', async () => {
+    const policy = runtime({ blockedTerms: ['flag'], blockedDomains: ['blocked.test'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'timeout', enforcementPlatforms: ['twitch'], enforcedRules: ['blocked-domain'], minimumRuleMatches: 1, maximumEnforcementsPerMinute: 20, perUserEnforcementCooldownSeconds: 60 });
+    await expect(processChatGuardEvent(event('flag only'), policy.context, 1000)).resolves.toMatchObject({ flagged: true, enforcement: 'below-threshold' });
+    await expect(processChatGuardEvent(event('https://blocked.test', { eventId: 'domain-one' }), policy.context, 2000)).resolves.toMatchObject({ enforcement: 'dispatched' });
+    await expect(processChatGuardEvent(event('https://blocked.test/again', { eventId: 'domain-two' }), policy.context, 3000)).resolves.toMatchObject({ enforcement: 'unsupported' });
+    await expect(processChatGuardEvent(event('https://blocked.test/youtube', { eventId: 'domain-youtube', platform: 'youtube' }), policy.context, 70_000)).resolves.toMatchObject({ enforcement: 'not-selected' });
+    expect(policy.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
   });
 });

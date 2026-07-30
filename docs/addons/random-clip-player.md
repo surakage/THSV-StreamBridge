@@ -1,23 +1,23 @@
 # Random Clip Player setup
 
 **Module:** `thsv.random-clip-player`
-**Version:** `2.5.0`
+**Version:** `2.5.1`
 **Publisher:** THSV StreamBridge
 
 Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Random-Clip-Player-2.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Random-Clip-Player-2.5.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.5.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Random-Clip-Player-2.5.1.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Random-Clip-Player-2.5.1.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.5.1.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.5.0.sb into Streamer.bot.
+1. Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.5.1.sb into Streamer.bot.
 2. In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.
-3. Optionally bind the imported Enable and Disable actions to Streamer.bot scene-active and scene-inactive triggers.
+3. Bind or manually run the imported Enable and Disable actions. Playback always starts off after StreamBridge launches and cannot begin until Enable is triggered.
 4. Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.
 
 ## Streamer.bot

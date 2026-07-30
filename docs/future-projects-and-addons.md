@@ -71,9 +71,9 @@ These twenty-nine add-ons are included in the expanded `2.5.0` release build. **
 | Creator Controls | Packaged `2.5.0` | Guarded Twitch, YouTube, and Kick title/category profiles through one shared provider controller | Live provider mutation and result readback on each connected platform. |
 | Category Pilot | Packaged `2.5.0` | Suggest-first Windows process-to-profile mapping with privacy-bounded exact-name probes | Live process matching, debounce, creator apply/dismiss, and opt-in automatic mode. |
 | Live Beacon | Packaged `2.5.0` | Coalesced multi-platform Discord go-live notifications | Real stream lifecycle deduplication plus private channel/forum webhook acceptance. |
-| Clip Courier | Packaged `2.5.0` | Stable-ID Twitch clip discovery and Discord channel/forum publication | Silent baseline, new clip discovery, duplicate suppression, and confirmed Discord result. |
+| Clip Courier | Packaged `2.5.0` | Twitch `!clip` creation plus optional current-stream-only discovery and Discord channel/forum publication | 30/60-second command clips, stream-window timestamp filtering, duplicate suppression, and confirmed Discord result. |
 | Viewer Lobby | Packaged `2.5.0` | Multi-platform play queue with source-routed commands and creator controls | Live join/leave/position flows, restart recovery, overlay ordering, and operator controls. |
-| Voice Relay | Packaged `2.5.0` | Filtered, bounded Speaker.bot event orchestration | Live voice alias, bad-word filtering, queue pressure, and emergency control acceptance. |
+| Voice Relay | Packaged `2.5.0`; offline accepted | Filtered, bounded Speaker.bot event orchestration | Complete locally: aliases, audible phrases, aggregation, creator controls, Clear Pending, and Stop Speaking passed. |
 | Follower Pulse | Packaged `2.5.0` | Private bounded Twitch follower reconciliation | Live broadcaster authorization, first baseline, pagination, two-scan confirmation, and refollow behavior. |
 
 ### Shared foundations and archived candidates
@@ -86,7 +86,7 @@ These twenty-nine add-ons are included in the expanded `2.5.0` release build. **
 | Bloom Companion | Back burner | Explicitly deferred. Reconsider only after the non-companion safety, creator-control, and viewer-service tracks are accepted. |
 | Shared Discord delivery | Implemented pattern | Live Beacon, Clip Courier, and Discord Chat Archive use the same reviewed secret boundary, explicit mention rules, confirmed channel/forum responses, bounded rate-limit retry, and correlated Discord IDs. Each retains its own content, lifecycle, and privacy policy. |
 | Shared provider control | Implemented | Category Pilot reuses Creator Controls profiles and provider controller methods; Scene Actions remains separate. |
-| Shared clip discovery | Implemented pattern | Random Clip Player and Clip Courier use bounded Streamer.bot clip lookup with stable IDs while retaining independent scheduling and outputs. |
+| Shared clip discovery | Implemented pattern | Clip Library Cache owns one bounded Streamer.bot clip lookup and publishes stable-ID metadata snapshots. Random Clip Player consumes it for playback; Clip Courier uses it only when optional current-stream discovery is enabled. Its primary `!clip` path is direct. |
 
 ### Planned standalone add-ons
 
@@ -117,7 +117,7 @@ Features should share authoritative services without becoming one oversized add-
 | Viewer Lobby + Viewer Foundation + Scene Actions | Lobby uses platform-scoped stable IDs immediately, may use Viewer Foundation to collapse explicitly linked accounts, and may consume normalized scene state for creator-approved open/close automation. | Lobby owns queue/session/fairness state and must not merge with Viewer Spotlight, progression, games, or Scene Actions. |
 | Category Pilot + Creator Controls | Share provider category mappings, validated mutation methods, result readback, audit primitives, and rate limits. | Automatic process detection and manual operator commands remain independently enabled. |
 | Chat Guard + future moderation dashboard | Share rule evaluation, trusted-user lists, incident audit, and provider moderation capabilities. | A dashboard must not become required for enforcement. |
-| Random Clip Player + Automated Shoutouts + Clip Courier | Share bounded clip lookup/cache results and stable clip IDs. | Playback rotation, shoutout presentation, and Discord publication remain independent. |
+| Clip Library Cache + Random Clip Player + Automated Shoutouts + Clip Courier | Clip Library Cache owns the bounded metadata lookup and stable clip IDs. | Playback rotation, shoutout presentation, and Discord publication remain independent. Clip Courier's `!clip` path creates directly; optional discovery consumes the shared cache and filters to the observed stream window. |
 | Live Beacon + Clip Courier + Discord Chat Archive + Viewer Spotlight Discord export | Share one reviewed Discord channel/forum delivery controller and secret boundary. | Each add-on keeps separate destinations, retention, templates, deduplication, and enable switches. |
 | User Translate + Auto Translate | Share the provider client, language validation, splitting, and rate-limit primitives. | Remain separate add-ons because automatic translation has materially greater privacy and spam risk. |
 | Ko-fi + Streamlabs + native support events | Feed the same normalized alert/presentation pipeline. | Preserve provider-specific stable IDs, currencies, event labels, credentials, and add-on health. |
@@ -160,9 +160,9 @@ Responsibilities:
 - choose clips randomly without repeats until the eligible library is exhausted;
 - publish one `media.play` request with a unique `playbackId` to the core-hosted add-on overlay;
 - wait for `started`, `heartbeat`, and `ended`; retry or skip on `failed` or `timeout`;
-- fade the final frame for four seconds, then honor the creator's configured between-clips pause;
+- fade the final frame briefly inside the creator's configured between-clips pause, without adding hidden wait time;
 - expose minimum/maximum duration, pool size, volume, mute, and interval settings in its wizard page;
-- provide Streamer.bot Enable and Disable actions that creators can attach to scene-active and scene-inactive triggers;
+- remain off after every bridge launch, then use Streamer.bot Enable and Disable actions as the only playback-session controls creators attach to scene-active and scene-inactive triggers;
 - support Starting Soon, BRB, and Ending use without directly controlling OBS, Meld, or Streamlabs;
 - reuse the bridge's existing Streamer.bot and overlay transports and refuse to run when the required main version/capabilities are absent.
 
@@ -335,7 +335,7 @@ Replace the reference automation's random 1.5–3.5-second delay with a meaningf
 
 ### 14. Clip Courier — Packaged 2.5.0
 
-Build `thsv.clip-courier` as a clean-room Twitch clip-to-Discord add-on. It should publish each accepted clip either as a normal Discord channel message or as a new forum/media-channel post with its own comment thread. The add-on must not depend on a third-party clip scanner, creator-authored JSON file, direct Twitch OAuth access, or another WebSocket connection.
+Build `thsv.clip-courier` as a clean-room Twitch clip-to-Discord add-on. Its primary path is an imported Twitch-only `!clip` command that creates the previous creator-selected 30 or 60 seconds and immediately publishes the returned stable clip to a normal Discord channel or forum/media-channel post. Optional background discovery may consume the shared cache, but only clips timestamped inside the currently observed stream session qualify. The add-on must not depend on a third-party clip scanner, creator-authored JSON file, direct Twitch OAuth access, or another WebSocket connection.
 
 Supported clip intake:
 
@@ -933,7 +933,7 @@ Completed packaging work remains listed in the portfolio table. This sequence de
 
 19. Viewer Lobby's clean-room state engine, normalized commands, wizard operator panel, authenticated dock, and public Full/Compact/Now-and-next overlays are packaged; live-accept stable identity, revision conflicts, queue fairness, restart recovery, privacy, and integrations.
 20. Live Beacon is packaged with normalized stream identity, metadata, deduplication, and coalescing; live-accept each enabled provider and private Discord destination.
-21. Live-accept Clip Courier's shared Discord forum controller and bounded clip lookup contract.
+21. Live-accept Clip Courier's shared Discord forum controller and Clip Library Cache consumption contract.
 22. Live-accept Discord Chat Archive's channel/forum contract without changing its one-thread-per-session privacy boundary.
 23. Follower Pulse is packaged with bounded follower snapshots and private two-scan reconciliation; complete live Twitch authorization and refollow acceptance.
 24. Free Game Check and Creator Utility Pack are packaged and automated-accepted; complete their offline and genuine-provider rows in the acceptance ledger.

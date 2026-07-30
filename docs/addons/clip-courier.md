@@ -1,23 +1,25 @@
 # Clip Courier setup
 
 **Module:** `thsv.clip-courier`
-**Version:** `2.5.0`
+**Version:** `2.5.1`
 **Publisher:** THSV StreamBridge
 
-Discovers bounded Twitch clips and publishes each stable clip once to a Discord channel or forum.
+Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Clip-Courier-2.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Courier-2.5.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Clip-Courier-2.5.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Clip-Courier-2.5.1.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Courier-2.5.1.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Clip-Courier-2.5.1.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Import the Clip Courier Streamer.bot package.
-2. Put a private Discord webhook in its Deliver action and leave both actions triggerless.
-3. Approve Get Clips and Deliver, configure the destination, then enable the add-on.
+1. Import the matching Clip Courier Streamer.bot package. Review its disabled Twitch-only !clip command, then enable it.
+2. Open Create Clip and set clipCourierDurationSeconds to 30 or 60. Leave its imported !clip trigger attached.
+3. Open Deliver, replace clipCourierWebhookUrl with a private webhook created for the selected Discord text channel or forum, then Save and Compile. Leave Deliver triggerless.
+4. Approve only Deliver in the wizard. The command-created clip returns directly to Clip Courier; automatic background discovery uses the shared Clip Library Cache.
+5. Optional: enable other clips from the current stream. Older clips and clips from prior streams are rejected by creation time.
 
 ## Streamer.bot
 
@@ -25,10 +27,14 @@ Minimum supported Streamer.bot version: `1.0.5-beta.1`.
 
 Imported group: `THSV Addon - Clip Courier`
 
-- `THSV Addon - Clip Courier - Get Clips` in `THSV Addon - Clip Courier`
+- `THSV Addon - Clip Courier - Create Clip` in `THSV Addon - Clip Courier`
 - `THSV Addon - Clip Courier - Deliver` in `THSV Addon - Clip Courier`
 
-Both actions remain triggerless and require one-use broker tokens. The webhook stays only in Deliver's Set Argument.
+Create Clip is bound only to the imported Twitch !clip command. Deliver remains triggerless and requires a one-use broker token. The webhook stays only in Deliver's Set Argument.
+
+Creator-selected triggers:
+
+- **createClip:** Review and enable the imported Twitch-only !clip command. Change clipCourierDurationSeconds on Create Clip to either 30 or 60.
 
 ## Browser source
 
@@ -43,15 +49,15 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ### Health checks
 
-- **thsv.clip-courier.runtime:** Confirms bounded Twitch discovery and idempotent Discord publication are available.
+- **thsv.clip-courier.runtime:** Confirms command clip creation, current-stream filtering, and idempotent Discord publication are available.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `schedule.bounded`, `state.private`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`.
 
 Private storage: `data/addons/thsv.clip-courier/`, `data/addons/.state/thsv.clip-courier/`.
 
-Dependencies: `thsv.clip-library-cache`.
+Dependencies: none.
 
 ## Remove or repair
 

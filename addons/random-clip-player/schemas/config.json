@@ -8,7 +8,7 @@
     "secondsBetweenClips": {
       "type": "integer",
       "title": "Pause between clips (seconds)",
-      "description": "How long to wait after the four-second fade finishes before the next clip starts. The transition buffer is automatic, so a setting of 60 seconds produces a 64-second total gap.",
+      "description": "The complete pause from one clip ending until StreamBridge requests the next clip. The short fade happens during this pause; no hidden seconds are added.",
       "minimum": 1,
       "maximum": 3600,
       "default": 5

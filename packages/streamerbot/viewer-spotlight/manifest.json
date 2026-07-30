@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Viewer Spotlight",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "surakage",
   "description": "Settles Twitch Viewer Spotlight rewards and optionally sends creator-approved Discord snapshots.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Viewer Spotlight - Settle Reward",
       "group": "THSV Addon - Viewer Spotlight",
       "source": "src/SettleReward.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Spotlight-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Spotlight-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -24,7 +24,7 @@
       "name": "THSV Addon - Viewer Spotlight - Discord Snapshot",
       "group": "THSV Addon - Viewer Spotlight",
       "source": "src/DiscordSnapshot.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Spotlight-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Spotlight-2.5.1.sb",
       "arguments": [
         {
           "name": "viewerSpotlightDiscordWebhookUrl",

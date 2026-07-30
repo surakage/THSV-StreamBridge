@@ -1,15 +1,15 @@
 # Viewer Foundation setup
 
 **Module:** `thsv.viewer-foundation`
-**Version:** `2.5.0`
+**Version:** `2.5.1`
 **Publisher:** THSV StreamBridge
 
 Provides privacy-conscious, salted cross-platform viewer identity and bounded replay-safe progression as an optional foundation for later community add-ons.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Foundation-2.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Foundation-2.5.0.thsv-addon` and review its permissions.
+1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Foundation-2.5.1.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Foundation-2.5.1.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 

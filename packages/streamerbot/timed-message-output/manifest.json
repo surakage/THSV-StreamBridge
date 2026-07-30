@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Timed Message Output",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "surakage",
   "description": "Creator-controlled Twitch, YouTube, Kick, and TikFinity chat delivery for shuffled THSV timed messages.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
@@ -11,7 +11,7 @@
     "id": "7d107c29-1127-5bb1-ae8b-6f04d89a71d4",
     "sourceSubActionId": "02c87ae4-afae-5d07-9ff6-9eabf454a3fc",
     "source": "src/SendTimedMessage.cs",
-    "importFile": "THSV-StreamBridge-Timed-Message-Output-2.5.0.sb"
+    "importFile": "THSV-StreamBridge-Timed-Message-Output-2.5.1.sb"
   },
   "runtime": {
     "queue": "Default",

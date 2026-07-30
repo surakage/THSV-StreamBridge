@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Adds bounded cross-platform counters, casual giveaways, and polls.",
-  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
+  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.creator-utility-pack",
     "name": "Creator Utility Pack",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.5.0",
-    "maximumTestedBridgeVersion": "2.5.0",
+    "minimumBridgeVersion": "2.5.1",
+    "maximumTestedBridgeVersion": "2.5.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -83,7 +83,7 @@
     {
       "path": "dist/index.js",
       "size": 10256,
-      "sha256": "ae7340cdc36b420bec0ec103713d45c243052565c87303d2e906a9f65bed989e"
+      "sha256": "ca7a35d1319d5218101c63b80855e2bc018ee73384d0699dbb3aa7c0acf0b7d5"
     },
     {
       "path": "schemas/config.json",

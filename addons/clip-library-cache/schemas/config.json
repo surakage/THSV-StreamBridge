@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Clip Library Cache", "type": "object", "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable shared clip metadata cache", "default": true },
-    "refreshMinutes": { "type": "integer", "title": "Refresh metadata every (minutes)", "minimum": 5, "maximum": 1440, "default": 15 },
-    "clipCount": { "type": "integer", "title": "Clips requested per refresh", "minimum": 1, "maximum": 100, "default": 40 },
-    "maximumCache": { "type": "integer", "title": "Maximum cached clip records", "minimum": 10, "maximum": 100, "default": 60 }
+    "enabled": { "type": "boolean", "title": "Enable the shared clip list", "description": "Keep enabled while Random Clip Player, Clip Courier, or another clip add-on needs it.", "default": true },
+    "refreshMinutes": { "type": "integer", "title": "Refresh the Twitch clip list every (minutes)", "description": "One refresh is shared by every clip consumer. The minimum is five minutes.", "minimum": 5, "maximum": 1440, "default": 15 },
+    "clipCount": { "type": "integer", "title": "Recent clips requested from Twitch", "description": "How many public clip records the approved Streamer.bot action requests per refresh.", "minimum": 1, "maximum": 100, "default": 40 },
+    "maximumCache": { "type": "integer", "title": "Maximum clip records kept locally", "description": "Only bounded metadata is kept; this is not a video download limit.", "minimum": 10, "maximum": 100, "default": 60 }
   }
 }

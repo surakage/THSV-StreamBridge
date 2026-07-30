@@ -116,6 +116,39 @@ function boundedEventId(prefix: string, value: string): string {
 
 function isCreatorControl(relay: AddOnRelay): boolean {
   if (relay.relayToken !== '') return false;
+  if (relay.moduleId === 'thsv.chat-guard' && relay.eventType === 'addon.thsv.chat-guard.trusted-account-request') {
+    if (relay.sourceEventType !== 'THSV Addon - Chat Guard - Trust Viewer') return false;
+    const keys = Object.keys(relay.payload);
+    const platform = relay.payload['platform'];
+    const userId = relay.payload['userId'];
+    const label = relay.payload['label'];
+    return keys.length === 4
+      && ['twitch', 'youtube', 'kick', 'tiktok'].includes(typeof platform === 'string' ? platform : '')
+      && typeof userId === 'string' && userId.trim().length >= 1 && userId.length <= 256
+      && typeof label === 'string' && label.trim().length >= 1 && label.length <= 80
+      && relay.payload['authorized'] === true;
+  }
+  if (relay.moduleId === 'thsv.clip-courier' && relay.eventType === 'addon.thsv.clip-courier.clip-created') {
+    if (relay.sourceEventType !== 'THSV Addon - Clip Courier - Create Clip') return false;
+    const keys = Object.keys(relay.payload);
+    const id = relay.payload['id'];
+    const url = relay.payload['url'];
+    const title = relay.payload['title'];
+    const creatorName = relay.payload['creatorName'];
+    const createdAt = relay.payload['createdAt'];
+    const durationSeconds = relay.payload['durationSeconds'];
+    if (keys.length !== 7 || relay.payload['source'] !== 'command') return false;
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{3,100}$/u.test(id)) return false;
+    if (typeof url !== 'string' || url.length > 500) return false;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:' || !['clips.twitch.tv', 'www.twitch.tv', 'twitch.tv'].includes(parsed.hostname.toLowerCase())) return false;
+    } catch { return false; }
+    return typeof title === 'string' && title.length <= 200
+      && typeof creatorName === 'string' && creatorName.trim().length >= 1 && creatorName.length <= 100
+      && typeof createdAt === 'string' && createdAt.length <= 40 && Number.isFinite(Date.parse(createdAt))
+      && (durationSeconds === 30 || durationSeconds === 60);
+  }
   if (relay.moduleId === 'thsv.random-clip-player' && relay.eventType === 'addon.thsv.random-clip-player.control') {
     if (!['THSV Addon - Random Clip Player - Enable', 'THSV Addon - Random Clip Player - Disable'].includes(relay.sourceEventType)) return false;
     return Object.keys(relay.payload).length === 1 && typeof relay.payload['enabled'] === 'boolean';

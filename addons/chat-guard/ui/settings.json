@@ -1,21 +1,71 @@
 {
-  "intro": "Chat Guard starts in Observe mode. Optional enforcement is fail-closed, capped, platform-aware, and requires both creator approval and one approved triggerless Streamer.bot action.",
-  "order": ["enabled", "includeSimulated", "enabledPlatforms", "enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "timeoutSeconds", "warningMessage", "maximumEnforcementsPerMinute", "ignoredAccounts", "exemptBroadcaster", "exemptModerators", "exemptVips", "exemptSubscribers", "blockedTerms", "blockedDomains", "allowedDomains", "detectLinks", "maximumLinks", "detectCaps", "minimumCapsLetters", "maximumCapsPercent", "detectRepeatedCharacters", "maximumCharacterRun", "detectLongMessages", "maximumMessageCharacters", "detectRepeatedMessages", "repeatWindowSeconds", "repeatMessageCount", "retainedIncidents", "retentionHours", "maximumTrackedObservations"],
+  "intro": "Beginner setup: turn on safe observation, select your platforms, add any words or domains you always want flagged, save, and test. Observation never moderates anyone. Automatic actions remain a separate optional step.",
+  "order": ["enabled", "enabledPlatforms", "blockedTerms", "blockedDomains", "detectLinks", "detectRepeatedMessages", "detectCaps", "detectRepeatedCharacters", "detectLongMessages", "exemptBroadcaster", "exemptModerators", "exemptVips", "exemptSubscribers", "enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "allowedDomains", "maximumLinks", "minimumCapsLetters", "maximumCapsPercent", "maximumCharacterRun", "maximumMessageCharacters", "repeatWindowSeconds", "repeatMessageCount", "enforcementPlatforms", "enforcedRules", "minimumRuleMatches", "timeoutSeconds", "warningMessage", "maximumEnforcementsPerMinute", "perUserEnforcementCooldownSeconds", "ignoredAccounts", "includeSimulated", "retainedIncidents", "retentionHours", "maximumTrackedObservations"],
   "sections": [
-    { "id": "setup", "title": "1. Start safely", "description": "Select platforms and keep simulations excluded during normal use.", "open": true, "notice": "Begin with enforcement disabled and mode set to Observe. Test samples never cause moderation.", "fields": ["enabled", "includeSimulated", "enabledPlatforms"] },
-    { "id": "enforcement", "title": "2. Optional enforcement", "description": "Warn in source chat or use the approved provider controller for delete, timeout, or ban.", "notice": "YouTube has no delete-message method in Streamer.bot. TikTok is warning-only. Unsupported operations fail closed and are recorded, never substituted with a stronger action.", "fields": ["enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "timeoutSeconds", "warningMessage", "maximumEnforcementsPerMinute"] },
-    { "id": "trust", "title": "3. Trusted viewers", "description": "Use stable platform IDs and normalized roles to avoid display-name impersonation.", "fields": ["ignoredAccounts", "exemptBroadcaster", "exemptModerators", "exemptVips", "exemptSubscribers"] },
-    { "id": "content", "title": "4. Content and link signals", "description": "Literal terms, normalized domain policy, link count, caps, repeated-character, and length rules.", "fields": ["blockedTerms", "blockedDomains", "allowedDomains", "detectLinks", "maximumLinks", "detectCaps", "minimumCapsLetters", "maximumCapsPercent", "detectRepeatedCharacters", "maximumCharacterRun", "detectLongMessages", "maximumMessageCharacters"] },
-    { "id": "repeats", "title": "5. Repeated messages", "description": "Flag the same normalized message from the same stable account within a short bounded window.", "fields": ["detectRepeatedMessages", "repeatWindowSeconds", "repeatMessageCount"] },
-    { "id": "privacy", "title": "6. Privacy and retention", "description": "Limit private incident and repeat-detection state.", "notice": "Chat Guard never writes message text, names, avatars, or platform account IDs to its state. It stores salted hashes, platform, time, rule IDs, and simulation status only.", "fields": ["retainedIncidents", "retentionHours", "maximumTrackedObservations"] }
+    {
+      "id": "quick-start",
+      "title": "1. Safe beginner setup",
+      "description": "Watch for problems without taking action against anyone.",
+      "open": true,
+      "fields": ["enabled", "enabledPlatforms", "blockedTerms", "blockedDomains"],
+      "notice": "Recommended first run: enable observation, choose your platforms, optionally enter obvious blocked words or domains, then save and restart. Leave automatic actions off until the rule tester looks correct."
+    },
+    {
+      "id": "common-rules",
+      "title": "2. Common spam checks",
+      "description": "Simple on/off switches; beginner-friendly limits are already supplied.",
+      "open": true,
+      "fields": ["detectLinks", "detectRepeatedMessages", "detectCaps", "detectRepeatedCharacters", "detectLongMessages"],
+      "notice": "You do not need to change the number limits for your first test. Open Advanced tuning later only if normal chat is being flagged too often or not often enough."
+    },
+    {
+      "id": "trusted-roles",
+      "title": "3. People Chat Guard should leave alone",
+      "description": "Broadcaster and moderators are exempt by default.",
+      "fields": ["exemptBroadcaster", "exemptModerators", "exemptVips", "exemptSubscribers"],
+      "notice": "For one specific viewer, use the Trusted viewers manager below. Reply to their message with !guardtrust after importing and enabling that command. You do not need to find or type their user ID."
+    },
+    {
+      "id": "automatic-actions",
+      "title": "4. Optional automatic action",
+      "description": "Skip this section if you only want reports and rule testing.",
+      "fields": ["enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode"],
+      "notice": "Safest rollout: observe first, then choose Warn. Delete, Timeout, and Ban should be used only after live testing. Both switches must be on before Chat Guard can act, and simulations never act."
+    },
+    {
+      "id": "rule-tuning",
+      "title": "5. Advanced rule tuning",
+      "description": "Optional thresholds for deciding when a message should be flagged.",
+      "fields": ["allowedDomains", "maximumLinks", "minimumCapsLetters", "maximumCapsPercent", "maximumCharacterRun", "maximumMessageCharacters", "repeatWindowSeconds", "repeatMessageCount", "ignoredAccounts", "includeSimulated"],
+      "notice": "Most users should keep these defaults. Allowed domains is an allowlist: when it contains anything, links outside the list are flagged. Legacy ignored accounts require platform|stable-user-id; prefer !guardtrust instead."
+    },
+    {
+      "id": "action-limits",
+      "title": "6. Advanced automatic-action limits",
+      "description": "Optional platform, rule, timeout, warning, and rate-limit controls.",
+      "fields": ["enforcementPlatforms", "enforcedRules", "minimumRuleMatches", "timeoutSeconds", "warningMessage", "maximumEnforcementsPerMinute", "perUserEnforcementCooldownSeconds"],
+      "notice": "These controls matter only when automatic actions are enabled. Keep the safe defaults and Warn mode until genuine live testing succeeds."
+    },
+    {
+      "id": "privacy",
+      "title": "7. Data limits",
+      "description": "Optional local retention controls.",
+      "fields": ["retainedIncidents", "retentionHours", "maximumTrackedObservations"],
+      "notice": "Defaults retain only bounded hashes and rule IDs for troubleshooting. Chat text and ordinary viewer identities are not stored. Deliberately trusted viewers retain only the stable ID needed for that exception."
+    }
   ],
   "fields": {
-    "ignoredAccounts": { "rows": 5 }, "blockedTerms": { "rows": 6 }, "blockedDomains": { "rows": 4 }, "allowedDomains": { "rows": 4 },
-    "creatorApprovedEnforcement": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } }, "enforcementMode": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } }, "timeoutSeconds": { "visibleWhen": { "field": "enforcementMode", "equals": "timeout" } }, "warningMessage": { "visibleWhen": { "field": "enforcementMode", "equals": "warn" } }, "maximumEnforcementsPerMinute": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } },
-    "maximumLinks": { "visibleWhen": { "field": "detectLinks", "equals": true } },
-    "minimumCapsLetters": { "visibleWhen": { "field": "detectCaps", "equals": true } }, "maximumCapsPercent": { "visibleWhen": { "field": "detectCaps", "equals": true } },
-    "maximumCharacterRun": { "visibleWhen": { "field": "detectRepeatedCharacters", "equals": true } },
-    "maximumMessageCharacters": { "visibleWhen": { "field": "detectLongMessages", "equals": true } },
-    "repeatWindowSeconds": { "visibleWhen": { "field": "detectRepeatedMessages", "equals": true } }, "repeatMessageCount": { "visibleWhen": { "field": "detectRepeatedMessages", "equals": true } }
+    "blockedTerms": { "rows": 5 },
+    "blockedDomains": { "rows": 4 },
+    "allowedDomains": { "rows": 4 },
+    "ignoredAccounts": { "rows": 4 },
+    "enforcementMode": { "labels": { "observe": "Observe only - no action", "warn": "Warn in the same platform chat", "delete": "Delete the message where supported", "timeout": "Temporarily time out the viewer", "ban": "Ban the viewer" } },
+    "enforcementPlatforms": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } },
+    "enforcedRules": { "visibleWhen": { "field": "enforcementEnabled", "equals": true }, "labels": { "blocked-term": "Blocked word or phrase", "blocked-domain": "Blocked website", "unapproved-domain": "Website outside the allowlist", "excessive-links": "Too many links", "excessive-caps": "Too many capital letters", "repeated-characters": "Repeated characters", "long-message": "Very long message", "repeated-message": "Repeated message spam" } },
+    "minimumRuleMatches": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } },
+    "timeoutSeconds": { "visibleWhen": { "field": "enforcementMode", "equals": "timeout" } },
+    "warningMessage": { "visibleWhen": { "field": "enforcementMode", "equals": "warn" } },
+    "maximumEnforcementsPerMinute": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } },
+    "perUserEnforcementCooldownSeconds": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } }
   }
 }

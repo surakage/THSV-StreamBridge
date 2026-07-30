@@ -2,8 +2,8 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Provides one bounded shared Twitch clip metadata cache for first-party clip consumers.",
-  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
+  "description": "Shared background service that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, and other approved clip consumers.",
+  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-library-cache",
     "name": "Clip Library Cache",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.5.0",
-    "maximumTestedBridgeVersion": "2.5.0",
+    "minimumBridgeVersion": "2.5.1",
+    "maximumTestedBridgeVersion": "2.5.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -45,8 +45,10 @@
       "data/addons/.state/thsv.clip-library-cache/"
     ],
     "installationSteps": [
-      "Import the Clip Library Cache Streamer.bot package and keep Refresh triggerless.",
-      "Approve only Refresh, then enable the add-on. Random Clip Player and Clip Courier consume the same metadata snapshot."
+      "Install Clip Library Cache once when Random Clip Player, Clip Courier, or another installed add-on declares thsv.clip-library-cache as a dependency.",
+      "Import the matching Clip Library Cache Streamer.bot package. Keep Refresh enabled but triggerless; StreamBridge schedules it through the approved stable action ID.",
+      "In the wizard, approve only THSV Addon - Clip Library Cache - Refresh, enable the shared clip list, save, and restart StreamBridge.",
+      "Return to the consuming add-on. Clip Library Cache has no overlay and never plays, posts, or downloads a clip by itself."
     ],
     "uninstallationSteps": [
       "Uninstalling preserves only bounded clip metadata; no video files or signed playback URLs are stored."
@@ -64,23 +66,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 4733,
-      "sha256": "576b762c9244090e43b1abd48bfb94e758186d55bee458e69c79afb30e36460c"
+      "size": 5106,
+      "sha256": "2970a1ae6685ea7f2ab561cde0790f3f9541bffa523727265274878bc6aee36b"
     },
     {
       "path": "schemas/config.json",
-      "size": 657,
-      "sha256": "ce29fcf1af8fb10069e771ff6c4d772dcdc8770e77ac68f04e09feae5a50c18b"
+      "size": 1060,
+      "sha256": "7616c38ed9eebf122eaa5b660e94144dd37d9212dc3b0388324b38f6ca45f604"
     },
     {
       "path": "ui/settings.json",
-      "size": 651,
-      "sha256": "2a7bf05ba01d78d08ac1671af566f0b44c31779e67fe153ee66b46aa4548d5a1"
+      "size": 1462,
+      "sha256": "938f9be3c1b491e3e49ac3ec7abcbbdbb2ccaa1b0aa80a3228aa67656b5fe41c"
     },
     {
       "path": "README.md",
-      "size": 600,
-      "sha256": "09a19d4f3428b2828d24bc841557d7de012b03ab7e5dece93d9ce819d62e1fac"
+      "size": 1013,
+      "sha256": "52a8581f4a9b89edf3df0323309f7e7d1365c5dc0f5472345064ecfe67d289f1"
     }
   ]
 }

@@ -2,6 +2,20 @@
 
 Community Analytics is an optional, local-first companion to Viewer Foundation. It tracks bounded stream-session attendance and interaction counters across Twitch, YouTube, Kick, and TikTok.
 
+## What it is for
+
+Use Community Analytics when you want StreamBridge features such as Viewer Spotlight to read bounded local attendance, message, command, and optional engagement-score totals. It is not a replacement for Twitch, YouTube, Kick, or TikTok analytics and it does not calculate revenue.
+
+## Setup order
+
+1. Install and enable Viewer Foundation first.
+2. Keep platform triggers on the existing main THSV intake actions. Community Analytics has no `.sb` import and needs no direct Streamer.bot trigger.
+3. In the wizard, select which platforms count and add stable-ID exclusions. Leave simulated events disabled outside deliberate testing.
+4. Leave monthly participation scoring disabled unless Viewer Spotlight or another approved consumer needs it.
+5. Save, restart StreamBridge, then use **Refresh session summary** in the Reports section. Aggregate session JSON and pseudonymous viewer CSV exports are available there.
+
+If the summary remains empty, confirm Viewer Foundation and the selected platform intake are healthy before changing retention or scoring settings.
+
 - Viewer Foundation is the only identity authority; this add-on never links accounts or guesses from names.
 - It stores no chat text, display names, avatars, monetary values, credentials, or raw platform payloads.
 - Bots, system actors, ignored stable accounts, ignored Viewer Foundation IDs, and simulations are excluded by default.

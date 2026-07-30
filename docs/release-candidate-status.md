@@ -1,23 +1,23 @@
 # Published release and acceptance status
 
-Snapshot: July 28, 2026. Version baseline: `2.5.0`.
+Snapshot: July 30, 2026. Version baseline: `2.5.1`.
 
-Release `2.5.0` is the current published stable baseline, with the main Windows archive, an add-on index, and `29` separately downloadable first-party add-ons. The detailed ownership, privacy, dependency, and implementation plans remain in [Future projects and add-on roadmap](future-projects-and-addons.md). Per-package evidence is tracked in [Add-on acceptance ledger](add-on-acceptance-ledger.md). **Published**, **offline accepted**, and **provider accepted** are deliberately different states.
+Release `2.5.1` is the current stable source baseline prepared for publication, with the main Windows archive, an add-on index, and `29` separately downloadable first-party add-ons. The detailed ownership, privacy, dependency, and implementation plans remain in [Future projects and add-on roadmap](future-projects-and-addons.md). Per-package evidence is tracked in [Add-on acceptance ledger](add-on-acceptance-ledger.md). **Published**, **offline accepted**, and **provider accepted** are deliberately different states.
 
 ## Completed in the published baseline
 
 | Area | Confirmed state |
 | --- | --- |
 | Bridge core | Normalized Twitch, YouTube, Kick, and TikTok intake; one Streamer.bot connection; durable outbox; deduplication; authenticated loopback wizard; browser overlays; safe lifecycle and recovery. |
-| Automated validation | Lint, typecheck, build, configuration validation, 135 test files / 709 tests, and 11 browser tests pass on the current source baseline. Production dependency packaging reports zero known vulnerabilities. |
-| Windows package | The expanded 29-add-on self-contained `THSV-StreamBridge-2.5.0.zip` is produced with its SHA-256 checksum by the refreshed source, test, configuration, dependency, integrity, and portable-package gate. A separate clean-machine install/update walkthrough remains an acceptance task, not a publication blocker. |
+| Automated validation | Lint, typecheck, build, configuration validation, 135 test files / 728 tests, and 12 browser tests pass on the current source baseline. Production dependency packaging reports zero known vulnerabilities. |
+| Windows package | The expanded 29-add-on self-contained `THSV-StreamBridge-2.5.1.zip` is produced with its SHA-256 checksum by the refreshed source, test, configuration, dependency, integrity, and portable-package gate. A separate clean-machine install/update walkthrough remains an acceptance task, not a publication blocker. |
 | Add-on packaging | Twenty-nine first-party implementations are present. Each builds as a separate verified download; an `.sb` import is included only when the add-on needs Streamer.bot actions. |
 | Streamer.bot source packages | Twenty add-ons require Streamer.bot actions and use distinct `THSV Addon - <Name>` groups in source. Core packages remain in their existing core groups. |
 | New viewer stack | Viewer Foundation, Community Analytics, and Viewer Spotlight are packaged, installed locally, and report healthy. Foundation and Analytics are enabled; Spotlight remains disclosure-gated and disabled by default. |
 | Chat Guard | Observe mode remains the default. Optional warn/delete/timeout/ban modes require double approval, one stable action grant, provider capability checks, simulation suppression, and a rolling action cap. Live destructive acceptance remains pending. |
 | Public documentation | Current add-on, capability, privacy, release, Viewer Foundation, Scene Actions, Ko-fi, product-scope, module-system, and roadmap guides are included in the portable release. |
 | Main wizard templates | Commands/Help, source-gated Coin Flip, Twitch Follow Age, four creator-review-gated timed-message packs, and per-platform chat/alert Minimal, Warm, and Hype wording presets are complete. Follow Age uses the official fixed Helix followers endpoint inside its generated Streamer.bot C# action, queries only the invoking Twitch viewer, and keeps OAuth credentials in Streamer.bot. |
-| Shared Discord delivery | Live Beacon, Clip Courier, and Discord Chat Archive use one channel/forum safety contract with private Streamer.bot-held webhooks, explicit mention policy, confirmed responses, bounded rate-limit retry, and correlated Discord IDs. Private live webhook acceptance remains required. |
+| Shared Discord delivery | Live Beacon, Clip Courier, and Discord Chat Archive use one channel/forum safety contract with private Streamer.bot-held webhooks, explicit mention policy, confirmed responses, bounded rate-limit retry, and correlated Discord IDs. Discord Chat Archive normal-channel delivery is provider accepted; forum mode plus Live Beacon and Clip Courier delivery remain pending. |
 
 ## Work remaining after publication
 
@@ -37,9 +37,9 @@ The earlier recommendation to freeze at seventeen packages was superseded by the
 Acceptance order:
 
 1. creator-facing acceptance ledger plus clean-machine Windows install/update/rollback/uninstall acceptance;
-2. shared Discord channel/forum delivery through a private test webhook;
-3. live Ko-fi acceptance and one live Streamlabs donation-ID capture through the shared Streamer.bot connection;
-4. Chat Guard Observe-only acceptance, followed by separately approved enforcement tests;
+2. Discord Chat Archive normal-channel delivery is complete; its forum-thread path plus Live Beacon and Clip Courier private delivery remain pending;
+3. Ko-fi offline routing is accepted; a Ko-fi-originated test webhook and one live Streamlabs donation-ID capture through the shared Streamer.bot connection remain pending;
+4. Chat Guard Observe-only acceptance is complete; separately approved provider enforcement tests remain pending;
 5. Category Pilot Suggest-only behavior and Creator Controls provider mutations;
 6. Viewer Lobby operator and overlay flows;
 7. Live Beacon and Clip Courier provider/Discord delivery;
@@ -51,18 +51,21 @@ Bloom Companion remains on the back burner by explicit creator decision. Creator
 ## Current source validation
 
 - The authenticated add-on ledger is creator-editable and keeps automated, offline, and genuine-provider evidence separate.
-- Clip Library Cache supplies bounded metadata to Random Clip Player and Clip Courier; signed playback URLs and video files are never persisted.
+- Clip Library Cache supplies bounded metadata to Random Clip Player and Clip Courier's optional current-stream discovery. Clip Courier's main `!clip` path uses Streamer.bot's CreateClip result directly; signed playback URLs and video files are never persisted.
 - The Random Joke Command Sync template is original, source-gated, cooldown-bounded, and needs no external API.
 - Creator Utility Pack, Chat Play Pack, Free Game Check, and Accessibility Captions are complete in source and remain disabled or conservative by default where they can create public output.
-- The full repository and browser gates pass: `135` Vitest files / `709` tests, `11` Playwright checks, and `36` regenerated Streamer.bot imports. The release packaging gate produces and verifies all `29` add-on archives. Genuine provider acceptance remains deliberately separate and pending where listed in the ledger.
+- The full repository and browser gates pass: `135` Vitest files / `728` tests, `12` Playwright checks, and `37` regenerated Streamer.bot imports. The release packaging gate produces and verifies all `29` add-on archives. Genuine provider acceptance remains deliberately separate and pending where listed in the ledger.
 
 ### Local synchronized-install evidence — July 28, 2026
 
 - The installed `2.5.0` bridge reports `healthy` and `ready` on loopback.
-- The creator-selected set of `19` installed add-ons was upgraded from rejected `2.4.2` packages to matching `2.5.0` packages without replacing settings, private state, enabled flags, or approved action grants.
-- All `19` report `installed` at `2.5.0`; their private wizard acceptance entries now report `2.5.0` instead of `unknown`.
+- The creator-selected set of `19` installed add-ons was upgraded from rejected `2.4.2` packages to matching `2.5.0` packages without replacing settings, private state, enabled flags, or approved action grants. Clip Library Cache was then installed as the missing declared dependency of Random Clip Player and Clip Courier, bringing the synchronized local profile to `20` add-ons.
+- All `20` report `installed` at `2.5.0`; Random Clip Player, Clip Courier, and Clip Library Cache now load together as healthy modules, and their private wizard acceptance entries report the installed release rather than `unknown`.
 - Disposable Windows installer tests passed install, upgrade preservation, downgrade protection, tamper rejection, normal uninstall preservation, full removal, and locked-directory cleanup. The live source lifecycle passed custom-port start, replacement-start, stale-build detection, and active-configuration shutdown.
 - Direct Streamer.bot `1.0.5-beta.2` inspection confirmed the `93`-action grouped layout. Harmless Twitch, YouTube, and Kick chat **Test Trigger** runs each produced exactly one accepted, non-duplicate, durably queued `chat.message` event in the installed bridge. This is intake-routing evidence, not genuine-provider acceptance.
-- The observed `Partially Connected (8/10)` label represents the creator's intentionally unused Meld and Speaker.bot connections. OBS and the integrations required by the current add-on set were connected; the two unused connections are not release or add-on blockers.
+- The earlier `Partially Connected (8/10)` observation predated Voice Relay acceptance. Speaker.bot is now connected and its two saved aliases plus audible playback are verified; Meld remains intentionally unused because OBS is the adopted browser host.
 - A separate fresh-machine walkthrough of the exact public ZIP remains pending; automated disposable evidence is not mislabeled as an external clean-machine observation.
+- Clip Library Cache offline/runtime acceptance passed after repairing the missing dependency. Its approved triggerless action performed one real Twitch lookup, returned `40` bounded clip records, and wrote a `21,264`-byte metadata snapshot with no signed query credentials or error. Only one refresh action was dispatched during the observed startup window. A longer steady-state observation proving both clip consumers share refreshes without duplicate polling remains pending.
+- Stream Launch Countdown's actual imported **Set & Start** and **Stop** actions now pass the repaired control-path check: the timer became visible/running with persisted state, then stopped and hid cleanly, with one unique durable relay event per control. Its preview-only **Complete Now** action also rendered the configured completion message without browser errors, hid after ten seconds, and correctly suppressed the Go Live action. Audible tone confirmation and an explicitly approved harmless scene transition remain pending.
+- Subathon Timer's complete imported manual-control cycle now passes locally: Reset, Start, Pause, Add Time, Resume, and final Pause were each acknowledged once, persisted the expected 3600-to-3900-second change, and left no contribution counters or viewer data. A final reset rendered `01:00:00` READY cleanly in the browser, and a simulated TikTok gift was correctly prevented from changing production time. Genuine contribution rules, restart recovery, and long-running observation remain pending.
 - This is local installation evidence only. It does not mark a pending genuine-provider row as passed.

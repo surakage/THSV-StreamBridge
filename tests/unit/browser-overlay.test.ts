@@ -241,7 +241,7 @@ describe('Browser Overlay Hub contract', () => {
       alerts: { profiles: { youtube: { 'super-chat': { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
-      kind: 'alert.show', payload: { priority: 'critical', display: { title: 'example_member supported with 5.00 USD', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
+      kind: 'alert.show', payload: { priority: 'critical', display: { title: 'example_member supported with 5.00 USD', thankYou: 'Thank you for supporting the village, example_member!', viewerMessage: 'Simulated support', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
     });
     const profile = config.alerts.profiles.youtube?.['super-chat'];
     if (profile === undefined) throw new Error('Test profile is required');
@@ -251,6 +251,24 @@ describe('Browser Overlay Hub contract', () => {
     // the youtube event still falls back to its own automatic defaults, not the twitch profile.
     const otherPlatformOnly: BrowserOverlayConfig = { ...config, alerts: { profiles: { twitch: { follow: { ...profile, enabled: false } } } } };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 15 } }, otherPlatformOnly)).toMatchObject({ kind: 'alert.show' });
+  });
+
+  it('keeps thank-you and viewer-provided alert text as independent optional layers', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    const base = (await testConfig()).browserOverlay;
+    const profile = {
+      enabled: true, showThankYou: true, thankYouTemplate: 'Welcome to the village, {actor}!', showViewerMessage: false,
+      sound: { mode: 'none' as const, volume: 0.35 },
+      card: { backgroundColor: '#171120', fontFamily: 'system' as const, layout: 'classic' as const, mediaPlacement: 'behind' as const, transition: 'slide-vertical' as const },
+      aggregation: { mode: 'none' as const, windowMs: 5_000 },
+    };
+    const config: BrowserOverlayConfig = { ...base, alerts: { profiles: { youtube: { 'super-chat': profile } } } };
+    expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 131 } }, config)).toMatchObject({
+      kind: 'alert.show', payload: { display: { thankYou: 'Welcome to the village, example_member!' } },
+    });
+    const display = (projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 132 } }, config) as { payload: { display: { viewerMessage?: string; detail?: string } } }).payload.display;
+    expect(display.viewerMessage).toBeUndefined();
+    expect(display.detail).toBeUndefined();
   });
 
   it('carries an uploaded background video through to the projected alert card', async () => {

@@ -3,7 +3,7 @@ import type { BrowserOverlayConfig } from '../../schemas/config.js';
 import { normalizeAlertPlainText, projectMultiAlert, type MultiAlert, type MultiAlertType } from './multi-alerts.js';
 import { projectMultiChatMessage, type MultiChatMessage } from './multi-chat.js';
 
-export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.3.0';
+export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.4.0';
 
 export type OverlayAlertPriority = 'low' | 'normal' | 'high' | 'critical';
 export interface OverlayActorPresentation {
@@ -20,6 +20,9 @@ export interface OverlaySubscriptionLifecycle {
 }
 export interface OverlayAlertDisplay {
   readonly title: string;
+  readonly thankYou?: string;
+  readonly viewerMessage?: string;
+  /** Compatibility mirror for overlay clients created before viewerMessage existed. */
   readonly detail?: string;
   readonly durationMs: number;
   readonly sound: { readonly mode: 'none' | 'chime' | 'soft-bell' | 'digital-pop' | 'celebration' | 'custom'; readonly volume: number; readonly customUrl?: string };
@@ -76,7 +79,7 @@ export function projectBrowserOverlayEvents(event: NormalizedEvent, config?: Bro
   if (alert !== undefined) {
     const subscription = subscriptionLifecycle(event, alert);
     const priority = profile?.priority ?? alertPriority(alert);
-    const display = alertDisplay(alert, subscription.subscription, profile, config?.alertDurationMs ?? 7_000);
+    const display = alertDisplay(alert, profile, config?.alertDurationMs ?? 7_000);
     const results: BrowserOverlayEvent[] = [];
     const alertEnabled = profile?.enabled !== false;
     if (alertEnabled) results.push({
@@ -154,7 +157,7 @@ function renderChatActivityTemplate(template: string, event: NormalizedEvent, al
     streakMonths: typeof event.payload['streakMonths'] === 'number' ? String(event.payload['streakMonths']) : '',
   };
   const rendered = normalizeAlertPlainText(template.replace(/\{([a-z][a-zA-Z]*)\}/gu, (_match, token: string) => values[token] ?? ''));
-  return rendered.length > 0 ? rendered : alert === undefined ? rewardActivityMessage(event) : [display?.title, display?.detail].filter((value): value is string => typeof value === 'string' && value.length > 0).join(' · ');
+  return rendered.length > 0 ? rendered : alert === undefined ? rewardActivityMessage(event) : [display?.title, display?.viewerMessage].filter((value): value is string => typeof value === 'string' && value.length > 0).join(' · ');
 }
 
 function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | undefined {
@@ -260,27 +263,49 @@ function alertPriority(alert: MultiAlert): OverlayAlertPriority {
 
 function alertDisplay(
   alert: MultiAlert,
-  subscription: OverlaySubscriptionLifecycle | undefined,
   profile: AlertProfile | undefined,
   defaultDurationMs: number,
 ): OverlayAlertDisplay {
   const values = alertTemplateValues(alert);
   const defaultTitle = (values.actor ?? '') + ' · ' + (values.alertType ?? '');
-  const defaultDetail = alertDetail(alert, subscription);
   const title = renderTemplate(profile?.titleTemplate, values, defaultTitle, 200);
-  const detail = renderTemplate(profile?.detailTemplate, values, defaultDetail, 500);
+  const thankYou = profile?.showThankYou === false
+    ? ''
+    : renderTemplate(profile?.thankYouTemplate, values, defaultThankYouTemplate(alert), 500);
+  // detailTemplate was the pre-1.4 message field. Treat it as the optional viewer-message
+  // template so existing creator profiles migrate without changing or losing their wording.
+  const viewerMessage = profile?.showViewerMessage === false
+    ? ''
+    : renderTemplate(profile?.detailTemplate, values, alert.message ?? '', 500);
   const aggregationSettings = profile?.aggregation ?? automaticAggregation(alert);
   const aggregation = aggregationSettings?.mode === 'sum-quantity' && alert.quantity !== undefined
     ? { mode: 'sum-quantity' as const, key: aggregationKey(alert), windowMs: aggregationSettings.windowMs }
     : undefined;
   return {
     title,
-    ...(detail.length === 0 ? {} : { detail }),
+    ...(thankYou.length === 0 ? {} : { thankYou }),
+    ...(viewerMessage.length === 0 ? {} : { viewerMessage, detail: viewerMessage }),
     durationMs: profile?.durationMs ?? defaultDurationMs,
     sound: profile?.sound === undefined ? { mode: 'none', volume: 0.35 } : { mode: profile.sound.mode, volume: profile.sound.volume, ...(profile.sound.customUrl === undefined ? {} : { customUrl: profile.sound.customUrl }) },
     card: profile?.card === undefined ? { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' } : { backgroundColor: profile.card.backgroundColor, fontFamily: profile.card.fontFamily, layout: profile.card.layout, mediaPlacement: profile.card.mediaPlacement, transition: profile.card.transition, ...(profile.card.backgroundImageUrl === undefined ? {} : { backgroundImageUrl: profile.card.backgroundImageUrl }), ...(profile.card.backgroundVideoUrl === undefined ? {} : { backgroundVideoUrl: profile.card.backgroundVideoUrl }) },
     ...(aggregation === undefined ? {} : { aggregation }),
   };
+}
+
+function defaultThankYouTemplate(alert: MultiAlert): string {
+  const actor = alert.actor?.displayName ?? 'The community';
+  switch (alert.alertType) {
+    case 'follow': return `Welcome to The Hidden Sloth Village, ${actor}! Glad to have you join the village.`;
+    case 'subscription':
+    case 'membership': return `Thank you for becoming part of the village, ${actor}!`;
+    case 'gift-subscription': return `Thank you for sharing the village love, ${actor}!`;
+    case 'gift': return `Thank you for the ${alert.quantity === undefined ? '' : `${String(alert.quantity)} `}${alert.itemName ?? 'gift'}, ${actor}!`;
+    case 'donation':
+    case 'super-chat': return `Thank you for supporting the village, ${actor}!`;
+    case 'cheer': return `Thank you for the ${alert.quantity === undefined ? '' : `${String(alert.quantity)} `}bits, ${actor}!`;
+    case 'raid': return `Welcome, raiders! Thank you for bringing ${alert.quantity === undefined ? '' : `${String(alert.quantity)} `}villagers, ${actor}!`;
+    case 'milestone': return `Thank you, village! We reached ${alert.value === undefined ? 'a new' : String(alert.value)} ${alert.metric ?? 'community'} milestone!`;
+  }
 }
 
 function automaticAggregation(alert: MultiAlert): { readonly mode: 'sum-quantity'; readonly windowMs: number } | undefined {
@@ -309,16 +334,6 @@ function alertTemplateValues(alert: MultiAlert): Readonly<Record<string, string>
 function renderTemplate(template: string | undefined, values: Readonly<Record<string, string>>, fallback: string, maximum: number): string {
   const rendered = (template ?? fallback).replace(/\{([a-z][a-zA-Z]*)\}/gu, (_match, token: string) => values[token] ?? '');
   return normalizeAlertPlainText(rendered).slice(0, maximum);
-}
-
-function alertDetail(alert: MultiAlert, subscription: OverlaySubscriptionLifecycle | undefined): string {
-  if (subscription !== undefined) {
-    const parts = [subscription.kind, subscription.months === undefined ? '' : `${String(subscription.months)} months`, subscription.streakMonths === undefined ? '' : `${String(subscription.streakMonths)} month streak`, subscription.gifterName === undefined ? '' : `gifted by ${subscription.gifterName}`].filter((value): value is string => typeof value === 'string' && value.length > 0);
-    if (parts.length > 0) return parts.join(' · ');
-  }
-  if (alert.amount !== undefined && alert.currency !== undefined) return `${alert.amount} ${alert.currency}${alert.message === undefined ? '' : ` · ${alert.message}`}`;
-  if (alert.quantity !== undefined) return `${String(alert.quantity)}${alert.itemName === undefined ? '' : ` × ${alert.itemName}`}`;
-  return alert.message ?? alert.tier ?? (alert.value === undefined ? '' : `${alert.metric ?? 'value'}: ${String(alert.value)}`);
 }
 
 function aggregationKey(alert: MultiAlert): string {

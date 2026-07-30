@@ -185,6 +185,8 @@ const viewerSpotlightAdminResultSchema = z.record(z.string().min(1).max(100), z.
 const chatGuardAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   z.object({ operation: z.literal('test'), message: z.string().trim().min(1).max(2_000), priorMatchingMessages: z.number().int().min(0).max(9) }).strict(),
+  z.object({ operation: z.literal('trust-add'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), label: z.string().trim().min(1).max(80), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('trust-remove'), accountKey: z.string().regex(/^[a-f0-9]{64}$/u), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('permit'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), durationMinutes: z.number().int().min(1).max(1_440), maximumUses: z.number().int().min(1).max(20), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('clear-permits'), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('review'), incidentId: z.string().regex(/^[a-f0-9]{64}$/u), decision: z.enum(['confirmed', 'false-positive']), approvedByCreator: z.literal(true) }).strict(),

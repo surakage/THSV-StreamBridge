@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Score from bounded projections.",
-  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
+  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -24,11 +24,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-spotlight",
     "name": "Viewer Spotlight",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.5.0",
-    "maximumTestedBridgeVersion": "2.5.0",
+    "minimumBridgeVersion": "2.5.1",
+    "maximumTestedBridgeVersion": "2.5.1",
     "dependencies": [
       "thsv.viewer-foundation",
       "thsv.community-analytics"
@@ -85,7 +85,7 @@
     {
       "path": "dist/index.js",
       "size": 20831,
-      "sha256": "f3be1010165e94a9fafc79f87c0761f30573a284c8da67b3f696210d28068698"
+      "sha256": "ba087b71bc76ac8ce341e618a7589a4a0de6c607e2b9c6831e58c0bce504ded1"
     },
     {
       "path": "schemas/config.json",

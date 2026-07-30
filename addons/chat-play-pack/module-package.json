@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Adds bounded cross-platform Number Guess, Trivia, and Prediction rounds.",
-  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
+  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -23,11 +23,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.chat-play-pack",
     "name": "Chat Play Pack",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.5.0",
-    "maximumTestedBridgeVersion": "2.5.0",
+    "minimumBridgeVersion": "2.5.1",
+    "maximumTestedBridgeVersion": "2.5.1",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -83,7 +83,7 @@
     {
       "path": "dist/index.js",
       "size": 8798,
-      "sha256": "4d95f05339b4dd68d17811a09f64c2324a2f11757f81b07b477221127097141a"
+      "sha256": "5f6f109f4172c6c420da9f063fa58d92dc990a5680da2a9f15407b46f4ce642d"
     },
     {
       "path": "schemas/config.json",

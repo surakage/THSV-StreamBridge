@@ -59,7 +59,7 @@ The simulator is appropriate for routing, validation, overlays, deduplication, a
 
 Use a normal browser first, then OBS or Meld only for the final crop/render check:
 
-1. Run the repository commands above. A complete working-tree pass currently means `135` Vitest files / `709` tests and `11` Playwright checks.
+1. Run the repository commands above. A complete working-tree pass currently means `135` Vitest files / `717` tests and `12` Playwright checks.
 2. Start the bridge with the mock adapter enabled and open `/wizard/`, `/overlay/chat`, `/overlay/alerts`, and each installed add-on overlay in ordinary browser tabs.
 3. Keep every delivery or mutation toggle off. In Streamer.bot, temporarily disable Send Message, webhook, raid, reward mutation, category/title update, moderation, translation reply, and TTS sub-actions.
 4. Send unique fixtures for chat, alerts, online/offline lifecycle, commands, timers, and supported add-on events. Send one fixture twice to prove duplicate suppression.

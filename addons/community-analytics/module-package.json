@@ -2,8 +2,8 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Tracks privacy-conscious cross-platform session attendance and bounded interaction counters using Viewer Foundation identities.",
-  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: private session/counter foundation, authenticated privacy administration, permission-gated projections, and local size-bounded session JSON plus pseudonymous viewer CSV reports.",
+  "description": "Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.",
+  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: private session/counter foundation, authenticated privacy administration, permission-gated projections, and local size-bounded session JSON plus pseudonymous viewer CSV reports.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.community-analytics",
     "name": "Community Analytics",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.5.0",
-    "maximumTestedBridgeVersion": "2.5.0",
+    "minimumBridgeVersion": "2.5.1",
+    "maximumTestedBridgeVersion": "2.5.1",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -54,8 +54,11 @@
       "data/addons/.state/thsv.community-analytics/"
     ],
     "installationSteps": [
-      "Install and enable Viewer Foundation first.",
-      "Install Community Analytics, review its private counter settings, save, and restart StreamBridge."
+      "Install and enable Viewer Foundation first; it is the only component allowed to resolve stable platform accounts into Viewer Foundation IDs.",
+      "No Community Analytics Streamer.bot package or direct trigger is required. Keep chat and lifecycle triggers attached only to the main THSV platform intake actions.",
+      "Choose the platforms to count, keep simulated events excluded for normal use, and add any stable account or Viewer Foundation exclusions.",
+      "Leave monthly participation scoring off unless Viewer Spotlight or another approved consumer needs it; money and provider support never contribute.",
+      "Save, restart StreamBridge, then use Reports, session summary, and privacy tools in the wizard to confirm data is being observed."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its bounded private counters remain preserved for a later reinstall or creator export."
@@ -73,23 +76,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 21199,
-      "sha256": "1bf766f1a9432e1cf9cfa7bcb7493b6eb9174b67a2fa02fab8cb803ad6ffb9a2"
+      "size": 21787,
+      "sha256": "3f557a2525c279e759e227befb725b3078a564530938b595dbe8abb04dda1b13"
     },
     {
       "path": "schemas/config.json",
-      "size": 2857,
-      "sha256": "735e5ee435121ea79f76f3a5a5d9e89040e4eee9321fb5cdea452f256648e354"
+      "size": 3054,
+      "sha256": "bdaa71037421a729995f2856912124bb36ff2389651a66a2a163b83fb7ff2465"
     },
     {
       "path": "ui/settings.json",
-      "size": 1963,
-      "sha256": "1244c3d8214754925d81027fdf869f335dbae70f32b363e3b93b39eb4993a70e"
+      "size": 2771,
+      "sha256": "b46f72c6c7b9721b9598bb8974532cad836dc68acaae72577f03d8f242656027"
     },
     {
       "path": "README.md",
-      "size": 2585,
-      "sha256": "0c7d83965cdd0f3dfc0d94d486d35d5a8a8f38e0a72fe421f4bae2542ada55f2"
+      "size": 3669,
+      "sha256": "248e53cc4a567a2488681024d592551620dfa91d24d335a02d33fa19b98e5d71"
     }
   ]
 }

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Clip Library Cache",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "surakage",
-  "description": "Fetches one bounded Twitch clip metadata snapshot for all first-party clip consumers.",
+  "description": "Fetches one bounded shared Twitch clip metadata snapshot so optional clip add-ons do not repeat the same lookup.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
   "actions": [
     {
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Clip Library Cache - Refresh",
       "group": "THSV Addon - Clip Library Cache",
       "source": "src/RefreshClips.cs",
-      "importFile": "THSV-StreamBridge-Clip-Library-Cache-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Clip-Library-Cache-2.5.1.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [
@@ -30,6 +30,6 @@
   "manualTriggerSetup": {
     "refresh": []
   },
-  "triggerSafety": "Refresh remains triggerless and is dispatched only through its creator-approved stable ID.",
+  "triggerSafety": "Refresh remains triggerless and is dispatched only through its creator-approved stable ID. Do not attach a timer or platform trigger.",
   "verificationStatus": "GetClipsForUser is source-verified; live Twitch retrieval remains creator-accepted."
 }

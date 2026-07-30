@@ -42,7 +42,7 @@ function commandSyncStore(commandIds: readonly string[]): CommandSyncStore {
 describe('Stage 3 wizard service', () => {
   it('reports the creator-facing release version separately from the internal contract version', async () => {
     await expect(new WizardService(undefined).overview()).resolves.toMatchObject({
-      version: '2.5.0',
+      version: '2.5.1',
       contractVersion: '2.0.0-preview.1',
     });
   });

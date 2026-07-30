@@ -7,6 +7,7 @@ public class CPHInline
     {
         string token = Read("thsvAddonRelayToken", 100), voice = Read("voiceRelayVoiceAlias", 80), message = Read("voiceRelayMessage", 400);
         if (token.Length < 20 || message.Length == 0) return Fail("The broker token or bounded phrase was missing.");
+        if (voice.Length == 0) return Fail("Create a Speaker.bot Voice Alias and enter that exact alias in the StreamBridge wizard.");
         try { int requestId = CPH.TtsSpeak(voice, message, true); CPH.SetArgument("voiceRelayRequestId", requestId); CPH.SetArgument("voiceRelaySuccess", requestId >= 0); return requestId >= 0; }
         catch (Exception error) { return Fail("Speaker.bot request failed (" + error.GetType().Name + ")."); }
     }

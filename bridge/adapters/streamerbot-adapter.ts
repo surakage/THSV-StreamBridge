@@ -349,7 +349,9 @@ export class StreamerBotAdapter {
   }
 
   private scheduleReconnect(): void {
-    if (!this.config.reconnect.enabled || this.reconnectAttempts >= this.config.reconnect.maxAttempts) {
+    const retryLimitReached = this.config.reconnect.maxAttempts > 0
+      && this.reconnectAttempts >= this.config.reconnect.maxAttempts;
+    if (!this.config.reconnect.enabled || retryLimitReached) {
       this.state = 'error';
       this.lastError ??= 'Streamer.bot reconnect limit reached';
       return;
@@ -378,7 +380,12 @@ function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<strin
   return isSupportedRelay(message.data) ? message.data : undefined;
 }
 
-function isSupportedRelay(value: Readonly<Record<string, unknown>>): boolean { return value['type'] === 'thsv.tikfinity' || value['type'] === 'thsv.platform' || value['type'] === 'thsv.addon'; }
+function isSupportedRelay(value: Readonly<Record<string, unknown>>): boolean {
+  return value['type'] === 'thsv.tikfinity'
+    || value['type'] === 'thsv.platform'
+    || value['type'] === 'thsv.addon'
+    || value['type'] === 'thsv.scene';
+}
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

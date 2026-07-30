@@ -1,22 +1,24 @@
 # Clip Library Cache setup
 
 **Module:** `thsv.clip-library-cache`
-**Version:** `2.5.0`
+**Version:** `2.5.1`
 **Publisher:** THSV StreamBridge
 
-Provides one bounded shared Twitch clip metadata cache for first-party clip consumers.
+Shared background service that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, and other approved clip consumers.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Clip-Library-Cache-2.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Library-Cache-2.5.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Clip-Library-Cache-2.5.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Clip-Library-Cache-2.5.1.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Library-Cache-2.5.1.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Clip-Library-Cache-2.5.1.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Import the Clip Library Cache Streamer.bot package and keep Refresh triggerless.
-2. Approve only Refresh, then enable the add-on. Random Clip Player and Clip Courier consume the same metadata snapshot.
+1. Install Clip Library Cache once when Random Clip Player, Clip Courier, or another installed add-on declares thsv.clip-library-cache as a dependency.
+2. Import the matching Clip Library Cache Streamer.bot package. Keep Refresh enabled but triggerless; StreamBridge schedules it through the approved stable action ID.
+3. In the wizard, approve only THSV Addon - Clip Library Cache - Refresh, enable the shared clip list, save, and restart StreamBridge.
+4. Return to the consuming add-on. Clip Library Cache has no overlay and never plays, posts, or downloads a clip by itself.
 
 ## Streamer.bot
 
@@ -26,7 +28,7 @@ Imported group: `THSV Addon - Clip Library Cache`
 
 - `THSV Addon - Clip Library Cache - Refresh` in `THSV Addon - Clip Library Cache`
 
-Refresh remains triggerless and is dispatched only through its creator-approved stable ID.
+Refresh remains triggerless and is dispatched only through its creator-approved stable ID. Do not attach a timer or platform trigger.
 
 ## Browser source
 

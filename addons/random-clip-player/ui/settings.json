@@ -1,5 +1,5 @@
 {
-  "intro": "Set up clip rotation in three short sections. StreamBridge waits for playback to finish, fades out for four seconds, then applies the pause below before requesting the next clip.",
+  "intro": "Set up clip rotation in three short sections. Playback always starts off when StreamBridge launches, begins only when the imported Enable action runs, and stops when Disable runs.",
   "order": [
     "secondsBetweenClips",
     "clipCount",
@@ -12,7 +12,7 @@
     {
       "id": "playback",
       "title": "1. Playback timing",
-      "description": "Choose the pause after each fade and the number of clips in one shuffle cycle.",
+      "description": "Choose the full pause between clips and the number of clips in one shuffle cycle. The short fade is included in the pause.",
       "open": true,
       "fields": ["secondsBetweenClips", "clipCount"]
     },
@@ -32,7 +32,7 @@
       "id": "review",
       "title": "4. Review before enabling",
       "description": "Confirm the required Streamer.bot actions and browser source.",
-      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Enable and Disable actions are optional scene triggers.",
+      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Run or trigger Enable to begin playback and Disable to end it. Restarting StreamBridge always returns the player to off.",
       "fields": []
     }
   ],

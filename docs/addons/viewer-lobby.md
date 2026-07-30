@@ -1,16 +1,16 @@
 # Viewer Lobby setup
 
 **Module:** `thsv.viewer-lobby`
-**Version:** `2.5.0`
+**Version:** `2.5.1`
 **Publisher:** THSV StreamBridge
 
 Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Lobby-2.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Lobby-2.5.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Viewer-Lobby-2.5.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Lobby-2.5.1.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Lobby-2.5.1.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Viewer-Lobby-2.5.1.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps

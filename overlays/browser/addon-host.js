@@ -32,7 +32,7 @@
   let activePlaybackId = '';
   let lastCompletionSequence = -1;
   let sendTransport = () => undefined;
-  const mediaFadeMs = 4_000;
+  const mediaFadeMs = 750;
 
   function safeUrl(value) {
     if (typeof value !== 'string' || value.length === 0 || value.length > 4_096) return undefined;
@@ -229,8 +229,8 @@
     mediaTimer = setTimeout(() => clearMedia('timeout'), boundedDuration(durationWithGrace, 70_000));
   });
   media.addEventListener('ended', () => {
-    // Keep the final frame mounted while the whole card fades away. Report the clean ending at
-    // once so the add-on can begin its creator pause plus matching four-second transition buffer.
+    // Keep the final frame mounted during a short fade. Report the clean ending immediately so
+    // the add-on's creator-configured pause includes this transition instead of starting after it.
     clearTimeout(mediaTimer);
     clearInterval(heartbeatTimer);
     reportLifecycle('ended');

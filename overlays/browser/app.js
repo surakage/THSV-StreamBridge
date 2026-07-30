@@ -200,8 +200,12 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     const copy = element('div', 'alert-copy');
     copy.append(element('span', 'alert-platform', alert.platform.toUpperCase()));
     copy.append(element('h2', '', alert.display ? alert.display.title : alertTitle(alert)));
-    const detail = alert.display ? alert.display.detail : alertDetail(alert);
-    if (detail) copy.append(element('p', 'alert-detail', detail));
+    const thankYou = alert.display && alert.display.thankYou;
+    if (thankYou) copy.append(element('p', 'alert-thank-you', thankYou));
+    const viewerMessage = alert.display
+      ? alert.display.viewerMessage || alert.display.detail
+      : alertDetail(alert);
+    if (viewerMessage) copy.append(element('p', 'alert-viewer-message', viewerMessage));
     identity.append(copy);
     card.append(identity);
     if (hasMedia && mediaPlacement === 'below') {

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Chat Guard",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "surakage",
-  "description": "Provides one triggerless, creator-approved moderation controller for Chat Guard.",
+  "description": "Provides Chat Guard's triggerless moderation controller and a disabled-by-default moderator command for adding trusted stable viewer IDs.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
   "actions": [
     {
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Chat Guard - Moderate",
       "group": "THSV Addon - Chat Guard",
       "source": "src/Moderate.cs",
-      "importFile": "THSV-StreamBridge-Chat-Guard-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Chat-Guard-2.5.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -19,6 +19,43 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
       ]
+    },
+    {
+      "id": "7a44a6d4-6624-4c21-8ad8-e639bcc18813",
+      "sourceSubActionId": "b2e5a960-668a-46ac-a9dd-23f05d758d25",
+      "name": "THSV Addon - Chat Guard - Trust Viewer",
+      "group": "THSV Addon - Chat Guard",
+      "source": "src/TrustViewer.cs",
+      "importFile": "THSV-StreamBridge-Chat-Guard-2.5.1.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ],
+      "triggers": [
+        {
+          "commandId": "a31ae434-53e5-4182-bd67-54ed39f3e16b",
+          "id": "d91c3d59-edfd-4a2b-9bfe-876fc1069cd4",
+          "stableIdentitySeed": "chat-guard:trust-viewer"
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "id": "a31ae434-53e5-4182-bd67-54ed39f3e16b",
+      "name": "guardtrust",
+      "command": "!guardtrust",
+      "enabled": false,
+      "caseSensitive": false,
+      "sources": 2098177,
+      "ignoreBotAccount": true,
+      "ignoreInternal": true,
+      "globalCooldown": 2,
+      "userCooldown": 2,
+      "stableIdentitySeed": "chat-guard:trust-viewer-command"
     }
   ],
   "runtime": {
@@ -26,7 +63,10 @@
     "concurrent": false
   },
   "manualTriggerSetup": {
-    "moderate": []
+    "moderate": [],
+    "trustViewer": [
+      "Enable the imported !guardtrust command after reviewing it. Reply to a viewer's message with !guardtrust, or run it as the viewer being trusted. The action itself still requires broadcaster/moderator variables."
+    ]
   },
   "triggerSafety": "Moderate must remain triggerless. It accepts only a one-use add-on relay token issued by StreamBridge.",
   "verificationStatus": "Method signatures are source-verified against Streamer.bot 1.0.5 documentation; genuine provider moderation remains creator-accepted."

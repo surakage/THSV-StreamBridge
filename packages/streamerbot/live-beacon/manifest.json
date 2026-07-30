@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Live Beacon",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "surakage",
   "description": "Delivers one broker-authorized Live Beacon message to a creator-owned Discord channel or forum webhook.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Live Beacon - Deliver",
       "group": "THSV Addon - Live Beacon",
       "source": "src/DeliverDiscord.cs",
-      "importFile": "THSV-StreamBridge-Live-Beacon-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Live-Beacon-2.5.1.sb",
       "arguments": [
         {
           "name": "liveBeaconWebhookUrl",

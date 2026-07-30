@@ -10,6 +10,7 @@ interface ExportManifest {
   readonly minimumStreamerBotVersion: string;
   readonly action?: ExportAction;
   readonly actions?: readonly ExportAction[];
+  readonly commands?: readonly ExportCommand[];
   readonly runtime: {
     readonly concurrent: boolean;
   };
@@ -26,6 +27,15 @@ interface ExportAction {
     readonly arguments?: readonly ExportArgument[];
     readonly excludeFromHistory?: boolean;
     readonly excludeFromPending?: boolean;
+    readonly triggers?: readonly ExportTrigger[];
+}
+
+interface ExportTrigger { readonly commandId: string; readonly id?: string; readonly stableIdentitySeed?: string }
+interface ExportCommand {
+  readonly id?: string; readonly name: string; readonly command: string; readonly enabled: boolean;
+  readonly caseSensitive: boolean; readonly sources?: number; readonly ignoreBotAccount?: boolean;
+  readonly ignoreInternal?: boolean; readonly globalCooldown?: number; readonly userCooldown?: number;
+  readonly stableIdentitySeed?: string;
 }
 
 interface ExportArgument {
@@ -65,6 +75,11 @@ const encoded = buildStreamerBotPackage(
     ...(action.references === undefined ? {} : { references: action.references }),
     ...(action.excludeFromHistory === undefined ? {} : { excludeFromHistory: action.excludeFromHistory }),
     ...(action.excludeFromPending === undefined ? {} : { excludeFromPending: action.excludeFromPending }),
+    ...(action.triggers === undefined ? {} : { triggers: action.triggers.map((trigger) => ({
+      commandId: trigger.commandId,
+      ...(trigger.id === undefined ? {} : { id: trigger.id }),
+      stableIdentitySeed: trigger.stableIdentitySeed ?? `${manifest.name}:${action.name}:${trigger.commandId}`,
+    })) }),
     ...(action.arguments === undefined ? {} : {
       arguments: action.arguments.map((argument) => ({
         name: argument.name,
@@ -77,6 +92,10 @@ const encoded = buildStreamerBotPackage(
     sourceCode: (await readFile(safePackagePath(packageDirectory, action.source))).toString('utf8'),
     stableIdentitySeed: legacySingleAction ? manifest.name : `${manifest.name}:${action.name}`,
   }))),
+  (manifest.commands ?? []).map((command) => ({
+    ...command,
+    stableIdentitySeed: command.stableIdentitySeed ?? `${manifest.name}:command:${command.name}`,
+  })),
 );
 
 const importFile = actions[0]?.importFile;

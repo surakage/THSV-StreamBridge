@@ -21,6 +21,13 @@ interface ExportAction {
   readonly arguments?: readonly ExportArgument[];
   readonly excludeFromHistory?: boolean;
   readonly excludeFromPending?: boolean;
+  readonly triggers?: readonly { readonly commandId: string; readonly id?: string; readonly stableIdentitySeed?: string }[];
+}
+
+interface ExportCommand {
+  readonly id?: string; readonly name: string; readonly command: string; readonly enabled: boolean; readonly caseSensitive: boolean;
+  readonly sources?: number; readonly ignoreBotAccount?: boolean; readonly ignoreInternal?: boolean; readonly globalCooldown?: number;
+  readonly userCooldown?: number; readonly stableIdentitySeed?: string;
 }
 
 interface ExportManifest {
@@ -31,6 +38,7 @@ interface ExportManifest {
   readonly minimumStreamerBotVersion: string;
   readonly action?: ExportAction;
   readonly actions?: readonly ExportAction[];
+  readonly commands?: readonly ExportCommand[];
   readonly runtime: { readonly concurrent: boolean };
 }
 
@@ -68,6 +76,11 @@ describe('generated Streamer.bot import cohesion', () => {
         ...(action.references === undefined ? {} : { references: action.references }),
         ...(action.excludeFromHistory === undefined ? {} : { excludeFromHistory: action.excludeFromHistory }),
         ...(action.excludeFromPending === undefined ? {} : { excludeFromPending: action.excludeFromPending }),
+        ...(action.triggers === undefined ? {} : { triggers: action.triggers.map((trigger) => ({
+          commandId: trigger.commandId,
+          ...(trigger.id === undefined ? {} : { id: trigger.id }),
+          stableIdentitySeed: trigger.stableIdentitySeed ?? `${manifest.name}:${action.name}:${trigger.commandId}`,
+        })) }),
         ...(action.arguments === undefined ? {} : {
           arguments: action.arguments.map((argument) => ({
             name: argument.name,
@@ -79,7 +92,10 @@ describe('generated Streamer.bot import cohesion', () => {
         }),
         sourceCode: await readFile(join(packageRoot, action.source), 'utf8'),
         stableIdentitySeed: manifest.actions === undefined ? manifest.name : `${manifest.name}:${action.name}`,
-      }))));
+      }))), (manifest.commands ?? []).map((command) => ({
+        ...command,
+        stableIdentitySeed: command.stableIdentitySeed ?? `${manifest.name}:command:${command.name}`,
+      })));
       const actual = await readFile(join(packageRoot, importFiles[0] ?? ''), 'utf8');
       expect(actual, `${entry.name} has a stale generated Streamer.bot import`).toBe(expected);
     }

@@ -1,22 +1,25 @@
 # Community Analytics setup
 
 **Module:** `thsv.community-analytics`
-**Version:** `2.5.0`
+**Version:** `2.5.1`
 **Publisher:** THSV StreamBridge
 
-Tracks privacy-conscious cross-platform session attendance and bounded interaction counters using Viewer Foundation identities.
+Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Community-Analytics-2.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Community-Analytics-2.5.0.thsv-addon` and review its permissions.
+1. Download and extract `THSV-StreamBridge-AddOn-Community-Analytics-2.5.1.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Community-Analytics-2.5.1.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Install and enable Viewer Foundation first.
-2. Install Community Analytics, review its private counter settings, save, and restart StreamBridge.
+1. Install and enable Viewer Foundation first; it is the only component allowed to resolve stable platform accounts into Viewer Foundation IDs.
+2. No Community Analytics Streamer.bot package or direct trigger is required. Keep chat and lifecycle triggers attached only to the main THSV platform intake actions.
+3. Choose the platforms to count, keep simulated events excluded for normal use, and add any stable account or Viewer Foundation exclusions.
+4. Leave monthly participation scoring off unless Viewer Spotlight or another approved consumer needs it; money and provider support never contribute.
+5. Save, restart StreamBridge, then use Reports, session summary, and privacy tools in the wizard to confirm data is being observed.
 
 ## Streamer.bot
 

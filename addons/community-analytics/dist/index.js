@@ -8,12 +8,12 @@ const COUNTERS = Object.freeze({
   'channel.raid': 'raids', 'reward.redemption': 'rewardRedemptions',
 });
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.community-analytics', name: 'Community Analytics', version: '2.5.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.0', maximumTestedBridgeVersion: '2.5.0',
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.community-analytics', name: 'Community Analytics', version: '2.5.1',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.1', maximumTestedBridgeVersion: '2.5.1',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['stream.online', 'stream.offline', ...Object.keys(COUNTERS)], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.community-analytics/', 'data/addons/.state/thsv.community-analytics/'],
-  installationSteps: ['Install and enable Viewer Foundation first.', 'Install Community Analytics, review its private counter settings, save, and restart StreamBridge.'],
+  installationSteps: ['Install and enable Viewer Foundation first; it is the only component allowed to resolve stable platform accounts into Viewer Foundation IDs.', 'No Community Analytics Streamer.bot package or direct trigger is required. Keep chat and lifecycle triggers attached only to the main THSV platform intake actions.', 'Choose the platforms to count, keep simulated events excluded for normal use, and add any stable account or Viewer Foundation exclusions.', 'Leave monthly participation scoring off unless Viewer Spotlight or another approved consumer needs it; money and provider support never contribute.', 'Save, restart StreamBridge, then use Reports, session summary, and privacy tools in the wizard to confirm data is being observed.'],
   uninstallationSteps: ['Uninstall the add-on. Its bounded private counters remain preserved for a later reinstall or creator export.'], migrations: [],
   healthChecks: [{ id: 'thsv.community-analytics.runtime', description: 'Confirms Viewer Foundation identity resolution and bounded private session counters.' }],
 };

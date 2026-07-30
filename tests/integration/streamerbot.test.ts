@@ -107,6 +107,34 @@ describe('Streamer.bot adapter', () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
+  it('keeps retrying when maxAttempts is zero and connects after a delayed Streamer.bot startup', async () => {
+    const config = await testConfig();
+    const port = await unusedPort();
+    const adapter = new StreamerBotAdapter({
+      ...config.streamerbot,
+      testMode: false,
+      url: `ws://127.0.0.1:${String(port)}`,
+      acknowledgementTimeoutMs: 100,
+      reconnect: { enabled: true, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+    }, silentLogger);
+    await adapter.start();
+    let server: WebSocketServer | undefined;
+    try {
+      await expect.poll(() => Number(adapter.status()['reconnectAttempts']), { timeout: 1_000 }).toBeGreaterThan(8);
+      const startedServer = new WebSocketServer({ host: '127.0.0.1', port });
+      server = startedServer;
+      startedServer.on('connection', (socket) => socket.send(JSON.stringify({ request: 'Hello', info: {} })));
+      await expect.poll(() => adapter.status()['state'], { timeout: 2_000 }).toBe('connected');
+      expect(adapter.status()['reconnectAttempts']).toBe(0);
+    } finally {
+      await adapter.stop();
+      if (server !== undefined) {
+        const serverToClose = server;
+        await new Promise<void>((resolve) => serverToClose.close(() => resolve()));
+      }
+    }
+  });
+
   it('dispatches a broker-approved action by exact ID with only the supplied JSON arguments', async () => {
     const config = await testConfig(); const port = await unusedPort();
     const server = new WebSocketServer({ host: '127.0.0.1', port });
@@ -195,17 +223,19 @@ describe('Streamer.bot adapter', () => {
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.tikfinity', version: '1.0.0', kind: 'follow' } }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.platform', version: '1.0.0', platform: 'twitch' } }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.addon', version: '1.0.0', moduleId: 'sample.random-clip-player' } }));
+        socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.scene', version: '1.0.0', provider: 'obs', sceneName: 'BRB' } }));
         socket.send(JSON.stringify({ event: { source: 'Streamlabs', type: 'Donation' }, data: { event_id: 'streamlabs-event-1', message: [{ id: 42, name: 'Supporter', amount: '5.00', currency: 'USD' }] } }));
       });
     });
     await adapter.start();
-    await expect.poll(() => received.length).toBe(4);
+    await expect.poll(() => received.length).toBe(5);
     expect(subscription?.events?.General).toEqual(['Custom']);
     expect(subscription?.events?.Streamlabs).toEqual(['Donation']);
     expect(received[0]).toMatchObject({ type: 'thsv.tikfinity', kind: 'follow' });
     expect(received[1]).toMatchObject({ type: 'thsv.platform', platform: 'twitch' });
     expect(received[2]).toMatchObject({ type: 'thsv.addon', moduleId: 'sample.random-clip-player' });
-    expect(received[3]).toMatchObject({ event: { source: 'Streamlabs', type: 'Donation' } });
+    expect(received[3]).toMatchObject({ type: 'thsv.scene', provider: 'obs', sceneName: 'BRB' });
+    expect(received[4]).toMatchObject({ event: { source: 'Streamlabs', type: 'Donation' } });
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });

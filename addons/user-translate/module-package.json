@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Translates only explicit viewer requests through a disclosed no-key provider, then returns bounded results to the originating platform without retaining message text.",
-  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
+  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.user-translate",
     "name": "User Translate",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -69,8 +69,8 @@
         "description": "Confirms bounded command handling, provider dispatch, and source-platform response routing."
       }
     ],
-    "minimumBridgeVersion": "2.5.0",
-    "maximumTestedBridgeVersion": "2.5.0"
+    "minimumBridgeVersion": "2.5.1",
+    "maximumTestedBridgeVersion": "2.5.1"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -78,7 +78,7 @@
     {
       "path": "dist/index.js",
       "size": 11566,
-      "sha256": "10f933b88ab3d58a99fff9b5ab1c74939e42e7ac5583313c2833f31b17fa4b09"
+      "sha256": "90b4d5f1e3b8e639d4777c4e4d279db00f9ee7015bdb2c91efe3bf1d8ba15c82"
     },
     {
       "path": "schemas/config.json",

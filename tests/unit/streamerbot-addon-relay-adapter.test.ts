@@ -74,6 +74,26 @@ describe('Streamer.bot add-on relay adapter', () => {
     }))).toMatchObject({ eventType: 'addon.thsv.random-clip-player.control', payload: { enabled: true } });
   });
 
+  it('permits only the exact authorized Chat Guard stable-ID enrollment envelope', () => {
+    const control = { moduleId: 'thsv.chat-guard', eventType: 'addon.thsv.chat-guard.trusted-account-request', sourceEventType: 'THSV Addon - Chat Guard - Trust Viewer', relayToken: '', payload: { platform: 'twitch', userId: 'stable-42', label: 'Helpful Viewer', authorized: true } };
+    expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({ eventType: control.eventType, payload: control.payload });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { ...control.payload, authorized: false } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Chat Guard - Moderate' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { ...control.payload, extra: true } }))).toThrow('relay token');
+  });
+
+  it('permits only bounded Twitch clip metadata from the imported Clip Courier command action', () => {
+    const created = {
+      moduleId: 'thsv.clip-courier', eventType: 'addon.thsv.clip-courier.clip-created',
+      sourceEventType: 'THSV Addon - Clip Courier - Create Clip', relayId: 'created-Clip_42', relayToken: '',
+      payload: { id: 'Clip_42', url: 'https://clips.twitch.tv/Clip_42', title: 'Current stream clip', creatorName: 'HelpfulViewer', createdAt: '2026-07-30T02:05:00.000Z', durationSeconds: 30, source: 'command' },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(created))).toMatchObject({ eventType: created.eventType, payload: created.payload });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...created, payload: { ...created.payload, url: 'https://evil.example/clip' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...created, payload: { ...created.payload, durationSeconds: 45 } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...created, sourceEventType: 'THSV Addon - Clip Courier - Deliver' }))).toThrow('relay token');
+  });
+
   it('permits only the exact stable-ID Ko-fi donation ingress envelope without a broker token', () => {
     const provider = {
       moduleId: 'thsv.kofi-donations', eventType: 'addon.thsv.kofi-donations.donation-received', sourceEventType: 'KofiDonation',

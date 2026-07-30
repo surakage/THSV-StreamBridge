@@ -3,7 +3,7 @@ import { CORE_CONTRACT_VERSION } from './common.js';
 import { normalizedAlertEventV2Schema } from './alert.js';
 import { normalizedChatMessageV2Schema } from './chat.js';
 export const alertDisplayV2Schema = z.object({
-  title: z.string().min(1).max(200), detail: z.string().max(500).optional(), durationMs: z.number().int().min(1_000).max(60_000),
+  title: z.string().min(1).max(200), thankYou: z.string().max(500).optional(), viewerMessage: z.string().max(500).optional(), detail: z.string().max(500).optional(), durationMs: z.number().int().min(1_000).max(60_000),
   sound: z.object({ mode: z.enum(['none', 'chime']), volume: z.number().min(0).max(1) }).strict(),
   aggregation: z.object({ mode: z.literal('sum-quantity'), key: z.string().min(1).max(500), windowMs: z.number().int().min(500).max(30_000) }).strict().optional(),
 }).strict();

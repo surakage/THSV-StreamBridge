@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Provides privacy-conscious, salted cross-platform viewer identity and bounded replay-safe progression as an optional foundation for later community add-ons.",
-  "changelog": "2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
+  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -20,7 +20,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-foundation",
     "name": "Viewer Foundation",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -60,8 +60,8 @@
         "description": "Confirms salted identity resolution, bounded replay protection, and atomic private progression state."
       }
     ],
-    "minimumBridgeVersion": "2.5.0",
-    "maximumTestedBridgeVersion": "2.5.0"
+    "minimumBridgeVersion": "2.5.1",
+    "maximumTestedBridgeVersion": "2.5.1"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -69,7 +69,7 @@
     {
       "path": "dist/index.js",
       "size": 23856,
-      "sha256": "feae8824a9c35251e09af31f0531eaa1e1204cfe0794acc7c0c26f63a705754d"
+      "sha256": "b58ef65fb8b3305c2721f2e56a1e913df15923c4fc0ded1a70aa9d41c3d163e8"
     },
     {
       "path": "schemas/config.json",

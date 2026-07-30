@@ -161,6 +161,8 @@ export type ViewerSpotlightAdminResultV1 = Readonly<Record<string, JsonValueV2>>
 export type ChatGuardAdminRequestV1 =
   | { readonly operation: 'status' }
   | { readonly operation: 'test'; readonly message: string; readonly priorMatchingMessages: number }
+  | { readonly operation: 'trust-add'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly label: string; readonly approvedByCreator: true }
+  | { readonly operation: 'trust-remove'; readonly accountKey: string; readonly approvedByCreator: true }
   | { readonly operation: 'permit'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly durationMinutes: number; readonly maximumUses: number; readonly approvedByCreator: true }
   | { readonly operation: 'clear-permits'; readonly approvedByCreator: true }
   | { readonly operation: 'review'; readonly incidentId: string; readonly decision: 'confirmed' | 'false-positive'; readonly approvedByCreator: true }

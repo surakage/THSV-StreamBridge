@@ -184,6 +184,9 @@ test('wizard applies editable chat and alert wording presets without changing ot
   await page.locator('#alert-profile-form [name="alertStyle"]').selectOption('warm');
   await page.locator('#apply-alert-style').click();
   await expect(page.locator('#alert-profile-form [name="titleTemplate"]')).toHaveValue(/thank you!/u);
+  await expect(page.locator('#alert-profile-form [name="showThankYou"]')).toBeChecked();
+  await expect(page.locator('#alert-profile-form [name="thankYouTemplate"]')).toHaveValue('Thank you for supporting the village, {actor}!');
+  await expect(page.locator('#preview-alert-thank-you')).toContainText('Thank you for supporting the village');
   await expect(page.locator('#alert-profile-form [name="detailTemplate"]')).toHaveValue('{message}');
 });
 
@@ -387,12 +390,16 @@ test('compact cropped chat and alert storms stay within their containers after r
     await simulate(request, { ...alert, user: { ...user, displayName: `Long Supporter Name ${String(index)} That Must Never Be Clipped`, avatarUrl: 'https://example.com/avatar.png' } }, `alert-${String(index)}`);
   }
   await expect(page.locator('.alert')).toHaveCount(1);
+  await expect(page.locator('.alert-thank-you')).toHaveCount(1);
+  await expect(page.locator('.alert-viewer-message')).toHaveCount(1);
+  const textOrder = await page.locator('.alert-copy').evaluate((copy) => [...copy.children].map((child) => child.className || child.tagName.toLowerCase()));
+  expect(textOrder.indexOf('alert-thank-you')).toBeLessThan(textOrder.indexOf('alert-viewer-message'));
   expect(await page.locator('.alert').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
   await page.setViewportSize({ width: 520, height: 320 });
   await page.waitForTimeout(100);
   const fittedTitle = await page.locator('.alert h2').evaluate((title) => {
     const style = getComputedStyle(title);
-    const detail = title.parentElement?.querySelector('.alert-detail');
+    const detail = title.parentElement?.querySelector('.alert-thank-you');
     return {
       lines: Math.round(title.getBoundingClientRect().height / Number.parseFloat(style.lineHeight)),
       fontSize: Number.parseFloat(style.fontSize),

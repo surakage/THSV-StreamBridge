@@ -20,6 +20,7 @@ const reconnectSchema = z
     enabled: z.boolean(),
     initialDelayMs: z.number().int().min(10).max(60_000),
     maxDelayMs: z.number().int().min(10).max(300_000),
+    // Zero keeps retrying indefinitely with the bounded exponential backoff.
     maxAttempts: z.number().int().min(0).max(100),
   })
   .strict()
@@ -148,6 +149,9 @@ const alertPresentationProfileSchema = z.object({
   priority: z.enum(['low', 'normal', 'high', 'critical']).optional(),
   durationMs: z.number().int().min(1_000).max(60_000).optional(),
   titleTemplate: alertTemplateSchema.min(1).optional(),
+  showThankYou: z.boolean().optional(),
+  thankYouTemplate: alertTemplateSchema.min(1).optional(),
+  showViewerMessage: z.boolean().optional(),
   detailTemplate: alertTemplateSchema.optional(),
   sound: z.object({
     mode: z.enum(['none', 'chime', 'soft-bell', 'digital-pop', 'celebration', 'custom']).default('none'),

@@ -1,24 +1,39 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Clip Courier",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "surakage",
-  "description": "Discovers Twitch clips and publishes broker-authorized clips to a private Discord channel or forum.",
+  "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the current stream to Discord.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
   "actions": [
     {
-      "id": "b8a8e9d4-6d14-41cc-a298-f218e8f3c1a8",
-      "name": "THSV Addon - Clip Courier - Get Clips",
+      "id": "6cd2c22e-631c-4b78-91bd-c67169ce989b",
+      "sourceSubActionId": "ad934b83-f096-49fd-9b60-f63e297d55db",
+      "name": "THSV Addon - Clip Courier - Create Clip",
       "group": "THSV Addon - Clip Courier",
-      "source": "src/GetClips.cs",
-      "importFile": "THSV-StreamBridge-Clip-Courier-2.5.0.sb",
-      "excludeFromHistory": true,
-      "excludeFromPending": true,
+      "source": "src/CreateClip.cs",
+      "importFile": "THSV-StreamBridge-Clip-Courier-2.5.1.sb",
+      "arguments": [
+        {
+          "name": "clipCourierDurationSeconds",
+          "value": "30",
+          "autoType": true,
+          "id": "314e7013-c014-4ff8-ae1d-7174cf2320ba"
+        }
+      ],
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
+      ],
+      "triggers": [
+        {
+          "commandId": "acb29e2b-91a0-48f0-b024-a71a44b87568",
+          "id": "a28e843f-8e93-4698-9291-c05eb596abf0",
+          "stableIdentitySeed": "clip-courier:create-command"
+        }
       ]
     },
     {
@@ -26,7 +41,7 @@
       "name": "THSV Addon - Clip Courier - Deliver",
       "group": "THSV Addon - Clip Courier",
       "source": "src/DeliverDiscord.cs",
-      "importFile": "THSV-StreamBridge-Clip-Courier-2.5.0.sb",
+      "importFile": "THSV-StreamBridge-Clip-Courier-2.5.1.sb",
       "arguments": [
         {
           "name": "clipCourierWebhookUrl",
@@ -45,11 +60,31 @@
       ]
     }
   ],
+  "commands": [
+    {
+      "id": "acb29e2b-91a0-48f0-b024-a71a44b87568",
+      "name": "clip",
+      "command": "!clip",
+      "enabled": false,
+      "caseSensitive": false,
+      "sources": 1,
+      "ignoreBotAccount": true,
+      "ignoreInternal": true,
+      "globalCooldown": 15,
+      "userCooldown": 60,
+      "stableIdentitySeed": "clip-courier:create-command-object"
+    }
+  ],
   "runtime": {
     "queue": "THSV Add-ons",
     "concurrent": false
   },
-  "manualTriggerSetup": [],
-  "triggerSafety": "Both actions remain triggerless and require one-use broker tokens. The webhook stays only in Deliver's Set Argument.",
+  "manualTriggerSetup": {
+    "createClip": [
+      "Review and enable the imported Twitch-only !clip command. Change clipCourierDurationSeconds on Create Clip to either 30 or 60."
+    ],
+    "deliver": []
+  },
+  "triggerSafety": "Create Clip is bound only to the imported Twitch !clip command. Deliver remains triggerless and requires a one-use broker token. The webhook stays only in Deliver's Set Argument.",
   "verificationStatus": "Source and automated contract verified; creator Twitch and Discord live acceptance remains required."
 }

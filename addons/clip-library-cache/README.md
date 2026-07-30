@@ -1,5 +1,9 @@
 # Clip Library Cache
 
-This helper performs one bounded Twitch clip metadata lookup for all installed clip consumers. It stores stable IDs, titles, creator names, canonical clip links, thumbnails, duration, and refresh time in private add-on state.
+Clip Library Cache is shared infrastructure for optional clip add-ons. It stays separate from Bridge Core so creators who do not use clip features install no Twitch clip polling or clip-specific state.
 
-It does **not** download videos or cache signed playback URLs; those expire and are resolved only when a clip is selected for playback. Import the bundled Streamer.bot package, leave Refresh triggerless, and approve that one action. Its internal refresh is excluded from Streamer.bot Pending and Action History to keep long-running sessions readable.
+Install it once when Random Clip Player, Clip Courier, or another add-on declares `thsv.clip-library-cache` as a dependency. Its one approved triggerless Streamer.bot action reads a bounded list of public Twitch clip metadata through the creator's existing Twitch connection. StreamBridge stores only the bounded metadata snapshot and distributes it to approved consumers.
+
+This helper does not play clips, post to Discord, render an overlay, download video files, or retain short-lived signed playback URLs. Those responsibilities remain with the consuming add-ons.
+
+Recommended setup: import the matching Streamer.bot package, leave **Refresh** triggerless, approve only that action in the wizard, keep the default refresh limits, enable the shared clip list, and restart StreamBridge.

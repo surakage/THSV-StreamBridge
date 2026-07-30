@@ -1,12 +1,12 @@
 {
-  "intro": "Clip Courier finds recent Twitch clips through Streamer.bot and publishes each stable clip once to a private Discord webhook. It never reads arbitrary local clip files.",
-  "order": ["enabled", "destinationMode", "scanMinutes", "clipCount", "publishExistingOnFirstScan", "maximumHistory", "webhookName", "messageTemplate", "forumTagIds"],
+  "intro": "Clip Courier is Twitch-only. Its main path is simple: a viewer uses !clip, Streamer.bot creates the last 30 or 60 seconds, and Clip Courier posts that one clip to Discord. Automatic discovery is optional and accepts only clips made during the observed current stream.",
+  "order": ["enabled", "destinationMode", "automaticCurrentStreamClips", "maximumHistory", "webhookName", "messageTemplate", "forumTagIds"],
   "sections": [
-    { "id": "setup", "title": "1. Quick setup", "open": true, "fields": ["enabled", "destinationMode"], "notice": "Import the Clip Courier package, put the webhook only in its Deliver action, Save and Compile, approve Get Clips and Deliver, then enable." },
-    { "id": "discovery", "title": "2. Clip discovery", "fields": ["scanMinutes", "clipCount", "publishExistingOnFirstScan", "maximumHistory"] },
-    { "id": "appearance", "title": "3. Discord message", "fields": ["webhookName", "messageTemplate"] },
-    { "id": "forum", "title": "4. Forum options", "fields": ["forumTagIds"] },
-    { "id": "privacy", "title": "5. Safety and privacy", "fields": [], "notice": "Only bounded public clip metadata and delivery IDs are retained. The webhook remains inside Streamer.bot and Discord mentions are disabled." }
+    { "id": "setup", "title": "1. Turn on !clip delivery", "description": "Import the package and finish Discord setup before enabling.", "open": true, "fields": ["enabled", "destinationMode"], "notice": "The imported !clip command starts disabled. Review it, choose 30 or 60 seconds in its Create Clip action, enable the command, and keep Deliver triggerless." },
+    { "id": "discovery", "title": "2. Optional automatic discovery", "description": "Send Twitch clips made by any normal clipping method during this stream.", "fields": ["automaticCurrentStreamClips", "maximumHistory"], "notice": "Recommended first setup: leave this off and test !clip. When enabled, Clip Library Cache checks public clip metadata, but Clip Courier accepts only timestamps inside the observed Twitch stream session. It never posts older library clips." },
+    { "id": "appearance", "title": "3. Write the Discord post", "description": "Use the available clip tokens in a short message.", "fields": ["webhookName", "messageTemplate"], "notice": "Available tokens: {title}, {creator}, and {url}. For !clip, creator is the viewer who used the command. Discord mentions are disabled even if a clip title contains mention text." },
+    { "id": "forum", "title": "4. Optional Discord forum tags", "description": "Shown only when Discord forum is selected.", "fields": ["forumTagIds"], "notice": "Enter one numeric Discord forum tag ID per line. The webhook itself must have been created for that forum channel." },
+    { "id": "privacy", "title": "5. Confirm the safety boundary", "fields": [], "notice": "The webhook remains only in Streamer.bot's Deliver action and is never copied into Wizard settings, exports, logs, or the add-on package. Stable clip IDs prevent duplicate posts; bounded public metadata and confirmed Discord IDs are retained locally." }
   ],
   "fields": { "messageTemplate": { "rows": 4 }, "forumTagIds": { "rows": 4, "visibleWhen": { "field": "destinationMode", "equals": "forum" } } }
 }

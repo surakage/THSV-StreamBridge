@@ -163,6 +163,11 @@ function orderedAddOnProperties(addOn) {
   return [...requested.map((name) => [name, properties[name]]), ...Object.entries(properties).filter(([name]) => !seen.has(name))];
 }
 
+function addOnSectionTitle(title) {
+  const normalized = String(title).replace(/^\s*\d+\s*[.)-]\s*/u, '').trim();
+  return normalized.toLocaleLowerCase() === 'start here' ? 'Essentials' : normalized;
+}
+
 function renderAddOnSettings(addOn) {
   const entries = orderedAddOnProperties(addOn);
   if (!entries.length) return '';
@@ -174,6 +179,7 @@ function renderAddOnSettings(addOn) {
     return renderAddOnField(name, byName.get(name), addOn.settings[name], fieldUi[name]);
   }).join('');
   const requestedSections = Array.isArray(addOn.settingsUi?.sections) ? addOn.settingsUi.sections : [];
+  let openedEssentialSection = false;
   const sections = requestedSections.filter((section) => section && typeof section.title === 'string' && Array.isArray(section.fields)).map((section, sectionIndex) => {
     const fields = renderNames(section.fields);
     const notice = typeof section.notice === 'string' && section.notice.trim() ? `<p class="addon-settings-notice">${safe(section.notice)}</p>` : '';
@@ -184,7 +190,9 @@ function renderAddOnSettings(addOn) {
     if (!fields && !notice && !links) return '';
     const body = `${notice}${links ? `<div class="addon-settings-links">${links}</div>` : ''}${fields ? `<div class="addon-settings-grid">${fields}</div>` : ''}`;
     const disclosureId = typeof section.id === 'string' && section.id.trim() ? section.id.trim() : `section-${sectionIndex}`;
-    return `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:${disclosureId}`)}" ${section.open === true ? 'open' : ''}><summary><span>${safe(section.title)}${section.description ? `<small>${safe(section.description)}</small>` : ''}</span></summary><div class="addon-settings-section-body">${body}</div></details>`;
+    const openByDefault = section.open === true && !openedEssentialSection;
+    if (openByDefault) openedEssentialSection = true;
+    return `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:${disclosureId}`)}" ${openByDefault ? 'open' : ''}><summary><span>${safe(addOnSectionTitle(section.title))}${section.description ? `<small>${safe(section.description)}</small>` : ''}</span></summary><div class="addon-settings-section-body">${body}</div></details>`;
   }).join('');
   const remaining = renderNames(entries.map(([name]) => name).filter((name) => !rendered.has(name)));
   if (!sections) return `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:general`)}" open><summary><span>General settings<small>The essential settings supplied by this add-on.</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>`;
@@ -198,7 +206,10 @@ function renderAddOnSetupGuide(addOn) {
   const checks = Array.isArray(addOn.healthChecks) ? addOn.healthChecks : [];
   const guideSlug = String(addOn.moduleId).replace(/^thsv\./u, '');
   const onlineGuide = `https://github.com/surakage/THSV-StreamBridge/blob/main/docs/addons/${encodeURIComponent(guideSlug)}.md`;
-  return `<details class="form-section addon-setup-guide addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:setup-guide`)}" open><summary><span><span class="step-number">1</span><strong>Start here</strong><small>Follow the required installation steps before changing advanced settings.</small></span></summary><div class="addon-step-body"><p>Complete these steps in order. The same versioned guide is included in the add-on release ZIP.</p><ol class="setup-checklist">${steps.map((step) => `<li>${safe(step)}</li>`).join('') || '<li>No extra installation step is declared.</li>'}</ol>${checks.length ? `<h4>How to verify it</h4><ul>${checks.map((check) => `<li><strong>${safe(check.id)}</strong>: ${safe(check.description)}</li>`).join('')}</ul>` : ''}${removals.length ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:repair`)}"><summary>Repair or remove this add-on</summary><ul>${removals.map((step) => `<li>${safe(step)}</li>`).join('')}</ul></details>` : ''}<div class="button-row"><a class="button-link ghost compact" href="${safe(onlineGuide)}" target="_blank" rel="noreferrer noopener">Open full setup guide</a></div></div></details>`;
+  const instructions = steps.length
+    ? `<p>Complete these steps in order. The same versioned guide is included in the add-on release ZIP.</p><ol class="setup-checklist">${steps.map((step) => `<li>${safe(step)}</li>`).join('')}</ol>`
+    : '<p class="notice"><strong>Ready to configure.</strong> This add-on does not require a separate file or manual installation step.</p>';
+  return `<details class="form-section addon-setup-guide addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:setup-guide`)}"><summary><span><span class="step-number">1</span><strong>Before you begin</strong><small>Open for complete install and repair instructions.</small></span></summary><div class="addon-step-body">${instructions}${checks.length ? `<h4>How to verify it</h4><ul>${checks.map((check) => `<li><strong>${safe(check.id)}</strong>: ${safe(check.description)}</li>`).join('')}</ul>` : ''}${removals.length ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:repair`)}"><summary>Repair or remove this add-on</summary><ul>${removals.map((step) => `<li>${safe(step)}</li>`).join('')}</ul></details>` : ''}<div class="button-row"><a class="button-link ghost compact" href="${safe(onlineGuide)}" target="_blank" rel="noreferrer noopener">Open full setup guide</a></div></div></details>`;
 }
 
 function updateAddOnFieldVisibility(form) {
@@ -242,7 +253,48 @@ const BROKER_ROUTED_ADDONS = new Set([
   'thsv.follower-pulse',
 ]);
 
+// These are only the fixed actions that an add-on dispatches through the capability broker.
+// Direct commands and creator controls such as Enable, Reset, Pause, !clip, and !guardtrust are
+// intentionally omitted: Streamer.bot invokes those itself and they need no action grant.
+const RECOMMENDED_ADDON_ACTION_NAMES = {
+  'thsv.auto-translate': ['THSV Addon - Auto Translate - Translate Text'],
+  'thsv.automated-shoutouts': ['THSV Addon - Automated Shoutouts - Lookup Twitch Creator', 'THSV Addon - Automated Shoutouts - Twitch Native Shoutout', 'THSV Addon - Automated Shoutouts - Get Twitch Clip'],
+  'thsv.category-pilot': ['THSV Addon - Category Pilot - Process Probe'],
+  'thsv.chat-guard': ['THSV Addon - Chat Guard - Moderate'],
+  'thsv.clip-courier': ['THSV Addon - Clip Courier - Deliver'],
+  'thsv.clip-library-cache': ['THSV Addon - Clip Library Cache - Refresh'],
+  'thsv.creator-controls': ['THSV Addon - Creator Controls - Provider Controller'],
+  'thsv.discord-chat-archive': ['THSV Addon - Discord Chat Archive - Deliver'],
+  'thsv.fan-crown': ['THSV Addon - Fan Crown - Controller'],
+  'thsv.first-five': ['THSV Addon - First Five - Controller'],
+  'thsv.follower-pulse': ['THSV Addon - Follower Pulse - Snapshot Page'],
+  'thsv.free-game-check': ['THSV Addon - Free Game Check - Refresh'],
+  'thsv.live-beacon': ['THSV Addon - Live Beacon - Deliver'],
+  'thsv.raid-scout': ['THSV Addon - Raid Scout - Controller'],
+  'thsv.random-clip-player': ['THSV Addon - Random Clip Player - Get Clips', 'THSV Addon - Random Clip Player - Get Clip Download'],
+  'thsv.user-translate': ['THSV Addon - User Translate - Translate Text'],
+  'thsv.viewer-spotlight': ['THSV Addon - Viewer Spotlight - Settle Reward', 'THSV Addon - Viewer Spotlight - Discord Snapshot'],
+  'thsv.voice-relay': ['THSV Addon - Voice Relay - Speak'],
+};
+
+function renderAddOnQuickSummary(addOn, hasSettings) {
+  const steps = Array.isArray(addOn.installationSteps) ? addOn.installationSteps : [];
+  const recommended = RECOMMENDED_ADDON_ACTION_NAMES[addOn.moduleId] || [];
+  const triggerRequirement = DIRECT_ADDON_TRIGGER_REQUIREMENTS[addOn.moduleId];
+  const commandNames = Array.isArray(addOn.commandsProvided) ? addOn.commandsProvided.map((command) => command.name).filter(Boolean) : [];
+  const connection = triggerRequirement
+    ? `${triggerRequirement.triggers.length} direct trigger${triggerRequirement.triggers.length === 1 ? '' : 's'}`
+    : commandNames.length
+      ? `${commandNames.length} included command${commandNames.length === 1 ? '' : 's'}`
+      : 'No direct trigger';
+  return `<section class="addon-quick-summary" aria-label="Simple setup summary"><div><small>Settings</small><strong>${hasSettings ? 'Optional' : 'None'}</strong></div><div><small>Streamer.bot</small><strong>${safe(connection)}</strong></div><div><small>Approvals</small><strong>${recommended.length ? `${recommended.length} recommended` : 'None'}</strong></div><div><small>Setup steps</small><strong>${steps.length || 'None'}</strong></div></section>`;
+}
+
 function renderAddOnTriggerReadiness(addOn) {
+  if (addOn.moduleId === 'thsv.clip-library-cache') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.clip-library-cache:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the shared Twitch lookup</strong><small>One internal action supplies every installed clip add-on.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Clip Library Cache</strong> in Streamer.bot.</li><li>Leave <strong>Refresh</strong> enabled and triggerless. Do not attach a timer or platform trigger.</li><li>Approve only Refresh in the next wizard step, enable the shared clip list, save, and restart StreamBridge.</li><li>Return to Random Clip Player or Clip Courier to configure what happens with the shared results.</li></ol><p class="notice"><strong>Why this is separate:</strong> it is optional shared infrastructure. Keeping it outside Bridge Core means creators without clip features perform no clip lookup, while multiple clip add-ons avoid duplicate Twitch requests.</p><p>This helper has no overlay and never plays, posts, or downloads a clip by itself.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.clip-courier') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.clip-courier:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect !clip and Discord</strong><small>One viewer command creates the clip; one private helper delivers it.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Clip Courier</strong> in Streamer.bot. It creates Create Clip, Deliver, and a disabled Twitch-only <code>!clip</code> command.</li><li>Open <strong>Create Clip</strong>. Set <code>clipCourierDurationSeconds</code> to <strong>30</strong> or <strong>60</strong>, Save and Compile, then review and enable the imported command. Keep its command trigger attached.</li><li>Open <strong>Deliver</strong>, replace <code>clipCourierWebhookUrl</code> with a private webhook for the Discord channel or forum selected above, then Save and Compile. Leave Deliver triggerless.</li><li>Approve only Deliver below, enable Clip Courier, save, and restart StreamBridge.</li><li>Optional: install Clip Library Cache and enable current-stream discovery if clips made without <code>!clip</code> should also be sent.</li></ol><p class="notice"><strong>No old-library posting:</strong> automatic discovery accepts only Twitch clip timestamps inside the stream session observed by StreamBridge. If the session boundary is unknown, it sends nothing. Never paste the webhook into the wizard or a support message.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.community-analytics') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.community-analytics:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Confirm the data path</strong><small>Community Analytics listens to the existing Bridge intakes.</small></span><span class="status-chip status-ready">No add-on import needed</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first.</li><li>Keep Twitch, YouTube, Kick, and TikTok triggers attached to their main <strong>THSV &lt;Platform&gt; - Intake</strong> actions.</li><li>Do not create a Community Analytics action or attach duplicate chat triggers.</li><li>Save the selected platforms and restart StreamBridge. Local counters update when normalized events arrive.</li><li>Use the Reports section below to refresh the session summary or export bounded reports.</li></ol><p class="notice">This is a private local observation tool, not official platform analytics. It stores no chat text, display names, avatars, raw events, or financial amounts.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.chat-guard') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.chat-guard:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Import the two Streamer.bot helpers</strong><small>One helper performs approved moderation; one adds trusted viewers.</small></span><span class="status-chip status-neutral">Import needed</span></summary><div class="addon-step-body"><p class="notice"><strong>Import one file:</strong> <code>THSV-StreamBridge-Chat-Guard-2.5.0.sb</code>. It creates both helpers below.</p><ol><li><strong>Moderate:</strong> leave enabled and triggerless. StreamBridge calls it only when you later approve automatic actions.</li><li><strong>Trust Viewer:</strong> attached to an imported <code>!guardtrust</code> command that starts disabled. Review the command, then enable it if you want easy trusted-viewer enrollment.</li><li>Do not attach platform chat triggers to either helper. Public chat already enters through the main THSV platform intake actions.</li></ol><p><strong>To trust someone:</strong> as broadcaster or moderator, reply to that viewer's chat message with <code>!guardtrust</code>. Then open Manage trusted viewers below and press Refresh.</p><p class="notice">Twitch, YouTube, and Kick support the reply workflow. For TikTok, use the clearly labeled manual fallback.</p></div></details>`;
   const requirement = DIRECT_ADDON_TRIGGER_REQUIREMENTS[addOn.moduleId];
   if (!requirement) return BROKER_ROUTED_ADDONS.has(addOn.moduleId)
     ? `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}"><summary><span><span class="step-number">3</span><strong>Connect Streamer.bot</strong><small>Confirm whether this add-on needs its own trigger.</small></span><span class="status-chip status-ready">No direct trigger needed</span></summary><div class="addon-step-body"><p><strong>Nothing needs to be attached manually.</strong></p><p>This add-on receives normalized events or approved action dispatches through StreamBridge. Leave platform triggers on the main StreamBridge intake actions unless this add-on's setup guide explicitly says otherwise.</p></div></details>`
@@ -295,14 +347,21 @@ function renderViewerSpotlightAdmin(addOn) {
 function renderChatGuardAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.chat-guard' || !addOn.enabled) return '';
   return [
-    '<details class="form-section" data-disclosure-key="addon:thsv.chat-guard:observations"><summary>Observe-only results &amp; rule tester</summary>',
-    '<p class="notice">This view contains aggregate counts and salted identifiers only. Chat text, names, avatars, and platform account IDs are never returned.</p>',
+    '<details class="form-section addon-step" data-disclosure-key="addon:thsv.chat-guard:trusted-viewers"><summary><span><span class="step-number">5</span><strong>Optional: trust a specific viewer</strong><small>Use a reply command so you never need to find their account ID.</small></span></summary><div class="addon-step-body">',
+    '<ol><li>In Streamer.bot, review and enable the imported <code>!guardtrust</code> command.</li><li>Reply to the viewer\'s message with <code>!guardtrust</code> as the broadcaster or a moderator.</li><li>Return here and press <strong>Refresh trusted viewers</strong>.</li></ol>',
+    '<p class="notice">This step is optional. Twitch, YouTube, and Kick can read the replied-to viewer\'s stable account ID automatically. TikTok currently uses the manual fallback below. Chat Guard displays only a friendly label and the final six ID characters.</p>',
+    '<div class="button-row"><button type="button" class="ghost" data-chat-guard-status>Refresh trusted viewers</button></div>',
+    '<div class="item-list" data-chat-guard-trusted-list><p class="notice">Refresh to view trusted accounts.</p></div>',
+    '<details data-disclosure-key="addon:thsv.chat-guard:manual-trust"><summary>Manual stable-ID fallback</summary><p class="notice">Use this only when a provider cannot supply reply identity. Display names alone are not accepted.</p><form class="addon-settings-grid" data-chat-guard-trust-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Friendly label<input name="label" required maxlength="80" autocomplete="off" placeholder="Name used only in this manager"></label><label class="check full-row"><input name="approved" type="checkbox" required> Save this stable ID as a trusted Chat Guard exception.</label><div class="button-row full-row"><button type="submit">Add trusted viewer</button></div></form></details>',
+    '</div></details>',
+    '<details class="form-section addon-step" data-disclosure-key="addon:thsv.chat-guard:observations"><summary><span><span class="step-number">6</span><strong>Test safely before automatic actions</strong><small>Paste a harmless sample and see which rules would match.</small></span></summary><div class="addon-step-body">',
+    '<p class="notice"><strong>No moderation happens during this test.</strong> The sample is not saved. Results contain only the matching rule names and character count.</p>',
     '<div class="button-row"><button type="button" class="ghost" data-chat-guard-status>Refresh observation summary</button><button type="button" class="danger" data-chat-guard-clear>Clear retained observations</button></div>',
-    '<pre class="diagnostic" data-chat-guard-output>Refresh to inspect rule counts and confirm every provider remains observe-only.</pre>',
+    '<pre class="diagnostic" data-chat-guard-output>Use Test current rules below, or refresh the observation summary after chat activity.</pre>',
     '<form class="addon-settings-grid" data-chat-guard-test-form><label class="full-row">Sample public-chat message<textarea name="message" required minlength="1" maxlength="2000" rows="4" placeholder="Paste a safe test sample. It will not be saved."></textarea></label><label>Prior matching messages<input name="priorMatchingMessages" type="number" min="0" max="9" step="1" value="0"></label><div class="button-row full-row"><button type="submit" class="ghost">Test current rules</button></div><small class="full-row">Only the character count and matched rule IDs are returned. The sample is not persisted or echoed back.</small></form>',
     '<details data-disclosure-key="addon:thsv.chat-guard:temporary-permit"><summary>Temporary link permit</summary><p class="notice">A permit bypasses blocked/unapproved-domain signals only. Other spam rules continue to observe the message.</p><form class="addon-settings-grid" data-chat-guard-permit-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Expires after (minutes)<input name="durationMinutes" type="number" min="1" max="1440" step="1" value="15"></label><label>Maximum uses<input name="maximumUses" type="number" min="1" max="20" step="1" value="1"></label><label class="check full-row"><input name="approved" type="checkbox" required> I approve this time- and use-bounded domain exception.</label><div class="button-row full-row"><button type="submit">Create permit</button><button type="button" class="danger" data-chat-guard-clear-permits>Clear all permits</button></div></form></details>',
     '<details data-disclosure-key="addon:thsv.chat-guard:incident-review"><summary>Review a recent incident</summary><p class="notice">Copy an incident ID from the observation summary. Review labels measure false positives without retaining the message or viewer identity.</p><form class="addon-settings-grid" data-chat-guard-review-form><label class="full-row">Incident ID<input name="incidentId" required pattern="[a-f0-9]{64}" maxlength="64" autocomplete="off"></label><label>Decision<select name="decision"><option value="confirmed">Confirmed match</option><option value="false-positive">False positive</option></select></label><label class="check full-row"><input name="approved" type="checkbox" required> Save this review label to the private incident record.</label><div class="button-row full-row"><button type="submit">Save review</button></div></form></details>',
-    '</details>',
+    '</div></details>',
   ].join('');
 }
 
@@ -327,15 +386,20 @@ function renderAddOns() {
     const triggerReadiness = rejected ? '' : renderAddOnTriggerReadiness(addOn);
     const settingsIntro = typeof addOn.settingsUi?.intro === 'string' && addOn.settingsUi.intro.trim() ? addOn.settingsUi.intro : 'Open only the section you want to change. Hidden options keep their saved values.';
     const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:configure`)}" open><summary><span><span class="step-number">2</span><strong>Configure the add-on</strong><small>Change only the sections you need; saved collapsed sections stay collapsed.</small></span></summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><div class="addon-settings-heading"><p class="addon-settings-intro">${safe(settingsIntro)}</p><div class="button-row"><button type="button" class="ghost compact" data-addon-sections="expand">Expand all</button><button type="button" class="ghost compact" data-addon-sections="collapse">Collapse all</button></div></div>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Settings are preserved now and become active after StreamBridge restarts.</small></div></form></details>`;
-    const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:approved-actions`)}"><summary><span><strong>Approved Streamer.bot actions</strong><small>Grant only the actions this add-on is allowed to run.</small></span></summary><div class="addon-step-body">${renderAddOnActionGrant(addOn)}</div></details>`;
-    const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:overlay-tools`)}"><summary><span><span class="step-number">4</span><strong>Hosted overlay &amp; testing</strong><small>Open the hosted overlay and send a safe preview before going live.</small></span></summary><div class="addon-step-body">${renderAddOnOverlayTools(addOn)}</div></details>`;
+    let nextWorkflowStep = 4;
+    const chatGuardGrantHelp = addOn.moduleId === 'thsv.chat-guard'
+      ? '<p class="notice"><strong>Observation-only users can leave this empty.</strong> For automatic moderation, approve only <strong>THSV Addon - Chat Guard - Moderate</strong>. Do not approve Trust Viewer here; its disabled <code>!guardtrust</code> command calls it directly after you review and enable that command.</p>'
+      : '';
+    const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:approved-actions`)}"><summary><span><span class="step-number">${nextWorkflowStep++}</span><strong>Approve Streamer.bot actions</strong><small>${addOn.moduleId === 'thsv.chat-guard' ? 'Optional: required only for automatic moderation.' : 'Grant only the actions this add-on is allowed to run.'}</small></span></summary><div class="addon-step-body">${chatGuardGrantHelp}${renderAddOnActionGrant(addOn)}</div></details>`;
+    const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:overlay-tools`)}"><summary><span><span class="step-number">${nextWorkflowStep++}</span><strong>Open overlay &amp; test</strong><small>Open the hosted overlay and send a safe preview before going live.</small></span></summary><div class="addon-step-body">${renderAddOnOverlayTools(addOn)}</div></details>`;
     const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderChatGuardAdmin(addOn)}`;
     const setupGuide = renderAddOnSetupGuide(addOn);
-    const acceptance = rejected ? '' : renderAddOnAcceptance(addOn);
+    if (addOn.moduleId === 'thsv.chat-guard' && addOn.enabled) nextWorkflowStep = Math.max(nextWorkflowStep, 7);
+    const acceptance = rejected ? '' : renderAddOnAcceptance(addOn, nextWorkflowStep);
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
     const packageDetails = rejected ? '' : `<details class="form-section addon-package-details" data-disclosure-key="${safe(`addon:${addOn.moduleId}:package-details`)}"><summary><span><strong>Package and publisher details</strong><small>Permissions, source, updates, release notes, and security information.</small></span></summary><div class="addon-step-body"><p><strong>Publisher:</strong> ${safe(addOn.author)}</p><p><strong>Package type:</strong> ${safe(addOn.packageKind)}</p><p><strong>Permissions:</strong> ${safe(permissions)}</p>${trustLinks}${liveChatWarning}${providerWarning}${viewerWarning}${addOn.packageKind === 'executable' ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}</div></details>`;
     const maintenance = rejected ? '' : `<details class="form-section addon-maintenance" data-disclosure-key="${safe(`addon:${addOn.moduleId}:maintenance`)}"><summary><span><strong>Enable, disable, or uninstall</strong><small>Routine maintenance and removal controls.</small></span></summary><div class="addon-step-body"><div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Enable and disable changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></div></details>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">Installed add-on</p><h3>${safe(addOn.name)} ${safe(addOn.version)}</h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p class="addon-description">${safe(addOn.description)}</p>${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}<div class="addon-flow">${setupGuide}${!rejected && !fields ? '<p class="notice">This add-on has no creator-editable settings. Continue to its connection and testing steps.</p>' : ''}${settings}${triggerReadiness}${actionGrant}${overlayTools}${viewerAdministration}${acceptance}</div>${packageDetails}${maintenance}</article>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">Installed add-on</p><h3>${safe(addOn.name)} ${safe(addOn.version)}</h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p class="addon-description">${safe(addOn.description)}</p>${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}<div class="addon-flow">${setupGuide}${!rejected && !fields ? '<p class="notice">This add-on has no creator-editable settings. Continue to its connection and testing steps.</p>' : ''}${settings}${triggerReadiness}${actionGrant}${overlayTools}${viewerAdministration}${acceptance}</div>${packageDetails}${maintenance}</article>`;
   }).join('');
   // Saving settings and other add-on operations rebuild this subtree. Restore both open and
   // closed choices immediately so sections never flash or return to their package defaults.
@@ -356,6 +420,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
   document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
+  document.querySelectorAll('[data-add-recommended-addon-actions]').forEach((button) => button.addEventListener('click', addRecommendedAddOnActions));
   document.querySelectorAll('[data-remove-addon-action]').forEach((button) => button.addEventListener('click', removeAddOnActionDraft));
   document.querySelectorAll('[data-save-addon-action-grants]').forEach((button) => button.addEventListener('click', saveAddOnActionGrants));
   document.querySelectorAll('[data-copy-addon-overlay]').forEach((button) => button.addEventListener('click', copyAddOnOverlayUrl));
@@ -374,7 +439,9 @@ function renderAddOns() {
   document.querySelector('[data-spotlight-admin-status]')?.addEventListener('click', refreshViewerSpotlightStatus);
   document.querySelector('[data-spotlight-stream-score]')?.addEventListener('click', showViewerSpotlightStreamScore);
   document.querySelector('[data-spotlight-display-form]')?.addEventListener('submit', displayViewerSpotlightCard);
-  document.querySelector('[data-chat-guard-status]')?.addEventListener('click', refreshChatGuardStatus);
+  document.querySelectorAll('[data-chat-guard-status]').forEach((button) => button.addEventListener('click', refreshChatGuardStatus));
+  document.querySelector('[data-chat-guard-trust-form]')?.addEventListener('submit', addChatGuardTrustedViewer);
+  document.querySelectorAll('[data-chat-guard-trust-remove]').forEach((button) => button.addEventListener('click', removeChatGuardTrustedViewer));
   document.querySelector('[data-chat-guard-clear]')?.addEventListener('click', clearChatGuardObservations);
   document.querySelector('[data-chat-guard-test-form]')?.addEventListener('submit', testChatGuardRules);
   document.querySelector('[data-chat-guard-permit-form]')?.addEventListener('submit', createChatGuardPermit);
@@ -387,10 +454,9 @@ function acceptanceOptions(selected) {
   return Object.entries(labels).map(([value, label]) => `<option value="${value}" ${selected === value ? 'selected' : ''}>${label}</option>`).join('');
 }
 
-function renderAddOnAcceptance(addOn) {
+function renderAddOnAcceptance(addOn, verificationStep = 4) {
   const entry = state.addOnAcceptance?.[addOn.moduleId] || { offlineStatus: 'pending', providerStatus: 'pending', evidence: '', updatedAt: '' };
   const updated = entry.updatedAt ? `Last updated ${new Date(entry.updatedAt).toLocaleString()}.` : 'No acceptance result has been recorded on this installation.';
-  const verificationStep = addOn.permissions.includes('overlay.publish') ? 5 : 4;
   return `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:acceptance`)}"><summary><span><span class="step-number">${verificationStep}</span><strong>Record verification</strong><small>Keep simulated tests separate from a genuine provider result.</small></span></summary><div class="addon-step-body"><p class="notice"><strong>Published is not the same as provider accepted.</strong> Simulators and Test triggers may pass Offline/manual only. Record Provider as Passed only after the responsible service returned a genuine acknowledgement.</p><form class="addon-settings-grid" data-addon-acceptance-form="${safe(addOn.moduleId)}"><label>Offline/manual status<select name="offlineStatus">${acceptanceOptions(entry.offlineStatus)}</select></label><label>Genuine provider status<select name="providerStatus">${acceptanceOptions(entry.providerStatus)}</select></label><label class="full-row">Evidence note<textarea name="evidence" rows="3" maxlength="500" placeholder="Date, app/provider build, exact test, and observed result. Never paste secrets or viewer IDs.">${safe(entry.evidence || '')}</textarea><small>${safe(updated)} URLs, tokens, passwords, and webhook secrets are rejected. Do not enter raw viewer identifiers.</small></label><label class="check full-row"><input name="approved" type="checkbox" required> I confirm this status accurately distinguishes simulation from a genuine provider result.</label><div class="button-row full-row"><button type="submit">Save acceptance status</button><a href="https://github.com/surakage/THSV-StreamBridge/blob/main/docs/offline-acceptance.md" target="_blank" rel="noreferrer noopener">Open testing guide</a></div></form></div></details>`;
 }
 
@@ -558,7 +624,30 @@ async function chatGuardAdmin(request) {
 }
 
 async function refreshChatGuardStatus() {
-  try { await chatGuardAdmin({ operation: 'status' }); } catch (error) { chatGuardOutput(error.message); }
+  try { const result = await chatGuardAdmin({ operation: 'status' }); renderChatGuardTrustedAccounts(result.trustedAccounts); } catch (error) { chatGuardOutput(error.message); }
+}
+
+function renderChatGuardTrustedAccounts(accounts) {
+  const list = document.querySelector('[data-chat-guard-trusted-list]');
+  if (!list) return;
+  if (!Array.isArray(accounts) || accounts.length === 0) { list.innerHTML = '<p class="notice">No creator-managed trusted viewers are saved.</p>'; return; }
+  list.innerHTML = accounts.map((account) => `<article class="item"><div><strong>${safe(account.label)}</strong><small>${safe(account.platform)} · stable ID ending ${safe(account.idSuffix)} · added ${safe(new Date(account.addedAt).toLocaleString())}</small></div><button type="button" class="danger compact" data-chat-guard-trust-remove="${safe(account.accountKey)}" data-chat-guard-trust-label="${safe(account.label)}">Remove</button></article>`).join('');
+  list.querySelectorAll('[data-chat-guard-trust-remove]').forEach((button) => button.addEventListener('click', removeChatGuardTrustedViewer));
+}
+
+async function addChatGuardTrustedViewer(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try {
+    await chatGuardAdmin({ operation: 'trust-add', platform: form.elements.platform.value, userId: form.elements.userId.value.trim(), label: form.elements.label.value.trim(), approvedByCreator: true });
+    form.reset(); await refreshChatGuardStatus();
+  } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function removeChatGuardTrustedViewer(event) {
+  const button = event.currentTarget; const label = button.dataset.chatGuardTrustLabel || 'this viewer';
+  if (!confirm(`Remove ${label} from Chat Guard's trusted-viewer list?`)) return;
+  try { await chatGuardAdmin({ operation: 'trust-remove', accountKey: button.dataset.chatGuardTrustRemove, approvedByCreator: true }); await refreshChatGuardStatus(); } catch (error) { chatGuardOutput(error.message); }
 }
 
 async function clearChatGuardObservations() {
@@ -633,6 +722,10 @@ function renderAddOnActionGrant(addOn) {
   if (!state.addOnActionDrafts) state.addOnActionDrafts = {};
   if (!state.addOnActionDrafts[addOn.moduleId]) state.addOnActionDrafts[addOn.moduleId] = [...(addOn.approvedActionIds || [])];
   const draft = state.addOnActionDrafts[addOn.moduleId];
+  const recommendedNames = RECOMMENDED_ADDON_ACTION_NAMES[addOn.moduleId] || [];
+  const recommendedActions = recommendedNames.map((name) => state.liveActions.find((action) => action.name === name)).filter(Boolean);
+  const recommendedMissing = recommendedNames.filter((name) => !state.liveActions.some((action) => action.name === name));
+  const recommendedPending = recommendedActions.filter((action) => !draft.includes(action.id));
 
   const approvedEntries = draft.map((id) => {
     const live = liveById.get(id);
@@ -664,7 +757,11 @@ function renderAddOnActionGrant(addOn) {
     ? `<div class="addon-action-picker"><label>Streamer.bot group<select data-addon-action-group="${safe(addOn.moduleId)}">${groups.map((group) => `<option value="${safe(group)}" ${group === selectedGroup ? 'selected' : ''}>${safe(group)}</option>`).join('')}</select></label><label>Action<select data-addon-action-picker="${safe(addOn.moduleId)}"><option value="">Choose an action from this group…</option>${groupActions.map((action) => `<option value="${safe(action.id)}">${safe(action.name)}</option>`).join('')}</select></label><button type="button" data-add-addon-action="${safe(addOn.moduleId)}">Add selected action</button></div>`
     : (notYetInspected ? '' : '<p class="notice full-row">Every inspected action is already approved.</p>');
 
-  return `<div class="addon-action-grants" data-addon-action-grants="${safe(addOn.moduleId)}"><p>Choose the exact action IDs this add-on may dispatch. It cannot run any other action through the capability broker.</p>${inspectHint}${list}${picker}<button type="button" data-save-addon-action-grants="${safe(addOn.moduleId)}">Save action grants</button></div>`;
+  const recommended = recommendedNames.length
+    ? `<div class="addon-recommended-actions"><strong>Recommended for this add-on</strong><ul>${recommendedNames.map((name) => `<li>${safe(name)}${draft.some((id) => liveById.get(id)?.name === name || state.addOnActionNameCache?.[id]?.name === name) ? ' — selected' : ''}</li>`).join('')}</ul>${notYetInspected ? '<p>Refresh action names first so the wizard can match these actions safely and save their stable IDs.</p>' : ''}${recommendedMissing.length && !notYetInspected ? `<p class="error">Import or repair: ${recommendedMissing.map(safe).join(', ')}</p>` : ''}${recommendedPending.length ? `<button type="button" class="ghost" data-add-recommended-addon-actions="${safe(addOn.moduleId)}">Use recommended actions</button>` : ''}</div>`
+    : '<p class="notice">This add-on has no fixed broker action. Approve a creator action only when its setup guide asks for one.</p>';
+
+  return `<div class="addon-action-grants" data-addon-action-grants="${safe(addOn.moduleId)}"><p>Use the recommended list when available. The wizard saves stable IDs, so renamed actions remain safely scoped.</p>${recommended}${inspectHint}${list}<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:custom-action-grant`)}"><summary>Advanced: approve a different action</summary>${picker}</details><button type="button" data-save-addon-action-grants="${safe(addOn.moduleId)}">Save action grants</button></div>`;
 }
 
 const ADDON_ACTION_NAME_CACHE_KEY = 'thsv.streambridge.addon-action-names.v1';
@@ -763,6 +860,15 @@ function addAddOnActionDraft(event) {
   if (!actionId) return;
   state.addOnActionDrafts[id] = [...(state.addOnActionDrafts[id] || []), actionId];
   renderAddOns();
+}
+
+function addRecommendedAddOnActions(event) {
+  const id = event.currentTarget.dataset.addRecommendedAddonActions;
+  const names = RECOMMENDED_ADDON_ACTION_NAMES[id] || [];
+  const actionIds = state.liveActions.filter((action) => names.includes(action.name)).map((action) => action.id);
+  state.addOnActionDrafts[id] = [...new Set([...(state.addOnActionDrafts[id] || []), ...actionIds])];
+  renderAddOns();
+  byId('addon-state').textContent = `${actionIds.length} recommended action${actionIds.length === 1 ? '' : 's'} selected for ${id}. Save action grants to finish.`;
 }
 
 function removeAddOnActionDraft(event) {
