@@ -7,7 +7,9 @@ const rewardIds = ['reward-1', 'reward-2', 'reward-3', 'reward-4', 'reward-5'];
 const settings = {
   enabled: true,
   reward1Id: rewardIds[0], reward2Id: rewardIds[1], reward3Id: rewardIds[2], reward4Id: rewardIds[3], reward5Id: rewardIds[4],
-  reward1Title: 'Claim 1st Place', reward2Title: 'Claim 2nd Place', reward3Title: 'Claim 3rd Place', reward4Title: 'Claim 4th Place', reward5Title: 'Claim 5th Place',
+  kickReward1Id: 'kick-reward-1', kickReward2Id: 'kick-reward-2', kickReward3Id: 'kick-reward-3', kickReward4Id: 'kick-reward-4', kickReward5Id: 'kick-reward-5',
+  commandName: 'firstfive', pointsCost: 25,
+  reward1Title: 'First Five: Claim 1st Place', reward2Title: 'First Five: Claim 2nd Place', reward3Title: 'First Five: Claim 3rd Place', reward4Title: 'First Five: Claim 4th Place', reward5Title: 'First Five: Claim 5th Place',
   claimedTitleTemplate: '{name} was {ordinal}', announceClaims: true, claimMessageTemplate: '{name} claimed {ordinal} place!',
   notifyRejectedClaims: false, rejectedMessageTemplate: '{name}, already claimed.', announceMonthlyWinner: true,
   monthlyWinnerMessageTemplate: '{name} won {month} with {points} points!', showLeaderboardCard: true, leaderboardCardSeconds: 30,
@@ -42,6 +44,7 @@ function context() {
       streamerbot: { runApprovedAction: vi.fn(async () => {}) },
       chat: { send: vi.fn(async () => []) },
       overlay: { publish: vi.fn(async () => {}) },
+      viewerFoundation: { getProjection: vi.fn(async () => ({ viewerId: 'viewer-points', currencyName: 'Village Points' })), mutate: vi.fn(async () => ({ applied: true })) },
     },
   };
 }
@@ -82,8 +85,8 @@ describe('First Five add-on', () => {
       metadata: { simulated: false },
     }, runtime.context);
     expect(runtime.value()).toMatchObject({
-      placements: [{ position: 1, userId: 'user-1', displayName: 'Viewer' }],
-      leaderboard: [{ userId: 'user-1', points: 5, placements: [1, 0, 0, 0, 0] }],
+      placements: [{ position: 1, userId: 'twitch:user-1', displayName: 'Viewer' }],
+      leaderboard: [{ userId: 'twitch:user-1', points: 5, placements: [1, 0, 0, 0, 0] }],
     });
     expect(runtime.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Viewer claimed 1st place!', sourcePlatform: 'twitch' }));
     expect(runtime.context.overlay.publish).toHaveBeenCalled();
@@ -171,5 +174,19 @@ describe('First Five add-on', () => {
     await firstFive.onEvent({ ...rewardEvent(1), metadata: { simulated: true } }, runtime.context);
     expect(runtime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
     expect(runtime.value()).toEqual({});
+  });
+
+  it('accepts Kick rewards directly and spends points for TikTok commands', async () => {
+    const kickRuntime = context();
+    const kickBase = rewardEvent(1, 'kick-viewer', 'Kick Viewer');
+    await firstFive.onEvent({ ...kickBase, platform: 'kick', payload: { ...kickBase.payload, rewardId: 'kick-reward-1', supportedOperations: [] } }, kickRuntime.context);
+    expect(kickRuntime.value()).toMatchObject({ placements: [{ position: 1, userId: 'kick:kick-viewer' }] });
+    expect(kickRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+
+    await firstFive.stop();
+    const tiktokRuntime = context();
+    await firstFive.onEvent({ eventId: 'tiktok-first-five-1', eventType: 'command.received', platform: 'tiktok', source: { eventId: 'tiktok-first-five-1' }, user: { id: 'tiktok-viewer', name: 'viewer', displayName: 'TikTok Viewer', actorType: 'human', roles: [] }, payload: { command: 'firstfive', arguments: [] }, metadata: { simulated: false } }, tiktokRuntime.context);
+    expect(tiktokRuntime.value()).toMatchObject({ placements: [{ position: 1, userId: 'tiktok:tiktok-viewer' }] });
+    expect(tiktokRuntime.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'spend', amount: 25, viewerId: 'viewer-points' }));
   });
 });

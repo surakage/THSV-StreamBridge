@@ -251,7 +251,11 @@ const LEGACY_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kic
 export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' } as const;
 
 export const chatOverlaySchema = z.object({
-  layout: z.enum(['regular', 'compact']).default('regular'),
+  layout: z.enum(['regular', 'compact', 'minimal']).default('regular'),
+  orientation: z.enum(['vertical', 'horizontal']).default('vertical'),
+  newMessagePosition: z.enum(['end', 'start']).default('end'),
+  animation: z.enum(['slide', 'fade', 'pop', 'none']).default('slide'),
+  textAlign: z.enum(['left', 'center', 'right']).default('left'),
   fontFamily: z.enum(['system', 'rounded', 'monospace']).default('system'),
   fontSizePx: z.number().int().min(12).max(36).default(18),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#ffffff'),
@@ -302,7 +306,7 @@ const browserOverlaySchema = z.object({
   showBots: z.boolean().default(true),
   showSimulated: z.boolean().default(true),
   chat: chatOverlaySchema.default({
-    layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9,
+    layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9,
     messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [],
     events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } },
   }),
@@ -409,7 +413,7 @@ const bridgeConfigObjectSchema = z
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({
       enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
-      chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
+      chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
       alerts: { profiles: {} },
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),

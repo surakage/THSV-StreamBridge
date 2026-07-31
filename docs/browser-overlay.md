@@ -49,14 +49,14 @@ Meld's [Browser layer documentation](https://meldstudio.co/docs/layers/#browser)
 - Public `chat.message` events appear in one ordered feed. Private, system, operator, and command events never enter the browser channel.
 - Browser rendering uses DOM `textContent`; event text is never interpreted as HTML.
 - `moderation.action` events with a message-removal action and `targetEventId` remove the correlated chat entry.
-- The feed retains only `browserOverlay.maxChatMessages` in browser memory and stores no chat history. The default is eight visible messages; when a ninth arrives, the oldest card fades away from the top.
-- The wizard can save regular/compact layout, font family and size, text/card/canvas colors and opacity, transparent canvas mode, platform-label/profile-picture/badge visibility, and a case-insensitive ignored-name list. Ignored names are filtered before browser publication but do not block commands or alter Streamer.bot chat.
+- The feed retains only `browserOverlay.maxChatMessages` in browser memory and stores no chat history. The default is eight visible messages; when a ninth arrives, the oldest card fades from the configured overflow edge.
+- The wizard can save regular, compact, or minimal cards; a vertical stack or horizontal row; the edge new messages enter from; slide, fade, pop, or instant movement; left, centered, or right text; font family and size; text/card/canvas colors and opacity; transparent canvas mode; platform-label/profile-picture/badge visibility; and a case-insensitive ignored-name list. Horizontal mode fills the available browser-source width with fixed-proportion cards instead of stretching them. Ignored names are filtered before browser publication but do not block commands or alter Streamer.bot chat.
 - The Chat Overlay wizard can place selected platform events into the chat activity feed. Each platform shows only its own event types: for example, YouTube exposes free **New Subscriber** separately from paid **New Member**, while TikTok exposes follow, gift, subscription, and 100-like milestones. Twitch and Kick subscription, gift, reward, and support variants remain separate instead of being collapsed into universal categories. These controls are independent of the alert overlay. Platform-specific display caps shorten long activity text by Unicode code point and count the final ellipsis inside the configured limit, so emoji are never split.
 - Alerts use a bounded visual queue. The default holds at most 20 waiting alerts; when full, it discards the oldest alert from the lowest available priority so a gift storm cannot grow browser memory indefinitely. A malformed card is skipped without freezing later alerts. Donations, cheers, Super Chats, and raids are high priority; subscriptions, memberships, gifts, and milestones are normal; follows are low. Creator profiles may override priority and duration, disable a type, restrict it to selected Twitch, YouTube, Kick, or TikTok sources, render bounded plain-text templates, play a local chime, choose slide, fade, pop, or instant entry/exit transitions, or combine queued gift quantities inside a short window. The default is a horizontal rectangle that slides down and later slides up. An empty platform selection means all supported platforms. A higher-priority visual may replace the currently visible lower-priority card. Priority never infers or converts money.
 - HTTPS avatar/badge URLs, validated hex name colors, and subscription renewal/upgrade/month/streak/gift provenance are supported when a verified adapter supplies them.
 - Simulated events remain visibly labeled and may be disabled through configuration.
 - Combined, Chat-only, and Alerts-only layouts use the same projection stream and do not make additional platform API calls.
-- The standalone Chat canvas is transparent when empty. Messages appear as bottom-anchored cards and grow upward, so sizing the source does not create a permanent panel background.
+- The standalone Chat canvas is transparent when empty. The default vertical feed is bottom-anchored and grows upward. Creators may instead grow downward, or use a horizontal feed that moves left-to-right or right-to-left. Overflow fades at the oldest-message edge in every direction.
 - Standalone Chat cards use an opaque high-contrast surface with no backdrop blur or scale transform. The container narrows to the available browser viewport while preserving readable type and card proportions.
 - Standalone Alerts use the same opaque, high-contrast rendering approach. Alert cards center within the available source width, wrap long names/messages, and keep bounded readable typography without scale transforms.
 
@@ -75,6 +75,10 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
   "showSimulated": true,
   "chat": {
     "layout": "regular",
+    "orientation": "vertical",
+    "newMessagePosition": "end",
+    "animation": "slide",
+    "textAlign": "left",
     "fontFamily": "system",
     "fontSizePx": 18,
     "textColor": "#ffffff",

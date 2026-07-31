@@ -20,14 +20,16 @@ function harness() {
   let state: unknown;
   const chat: string[] = [];
   const overlays: Array<{ topic: string; payload: Record<string, unknown> }> = [];
+  const mutations: Array<Record<string, unknown>> = [];
   return {
     context: {
-      settings: { enabled: true, rewardId: 'daily-check-in', timeZone: 'America/Chicago' },
+      settings: { enabled: true, rewardId: 'daily-check-in', kickRewardId: 'kick-check-in', commandName: 'checkin', pointsCost: 25, timeZone: 'America/Chicago' },
       state: { read: async () => state, write: async (value: unknown) => { state = value; } },
       chat: { send: async ({ message }: { message: string }) => { chat.push(message); } },
       overlay: { publish: async (topic: string, payload: Record<string, unknown>) => { overlays.push({ topic, payload }); } },
+      viewerFoundation: { getProjection: async () => ({ viewerId: 'viewer-points', currencyName: 'Village Points' }), mutate: async (request: Record<string, unknown>) => { mutations.push(request); return { applied: true }; } },
     },
-    state: () => state, chat, overlays,
+    state: () => state, chat, overlays, mutations,
   };
 }
 
@@ -62,7 +64,7 @@ describe('Village Roll Call add-on', () => {
       villageRollCall.onEvent(redemption('concurrent-2', 'viewer-2'), runtime.context),
     ]);
     const state = sanitizeRollCallState(runtime.state(), Date.now(), 'America/Chicago') as { entries: Array<{ userId: string }> };
-    expect(state.entries.map((entry) => entry.userId).sort()).toEqual(['viewer-1', 'viewer-2']);
+    expect(state.entries.map((entry) => entry.userId).sort()).toEqual(['twitch:viewer-1', 'twitch:viewer-2']);
     await villageRollCall.stop(runtime.context);
   });
 
@@ -70,8 +72,29 @@ describe('Village Roll Call add-on', () => {
     const descriptor = JSON.parse(await readFile('addons/village-roll-call/module-package.json', 'utf8')) as {
       permissions: string[]; manifest: { actionsProvided: unknown[]; eventSubscriptions: string[] };
     };
-    expect(descriptor.permissions).toEqual(['events.subscribe', 'state.private', 'chat.send', 'overlay.publish']);
+    expect(descriptor.permissions).toEqual(['events.subscribe', 'state.private', 'chat.send', 'overlay.publish', 'viewer.foundation.read', 'viewer.foundation.mutate']);
     expect(descriptor.manifest.actionsProvided).toEqual([]);
-    expect(descriptor.manifest.eventSubscriptions).toEqual(['reward.redemption', 'stream.online']);
+    expect(descriptor.manifest.eventSubscriptions).toEqual(['reward.redemption', 'command.received', 'stream.online']);
+  });
+
+  it('uses Kick rewards directly and YouTube commands through Viewer Foundation points', async () => {
+    const kickRuntime = harness();
+    const kick = { ...redemption('kick-1'), platform: 'kick', payload: { rewardId: 'kick-check-in', redemptionId: 'kick-1', verifiedTransport: true, supportedOperations: [] } };
+    await expect(processRollCallEvent(kick, kickRuntime.context, Date.parse('2026-07-30T12:00:00Z'))).resolves.toMatchObject({ accepted: true });
+    expect(kickRuntime.mutations).toEqual([]);
+
+    const youtubeRuntime = harness();
+    const youtube = { ...redemption('youtube-1'), eventType: 'command.received', platform: 'youtube', payload: { command: 'checkin', arguments: [] } };
+    await expect(processRollCallEvent(youtube, youtubeRuntime.context, Date.parse('2026-07-30T12:00:00Z'))).resolves.toMatchObject({ accepted: true });
+    expect(youtubeRuntime.mutations).toEqual([expect.objectContaining({ operation: 'spend', amount: 25, viewerId: 'viewer-points' })]);
+  });
+
+  it('ignores a matching reward ID from an unverified transport', async () => {
+    const runtime = harness();
+    const unverified = redemption('unverified-1');
+    unverified.payload = { ...unverified.payload, verifiedTransport: false };
+    await expect(processRollCallEvent(unverified, runtime.context, Date.parse('2026-07-30T12:00:00Z'))).resolves.toMatchObject({ accepted: false, reason: 'unrelated' });
+    expect(runtime.state()).toBeUndefined();
+    expect(runtime.mutations).toEqual([]);
   });
 });

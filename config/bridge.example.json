@@ -50,6 +50,10 @@
     "showSimulated": true,
     "chat": {
       "layout": "regular",
+      "orientation": "vertical",
+      "newMessagePosition": "end",
+      "animation": "slide",
+      "textAlign": "left",
       "fontFamily": "system",
       "fontSizePx": 18,
       "textColor": "#ffffff",

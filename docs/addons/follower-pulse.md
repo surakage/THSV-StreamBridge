@@ -1,16 +1,16 @@
 # Follower Pulse setup
 
 **Module:** `thsv.follower-pulse`
-**Version:** `2.5.2`
+**Version:** `2.6.0`
 **Publisher:** THSV StreamBridge
 
 Privately detects delayed Twitch unfollows through complete, bounded, two-scan follower reconciliation.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Follower-Pulse-2.5.2.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Follower-Pulse-2.5.2.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Follower-Pulse-2.5.2.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Follower-Pulse-2.6.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Follower-Pulse-2.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Follower-Pulse-2.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps

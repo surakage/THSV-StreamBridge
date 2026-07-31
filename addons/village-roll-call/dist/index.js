@@ -1,9 +1,11 @@
-// Village Roll Call turns one Twitch Channel Points reward into a once-per-day
-// check-in and a bounded monthly leaderboard. StreamBridge owns all state.
+// Village Roll Call accepts Twitch/Kick rewards and YouTube/TikTok point commands.
 const MODULE_ID = 'thsv.village-roll-call';
 const FALLBACKS = Object.freeze({
   enabled: false,
   rewardId: '',
+  kickRewardId: '',
+  commandName: 'checkin',
+  pointsCost: 25,
   timeZone: 'America/Chicago',
   successfulMessage: '{name} checked in! You have {count} check-ins for {month} and rank #{rank}.',
   duplicateMessage: '{name}, you already checked in today.',
@@ -20,21 +22,21 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: MODULE_ID,
   name: 'Village Roll Call',
-  version: '2.5.2',
+  version: '2.6.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.2', maximumTestedBridgeVersion: '2.5.2',
-  dependencies: [],
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
+  dependencies: ['thsv.viewer-foundation'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['reward.redemption', 'stream.online'],
-  commandsProvided: [],
+  eventSubscriptions: ['reward.redemption', 'command.received', 'stream.online'],
+  commandsProvided: [{ id: 'village-roll-call.checkin', name: 'checkin' }],
   actionsProvided: [],
   browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
-    'Create one Streamer.bot-owned Twitch reward and enable Skip Reward Queue.',
-    'Keep Twitch Reward Redemption (Any Reward) attached to THSV Twitch - Intake.',
-    'Paste the stable Reward ID into Village Roll Call, choose the calendar time zone, then enable it.',
+    'Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.',
+    'Create the configured no-response check-in command for YouTube and TikTok through Command Sync.',
+    'Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.',
     'Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its bounded private leaderboard remains preserved for a later reinstall.'],
@@ -48,6 +50,10 @@ function clean(value, maximum = 256) {
 function integer(value, minimum, maximum, fallback) {
   return Number.isSafeInteger(value) ? Math.min(maximum, Math.max(minimum, value)) : fallback;
 }
+function scopedUserId(value) {
+  const userId = clean(value, 256);
+  return userId && !userId.includes(':') ? `twitch:${userId}` : userId;
+}
 function validTimeZone(value) {
   const candidate = clean(value, 100) || FALLBACKS.timeZone;
   try { new Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(); return candidate; }
@@ -58,6 +64,9 @@ function settingsFor(context) {
   return {
     ...raw,
     rewardId: clean(raw.rewardId, 256),
+    kickRewardId: clean(raw.kickRewardId, 256),
+    commandName: clean(raw.commandName, 64).toLowerCase() || 'checkin',
+    pointsCost: integer(raw.pointsCost, 1, 1000000, 25),
     timeZone: validTimeZone(raw.timeZone),
     leaderboardSize: integer(raw.leaderboardSize, 1, 10, 5),
     cardSeconds: integer(raw.cardSeconds, 5, 3600, 20),
@@ -76,7 +85,7 @@ function monthName(monthKey) {
 }
 function safeEntry(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const userId = clean(value.userId, 256);
+  const userId = scopedUserId(value.userId);
   const displayName = clean(value.displayName, 100);
   const count = integer(value.count, 0, 31, 0);
   const lastDay = clean(value.lastDay, 10);
@@ -132,9 +141,9 @@ function format(template, values, maximum = 500) {
   for (const [key, value] of Object.entries(values)) result = result.replaceAll(`{${key}}`, clean(String(value), maximum));
   return [...result].slice(0, maximum).join('');
 }
-async function sendChat(context, message) {
+async function sendChat(context, message, platform = 'twitch') {
   if (!message) return;
-  try { await context.chat.send({ message, routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }); }
+  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'reject' }); }
   catch { /* A cosmetic chat failure never corrupts a valid check-in. */ }
 }
 async function publishCard(context, settings, state, title = 'VILLAGE ROLL CALL') {
@@ -146,21 +155,22 @@ async function publishCard(context, settings, state, title = 'VILLAGE ROLL CALL'
   try { await context.overlay.publish(`${MODULE_ID}.card.show`, { title, text, durationMs: settings.cardSeconds * 1000 }); }
   catch { /* OBS presentation is optional. */ }
 }
-async function announceWinner(context, settings, state, winner) {
+async function announceWinner(context, settings, state, winner, platform) {
   if (!settings.announceMonthlyWinner || !winner || state.announcedMonth === state.previousMonth) return state;
   await sendChat(context, format(settings.monthlyWinnerMessage, {
     name: winner.displayName, count: winner.count, month: monthName(state.previousMonth || ''),
-  }));
+  }), platform);
   return { ...state, announcedMonth: state.previousMonth || '' };
 }
 export async function processRollCallEvent(event, context, now = Date.now()) {
   const settings = settingsFor(context);
-  if (!settings.enabled || !settings.rewardId) return { accepted: false, reason: 'disabled-or-unconfigured' };
-  const matchingReward = event.eventType === 'reward.redemption'
-    && event.platform === 'twitch'
-    && clean(event.payload?.rewardId, 256) === settings.rewardId;
+  if (!settings.enabled) return { accepted: false, reason: 'disabled-or-unconfigured' };
+  const configuredReward = event.platform === 'twitch' ? settings.rewardId : event.platform === 'kick' ? settings.kickRewardId : '';
+  const matchingReward = event.eventType === 'reward.redemption' && ['twitch', 'kick'].includes(event.platform)
+    && event.payload?.verifiedTransport === true && configuredReward && clean(event.payload?.rewardId, 256) === configuredReward;
+  const matchingCommand = event.eventType === 'command.received' && ['youtube', 'tiktok'].includes(event.platform) && clean(event.payload?.command, 64).toLowerCase() === settings.commandName;
   if (event.metadata?.simulated === true) {
-    if (!matchingReward) return { accepted: false, reason: 'simulated-unrelated' };
+    if (!matchingReward && !matchingCommand) return { accepted: false, reason: 'simulated-unrelated' };
     const displayName = clean(event.user?.displayName || event.user?.name, 100) || 'Sample Villager';
     await context.overlay.publish(`${MODULE_ID}.card.show`, {
       title: 'VILLAGE ROLL CALL • PREVIEW',
@@ -171,13 +181,14 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
   }
   let state = sanitizeState(await context.state.read(), now, settings.timeZone);
   const rolled = rollover(state, now, settings.timeZone);
-  state = await announceWinner(context, settings, rolled.state, rolled.winner);
+  state = await announceWinner(context, settings, rolled.state, rolled.winner, event.platform);
   if (event.eventType === 'stream.online') {
     await context.state.write(state);
     return { accepted: false, reason: 'rollover-only' };
   }
-  if (!matchingReward) return { accepted: false, reason: 'unrelated' };
-  const userId = clean(event.user?.id, 256);
+  if (!matchingReward && !matchingCommand) return { accepted: false, reason: 'unrelated' };
+  const providerUserId = clean(event.user?.id, 240);
+  const userId = providerUserId ? `${event.platform}:${providerUserId}` : '';
   const displayName = clean(event.user?.displayName || event.user?.name, 100);
   const redemptionId = clean(event.payload?.redemptionId || event.source?.eventId || event.eventId, 256);
   if (!userId || !displayName || !redemptionId) return { accepted: false, reason: 'missing-stable-identity' };
@@ -188,8 +199,16 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
   if (entry?.lastDay === day) {
     state = { ...state, processedRedemptions: [...state.processedRedemptions, redemptionId].slice(-1000) };
     await context.state.write(state);
-    if (settings.announceDuplicates) await sendChat(context, format(settings.duplicateMessage, { name: displayName }));
+    if (settings.announceDuplicates) await sendChat(context, format(settings.duplicateMessage, { name: displayName }), event.platform);
     return { accepted: false, reason: 'already-checked-in' };
+  }
+  let points;
+  if (matchingCommand) {
+    const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: providerUserId });
+    if (!projection) return { accepted: false, reason: 'viewer-profile-unavailable' };
+    const idempotencyKey = `village-roll-call:${redemptionId}`;
+    try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.pointsCost, reason: 'Village Roll Call check-in', idempotencyKey }); points = { viewerId: projection.viewerId, idempotencyKey }; }
+    catch { await sendChat(context, `You need ${String(settings.pointsCost)} ${projection.currencyName || 'points'} to check in.`, event.platform); return { accepted: false, reason: 'insufficient-points' }; }
   }
   const timestamp = new Date(now).toISOString();
   if (!entry) {
@@ -201,11 +220,15 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
   entry.lastDay = day;
   entry.lastAt = timestamp;
   state = { ...state, entries: rank(entries).slice(0, 500), processedRedemptions: [...state.processedRedemptions, redemptionId].slice(-1000) };
-  await context.state.write(state);
+  try { await context.state.write(state); }
+  catch (error) {
+    if (points) await context.viewerFoundation.mutate({ viewerId: points.viewerId, operation: 'refund', amount: settings.pointsCost, reason: 'Village Roll Call write rollback', idempotencyKey: `${points.idempotencyKey}:rollback` }).catch(() => undefined);
+    throw error;
+  }
   const position = state.entries.findIndex((candidate) => candidate.userId === userId) + 1;
   await sendChat(context, format(settings.successfulMessage, {
     name: displayName, count: entry.count, rank: position, month: monthName(state.month),
-  }));
+  }), event.platform);
   await publishCard(context, settings, state);
   return { accepted: true, simulated: false, count: entry.count, rank: position };
 }

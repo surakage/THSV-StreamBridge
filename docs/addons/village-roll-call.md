@@ -1,61 +1,54 @@
-# Village Roll Call
+# Village Roll Call setup
 
 **Module:** `thsv.village-roll-call`
-**Version:** `2.5.2`
-**Direct Streamer.bot trigger:** None
+**Version:** `2.6.0`
+**Publisher:** THSV StreamBridge
 
-Village Roll Call turns one Streamer.bot-owned Twitch Channel Points reward into one daily check-in per viewer and a private monthly leaderboard.
+Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.
 
 ## Install
 
-1. Download the Village Roll Call package from the same release as StreamBridge.
-2. Install `thsv.village-roll-call-2.5.2.thsv-addon` in the Add-ons page.
-3. Review its four permissions and keep it disabled until the reward ID is configured.
-4. Restart StreamBridge when prompted.
+1. Download and extract `THSV-StreamBridge-AddOn-Village-Roll-Call-2.6.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Village-Roll-Call-2.6.0.thsv-addon` and review its permissions.
+3. No separate Streamer.bot import is required.
+3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Create a Twitch reward inside Streamer.bot.
-2. Enable **Skip Reward Queue**.
-3. Paste its stable Reward ID into the add-on settings.
-4. Choose an IANA calendar time zone, save, and enable the add-on.
+1. Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.
+2. Create the configured no-response check-in command for YouTube and TikTok through Command Sync.
+3. Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.
+4. Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.
 
 ## Streamer.bot
 
-No separate import or direct add-on trigger is required. Keep **Twitch Reward Redemption (Any Reward)** attached to `THSV Twitch - Intake`; the existing normalized reward path routes only the configured reward to Village Roll Call.
+This add-on uses normalized bridge events and does not install a Streamer.bot action package.
 
-## OBS source
+## Browser source
 
-Use:
-
-`http://127.0.0.1:8787/overlay/addons/thsv.village-roll-call`
-
-Press **Send preview card** in the wizard before going live. Successful check-ins show a bounded top-viewer card for the configured duration. The source uses the existing StreamBridge overlay WebSocket and does not create another Streamer.bot connection.
+When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.village-roll-call` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.
 
 ## Offline test
 
-1. Open the OBS source URL and wait for the LIVE badge.
-2. Press **Send preview card** and confirm three sample leaders appear without clipping.
-3. Use a Streamer.bot test redemption for the configured reward.
-4. Confirm the simulated event shows a preview but does not change the saved leaderboard.
-5. Use a genuine redemption only when ready to verify the once-per-day rule.
+1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.
+2. Save the intended settings and use its preview, test, or manual control where available.
+3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.
+4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.
+
+### Health checks
+
+- **thsv.village-roll-call.runtime:** Confirms daily uniqueness, monthly rollover, bounded state, and overlay cards.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, and `overlay.publish`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`.
 
-Private storage: `data/addons/thsv.village-roll-call/` and `data/addons/.state/thsv.village-roll-call/`.
+Private storage: `data/addons/thsv.village-roll-call/`, `data/addons/.state/thsv.village-roll-call/`.
 
-Dependencies: none.
-
-### Rules
-
-- One score per stable Twitch user ID per calendar day.
-- Ranking is check-in count, then earliest first check-in.
-- The previous winner is announced on the first Twitch stream-online or valid check-in event in the new month.
-- Simulated redemptions preview the OBS card but never write leaderboard state.
-- State is capped at 500 monthly viewers and 1,000 replay IDs.
+Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-Uninstalling removes the executable package while preserving its bounded private leaderboard for a later reinstall. Reinstall the matching release if integrity or compatibility is rejected.
+1. Uninstall the add-on. Its bounded private leaderboard remains preserved for a later reinstall.
+
+If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.

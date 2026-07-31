@@ -2,8 +2,6 @@
 
 These guides are generated from the same reviewed manifests used by the setup wizard and release packager. Always use an add-on bundle from the same release as the installed bridge.
 
-New creator? Start with [Beginner setup: optional add-ons](../addon-setup-for-beginners.md), then open the exact add-on guide below.
-
 | Add-on | Module | Streamer.bot import |
 | --- | --- | --- |
 | [Accessibility Captions](./accessibility-captions.md) | `thsv.accessibility-captions` | Not required |
@@ -23,18 +21,19 @@ New creator? Start with [Beginner setup: optional add-ons](../addon-setup-for-be
 | [Free Game Check](./free-game-check.md) | `thsv.free-game-check` | Included in add-on ZIP |
 | [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Included in add-on ZIP |
 | [Live Beacon](./live-beacon.md) | `thsv.live-beacon` | Included in add-on ZIP |
+| [Prize Wheel](./prize-wheel.md) | `thsv.prize-wheel` | Not required |
 | [Quote Vault](./quote-vault.md) | `thsv.quote-vault` | Included in add-on ZIP |
 | [Raid Scout](./raid-scout.md) | `thsv.raid-scout` | Included in add-on ZIP |
 | [Random Clip Player](./random-clip-player.md) | `thsv.random-clip-player` | Included in add-on ZIP |
 | [Scene Actions](./scene-actions.md) | `thsv.scene-actions` | Included in add-on ZIP |
 | [Stream Launch Countdown](./starting-soon-countdown.md) | `thsv.starting-soon-countdown` | Included in add-on ZIP |
 | [Stream Labels](./stream-labels.md) | `thsv.stream-labels` | Not required |
-| [Prize Wheel](./prize-wheel.md) | `thsv.prize-wheel` | Not required |
 | [Subathon Timer](./subathon-timer.md) | `thsv.subathon-timer` | Included in add-on ZIP |
 | [Translate](./user-translate.md) | `thsv.user-translate` | Included in add-on ZIP |
 | [Viewer Foundation](./viewer-foundation.md) | `thsv.viewer-foundation` | Not required |
 | [Viewer Lobby](./viewer-lobby.md) | `thsv.viewer-lobby` | Included in add-on ZIP |
 | [Viewer Spotlight](./viewer-spotlight.md) | `thsv.viewer-spotlight` | Included in add-on ZIP |
 | [Village Draw](./village-draw.md) | `thsv.village-draw` | Not required |
+| [Village Jukebox](./village-jukebox.md) | `thsv.village-jukebox` | Included in add-on ZIP |
 | [Village Roll Call](./village-roll-call.md) | `thsv.village-roll-call` | Not required |
-| [Voice Relay](./voice-relay.md) | `thsv.voice-relay` | Included in add-on ZIP |
+| [Village Voice](./voice-relay.md) | `thsv.voice-relay` | Included in add-on ZIP |

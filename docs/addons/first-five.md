@@ -1,24 +1,24 @@
 # First Five setup
 
 **Module:** `thsv.first-five`
-**Version:** `2.5.2`
+**Version:** `2.6.0`
 **Publisher:** THSV StreamBridge
 
 Runs five Streamer.bot-owned Twitch channel-point rewards in sequence, permits one placement per viewer per stream, and maintains a compact monthly leaderboard.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-First-Five-2.5.2.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-First-Five-2.5.2.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-First-Five-2.5.2.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-First-Five-2.6.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-First-Five-2.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-First-Five-2.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
 1. Import the separate First Five Streamer.bot package.
 2. Keep its Controller action triggerless and approve only that action for this add-on.
-3. Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.
-4. Choose five Streamer.bot-owned Twitch reward IDs in placement order and keep Skip Reward Queue disabled on all five rewards.
+3. Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.
+4. Choose five Twitch IDs and five Kick IDs in placement order, then create the configured no-response command for YouTube and TikTok.
 
 ## Streamer.bot
 
@@ -52,11 +52,11 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`.
 
 Private storage: `data/addons/thsv.first-five/`, `data/addons/.state/thsv.first-five/`.
 
-Dependencies: none.
+Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 

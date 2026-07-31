@@ -1,0 +1,19 @@
+{
+  "intro": "Village Jukebox is a YouTube-first, cross-platform song-request queue. It reuses StreamBridge's existing intakes and overlay connection; the private YouTube API key stays inside its triggerless Streamer.bot resolver action.",
+  "order": ["enabled", "rightsAcknowledged", "requestCommand", "queueCommand", "whenCommand", "wrongSongCommand", "voteSkipCommand", "moderatorSkipCommand", "allowTextSearch", "dailyTextSearchLimit", "enabledPlatforms", "pointsPlatforms", "pointsCost", "rewardRequestsEnabled", "twitchRewardId", "kickRewardId", "maximumQueueSize", "maximumRequestsPerViewer", "viewerCooldownSeconds", "maximumTrackMinutes", "recentNoRepeatCount", "voteSkipRequired", "secondsBetweenTracks", "announceNowPlaying", "volume", "backgroundColor", "accentColor", "textColor", "fontFamily"],
+  "fields": {
+    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity" } },
+    "pointsPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity" } },
+    "dailyTextSearchLimit": { "visibleWhen": { "field": "allowTextSearch", "equals": true } },
+    "twitchRewardId": { "visibleWhen": { "field": "rewardRequestsEnabled", "equals": true } },
+    "kickRewardId": { "visibleWhen": { "field": "rewardRequestsEnabled", "equals": true } }
+  },
+  "sections": [
+    { "id": "start", "title": "1. Start here", "description": "Keep playback disabled until the resolver action, commands, API key, and browser source are ready.", "open": true, "fields": ["enabled", "enabledPlatforms"] },
+    { "id": "commands", "title": "2. Commands", "description": "Create these as no-response commands through Command Sync. Existing platform intake actions carry them to the add-on.", "fields": ["requestCommand", "queueCommand", "whenCommand", "wrongSongCommand", "voteSkipCommand", "moderatorSkipCommand"] },
+    { "id": "cost", "title": "3. Requests, rewards, and points", "description": "YouTube and TikTok normally spend Viewer Foundation points. Twitch and Kick may use free commands or exact native reward IDs.", "fields": ["pointsPlatforms", "pointsCost", "rewardRequestsEnabled", "twitchRewardId", "kickRewardId"] },
+    { "id": "queue", "title": "4. Fair queue and safety", "description": "Limits, cooldowns, quota protection, no-repeat history, and unique vote skipping prevent one viewer or a busy chat from taking over playback.", "fields": ["allowTextSearch", "dailyTextSearchLimit", "maximumQueueSize", "maximumRequestsPerViewer", "viewerCooldownSeconds", "maximumTrackMinutes", "recentNoRepeatCount", "voteSkipRequired", "secondsBetweenTracks"] },
+    { "id": "playback", "title": "5. Playback and appearance", "description": "Use the hosted add-on overlay as a visible YouTube player. Audio playback never uses Spotify.", "fields": ["announceNowPlaying", "volume", "backgroundColor", "accentColor", "textColor", "fontFamily"] },
+    { "id": "rights", "title": "Music and platform notice", "description": "You are responsible for permission to rebroadcast requested music. A playable YouTube video does not grant music or synchronization rights.", "notice": "Spotify playback is intentionally excluded. Spotify's current developer policy does not allow using its platform for non-interactive broadcasting.", "fields": ["rightsAcknowledged"] }
+  ]
+}

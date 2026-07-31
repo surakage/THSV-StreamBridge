@@ -40,10 +40,16 @@
     return ['follower', 'member', 'gift-membership', 'support', 'raid', 'reward', 'latest', 'all'].includes(value) ? value : 'latest';
   })();
   let cardTimer;
+  let cardRevealTimer;
   let mediaTimer;
   let mediaFadeTimer;
   let pendingMediaDurationMs;
   let embeddedPlayback = false;
+  let embeddedPlaybackKind = '';
+  let embeddedConfigured = false;
+  let embeddedConfigurationAttempts = 0;
+  let embeddedMuted = false;
+  let embeddedVolume = 1;
   let heartbeatTimer;
   let activePlaybackId = '';
   let wheelTimer;
@@ -78,12 +84,27 @@
     } catch { return undefined; }
   }
 
+  function safeYouTubeEmbed(value, muted) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > 4_096) return undefined;
+    try {
+      const url = new URL(value);
+      const match = /^\/embed\/([A-Za-z0-9_-]{11})$/u.exec(url.pathname);
+      if (url.protocol !== 'https:' || !['www.youtube.com', 'youtube.com', 'www.youtube-nocookie.com'].includes(url.hostname.toLowerCase()) || !match?.[1]) return undefined;
+      const safe = new URL(`https://www.youtube.com/embed/${match[1]}`);
+      safe.searchParams.set('autoplay', '1'); safe.searchParams.set('enablejsapi', '1'); safe.searchParams.set('playsinline', '1');
+      safe.searchParams.set('rel', '0'); safe.searchParams.set('origin', location.origin);
+      if (muted === true) safe.searchParams.set('mute', '1');
+      return safe.href;
+    } catch { return undefined; }
+  }
+
   function boundedDuration(value, fallback) {
     return Number.isInteger(value) && value >= 1_000 && value <= 3_600_000 ? value : fallback;
   }
 
   function hideCard() {
     clearTimeout(cardTimer);
+    clearInterval(cardRevealTimer);
     card.classList.add('hidden');
     cardImage.classList.add('hidden');
     cardImage.removeAttribute('src');
@@ -201,7 +222,7 @@
     if (imageUrl) { cardImage.src = imageUrl; cardImage.classList.remove('hidden'); }
     const backgroundMode = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass';
     const fontFamily = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
-    const presentationMode = ['single', 'fade-carousel', 'credits-scroll'].includes(payload.presentationMode) ? payload.presentationMode : 'single';
+    const presentationMode = ['single', 'fade-carousel', 'credits-scroll', 'typewriter'].includes(payload.presentationMode) ? payload.presentationMode : 'single';
     card.dataset.background = backgroundMode;
     card.dataset.font = fontFamily;
     card.dataset.presentation = presentationMode;
@@ -215,7 +236,17 @@
     card.style.setProperty('--card-title-size', `${Math.min(84, Math.round(fontSize * 1.25))}px`);
     card.style.setProperty('--card-text-size', `${fontSize}px`);
     cardTitle.textContent = title;
-    cardText.textContent = text;
+    if (presentationMode === 'typewriter' && text) {
+      const words = text.split(/\s+/u).filter(Boolean);
+      const revealDurationMs = boundedDuration(payload.revealDurationMs, boundedDuration(payload.durationMs, 8_000));
+      let visible = 0;
+      cardText.textContent = '';
+      cardRevealTimer = setInterval(() => {
+        visible += 1;
+        cardText.textContent = words.slice(0, visible).join(' ');
+        if (visible >= words.length) clearInterval(cardRevealTimer);
+      }, Math.max(40, Math.floor(revealDurationMs / Math.max(1, words.length))));
+    } else cardText.textContent = text;
     card.classList.remove('hidden');
     cardTimer = setTimeout(hideCard, boundedDuration(payload.durationMs, 8_000));
   }
@@ -353,6 +384,9 @@
     embedMedia.classList.add('hidden');
     media.classList.remove('hidden');
     embeddedPlayback = false;
+    embeddedPlaybackKind = '';
+    embeddedConfigured = false;
+    embeddedConfigurationAttempts = 0;
     mediaTitle.textContent = '';
     mediaTitle.classList.add('hidden');
     mediaShell.classList.remove('fading');
@@ -370,7 +404,9 @@
   }
 
   function playMedia(payload) {
-    const embedUrl = safeTwitchClipEmbed(payload.embedUrl, payload.muted === true);
+    const twitchEmbedUrl = safeTwitchClipEmbed(payload.embedUrl, payload.muted === true);
+    const youtubeEmbedUrl = safeYouTubeEmbed(payload.embedUrl, payload.muted === true);
+    const embedUrl = twitchEmbedUrl || youtubeEmbedUrl;
     const url = embedUrl || safeUrl(payload.url);
     const playbackId = typeof payload.playbackId === 'string' && /^[A-Za-z0-9._:-]{1,100}$/u.test(payload.playbackId) ? payload.playbackId : '';
     if (!url || !playbackId) return;
@@ -383,6 +419,11 @@
     hideTimer();
     activePlaybackId = playbackId;
     embeddedPlayback = Boolean(embedUrl);
+    embeddedPlaybackKind = twitchEmbedUrl ? 'twitch-clip' : youtubeEmbedUrl ? 'youtube' : '';
+    embeddedConfigured = false;
+    embeddedConfigurationAttempts = 0;
+    embeddedMuted = payload.muted === true;
+    embeddedVolume = typeof payload.volume === 'number' && Number.isFinite(payload.volume) ? Math.max(0, Math.min(1, payload.volume)) : 1;
     if (embedUrl) {
       media.classList.add('hidden');
       embedMedia.classList.remove('hidden');
@@ -397,10 +438,19 @@
     const title = typeof payload.title === 'string' ? payload.title.slice(0, 300) : '';
     mediaTitle.textContent = title;
     mediaTitle.classList.toggle('hidden', title.length === 0);
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    mediaShell.style.setProperty('--media-background', safeColor(style.backgroundColor, '#101820'));
+    mediaShell.style.setProperty('--media-accent', safeColor(style.accentColor, '#7ff5cc'));
+    mediaShell.style.setProperty('--media-text', safeColor(style.textColor, '#ffffff'));
+    mediaShell.dataset.font = ['broadcast', 'display', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
     mediaShell.classList.remove('fading');
     mediaShell.classList.remove('hidden');
     reportLifecycle('loading');
     pendingMediaDurationMs = payload.durationMs;
+    // A blocked embed, offline browser source, or missing IFrame API event must never hold the
+    // shared media slot forever. Once playback actually starts, the normal duration watchdog
+    // replaces this short startup deadline.
+    if (embeddedPlaybackKind === 'youtube') mediaTimer = setTimeout(() => clearMedia('timeout'), 20_000);
     if (!embedUrl) void startNativeMedia();
   }
 
@@ -422,8 +472,28 @@
     }
   }
 
+  function commandYouTubePlayer(func, args = []) {
+    try { embedMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args, id: activePlaybackId }), 'https://www.youtube.com'); } catch { /* The duration watchdog still prevents a stuck player. */ }
+  }
+
+  function configureYouTubePlayer() {
+    if (embeddedConfigured || embeddedConfigurationAttempts >= 3 || embeddedPlaybackKind !== 'youtube' || !activePlaybackId) return;
+    embeddedConfigurationAttempts += 1;
+    commandYouTubePlayer('setVolume', [Math.round(embeddedVolume * 100)]);
+    commandYouTubePlayer(embeddedMuted ? 'mute' : 'unMute');
+    commandYouTubePlayer('playVideo');
+  }
+
   embedMedia.addEventListener('load', () => {
     if (!activePlaybackId || !embeddedPlayback || !embedMedia.getAttribute('src')) return;
+    if (embeddedPlaybackKind === 'youtube') {
+      try {
+        embedMedia.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: activePlaybackId }), 'https://www.youtube.com');
+        embedMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onReady'], id: activePlaybackId }), 'https://www.youtube.com');
+        embedMedia.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'], id: activePlaybackId }), 'https://www.youtube.com');
+      } catch { /* The bounded duration watchdog still prevents a stuck player. */ }
+      return;
+    }
     transportState('live');
     reportLifecycle('started');
     clearTimeout(mediaTimer);
@@ -434,6 +504,22 @@
       mediaShell.classList.add('fading');
       mediaFadeTimer = setTimeout(() => clearMedia(), mediaFadeMs);
     }, boundedDuration(durationWithGrace, 64_000));
+  });
+
+  addEventListener('message', (message) => {
+    if (embeddedPlaybackKind !== 'youtube' || !activePlaybackId || message.source !== embedMedia.contentWindow || !['https://www.youtube.com', 'https://www.youtube-nocookie.com'].includes(message.origin)) return;
+    let payload;
+    try { payload = typeof message.data === 'string' ? JSON.parse(message.data) : message.data; } catch { return; }
+    if (payload?.event === 'onReady' || payload?.event === 'infoDelivery') configureYouTubePlayer();
+    const state = payload?.event === 'onStateChange' ? Number(payload.info) : payload?.event === 'infoDelivery' ? Number(payload.info?.playerState) : Number.NaN;
+    if (state === 1) {
+      embeddedConfigured = true;
+      transportState('live'); reportLifecycle('started'); clearInterval(heartbeatTimer); heartbeatTimer = setInterval(() => reportLifecycle('heartbeat'), 10_000);
+      clearTimeout(mediaTimer); const durationWithGrace = Number.isInteger(pendingMediaDurationMs) ? pendingMediaDurationMs + 15_000 : undefined;
+      mediaTimer = setTimeout(() => clearMedia('timeout'), boundedDuration(durationWithGrace, 75_000));
+    } else if (state === 0) {
+      clearTimeout(mediaTimer); clearInterval(heartbeatTimer); reportLifecycle('ended'); mediaShell.classList.add('fading'); mediaFadeTimer = setTimeout(() => clearMedia(), mediaFadeMs);
+    }
   });
 
   media.addEventListener('playing', () => {

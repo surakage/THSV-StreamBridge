@@ -13,7 +13,7 @@ The order is configurable. Each source can be disabled. Search requests, pages, 
 The preferred tier can combine two lists:
 
 - Permanent creator-managed channels saved in the wizard.
-- Viewer suggestions submitted through one configured Twitch Channel Points reward. Viewer entries are deduplicated, bounded, optionally limited to one per viewer, searched before the permanent list, and cleared on stream offline and again on the next stream online event.
+- Viewer suggestions submitted through Twitch or Kick rewards, or a Viewer Foundation points command on YouTube and TikTok. Entries are deduplicated, bounded, optionally limited to one per platform-qualified viewer, searched before the permanent list, and cleared after the stream.
 
 ## Selection and safety
 
@@ -27,15 +27,15 @@ The preferred tier can combine two lists:
 
 ## Install
 
-1. Import `THSV-StreamBridge-Raid-Scout-2.5.2.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Raid-Scout-2.6.0.sb` into Streamer.bot.
 2. Leave `THSV Addon - Raid Scout - Controller` triggerless.
-3. Install `thsv.raid-scout-2.5.2.thsv-addon` through the StreamBridge wizard.
+3. Install `thsv.raid-scout-2.6.0.thsv-addon` through the StreamBridge wizard.
 4. Inspect Streamer.bot and approve only the Raid Scout Controller action.
 5. Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.
 6. Open the add-on overlay URL as a private browser/OBS/Meld dock so you can review the suggestion.
 7. Configure preferred channels and filters, then use Suggest while live.
 
-To accept viewer suggestions, create a Streamer.bot-owned Twitch reward that requires text input, leave Skip Queue disabled, set its per-user-per-stream limit to 1, and paste its reward ID into Raid Scout's wizard settings. The existing `THSV Twitch - Intake` action already relays reward redemptions; do not add a platform trigger to Raid Scout. Valid suggestions are fulfilled only after Raid Scout reserves them, while invalid, duplicate, blocked, or over-capacity suggestions are refunded when Twitch exposes the supported operation.
+To accept viewer suggestions, create Twitch and Kick rewards that require a channel login in the viewer input, and paste both IDs into Raid Scout. The existing platform intakes already relay those redemptions. Twitch suggestions are fulfilled or refunded through the controller; Kick suggestions are accepted directly and cannot be refunded automatically. For YouTube and TikTok, create the configured no-response command (for example `!raidsuggest creatorname`) and choose its Viewer Foundation points cost.
 
 Suggestion cards are enabled for that private dock by default. If the same URL is placed in a public scene, disable suggestion cards unless viewers should see an unconfirmed destination. The confirmed Next Stop card has its own toggle.
 

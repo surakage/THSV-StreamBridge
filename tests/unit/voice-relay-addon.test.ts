@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-on entrypoints are plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import voiceRelay, { textFor } from '../../addons/voice-relay/dist/index.js';
@@ -16,6 +16,9 @@ type ScheduledTask = { readonly id: string; readonly callback: () => Promise<voi
 
 function runtime(overrides: Record<string, unknown> = {}) {
   const calls: Array<Record<string, unknown>> = [];
+  const overlays: Array<{ topic: string; payload: Record<string, unknown> }> = [];
+  const chats: string[] = [];
+  const pointMutations: Array<Record<string, unknown>> = [];
   const tasks: ScheduledTask[] = [];
   let taskNumber = 0;
   const context = {
@@ -26,12 +29,18 @@ function runtime(overrides: Record<string, unknown> = {}) {
       ...overrides,
     },
     streamerbot: { runApprovedAction: async (_actionId: string, args: Record<string, unknown>) => { calls.push(args); } },
+    overlay: { publish: async (topic: string, payload: Record<string, unknown>) => { overlays.push({ topic, payload }); } },
+    chat: { send: async ({ message }: { message: string }) => { chats.push(message); } },
+    viewerFoundation: {
+      getProjection: async () => ({ viewerId: 'viewer-one', currencyName: 'Village Points' }),
+      mutate: async (request: Record<string, unknown>) => { pointMutations.push(request); return { applied: true }; },
+    },
     schedule: {
       after: (_delay: number, callback: () => Promise<void>) => { taskNumber += 1; const id = `task-${String(taskNumber)}`; tasks.push({ id, callback }); return id; },
       cancel: (id: string) => { const index = tasks.findIndex((task) => task.id === id); if (index >= 0) tasks.splice(index, 1); },
     },
   };
-  return { context, calls, tasks };
+  return { context, calls, tasks, overlays, chats, pointMutations };
 }
 
 function event(eventType: string, payload: Record<string, unknown> = {}) {
@@ -42,10 +51,13 @@ function control(action: 'pause' | 'resume' | 'stop') {
   return { eventType: 'addon.thsv.voice-relay.control', platform: 'mock', metadata: {}, payload: { action } };
 }
 
+beforeEach(async () => {
+  await voiceRelay.start();
+});
+
 afterEach(async () => {
   const clean = runtime();
   await voiceRelay.stop(clean.context);
-  await voiceRelay.onEvent(control('resume'), clean.context);
 });
 
 describe('Voice Relay', () => {
@@ -95,5 +107,27 @@ describe('Voice Relay', () => {
     expect(aggregate).toBeDefined();
     await aggregate?.callback();
     expect(test.calls).toEqual([{ voiceRelayMessage: 'Thank you for the 100 bits, Alex!', voiceRelayVoiceAlias: 'THSV Male' }]);
+  });
+
+  it('uses a native Kick reward without spending Viewer Foundation points', async () => {
+    const test = runtime({ viewerRequestsEnabled: true, kickRewardId: 'kick-tts', showSpeechOverlay: true });
+    await voiceRelay.onEvent({ ...event('reward.redemption', { rewardId: 'kick-tts', redemptionId: 'kick-redemption', input: 'Hello from Kick', verifiedTransport: true }), platform: 'kick' }, test.context);
+    expect(test.calls).toEqual([{ voiceRelayMessage: 'Hello from Kick', voiceRelayVoiceAlias: 'THSV Male' }]);
+    expect(test.pointMutations).toEqual([]);
+    expect(test.overlays[0]).toMatchObject({ topic: 'thsv.voice-relay.card.show', payload: { title: 'Alex • KICK', presentationMode: 'typewriter' } });
+  });
+
+  it('does not speak an unverified reward even when its ID matches', async () => {
+    const test = runtime({ viewerRequestsEnabled: true, twitchRewardId: 'twitch-tts' });
+    await voiceRelay.onEvent(event('reward.redemption', { rewardId: 'twitch-tts', redemptionId: 'unverified', input: 'Do not speak this' }), test.context);
+    expect(test.calls).toEqual([]);
+    expect(test.pointMutations).toEqual([]);
+  });
+
+  it('spends Viewer Foundation points for a YouTube command request', async () => {
+    const test = runtime({ viewerRequestsEnabled: true, pointsCommand: 'speak', pointsCost: 75, showSpeechOverlay: false });
+    await voiceRelay.onEvent({ ...event('command.received', { command: 'speak', arguments: ['Hello', 'YouTube'] }), eventId: 'youtube-speak-1', platform: 'youtube' }, test.context);
+    expect(test.calls).toEqual([{ voiceRelayMessage: 'Hello YouTube', voiceRelayVoiceAlias: 'THSV Male' }]);
+    expect(test.pointMutations).toEqual([expect.objectContaining({ operation: 'spend', amount: 75, viewerId: 'viewer-one' })]);
   });
 });

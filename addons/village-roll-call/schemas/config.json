@@ -6,6 +6,9 @@
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable Village Roll Call", "default": false },
     "rewardId": { "type": "string", "title": "Twitch check-in Reward ID", "description": "Create this reward inside Streamer.bot, enable Skip Reward Queue, then paste its stable Reward ID.", "maxLength": 256, "default": "" },
+    "kickRewardId": { "type": "string", "title": "Kick check-in Reward ID", "description": "Use Kick Channel Reward > Reward Redemption. Duplicate Kick claims cannot be automatically refunded.", "maxLength": 256, "default": "" },
+    "commandName": { "type": "string", "title": "YouTube and TikTok check-in command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "maxLength": 64, "default": "checkin" },
+    "pointsCost": { "type": "integer", "title": "YouTube and TikTok check-in cost", "minimum": 1, "maximum": 1000000, "default": 25 },
     "timeZone": { "type": "string", "title": "Calendar time zone", "description": "IANA time zone used for each new day and month, for example America/Chicago.", "minLength": 1, "maxLength": 100, "default": "America/Chicago" },
     "successfulMessage": { "type": "string", "format": "multiline", "title": "Successful check-in message", "description": "Tokens: {name}, {count}, {rank}, {month}.", "minLength": 1, "maxLength": 500, "default": "{name} checked in! You have {count} check-ins for {month} and rank #{rank}." },
     "announceDuplicates": { "type": "boolean", "title": "Tell viewers they already checked in today", "default": true },

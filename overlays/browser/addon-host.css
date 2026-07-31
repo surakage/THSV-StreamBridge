@@ -21,11 +21,15 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 .card strong { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; color: var(--card-accent); font-size: clamp(22px, 4vmin, 58px); line-height: 1.05; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .card p { display: -webkit-box; margin: 0.45em 0 0; overflow: hidden; overflow-wrap: anywhere; font-size: min(var(--card-text-size), clamp(16px, 2.3vmin, 36px)); line-height: 1.25; -webkit-box-orient: vertical; -webkit-line-clamp: 5; }
 .card strong { font-size: min(var(--card-title-size), clamp(22px, 4vmin, 58px)); }
-.media-shell { position: relative; width: min(100%, 1600px); height: min(100%, 900px); display: grid; place-items: center; opacity: 1; transition: opacity .75s ease-in-out; }
+.media-shell { position: relative; width: min(100%, 1600px); height: min(100%, 900px); display: grid; place-items: center; padding: 3px; border: 2px solid var(--media-accent, transparent); border-radius: 22px; background: var(--media-background, transparent); opacity: 1; transition: opacity .75s ease-in-out; }
+.media-shell[data-font="display"] { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.media-shell[data-font="broadcast"] { font-family: "Segoe UI", Inter, ui-sans-serif, system-ui, sans-serif; }
+.media-shell[data-font="serif"] { font-family: Georgia, "Times New Roman", serif; }
+.media-shell[data-font="mono"] { font-family: Consolas, "Courier New", monospace; }
 .media-shell.fading { opacity: 0; }
 .media-shell video { width: 100%; height: 100%; object-fit: contain; border-radius: 20px; background: #000; box-shadow: 0 18px 70px rgb(0 0 0 / 55%); }
 .media-shell .embed-media { width: 100%; height: 100%; border: 0; border-radius: 20px; background: #000; box-shadow: 0 18px 70px rgb(0 0 0 / 55%); }
-.media-title { position: absolute; left: 4%; right: 4%; bottom: 4%; padding: 0.5em 0.7em; overflow-wrap: anywhere; border-radius: 12px; background: rgb(0 0 0 / 72%); font-size: clamp(20px, 2.5vw, 42px); text-align: center; }
+.media-title { position: absolute; left: 4%; right: 4%; bottom: 4%; padding: 0.5em 0.7em; overflow-wrap: anywhere; border: 1px solid color-mix(in srgb, var(--media-accent, #7ff5cc) 55%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--media-background, #101820) 88%, transparent); color: var(--media-text, #fff); font-size: clamp(20px, 2.5vw, 42px); text-align: center; text-shadow: 0 2px 4px rgb(0 0 0 / 80%); }
 .timer-shell { --timer-background: #0b1017; --timer-background-rendered: rgb(11 16 23 / 88%); --timer-accent: #7ee0ff; --timer-text: #eff7ff; --timer-muted: #dfefff; --timer-warning: #f0c15a; --timer-critical: #ff6b7d; --timer-live: #61f2a4; --timer-border: #85cbff; width: min(94vw, 1100px); color: var(--timer-text); }
 .timer-card { position: relative; overflow: hidden; padding: clamp(22px, 4vw, 54px); border: 2px solid var(--timer-border); border-radius: clamp(20px, 3vw, 40px); background: var(--timer-background-rendered); box-shadow: 0 22px 80px rgb(0 0 0 / 48%); }
 .timer-shell[data-background="none"] .timer-card { border-color: transparent; background: transparent; box-shadow: none; }

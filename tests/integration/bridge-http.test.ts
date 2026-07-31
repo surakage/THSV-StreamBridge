@@ -121,7 +121,9 @@ describe('bridge HTTP integration', () => {
     expect((await fetch(`${baseUrl}/overlay/styles-1.3.6.css`)).status).toBe(200);
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
     expect((await fetch(`${baseUrl}/overlay/addons/unknown.module`)).status).toBe(404);
-    expect((await fetch(`${baseUrl}/overlay/addons/host.js`)).status).toBe(200);
+    const addOnHost = await fetch(`${baseUrl}/overlay/addons/host.js`);
+    expect(addOnHost.status).toBe(200);
+    expect(addOnHost.headers.get('content-security-policy')).toContain('frame-src https://clips.twitch.tv https://www.youtube.com https://www.youtube-nocookie.com');
     expect((await fetch(`${baseUrl}/overlay/addons/host.css`)).status).toBe(200);
   });
 });

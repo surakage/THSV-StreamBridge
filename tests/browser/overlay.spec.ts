@@ -86,7 +86,9 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[data-guided-section="command-response"]')).toHaveAttribute('open', '');
   await expect(commandForm.locator('[data-guided-section="command-safety"]')).not.toHaveAttribute('open', '');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
-  await expect(commandForm.locator('[name="template"] option')).toHaveCount(31);
+  await expect(commandForm.locator('[name="template"] option')).toHaveCount(37);
+  await expect(commandForm.locator('[name="template"] option[value="village-jukebox-request"]')).toHaveText('Village Jukebox request — Multi-platform');
+  await expect(commandForm.locator('[name="template"] option[value="village-jukebox-skip"]')).toHaveText('Village Jukebox moderator skip — Multi-platform');
   await expect(commandForm.locator('[name="template"] option[value="weather"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="discord"]')).toHaveCount(1);
   for (const removed of ['rules', 'love', 'specs', 'emotes', 'bot']) {
@@ -306,8 +308,16 @@ test('wizard shows only the selected platform events and exposes platform color 
   // "Layout & text" is open by default; other settings sections start collapsed.
   await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(5);
   await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'regular');
-  await form.locator('[name="layout"]').selectOption('compact');
+  await form.locator('.chat-layout-options label').filter({ hasText: 'Compact' }).click();
   await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'compact');
+  await form.locator('[name="orientation"]').selectOption('horizontal');
+  await form.locator('[name="newMessagePosition"]').selectOption('start');
+  await form.locator('[name="animation"]').selectOption('fade');
+  await form.locator('[name="textAlign"]').selectOption('center');
+  await expect(page.locator('#chat-preview-list')).toHaveAttribute('data-orientation', 'horizontal');
+  await expect(page.locator('#chat-preview-list')).toHaveAttribute('data-new-message-position', 'start');
+  await expect(page.locator('#chat-preview-list')).toHaveAttribute('data-animation', 'fade');
+  await expect(page.locator('#chat-preview-list')).toHaveAttribute('data-text-align', 'center');
   await form.locator('summary').filter({ hasText: '3. Names, badges, and profile pictures' }).click();
   await form.locator('[name="showProfilePictures"]').uncheck();
   await expect(page.locator('#chat-preview-list .preview-chat-avatar')).toHaveCount(0);
@@ -481,11 +491,12 @@ test('all chat platforms use accessible contrasting names, one moderator badge, 
     await expect(card.getByText('Moderator', { exact: true })).toHaveCount(0);
   }
   await expect(page.locator('#chat .message')).toHaveCount(4);
+  await page.waitForTimeout(300);
   const layout = await page.locator('#chat .message').evaluateAll((cards) => cards.map((card) => {
     const bounds = card.getBoundingClientRect();
     return { left: bounds.left, right: bounds.right, bottom: bounds.bottom, width: bounds.width };
   }));
-  expect(layout.every((card) => card.left >= 7 && card.right <= 673 && card.bottom <= 792)).toBe(true);
+  expect(layout.every((card) => card.left >= 7 && card.right <= 673 && card.bottom <= 792), JSON.stringify(layout)).toBe(true);
   expect(new Set(layout.map((card) => Math.round(card.width))).size).toBe(1);
   expect(layout[0]?.width).toBeGreaterThanOrEqual(660);
 
@@ -710,4 +721,36 @@ test('Raid Scout mounts only the bounded official Twitch clip embed', async ({ p
   }));
   await expect(page.locator('#media-shell')).toHaveClass(/fading/u);
   await expect(page.locator('#media-shell')).toBeHidden({ timeout: 2_000 });
+});
+
+test('Village Jukebox mounts only a bounded official YouTube player with creator styling', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.village-jukebox', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.route('https://www.youtube.com/embed/**', async (route) => await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>youtube</title>' }));
+  await page.goto('/overlay/addons/thsv.village-jukebox');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.village-jukebox',
+    topic: 'thsv.village-jukebox.media.play',
+    payload: {
+      playbackId: 'jukebox-request-1', embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', durationMs: 212_000, muted: false, volume: 0.7,
+      title: 'A safe test song — Example Artist • requested by Village Viewer',
+      style: { backgroundColor: '#101820', accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast' },
+    },
+  }));
+  await expect(page.locator('#embed-media')).toBeVisible();
+  const source = await page.locator('#embed-media').getAttribute('src');
+  expect(source).toContain('/embed/dQw4w9WgXcQ');
+  expect(source).toContain('autoplay=1');
+  expect(source).toContain('enablejsapi=1');
+  expect(source).toContain('origin=http%3A%2F%2F127.0.0.1');
+  await expect(page.locator('#media')).toBeHidden();
+  await expect(page.locator('#media-title')).toHaveText('A safe test song — Example Artist • requested by Village Viewer');
+  await expect(page.locator('#media-shell')).toHaveCSS('--media-accent', '#7ff5cc');
+
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.village-jukebox',
+    topic: 'thsv.village-jukebox.media.play', payload: { playbackId: 'bad-host', embedUrl: 'https://example.com/embed/dQw4w9WgXcQ' },
+  }));
+  expect(await page.locator('#embed-media').getAttribute('src')).toBe(source);
 });

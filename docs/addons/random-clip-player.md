@@ -1,21 +1,21 @@
 # Random Clip Player setup
 
 **Module:** `thsv.random-clip-player`
-**Version:** `2.5.2`
+**Version:** `2.6.0`
 **Publisher:** THSV StreamBridge
 
 Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Random-Clip-Player-2.5.2.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Random-Clip-Player-2.5.2.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.5.2.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Random-Clip-Player-2.6.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Random-Clip-Player-2.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.5.2.sb into Streamer.bot.
+1. Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.6.0.sb into Streamer.bot.
 2. In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.
 3. Bind or manually run the imported Enable and Disable actions. Playback always starts off after StreamBridge launches and cannot begin until Enable is triggered.
 4. Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.
@@ -38,8 +38,6 @@ Creator-selected triggers:
 - **enable:** Attach the streaming host's scene-active trigger for the scene that should play clips.
 - **disable:** Attach the same scene's scene-inactive trigger, or the next scene's scene-active trigger.
 
-When Raid Scout confirms a clip preview with its recommended coordination option enabled, Random Clip Player keeps its Enable state and no-repeat rotation, fades out, and pauses requests while Raid Scout owns the shared video slot. Cancellation, lookup failure, playback failure, or raid failure releases the slot and allows Random Clip Player to resume. A successful raid keeps the slot protected for the bounded handoff window so the ending-scene clip cannot cover the raid preview.
-
 ## Browser source
 
 When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.random-clip-player` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.
@@ -61,7 +59,7 @@ Package kind: **executable**. Requested permissions: `streamerbot.run-approved-a
 
 Private storage: `data/addons/thsv.random-clip-player/`, `data/addons/.state/thsv.random-clip-player/`.
 
-Dependencies: `thsv.clip-library-cache`.
+Dependencies: none. **Clip Library Cache is optional** and reduces repeated Twitch clip-list calls when several clip features are installed; the player retains its own bounded fallback lookup.
 
 ## Remove or repair
 

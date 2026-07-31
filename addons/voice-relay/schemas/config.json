@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Voice Relay",
+  "title": "Village Voice",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -8,6 +8,25 @@
     "eventTypes": { "type": "array", "title": "Events whose thank-you may be spoken", "items": { "type": "string", "enum": ["channel.follow", "channel.subscription", "channel.membership", "channel.gift-subscription", "engagement.gift", "engagement.donation", "engagement.cheer", "engagement.raid", "engagement.super-chat", "engagement.milestone", "chat.message"] }, "maxItems": 11, "uniqueItems": true, "default": ["channel.follow", "channel.subscription", "channel.membership", "channel.gift-subscription", "engagement.gift", "engagement.donation", "engagement.cheer", "engagement.raid", "engagement.super-chat", "engagement.milestone"] },
     "viewerMessageEventTypes": { "type": "array", "title": "Events whose viewer message may also be spoken", "items": { "type": "string", "enum": ["channel.subscription", "channel.membership", "channel.gift-subscription", "engagement.gift", "engagement.donation", "engagement.cheer", "engagement.raid", "engagement.super-chat"] }, "maxItems": 8, "uniqueItems": true, "default": [] },
     "voiceAlias": { "type": "string", "title": "Speaker.bot voice alias", "maxLength": 80, "default": "" },
+    "viewerRequestsEnabled": { "type": "boolean", "title": "Allow viewer TTS requests", "default": false },
+    "twitchRewardId": { "type": "string", "title": "Twitch TTS reward ID", "description": "Use a Streamer.bot-owned Twitch reward that requires viewer input.", "maxLength": 256, "default": "" },
+    "kickRewardId": { "type": "string", "title": "Kick TTS reward ID", "description": "Use the stable ID from Kick Channel Reward > Reward Redemption. Kick redemptions cannot be automatically refunded by the current documented API.", "maxLength": 256, "default": "" },
+    "pointsCommand": { "type": "string", "title": "YouTube and TikTok TTS command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "maxLength": 64, "default": "speak" },
+    "pointsPlatforms": { "type": "array", "title": "Platforms that use Viewer Foundation points", "items": { "type": "string", "enum": ["youtube", "tiktok"] }, "minItems": 1, "maxItems": 2, "uniqueItems": true, "default": ["youtube", "tiktok"] },
+    "pointsCost": { "type": "integer", "title": "Points charged per YouTube or TikTok request", "minimum": 1, "maximum": 1000000, "default": 100 },
+    "viewerCooldownSeconds": { "type": "integer", "title": "Per-viewer TTS cooldown (seconds)", "minimum": 0, "maximum": 86400, "default": 30 },
+    "twitchRequestCharacters": { "type": "integer", "title": "Twitch spoken-message limit", "minimum": 20, "maximum": 400, "default": 300 },
+    "kickRequestCharacters": { "type": "integer", "title": "Kick spoken-message limit", "minimum": 20, "maximum": 400, "default": 300 },
+    "youtubeRequestCharacters": { "type": "integer", "title": "YouTube spoken-message limit", "minimum": 20, "maximum": 400, "default": 200 },
+    "tiktokRequestCharacters": { "type": "integer", "title": "TikTok spoken-message limit", "minimum": 20, "maximum": 400, "default": 150 },
+    "showSpeechOverlay": { "type": "boolean", "title": "Show the speaker card while TTS plays", "default": true },
+    "wordsPerMinute": { "type": "integer", "title": "Estimated voice speed for overlay timing", "minimum": 80, "maximum": 260, "default": 165 },
+    "overlayBackgroundMode": { "type": "string", "title": "Speaker-card background", "enum": ["glass", "solid", "none"], "default": "glass" },
+    "overlayBackgroundColor": { "type": "string", "title": "Speaker-card background color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#101820" },
+    "overlayBackgroundOpacity": { "type": "number", "title": "Speaker-card background opacity", "minimum": 0, "maximum": 1, "default": 0.94 },
+    "overlayAccentColor": { "type": "string", "title": "Speaker-card name color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ff5cc" },
+    "overlayTextColor": { "type": "string", "title": "Speaker-card message color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
+    "overlayFontSize": { "type": "integer", "title": "Speaker-card message size", "minimum": 20, "maximum": 72, "default": 38 },
     "followTemplate": { "type": "string", "title": "Follow thank-you", "minLength": 1, "maxLength": 400, "default": "Welcome to The Hidden Sloth Village, {actor}! Glad to have you join the village." },
     "subscriptionTemplate": { "type": "string", "title": "Subscription thank-you", "minLength": 1, "maxLength": 400, "default": "Thank you for becoming part of the village, {actor}!" },
     "membershipTemplate": { "type": "string", "title": "Membership thank-you", "minLength": 1, "maxLength": 400, "default": "Thank you for becoming part of the village, {actor}!" },
@@ -30,6 +49,14 @@
     {
       "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
       "then": { "properties": { "voiceAlias": { "minLength": 1 } } }
+    },
+    {
+      "if": { "properties": { "viewerRequestsEnabled": { "const": true } }, "required": ["viewerRequestsEnabled"] },
+      "then": { "anyOf": [
+        { "required": ["twitchRewardId"], "properties": { "twitchRewardId": { "minLength": 1 } } },
+        { "required": ["kickRewardId"], "properties": { "kickRewardId": { "minLength": 1 } } },
+        { "required": ["pointsPlatforms"] }
+      ] }
     }
   ]
 }

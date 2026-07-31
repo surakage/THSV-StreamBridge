@@ -1,23 +1,25 @@
-# Voice Relay setup
+# Village Voice setup
 
 **Module:** `thsv.voice-relay`
-**Version:** `2.5.2`
+**Version:** `2.6.0`
 **Publisher:** THSV StreamBridge
 
-Safely routes selected normalized alerts and opt-in chat to Speaker.bot through one bounded filtered queue.
+Routes selected alerts and cross-platform viewer TTS requests through one bounded Speaker.bot queue with an optional avatar and progressive-text overlay.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Voice-Relay-2.5.2.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Voice-Relay-2.5.2.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Voice-Relay-2.5.2.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Village-Voice-2.6.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Village-Voice-2.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Voice-Relay-2.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
 1. Connect Speaker.bot in Streamer.bot.
-2. Import Voice Relay, approve only Speak, and test a harmless phrase.
-3. Review filters and event types before enabling; attach Pause/Resume/Stop only to creator controls.
+2. Import Village Voice, approve only Speak, and test a harmless phrase.
+3. For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.
+4. For YouTube and TikTok, create the configured no-response command in Command Sync and enable Viewer Foundation points.
+5. Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card.
 
 ## Streamer.bot
 
@@ -49,18 +51,18 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ### Health checks
 
-- **thsv.voice-relay.runtime:** Confirms bounded filtered Speaker.bot dispatch is available.
+- **thsv.voice-relay.runtime:** Confirms bounded filtered Speaker.bot dispatch and viewer-request routing are available.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `schedule.bounded`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `schedule.bounded`, `overlay.publish`, `chat.send`, `viewer.foundation.read`, `viewer.foundation.mutate`.
 
 Private storage: `data/addons/thsv.voice-relay/`, `data/addons/.state/thsv.voice-relay/`.
 
-Dependencies: none.
+Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-1. Uninstall Voice Relay. It retains no spoken text history.
+1. Uninstall Village Voice. It retains no spoken text history.
 
 If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.

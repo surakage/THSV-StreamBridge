@@ -1,7 +1,7 @@
 {
-  "intro": "Fan Crown turns one Streamer.bot-owned Twitch Channel Points reward into a rotating crown. The current holder must be challenged, the real points spent become the monthly score, and every rejected redemption is sent for refund.",
+  "intro": "Fan Crown uses native rewards on Twitch and Kick, plus Viewer Foundation points on YouTube and TikTok. Twitch keeps full reward mutation and refund support.",
   "order": [
-    "enabled", "rewardId", "baseRewardTitle", "holderTitleTemplate",
+    "enabled", "rewardId", "kickRewardId", "commandName", "baseRewardTitle", "holderTitleTemplate",
     "pricingMode", "baseCost", "fixedIncrease", "multiplier", "maximumCost", "roundingIncrement",
     "resetEachStream", "blockCurrentHolder", "userCooldownMinutes", "allowBroadcaster", "allowModerators",
     "announceCaptures", "captureMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate",
@@ -19,10 +19,11 @@
   "sections": [
     {
       "id": "setup",
-      "title": "1. Connect the reward",
-      "description": "Create and own the reward in Streamer.bot, then paste its stable Reward ID. Match its initial title and cost to these settings.",
+      "title": "1. Connect each platform",
+      "description": "Paste Twitch and Kick reward IDs, then create the no-response Fan Crown command for YouTube and TikTok.",
       "open": true,
-      "fields": ["enabled", "rewardId", "baseRewardTitle", "holderTitleTemplate"]
+      "fields": ["enabled", "rewardId", "kickRewardId", "commandName", "baseRewardTitle", "holderTitleTemplate"],
+      "notice": "Recommended rewards — Twitch: Fan Crown, base cost from this page, gold #F2C94C, description 'Claim the crown and become the stream current No. 1 Fan', Skip Reward Queue off. Kick: use the same title, description, color, and a fixed cost equal to Base cost. Kick captures are native, but Streamer.bot cannot automatically change the Kick title/cost or refund a rejected claim. YouTube and TikTok spend the current displayed cost from Viewer Foundation."
     },
     {
       "id": "pricing",
@@ -33,12 +34,12 @@
     {
       "id": "eligibility",
       "title": "3. Viewer rules and resets",
-      "description": "The current holder is blocked by default. Optional cooldowns use stable Twitch user IDs rather than changeable display names.",
+      "description": "The current holder is blocked by default. Optional cooldowns use platform-qualified stable user IDs rather than changeable display names.",
       "fields": ["resetEachStream", "blockCurrentHolder", "userCooldownMinutes", "allowBroadcaster", "allowModerators"]
     },
     {
       "id": "chat",
-      "title": "4. Twitch chat messages",
+      "title": "4. Platform chat messages",
       "description": "Capture announcements are editable. Refund explanations are disabled by default to avoid chat noise.",
       "fields": ["announceCaptures", "captureMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate", "announceMonthlyWinner", "monthlyWinnerMessageTemplate"]
     },
@@ -52,7 +53,7 @@
       "id": "maintenance",
       "title": "Maintenance and privacy",
       "description": "The companion package includes Reset Crown and Reset Month actions. Attach them only to creator-controlled hotkeys or deck buttons.",
-      "notice": "Fan Crown stores only stable Twitch user IDs, current display names, optional HTTPS avatars, aggregate points, capture counts, and bounded timestamps in private atomic state. It stores no chat text, OAuth token, SlothCoin balance, or hard-coded file path. Trigger tests and simulated reward events never mutate the real reward."
+      "notice": "Fan Crown stores only platform-qualified stable user IDs, current display names, optional HTTPS avatars, aggregate points, capture counts, and bounded timestamps in private atomic state. It stores no chat text, OAuth token, SlothCoin balance, or hard-coded file path. Trigger tests and simulated reward events never mutate the real reward."
     }
   ]
 }

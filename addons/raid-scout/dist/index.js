@@ -24,14 +24,14 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '2.5.2',
+  version: '2.6.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.2', maximumTestedBridgeVersion: '2.5.2',
-  dependencies: [],
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
+  dependencies: ['thsv.viewer-foundation'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [CONTROLLER_RESULT_EVENT, CONTROL_EVENT, 'reward.redemption', 'stream.online', 'stream.offline'],
-  commandsProvided: [],
+  eventSubscriptions: [CONTROLLER_RESULT_EVENT, CONTROL_EVENT, 'reward.redemption', 'command.received', 'stream.online', 'stream.offline'],
+  commandsProvided: [{ id: 'raid-scout.suggest', name: 'raidsuggest' }],
   actionsProvided: [],
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.raid-scout/', 'data/addons/.state/thsv.raid-scout/'],
@@ -39,7 +39,8 @@ const manifest = {
     'Import the separate Raid Scout Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that stable action ID for this add-on.',
     'Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.',
-    'Optionally configure one Streamer.bot-owned Twitch reward ID for stream-scoped viewer suggestions.',
+    'Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.',
+    'For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.',
     'Configure preferred channels and filters, then test Suggest before enabling automatic mode.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its bounded private suggestion and raid history remains preserved for a later reinstall.'],
@@ -49,7 +50,7 @@ const manifest = {
 
 const FALLBACKS = Object.freeze({
   enabled: true, preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
-  viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', maximumViewerSuggestions: 20,
+  viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', kickViewerSuggestionRewardId: '', viewerSuggestionCommand: 'raidsuggest', viewerSuggestionPointsCost: 50, maximumViewerSuggestions: 20,
   oneViewerSuggestionPerStream: true, announceViewerSuggestions: true,
   viewerSuggestionAcceptedMessage: '{viewer}, added {channel} to tonight\'s raid list.',
   viewerSuggestionRejectedMessage: '{viewer}, that raid suggestion could not be added.',
@@ -110,6 +111,9 @@ function settingsFor(context) {
     preferredChannels: lines(raw.preferredChannels, 100, normalizedLogin),
     viewerSuggestionsEnabled: boolean(raw.viewerSuggestionsEnabled, false),
     viewerSuggestionRewardId: clean(raw.viewerSuggestionRewardId, 256),
+    kickViewerSuggestionRewardId: clean(raw.kickViewerSuggestionRewardId, 256),
+    viewerSuggestionCommand: clean(raw.viewerSuggestionCommand, 64).toLowerCase() || 'raidsuggest',
+    viewerSuggestionPointsCost: integer(raw.viewerSuggestionPointsCost, 1, 1000000, 50),
     maximumViewerSuggestions: integer(raw.maximumViewerSuggestions, 1, MAXIMUM_VIEWER_SUGGESTIONS, FALLBACKS.maximumViewerSuggestions),
     oneViewerSuggestionPerStream: boolean(raw.oneViewerSuggestionPerStream, true),
     announceViewerSuggestions: boolean(raw.announceViewerSuggestions, true),
@@ -206,7 +210,8 @@ function clipRecord(value) {
 }
 function viewerSuggestionRecord(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const login = normalizedLogin(value.login); const userId = clean(value.userId, 256);
+  const login = normalizedLogin(value.login); const storedUserId = clean(value.userId, 256);
+  const userId = storedUserId && !storedUserId.includes(':') ? `twitch:${storedUserId}` : storedUserId;
   const displayName = clean(value.displayName, 100); const redemptionId = clean(value.redemptionId, 256);
   const addedAt = clean(value.addedAt, 40);
   return login && userId && displayName && redemptionId && addedAt ? { login, userId, displayName, redemptionId, addedAt } : undefined;
@@ -334,9 +339,9 @@ async function runController(context, argumentsValue) {
   if (!context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) throw new Error('Raid Scout Controller is not approved.');
   await context.streamerbot.runApprovedAction(CONTROLLER_ACTION_ID, argumentsValue);
 }
-async function sendChat(context, message) {
+async function sendChat(context, message, platform = 'twitch') {
   if (!message) return;
-  try { await context.chat.send({ message, routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }); } catch { /* Cosmetic only. */ }
+  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'reject' }); } catch { /* Cosmetic only. */ }
 }
 function overlayStyle(settings) {
   return {
@@ -431,6 +436,7 @@ async function requestDiscovery(context, settings, state) {
 }
 
 async function settleViewerRedemption(event, context, operation, requestIdValue) {
+  if (event.platform !== 'twitch') return false;
   const supported = Array.isArray(event.payload?.supportedOperations) ? event.payload.supportedOperations : [];
   const requiredCapability = operation === 'redemption-fulfill' ? 'fulfill' : 'cancel';
   if (event.payload?.skipsQueue === true || !supported.includes(requiredCapability)) return false;
@@ -444,25 +450,26 @@ async function settleViewerRedemption(event, context, operation, requestIdValue)
 
 async function rejectViewerSuggestion(event, context, settings, suggestion) {
   try { await settleViewerRedemption(event, context, 'redemption-cancel', requestId('viewer-cancel')); } catch { /* Leave the redemption pending when refund dispatch is unavailable. */ }
-  if (settings.announceViewerSuggestions) await sendChat(context, formatViewerSuggestionMessage(settings.viewerSuggestionRejectedMessage, suggestion));
+  if (settings.announceViewerSuggestions) await sendChat(context, formatViewerSuggestionMessage(settings.viewerSuggestionRejectedMessage, suggestion), event.platform);
 }
 
-async function acceptViewerSuggestion(context, settings, state, suggestion) {
+async function acceptViewerSuggestion(context, settings, state, suggestion, platform = 'twitch') {
   const next = {
     ...state, lastError: '',
     viewerSuggestions: [...state.viewerSuggestions, suggestion].slice(-settings.maximumViewerSuggestions),
   };
   await context.state.write(next);
-  if (settings.announceViewerSuggestions) await sendChat(context, formatViewerSuggestionMessage(settings.viewerSuggestionAcceptedMessage, suggestion));
+  if (settings.announceViewerSuggestions) await sendChat(context, formatViewerSuggestionMessage(settings.viewerSuggestionAcceptedMessage, suggestion), platform);
   return next;
 }
 
 async function handleViewerSuggestionRedemption(event, context, settings, state) {
-  if (!settings.viewerSuggestionsEnabled || !settings.viewerSuggestionRewardId || event.platform !== 'twitch'
+  const configuredRewardId = event.platform === 'twitch' ? settings.viewerSuggestionRewardId : event.platform === 'kick' ? settings.kickViewerSuggestionRewardId : '';
+  if (!settings.viewerSuggestionsEnabled || !configuredRewardId || !['twitch', 'kick'].includes(event.platform)
     || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true
-    || clean(event.payload?.rewardId, 256) !== settings.viewerSuggestionRewardId) return state;
+    || clean(event.payload?.rewardId, 256) !== configuredRewardId) return state;
   const suggestion = {
-    login: suggestedLogin(event.payload?.input), userId: clean(event.user?.id, 256),
+    login: suggestedLogin(event.payload?.input), userId: `${event.platform}:${clean(event.user?.id, 240)}`,
     displayName: clean(event.user?.displayName || event.user?.name, 100),
     redemptionId: clean(event.payload?.redemptionId, 256), addedAt: new Date().toISOString(),
   };
@@ -478,7 +485,7 @@ async function handleViewerSuggestionRedemption(event, context, settings, state)
     || settings.excludedChannels.has(suggestion.login) || duplicateLogin || duplicateViewer
     || occupied >= settings.maximumViewerSuggestions;
   if (invalid) { await rejectViewerSuggestion(event, context, settings, suggestion); return state; }
-  if (event.payload?.skipsQueue === true) return acceptViewerSuggestion(context, settings, state, suggestion);
+  if (event.platform === 'kick' || event.payload?.skipsQueue === true) return acceptViewerSuggestion(context, settings, state, suggestion, event.platform);
 
   const requestIdValue = requestId('viewer-fulfill');
   const pending = { requestId: requestIdValue, rewardId: settings.viewerSuggestionRewardId, startedAt: Date.now(), suggestion };
@@ -491,6 +498,23 @@ async function handleViewerSuggestionRedemption(event, context, settings, state)
     const rolledBack = { ...reserved, pendingViewerSuggestions: reserved.pendingViewerSuggestions.filter((entry) => entry.requestId !== requestIdValue), lastError: 'Streamer.bot could not fulfill the raid-suggestion redemption.' };
     await context.state.write(rolledBack); return rolledBack;
   }
+}
+
+async function handleViewerSuggestionCommand(event, context, settings, state) {
+  if (!settings.viewerSuggestionsEnabled || event.eventType !== 'command.received' || !['youtube', 'tiktok'].includes(event.platform) || event.metadata?.simulated === true || event.user?.actorType !== 'human' || clean(event.payload?.command, 64).toLowerCase() !== settings.viewerSuggestionCommand) return state;
+  const providerUserId = clean(event.user?.id, 240); const stableEventId = clean(event.eventId || event.source?.eventId, 200); const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments : [];
+  if (!providerUserId || !stableEventId) return state;
+  const suggestion = { login: suggestedLogin(args[0]), userId: `${event.platform}:${providerUserId}`, displayName: clean(event.user?.displayName || event.user?.name, 100), redemptionId: `command:${stableEventId}`, addedAt: new Date().toISOString() };
+  const occupied = state.viewerSuggestions.length + state.pendingViewerSuggestions.length;
+  const duplicateLogin = settings.preferredChannels.includes(suggestion.login) || state.viewerSuggestions.some((entry) => entry.login === suggestion.login) || state.pendingViewerSuggestions.some((entry) => entry.suggestion.login === suggestion.login);
+  const duplicateViewer = settings.oneViewerSuggestionPerStream && (state.viewerSuggestions.some((entry) => entry.userId === suggestion.userId) || state.pendingViewerSuggestions.some((entry) => entry.suggestion.userId === suggestion.userId));
+  if (!providerUserId || !suggestion.login || !suggestion.displayName || settings.excludedChannels.has(suggestion.login) || duplicateLogin || duplicateViewer || occupied >= settings.maximumViewerSuggestions) { if (settings.announceViewerSuggestions) await sendChat(context, formatViewerSuggestionMessage(settings.viewerSuggestionRejectedMessage, suggestion), event.platform); return state; }
+  const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: providerUserId }); if (!projection) return state;
+  const idempotencyKey = `raid-scout-suggestion:${stableEventId}`;
+  try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.viewerSuggestionPointsCost, reason: 'Raid Scout viewer suggestion', idempotencyKey }); }
+  catch { await sendChat(context, `You need ${String(settings.viewerSuggestionPointsCost)} ${projection.currencyName || 'points'} to suggest a raid channel.`, event.platform); return state; }
+  try { return await acceptViewerSuggestion(context, settings, state, suggestion, event.platform); }
+  catch (error) { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'refund', amount: settings.viewerSuggestionPointsCost, reason: 'Raid Scout suggestion rollback', idempotencyKey: `${idempotencyKey}:rollback` }).catch(() => undefined); throw error; }
 }
 
 async function handleViewerRedemptionResult(event, context, settings, state) {
@@ -748,6 +772,7 @@ async function processEvent(event, context) {
     await clearViewerSuggestions(context, state, false); return;
   }
   if (event.eventType === 'reward.redemption') { await handleViewerSuggestionRedemption(event, context, settings, state); return; }
+  if (event.eventType === 'command.received') { await handleViewerSuggestionCommand(event, context, settings, state); return; }
   if (event.eventType === CONTROL_EVENT) { await handleControl(event, context, settings, state); return; }
   if (event.eventType !== CONTROLLER_RESULT_EVENT || event.metadata?.simulated === true) return;
   const operation = clean(event.payload?.operation, 20);

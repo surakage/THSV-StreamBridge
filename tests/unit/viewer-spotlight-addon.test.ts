@@ -5,7 +5,7 @@ import viewerSpotlight, { administerViewerSpotlight, processViewerSpotlightEvent
 
 function event(overrides: Record<string, unknown> = {}) {
   return {
-    eventId: 'command-1', eventType: 'command.received', platform: 'twitch', source: { eventId: 'provider-1' }, receivedAt: '2026-07-26T12:00:00.000Z', channel: { name: 'channel' },
+    eventId: 'command-1', eventType: 'command.received', platform: 'youtube', source: { eventId: 'provider-1' }, receivedAt: '2026-07-26T12:00:00.000Z', channel: { name: 'channel' },
     user: { id: '123456', name: 'viewer_login', displayName: 'Viewer Name', avatarUrl: 'https://example.com/avatar.png', actorType: 'human', roles: [] },
     payload: { command: 'card', arguments: [] }, metadata: { simulated: false }, ...overrides,
   };
@@ -20,7 +20,7 @@ function runtime(settings: Record<string, unknown> = {}) {
     schedule: { after: vi.fn(() => 'timer-1'), cancel: vi.fn(() => true) },
     overlay: { publish: vi.fn(async (topic: string, payload: Record<string, unknown>) => { published.push({ topic, payload }); }) },
     streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
-    viewerFoundation: { getProjection: vi.fn(async (query: Record<string, unknown>): Promise<Record<string, unknown>> => query.viewerId === undefined
+    viewerFoundation: { mutate: vi.fn(async () => ({ applied: true })), getProjection: vi.fn(async (query: Record<string, unknown>): Promise<Record<string, unknown>> => query.viewerId === undefined
       ? { contractVersion: '1.0.0', viewerId: 'viewer-one', linked: false, points: 245, level: 3, nextLevelAt: 300, latestAchievement: { id: 'first-steps', label: 'First Steps', points: 100 } }
       : { contractVersion: '1.0.0', viewerId: query.viewerId, linked: false, points: 245, level: 3, nextLevelAt: 300, latestAchievement: { id: 'first-steps', label: 'First Steps', points: 100 } }) },
     communityAnalytics: {
@@ -37,8 +37,9 @@ describe('Viewer Spotlight add-on', () => {
   it('shows one self-requested card from re-read provider projections', async () => {
     const testRuntime = runtime({ showObservedMessages: true, showObservedSessions: true }); await viewerSpotlight.start(testRuntime.context);
     await expect(processViewerSpotlightEvent(event(), testRuntime.context, 1_000)).resolves.toMatchObject({ accepted: true, viewerId: 'viewer-one' });
+    expect(testRuntime.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'spend', amount: 100, viewerId: 'viewer-one' }));
     expect(testRuntime.context.viewerFoundation.getProjection).toHaveBeenCalledTimes(2); expect(testRuntime.context.communityAnalytics.getViewerProjection).toHaveBeenCalledWith('viewer-one');
-    expect(testRuntime.published).toEqual([{ topic: 'thsv.viewer-spotlight.card.show', payload: expect.objectContaining({ title: 'Viewer Name • Twitch', text: '245 points • Level 3 • First Steps • 4 observed sessions • 12 observed messages', imageUrl: 'https://example.com/avatar.png', presentationMode: 'single' }) }]);
+    expect(testRuntime.published).toEqual([{ topic: 'thsv.viewer-spotlight.card.show', payload: expect.objectContaining({ title: 'Viewer Name • YouTube', text: '245 points • Level 3 • First Steps • 4 observed sessions • 12 observed messages', imageUrl: 'https://example.com/avatar.png', presentationMode: 'single' }) }]);
   });
 
   it('shows capped engagement score and rank only when Community Analytics supplies them', async () => {
@@ -94,11 +95,28 @@ describe('Viewer Spotlight add-on', () => {
 
   it('accepts only the configured Twitch reward and settles after the overlay publication', async () => {
     const testRuntime = runtime({ rewardRequestsEnabled: true, rewardId: 'reward-123' }); await viewerSpotlight.start(testRuntime.context);
-    const reward = event({ eventType: 'reward.redemption', payload: { rewardId: 'reward-123', redemptionId: 'redeem-1' } });
+    const reward = event({ eventType: 'reward.redemption', platform: 'twitch', payload: { rewardId: 'reward-123', redemptionId: 'redeem-1', verifiedTransport: true } });
     await expect(processViewerSpotlightEvent(reward, testRuntime.context, 1_000)).resolves.toMatchObject({ accepted: true });
     expect(testRuntime.published).toHaveLength(1);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith('764a4658-e7fc-4b25-a792-e262759c76b7', { viewerSpotlightRewardOperation: 'fulfill', viewerSpotlightRewardId: 'reward-123', viewerSpotlightRedemptionId: 'redeem-1' });
-    await expect(processViewerSpotlightEvent(event({ eventId: 'other', eventType: 'reward.redemption', payload: { rewardId: 'other', redemptionId: 'redeem-2' } }), testRuntime.context, 2_000)).resolves.toBeUndefined();
+    await expect(processViewerSpotlightEvent(event({ eventId: 'other', eventType: 'reward.redemption', platform: 'twitch', payload: { rewardId: 'other', redemptionId: 'redeem-2', verifiedTransport: true } }), testRuntime.context, 2_000)).resolves.toBeUndefined();
+  });
+
+  it('accepts a configured Kick reward without invoking the Twitch settlement controller', async () => {
+    const testRuntime = runtime({ rewardRequestsEnabled: true, kickRewardId: 'kick-card' }); await viewerSpotlight.start(testRuntime.context);
+    const reward = event({ eventType: 'reward.redemption', platform: 'kick', payload: { rewardId: 'kick-card', redemptionId: 'kick-redeem-1', verifiedTransport: true } });
+    await expect(processViewerSpotlightEvent(reward, testRuntime.context, 1_000)).resolves.toMatchObject({ accepted: true });
+    expect(testRuntime.published).toHaveLength(1);
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(testRuntime.context.viewerFoundation.mutate).not.toHaveBeenCalled();
+  });
+
+  it('ignores a matching reward ID when the native transport was not verified', async () => {
+    const testRuntime = runtime({ rewardRequestsEnabled: true, rewardId: 'reward-123' }); await viewerSpotlight.start(testRuntime.context);
+    const reward = event({ eventType: 'reward.redemption', platform: 'twitch', payload: { rewardId: 'reward-123', redemptionId: 'unverified-redeem' } });
+    await expect(processViewerSpotlightEvent(reward, testRuntime.context, 1_000)).resolves.toBeUndefined();
+    expect(testRuntime.published).toHaveLength(0);
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
   });
 
   it('restores only pseudonymous cooldown state after restart and never replays the prior card', async () => {

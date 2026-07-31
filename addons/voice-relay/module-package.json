@@ -2,12 +2,16 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Safely routes selected normalized alerts and opt-in chat to Speaker.bot through one bounded filtered queue.",
-  "changelog": "2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe rebuild with alert-first allowlist, role-gated chat, local filtering, bounded queue, link stripping, and creator pause/resume/stop controls.",
+  "description": "Routes selected alerts and cross-platform viewer TTS requests through one bounded Speaker.bot queue with an optional avatar and progressive-text overlay.",
+  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe rebuild with alert-first allowlist, role-gated chat, local filtering, bounded queue, link stripping, and creator pause/resume/stop controls.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
-    "schedule.bounded"
+    "schedule.bounded",
+    "overlay.publish",
+    "chat.send",
+    "viewer.foundation.read",
+    "viewer.foundation.mutate"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -19,11 +23,13 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.voice-relay",
-    "name": "Voice Relay",
-    "version": "2.5.2",
+    "name": "Village Voice",
+    "version": "2.6.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "dependencies": [],
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
@@ -38,9 +44,16 @@
       "engagement.super-chat",
       "engagement.milestone",
       "chat.message",
+      "reward.redemption",
+      "command.received",
       "addon.thsv.voice-relay.control"
     ],
-    "commandsProvided": [],
+    "commandsProvided": [
+      {
+        "id": "village-voice.speak",
+        "name": "speak"
+      }
+    ],
     "actionsProvided": [],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
@@ -49,44 +62,46 @@
     ],
     "installationSteps": [
       "Connect Speaker.bot in Streamer.bot.",
-      "Import Voice Relay, approve only Speak, and test a harmless phrase.",
-      "Review filters and event types before enabling; attach Pause/Resume/Stop only to creator controls."
+      "Import Village Voice, approve only Speak, and test a harmless phrase.",
+      "For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.",
+      "For YouTube and TikTok, create the configured no-response command in Command Sync and enable Viewer Foundation points.",
+      "Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card."
     ],
     "uninstallationSteps": [
-      "Uninstall Voice Relay. It retains no spoken text history."
+      "Uninstall Village Voice. It retains no spoken text history."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.voice-relay.runtime",
-        "description": "Confirms bounded filtered Speaker.bot dispatch is available."
+        "description": "Confirms bounded filtered Speaker.bot dispatch and viewer-request routing are available."
       }
     ],
-    "minimumBridgeVersion": "2.5.2",
-    "maximumTestedBridgeVersion": "2.5.2"
+    "minimumBridgeVersion": "2.6.0",
+    "maximumTestedBridgeVersion": "2.6.0"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 10617,
-      "sha256": "de263c1d8dd503002fe878c078f9d4957b99cf1cd0d91e8428286ad24c6c97a7"
+      "size": 20126,
+      "sha256": "240d58f52663d565e88beb6cf19b524a7fda591997ace0fe324882b56df6bf52"
     },
     {
       "path": "schemas/config.json",
-      "size": 4530,
-      "sha256": "c6b2de45308a41983db0a0c4cbec9759ff33352f670735dde451698eaeb1cd9f"
+      "size": 7930,
+      "sha256": "860374f8b1809be517e963370b12d8f8800c5b3e3b528f4c275dbb5bb7b3c24e"
     },
     {
       "path": "ui/settings.json",
-      "size": 2534,
-      "sha256": "023e6f5f54f0da3fa2f3b6f3790816ca62612a1908f634cfe25c8a8a952eb846"
+      "size": 4818,
+      "sha256": "43ac9324d621b3509236890aaa2f3c45b586e6dbb84d1ec3df4f70715a279ffb"
     },
     {
       "path": "README.md",
-      "size": 925,
-      "sha256": "45ae87426c35cabff7ff308586121218d15598a84d1b29ff581db2dd6a45b497"
+      "size": 1068,
+      "sha256": "0bfce368d4cb2cb251090127af740485c0800ef536cbaead00d1095bb5511b1a"
     }
   ]
 }

@@ -5,9 +5,9 @@ creator-approved Twitch reward administration. The bridge does not invent platfo
 
 ## Install
 
-1. Re-import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-2.5.2.sb` so the existing Twitch and Kick intake actions contain the current relay source.
+1. Re-import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-2.6.0.sb` so the existing Twitch and Kick intake actions contain the current relay source.
 2. Add `TwitchRewardRedemption` only to `THSV Twitch - Intake` and `KickRewardRedemption` only to `THSV Kick - Intake`.
-3. Import `packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-2.5.2.sb` and review its custom C# warning. The action must remain triggerless.
+3. Import `packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-2.6.0.sb` and review its custom C# warning. The action must remain triggerless.
 4. Keep `streamerbot.rewardAdministrationActionAlias` set to `THSV StreamBridge - Reward Administration`.
 5. Enable the `rewards` legacy capability and the matching provider operations for the intended native platform entries, then restart StreamBridge.
 
@@ -48,6 +48,41 @@ Kick reward redemption intake is supported. Kick reward creation, editing, delet
 pause, fulfillment, and cancellation are deliberately unavailable because Streamer.bot's Kick
 Rewards sub-action contract is not documented. The wizard disables Kick mutation selection and
 the service and C# trust boundaries independently reject it.
+
+## Add-on redemption routing
+
+Reward-driven first-party add-ons use one consistent platform policy:
+
+| Platform | Viewer entry | Failure behavior |
+| --- | --- | --- |
+| Twitch | Native Channel Points reward | Add-ons may use the approved Twitch controller to fulfill or refund when the reward queue is enabled. |
+| Kick | Native Kick channel reward | The claim is processed directly. Streamer.bot currently exposes no documented Kick fulfill, refund, title, cost, enable, or disable method, so rejected claims cannot return points automatically. |
+| YouTube | Viewer Foundation points plus the add-on command | A failed save or dispatch refunds the internal points with an idempotent rollback. |
+| TikTok | Viewer Foundation points plus the add-on command relayed by TikFinity | A failed save or dispatch refunds the internal points with an idempotent rollback. |
+
+This policy currently applies to Village Voice viewer TTS, Viewer Spotlight requests, Village Roll
+Call, Fan Crown, First Five, and Raid Scout viewer suggestions. Generic reward observers such as
+Stream Labels, Community Analytics, and Viewer Foundation continue to consume normalized Twitch
+and Kick redemption events without owning or mutating the platform reward.
+
+## Recommended reward blueprints
+
+The wizard shows these values beside each add-on. They are safe starting points, not hidden
+requirements; creators may change the cost, color, and wording. Reward IDs must always be copied
+from the exact reward created on that platform.
+
+| Add-on | Twitch and Kick title | Cost | Color | Viewer input | Twitch queue |
+| --- | --- | ---: | --- | --- | --- |
+| Fan Crown | `Fan Crown` | Match the configured base cost | `#F2C94C` | Off | Off, so Twitch can mutate and settle the claim |
+| First Five | `First Five: Claim 1st Place` through `5th Place` | 100 each | `#2DB7A3` | Off | Off, so Twitch can sequence and settle each placement |
+| Village Roll Call | `Village Roll Call` | 50 | `#2E8B57` | Off | On; the add-on records valid check-ins directly |
+| Viewer Spotlight | `Viewer Spotlight` | 250 | `#2DB7A3` | Off | Off, so rejected cards can be refunded |
+| Village Voice | `Village Voice - TTS` | 500 | `#7C3AED` | Required | On; accepted speech enters the bounded queue directly |
+| Raid Scout | `Raid Scout Suggestion` | 500 | `#F59E0B` | Required | Off, so invalid suggestions can be refunded |
+
+Kick rewards use the same recommended titles, colors, descriptions, and costs, but remain fixed.
+The add-ons never claim that a Kick title, price, queue state, or refund changed because the current
+Streamer.bot contract exposes redemption intake without those administration operations.
 
 ## Safe testing
 

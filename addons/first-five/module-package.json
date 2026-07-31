@@ -2,14 +2,16 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Runs five Streamer.bot-owned Twitch channel-point rewards in sequence, permits one placement per viewer per stream, and maintains a compact monthly leaderboard.",
-  "changelog": "2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
+  "description": "Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with one placement per viewer per stream.",
+  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
     "state.private",
     "chat.send",
-    "overlay.publish"
+    "overlay.publish",
+    "viewer.foundation.read",
+    "viewer.foundation.mutate"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -22,20 +24,28 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.first-five",
     "name": "First Five",
-    "version": "2.5.2",
+    "version": "2.6.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "dependencies": [],
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "reward.redemption",
+      "command.received",
       "stream.online",
       "stream.offline",
       "addon.thsv.first-five.controller-result",
       "addon.thsv.first-five.control"
     ],
-    "commandsProvided": [],
+    "commandsProvided": [
+      {
+        "id": "first-five.claim",
+        "name": "firstfive"
+      }
+    ],
     "actionsProvided": [],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
@@ -45,8 +55,8 @@
     "installationSteps": [
       "Import the separate First Five Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that action for this add-on.",
-      "Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.",
-      "Choose five Streamer.bot-owned Twitch reward IDs in placement order and keep Skip Reward Queue disabled on all five rewards."
+      "Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.",
+      "Choose five Twitch IDs and five Kick IDs in placement order, then create the configured no-response command for YouTube and TikTok."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall."
@@ -58,31 +68,31 @@
         "description": "Confirms serialized placement claims, reward transitions, and monthly leaderboard state."
       }
     ],
-    "minimumBridgeVersion": "2.5.2",
-    "maximumTestedBridgeVersion": "2.5.2"
+    "minimumBridgeVersion": "2.6.0",
+    "maximumTestedBridgeVersion": "2.6.0"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 18868,
-      "sha256": "402e47598d432961d5a346b492a6b11ccab5d52e2650d51c85b2f20493309fa9"
+      "size": 23552,
+      "sha256": "abe1df0292d16bce21ec6f3ec317abbb7a5e61cc4332ba1315f9e8282dc778be"
     },
     {
       "path": "schemas/config.json",
-      "size": 4004,
-      "sha256": "f6ba8e8d566f58bf9b2f2166235b88c5d110960ece64164683e4fb7037b55711"
+      "size": 5106,
+      "sha256": "64c73ab17a8ca6af1be8b6b341a6ede0d21630a44015c2a561380b7cddc024bf"
     },
     {
       "path": "ui/settings.json",
-      "size": 2742,
-      "sha256": "5215e6a781cdd0aa915650dd97f20d5d1ff8a2a8869058e409efb54e7d76e6d3"
+      "size": 3917,
+      "sha256": "bb142b161401a6fb9b01cdc36a3a25547813200a586aebf2cac61e7b203d2027"
     },
     {
       "path": "README.md",
-      "size": 1540,
-      "sha256": "eec27ac83770eca3b397d7166de8ce2bd79d6b8e2f2d5e854dab36742905f699"
+      "size": 1819,
+      "sha256": "3781a088e61e5c1f40eade37813e1ee30c235de08b4a20704dedd229d00eb5c9"
     }
   ]
 }

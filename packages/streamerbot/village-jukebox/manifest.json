@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Village Jukebox",
+  "version": "2.6.0",
+  "author": "surakage",
+  "description": "Resolves YouTube song requests without exposing the creator's API key and settles accepted Twitch reward requests for Village Jukebox.",
+  "minimumStreamerBotVersion": "1.0.5-beta.5",
+  "actions": [
+    {
+      "id": "0f16105e-7c92-47ad-a61b-c6d1b934fdf0",
+      "name": "THSV Addon - Village Jukebox - Resolve YouTube Track",
+      "group": "THSV Addon - Village Jukebox",
+      "arguments": [
+        {
+          "name": "villageJukeboxYouTubeApiKey",
+          "value": "PASTE_YOUR_PRIVATE_YOUTUBE_DATA_API_KEY_HERE"
+        }
+      ],
+      "source": "src/ResolveYouTubeTrack.cs",
+      "importFile": "THSV-StreamBridge-Village-Jukebox-2.6.0.sb",
+      "excludeFromHistory": true,
+      "excludeFromPending": true,
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Xml.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "fa5b3b6d-a639-48a6-9999-7e5b11f31590",
+      "name": "THSV Addon - Village Jukebox - Settle Twitch Reward",
+      "group": "THSV Addon - Village Jukebox",
+      "source": "src/SettleTwitchReward.cs",
+      "importFile": "THSV-StreamBridge-Village-Jukebox-2.6.0.sb",
+      "excludeFromHistory": true,
+      "excludeFromPending": true,
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll"
+      ]
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": true
+  },
+  "editableArguments": [
+    "villageJukeboxYouTubeApiKey"
+  ],
+  "manualTriggerSetup": [],
+  "triggerSafety": "Both actions are broker-dispatched only. Leave them triggerless. The YouTube API key belongs only in the resolver action's Set Argument.",
+  "verificationStatus": "Package structure, bounds, relay contract, and tests are verified; live YouTube API resolution and creator music rights remain creator-accepted."
+}

@@ -1,5 +1,4 @@
-// Fan Crown runs one Twitch-only rotating channel-points crown.
-// StreamBridge owns bounded state and decisions; one approved Streamer.bot controller owns reward mutations.
+// Fan Crown uses native Twitch/Kick rewards and Viewer Foundation commands on YouTube/TikTok.
 const CONTROLLER_ACTION_ID = 'ad2b29a1-4e8e-4f0b-9ac2-6c4e5f473e12';
 const CONTROLLER_RESULT_EVENT = 'addon.thsv.fan-crown.controller-result';
 const CONTROL_EVENT = 'addon.thsv.fan-crown.control';
@@ -15,22 +14,22 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.fan-crown',
   name: 'Fan Crown',
-  version: '2.5.2',
+  version: '2.6.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.2', maximumTestedBridgeVersion: '2.5.2',
-  dependencies: [],
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
+  dependencies: ['thsv.viewer-foundation'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['reward.redemption', 'stream.online', CONTROLLER_RESULT_EVENT, CONTROL_EVENT],
-  commandsProvided: [],
+  eventSubscriptions: ['reward.redemption', 'command.received', 'stream.online', CONTROLLER_RESULT_EVENT, CONTROL_EVENT],
+  commandsProvided: [{ id: 'fan-crown.claim', name: 'fancrown' }],
   actionsProvided: [],
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.fan-crown/', 'data/addons/.state/thsv.fan-crown/'],
   installationSteps: [
     'Import the separate Fan Crown Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
-    'Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.',
-    'Create one Streamer.bot-owned Twitch reward and match its Reward ID, base title, and base cost in the wizard.',
+    'Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.',
+    'Create Twitch and Kick rewards, then create the configured no-response command for YouTube and TikTok.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact private season state remains preserved for a later reinstall.'],
   migrations: [],
@@ -40,8 +39,10 @@ const manifest = {
 const FALLBACKS = Object.freeze({
   enabled: true,
   rewardId: '',
-  baseRewardTitle: 'No. 1 Fan',
-  holderTitleTemplate: '{name} is No. 1 Fan',
+  kickRewardId: '',
+  commandName: 'fancrown',
+  baseRewardTitle: 'Fan Crown',
+  holderTitleTemplate: '{name} holds the Fan Crown',
   pricingMode: 'fixed',
   baseCost: 500,
   fixedIncrease: 250,
@@ -98,6 +99,11 @@ function safeColor(value, fallback) {
   return /^#[0-9a-f]{6}$/iu.test(color) ? color : fallback;
 }
 
+function scopedUserId(value) {
+  const userId = clean(value, 256);
+  return userId && !userId.includes(':') ? `twitch:${userId}` : userId;
+}
+
 function settingsFor(context) {
   const raw = { ...FALLBACKS, ...(context.settings || {}) };
   const pricingMode = raw.pricingMode === 'multiplier' ? 'multiplier' : 'fixed';
@@ -106,6 +112,8 @@ function settingsFor(context) {
   return {
     enabled: boolean(raw.enabled, true),
     rewardId: clean(raw.rewardId, 256),
+    kickRewardId: clean(raw.kickRewardId, 256),
+    commandName: clean(raw.commandName, 64).toLowerCase() || 'fancrown',
     baseRewardTitle: clean(raw.baseRewardTitle, 45) || FALLBACKS.baseRewardTitle,
     holderTitleTemplate: clean(raw.holderTitleTemplate, 100) || FALLBACKS.holderTitleTemplate,
     pricingMode,
@@ -133,7 +141,7 @@ function settingsFor(context) {
     overlayAccentColor: safeColor(raw.overlayAccentColor, FALLBACKS.overlayAccentColor),
     overlayTextColor: safeColor(raw.overlayTextColor, FALLBACKS.overlayTextColor),
     overlayFontFamily: ['display', 'broadcast', 'serif', 'mono'].includes(raw.overlayFontFamily) ? raw.overlayFontFamily : FALLBACKS.overlayFontFamily,
-    configured: clean(raw.rewardId, 256).length > 0,
+    configured: clean(raw.rewardId, 256).length > 0 || clean(raw.kickRewardId, 256).length > 0 || clean(raw.commandName, 64).length > 0,
   };
 }
 
@@ -144,7 +152,7 @@ export function monthKey(timestamp = Date.now()) {
 
 function crownRecord(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const userId = clean(value.userId, 256);
+  const userId = scopedUserId(value.userId);
   const displayName = clean(value.displayName, 100);
   const claimedAt = clean(value.claimedAt, 40);
   if (!userId || !displayName || !claimedAt) return undefined;
@@ -153,7 +161,7 @@ function crownRecord(value) {
 
 function leaderRecord(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const userId = clean(value.userId, 256);
+  const userId = scopedUserId(value.userId);
   const displayName = clean(value.displayName, 100);
   if (!userId || !displayName) return undefined;
   return {
@@ -171,7 +179,7 @@ function leaderRecord(value) {
 
 function pendingClaim(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const userId = clean(value.userId, 256);
+  const userId = scopedUserId(value.userId);
   const displayName = clean(value.displayName, 100);
   const rewardId = clean(value.rewardId, 256);
   const redemptionId = clean(value.redemptionId, 256);
@@ -328,13 +336,13 @@ function rolesFor(event) {
   return Array.isArray(event.user?.roles) ? event.user.roles.map((role) => clean(role, 64).toLowerCase()) : [];
 }
 
-function rejectionReason(event, settings, state, now) {
+function rejectionReason(event, settings, state, now, stableUserId = event.user?.id) {
   if (event.user?.actorType !== 'human') return 'only a human viewer can capture the crown';
   const roles = rolesFor(event);
   if (!settings.allowBroadcaster && roles.includes('broadcaster')) return 'the broadcaster is not eligible';
   if (!settings.allowModerators && (roles.includes('moderator') || roles.includes('mod'))) return 'moderators are not eligible';
-  if (settings.blockCurrentHolder && state.crown?.userId === event.user?.id) return 'the current holder must be challenged by someone else';
-  const prior = state.leaderboard.find((entry) => entry.userId === event.user?.id);
+  if (settings.blockCurrentHolder && state.crown?.userId === stableUserId) return 'the current holder must be challenged by someone else';
+  const prior = state.leaderboard.find((entry) => entry.userId === stableUserId);
   const lastCapture = Date.parse(prior?.lastCapturedAt || '');
   if (settings.userCooldownMinutes > 0 && Number.isFinite(lastCapture)) {
     const remaining = settings.userCooldownMinutes * 60_000 - (now - lastCapture);
@@ -343,9 +351,9 @@ function rejectionReason(event, settings, state, now) {
   return '';
 }
 
-async function sendChat(context, message) {
+async function sendChat(context, message, platform = 'twitch') {
   if (!message) return;
-  try { await context.chat.send({ message, routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }); }
+  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'reject' }); }
   catch { /* Chat delivery is cosmetic and never rolls back a valid reward operation. */ }
 }
 
@@ -380,6 +388,7 @@ async function runController(context, argumentsValue) {
 }
 
 async function dispatchCancel(event, context) {
+  if (event.platform !== 'twitch') return;
   if (!Array.isArray(event.payload?.supportedOperations) || !event.payload.supportedOperations.includes('cancel')) return;
   await runController(context, {
     fanCrownOperation: 'cancel',
@@ -423,10 +432,20 @@ async function announceWinner(context, settings, state, winner) {
   return { ...state, announcedMonth: state.previousSeason?.month || '' };
 }
 
+async function completeDirectCapture(context, settings, state, claim, platform) {
+  const completed = applyCapture(state, claim);
+  await context.state.write(completed);
+  const leader = completed.leaderboard.find((entry) => entry.userId === claim.userId);
+  if (settings.announceCaptures) await sendChat(context, formatTemplate(settings.captureMessageTemplate, { name: claim.displayName, cost: claim.paidCost, nextCost: claim.nextCost, captures: leader?.captures || 1 }, 500), platform);
+  await publishCrown(context, settings, completed, 'NEW FAN CROWN');
+  return completed;
+}
+
 async function handleRedemption(event, context, settings, state) {
-  if (event.platform !== 'twitch' || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true) return state;
-  if (clean(event.payload?.rewardId, 256) !== settings.rewardId) return state;
-  if (!context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
+  if (!['twitch', 'kick'].includes(event.platform) || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true) return state;
+  const configuredRewardId = event.platform === 'twitch' ? settings.rewardId : settings.kickRewardId;
+  if (!configuredRewardId || clean(event.payload?.rewardId, 256) !== configuredRewardId) return state;
+  if (event.platform === 'twitch' && !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
   const redemptionId = clean(event.payload?.redemptionId, 256);
   if (!redemptionId || state.recentRedemptionIds.includes(redemptionId)) return state;
   if (state.seasonMonth !== monthKey()) {
@@ -437,7 +456,8 @@ async function handleRedemption(event, context, settings, state) {
     try { await dispatchCancel(event, context); } catch { /* A concurrent redemption remains visible in Twitch's queue if refund dispatch is unavailable. */ }
     return state;
   }
-  const userId = clean(event.user?.id, 256);
+  const providerUserId = clean(event.user?.id, 240);
+  const userId = providerUserId ? `${event.platform}:${providerUserId}` : '';
   const displayName = clean(event.user?.displayName || event.user?.name, 100);
   const paidCost = integer(event.payload?.rewardCost, 1, MAXIMUM_COST, 0);
   if (!userId || !displayName || !paidCost) {
@@ -445,26 +465,31 @@ async function handleRedemption(event, context, settings, state) {
     return state;
   }
   const now = Date.now();
-  const reason = rejectionReason(event, settings, state, now);
+  const reason = rejectionReason(event, settings, state, now, userId);
   if (reason) {
     try { await dispatchCancel(event, context); } catch { /* Rejection remains pending when administration is unavailable. */ }
     if (settings.notifyRejectedClaims) {
-      await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName, reason }, 500));
+      await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName, reason }, 500), event.platform);
     }
     return state;
   }
-  const nextCost = calculateNextCost(Math.max(paidCost, state.currentCost), settings);
+  // Kick currently exposes redemption intake but no documented reward-price mutation.
+  // Keep its advertised next cost honest instead of claiming a price change that cannot occur.
+  const nextCost = event.platform === 'kick'
+    ? paidCost
+    : calculateNextCost(Math.max(paidCost, state.currentCost), settings);
   const claim = {
     userId,
     displayName,
     avatarUrl: safeHttps(event.user?.avatarUrl),
-    rewardId: settings.rewardId,
+    rewardId: configuredRewardId,
     redemptionId,
     claimedAt: new Date(now).toISOString(),
     paidCost,
     nextCost,
     rewardTitle: holderTitle(settings, displayName),
   };
+  if (event.platform === 'kick') return completeDirectCapture(context, settings, state, claim, 'kick');
   const pending = { operation: 'claim', requestId: requestId('claim'), startedAt: now, claim, announceWinner: false };
   const reserved = { ...state, pending };
   await context.state.write(reserved);
@@ -486,6 +511,23 @@ async function handleRedemption(event, context, settings, state) {
     await context.state.write(rolledBack);
     return rolledBack;
   }
+}
+
+async function handlePointsCommand(event, context, settings, state) {
+  if (event.eventType !== 'command.received' || !['youtube', 'tiktok'].includes(event.platform) || event.metadata?.simulated === true || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return state;
+  const providerUserId = clean(event.user?.id, 240); const displayName = clean(event.user?.displayName || event.user?.name, 100);
+  const userId = providerUserId ? `${event.platform}:${providerUserId}` : ''; const eventId = clean(event.eventId || event.source?.eventId, 200);
+  if (!userId || !displayName || !eventId || state.recentRedemptionIds.includes(`command:${eventId}`)) return state;
+  const reason = rejectionReason(event, settings, state, Date.now(), userId);
+  if (reason) { if (settings.notifyRejectedClaims) await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName, reason }, 500), event.platform); return state; }
+  const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: providerUserId });
+  if (!projection) return state;
+  const paidCost = state.currentCost; const idempotencyKey = `fan-crown:${eventId}`;
+  try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: paidCost, reason: 'Fan Crown capture', idempotencyKey }); }
+  catch { await sendChat(context, `You need ${String(paidCost)} ${projection.currencyName || 'points'} to capture the Fan Crown.`, event.platform); return state; }
+  const claim = { userId, displayName, avatarUrl: safeHttps(event.user?.avatarUrl), rewardId: 'viewer-foundation', redemptionId: `command:${eventId}`, claimedAt: new Date().toISOString(), paidCost, nextCost: calculateNextCost(paidCost, settings), rewardTitle: holderTitle(settings, displayName) };
+  try { return await completeDirectCapture(context, settings, state, claim, event.platform); }
+  catch (error) { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'refund', amount: paidCost, reason: 'Fan Crown capture rollback', idempotencyKey: `${idempotencyKey}:rollback` }).catch(() => undefined); throw error; }
 }
 
 async function handleControllerResult(event, context, settings, state) {
@@ -532,7 +574,7 @@ async function handleControllerResult(event, context, settings, state) {
 async function handleEvent(event, context) {
   const settings = settingsFor(context);
   if (!settings.enabled || !settings.configured) return;
-  const state = sanitizeState(await context.state.read(), settings.baseCost);
+  let state = sanitizeState(await context.state.read(), settings.baseCost);
   if (event.eventType === CONTROLLER_RESULT_EVENT) {
     await handleControllerResult(event, context, settings, state);
     return;
@@ -544,11 +586,12 @@ async function handleEvent(event, context) {
     return;
   }
   if (state.seasonMonth !== monthKey()) {
-    if (event.eventType === 'reward.redemption' && clean(event.payload?.rewardId, 256) === settings.rewardId) {
+    if (event.platform === 'twitch' && event.eventType === 'reward.redemption' && clean(event.payload?.rewardId, 256) === settings.rewardId) {
       try { await dispatchCancel(event, context); } catch { /* The controller logs refund failures. */ }
+      await requestReset(context, settings, state, 'reset-month', true);
+      return;
     }
-    await requestReset(context, settings, state, 'reset-month', true);
-    return;
+    const reset = resetSeasonState(state, settings); state = await announceWinner(context, settings, reset.state, reset.winner); await context.state.write(state);
   }
   if (event.eventType === 'stream.online' && event.platform === 'twitch' && event.metadata?.simulated !== true && settings.resetEachStream) {
     const cycleId = clean(event.source?.eventId || event.eventId, 256);
@@ -560,6 +603,7 @@ async function handleEvent(event, context) {
     return;
   }
   if (event.eventType === 'reward.redemption') await handleRedemption(event, context, settings, state);
+  else if (event.eventType === 'command.received') await handlePointsCommand(event, context, settings, state);
 }
 
 function enqueue(task) {
@@ -605,6 +649,7 @@ const module = {
   async stop(context) {
     stopped = true;
     cancelResetCheck(context);
+    await eventQueue.catch(() => undefined);
     eventQueue = Promise.resolve();
   },
   async onEvent(event, context) {

@@ -144,6 +144,7 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
       approvedActionIds: [CONTROLLER_ACTION_ID],
       state: { read: vi.fn(async () => state), write: vi.fn(async (value) => { state = value; }) },
       streamerbot: { runApprovedAction: vi.fn(async () => {}) },
+      viewerFoundation: { getProjection: vi.fn(async () => ({ viewerId: 'viewer-points', currencyName: 'Village Points' })), mutate: vi.fn(async () => ({ applied: true })) },
       chat: { send: vi.fn(async () => []) },
       overlay: {
         publish: vi.fn(async () => {}),
@@ -245,7 +246,7 @@ describe('Raid Scout add-on', () => {
       payload: { operation: 'redemption-fulfill', requestId: pending?.requestId, success: true },
       metadata: { simulated: false },
     }, testRuntime.context);
-    expect(testRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'suggested_channel', userId: 'viewer-1' })]);
+    expect(testRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'suggested_channel', userId: 'twitch:viewer-1' })]);
     expect(testRuntime.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Viewer One, added suggested_channel.' }));
 
     await raidScout.onEvent(control('suggest'), testRuntime.context);
@@ -277,6 +278,22 @@ describe('Raid Scout add-on', () => {
       raidScoutRedemptionId: 'redemption-viewer-2-alpha',
     }));
     expect(testRuntime.value().viewerSuggestions).toEqual([]);
+  });
+
+  it('accepts a Kick reward directly and spends points for a YouTube suggestion', async () => {
+    const kickRuntime = runtime({ viewerSuggestionsEnabled: true, kickViewerSuggestionRewardId: 'kick-raid-suggestion' });
+    await raidScout.start(kickRuntime.context);
+    const kickBase = viewerSuggestionEvent('kick_creator', 'kick-viewer');
+    await raidScout.onEvent({ ...kickBase, platform: 'kick', payload: { ...kickBase.payload, rewardId: 'kick-raid-suggestion', supportedOperations: [] } }, kickRuntime.context);
+    expect(kickRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'kick_creator', userId: 'kick:kick-viewer' })]);
+    expect(kickRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+
+    await raidScout.stop(kickRuntime.context);
+    const youtubeRuntime = runtime({ viewerSuggestionsEnabled: true, viewerSuggestionCommand: 'raidsuggest', viewerSuggestionPointsCost: 50 });
+    await raidScout.start(youtubeRuntime.context);
+    await raidScout.onEvent({ eventId: 'youtube-raid-suggestion-1', eventType: 'command.received', platform: 'youtube', source: { eventId: 'youtube-raid-suggestion-1' }, user: { id: 'youtube-viewer', name: 'viewer', displayName: 'YouTube Viewer', roles: [], actorType: 'human' }, payload: { command: 'raidsuggest', arguments: ['youtube_creator'] }, metadata: { simulated: false } }, youtubeRuntime.context);
+    expect(youtubeRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'youtube_creator', userId: 'youtube:youtube-viewer' })]);
+    expect(youtubeRuntime.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'spend', amount: 50, viewerId: 'viewer-points' }));
   });
 
   it('suggests first, then starts only the correlated creator-confirmed target', async () => {

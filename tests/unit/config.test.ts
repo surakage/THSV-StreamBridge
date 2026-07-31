@@ -200,14 +200,15 @@ describe('bridge configuration', () => {
   it('validates saved chat appearance and a case-insensitive ignored-name list', async () => {
     const config = await testConfig();
     const valid = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: {
-      ...config.browserOverlay.chat, layout: 'compact', fontFamily: 'rounded', fontSizePx: 24, backgroundMode: 'solid', ignoredNames: ['ExampleBot', 'Another Viewer'],
+      ...config.browserOverlay.chat, layout: 'compact', orientation: 'horizontal', newMessagePosition: 'start', animation: 'fade', textAlign: 'center', fontFamily: 'rounded', fontSizePx: 24, backgroundMode: 'solid', ignoredNames: ['ExampleBot', 'Another Viewer'],
     } } });
-    expect(valid.browserOverlay.chat).toMatchObject({ layout: 'compact', fontSizePx: 24, ignoredNames: ['ExampleBot', 'Another Viewer'] });
+    expect(valid.browserOverlay.chat).toMatchObject({ layout: 'compact', orientation: 'horizontal', newMessagePosition: 'start', animation: 'fade', textAlign: 'center', fontSizePx: 24, ignoredNames: ['ExampleBot', 'Another Viewer'] });
     expect(valid.browserOverlay.chat).toMatchObject({ messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' } });
     expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: { youtube: { subscriber: { enabled: true }, member: { enabled: true } }, tiktok: { likes: { enabled: true }, subscription: { enabled: true } }, streamlabs: { donation: { enabled: true } }, kofi: { donation: { enabled: true } } }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } });
     expect(valid.browserOverlay.chat.events).not.toHaveProperty('categories');
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 60 } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, backgroundColor: 'red' } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, orientation: 'diagonal' } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, ignoredNames: ['ExampleBot', 'examplebot'] } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: { ...config.browserOverlay.chat.events, characterLimits: { ...config.browserOverlay.chat.events.characterLimits, youtube: 39 } } } } }).success).toBe(false);
     const invalidEvents = structuredClone(config.browserOverlay.chat.events);

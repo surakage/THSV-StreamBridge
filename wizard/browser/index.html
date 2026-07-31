@@ -104,8 +104,16 @@
   <p class="notice">Ignored names are matched case-insensitively against both username and display name before chat is broadcast to any browser overlay. They do not block commands or alter Streamer.bot chat.</p>
   <form id="chat-overlay-form" class="filter-form">
     <div class="full-row preview-chat-wrap"><strong class="preview-label">Live preview (example messages, not connected to an overlay)</strong><div id="chat-preview-card" class="preview-chat-card"><ul id="chat-preview-list" class="preview-chat-list"></ul></div></div>
-    <details class="form-section" open><summary>Layout &amp; text</summary><div class="detail-grid">
-    <label>Layout<select name="layout"><option value="regular">Regular cards</option><option value="compact">Compact feed</option></select></label>
+    <details class="form-section" open><summary>Layout &amp; movement</summary><div class="detail-grid">
+    <fieldset class="full-row chat-layout-picker"><legend>Card style</legend><div class="chat-layout-options">
+      <label><input type="radio" name="layout" value="regular"><span class="chat-layout-icon">▤</span><strong>Regular</strong><small>Comfortable cards</small></label>
+      <label><input type="radio" name="layout" value="compact"><span class="chat-layout-icon">▦</span><strong>Compact</strong><small>More messages</small></label>
+      <label><input type="radio" name="layout" value="minimal"><span class="chat-layout-icon">▭</span><strong>Minimal</strong><small>Lightweight feed</small></label>
+    </div></fieldset>
+    <label>Feed orientation<select name="orientation"><option value="vertical">Vertical stack</option><option value="horizontal">Horizontal row</option></select><small>Horizontal mode uses the browser source width and moves messages sideways.</small></label>
+    <label>New messages appear from<select name="newMessagePosition"><option value="end">Bottom (vertical) / right (horizontal)</option><option value="start">Top (vertical) / left (horizontal)</option></select></label>
+    <label>Message animation<select name="animation"><option value="slide">Smooth slide</option><option value="fade">Fade</option><option value="pop">Gentle pop</option><option value="none">None</option></select></label>
+    <label>Text alignment<select name="textAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
     <label>Visible messages<input name="maxChatMessages" type="number" min="1" max="200" required></label>
     <label>Font family<select name="fontFamily"><option value="system">Clean system font</option><option value="rounded">Rounded</option><option value="monospace">Monospace</option></select></label>
     <label>Font size (pixels)<input name="fontSizePx" type="number" min="12" max="36" required></label>

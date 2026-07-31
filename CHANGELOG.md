@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-07-31
+
+- Added Village Jukebox, a YouTube-first multi-platform song-request add-on with creator-private API resolution in Streamer.bot, bounded persistent queues, Viewer Foundation point spending after validation, Twitch/Kick reward intake, Twitch settlement, no-repeat fairness, vote/moderator skip controls, and one shared browser/media connection. Spotify playback is intentionally excluded.
+- Expanded First Five, Fan Crown, Raid Scout, Village Roll Call, Viewer Spotlight, and Village Voice so supported Twitch/Kick rewards and YouTube/TikTok Viewer Foundation point paths share stable identities, source-routed replies, bounded state, and explicit settlement limits.
+- Hardened serialized add-on event processing so one rejected event cannot permanently poison First Five, shutdown waits for in-flight Fan Crown and Viewer Spotlight work, and failed Viewer Spotlight requests refund supported rewards or point spends.
+- Hardened Village Voice with serialized controls, bounded cooldown tracking, stable point-spend identities, shutdown cancellation/refunds, and non-overlapping scheduled work.
+- Fixed Random Clip Player fresh installs by making Clip Library Cache optional, retaining the approved Streamer.bot fallback, serializing lifecycle events, and removing overlay/media listeners during shutdown.
+- Added beginner-first wizard guidance and setup documentation for the expanded reward, point, voice, spotlight, clip, and Village Jukebox paths, including dependency order and duplicate-trigger prevention.
+- Pinned the development-only `brace-expansion` transitive dependency to patched `5.0.8`; both production and complete npm audits now report zero known vulnerabilities.
+- Synchronized the bridge, all 33 first-party add-ons, all 36 Streamer.bot packages, public documentation, and release metadata on version `2.6.0`.
+
 ## [2.5.2] - 2026-07-31
 
 - Added beginner-first Bridge Core and all-add-on setup guides, exact wizard connection steps for the newest no-import add-ons, and Command Sync templates for Creator Utility counters, poll control, and voting.

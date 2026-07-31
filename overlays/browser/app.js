@@ -18,7 +18,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
   const alertExitMs = 320;
   let clientConfig = {
     brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
-    chat: { layout: 'regular', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
+    chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
   };
   brandLabel.textContent = clientConfig.brandLabel;
   const alertController = new AlertPresentationController({
@@ -138,10 +138,11 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
 
   function updateChatOverflow() {
     const styles = getComputedStyle(chat);
-    const gap = Number.parseFloat(styles.rowGap || styles.gap) || 0;
+    const horizontal = document.body.dataset.orientation === 'horizontal';
+    const gap = Number.parseFloat(horizontal ? styles.columnGap || styles.gap : styles.rowGap || styles.gap) || 0;
     const items = [...chat.children];
-    const usedHeight = items.reduce((height, item) => height + item.getBoundingClientRect().height, 0) + gap * Math.max(0, items.length - 1);
-    chat.classList.toggle('chat-overflowing', usedHeight > chat.clientHeight + 1);
+    const usedSpace = items.reduce((space, item) => space + (horizontal ? item.getBoundingClientRect().width : item.getBoundingClientRect().height), 0) + gap * Math.max(0, items.length - 1);
+    chat.classList.toggle('chat-overflowing', usedSpace > (horizontal ? chat.clientWidth : chat.clientHeight) + 1);
   }
 
   function addEventMessage(activity) {
@@ -349,8 +350,12 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
 
   function applyChatAppearance() {
     const chatConfig = clientConfig.chat;
-    const selectedLayout = requestedLayout === 'compact' || requestedLayout === 'regular' ? requestedLayout : chatConfig.layout;
+    const selectedLayout = ['regular', 'compact', 'minimal'].includes(requestedLayout) ? requestedLayout : chatConfig.layout;
     document.body.dataset.layout = selectedLayout;
+    document.body.dataset.orientation = chatConfig.orientation || 'vertical';
+    document.body.dataset.newMessagePosition = chatConfig.newMessagePosition || 'end';
+    document.body.dataset.chatAnimation = chatConfig.animation || 'slide';
+    document.body.dataset.textAlign = chatConfig.textAlign || 'left';
     const families = { system: '"Segoe UI Variable Text", "Segoe UI", Arial, sans-serif', rounded: '"Arial Rounded MT Bold", "Segoe UI", Arial, sans-serif', monospace: 'Consolas, "Cascadia Mono", monospace' };
     document.documentElement.style.setProperty('--chat-font-family', families[chatConfig.fontFamily] || families.system);
     document.documentElement.style.setProperty('--chat-font-size', `${chatConfig.fontSizePx}px`);

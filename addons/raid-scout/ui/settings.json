@@ -2,7 +2,7 @@
   "intro": "Raid Scout searches Twitch in a creator-controlled order, filters unsafe or repetitive destinations, and suggests one live channel. Suggest then Confirm is the default; no raid starts merely because discovery completed.",
   "order": [
     "enabled", "usePreferred", "useFollowed", "useCategory", "sourceOrder", "preferredChannels", "maximumPreferredLookups",
-    "viewerSuggestionsEnabled", "viewerSuggestionRewardId", "maximumViewerSuggestions", "oneViewerSuggestionPerStream",
+    "viewerSuggestionsEnabled", "viewerSuggestionRewardId", "kickViewerSuggestionRewardId", "viewerSuggestionCommand", "viewerSuggestionPointsCost", "maximumViewerSuggestions", "oneViewerSuggestionPerStream",
     "announceViewerSuggestions", "viewerSuggestionAcceptedMessage", "viewerSuggestionRejectedMessage",
     "maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults", "minimumViewers", "maximumViewers",
     "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio", "preferredLanguage",
@@ -16,6 +16,9 @@
     "preferredChannels": { "visibleWhen": { "field": "usePreferred", "equals": true } },
     "maximumPreferredLookups": { "visibleWhen": { "field": "usePreferred", "equals": true } },
     "viewerSuggestionRewardId": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
+    "kickViewerSuggestionRewardId": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
+    "viewerSuggestionCommand": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
+    "viewerSuggestionPointsCost": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
     "maximumViewerSuggestions": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
     "oneViewerSuggestionPerStream": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
     "announceViewerSuggestions": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },
@@ -59,10 +62,10 @@
     {
       "id": "preferred",
       "title": "3. Preferred channels and viewer suggestions",
-      "description": "Your permanent list stays saved. Viewer reward suggestions are stored separately, searched first, and cleared when Twitch goes offline and again when the next stream starts.",
-      "notice": "Create the reward inside Streamer.bot, require viewer text input, leave Skip Queue off, and set a per-user-per-stream limit of 1. The existing Twitch Intake already relays all reward redemptions; do not add a trigger to Raid Scout itself.",
-      "links": [{ "label": "Streamer.bot Twitch reward setup", "url": "https://docs.streamer.bot/guide/platforms/twitch/" }],
-      "fields": ["preferredChannels", "maximumPreferredLookups", "viewerSuggestionsEnabled", "viewerSuggestionRewardId", "maximumViewerSuggestions", "oneViewerSuggestionPerStream", "announceViewerSuggestions", "viewerSuggestionAcceptedMessage", "viewerSuggestionRejectedMessage"]
+      "description": "Your permanent list stays saved. Twitch and Kick use native rewards; YouTube and TikTok use Viewer Foundation points with the configured command. Suggestions clear after the stream.",
+      "notice": "Recommended Twitch/Kick reward — title: Raid Scout Suggestion; cost: 500; color: #F59E0B; description: 'Suggest one Twitch channel for tonight raid search.' Viewer input required. Keep Skip Reward Queue disabled on Twitch so the controller can fulfill/refund it. Kick cannot currently be fulfilled or refunded by Streamer.bot, so a rejected Kick suggestion still spends the reward. YouTube and TikTok point spends are rolled back if saving fails.",
+      "links": [{ "label": "Streamer.bot Twitch reward setup", "url": "https://docs.streamer.bot/guide/platforms/twitch/" }, { "label": "Streamer.bot Kick reward trigger", "url": "https://docs.streamer.bot/api/triggers/kick/channel-reward/reward-redemption" }],
+      "fields": ["preferredChannels", "maximumPreferredLookups", "viewerSuggestionsEnabled", "viewerSuggestionRewardId", "kickViewerSuggestionRewardId", "viewerSuggestionCommand", "viewerSuggestionPointsCost", "maximumViewerSuggestions", "oneViewerSuggestionPerStream", "announceViewerSuggestions", "viewerSuggestionAcceptedMessage", "viewerSuggestionRejectedMessage"]
     },
     { "id": "limits", "title": "4. Search limits", "description": "Only limits for enabled search sources are shown. Conservative limits keep Twitch requests fast and bounded.", "fields": ["maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults"] },
     { "id": "audience", "title": "5. Audience size", "description": "Keep suggestions within a comfortable viewer range. Similar-size matching reveals its ratio controls only when enabled.", "fields": ["minimumViewers", "maximumViewers", "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio"] },

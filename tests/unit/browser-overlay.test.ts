@@ -387,7 +387,9 @@ describe('Browser Overlay Hub contract', () => {
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const styles = await readFile('overlays/browser/styles.css', 'utf8');
-    expect(source).toContain("requestedLayout === 'compact' || requestedLayout === 'regular'");
+    expect(source).toContain("['regular', 'compact', 'minimal'].includes(requestedLayout)");
+    expect(source).toContain("document.body.dataset.orientation = chatConfig.orientation");
+    expect(source).toContain("document.body.dataset.newMessagePosition = chatConfig.newMessagePosition");
     expect(source).toContain("clientConfig.chat.showProfilePictures");
     expect(source).toContain("clientConfig.chat.showPlatformLabels");
     expect(source).toContain("clientConfig.chat.showBadges");
@@ -413,6 +415,9 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('@media (max-aspect-ratio: 4 / 3)');
     expect(styles).toContain('body[data-mode="chat"] .connection-status[data-state="reconnecting"]');
     expect(styles).toContain('@keyframes chat-expire');
+    expect(styles).toContain('@keyframes chat-expire-horizontal');
+    expect(styles).toContain('body[data-orientation="horizontal"] .chat');
+    expect(styles).toContain('body[data-layout="minimal"] .message');
   });
 
   it('keeps standalone alerts crisp and responsive without scaling', async () => {

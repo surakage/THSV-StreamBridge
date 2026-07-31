@@ -1,24 +1,24 @@
 # Fan Crown setup
 
 **Module:** `thsv.fan-crown`
-**Version:** `2.5.2`
+**Version:** `2.6.0`
 **Publisher:** THSV StreamBridge
 
 Runs one rotating Streamer.bot-owned Twitch Fan Crown reward with bounded pricing, stable-identity eligibility, result-confirmed mutations, and a private monthly leaderboard.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Fan-Crown-2.5.2.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Fan-Crown-2.5.2.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Fan-Crown-2.5.2.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Fan-Crown-2.6.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Fan-Crown-2.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Fan-Crown-2.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
 1. Import the separate Fan Crown Streamer.bot package.
 2. Keep its Controller action triggerless and approve only that action for this add-on.
-3. Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.
-4. Create one Streamer.bot-owned Twitch reward and match its Reward ID, base title, and base cost in the wizard.
+3. Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.
+4. Create Twitch and Kick rewards, then create the configured no-response command for YouTube and TikTok.
 
 ## Streamer.bot
 
@@ -54,11 +54,11 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `schedule.bounded`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`, `schedule.bounded`.
 
 Private storage: `data/addons/thsv.fan-crown/`, `data/addons/.state/thsv.fan-crown/`.
 
-Dependencies: none.
+Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 

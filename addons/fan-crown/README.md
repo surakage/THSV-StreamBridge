@@ -1,6 +1,6 @@
 # Fan Crown
 
-Fan Crown turns one Streamer.bot-owned Twitch Channel Points reward into a rotating, increasingly valuable crown.
+Fan Crown uses a Twitch reward, a Kick reward, and Viewer Foundation point commands on YouTube and TikTok to create one cross-platform rotating crown.
 
 - The current holder cannot immediately reclaim it by default.
 - The actual reward cost paid becomes the viewer's monthly score.
@@ -12,14 +12,16 @@ Fan Crown turns one Streamer.bot-owned Twitch Channel Points reward into a rotat
 
 ## Install
 
-1. Import `THSV-StreamBridge-Fan-Crown-2.4.0.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Fan-Crown-2.6.0.sb` into Streamer.bot.
 2. Leave `THSV Addon - Fan Crown - Controller` triggerless.
-3. Ensure the existing `THSV Twitch - Intake` action has Twitch Reward Redemption set to Any Reward.
-4. Install `thsv.fan-crown-1.0.0.thsv-addon` through the StreamBridge wizard.
-5. Inspect Streamer.bot, approve only the Fan Crown Controller action, and paste the Streamer.bot-owned reward ID into Fan Crown settings.
-6. Make the Twitch reward's initial title and price match the configured base title and base cost.
+3. Keep Twitch and Kick Reward Redemption on their existing intake actions.
+4. Install Fan Crown and Viewer Foundation through the StreamBridge wizard.
+5. Approve only the Fan Crown Controller, paste both native reward IDs, and create the no-response `!fancrown` command for YouTube and TikTok.
+6. Make the Twitch reward's initial title and cost match the wizard. Kick uses its actual fixed redemption cost because documented Kick reward mutation methods are unavailable.
 
 Fan Crown supports rewards that either use or skip Twitch's redemption queue. For complete rejected-claim refunds, keep **Redemption Skips Queue** disabled: Twitch auto-fulfills rewards that skip the queue, and an already fulfilled redemption cannot be refunded. Valid crown captures still work in either mode.
+
+Kick captures are accepted directly and count the actual reward cost, but rejected Kick captures cannot be refunded and the Kick title/cost cannot be advanced automatically. YouTube and TikTok spend the displayed current cost from Viewer Foundation and roll it back if the state write fails.
 
 The optional Reset Crown and Reset Month actions emit tightly scoped local control events. They do not edit files or rewards directly.
 The controller shows a Streamer.bot success toast only after Twitch confirms that the reward title and base cost were restored.

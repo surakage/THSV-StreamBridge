@@ -13,7 +13,7 @@ The authoritative upstream history is the [Streamer.bot 1.0.5 changelog](https:/
 
 ## THSV impact
 
-No normalized event, add-on API, WebSocket request, C# reference, trigger, or package-manifest change is required for beta.5. Existing THSV `2.5.2` imports do not need to be re-imported solely because Streamer.bot was upgraded, and package minimum versions remain at their oldest verified compatible floors.
+No normalized event, add-on API, WebSocket request, C# reference, trigger, or package-manifest change is required for beta.5. Existing THSV `2.6.0` imports do not need to be re-imported solely because Streamer.bot was upgraded, and package minimum versions remain at their oldest verified compatible floors.
 
 - **Scene Actions and Stream Launch Countdown:** approved creator actions that control OBS benefit from Streamer.bot's own retry behavior. Scene Actions itself relays documented scene-change arguments and does not issue OBS requests.
 - **Voice Relay:** `CPH.TtsSpeak` remains the adopted method. THSV already bounds the phrase, requires an existing voice alias, serializes requests, and catches method failures; beta.5 improves the host-side timeout and test-dialog behavior.

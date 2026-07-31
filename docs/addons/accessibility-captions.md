@@ -1,15 +1,15 @@
 # Accessibility Captions setup
 
 **Module:** `thsv.accessibility-captions`
-**Version:** `2.5.2`
+**Version:** `2.6.0`
 **Publisher:** THSV StreamBridge
 
 Renders ephemeral high-contrast captions without retaining message bodies.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Accessibility-Captions-2.5.2.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Accessibility-Captions-2.5.2.thsv-addon` and review its permissions.
+1. Download and extract `THSV-StreamBridge-AddOn-Accessibility-Captions-2.6.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Accessibility-Captions-2.6.0.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 

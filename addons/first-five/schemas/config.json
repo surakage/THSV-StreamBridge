@@ -40,40 +40,47 @@
       "maxLength": 256,
       "default": ""
     },
+    "kickReward1Id": { "type": "string", "title": "Kick 1st-place Reward ID", "maxLength": 256, "default": "" },
+    "kickReward2Id": { "type": "string", "title": "Kick 2nd-place Reward ID", "maxLength": 256, "default": "" },
+    "kickReward3Id": { "type": "string", "title": "Kick 3rd-place Reward ID", "maxLength": 256, "default": "" },
+    "kickReward4Id": { "type": "string", "title": "Kick 4th-place Reward ID", "maxLength": 256, "default": "" },
+    "kickReward5Id": { "type": "string", "title": "Kick 5th-place Reward ID", "description": "Kick claims work natively, but rejected claims cannot be automatically refunded and reward enable/title changes are not exposed by the current documented API.", "maxLength": 256, "default": "" },
+    "commandName": { "type": "string", "title": "YouTube and TikTok claim command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "maxLength": 64, "default": "firstfive" },
+    "pointsCost": { "type": "integer", "title": "YouTube and TikTok placement cost", "minimum": 1, "maximum": 1000000, "default": 25 },
     "reward1Title": {
       "type": "string",
       "title": "Available 1st-place title",
       "minLength": 1,
       "maxLength": 45,
-      "default": "Claim 1st Place"
+      "default": "First Five: Claim 1st Place"
     },
     "reward2Title": {
       "type": "string",
       "title": "Available 2nd-place title",
       "minLength": 1,
       "maxLength": 45,
-      "default": "Claim 2nd Place"
+      "default": "First Five: Claim 2nd Place"
     },
     "reward3Title": {
       "type": "string",
       "title": "Available 3rd-place title",
       "minLength": 1,
       "maxLength": 45,
-      "default": "Claim 3rd Place"
+      "default": "First Five: Claim 3rd Place"
     },
     "reward4Title": {
       "type": "string",
       "title": "Available 4th-place title",
       "minLength": 1,
       "maxLength": 45,
-      "default": "Claim 4th Place"
+      "default": "First Five: Claim 4th Place"
     },
     "reward5Title": {
       "type": "string",
       "title": "Available 5th-place title",
       "minLength": 1,
       "maxLength": 45,
-      "default": "Claim 5th Place"
+      "default": "First Five: Claim 5th Place"
     },
     "claimedTitleTemplate": {
       "type": "string",

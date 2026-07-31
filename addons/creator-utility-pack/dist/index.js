@@ -3,8 +3,8 @@
 const MODULE_ID = 'thsv.creator-utility-pack';
 const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Creator Utility Pack', version: '2.5.2',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.2', maximumTestedBridgeVersion: '2.5.2',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Creator Utility Pack', version: '2.6.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received', 'stream.offline'],
   commandsProvided: [{ id: 'creator-utility.counter', name: 'counter' }, { id: 'creator-utility.vote', name: 'vote' }, { id: 'creator-utility.poll', name: 'poll' }],
   actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.creator-utility-pack/', 'data/addons/.state/thsv.creator-utility-pack/'],

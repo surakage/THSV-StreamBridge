@@ -1,98 +1,88 @@
 {
-    "packageFormat":  "thsv-addon-v2",
-    "packageKind":  "executable",
-    "author":  "THSV StreamBridge",
-    "description":  "Runs a creator-controlled equal-slice wheel with natural OBS animation, bounded multi-platform winner messages, and a result card.",
-    "changelog":  "2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with two-to-ten equal choices, server-authoritative selection, studded wheel animation, moderator command control, platform-bounded winner messages, and cropped browser-source support.",
-    "permissions":  [
-                        "events.subscribe",
-                        "state.private",
-                        "schedule.bounded",
-                        "chat.send",
-                        "overlay.publish"
-                    ],
-    "trust":  {
-                  "publisherId":  "thsv.streambridge",
-                  "sourceUrl":  "https://github.com/surakage/THSV-StreamBridge",
-                  "supportUrl":  "https://www.slothbloom.com/tip",
-                  "updateManifestUrl":  "https://github.com/surakage/THSV-StreamBridge/releases",
-                  "revocationListUrl":  "https://github.com/surakage/THSV-StreamBridge/security/advisories"
-              },
-    "manifest":  {
-                     "contractVersion":  "2.0.0-preview.1",
-                     "moduleId":  "thsv.prize-wheel",
-                     "name":  "Prize Wheel",
-                     "version":  "2.5.2",
-                     "minimumCoreVersion":  "2.0.0-preview.1",
-                     "maximumTestedCoreVersion":  "2.0.0-preview.1",
-                     "minimumBridgeVersion":  "2.5.2",
-                     "maximumTestedBridgeVersion":  "2.5.2",
-                     "dependencies":  [
-
-                                      ],
-                     "requiredCapabilities":  [
-
-                                              ],
-                     "configurationSchema":  "schemas/config.json",
-                     "eventSubscriptions":  [
-                                                "command.received"
-                                            ],
-                     "commandsProvided":  [
-                                              {
-                                                  "id":  "prize-wheel.spin",
-                                                  "name":  "spinwheel"
-                                              }
-                                          ],
-                     "actionsProvided":  [
-
-                                         ],
-                     "browserSourcesProvided":  [
-
-                                                ],
-                     "dataStorageOwned":  [
-                                              "data/addons/thsv.prize-wheel/",
-                                              "data/addons/.state/thsv.prize-wheel/"
-                                          ],
-                     "installationSteps":  [
-                                               "Add the hosted Prize Wheel browser source to OBS, Meld, or Streamlabs.",
-                                               "Create a no-response spinwheel command in Command Sync and restrict it to moderators or the broadcaster.",
-                                               "Enter two through ten unique wheel choices, choose chat destinations, save, enable, and send a preview."
-                                           ],
-                     "uninstallationSteps":  [
-                                                 "Uninstalling preserves only the last bounded spin timestamp and winning choice."
-                                             ],
-                     "migrations":  [
-
-                                    ],
-                     "healthChecks":  [
-                                          {
-                                              "id":  "thsv.prize-wheel.runtime",
-                                              "description":  "Confirms bounded choices, serialized spins, delayed announcements, and the hosted wheel renderer."
-                                          }
-                                      ]
-                 },
-    "entrypoint":  "dist/index.js",
-    "settingsUi":  "ui/settings.json",
-    "files":  [
-                  {
-                      "path":  "dist/index.js",
-                      "size":  8454,
-                      "sha256":  "f4fb6f0ad8b86d6b96b0b7e97241be217cde279822428337ad41f2a0d0845e93"
-                  },
-                  {
-                      "path":  "schemas/config.json",
-                      "size":  3678,
-                      "sha256":  "da4af9e2b0e65e33813bb5fdb45ca8a42b15acca891906949f9da5b88c640df2"
-                  },
-                  {
-                      "path":  "ui/settings.json",
-                      "size":  2683,
-                      "sha256":  "f9dd165ba8d53f1817ead38ea2a82c3311080bcec89a4ea21d9494fd94d84b0f"
-                  },
-                  {
-                      "path":  "README.md",
-                      "size":  1517,
-                      "sha256":  "d7226496b9e71d6ba421dc7296229a94ff97d6f45598e7ec6cb81019c18e1679"
-                  }
-              ]
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Runs a creator-controlled equal-slice wheel with natural OBS animation, bounded multi-platform winner messages, and a result card.",
+  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with two-to-ten equal choices, server-authoritative selection, studded wheel animation, moderator command control, platform-bounded winner messages, and cropped browser-source support.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "schedule.bounded",
+    "chat.send",
+    "overlay.publish"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.prize-wheel",
+    "name": "Prize Wheel",
+    "version": "2.6.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "2.6.0",
+    "maximumTestedBridgeVersion": "2.6.0",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "command.received"
+    ],
+    "commandsProvided": [
+      {
+        "id": "prize-wheel.spin",
+        "name": "spinwheel"
+      }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.prize-wheel/",
+      "data/addons/.state/thsv.prize-wheel/"
+    ],
+    "installationSteps": [
+      "Add the hosted Prize Wheel browser source to OBS, Meld, or Streamlabs.",
+      "Create a no-response spinwheel command in Command Sync and restrict it to moderators or the broadcaster.",
+      "Enter two through ten unique wheel choices, choose chat destinations, save, enable, and send a preview."
+    ],
+    "uninstallationSteps": [
+      "Uninstalling preserves only the last bounded spin timestamp and winning choice."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.prize-wheel.runtime",
+        "description": "Confirms bounded choices, serialized spins, delayed announcements, and the hosted wheel renderer."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 8454,
+      "sha256": "dc4743ade75ba60def7751733309ae61e2bca68f3e08f1804652b415fe8be385"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3678,
+      "sha256": "da4af9e2b0e65e33813bb5fdb45ca8a42b15acca891906949f9da5b88c640df2"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 2683,
+      "sha256": "f9dd165ba8d53f1817ead38ea2a82c3311080bcec89a4ea21d9494fd94d84b0f"
+    },
+    {
+      "path": "README.md",
+      "size": 1517,
+      "sha256": "d7226496b9e71d6ba421dc7296229a94ff97d6f45598e7ec6cb81019c18e1679"
+    }
+  ]
 }

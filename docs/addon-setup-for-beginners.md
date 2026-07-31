@@ -47,8 +47,32 @@ The wizard's **Connect Streamer.bot** step is authoritative. “No direct trigge
 | Viewer Lobby | Yes | Imported queue controller actions and browser manager |
 | Viewer Spotlight | Yes | Imported request/snapshot actions and browser source |
 | Village Draw | No | Viewer Foundation plus four Command Sync templates |
-| Village Roll Call | No | One Streamer.bot-owned Twitch reward on the main intake |
-| Voice Relay | Yes | Imported Speaker.bot relay action |
+| Village Jukebox | Yes | Command Sync requests through the main intakes plus one private YouTube resolver |
+| Village Roll Call | No | Twitch/Kick rewards or YouTube/TikTok Viewer Foundation point commands through the main intakes |
+| Village Voice | Yes | Imported Speaker.bot relay action; optional native rewards or Viewer Foundation point commands |
+
+## Dependency order that avoids setup errors
+
+Some add-ons build on another add-on. Install them in this order:
+
+1. **Viewer Foundation** first when points, identity, check-ins, viewer cards, giveaways, or viewer-paid requests are used.
+2. **Community Analytics** after Viewer Foundation and before Viewer Spotlight.
+3. **Clip Library Cache** before Random Clip Player or Clip Courier when they will share one Twitch clip list.
+4. Install the feature add-on last, import only the `.sb` found in that feature's ZIP, and approve only the actions its wizard card recommends.
+
+If the wizard reports a missing dependency, do not create a replacement Streamer.bot action. Install and enable the named dependency, save, restart StreamBridge, and return to the add-on.
+
+## What “connected” means
+
+An add-on is ready only when all applicable checks pass:
+
+- its card says **Installed**, not Rejected;
+- required dependencies are installed and enabled;
+- the matching-version Streamer.bot import is present in that add-on's own group;
+- every broker action the wizard recommends has been approved by stable action ID;
+- required provider triggers remain on the main THSV platform intake, unless the add-on guide explicitly names a direct intake;
+- its browser source shows the brief LIVE connection badge and its offline preview appears once;
+- a simulated test is recorded as offline/manual evidence, never as a real provider pass.
 
 ## Safe test order
 

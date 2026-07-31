@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Creator Controls",
-  "version": "2.5.2",
+  "version": "2.6.0",
   "author": "surakage",
   "description": "Provides three creator-controlled profile requests and one shared triggerless Twitch, YouTube, and Kick channel-metadata controller.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Creator Controls - Provider Controller",
       "group": "THSV Addon - Creator Controls",
       "source": "src/ProviderController.cs",
-      "importFile": "THSV-StreamBridge-Creator-Controls-2.5.2.sb",
+      "importFile": "THSV-StreamBridge-Creator-Controls-2.6.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -25,7 +25,7 @@
       "name": "THSV Addon - Creator Controls - Apply Profile 1",
       "group": "THSV Addon - Creator Controls",
       "source": "src/RequestProfile.cs",
-      "importFile": "THSV-StreamBridge-Creator-Controls-2.5.2.sb",
+      "importFile": "THSV-StreamBridge-Creator-Controls-2.6.0.sb",
       "arguments": [
         {
           "name": "creatorControlProfileId",
@@ -47,7 +47,7 @@
       "name": "THSV Addon - Creator Controls - Apply Profile 2",
       "group": "THSV Addon - Creator Controls",
       "source": "src/RequestProfile.cs",
-      "importFile": "THSV-StreamBridge-Creator-Controls-2.5.2.sb",
+      "importFile": "THSV-StreamBridge-Creator-Controls-2.6.0.sb",
       "arguments": [
         {
           "name": "creatorControlProfileId",
@@ -69,7 +69,7 @@
       "name": "THSV Addon - Creator Controls - Apply Profile 3",
       "group": "THSV Addon - Creator Controls",
       "source": "src/RequestProfile.cs",
-      "importFile": "THSV-StreamBridge-Creator-Controls-2.5.2.sb",
+      "importFile": "THSV-StreamBridge-Creator-Controls-2.6.0.sb",
       "arguments": [
         {
           "name": "creatorControlProfileId",

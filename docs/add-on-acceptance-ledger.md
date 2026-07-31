@@ -1,6 +1,6 @@
 # Add-on acceptance ledger
 
-Snapshot: July 31, 2026. Release baseline: `2.5.2`.
+Snapshot: July 31, 2026. Release baseline: `2.6.0`.
 
 This ledger prevents **packaged**, **offline accepted**, and **provider accepted** from being treated as the same claim. A package is production-capable only for the rows and environments whose evidence has actually been recorded.
 
@@ -31,6 +31,7 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | Village Roll Call | Passed | Pending | One genuine Twitch reward redemption, daily replay rejection, month rollover, winner announcement, and cropped OBS card. |
 | Prize Wheel | Passed | Pending | Cropped hosted-wheel rendering is automated-test accepted. One live moderator command and source-routed result on each selected platform remain pending. |
 | Village Draw | Passed | Pending | Verified-package tests cover Viewer Foundation identity, free entry, weighted points tickets, draw receipts, and restart-safe batched refunds. Live command, overlay, points spend/refund, and winner confirmation remain pending. |
+| Village Jukebox | Passed | Pending | Import, private YouTube API resolution, source-routed commands, complete hosted playback, Viewer Foundation spending/refunds, native reward intake, Twitch settlement, queue controls, and music-rights acceptance. |
 | Viewer Foundation | Passed | Pending | Identity link, progression, achievements, digest-locked legacy migration, privacy export/correction/deletion, and consumer isolation. |
 | Community Analytics | Passed | Pending | Stream rollover, ignored identities, bounded reports, and deletion propagation. |
 | Viewer Spotlight | Passed | Pending | Self/manual/reward card, fade/credits, Stream Score, Discord snapshot, settlement, browser hosts, reconnect, and deletion cleanup. |
@@ -50,10 +51,10 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 
 ## Current automated and local evidence
 
-- `140` Vitest files and `760` tests pass on the current source baseline.
-- `16` Playwright checks pass, including add-on installation/configuration, persisted collapsible UI state, Chat Guard safety controls, overlay presentation, cropped Stream Labels, Village Roll Call, Prize Wheel, Village Draw configuration, and the acceptance ledger.
+- `141` Vitest files and `780` tests pass on the current source baseline.
+- `17` Playwright checks pass, including add-on installation/configuration, persisted collapsible UI state, Chat Guard safety controls, overlay presentation, cropped Stream Labels, Village Roll Call, Prize Wheel, Village Draw, Village Jukebox, and the acceptance ledger.
 - lint, typecheck, configuration validation, production build, release packaging, and the production dependency audit pass; the audit reports zero known vulnerabilities.
-- Thirty-two first-party add-on implementations are present. All `32` individual `2.5.2` archives, their checksums, and the synchronized add-on update index were regenerated and verified. Stream Labels, Village Roll Call, Prize Wheel, and Village Draw use the shared core intakes and require no extra Streamer.bot import.
+- Thirty-three first-party add-on implementations are synchronized at `2.6.0`. The release build verifies all `33` add-on archives/checksums and `36` generated Streamer.bot imports together. Stream Labels, Village Roll Call, Prize Wheel, and Village Draw use the shared core intakes and require no extra Streamer.bot import.
 - On July 28, the local bridge reported `healthy`/`ready`; its creator-selected `19` add-ons were upgraded to compatible `2.5.0` packages and all reported `installed`. Installing the missing Clip Library Cache dependency then brought the synchronized profile to `20` healthy `2.5.0` add-ons. Their private acceptance entries carry the installed release rather than `unknown`.
 - Disposable Windows lifecycle coverage passed `21` focused installer/package tests plus custom-port start, replacement-start, stale-build rebuilding, active-config shutdown, upgrade data preservation, downgrade/tamper rejection, and conservative uninstall behavior.
 - Safe local overlay smoke on July 28 returned HTTP `200` and accepted simulated wizard previews for Automated Shoutouts, Fan Crown, First Five, Raid Scout, Random Clip Player, Stream Launch Countdown, Subathon Timer, and Viewer Spotlight. Their rows remain pending because control/state, Streamer.bot, and genuine-provider behavior was not covered by that visual-only smoke.

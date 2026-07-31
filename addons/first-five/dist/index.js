@@ -1,4 +1,4 @@
-// First Five runs a Twitch-only, five-place channel-points chain.
+// First Five uses Twitch/Kick rewards and Viewer Foundation commands on YouTube/TikTok.
 // It stores one bounded per-stream claim set and one monthly weighted leaderboard.
 const CONTROLLER_ACTION_ID = '5807e453-1cdb-49bf-bad8-d50f785cbc77';
 const CONTROLLER_RESULT_EVENT = 'addon.thsv.first-five.controller-result';
@@ -6,27 +6,28 @@ const CONTROL_EVENT = 'addon.thsv.first-five.control';
 const POSITION_POINTS = Object.freeze([5, 4, 3, 2, 1]);
 const ORDINALS = Object.freeze(['1st', '2nd', '3rd', '4th', '5th']);
 let eventQueue = Promise.resolve();
+const livePlatforms = new Set();
 
 const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.first-five',
   name: 'First Five',
-  version: '2.5.2',
+  version: '2.6.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.2', maximumTestedBridgeVersion: '2.5.2',
-  dependencies: [],
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
+  dependencies: ['thsv.viewer-foundation'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['reward.redemption', 'stream.online', 'stream.offline', CONTROLLER_RESULT_EVENT, CONTROL_EVENT],
-  commandsProvided: [],
+  eventSubscriptions: ['reward.redemption', 'command.received', 'stream.online', 'stream.offline', CONTROLLER_RESULT_EVENT, CONTROL_EVENT],
+  commandsProvided: [{ id: 'first-five.claim', name: 'firstfive' }],
   actionsProvided: [],
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.first-five/', 'data/addons/.state/thsv.first-five/'],
   installationSteps: [
     'Import the separate First Five Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
-    'Add Twitch Reward Redemption (Any Reward) to the existing THSV Twitch - Intake action.',
-    'Choose five Streamer.bot-owned Twitch reward IDs in placement order and keep Skip Reward Queue disabled on all five rewards.',
+    'Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.',
+    'Choose five Twitch IDs and five Kick IDs in placement order, then create the configured no-response command for YouTube and TikTok.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall.'],
   migrations: [],
@@ -36,7 +37,9 @@ const manifest = {
 const FALLBACKS = Object.freeze({
   enabled: true,
   reward1Id: '', reward2Id: '', reward3Id: '', reward4Id: '', reward5Id: '',
-  reward1Title: 'Claim 1st Place', reward2Title: 'Claim 2nd Place', reward3Title: 'Claim 3rd Place', reward4Title: 'Claim 4th Place', reward5Title: 'Claim 5th Place',
+  kickReward1Id: '', kickReward2Id: '', kickReward3Id: '', kickReward4Id: '', kickReward5Id: '',
+  commandName: 'firstfive', pointsCost: 25,
+  reward1Title: 'First Five: Claim 1st Place', reward2Title: 'First Five: Claim 2nd Place', reward3Title: 'First Five: Claim 3rd Place', reward4Title: 'First Five: Claim 4th Place', reward5Title: 'First Five: Claim 5th Place',
   claimedTitleTemplate: '{name} was {ordinal}',
   announceClaims: true,
   claimMessageTemplate: '{name} claimed {ordinal} place in First Five!',
@@ -57,15 +60,24 @@ function integer(value, minimum, maximum, fallback) {
   return Number.isInteger(value) ? Math.min(maximum, Math.max(minimum, value)) : fallback;
 }
 
+function scopedUserId(value) {
+  const userId = clean(value, 256);
+  return userId && !userId.includes(':') ? `twitch:${userId}` : userId;
+}
+
 function settingsFor(context) {
   const raw = { ...FALLBACKS, ...(context.settings || {}) };
   const rewardIds = [raw.reward1Id, raw.reward2Id, raw.reward3Id, raw.reward4Id, raw.reward5Id].map((value) => clean(value, 256));
+  const kickRewardIds = [raw.kickReward1Id, raw.kickReward2Id, raw.kickReward3Id, raw.kickReward4Id, raw.kickReward5Id].map((value) => clean(value, 256));
   const availableTitles = [raw.reward1Title, raw.reward2Title, raw.reward3Title, raw.reward4Title, raw.reward5Title].map((value, index) => clean(value, 45) || FALLBACKS[`reward${String(index + 1)}Title`]);
   return {
     ...raw,
     rewardIds,
+    kickRewardIds,
+    commandName: clean(raw.commandName, 64).toLowerCase() || 'firstfive',
+    pointsCost: integer(raw.pointsCost, 1, 1000000, 25),
     availableTitles,
-    configured: rewardIds.every(Boolean) && new Set(rewardIds).size === 5,
+    configured: (rewardIds.every(Boolean) && new Set(rewardIds).size === 5) || (kickRewardIds.every(Boolean) && new Set(kickRewardIds).size === 5) || clean(raw.commandName, 64).length > 0,
     leaderboardCardSeconds: integer(raw.leaderboardCardSeconds, 5, 3600, 30),
   };
 }
@@ -78,7 +90,7 @@ function monthKey(timestamp = Date.now()) {
 function placement(value) {
   if (!value || typeof value !== 'object') return undefined;
   const position = integer(value.position, 1, 5, 0);
-  const userId = clean(value.userId, 256);
+  const userId = scopedUserId(value.userId);
   const displayName = clean(value.displayName, 100);
   const rewardId = clean(value.rewardId, 256);
   const redemptionId = clean(value.redemptionId, 256);
@@ -88,7 +100,7 @@ function placement(value) {
 
 function leaderboardEntry(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const userId = clean(value.userId, 256);
+  const userId = scopedUserId(value.userId);
   const displayName = clean(value.displayName, 100);
   const placements = Array.isArray(value.placements) ? value.placements.slice(0, 5).map((count) => integer(count, 0, 10000, 0)) : [0, 0, 0, 0, 0];
   while (placements.length < 5) placements.push(0);
@@ -189,9 +201,9 @@ function withoutPending(state) {
   return next;
 }
 
-async function sendChat(context, message) {
+async function sendChat(context, message, platform = 'twitch') {
   if (!message) return;
-  try { await context.chat.send({ message, routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }); }
+  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'reject' }); }
   catch { /* Chat delivery is cosmetic and never rolls back a valid placement. */ }
 }
 
@@ -224,6 +236,7 @@ async function runController(context, argumentsValue) {
 }
 
 async function dispatchCancel(event, context) {
+  if (event.platform !== 'twitch') return;
   if (!Array.isArray(event.payload?.supportedOperations) || !event.payload.supportedOperations.includes('cancel')) return;
   await runController(context, {
     firstFiveOperation: 'cancel',
@@ -283,14 +296,24 @@ async function deactivateStream(context, settings) {
   } catch { /* The next verified stream-online reset retries the complete reward repair. */ }
 }
 
+async function completeDirectClaim(context, settings, state, claim, platform) {
+  const completed = { ...state, placements: [...state.placements, claim].sort((left, right) => left.position - right.position).slice(0, 5), leaderboard: addLeaderboardClaim(state.leaderboard, claim) };
+  await context.state.write(completed);
+  if (settings.announceClaims) await sendChat(context, formatTemplate(settings.claimMessageTemplate, { name: claim.displayName, ordinal: ORDINALS[claim.position - 1], position: claim.position }, 500), platform);
+  await publishLeaderboard(context, settings, completed);
+  return completed;
+}
+
 async function handleRedemption(event, context, settings, state) {
-  if (event.platform !== 'twitch' || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true) return state;
+  if (!['twitch', 'kick'].includes(event.platform) || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true) return state;
+  const platformRewardIds = event.platform === 'twitch' ? settings.rewardIds : settings.kickRewardIds;
   const rewardId = clean(event.payload?.rewardId, 256);
-  const position = settings.rewardIds.indexOf(rewardId) + 1;
+  const position = platformRewardIds.indexOf(rewardId) + 1;
   if (position === 0) return state;
-  if (!context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
+  if (event.platform === 'twitch' && !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
   const redemptionId = clean(event.payload?.redemptionId, 256);
-  const userId = clean(event.user?.id, 256);
+  const providerUserId = clean(event.user?.id, 240);
+  const userId = providerUserId ? `${event.platform}:${providerUserId}` : '';
   const displayName = clean(event.user?.displayName || event.user?.name, 100);
   if (!redemptionId || !userId || !displayName) return state;
   const expectedPosition = state.placements.length + 1;
@@ -298,11 +321,12 @@ async function handleRedemption(event, context, settings, state) {
   if (state.pending || position !== expectedPosition || alreadyClaimed) {
     try { await dispatchCancel(event, context); } catch { /* Leave the redemption pending if cancellation dispatch is unavailable. */ }
     if (alreadyClaimed && settings.notifyRejectedClaims) {
-      await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName }, 500));
+      await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName }, 500), event.platform);
     }
     return state;
   }
   const claim = { position, userId, displayName, rewardId, redemptionId, claimedAt: new Date().toISOString() };
+  if (event.platform === 'kick') return completeDirectClaim(context, settings, state, claim, 'kick');
   const pending = { operation: 'claim', requestId: requestId('claim'), eventId: clean(event.eventId, 256), placement: claim, streamCycleId: '', startedAt: Date.now() };
   const reserved = { ...state, pending };
   await context.state.write(reserved);
@@ -323,6 +347,21 @@ async function handleRedemption(event, context, settings, state) {
     await context.state.write(rolledBack);
     return rolledBack;
   }
+}
+
+async function handlePointsCommand(event, context, settings, state) {
+  if (event.eventType !== 'command.received' || !['youtube', 'tiktok'].includes(event.platform) || event.metadata?.simulated === true || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return state;
+  const providerUserId = clean(event.user?.id, 240); const displayName = clean(event.user?.displayName || event.user?.name, 100); const eventId = clean(event.eventId || event.source?.eventId, 200);
+  const userId = providerUserId ? `${event.platform}:${providerUserId}` : ''; const position = state.placements.length + 1;
+  if (!userId || !displayName || !eventId || position > 5) return state;
+  if (state.placements.some((item) => item.userId === userId)) { if (settings.notifyRejectedClaims) await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName }, 500), event.platform); return state; }
+  const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: providerUserId }); if (!projection) return state;
+  const idempotencyKey = `first-five:${eventId}`;
+  try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.pointsCost, reason: 'First Five placement', idempotencyKey }); }
+  catch { await sendChat(context, `You need ${String(settings.pointsCost)} ${projection.currencyName || 'points'} to claim a First Five place.`, event.platform); return state; }
+  const claim = { position, userId, displayName, rewardId: 'viewer-foundation', redemptionId: `command:${eventId}`, claimedAt: new Date().toISOString() };
+  try { return await completeDirectClaim(context, settings, state, claim, event.platform); }
+  catch (error) { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'refund', amount: settings.pointsCost, reason: 'First Five write rollback', idempotencyKey: `${idempotencyKey}:rollback` }).catch(() => undefined); throw error; }
 }
 
 async function handleControllerResult(event, context, settings, state) {
@@ -368,12 +407,15 @@ async function handleEvent(event, context) {
   state = await announcePreviousWinner(context, settings, state, rollover.winner);
   if (rollover.winner) await context.state.write(state);
 
-  if (event.eventType === 'stream.online' && event.platform === 'twitch' && event.metadata?.simulated !== true) {
-    await resetStream(event, context, settings, state);
+  if (event.eventType === 'stream.online' && event.metadata?.simulated !== true) {
+    const firstLivePlatform = livePlatforms.size === 0; livePlatforms.add(event.platform);
+    if (!firstLivePlatform) return;
+    if (settings.rewardIds.every(Boolean) && context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) await resetStream(event, context, settings, state);
+    else { const reset = { ...state, streamCycleId: clean(event.source?.eventId || event.eventId, 256), placements: [] }; await context.state.write(reset); await publishLeaderboard(context, settings, reset); }
     return;
   }
-  if (event.eventType === 'stream.offline' && event.platform === 'twitch' && event.metadata?.simulated !== true) {
-    await deactivateStream(context, settings);
+  if (event.eventType === 'stream.offline' && event.metadata?.simulated !== true) {
+    livePlatforms.delete(event.platform); if (livePlatforms.size === 0 && settings.rewardIds.every(Boolean)) await deactivateStream(context, settings);
     return;
   }
   if (event.eventType === CONTROL_EVENT && event.payload?.action === 'reset') {
@@ -385,19 +427,25 @@ async function handleEvent(event, context) {
     return;
   }
   if (event.eventType === 'reward.redemption') await handleRedemption(event, context, settings, state);
+  else if (event.eventType === 'command.received') await handlePointsCommand(event, context, settings, state);
 }
 
 const module = {
   manifest,
   required: false,
   async start(context) {
+    livePlatforms.clear();
     const settings = settingsFor(context);
     if (!settings.enabled || !settings.configured) return;
     await publishLeaderboard(context, settings, sanitizeState(await context.state.read()));
   },
-  async stop() { eventQueue = Promise.resolve(); },
+  async stop() {
+    livePlatforms.clear();
+    await eventQueue.catch(() => undefined);
+    eventQueue = Promise.resolve();
+  },
   async onEvent(event, context) {
-    eventQueue = eventQueue.then(() => handleEvent(event, context));
+    eventQueue = eventQueue.then(() => handleEvent(event, context), () => handleEvent(event, context));
     await eventQueue;
   },
 };

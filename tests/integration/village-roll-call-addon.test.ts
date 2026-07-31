@@ -33,6 +33,7 @@ describe('Village Roll Call installed add-on', () => {
   });
 
   it('loads through the verified package path and handles the configured reward', async () => {
+    const foundationInstalled = await installAddOnPackage('addons/viewer-foundation', addOnsRoot, true);
     const installed = await installAddOnPackage('addons/village-roll-call', addOnsRoot, true);
     await mkdir(join(stateRoot, 'thsv.village-roll-call'), { recursive: true });
     await writeFile(join(stateRoot, 'thsv.village-roll-call', 'settings.json'), JSON.stringify({
@@ -40,7 +41,9 @@ describe('Village Roll Call installed add-on', () => {
     }));
     const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.village-roll-call');
+    const foundation = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.viewer-foundation');
     if (!module) throw new Error('Village Roll Call must load through the installed add-on path.');
+    if (!foundation) throw new Error('Viewer Foundation must load as the Roll Call dependency.');
     const overlays: Array<{ topic: string; payload: Record<string, unknown> }> = [];
     const chats: string[] = [];
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
@@ -51,6 +54,9 @@ describe('Village Roll Call installed add-on', () => {
       },
     });
     const registry = new ModuleRegistry([{
+      ...foundation,
+      capabilityGrant: { moduleId: foundation.manifest.moduleId, permissions: foundationInstalled.descriptor.permissions, approvedActionIds: [] },
+    }, {
       ...module,
       capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: [] },
     }], silentLogger, 5_000, broker);
@@ -59,7 +65,7 @@ describe('Village Roll Call installed add-on', () => {
     const state = JSON.parse(await readFile(join(stateRoot, 'thsv.village-roll-call', 'runtime-state.json'), 'utf8')) as {
       entries: Array<{ userId: string; count: number }>;
     };
-    expect(state.entries).toEqual([expect.objectContaining({ userId: 'viewer-1', count: 1 })]);
+    expect(state.entries).toEqual([expect.objectContaining({ userId: 'twitch:viewer-1', count: 1 })]);
     expect(chats).toHaveLength(1);
     expect(overlays.at(-1)?.topic).toBe('thsv.village-roll-call.card.show');
     await registry.stop();

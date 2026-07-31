@@ -75,6 +75,7 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
       streamerbot: { runApprovedAction: vi.fn(async () => {}) },
       chat: { send: vi.fn(async () => []) },
       overlay: { publish: vi.fn(async () => {}) },
+      viewerFoundation: { getProjection: vi.fn(async () => ({ viewerId: 'viewer-points', currencyName: 'Village Points' })), mutate: vi.fn(async () => ({ applied: true })) },
       schedule,
     },
   };
@@ -148,9 +149,9 @@ describe('Fan Crown add-on', () => {
       metadata: { simulated: false },
     }, testRuntime.context);
     expect(testRuntime.value()).toMatchObject({
-      crown: { userId: 'viewer-1', displayName: 'Viewer' },
+      crown: { userId: 'twitch:viewer-1', displayName: 'Viewer' },
       currentCost: 750,
-      leaderboard: [{ userId: 'viewer-1', totalSpent: 500, captures: 1 }],
+      leaderboard: [{ userId: 'twitch:viewer-1', totalSpent: 500, captures: 1 }],
     });
     expect(testRuntime.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ sourcePlatform: 'twitch', message: 'Viewer paid 500; next 750; captures 1.' }));
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.fan-crown.card.show', expect.objectContaining({
@@ -208,5 +209,19 @@ describe('Fan Crown add-on', () => {
     await fanCrown.onEvent({ ...rewardEvent(), metadata: { simulated: true } }, testRuntime.context);
     expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
     expect(testRuntime.value()).toEqual({});
+  });
+
+  it('accepts Kick natively and uses Viewer Foundation points on YouTube', async () => {
+    const kickRuntime = runtime({ kickRewardId: 'kick-crown' });
+    const kickBase = rewardEvent('kick-viewer', 'Kick Viewer', 'kick-crown-1');
+    await fanCrown.onEvent({ ...kickBase, platform: 'kick', payload: { ...kickBase.payload, rewardId: 'kick-crown', rewardCost: 600, supportedOperations: [] } }, kickRuntime.context);
+    expect(kickRuntime.value()).toMatchObject({ currentCost: 600, crown: { userId: 'kick:kick-viewer' }, leaderboard: [{ totalSpent: 600 }] });
+    expect(kickRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+
+    await fanCrown.stop(kickRuntime.context);
+    const youtubeRuntime = runtime({ commandName: 'fancrown' });
+    await fanCrown.onEvent({ eventId: 'youtube-crown-1', eventType: 'command.received', platform: 'youtube', source: { eventId: 'youtube-crown-1' }, user: { id: 'youtube-viewer', name: 'viewer', displayName: 'YouTube Viewer', actorType: 'human', roles: [] }, payload: { command: 'fancrown', arguments: [] }, metadata: { simulated: false } }, youtubeRuntime.context);
+    expect(youtubeRuntime.value()).toMatchObject({ crown: { userId: 'youtube:youtube-viewer' } });
+    expect(youtubeRuntime.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'spend', amount: 500, viewerId: 'viewer-points' }));
   });
 });
