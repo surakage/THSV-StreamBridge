@@ -2,7 +2,7 @@
 
 Snapshot: July 31, 2026. Version baseline: `2.6.0`.
 
-Release `2.6.0` is the current source baseline prepared for publication, with the main Windows archive, an add-on index, and `33` separately downloadable first-party add-ons. The detailed ownership, privacy, dependency, and implementation plans remain in [Future projects and add-on roadmap](future-projects-and-addons.md). Per-package evidence is tracked in [Add-on acceptance ledger](add-on-acceptance-ledger.md). **Published**, **offline accepted**, and **provider accepted** are deliberately different states.
+Release [`2.6.0`](https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.6.0) is the current published source baseline, with the main Windows archive, an add-on index, and `33` separately downloadable first-party add-ons. The detailed ownership, privacy, dependency, and implementation plans remain in [Future projects and add-on roadmap](future-projects-and-addons.md). Per-package evidence is tracked in [Add-on acceptance ledger](add-on-acceptance-ledger.md). **Published**, **offline accepted**, and **provider accepted** are deliberately different states.
 
 ## Completed in the published baseline
 
@@ -10,7 +10,7 @@ Release `2.6.0` is the current source baseline prepared for publication, with th
 | --- | --- |
 | Bridge core | Normalized Twitch, YouTube, Kick, and TikTok intake; one Streamer.bot connection; durable outbox; deduplication; authenticated loopback wizard; browser overlays; safe lifecycle and recovery. |
 | Automated validation | Lint, typecheck, build, configuration validation, 141 test files / 780 tests, and 17 browser tests pass on the current source baseline. Production dependency packaging reports zero known vulnerabilities. |
-| Windows package | The self-contained `THSV-StreamBridge-2.6.0.zip`, its SHA-256 checksum, the synchronized add-on index, and all `33` individual add-on archives/checksums are regenerated and verified together before publication. GitHub attestations are produced by the tag-triggered release workflow. A separate clean-machine install/update walkthrough remains an acceptance task, not a publication blocker. |
+| Windows package | The self-contained `THSV-StreamBridge-2.6.0.zip`, its SHA-256 checksum, the synchronized add-on index, and all `33` individual add-on archives/checksums were regenerated and verified together. The successful tag workflow published 71 assets plus GitHub provenance and SBOM attestations. A separate clean-machine install/update walkthrough remains an acceptance task, not a publication blocker. |
 | Add-on packaging | Thirty-three first-party implementations are present. Each builds as a separate verified download; an `.sb` import is included only when the add-on needs Streamer.bot actions. |
 | Streamer.bot source packages | Twenty add-ons require Streamer.bot actions and use distinct `THSV Addon - <Name>` groups in source. Core packages remain in their existing core groups. |
 | New viewer stack | Viewer Foundation, Community Analytics, and Viewer Spotlight are packaged, installed locally, and report healthy. Foundation and Analytics are enabled; Spotlight remains disclosure-gated and disabled by default. |
@@ -26,7 +26,6 @@ Release `2.6.0` is the current source baseline prepared for publication, with th
 3. **Expanded implementations:** Creator Controls, Category Pilot, Live Beacon, Clip Courier, Viewer Lobby, Voice Relay, and Follower Pulse are complete in source and pass the refreshed full package/browser gate. Creator-specific live acceptance remains required.
 4. **Runtime acceptance:** Streamlabs Donations now reuses Streamer.bot's authenticated `Streamlabs.Donation` WebSocket event and fails closed without a provider-stable ID. A live Streamlabs test donation must confirm the installed Streamer.bot build preserves that raw ID.
 5. **New add-on live acceptance:** observe at least one genuine event through every stateful or provider-mutating add-on before labeling it live accepted.
-6. **Publication gate:** push the reviewed source and `v2.6.0` tag, then require the GitHub release workflow to publish the matching core, add-on index, packages, checksums, SBOM, and attestations together.
 
 High-impact financial, reward, raid, or moderation paths still require their provider-specific live evidence. Missing evidence must keep those operations gated; it is not permission to simulate success in release notes.
 

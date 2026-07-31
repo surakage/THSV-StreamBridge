@@ -1,6 +1,6 @@
 # Production-readiness gate
 
-`2.6.0` is the current release candidate. It contains thirty-three first-party add-ons at the same visible version, a regenerated portable Windows archive, a synchronized add-on index, verified checksums, and thirty-six version-aligned Streamer.bot imports. The add-on/event API contract remains independently versioned. The automated and visual gates below pass; tag-triggered GitHub publication and the live-runtime items listed under "Remaining live verification" are still in progress. The runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
+`2.6.0` is the current stable release. It contains thirty-three first-party add-ons at the same visible version, a regenerated portable Windows archive, a synchronized add-on index, verified checksums, and thirty-six version-aligned Streamer.bot imports. The add-on/event API contract remains independently versioned. The automated, visual, and tag-triggered GitHub publication gates pass; the live-runtime items listed under "Remaining live verification" are still in progress. The runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
 
 ## Automated gate
 
@@ -41,7 +41,7 @@
 - Twitch, YouTube, and Kick trigger field names and provider-stable identifiers have been captured and corrected against real Streamer.bot Action History argument dumps for most high-impact events (see the platform matrix in [integration assumptions](integration-assumptions.md)); Kick Mass Gift Subscription is the one exception, confirmed only against Streamer.bot's published variable reference because its live test trigger crashes Streamer.bot. None of the three has a genuine live-stream, real-viewer soak test yet.
 - TikFinity does not document a stable event ID or trustworthy simulation marker; TikTok financial/progression use remains unsuitable.
 - Kick reward mutations remain disabled because Streamer.bot does not document them.
-- GitHub release `v2.5.2` and its downloadable assets are published. Release `v2.6.0` still requires an authenticated maintainer session, a successful tag workflow, and fresh attestations.
+- GitHub release [`v2.6.0`](https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.6.0) is published with the core archive, thirty-three add-on archives, checksums, the add-on index, production SBOM, and fresh GitHub provenance/SBOM attestations. The tag workflow passed on July 31, 2026.
 - A paid Windows executable certificate is not used. Users verify the SHA-256 file and GitHub artifact attestation instead.
 
 Do not describe unverified high-impact events as production-ready for financial, reward, or destructive automation until the remaining live-verification items above have dated evidence in the release notes.
