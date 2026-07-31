@@ -47,7 +47,7 @@ Core must not become a catalogue of stream-specific entertainment features. Opti
 
 ### Packaged first-party add-ons
 
-These twenty-eight current add-ons are included in the `2.5.1` release build. **Packaged** confirms repository/release cohesion, not that every creator-specific provider credential, trigger, webhook, browser source, or live-stream path has been accepted:
+These thirty-two current add-ons are included in the `2.5.1` source build. **Packaged** confirms repository/release cohesion, not that every creator-specific provider credential, trigger, webhook, browser source, or live-stream path has been accepted:
 
 | Add-on | Current status | Standalone responsibility | Remaining acceptance emphasis |
 | --- | --- | --- | --- |
@@ -101,9 +101,13 @@ These twenty-eight current add-ons are included in the `2.5.1` release build. **
 | Chat Play Pack | Packaged and automated-accepted `2.5.0` | Bounded Number Guess, creator-authored Trivia, Prediction rounds, and idempotent Viewer Foundation awards remain separate from stateless templates. |
 | Streamlabs Donations | Implemented in core; live acceptance pending | Reuses Streamer.bot's authenticated `Streamlabs.Donation` WebSocket event, stores no provider credential, and fails closed unless the raw live event contains `event_id`, `donation_id`, `_id`, or `id`. |
 | Free Game Check | Packaged and automated-accepted `2.5.0` | Conservative fixed-provider discovery, silent first scan, bounded deduplication, attribution, and selected-platform output. |
-| Creator Utility Pack | Packaged and automated-accepted `2.5.0` | Counters, casual in-memory giveaways, and polls share one optional package with source-routed commands and bounded salted state. |
+| Creator Utility Pack | Packaged and automated-accepted `2.5.1` | Bounded counters and polls share one optional package with platform-limited source routing. Its older in-memory giveaway was removed in favor of Village Draw. |
 | Accessibility Captions | Packaged and automated-accepted `2.5.0` | Ephemeral high-contrast public chat/event captions with no text retention; Voice Relay remains the independent TTS boundary. |
 | Clip Library Cache | Packaged and automated-accepted `2.5.0` | One bounded Twitch metadata snapshot serves clip consumers; video bytes and signed playback URLs remain uncached. |
+| Stream Labels | Packaged `2.5.1`; local OBS acceptance passed | One bounded latest-value projection groups equivalent multi-platform events into OBS-ready labels without adding triggers, sockets, or viewer history. |
+| Village Roll Call | Packaged `2.5.1`; live Twitch acceptance pending | One Twitch daily reward check-in, a bounded monthly leaderboard, and an optional hosted OBS card without hard-coded files or another Streamer.bot action. |
+| Prize Wheel | Packaged `2.5.1`; local cropped-OBS acceptance passed | Two through ten equal slices, a server-selected result, a decelerating studded wheel, moderator command control, and bounded winner messages to selected chats. |
+| Village Draw | Packaged `2.5.1`; live acceptance pending | Free or Viewer Foundation points entry, bounded weighted tickets, authenticated lifecycle controls, recoverable refunds, and hosted winner cards. |
 
 ## Combination and dependency decisions
 
@@ -130,6 +134,10 @@ The following S•Kit-inspired features are small, bounded command or presentati
 | Template | Current state and behavior |
 | --- | --- |
 | Follow Age | **Implemented as a main Command Sync template.** The generated action is Twitch-only and queries the invoking viewer against Twitch's fixed `GET /helix/channels/followers` endpoint. Streamer.bot retains its broadcaster OAuth token; the action stores and logs no credential or API body, applies global/user cooldowns, and reports missing follower permission without pretending account age or `IsFollowing` is follow age. |
+| Account Age | **Implemented as a main Command Sync template.** Twitch-only self lookup through `GET /helix/users`; reports the creation date and calendar age without relying on DecAPI. |
+| Stream Uptime | **Implemented as a main Command Sync template.** Twitch-only broadcaster lookup through `GET /helix/streams`; reports a bounded duration or a clear offline state. |
+| Game Suggestion | **Implemented as a main Command Sync template.** Multi-platform, exact duplicate protection, 120-character input bound, 1,000-entry cap, and one persisted Streamer.bot list with no creator-specific file path. |
+| Magic 8-Ball | **Implemented as a main Command Sync template.** Multi-platform, question-required, cooldown-bounded, and uses one original editable response list. |
 | Commands / Help | **Implemented.** Builds an editable, platform-length-bounded help response from commands already staged in the same wizard batch. An empty batch receives an explicit placeholder for a creator-maintained list or help URL rather than claiming unavailable commands exist. |
 | Coin Flip | **Implemented.** Generates a stateless source-gated C# response with editable Heads/Tails choices. It uses the existing platform reply gate and sends only to the platform that invoked it. |
 | Random Joke | Optional random-list command using creator-authored or clearly licensed entries. Prefer one bounded response; do not block a shared action queue with long waits between a setup and punchline. |
@@ -871,7 +879,7 @@ Forum delivery requires either a known `thread_id` to append or a `thread_name` 
 ## Later utility candidates
 
 - Free Game Check is packaged with scheduled/manual checks, offer caching, duplicate suppression, selected-platform chat output, and provider attribution; Discord delivery remains a possible later expansion;
-- Quote Vault and Creator Utility Pack are packaged separately; the latter owns counters, casual giveaways, and polls with independent enable switches and source-platform routing;
+- Quote Vault and Creator Utility Pack are packaged separately; the latter owns counters and polls with independent settings and source-platform routing, while Village Draw exclusively owns giveaways;
 - moderation dashboard and bounded chat-history tools beyond Chat Guard's narrow enforcement scope;
 - Clip Library Cache now shares bounded Twitch clip metadata between consumers; caching video bytes or expiring signed playback URLs remains intentionally out of scope until storage, expiry, and provider-policy requirements are settled;
 - Accessibility Captions now provides ephemeral high-contrast browser captions; Voice Relay remains the separate TTS boundary;
@@ -897,7 +905,7 @@ Completed packaging work remains listed in the portfolio table. This sequence de
 ### Track A — Stabilize the released baseline
 
 1. Complete clean-install, update, rollback, uninstall, backup/restore, custom-port, wizard, and Streamer.bot connection acceptance for published core `2.5.0`.
-2. Run and record the remaining offline and provider acceptance for all twenty-eight packaged add-ons, prioritizing financial and reward mutations before cosmetic outputs.
+2. Run and record the remaining offline and provider acceptance for all thirty-two packaged add-ons, prioritizing financial and reward mutations before cosmetic outputs.
 3. Fix resulting defects in the smallest affected package, rerun the full automated gate, regenerate matching packages/index/checksums, and establish the next stable patch baseline before adding executable add-ons.
 4. Maintain the creator-facing [acceptance ledger](add-on-acceptance-ledger.md) so **Published**, **Offline accepted**, and **Provider accepted** remain visibly different.
 

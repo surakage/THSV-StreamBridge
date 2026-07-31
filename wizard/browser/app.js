@@ -36,7 +36,7 @@ const shoutoutTemplateOption=byId('design-command').elements.template.querySelec
 shoutoutTemplateOption.textContent='Automated Shoutouts — Multi-platform (features vary)';
 shoutoutTemplateOption.insertAdjacentHTML('afterend','<option value="shoutout-basic">Basic shoutout link — Multi-platform</option>');
 shoutoutTemplateOption.insertAdjacentHTML('afterend','<option value="viewer-card">Viewer Spotlight card — Multi-platform</option>');
-byId('design-command').elements.template.querySelector('option[value="timezone"]').insertAdjacentHTML('afterend','<option value="commands-help">Commands / help — Multi-platform</option><option value="coin-flip">Coin flip — Multi-platform</option><option value="random-joke">Random joke — Multi-platform</option><option value="follow-age">Follow age — Twitch only</option>');
+byId('design-command').elements.template.querySelector('option[value="timezone"]').insertAdjacentHTML('afterend','<option value="commands-help">Commands / help — Multi-platform</option><option value="coin-flip">Coin flip — Multi-platform</option><option value="magic-8-ball">Magic 8-Ball — Multi-platform</option><option value="game-suggestion">Game suggestion — Multi-platform</option><option value="random-joke">Random joke — Multi-platform</option><option value="prize-wheel">Prize Wheel control — Multi-platform</option><option value="viewer-points">Viewer points balance — Multi-platform</option><option value="creator-counter">Creator Utility counter — Multi-platform</option><option value="creator-poll">Creator Utility poll control — Multi-platform</option><option value="creator-vote">Creator Utility vote — Multi-platform</option><option value="village-draw-info">Village Draw info &amp; control — Multi-platform</option><option value="village-draw-enter">Village Draw free/single entry — Multi-platform</option><option value="village-draw-tickets">Village Draw ticket purchase — Multi-platform</option><option value="village-draw-balance">Village Draw ticket balance — Multi-platform</option><option value="account-age">Account age — Twitch only</option><option value="uptime">Stream uptime — Twitch only</option><option value="follow-age">Follow age — Twitch only</option>');
 byId('command-platform-messages').querySelector('small').insertAdjacentHTML('beforebegin','<label>TikTok response <span data-command-count="tiktok">0/150</span><textarea name="messageTiktok" rows="3" maxlength="150"></textarea><small>Sent through TikFinity using its documented <code>sendChatbotMessage</code> WebSocket action.</small></label>');
 byId('command-platform-messages').querySelector('small.full-row').innerHTML='Template variables are resolved from Streamer.bot trigger arguments: <code>{user}</code> uses the viewer name, <code>{target}</code> uses the first command parameter, <code>{input}</code> uses all command parameters, and <code>{channel}</code> uses the broadcaster/channel name. Visual wrapping stays inside one message.';
 byId('command-platform-messages').querySelector('small.full-row').insertAdjacentHTML('afterend','<details class="full-row command-variable-guide" open><summary>Available message variables</summary><dl><dt><code>{user}</code></dt><dd>The viewer who used the command.</dd><dt><code>{target}</code></dt><dd>The first command parameter, such as <code>creator</code> in <code>!so creator</code>.</dd><dt><code>{targetUrl}</code></dt><dd>A Twitch, YouTube, Kick, or TikTok channel URL built from the source platform and target.</dd><dt><code>{input}</code></dt><dd>All text entered after the command.</dd><dt><code>{channel}</code></dt><dd>The broadcaster or channel name supplied by Streamer.bot.</dd><dt><code>{channelUrl}</code></dt><dd>The broadcaster channel URL for the source platform.</dd></dl></details>');
@@ -142,6 +142,125 @@ const streamerTimeScript=[
   'string zoneName = localZone.IsDaylightSavingTime(localTime) ? localZone.DaylightName : localZone.StandardName;',
   'return "Streamer time: " + localTime.ToString("h:mm tt") + " (" + zoneName + ").";'
 ].join('\n');
+const accountAgeScript=[
+  'if (commandSource != "twitch") return "";',
+  'string viewerId = Read("userId").Trim();',
+  'string viewerLogin = First(Read("userName"), Read("user")).Trim().TrimStart(\'@\');',
+  'string oauthToken = (CPH.TwitchOAuthToken ?? "").Trim();',
+  'string clientId = (CPH.TwitchClientId ?? "").Trim();',
+  'if (viewerId.Length == 0 && viewerLogin.Length == 0) return "Twitch did not provide the viewer identity needed to check account age.";',
+  'if (oauthToken.Length == 0 || clientId.Length == 0) return "Account age is unavailable until the Twitch Broadcaster account is connected in Streamer.bot.";',
+  'string query = viewerId.Length > 0 ? "id=" + Uri.EscapeDataString(viewerId) : "login=" + Uri.EscapeDataString(viewerLogin);',
+  'string url = "https://api.twitch.tv/helix/users?" + query;',
+  'try',
+  '{',
+  '    var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(url);',
+  '    request.Method = "GET"; request.Timeout = 8000; request.ReadWriteTimeout = 8000;',
+  '    request.Headers["Authorization"] = "Bearer " + oauthToken; request.Headers["Client-Id"] = clientId;',
+  '    string body;',
+  '    using (var response = (System.Net.HttpWebResponse)request.GetResponse())',
+  '    using (var reader = new System.IO.StreamReader(response.GetResponseStream())) body = reader.ReadToEnd();',
+  '    var root = JsonConvert.DeserializeObject<Dictionary<string, object>>(body);',
+  '    object dataValue; var data = root != null && root.TryGetValue("data", out dataValue) ? dataValue as Newtonsoft.Json.Linq.JArray : null;',
+  '    if (data == null || data.Count == 0) return "Twitch could not find that account.";',
+  '    string createdText = Convert.ToString(data[0]["created_at"]);',
+  '    DateTimeOffset createdAt;',
+  '    if (!DateTimeOffset.TryParse(createdText, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out createdAt)) return "Twitch did not provide a valid account creation date.";',
+  '    DateTime start = createdAt.UtcDateTime; DateTime now = DateTime.UtcNow;',
+  '    int years = now.Year - start.Year; if (start.AddYears(years) > now) years--;',
+  '    DateTime afterYears = start.AddYears(years);',
+  '    int months = (now.Year - afterYears.Year) * 12 + now.Month - afterYears.Month; if (afterYears.AddMonths(months) > now) months--;',
+  '    int days = Math.Max(0, (now - afterYears.AddMonths(months)).Days);',
+  '    var parts = new List<string>();',
+  '    if (years > 0) parts.Add(years + (years == 1 ? " year" : " years"));',
+  '    if (months > 0) parts.Add(months + (months == 1 ? " month" : " months"));',
+  '    if (days > 0 || parts.Count == 0) parts.Add(days + (days == 1 ? " day" : " days"));',
+  '    return userName + "\'s Twitch account was created " + createdAt.UtcDateTime.ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture) + " (" + String.Join(", ", parts) + " ago).";',
+  '}',
+  'catch (System.Net.WebException error)',
+  '{',
+  '    var response = error.Response as System.Net.HttpWebResponse;',
+  '    if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden)) return "Account age needs a connected Twitch Broadcaster account. Reconnect it in Streamer.bot, then try again.";',
+  '    return "Twitch account age is temporarily unavailable. Please try again later.";',
+  '}',
+  'catch { return "Twitch account age is temporarily unavailable. Please try again later."; }'
+].join('\n');
+const uptimeScript=[
+  'if (commandSource != "twitch") return "";',
+  'string broadcasterId = Read("broadcastUserId").Trim();',
+  'string oauthToken = (CPH.TwitchOAuthToken ?? "").Trim();',
+  'string clientId = (CPH.TwitchClientId ?? "").Trim();',
+  'if (broadcasterId.Length == 0) return "Twitch did not provide the broadcaster ID needed to check uptime.";',
+  'if (oauthToken.Length == 0 || clientId.Length == 0) return "Uptime is unavailable until the Twitch Broadcaster account is connected in Streamer.bot.";',
+  'string url = "https://api.twitch.tv/helix/streams?user_id=" + Uri.EscapeDataString(broadcasterId);',
+  'try',
+  '{',
+  '    var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(url);',
+  '    request.Method = "GET"; request.Timeout = 8000; request.ReadWriteTimeout = 8000;',
+  '    request.Headers["Authorization"] = "Bearer " + oauthToken; request.Headers["Client-Id"] = clientId;',
+  '    string body;',
+  '    using (var response = (System.Net.HttpWebResponse)request.GetResponse())',
+  '    using (var reader = new System.IO.StreamReader(response.GetResponseStream())) body = reader.ReadToEnd();',
+  '    var root = JsonConvert.DeserializeObject<Dictionary<string, object>>(body);',
+  '    object dataValue; var data = root != null && root.TryGetValue("data", out dataValue) ? dataValue as Newtonsoft.Json.Linq.JArray : null;',
+  '    if (data == null) return "Twitch returned an unreadable uptime response. Please try again.";',
+  '    if (data.Count == 0) return channelName + " is currently offline.";',
+  '    string startedText = Convert.ToString(data[0]["started_at"]);',
+  '    DateTimeOffset startedAt;',
+  '    if (!DateTimeOffset.TryParse(startedText, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out startedAt)) return "Twitch did not provide a valid stream start time.";',
+  '    TimeSpan elapsed = DateTimeOffset.UtcNow - startedAt.ToUniversalTime(); if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;',
+  '    var parts = new List<string>();',
+  '    if (elapsed.Days > 0) parts.Add(elapsed.Days + (elapsed.Days == 1 ? " day" : " days"));',
+  '    if (elapsed.Hours > 0) parts.Add(elapsed.Hours + (elapsed.Hours == 1 ? " hour" : " hours"));',
+  '    parts.Add(elapsed.Minutes + (elapsed.Minutes == 1 ? " minute" : " minutes"));',
+  '    return channelName + " has been live for " + String.Join(", ", parts) + ".";',
+  '}',
+  'catch (System.Net.WebException error)',
+  '{',
+  '    var response = error.Response as System.Net.HttpWebResponse;',
+  '    if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden)) return "Uptime needs a connected Twitch Broadcaster account. Reconnect it in Streamer.bot, then try again.";',
+  '    return "Twitch uptime is temporarily unavailable. Please try again later.";',
+  '}',
+  'catch { return "Twitch uptime is temporarily unavailable. Please try again later."; }'
+].join('\n');
+const gameSuggestionScript=[
+  'const string suggestionsKey = "thsv.command.game-suggestions.v1";',
+  'string suggestion = (rawInput ?? "").Trim();',
+  'if (suggestion.Length == 0) return "Got a game in mind? Use !suggest followed by the game name.";',
+  'var cleaned = new System.Text.StringBuilder();',
+  'foreach (char character in suggestion) if (!Char.IsControl(character)) cleaned.Append(character);',
+  'suggestion = cleaned.ToString().Trim();',
+  'if (suggestion.Length == 0) return "Please include a readable game name after !suggest.";',
+  'if (suggestion.Length > 120) return "Game suggestions must be 120 characters or fewer.";',
+  'List<string> suggestions;',
+  'try { suggestions = JsonConvert.DeserializeObject<List<string>>(CPH.GetGlobalVar<string>(suggestionsKey, true) ?? "") ?? new List<string>(); } catch { suggestions = new List<string>(); }',
+  'foreach (string existing in suggestions) if (String.Equals((existing ?? "").Trim(), suggestion, StringComparison.OrdinalIgnoreCase)) return "\\"" + suggestion + "\\" is already on the suggestion list.";',
+  'if (suggestions.Count >= 1000) return "The game suggestion list is full. Ask the streamer to archive or clear it before adding more.";',
+  'suggestions.Add(suggestion);',
+  'CPH.SetGlobalVar(suggestionsKey, JsonConvert.SerializeObject(suggestions), true);',
+  'CPH.SetArgument("thsvGameSuggestion", suggestion);',
+  'CPH.SetArgument("thsvGameSuggestionCount", suggestions.Count);',
+  'return userName + " suggested \\"" + suggestion + "\\". It is now on the game list!";'
+].join('\n');
+const magicEightBallScript=[
+  'if (String.IsNullOrWhiteSpace(rawInput)) return userName + ", ask a complete question after !8ball.";',
+  'string[] answers = {',
+  '    "The village signs point to yes.",',
+  '    "It looks promising.",',
+  '    "Without a doubt.",',
+  '    "Most likely.",',
+  '    "Ask again after the next checkpoint.",',
+  '    "The answer is still hiding in the leaves.",',
+  '    "The outlook is unclear.",',
+  '    "Better not count on it.",',
+  '    "The village votes no.",',
+  '    "Not this time.",',
+  '    "Trust your instincts.",',
+  '    "A surprise outcome is likely."',
+  '};',
+  'int selected = (Guid.NewGuid().GetHashCode() & Int32.MaxValue) % answers.Length;',
+  'return "8-Ball: " + userName + ", " + answers[selected];'
+].join('\n');
 const commandTemplates={
   tips:{name:'tips',actionName:'THSV Command - Tips',aliases:'tip, support',minimumRole:'viewer',responseMode:'platform-message',messages:{twitch:'Support {channel}: replace-with-your-tip-link',youtube:'Support {channel}: replace-with-your-tip-link',kick:'Support {channel}: replace-with-your-tip-link',tiktok:'Support the stream: replace-with-your-tip-link'},note:'Replace the placeholder with your tip or support URL.'},
   shoutout:{name:'shoutout',actionName:'THSV Command - Shoutout',aliases:'so',minimumRole:'moderator',responseMode:'none',messages:{},note:'Automated Shoutouts owns the lookup, category, channel link, cooldown, optional native shoutout, and overlay. This action intentionally sends no canned reply.'},
@@ -164,6 +283,19 @@ const commandTemplates={
   , 'commands-help':{name:'commands',actionName:'THSV Command - Commands',aliases:'help',minimumRole:'viewer',responseMode:'platform-message',messages:{twitch:'Available commands: {commandList}',youtube:'Available commands: {commandList}',kick:'Available commands: {commandList}',tiktok:'Commands: {commandList}'},note:'Generated from commands currently queued in this wizard batch. Review the list whenever commands change.'}
   , 'coin-flip':{name:'coinflip',actionName:'THSV Command - Coin Flip',aliases:'flip, coin',minimumRole:'viewer',responseMode:'custom-script',messages:{},customScript:'string[] choices = { "Heads", "Tails" };\nint selected = (Guid.NewGuid().GetHashCode() & int.MaxValue) % choices.Length;\nreturn userName + " flipped " + choices[selected] + ".";',note:'Stateless cross-platform coin flip. Edit the two choices or neutral response in the generated C# body.'}
   , 'random-joke':{name:'joke',actionName:'THSV Command - Random Joke',aliases:'dadjoke',minimumRole:'viewer',responseMode:'custom-script',messages:{},customScript:'string[] jokes = {\n    "Why did the stream cross the road? To get to the other bitrate.",\n    "My controller and I agreed to take a break. It kept pressing my buttons.",\n    "The loading screen said to be patient, so I invited it to the next stream."\n};\nint selected = (Guid.NewGuid().GetHashCode() & int.MaxValue) % jokes.Length;\nreturn jokes[selected];',globalCooldown:10,userCooldown:30,note:'Multi-platform, single-response random joke using original editable entries. Add your own original or properly licensed jokes; no external API is contacted.'}
+  , 'magic-8-ball':{name:'8ball',actionName:'THSV Command - Magic 8-Ball',aliases:'eightball',minimumRole:'viewer',responseMode:'custom-script',messages:{},customScript:magicEightBallScript,globalCooldown:2,userCooldown:10,note:'Multi-platform question-and-answer template with an original editable response list and one source-gated reply.'}
+  , 'game-suggestion':{name:'suggest',actionName:'THSV Command - Game Suggestion',aliases:'gamesuggest',minimumRole:'viewer',responseMode:'custom-script',messages:{},customScript:gameSuggestionScript,globalCooldown:1,userCooldown:15,note:'Multi-platform shared suggestion list stored as a persisted Streamer.bot global. Exact duplicate names are rejected; no hard-coded Windows path is required.'}
+  , 'prize-wheel':{name:'spinwheel',actionName:'THSV Command - Prize Wheel',aliases:'wheel',minimumRole:'moderator',responseMode:'none',messages:{},customScript:'',globalCooldown:15,userCooldown:15,note:'Multi-platform moderator control for the Prize Wheel add-on. It intentionally generates no direct response; StreamBridge animates and announces the server-selected result.'}
+  , 'viewer-points':{name:'points',actionName:'THSV Command - Viewer Points',aliases:'balance, pointsbalance',minimumRole:'viewer',responseMode:'none',messages:{},customScript:'',globalCooldown:1,userCooldown:5,note:'Multi-platform Viewer Foundation balance lookup. The add-on returns the viewer\'s named currency total and level only to the source chat.'}
+  , 'creator-counter':{name:'counter',actionName:'THSV Command - Creator Counter',aliases:'count',minimumRole:'viewer',responseMode:'none',messages:{},customScript:'',globalCooldown:1,userCooldown:3,note:'Multi-platform Creator Utility counter. Everyone may show a counter; Creator Utility independently requires Moderator or Broadcaster for +1, -1, and reset.'}
+  , 'creator-poll':{name:'poll',actionName:'THSV Command - Creator Poll',aliases:'',minimumRole:'moderator',responseMode:'none',messages:{},customScript:'',globalCooldown:2,userCooldown:3,note:'Multi-platform Creator Utility poll control. Creator Utility independently verifies Moderator or Broadcaster before open, close, or reset.'}
+  , 'creator-vote':{name:'vote',actionName:'THSV Command - Creator Vote',aliases:'',minimumRole:'viewer',responseMode:'none',messages:{},customScript:'',globalCooldown:1,userCooldown:2,note:'Multi-platform Creator Utility vote command. The add-on accepts one current choice per stable platform account and routes confirmation only to the source chat.'}
+  , 'village-draw-info':{name:'giveaway',actionName:'THSV Command - Village Draw',aliases:'draw',minimumRole:'viewer',responseMode:'none',messages:{},customScript:'',globalCooldown:2,userCooldown:5,note:'Multi-platform Village Draw information command. Viewers see the current status; the add-on independently requires Moderator or Broadcaster for open, close, draw, confirm, cancel, reset, and other management arguments.'}
+  , 'village-draw-enter':{name:'enter',actionName:'THSV Command - Village Draw - Enter',aliases:'join',minimumRole:'viewer',responseMode:'none',messages:{},customScript:'',globalCooldown:1,userCooldown:3,note:'Multi-platform free or points-single entry. Village Draw validates eligibility, stable identity, limits, and Viewer Foundation points before returning a source-chat confirmation.'}
+  , 'village-draw-tickets':{name:'tickets',actionName:'THSV Command - Village Draw - Tickets',aliases:'buytickets',minimumRole:'viewer',responseMode:'none',messages:{},customScript:'',globalCooldown:1,userCooldown:3,note:'Multi-platform multiple-ticket purchase. Use !tickets 3; Village Draw enforces the saved per-viewer cap and spends points only through Viewer Foundation.'}
+  , 'village-draw-balance':{name:'mytickets',actionName:'THSV Command - Village Draw - My Tickets',aliases:'ticketbalance',minimumRole:'viewer',responseMode:'none',messages:{},customScript:'',globalCooldown:1,userCooldown:3,note:'Multi-platform private ticket-count lookup routed back only to the viewer\'s source chat.'}
+  , 'account-age':{name:'accountage',actionName:'THSV Command - Account Age',aliases:'account-age',minimumRole:'viewer',responseMode:'custom-script',commandSources:['twitch'],messages:{},customScript:accountAgeScript,globalCooldown:3,userCooldown:15,note:'Twitch-only self lookup through the official Helix users endpoint. Streamer.bot retains the broadcaster OAuth token; no third-party account-age service is contacted.'}
+  , uptime:{name:'uptime',actionName:'THSV Command - Uptime',aliases:'livefor',minimumRole:'viewer',responseMode:'custom-script',commandSources:['twitch'],messages:{},customScript:uptimeScript,globalCooldown:3,userCooldown:15,note:'Twitch-only lookup through the official Helix streams endpoint. Returns a clear offline response when the broadcaster is not live.'}
   , 'follow-age':{name:'followage',actionName:'THSV Command - Follow Age',aliases:'follow-age',minimumRole:'viewer',responseMode:'custom-script',commandSources:['twitch'],messages:{},customScript:followAgeScript,globalCooldown:3,userCooldown:15,note:'Twitch-only self lookup through the official Helix followers endpoint. Streamer.bot retains the broadcaster OAuth token; the generated action never stores or logs it.'}
 };
 for(const removedTemplate of ['rules','love','specs','emotes','bot'])delete commandTemplates[removedTemplate];

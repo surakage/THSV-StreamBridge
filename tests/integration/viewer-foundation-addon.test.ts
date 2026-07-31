@@ -38,12 +38,12 @@ describe('Viewer Foundation integration', () => {
     const foundation = {
       ...viewerFoundation,
       settings: { enabled: true, accountLinks: ['alex|twitch|123456'], levelStepPoints: 100 },
-      capabilityGrant: { moduleId: 'thsv.viewer-foundation', permissions: ['events.subscribe', 'state.private', 'viewer.foundation.provide'] as const, approvedActionIds: [] },
+      capabilityGrant: { moduleId: 'thsv.viewer-foundation', permissions: ['events.subscribe', 'state.private', 'viewer.foundation.provide', 'chat.send'] as const, approvedActionIds: [] },
     };
     const registry = new ModuleRegistry([consumer, foundation], silentLogger, 5_000, broker);
     await registry.start();
     expect(registry.ready()).toBe(true);
-    expect(projection).toEqual({ contractVersion: '1.0.0', viewerId: 'alex', linked: true, points: 0, level: 1, nextLevelAt: 100 });
+    expect(projection).toEqual({ contractVersion: '1.0.0', viewerId: 'alex', linked: true, currencyName: 'Village Points', points: 0, level: 1, nextLevelAt: 100 });
     expect(mutation).toMatchObject({ viewerId: 'alex', points: 10, previousPoints: 0, duplicate: false });
     await expect(registry.administerViewerFoundation({ operation: 'correct', viewerId: 'alex', adjustment: 'add', amount: 15, reason: 'integration correction', approvedByCreator: true })).resolves.toMatchObject({ points: 25 });
     await expect(registry.administerViewerFoundation({ operation: 'export', viewerId: 'alex' })).resolves.toMatchObject({ found: true, projection: { points: 25 } });

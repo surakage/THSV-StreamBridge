@@ -1,6 +1,6 @@
 # Add-on acceptance ledger
 
-Snapshot: July 30, 2026. Release baseline: `2.5.1`.
+Snapshot: July 31, 2026. Release baseline: `2.5.2`.
 
 This ledger prevents **packaged**, **offline accepted**, and **provider accepted** from being treated as the same claim. A package is production-capable only for the rows and environments whose evidence has actually been recorded.
 
@@ -27,6 +27,10 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | Raid Scout | Passed | Pending | Twitch candidate discovery and an explicitly confirmed raid. |
 | Quote Vault | Passed | Pending | Cross-platform commands, moderator approval, restart persistence, and source-routed replies. |
 | Discord Chat Archive | Passed | Passed | Normal-channel delivery is provider accepted. One session-scoped forum-thread creation and reuse still requires provider acceptance. |
+| Stream Labels | Passed | Passed | The retained latest-value projection and cropped OBS rendering are locally accepted. Genuine platform events remain covered by their shared intake/provider rows. |
+| Village Roll Call | Passed | Pending | One genuine Twitch reward redemption, daily replay rejection, month rollover, winner announcement, and cropped OBS card. |
+| Prize Wheel | Passed | Pending | Cropped hosted-wheel rendering is automated-test accepted. One live moderator command and source-routed result on each selected platform remain pending. |
+| Village Draw | Passed | Pending | Verified-package tests cover Viewer Foundation identity, free entry, weighted points tickets, draw receipts, and restart-safe batched refunds. Live command, overlay, points spend/refund, and winner confirmation remain pending. |
 | Viewer Foundation | Passed | Pending | Identity link, progression, achievements, digest-locked legacy migration, privacy export/correction/deletion, and consumer isolation. |
 | Community Analytics | Passed | Pending | Stream rollover, ignored identities, bounded reports, and deletion propagation. |
 | Viewer Spotlight | Passed | Pending | Self/manual/reward card, fade/credits, Stream Score, Discord snapshot, settlement, browser hosts, reconnect, and deletion cleanup. |
@@ -39,17 +43,17 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | Voice Relay | Passed | Passed | Not required — aliases, audible delivery, aggregation, creator controls, and native emergency clearing are locally accepted. |
 | Follower Pulse | Passed | Pending | Twitch authorization, first baseline, pagination, two-scan confirmation, and refollow behavior. |
 | Clip Library Cache | Passed | Passed | Real Twitch lookup and bounded persistence are locally accepted. A longer observation must still prove Random Clip Player and Clip Courier share steady-state refreshes without duplicate polling. |
-| Creator Utility Pack | Passed | Pending | Cross-platform counters, casual giveaway lifecycle, poll voting, source-routed replies, and restart/stream-end behavior. |
+| Creator Utility Pack | Passed | Pending | Cross-platform counters, poll voting, platform-limited source replies, and restart/stream-end behavior. The older giveaway path is removed; Village Draw owns giveaways. |
 | Chat Play Pack | Passed | Pending | Number Guess, creator-authored Trivia, Prediction rounds, anti-replay awards, and source-routed replies. |
 | Free Game Check | Passed | Pending | Fixed-provider lookup, silent baseline, deduplication, attribution, and selected-platform announcements. |
 | Accessibility Captions | Passed | Pending | Browser-host readability, public-chat consent, bot suppression, bounds, cropping, transparency, and reconnect behavior. |
 
 ## Current automated and local evidence
 
-- `135` Vitest files and `728` tests pass on the current source baseline.
-- `12` Playwright checks pass, including add-on installation/configuration, persisted collapsible UI state, Chat Guard safety controls, overlay presentation, crop-safe layouts, and the acceptance ledger.
+- `140` Vitest files and `760` tests pass on the current source baseline.
+- `16` Playwright checks pass, including add-on installation/configuration, persisted collapsible UI state, Chat Guard safety controls, overlay presentation, cropped Stream Labels, Village Roll Call, Prize Wheel, Village Draw configuration, and the acceptance ledger.
 - lint, typecheck, configuration validation, production build, release packaging, and the production dependency audit pass; the audit reports zero known vulnerabilities.
-- All `29` indexed add-on archives and `37` Streamer.bot imports are generated from synchronized `2.5.1` source and covered by the release integrity gate.
+- Thirty-two first-party add-on implementations are present. All `32` individual `2.5.2` archives, their checksums, and the synchronized add-on update index were regenerated and verified. Stream Labels, Village Roll Call, Prize Wheel, and Village Draw use the shared core intakes and require no extra Streamer.bot import.
 - On July 28, the local bridge reported `healthy`/`ready`; its creator-selected `19` add-ons were upgraded to compatible `2.5.0` packages and all reported `installed`. Installing the missing Clip Library Cache dependency then brought the synchronized profile to `20` healthy `2.5.0` add-ons. Their private acceptance entries carry the installed release rather than `unknown`.
 - Disposable Windows lifecycle coverage passed `21` focused installer/package tests plus custom-port start, replacement-start, stale-build rebuilding, active-config shutdown, upgrade data preservation, downgrade/tamper rejection, and conservative uninstall behavior.
 - Safe local overlay smoke on July 28 returned HTTP `200` and accepted simulated wizard previews for Automated Shoutouts, Fan Crown, First Five, Raid Scout, Random Clip Player, Stream Launch Countdown, Subathon Timer, and Viewer Spotlight. Their rows remain pending because control/state, Streamer.bot, and genuine-provider behavior was not covered by that visual-only smoke.

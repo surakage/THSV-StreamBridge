@@ -1,22 +1,22 @@
 # Published release and acceptance status
 
-Snapshot: July 30, 2026. Version baseline: `2.5.1`.
+Snapshot: July 31, 2026. Version baseline: `2.5.2`.
 
-Release `2.5.1` is the current stable source baseline prepared for publication, with the main Windows archive, an add-on index, and `29` separately downloadable first-party add-ons. The detailed ownership, privacy, dependency, and implementation plans remain in [Future projects and add-on roadmap](future-projects-and-addons.md). Per-package evidence is tracked in [Add-on acceptance ledger](add-on-acceptance-ledger.md). **Published**, **offline accepted**, and **provider accepted** are deliberately different states.
+Release `2.5.2` is the current stable source baseline prepared for publication, with the main Windows archive, an add-on index, and `32` separately downloadable first-party add-ons. The detailed ownership, privacy, dependency, and implementation plans remain in [Future projects and add-on roadmap](future-projects-and-addons.md). Per-package evidence is tracked in [Add-on acceptance ledger](add-on-acceptance-ledger.md). **Published**, **offline accepted**, and **provider accepted** are deliberately different states.
 
 ## Completed in the published baseline
 
 | Area | Confirmed state |
 | --- | --- |
 | Bridge core | Normalized Twitch, YouTube, Kick, and TikTok intake; one Streamer.bot connection; durable outbox; deduplication; authenticated loopback wizard; browser overlays; safe lifecycle and recovery. |
-| Automated validation | Lint, typecheck, build, configuration validation, 135 test files / 728 tests, and 12 browser tests pass on the current source baseline. Production dependency packaging reports zero known vulnerabilities. |
-| Windows package | The expanded 29-add-on self-contained `THSV-StreamBridge-2.5.1.zip` is produced with its SHA-256 checksum by the refreshed source, test, configuration, dependency, integrity, and portable-package gate. A separate clean-machine install/update walkthrough remains an acceptance task, not a publication blocker. |
-| Add-on packaging | Twenty-nine first-party implementations are present. Each builds as a separate verified download; an `.sb` import is included only when the add-on needs Streamer.bot actions. |
+| Automated validation | Lint, typecheck, build, configuration validation, 140 test files / 760 tests, and 16 browser tests pass on the current source baseline. Production dependency packaging reports zero known vulnerabilities. |
+| Windows package | The self-contained `THSV-StreamBridge-2.5.2.zip`, its SHA-256 checksum, the synchronized add-on index, and all `32` individual add-on archives/checksums were regenerated and verified together. GitHub attestations are produced by the tag-triggered release workflow. A separate clean-machine install/update walkthrough remains an acceptance task, not a publication blocker. |
+| Add-on packaging | Thirty-two first-party implementations are present. Each builds as a separate verified download; an `.sb` import is included only when the add-on needs Streamer.bot actions. |
 | Streamer.bot source packages | Twenty add-ons require Streamer.bot actions and use distinct `THSV Addon - <Name>` groups in source. Core packages remain in their existing core groups. |
 | New viewer stack | Viewer Foundation, Community Analytics, and Viewer Spotlight are packaged, installed locally, and report healthy. Foundation and Analytics are enabled; Spotlight remains disclosure-gated and disabled by default. |
 | Chat Guard | Observe mode remains the default. Optional warn/delete/timeout/ban modes require double approval, one stable action grant, provider capability checks, simulation suppression, and a rolling action cap. Live destructive acceptance remains pending. |
 | Public documentation | Current add-on, capability, privacy, release, Viewer Foundation, Scene Actions, Ko-fi, product-scope, module-system, and roadmap guides are included in the portable release. |
-| Main wizard templates | Commands/Help, source-gated Coin Flip, Twitch Follow Age, four creator-review-gated timed-message packs, and per-platform chat/alert Minimal, Warm, and Hype wording presets are complete. Follow Age uses the official fixed Helix followers endpoint inside its generated Streamer.bot C# action, queries only the invoking Twitch viewer, and keeps OAuth credentials in Streamer.bot. |
+| Main wizard templates | Commands/Help, source-gated Coin Flip and Magic 8-Ball, multi-platform Game Suggestion, Twitch Account Age/Uptime/Follow Age, four creator-review-gated timed-message packs, and per-platform chat/alert Minimal, Warm, and Hype wording presets are complete. Twitch lookup commands use fixed official Helix endpoints inside their generated Streamer.bot C# actions and keep OAuth credentials in Streamer.bot. |
 | Shared Discord delivery | Live Beacon, Clip Courier, and Discord Chat Archive use one channel/forum safety contract with private Streamer.bot-held webhooks, explicit mention policy, confirmed responses, bounded rate-limit retry, and correlated Discord IDs. Discord Chat Archive normal-channel delivery is provider accepted; forum mode plus Live Beacon and Clip Courier delivery remain pending. |
 
 ## Work remaining after publication
@@ -26,7 +26,7 @@ Release `2.5.1` is the current stable source baseline prepared for publication, 
 3. **Expanded implementations:** Creator Controls, Category Pilot, Live Beacon, Clip Courier, Viewer Lobby, Voice Relay, and Follower Pulse are complete in source and pass the refreshed full package/browser gate. Creator-specific live acceptance remains required.
 4. **Runtime acceptance:** Streamlabs Donations now reuses Streamer.bot's authenticated `Streamlabs.Donation` WebSocket event and fails closed without a provider-stable ID. A live Streamlabs test donation must confirm the installed Streamer.bot build preserves that raw ID.
 5. **New add-on live acceptance:** observe at least one genuine event through every stateful or provider-mutating add-on before labeling it live accepted.
-6. **Next patch gate:** after acceptance fixes, rerun the full automated/browser/package gate and publish matching core, add-on index, packages, checksums, and attestations together.
+6. **Publication gate:** push the reviewed source and `v2.5.2` tag, then require the GitHub release workflow to publish the matching core, add-on index, packages, checksums, SBOM, and attestations together.
 
 High-impact financial, reward, raid, or moderation paths still require their provider-specific live evidence. Missing evidence must keep those operations gated; it is not permission to simulate success in release notes.
 
@@ -53,8 +53,9 @@ Bloom Companion remains on the back burner by explicit creator decision. Creator
 - The authenticated add-on ledger is creator-editable and keeps automated, offline, and genuine-provider evidence separate.
 - Clip Library Cache supplies bounded metadata to Random Clip Player and Clip Courier's optional current-stream discovery. Clip Courier's main `!clip` path uses Streamer.bot's CreateClip result directly; signed playback URLs and video files are never persisted.
 - The Random Joke Command Sync template is original, source-gated, cooldown-bounded, and needs no external API.
+- Game Suggestion persists a shared bounded list in Streamer.bot rather than a creator-specific Windows path. Account Age and Uptime use official Twitch endpoints instead of DecAPI, and Magic 8-Ball uses an original editable answer list.
 - Creator Utility Pack, Chat Play Pack, Free Game Check, and Accessibility Captions are complete in source and remain disabled or conservative by default where they can create public output.
-- The full repository and browser gates pass: `135` Vitest files / `728` tests, `12` Playwright checks, and `37` regenerated Streamer.bot imports. The release packaging gate produces and verifies all `29` add-on archives. Genuine provider acceptance remains deliberately separate and pending where listed in the ledger.
+- The full repository and browser gates pass: `140` Vitest files / `760` tests and `16` Playwright checks. All `35` generated Streamer.bot imports are version-aligned at `2.5.2`; Stream Labels, Village Roll Call, Prize Wheel, and Village Draw reuse the core intakes and need no new actions. The portable archive, add-on index, and all `32` add-on archives/checksums verify successfully. Genuine provider acceptance remains deliberately separate and pending where listed in the ledger.
 
 ### Local synchronized-install evidence — July 28, 2026
 

@@ -23,7 +23,7 @@ describe('Quote Vault Streamer.bot package', () => {
       'THSV Addon - Quote Vault - Statistics',
     ]);
     expect(manifest.actions.every((action) => action.group === 'THSV Addon - Quote Vault')).toBe(true);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Quote-Vault-2.5.1.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Quote-Vault-2.5.2.sb']));
     expect(manifest.actions.every((action) => action.arguments.some((argument) => argument.name === 'quoteVaultSourcePlatform' && argument.value === 'twitch'))).toBe(true);
   });
 });

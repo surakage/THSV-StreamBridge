@@ -1,0 +1,17 @@
+{
+  "intro": "Village Draw creates one restart-safe community giveaway at a time. Viewer Foundation owns points; Village Draw owns only bounded entries, recovery records, and draw receipts. Start with free single entry unless you intentionally want points tickets.",
+  "order": ["enabled", "giveawayName", "description", "prizeItem", "prizeImageUrl", "entryMode", "ticketCost", "maxTicketsPerViewer", "maximumEntrants", "maximumTotalTickets", "eligiblePlatforms", "streamEndBehavior", "giveawayCommand", "enterCommand", "ticketsCommand", "myTicketsCommand", "announcementPlatforms", "openMessage", "winnerMessage", "canceledMessage", "confirmationMessage", "showOpenCard", "showWinnerCard", "cardSeconds", "backgroundColor", "accentColor", "winnerColor", "textColor", "fontFamily"],
+  "sections": [
+    { "id": "start", "title": "1. Start here", "open": true, "description": "Keep the feature disabled until Viewer Foundation and the commands are ready.", "notice": "Village Draw is for casual community giveaways. Do not use it for paid entry, gambling, regulated drawings, or high-value prizes without obtaining appropriate professional guidance.", "fields": ["enabled"] },
+    { "id": "prize", "title": "2. Describe the giveaway", "description": "This information appears in chat and on the hosted overlay.", "fields": ["giveawayName", "description", "prizeItem", "prizeImageUrl"] },
+    { "id": "tickets", "title": "3. Entry and ticket rules", "description": "Free single entry is the simplest and safest default. Points modes spend Viewer Foundation points.", "fields": ["entryMode", "ticketCost", "maxTicketsPerViewer", "maximumEntrants", "maximumTotalTickets", "eligiblePlatforms", "streamEndBehavior"] },
+    { "id": "commands", "title": "4. Viewer commands", "description": "Command Sync creates matching no-response actions. Giveaway management must remain Moderator or Broadcaster only.", "fields": ["giveawayCommand", "enterCommand", "ticketsCommand", "myTicketsCommand"] },
+    { "id": "messages", "title": "5. Chat announcements", "description": "Opening, winner, and cancellation messages go to selected chats. Entry confirmation returns only to the viewer's source platform.", "notice": "Tokens: {name}, {prize}, {entryCommand}, {winner}, {viewer}, {tickets}, {points}, and {currency}. Final messages are clamped separately for Twitch, YouTube, Kick, and TikTok.", "fields": ["announcementPlatforms", "openMessage", "winnerMessage", "canceledMessage", "confirmationMessage"] },
+    { "id": "overlay", "title": "6. Overlay appearance", "description": "The same responsive URL works in OBS, Meld, and Streamlabs Desktop.", "fields": ["showOpenCard", "showWinnerCard", "cardSeconds", "backgroundColor", "accentColor", "winnerColor", "textColor", "fontFamily"] }
+  ],
+  "fields": {
+    "ticketCost": { "visibleWhen": { "field": "entryMode", "in": ["points-single", "points-multiple"] } },
+    "maxTicketsPerViewer": { "visibleWhen": { "field": "entryMode", "equals": "points-multiple" } },
+    "prizeImageUrl": { "placeholder": "https://..." }
+  }
+}

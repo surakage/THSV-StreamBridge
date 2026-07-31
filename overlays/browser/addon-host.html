@@ -25,6 +25,26 @@
         <div class="timer-meta"><span id="timer-reason">Waiting for an update</span><span id="timer-platforms">No live platforms</span></div>
       </div>
     </section>
+    <section id="label-shell" class="label-shell hidden" data-view="latest">
+      <div id="label-list" class="label-list"></div>
+    </section>
+    <section id="wheel-shell" class="wheel-shell hidden">
+      <div class="wheel-panel">
+        <strong id="wheel-title" class="wheel-title">SPIN THE WHEEL</strong>
+        <div class="wheel-stage">
+          <div id="wheel-pointer" class="wheel-pointer" aria-hidden="true"></div>
+          <div id="wheel" class="wheel">
+            <div id="wheel-studs" class="wheel-studs" aria-hidden="true"></div>
+            <div id="wheel-labels" class="wheel-labels"></div>
+            <div class="wheel-hub" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div id="wheel-result" class="wheel-result" aria-live="polite">
+          <small>WINNER</small>
+          <strong id="wheel-winner"></strong>
+        </div>
+      </div>
+    </section>
     <strong id="status" class="status" data-state="reconnecting">OFFLINE</strong>
   </main>
   <script src="/overlay/addons/host.js" type="module"></script>

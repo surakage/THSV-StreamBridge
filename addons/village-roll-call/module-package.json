@@ -1,0 +1,96 @@
+{
+    "packageFormat":  "thsv-addon-v2",
+    "packageKind":  "executable",
+    "author":  "THSV StreamBridge",
+    "description":  "Runs one Twitch daily check-in reward with a bounded monthly leaderboard, winner announcement, and optional OBS card.",
+    "changelog":  "2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with stable-ID daily uniqueness, configurable calendar time zone, monthly rollover, simulator-safe previews, and a bounded hosted leaderboard card.",
+    "permissions":  [
+                        "events.subscribe",
+                        "state.private",
+                        "chat.send",
+                        "overlay.publish"
+                    ],
+    "trust":  {
+                  "publisherId":  "thsv.streambridge",
+                  "sourceUrl":  "https://github.com/surakage/THSV-StreamBridge",
+                  "supportUrl":  "https://www.slothbloom.com/tip",
+                  "updateManifestUrl":  "https://github.com/surakage/THSV-StreamBridge/releases",
+                  "revocationListUrl":  "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+              },
+    "manifest":  {
+                     "contractVersion":  "2.0.0-preview.1",
+                     "moduleId":  "thsv.village-roll-call",
+                     "name":  "Village Roll Call",
+                     "version":  "2.5.2",
+                     "minimumCoreVersion":  "2.0.0-preview.1",
+                     "maximumTestedCoreVersion":  "2.0.0-preview.1",
+                     "minimumBridgeVersion":  "2.5.2",
+                     "maximumTestedBridgeVersion":  "2.5.2",
+                     "dependencies":  [
+
+                                      ],
+                     "requiredCapabilities":  [
+
+                                              ],
+                     "configurationSchema":  "schemas/config.json",
+                     "eventSubscriptions":  [
+                                                "reward.redemption",
+                                                "stream.online"
+                                            ],
+                     "commandsProvided":  [
+
+                                          ],
+                     "actionsProvided":  [
+
+                                         ],
+                     "browserSourcesProvided":  [
+
+                                                ],
+                     "dataStorageOwned":  [
+                                              "data/addons/thsv.village-roll-call/",
+                                              "data/addons/.state/thsv.village-roll-call/"
+                                          ],
+                     "installationSteps":  [
+                                               "Create one Streamer.bot-owned Twitch reward and enable Skip Reward Queue.",
+                                               "Keep Twitch Reward Redemption (Any Reward) attached to THSV Twitch - Intake.",
+                                               "Paste the stable Reward ID into Village Roll Call, choose the calendar time zone, then enable it.",
+                                               "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview."
+                                           ],
+                     "uninstallationSteps":  [
+                                                 "Uninstall the add-on. Its bounded private leaderboard remains preserved for a later reinstall."
+                                             ],
+                     "migrations":  [
+
+                                    ],
+                     "healthChecks":  [
+                                          {
+                                              "id":  "thsv.village-roll-call.runtime",
+                                              "description":  "Confirms daily uniqueness, monthly rollover, bounded state, and overlay cards."
+                                          }
+                                      ]
+                 },
+    "entrypoint":  "dist/index.js",
+    "settingsUi":  "ui/settings.json",
+    "files":  [
+                  {
+                      "path":  "dist/index.js",
+                      "size":  11206,
+                      "sha256":  "f54dc657dbf4d32dba023a412ef50c15a86f95b0b4b901db48eb53e9ae5af9b2"
+                  },
+                  {
+                      "path":  "schemas/config.json",
+                      "size":  2192,
+                      "sha256":  "c9fc45d70f5349d80bdf18764dec58e2759d409eb856f30a02c59985668e8db9"
+                  },
+                  {
+                      "path":  "ui/settings.json",
+                      "size":  2180,
+                      "sha256":  "b8f7482b0626c5f3e0cb27d0614c5f556ace4b3ce0610f99d06595537fbd6481"
+                  },
+                  {
+                      "path":  "README.md",
+                      "size":  1178,
+                      "sha256":  "ab3f73d40e69910281a3708c5b17d8d912ba347f6026c1ef4956f4bd35df6222"
+                  }
+              ]
+}

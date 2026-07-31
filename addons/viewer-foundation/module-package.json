@@ -2,12 +2,13 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Provides privacy-conscious, salted cross-platform viewer identity and bounded replay-safe progression as an optional foundation for later community add-ons.",
-  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
+  "description": "Provides named, configurable, privacy-conscious cross-platform points for chat consistency, observed active/lurk time, and supported community events.",
+  "changelog": "2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: added creator-named currency, source-routed balance lookup, chat consistency, observation-based active/lurk time, configurable event awards, and bounded multi-platform session settlement. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
   "permissions": [
     "events.subscribe",
     "state.private",
-    "viewer.foundation.provide"
+    "viewer.foundation.provide",
+    "chat.send"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -20,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-foundation",
     "name": "Viewer Foundation",
-    "version": "2.5.1",
+    "version": "2.5.2",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -36,9 +37,17 @@
       "engagement.cheer",
       "engagement.super-chat",
       "channel.raid",
-      "reward.redemption"
+      "reward.redemption",
+      "command.received",
+      "stream.online",
+      "stream.offline"
     ],
-    "commandsProvided": [],
+    "commandsProvided": [
+      {
+        "id": "viewer-foundation.balance",
+        "name": "points"
+      }
+    ],
     "actionsProvided": [],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
@@ -48,7 +57,8 @@
     "installationSteps": [
       "Install Viewer Foundation in the wizard and review its private-state permission.",
       "Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.",
-      "Choose point awards and cooldowns, save, and restart StreamBridge."
+      "Name the currency and choose chat, consistency, observed time, lurk, and event awards; then save and restart StreamBridge.",
+      "Create the Viewer Foundation balance command in Command Sync so viewers can use !points."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its pseudonymous progression state remains preserved for a later reinstall or privacy export."
@@ -57,34 +67,34 @@
     "healthChecks": [
       {
         "id": "thsv.viewer-foundation.runtime",
-        "description": "Confirms salted identity resolution, bounded replay protection, and atomic private progression state."
+        "description": "Confirms named currency, salted identity resolution, bounded chat/time/event awards, replay protection, and atomic private progression state."
       }
     ],
-    "minimumBridgeVersion": "2.5.1",
-    "maximumTestedBridgeVersion": "2.5.1"
+    "minimumBridgeVersion": "2.5.2",
+    "maximumTestedBridgeVersion": "2.5.2"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 23856,
-      "sha256": "b58ef65fb8b3305c2721f2e56a1e913df15923c4fc0ded1a70aa9d41c3d163e8"
+      "size": 31883,
+      "sha256": "270f9952946b7f3959688c921dbdba2ca904d8352dabf57c6e4a7433db838972"
     },
     {
       "path": "schemas/config.json",
-      "size": 3014,
-      "sha256": "49f0accb648c5fa7fa5d465c71e587da072486209795c41254c7142e6400e406"
+      "size": 4932,
+      "sha256": "122a81147a3a8610f1fa84b9888b261e25db1b40eef3cb76683b9558b4afa2a4"
     },
     {
       "path": "ui/settings.json",
-      "size": 2354,
-      "sha256": "7f96f39a85d334fc08af03a33477bca16ef3f0180259c695430057818ecce71e"
+      "size": 3754,
+      "sha256": "1feb10d2dd54fd6b6554e43b6842bd65b2c6d0ca8390de27035e378198fdafa3"
     },
     {
       "path": "README.md",
-      "size": 2722,
-      "sha256": "50de4597cf21aa059da032088a92c22b24b37e19601a6225376c48cf88c024cb"
+      "size": 3290,
+      "sha256": "b159041948e6908215b362efeb6864b4383ac289183ebc5fc5fe34ca46bc6a1e"
     }
   ]
 }

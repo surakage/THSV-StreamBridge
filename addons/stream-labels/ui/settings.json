@@ -1,0 +1,20 @@
+{
+  "intro": "Create reusable labels from equivalent events across Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi. No extra Streamer.bot trigger is required.",
+  "order": ["enabled", "enabledPlatforms", "enabledLabels", "showSimulatedPreviews", "maximumNameLength", "followerTitle", "memberTitle", "giftMembershipTitle", "supportTitle", "raidTitle", "rewardTitle", "latestTitle", "showLabelTitle", "showPlatform", "backgroundMode", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "fontFamily", "fontSize", "textAlign"],
+  "sections": [
+    { "id": "quick-start", "title": "1. Choose labels", "description": "Enable the add-on, choose the incoming platforms, and select only the labels you plan to use.", "open": true, "fields": ["enabled", "enabledPlatforms", "enabledLabels"] },
+    { "id": "mapping", "title": "2. Understand the grouping", "description": "Equivalent platform events update one shared label.", "notice": "Follower combines Twitch, Kick, and TikTok follows with YouTube new subscribers. Member combines Twitch, Kick, and TikTok subscriptions or renewals with YouTube memberships. Gift memberships, support, raids, rewards, and latest event remain separate.", "fields": ["showSimulatedPreviews", "maximumNameLength"] },
+    { "id": "wording", "title": "3. Label wording", "description": "Rename the headings without changing which events feed them.", "fields": ["followerTitle", "memberTitle", "giftMembershipTitle", "supportTitle", "raidTitle", "rewardTitle", "latestTitle"] },
+    { "id": "appearance", "title": "4. Appearance", "description": "Keep the source transparent for placement over a scene, or use a readable solid or glass background.", "fields": ["showLabelTitle", "showPlatform", "backgroundMode", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "fontFamily", "fontSize", "textAlign"] },
+    { "id": "obs", "title": "5. Add to OBS, Meld, or Streamlabs", "description": "Open the overlay step below, then copy an individual label URL or the combined preview URL.", "notice": "Use an individual URL for a normal stream label. Use label=all only when you want a compact panel containing every enabled label.", "fields": [] }
+  ],
+  "fields": {
+    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity", "streamlabs": "Streamlabs", "kofi": "Ko-fi" } },
+    "enabledLabels": { "labels": { "follower": "Latest Follower / YouTube Subscriber", "member": "Latest Paid Member / Subscription", "gift-membership": "Latest Gift Membership", "support": "Latest Gift, Cheer, Super Chat, or Donation", "raid": "Latest Raid", "reward": "Latest Reward Redemption", "latest": "Latest Event of Any Supported Type" } },
+    "backgroundMode": { "labels": { "glass": "Translucent glass", "solid": "Solid color", "none": "Transparent" } },
+    "backgroundColor": { "visibleWhen": { "field": "backgroundMode", "in": ["glass", "solid"] } },
+    "backgroundOpacity": { "visibleWhen": { "field": "backgroundMode", "equals": "glass" } },
+    "fontFamily": { "labels": { "broadcast": "Clean broadcast", "display": "Bold display", "serif": "Serif", "mono": "Monospace" } },
+    "textAlign": { "labels": { "left": "Left", "center": "Center", "right": "Right" } }
+  }
+}

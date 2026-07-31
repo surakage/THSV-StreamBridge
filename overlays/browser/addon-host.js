@@ -24,7 +24,21 @@
   const timerProgress = document.getElementById('timer-progress');
   const timerReason = document.getElementById('timer-reason');
   const timerPlatforms = document.getElementById('timer-platforms');
+  const labelShell = document.getElementById('label-shell');
+  const labelList = document.getElementById('label-list');
+  const wheelShell = document.getElementById('wheel-shell');
+  const wheel = document.getElementById('wheel');
+  const wheelStuds = document.getElementById('wheel-studs');
+  const wheelLabels = document.getElementById('wheel-labels');
+  const wheelPointer = document.getElementById('wheel-pointer');
+  const wheelTitle = document.getElementById('wheel-title');
+  const wheelResult = document.getElementById('wheel-result');
+  const wheelWinner = document.getElementById('wheel-winner');
   const status = document.getElementById('status');
+  const requestedLabel = (() => {
+    const value = new URLSearchParams(location.search).get('label') || 'latest';
+    return ['follower', 'member', 'gift-membership', 'support', 'raid', 'reward', 'latest', 'all'].includes(value) ? value : 'latest';
+  })();
   let cardTimer;
   let mediaTimer;
   let mediaFadeTimer;
@@ -32,6 +46,10 @@
   let embeddedPlayback = false;
   let heartbeatTimer;
   let activePlaybackId = '';
+  let wheelTimer;
+  let wheelRevealTimer;
+  let wheelTickTimer;
+  let wheelSequence = -1;
   // Every browser-source instance has its own identity. OBS can keep multiple copies of the
   // same source alive across scenes; the bridge uses this ID to ensure that only the copy that
   // actually started a clip is allowed to report its completion.
@@ -79,6 +97,19 @@
     timerShell.dataset.state = 'idle';
   }
 
+  function hideLabels() {
+    labelShell.classList.add('hidden');
+    labelList.replaceChildren();
+  }
+
+  function hideWheel() {
+    clearTimeout(wheelTimer); clearTimeout(wheelRevealTimer); clearTimeout(wheelTickTimer);
+    wheelShell.classList.add('hidden');
+    wheelResult.classList.remove('revealed');
+    wheelLabels.replaceChildren(); wheelStuds.replaceChildren();
+    wheel.removeAttribute('style');
+  }
+
   function boundedText(value, maximum, fallback = '') {
     return typeof value === 'string' ? [...value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim()].slice(0, maximum).join('') : fallback;
   }
@@ -123,6 +154,7 @@
 
   function showTimer(payload) {
     hideCard();
+    hideLabels();
     clearMedia(activePlaybackId ? 'stopped' : undefined);
     const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
     const remaining = Number.isInteger(payload.remainingSeconds) && payload.remainingSeconds >= 0 ? payload.remainingSeconds : 0;
@@ -160,6 +192,8 @@
   function showCard(payload) {
     hideCard();
     hideTimer();
+    hideLabels();
+    hideWheel();
     const title = typeof payload.title === 'string' ? payload.title.slice(0, 200) : '';
     const text = typeof payload.text === 'string' ? payload.text.slice(0, 1_000) : '';
     const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
@@ -184,6 +218,121 @@
     cardText.textContent = text;
     card.classList.remove('hidden');
     cardTimer = setTimeout(hideCard, boundedDuration(payload.durationMs, 8_000));
+  }
+
+  function showLabels(payload) {
+    hideCard();
+    hideTimer();
+    hideWheel();
+    clearMedia(activePlaybackId ? 'stopped' : undefined);
+    const labels = payload.labels && typeof payload.labels === 'object' ? payload.labels : {};
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    const keys = requestedLabel === 'all'
+      ? ['follower', 'member', 'gift-membership', 'support', 'raid', 'reward', 'latest']
+      : [requestedLabel];
+    const entries = keys.map((key) => {
+      const item = labels[key];
+      if (!item || typeof item !== 'object') return undefined;
+      const value = boundedText(item.value, 240);
+      if (!value) return undefined;
+      return { key, title: boundedText(item.title, 80, 'Latest Event'), value, platform: boundedText(item.platform, 32) };
+    }).filter(Boolean);
+    labelList.replaceChildren();
+    for (const item of entries) {
+      const row = document.createElement('article');
+      row.className = 'stream-label';
+      row.dataset.selected = item.key === requestedLabel ? 'true' : 'false';
+      const title = document.createElement('strong');
+      title.className = 'stream-label-title';
+      title.textContent = item.title;
+      title.classList.toggle('hidden', style.showLabelTitle === false);
+      const value = document.createElement('span');
+      value.className = 'stream-label-value';
+      value.textContent = item.value;
+      const platform = document.createElement('small');
+      platform.className = 'stream-label-platform';
+      platform.textContent = item.platform;
+      platform.classList.toggle('hidden', style.showPlatform === false || !item.platform);
+      row.append(title, value, platform);
+      labelList.append(row);
+    }
+    const backgroundMode = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass';
+    const fontFamily = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
+    labelShell.dataset.view = requestedLabel;
+    labelShell.dataset.background = backgroundMode;
+    labelShell.dataset.font = fontFamily;
+    labelShell.style.setProperty('--label-background', safeColor(style.backgroundColor, '#101820'));
+    labelShell.style.setProperty('--label-background-rendered', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#101820', 0.88));
+    labelShell.style.setProperty('--label-accent', safeColor(style.accentColor, '#7ff5cc'));
+    labelShell.style.setProperty('--label-text', safeColor(style.textColor, '#ffffff'));
+    labelShell.style.setProperty('--label-font-size', `${Number.isFinite(style.fontSize) ? Math.max(18, Math.min(96, style.fontSize)) : 42}px`);
+    labelShell.style.setProperty('--label-align', ['left', 'center', 'right'].includes(style.textAlign) ? style.textAlign : 'left');
+    labelShell.classList.toggle('hidden', entries.length === 0);
+  }
+
+  function showWheel(payload) {
+    const options = Array.isArray(payload.options) ? payload.options.map((value) => boundedText(value, 80)).filter(Boolean).slice(0, 10) : [];
+    const winnerIndex = Number.isInteger(payload.winnerIndex) ? payload.winnerIndex : -1;
+    const sequence = Number.isInteger(payload.sequence) ? payload.sequence : -1;
+    if (options.length < 2 || winnerIndex < 0 || winnerIndex >= options.length || sequence === wheelSequence) return;
+    wheelSequence = sequence;
+    hideCard(); hideTimer(); hideLabels(); clearMedia(activePlaybackId ? 'stopped' : undefined); hideWheel();
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    const palette = Array.isArray(style.wheelColors)
+      ? style.wheelColors.map((value) => safeColor(value, '')).filter(Boolean).slice(0, 10)
+      : [];
+    const colors = palette.length > 0 ? palette : ['#7c3aed', '#0891b2', '#16a34a', '#ea580c', '#dc2626', '#2563eb'];
+    const slice = 360 / options.length;
+    const gradient = options.map((_option, index) => `${colors[index % colors.length]} ${index * slice}deg ${(index + 1) * slice}deg`).join(', ');
+    const rotations = 6 + Math.max(0, Math.min(4, Math.floor(options.length / 3)));
+    const landing = (360 - ((winnerIndex + 0.5) * slice % 360)) % 360;
+    const finalRotation = rotations * 360 + landing;
+    const spinDurationMs = boundedDuration(payload.spinDurationMs, 9_000);
+    const winnerDurationMs = boundedDuration(payload.winnerDurationMs, 8_000);
+    wheelShell.style.setProperty('--wheel-panel', safeColor(style.backgroundColor, '#101521'));
+    wheelShell.style.setProperty('--wheel-text', safeColor(style.textColor, '#ffffff'));
+    wheelShell.style.setProperty('--wheel-accent', safeColor(style.accentColor, '#ffd166'));
+    wheelShell.style.setProperty('--wheel-winner', safeColor(style.winnerColor, '#7ff5cc'));
+    wheelTitle.textContent = boundedText(payload.title, 80, 'SPIN THE WHEEL');
+    wheelWinner.textContent = boundedText(payload.winner, 80, options[winnerIndex]);
+    wheelResult.classList.remove('revealed');
+    wheel.style.background = `conic-gradient(from -90deg, ${gradient})`;
+    wheel.style.transition = `transform ${spinDurationMs}ms cubic-bezier(.11,.67,.08,1)`;
+    wheelShell.style.setProperty('--wheel-option-size', `${options.length >= 9 ? 17 : options.length >= 7 ? 19 : options.length >= 5 ? 22 : 26}px`);
+    wheelShell.style.setProperty('--wheel-option-width', options.length >= 9 ? 'clamp(70px, 16vmin, 118px)' : options.length >= 7 ? 'clamp(76px, 18vmin, 135px)' : 'clamp(82px, 21vmin, 160px)');
+    options.forEach((option, index) => {
+      const position = document.createElement('span');
+      position.className = 'wheel-option-position';
+      position.style.setProperty('--label-angle', `${index * slice + slice / 2}deg`);
+      const label = document.createElement('span');
+      label.className = 'wheel-option';
+      label.textContent = option;
+      label.style.setProperty('--label-angle', `${index * slice + slice / 2}deg`);
+      label.style.transitionDuration = `${spinDurationMs}ms`;
+      position.append(label);
+      wheelLabels.append(position);
+      const stud = document.createElement('i');
+      stud.className = 'wheel-stud';
+      stud.style.setProperty('--stud-angle', `${index * slice}deg`);
+      wheelStuds.append(stud);
+    });
+    wheelShell.classList.remove('hidden');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      wheel.style.transform = `rotate(${finalRotation}deg)`;
+      wheelLabels.querySelectorAll('.wheel-option').forEach((label, index) => {
+        const angle = index * slice + slice / 2;
+        label.style.transform = `translate(-50%, -50%) rotate(${-angle - finalRotation}deg)`;
+      });
+    }));
+    const startedAt = performance.now();
+    const tick = () => {
+      const progress = Math.min(1, (performance.now() - startedAt) / spinDurationMs);
+      wheelPointer.classList.remove('ticking'); void wheelPointer.offsetWidth; wheelPointer.classList.add('ticking');
+      if (progress < 0.98) wheelTickTimer = setTimeout(tick, Math.round(75 + 420 * progress * progress));
+    };
+    wheelTickTimer = setTimeout(tick, 90);
+    wheelRevealTimer = setTimeout(() => wheelResult.classList.add('revealed'), spinDurationMs);
+    wheelTimer = setTimeout(hideWheel, spinDurationMs + winnerDurationMs);
   }
 
   function reportLifecycle(phase, error) {
@@ -320,6 +469,8 @@
     else if (event.topic === `${moduleId}.media.stop`) stopMedia(event.payload);
     else if (event.topic === `${moduleId}.timer.update`) showTimer(event.payload);
     else if (event.topic === `${moduleId}.timer.hide`) hideTimer();
+    else if (event.topic === `${moduleId}.labels.update`) showLabels(event.payload);
+    else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
   }
 
   function transportState(state) {

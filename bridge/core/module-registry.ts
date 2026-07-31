@@ -4,7 +4,7 @@ import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
 import { moduleManifestV2Schema, type ModuleManifestV2 } from '../contracts/v2/module-manifest.js';
 import type { ModuleHealthStatusV2 } from '../contracts/v2/health.js';
 import type { Logger } from '../services/logger.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ModuleRuntimeContextV2, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ModuleRuntimeContextV2, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { AddOnCapabilityBroker, type ModuleCapabilityGrant } from './addon-capability-broker.js';
 
 export interface FrameworkModule {
@@ -21,6 +21,7 @@ export interface FrameworkModule {
   administerCommunityAnalytics?(request: CommunityAnalyticsAdminRequestV1, context: ModuleRuntimeContextV2): Promise<CommunityAnalyticsAdminResultV1>;
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ChatGuardAdminResultV1>;
+  administerVillageDraw?(request: VillageDrawAdminRequestV1, context: ModuleRuntimeContextV2): Promise<VillageDrawAdminResultV1>;
 }
 
 interface ModuleRuntimeState {
@@ -154,6 +155,14 @@ export class ModuleRegistry {
     return Object.freeze(chatGuardAdminResultSchema.parse(result));
   }
 
+  public async administerVillageDraw(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1> {
+    const parsed = villageDrawAdminSchema.parse(request) as VillageDrawAdminRequestV1;
+    const state = this.states.get('thsv.village-draw');
+    if (state?.status !== 'healthy' || state.module.administerVillageDraw === undefined) throw new Error('Village Draw is unavailable. Enable it and restart StreamBridge.');
+    const result = await withTimeout(state.module.administerVillageDraw(parsed, state.context), this.optionalModuleTimeoutMs, 'Village Draw administration');
+    return Object.freeze(villageDrawAdminResultSchema.parse(result));
+  }
+
   private async runWithIsolation(module: FrameworkModule, operation: string, callback: (() => Promise<void> | undefined) | undefined): Promise<void> {
     if (callback === undefined) return;
     const pending = callback();
@@ -169,6 +178,11 @@ export class ModuleRegistry {
 }
 
 const viewerIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u);
+const villageDrawAdminSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('status') }).strict(),
+  ...(['open', 'pause', 'resume', 'close', 'draw', 'confirm', 'redraw', 'cancel', 'reset'] as const).map((operation) => z.object({ operation: z.literal(operation), approvedByCreator: z.literal(true) }).strict()),
+]);
+const villageDrawAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Village Draw administration result exceeded the safe response size.');
 const communityAnalyticsAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   z.object({ operation: z.literal('export'), viewerId: viewerIdSchema }).strict(),

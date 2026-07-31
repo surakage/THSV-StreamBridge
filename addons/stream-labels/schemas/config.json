@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stream Labels",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Stream Labels", "default": true },
+    "enabledPlatforms": { "type": "array", "title": "Platforms allowed to update labels", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi"] }, "uniqueItems": true, "maxItems": 6, "default": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi"] },
+    "enabledLabels": { "type": "array", "title": "Labels to publish", "items": { "type": "string", "enum": ["follower", "member", "gift-membership", "support", "raid", "reward", "latest"] }, "uniqueItems": true, "minItems": 1, "maxItems": 7, "default": ["follower", "member", "gift-membership", "support", "raid", "reward", "latest"] },
+    "showSimulatedPreviews": { "type": "boolean", "title": "Show simulator events without saving them", "default": true },
+    "maximumNameLength": { "type": "integer", "title": "Maximum displayed name length", "minimum": 12, "maximum": 100, "default": 48 },
+    "followerTitle": { "type": "string", "title": "Follower label title", "minLength": 1, "maxLength": 80, "default": "Latest Follower" },
+    "memberTitle": { "type": "string", "title": "Member label title", "minLength": 1, "maxLength": 80, "default": "Latest Member" },
+    "giftMembershipTitle": { "type": "string", "title": "Gift membership label title", "minLength": 1, "maxLength": 80, "default": "Latest Gift Membership" },
+    "supportTitle": { "type": "string", "title": "Support label title", "minLength": 1, "maxLength": 80, "default": "Latest Support" },
+    "raidTitle": { "type": "string", "title": "Raid label title", "minLength": 1, "maxLength": 80, "default": "Latest Raid" },
+    "rewardTitle": { "type": "string", "title": "Reward label title", "minLength": 1, "maxLength": 80, "default": "Latest Reward" },
+    "latestTitle": { "type": "string", "title": "Latest event label title", "minLength": 1, "maxLength": 80, "default": "Latest Event" },
+    "showLabelTitle": { "type": "boolean", "title": "Show label title", "default": true },
+    "showPlatform": { "type": "boolean", "title": "Show platform name", "default": true },
+    "backgroundMode": { "type": "string", "title": "Background style", "enum": ["glass", "solid", "none"], "default": "glass" },
+    "backgroundColor": { "type": "string", "title": "Background color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#101820" },
+    "backgroundOpacity": { "type": "number", "title": "Background opacity", "minimum": 0, "maximum": 1, "default": 0.88 },
+    "accentColor": { "type": "string", "title": "Label title color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ff5cc" },
+    "textColor": { "type": "string", "title": "Value color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
+    "fontFamily": { "type": "string", "title": "Font style", "enum": ["broadcast", "display", "serif", "mono"], "default": "broadcast" },
+    "fontSize": { "type": "integer", "title": "Value font size", "minimum": 18, "maximum": 96, "default": 42 },
+    "textAlign": { "type": "string", "title": "Text alignment", "enum": ["left", "center", "right"], "default": "left" }
+  }
+}

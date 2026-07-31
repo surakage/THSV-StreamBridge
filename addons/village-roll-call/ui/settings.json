@@ -1,0 +1,37 @@
+{
+  "intro": "Village Roll Call uses one Twitch Channel Points reward for one check-in per viewer per calendar day. Monthly rankings use check-in count, then earliest first check-in as the tie breaker.",
+  "order": ["enabled", "rewardId", "timeZone", "successfulMessage", "announceDuplicates", "duplicateMessage", "announceMonthlyWinner", "monthlyWinnerMessage", "showLeaderboardCard", "leaderboardSize", "cardSeconds"],
+  "sections": [
+    {
+      "id": "setup",
+      "title": "1. Create and connect the reward",
+      "description": "Create one Streamer.bot-owned Twitch reward named Daily Check-In. Enable Skip Reward Queue, copy its Reward ID, and keep the existing Twitch Reward Redemption trigger on THSV Twitch - Intake.",
+      "open": true,
+      "fields": ["enabled", "rewardId", "timeZone"]
+    },
+    {
+      "id": "messages",
+      "title": "2. Check-in messages",
+      "description": "Successful check-ins show the viewer's monthly count and rank. Repeat redemptions never increase the score.",
+      "fields": ["successfulMessage", "announceDuplicates", "duplicateMessage"]
+    },
+    {
+      "id": "monthly",
+      "title": "3. Monthly winner",
+      "description": "The previous month is archived and announced on the first Twitch stream-online or valid check-in event in the new month.",
+      "fields": ["announceMonthlyWinner", "monthlyWinnerMessage"]
+    },
+    {
+      "id": "overlay",
+      "title": "4. Optional OBS card",
+      "description": "The hosted browser source briefly shows a bounded leaderboard after each successful check-in. Use Send preview card before going live.",
+      "fields": ["showLeaderboardCard", "leaderboardSize", "cardSeconds"]
+    },
+    {
+      "id": "privacy",
+      "title": "Privacy and storage",
+      "description": "Stores stable Twitch user IDs, current display names, daily/monthly check-in counters, and a bounded redemption replay list in private atomic add-on state.",
+      "notice": "No separate Streamer.bot import or direct trigger is required. Simulated redemptions preview the card but never change scores. This add-on stores no reward input, chat text, OAuth tokens, or hard-coded file paths."
+    }
+  ]
+}

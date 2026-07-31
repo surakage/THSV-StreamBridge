@@ -1,0 +1,48 @@
+{
+  "intro": "Prize Wheel gives two through ten choices equal-size slices. A moderator starts one serialized spin; StreamBridge decides the winner first, then the OBS overlay animates to that exact result.",
+  "order": ["enabled", "spinCommand", "options", "spinSeconds", "winnerCardSeconds", "cooldownSeconds", "deliveryPlatforms", "twitchMessage", "youtubeMessage", "kickMessage", "tiktokMessage", "wheelTitle", "backgroundColor", "wheelColors", "textColor", "accentColor", "winnerColor"],
+  "fields": {
+    "options": { "rows": 10 },
+    "wheelColors": { "rows": 6 },
+    "deliveryPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity" } }
+  },
+  "sections": [
+    {
+      "id": "setup",
+      "title": "1. Turn on the wheel",
+      "description": "Keep the add-on disabled until the choices, command, browser source, and chat destinations are ready.",
+      "open": true,
+      "fields": ["enabled", "spinCommand", "cooldownSeconds"]
+    },
+    {
+      "id": "choices",
+      "title": "2. Add two through ten choices",
+      "description": "Write one choice per line. Line wrapping inside the box does not create another choice; only pressing Enter does.",
+      "fields": ["options"]
+    },
+    {
+      "id": "animation",
+      "title": "3. Timing",
+      "description": "The wheel starts quickly, clicks across the studs, eases down naturally, then reveals the server-selected winner.",
+      "fields": ["spinSeconds", "winnerCardSeconds"]
+    },
+    {
+      "id": "chat",
+      "title": "4. Winner messages",
+      "description": "Choose every chat that should receive the result. Each template uses {winner} and has the destination's character limit shown in its title.",
+      "fields": ["deliveryPlatforms", "twitchMessage", "youtubeMessage", "kickMessage", "tiktokMessage"]
+    },
+    {
+      "id": "appearance",
+      "title": "5. Wheel appearance",
+      "description": "The hosted source remains transparent outside the wheel panel. Slice colors repeat when you provide fewer colors than choices.",
+      "fields": ["wheelTitle", "backgroundColor", "wheelColors", "textColor", "accentColor", "winnerColor"]
+    },
+    {
+      "id": "safety",
+      "title": "Safety and fairness",
+      "description": "Every configured choice has one equal slice. StreamBridge selects one index before publishing the animation, so OBS timing cannot change the winner.",
+      "notice": "Prize Wheel is intended for casual stream choices and entertainment. Do not use it for regulated gambling, legal drawings, or high-value prizes. Simulated wizard previews never send chat messages or update the last live spin."
+    }
+  ]
+}

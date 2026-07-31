@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Prize Wheel",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Prize Wheel", "default": false },
+    "spinCommand": { "type": "string", "title": "Moderator spin command", "description": "Create this as a no-response command in Command Sync. Do not include the ! prefix.", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "spinwheel" },
+    "options": { "type": "array", "title": "Wheel choices", "description": "Enter one unique choice per line. Every choice receives exactly the same-size slice.", "minItems": 2, "maxItems": 10, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 80 }, "default": ["Option One", "Option Two", "Option Three", "Option Four"] },
+    "spinSeconds": { "type": "integer", "title": "Spin duration (seconds)", "minimum": 6, "maximum": 20, "default": 9 },
+    "winnerCardSeconds": { "type": "integer", "title": "Winner card duration (seconds)", "minimum": 4, "maximum": 30, "default": 8 },
+    "cooldownSeconds": { "type": "integer", "title": "Cooldown between spins (seconds)", "minimum": 5, "maximum": 300, "default": 15 },
+    "deliveryPlatforms": { "type": "array", "title": "Chats that receive the winner", "description": "Only enabled and connected destinations can accept a message.", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "twitchMessage": { "type": "string", "format": "multiline", "title": "Twitch winner message (500 characters)", "description": "Token: {winner}. The final rendered message is safely clamped to Twitch's configured limit.", "minLength": 1, "maxLength": 500, "default": "The wheel chose {winner}!" },
+    "youtubeMessage": { "type": "string", "format": "multiline", "title": "YouTube winner message (200 characters)", "description": "Token: {winner}.", "minLength": 1, "maxLength": 200, "default": "The wheel chose {winner}!" },
+    "kickMessage": { "type": "string", "format": "multiline", "title": "Kick winner message (500 characters)", "description": "Token: {winner}.", "minLength": 1, "maxLength": 500, "default": "The wheel chose {winner}!" },
+    "tiktokMessage": { "type": "string", "format": "multiline", "title": "TikTok winner message (150 characters)", "description": "Token: {winner}.", "minLength": 1, "maxLength": 150, "default": "The wheel chose {winner}!" },
+    "wheelTitle": { "type": "string", "title": "Wheel heading", "minLength": 1, "maxLength": 80, "default": "SPIN THE WHEEL" },
+    "backgroundColor": { "type": "string", "title": "Panel color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#101521" },
+    "wheelColors": { "type": "array", "title": "Slice colors", "description": "Optional hex colors, one per line. Colors repeat safely when fewer colors than choices are supplied.", "maxItems": 10, "uniqueItems": true, "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }, "default": ["#7c3aed", "#0891b2", "#16a34a", "#ea580c", "#dc2626", "#2563eb", "#c026d3", "#ca8a04", "#0d9488", "#9333ea"] },
+    "textColor": { "type": "string", "title": "Wheel text color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
+    "accentColor": { "type": "string", "title": "Pointer and stud color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffd166" },
+    "winnerColor": { "type": "string", "title": "Winner highlight color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ff5cc" }
+  }
+}

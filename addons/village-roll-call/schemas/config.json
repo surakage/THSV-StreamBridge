@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Village Roll Call",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Village Roll Call", "default": false },
+    "rewardId": { "type": "string", "title": "Twitch check-in Reward ID", "description": "Create this reward inside Streamer.bot, enable Skip Reward Queue, then paste its stable Reward ID.", "maxLength": 256, "default": "" },
+    "timeZone": { "type": "string", "title": "Calendar time zone", "description": "IANA time zone used for each new day and month, for example America/Chicago.", "minLength": 1, "maxLength": 100, "default": "America/Chicago" },
+    "successfulMessage": { "type": "string", "format": "multiline", "title": "Successful check-in message", "description": "Tokens: {name}, {count}, {rank}, {month}.", "minLength": 1, "maxLength": 500, "default": "{name} checked in! You have {count} check-ins for {month} and rank #{rank}." },
+    "announceDuplicates": { "type": "boolean", "title": "Tell viewers they already checked in today", "default": true },
+    "duplicateMessage": { "type": "string", "format": "multiline", "title": "Already checked-in message", "description": "Token: {name}.", "minLength": 1, "maxLength": 500, "default": "{name}, you already checked in today." },
+    "announceMonthlyWinner": { "type": "boolean", "title": "Announce the previous monthly winner", "default": true },
+    "monthlyWinnerMessage": { "type": "string", "format": "multiline", "title": "Monthly winner message", "description": "Tokens: {name}, {count}, {month}. Sent on the first stream-online or check-in event in the new month.", "minLength": 1, "maxLength": 500, "default": "{name} won the {month} Village Roll Call with {count} check-ins!" },
+    "showLeaderboardCard": { "type": "boolean", "title": "Show an OBS leaderboard card after check-ins", "default": true },
+    "leaderboardSize": { "type": "integer", "title": "Names shown on the card", "minimum": 1, "maximum": 10, "default": 5 },
+    "cardSeconds": { "type": "integer", "title": "Card duration (seconds)", "minimum": 5, "maximum": 3600, "default": 20 }
+  }
+}

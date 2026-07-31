@@ -86,7 +86,7 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[data-guided-section="command-response"]')).toHaveAttribute('open', '');
   await expect(commandForm.locator('[data-guided-section="command-safety"]')).not.toHaveAttribute('open', '');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
-  await expect(commandForm.locator('[name="template"] option')).toHaveCount(18);
+  await expect(commandForm.locator('[name="template"] option')).toHaveCount(31);
   await expect(commandForm.locator('[name="template"] option[value="weather"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="discord"]')).toHaveCount(1);
   for (const removed of ['rules', 'love', 'specs', 'emotes', 'bot']) {
@@ -97,7 +97,15 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="template"] option[value="timezone"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="commands-help"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="coin-flip"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="magic-8-ball"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="game-suggestion"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="random-joke"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="prize-wheel"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="creator-counter"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="creator-poll"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="creator-vote"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="account-age"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="uptime"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="follow-age"]')).toBeEnabled();
   await expect(commandForm.locator('[name="commandDeliveryPlatform"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="commandSource"][value="tiktok"]')).toHaveCount(1);
@@ -112,6 +120,34 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="name"]')).toHaveValue('coinflip');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('custom-script');
   await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/Guid\.NewGuid/u);
+  await commandForm.locator('[name="template"]').selectOption('magic-8-ball');
+  await expect(commandForm.locator('[name="name"]')).toHaveValue('8ball');
+  await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/village signs point to yes/u);
+  await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
+  await commandForm.locator('[name="template"]').selectOption('game-suggestion');
+  await expect(commandForm.locator('[name="name"]')).toHaveValue('suggest');
+  await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/thsv\.command\.game-suggestions\.v1/u);
+  await commandForm.locator('[name="template"]').selectOption('prize-wheel');
+  await expect(commandForm.locator('[name="name"]')).toHaveValue('spinwheel');
+  await expect(commandForm.locator('[name="minimumRole"]')).toHaveValue('moderator');
+  await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('none');
+  await expect(commandForm.locator('[name="customScript"]')).not.toHaveValue(/C:\\Users\\/u);
+  await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
+  await commandForm.locator('[name="template"]').selectOption('creator-poll');
+  await expect(commandForm.locator('[name="name"]')).toHaveValue('poll');
+  await expect(commandForm.locator('[name="minimumRole"]')).toHaveValue('moderator');
+  await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('none');
+  await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
+  await commandForm.locator('[name="template"]').selectOption('account-age');
+  await expect(commandForm.locator('[name="name"]')).toHaveValue('accountage');
+  await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/api\.twitch\.tv\/helix\/users/u);
+  await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(1);
+  await expect(commandForm.locator('[name="commandSource"][value="twitch"]')).toBeChecked();
+  await commandForm.locator('[name="template"]').selectOption('uptime');
+  await expect(commandForm.locator('[name="name"]')).toHaveValue('uptime');
+  await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/api\.twitch\.tv\/helix\/streams/u);
+  await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(1);
+  await expect(commandForm.locator('[name="commandSource"][value="twitch"]')).toBeChecked();
   await commandForm.locator('[name="template"]').selectOption('follow-age');
   await expect(commandForm.locator('[name="name"]')).toHaveValue('followage');
   await expect(commandForm.locator('[name="actionName"]')).toHaveValue('THSV Command - Follow Age');
@@ -131,6 +167,13 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="actionName"]')).toHaveValue('THSV Command - Streamer Time');
   await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/TimeZoneInfo\.Local/u);
   await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
+  await commandForm.locator('[name="template"]').selectOption('game-suggestion');
+  await commandForm.locator('button[type="submit"]').click();
+  await page.locator('#approve-batch').check();
+  await page.locator('#generate-batch').click();
+  const generatedSuggestion = page.locator('#command-generation-result pre');
+  await expect(generatedSuggestion).toContainText('CPH.SetGlobalVar(suggestionsKey');
+  await expect(generatedSuggestion).toContainText('return userName + " suggested \\"" + suggestion + "\\". It is now on the game list!";');
 
   await page.locator('[data-view="timed-actions"]').click();
   await page.locator('#new-timed-action-entry').click();
@@ -530,6 +573,115 @@ test('Viewer Spotlight stays crisp and bounded with long names, maximum fields, 
   await publishViewerSpotlightCard(page, { title: 'Reconnected cleanly', text: 'One fresh card after reconnect', durationMs: 60_000 });
   await expect(page.locator('#card-title')).toHaveText('Reconnected cleanly');
   await expect(page.locator('#card-text')).toHaveText('One fresh card after reconnect');
+});
+
+test('Stream Labels selects one persistent label or a bounded combined panel', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.stream-labels**', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 900, height: 260 });
+  await page.goto('/overlay/addons/thsv.stream-labels?label=follower');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  const payload = {
+    labels: {
+      follower: { key: 'follower', title: 'Latest Follower', value: 'A Very Long Example Follower Name That Still Wraps Safely', platform: 'twitch' },
+      member: { key: 'member', title: 'Latest Member', value: 'Example Member · 12 months', platform: 'youtube' },
+      support: { key: 'support', title: 'Latest Support', value: 'Example Supporter · 100.00 USD', platform: 'youtube' },
+    },
+    style: { showLabelTitle: true, showPlatform: true, backgroundMode: 'glass', backgroundColor: '#101820', backgroundOpacity: 0.88, accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast', fontSize: 42, textAlign: 'left' },
+  };
+  await page.evaluate((value) => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.stream-labels',
+    topic: 'thsv.stream-labels.labels.update', payload: value,
+  }), payload);
+  await expect(page.locator('.stream-label')).toHaveCount(1);
+  await expect(page.locator('.stream-label:visible')).toHaveCount(1);
+  await expect(page.locator('.stream-label-value:visible')).toHaveText('A Very Long Example Follower Name That Still Wraps Safely');
+  const bounds = await page.locator('.stream-label:visible').evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 };
+  });
+  expect(bounds).toEqual({ inside: true, bounded: true });
+  await page.screenshot({ path: testInfo.outputPath('stream-label-follower.png') });
+
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.goto('/overlay/addons/thsv.stream-labels?label=all');
+  await page.evaluate((value) => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.stream-labels',
+    topic: 'thsv.stream-labels.labels.update', payload: value,
+  }), payload);
+  await expect(page.locator('.stream-label:visible')).toHaveCount(3);
+  const combined = await page.locator('#label-shell').evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 };
+  });
+  expect(combined).toEqual({ inside: true, bounded: true });
+});
+
+test('Village Roll Call leaderboard card remains readable in a cropped OBS source', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.village-roll-call', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 680, height: 260 });
+  await page.goto('/overlay/addons/thsv.village-roll-call');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1',
+    kind: 'addon.publish',
+    moduleId: 'thsv.village-roll-call',
+    topic: 'thsv.village-roll-call.card.show',
+    payload: {
+      title: 'VILLAGE ROLL CALL • JULY 2026',
+      text: '1. A Very Long Villager Display Name (31) • 2. Example Viewer (30) • 3. CozySloth (29) • 4. Night Owl (28) • 5. Early Bird (27)',
+      durationMs: 60_000,
+    },
+  }));
+  await expect(page.locator('#card')).toBeVisible();
+  const bounds = await page.locator('#card').evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return {
+      inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight,
+      bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1,
+    };
+  });
+  expect(bounds).toEqual({ inside: true, bounded: true });
+});
+
+test('Prize Wheel spins equal slices, reveals the fixed winner, and remains bounded when cropped in OBS', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.prize-wheel', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 680, height: 680 });
+  await page.goto('/overlay/addons/thsv.prize-wheel');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.prize-wheel',
+    topic: 'thsv.prize-wheel.wheel.spin',
+    payload: {
+      title: 'PICK TONIGHT’S GAME',
+      options: ['Cozy Game', 'Story Game', 'Community Night', 'Wildcard', 'Retro Game', 'Challenge Run', 'Viewer Choice', 'New Release', 'Speedrun', 'Surprise'],
+      winnerIndex: 7, winner: 'New Release', spinDurationMs: 1_000, winnerDurationMs: 60_000, sequence: 1,
+      style: { backgroundColor: '#101521', wheelColors: ['#7c3aed', '#0891b2', '#16a34a', '#ea580c'], textColor: '#ffffff', accentColor: '#ffd166', winnerColor: '#7ff5cc' },
+    },
+  }));
+  await expect(page.locator('#wheel-shell')).toBeVisible();
+  await expect(page.locator('.wheel-option')).toHaveCount(10);
+  await expect(page.locator('.wheel-stud')).toHaveCount(10);
+  await expect(page.locator('#wheel-result')).toHaveClass(/revealed/u, { timeout: 2_000 });
+  await expect(page.locator('#wheel-winner')).toHaveText('New Release');
+  const fullBounds = await page.locator('#wheel-shell').evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 };
+  });
+  expect(fullBounds).toEqual({ inside: true, bounded: true });
+  await page.screenshot({ path: testInfo.outputPath('prize-wheel-680.png') });
+  await page.setViewportSize({ width: 420, height: 420 });
+  const croppedBounds = await page.locator('#wheel-shell').evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 };
+  });
+  expect(croppedBounds).toEqual({ inside: true, bounded: true });
+  await page.screenshot({ path: testInfo.outputPath('prize-wheel-cropped.png') });
 });
 
 test('Raid Scout mounts only the bounded official Twitch clip embed', async ({ page }) => {

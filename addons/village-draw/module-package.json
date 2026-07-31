@@ -1,0 +1,106 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Runs restart-safe free or Viewer Foundation points giveaways with bounded weighted tickets, authenticated controls, multi-platform announcements, and winner overlays.",
+  "changelog": "2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with free and points entry modes, serialized recoverable spending/refunds, secure weighted selection, authenticated lifecycle controls, platform-bounded chat, and responsive giveaway/winner cards.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "schedule.bounded",
+    "chat.send",
+    "overlay.publish",
+    "viewer.foundation.read",
+    "viewer.foundation.mutate"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.village-draw",
+    "name": "Village Draw",
+    "version": "2.5.2",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "2.5.2",
+    "maximumTestedBridgeVersion": "2.5.2",
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "command.received",
+      "stream.offline"
+    ],
+    "commandsProvided": [
+      {
+        "id": "village-draw.manage",
+        "name": "giveaway"
+      },
+      {
+        "id": "village-draw.enter",
+        "name": "enter"
+      },
+      {
+        "id": "village-draw.tickets",
+        "name": "tickets"
+      },
+      {
+        "id": "village-draw.my-tickets",
+        "name": "mytickets"
+      }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.village-draw/",
+      "data/addons/.state/thsv.village-draw/"
+    ],
+    "installationSteps": [
+      "Install and enable Viewer Foundation first; Village Draw never creates a second points balance.",
+      "Create the four no-response commands in Command Sync, keeping giveaway management restricted to moderators.",
+      "Configure the prize and ticket rules, save, restart, then use the authenticated wizard controls to open the draw.",
+      "Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview."
+    ],
+    "uninstallationSteps": [
+      "Cancel and refund an open points draw before uninstalling. Private bounded history remains available for a later reinstall."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.village-draw.runtime",
+        "description": "Confirms serialized entries, recoverable Viewer Foundation spending/refunds, secure weighted selection, and hosted result cards."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 33894,
+      "sha256": "c386fe21505f3b6f8051f388aea7b18e07b7aa148c6b4ae49ea04b7c4ae56d18"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 4648,
+      "sha256": "6d3f414f4106f433061e243b74641994899ae94b757f13034d7a79f895f1660e"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 3062,
+      "sha256": "d0ff3c3b82fdcb636d61b8689d81388302708427293eafd79a296692e859df3d"
+    },
+    {
+      "path": "README.md",
+      "size": 1619,
+      "sha256": "5f00471827a31a578940bd5dbf854666c594f21dbb6fbd5a26d8dda7abd5871f"
+    }
+  ]
+}

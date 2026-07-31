@@ -4,8 +4,8 @@ const MODERATE_ACTION_ID = '9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9';
 const RESULT_EVENT = 'addon.thsv.chat-guard.moderation-result';
 const TRUST_EVENT = 'addon.thsv.chat-guard.trusted-account-request';
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.chat-guard', name: 'Chat Guard', version: '2.5.1',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.1', maximumTestedBridgeVersion: '2.5.1',
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.chat-guard', name: 'Chat Guard', version: '2.5.2',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.2', maximumTestedBridgeVersion: '2.5.2',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', RESULT_EVENT, TRUST_EVENT], commandsProvided: [{ id: 'chat-guard.trust-viewer', name: '!guardtrust' }], actionsProvided: [{ id: 'chat-guard.moderate', name: 'THSV Addon - Chat Guard - Moderate' }, { id: 'chat-guard.trust-viewer', name: 'THSV Addon - Chat Guard - Trust Viewer' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.chat-guard/', 'data/addons/.state/thsv.chat-guard/'],
   installationSteps: ['Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.', 'Import the matching Chat Guard Streamer.bot package. Leave Moderate enabled and triggerless. Review the disabled !guardtrust command before enabling it.', 'Use the rule tester and observation summary. Tune only rules that create false positives; beginner defaults are already supplied.', 'To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator, then refresh Trusted viewers in the wizard.', 'Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance.'],

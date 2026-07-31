@@ -1,15 +1,15 @@
 # Community Analytics setup
 
 **Module:** `thsv.community-analytics`
-**Version:** `2.5.1`
+**Version:** `2.5.2`
 **Publisher:** THSV StreamBridge
 
 Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Community-Analytics-2.5.1.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Community-Analytics-2.5.1.thsv-addon` and review its permissions.
+1. Download and extract `THSV-StreamBridge-AddOn-Community-Analytics-2.5.2.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Community-Analytics-2.5.2.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 

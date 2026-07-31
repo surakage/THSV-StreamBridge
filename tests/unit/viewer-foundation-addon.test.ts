@@ -14,7 +14,7 @@ function event(overrides: Record<string, unknown> = {}) {
 
 function runtime(settings: Record<string, unknown> = {}, initial: Record<string, unknown> = {}) {
   let state = initial;
-  return { value: () => state, context: { settings: { enabled: true, ...settings }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) } } };
+  return { value: () => state, context: { settings: { enabled: true, ...settings }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) }, chat: { send: vi.fn(async () => []) } } };
 }
 
 afterEach(async () => { await viewerFoundation.stop(); resetViewerFoundationRuntime(); });
@@ -57,13 +57,23 @@ describe('Viewer Foundation add-on', () => {
     expect(first.pointsAwarded).toBe(5); expect(cooled.pointsAwarded).toBe(0); expect(simulated).toBeUndefined();
   });
 
+  it('does not let cooldown-suppressed chat farm consistency bonuses', async () => {
+    const testRuntime = runtime({ chatCooldownSeconds: 60, chatMessagePoints: 1, chatConsistencyMessages: 2, chatConsistencyPoints: 10 });
+    const first = await processViewerEvent(event(), testRuntime.context, 1_000);
+    const spammed = await processViewerEvent(event({ eventId: 'event-2', source: { eventId: 'provider-2' } }), testRuntime.context, 2_000);
+    const eligible = await processViewerEvent(event({ eventId: 'event-3', source: { eventId: 'provider-3' } }), testRuntime.context, 61_000);
+    expect(first).toMatchObject({ pointsAwarded: 1, totalPoints: 1 });
+    expect(spammed).toMatchObject({ pointsAwarded: 0, totalPoints: 1 });
+    expect(eligible).toMatchObject({ pointsAwarded: 11, totalPoints: 12 });
+  });
+
   it('bounds viewer and replay collections and derives projections without names', () => {
     const state = sanitizeViewerFoundationState({
       viewers: Object.fromEntries(Array.from({ length: 40 }, (_, index) => [`viewer-${String(index)}`, { points: index, lastSeenAt: index }])),
       processed: Array.from({ length: 60 }, (_, index) => ({ id: index.toString(16).padStart(32, '0'), at: 1000 + index })),
     }, { levelStepPoints: 10, maximumViewers: 25, processedEventLimit: 25, processedEventTtlHours: 720 }, 2000);
     expect(Object.keys(state.viewers)).toHaveLength(25); expect(state.processed).toHaveLength(25);
-    expect(viewerProjection(state, 'viewer-39', { levelStepPoints: 10 })).toEqual({ contractVersion: '1.0.0', viewerId: 'viewer-39', linked: false, points: 39, level: 4, nextLevelAt: 40 });
+    expect(viewerProjection(state, 'viewer-39', { levelStepPoints: 10 })).toEqual({ contractVersion: '1.0.0', viewerId: 'viewer-39', linked: false, currencyName: 'Village Points', points: 39, level: 4, nextLevelAt: 40 });
     const deleted = deleteViewerRecord(state, 'viewer-39', { levelStepPoints: 10 });
     expect(deleted.removed).toBe(true); expect(deleted.state.viewers['viewer-39']).toBeUndefined();
   });
@@ -73,6 +83,50 @@ describe('Viewer Foundation add-on', () => {
     expect(projection).toMatchObject({ points: 2_600, latestAchievement: { id: 'village-veteran', label: 'Village Veteran', points: 2_500 } });
     expect(projection.achievements).toHaveLength(4);
     expect(viewerProjection({ viewers: { alex: { points: 2_600, level: 27, lastSeenAt: 1 } } }, 'alex', { levelStepPoints: 100, achievementsEnabled: false })).not.toHaveProperty('achievements');
+  });
+
+  it('awards named chat consistency, observed active time, and bounded lurk time', async () => {
+    const active = runtime({ currencyName: 'Acorns', chatMessagePoints: 1, chatCooldownSeconds: 0, chatConsistencyMessages: 2, chatConsistencyPoints: 7, activeMinutesRequired: 10, activeMinutesPoints: 3, activeWindowMinutes: 20 });
+    await processViewerEvent(event(), active.context, 1_000);
+    const continued = await processViewerEvent(event({ eventId: 'event-2', source: { eventId: 'provider-2' } }), active.context, 601_000);
+    expect(continued).toMatchObject({ pointsAwarded: 11, totalPoints: 12, currencyName: 'Acorns' });
+
+    const lurk = runtime({ currencyName: 'Leaves', chatMessagePoints: 1, chatCooldownSeconds: 0, lurkCommand: 'lurk', lurkMinutesRequired: 10, lurkMinutesPoints: 4 });
+    await processViewerEvent(event({ eventId: 'lurk-1', eventType: 'command.received', source: { eventId: 'lurk-provider-1' }, payload: { command: 'lurk', arguments: [] } }), lurk.context, 1_000);
+    const returned = await processViewerEvent(event({ eventId: 'return-1', source: { eventId: 'return-provider-1' } }), lurk.context, 601_000);
+    expect(returned).toMatchObject({ pointsAwarded: 5, totalPoints: 5, currencyName: 'Leaves' });
+    await processViewerEvent(event({ eventId: 'points-1', eventType: 'command.received', source: { eventId: 'points-provider-1' }, payload: { command: 'points', arguments: [] } }), lurk.context, 602_000);
+    expect(lurk.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('5 Leaves'), routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }));
+  });
+
+  it('preserves the original lurk start when the viewer repeats the lurk command', async () => {
+    const testRuntime = runtime({ accountLinks: ['alex|twitch|123456'], lurkCommand: 'lurk', lurkMinutesRequired: 10, lurkMinutesPoints: 4, chatCooldownSeconds: 0 });
+    const first = await processViewerEvent(event({ eventId: 'lurk-1', eventType: 'command.received', source: { eventId: 'lurk-provider-1' }, payload: { command: 'lurk', arguments: [] } }), testRuntime.context, 1_000);
+    const repeated = await processViewerEvent(event({ eventId: 'lurk-2', eventType: 'command.received', source: { eventId: 'lurk-provider-2' }, payload: { command: 'lurk', arguments: [] } }), testRuntime.context, 301_000);
+    const returned = await processViewerEvent(event({ eventId: 'return-1', source: { eventId: 'return-provider-1' } }), testRuntime.context, 601_000);
+    expect(first).toMatchObject({ alreadyLurking: false });
+    expect(repeated).toMatchObject({ alreadyLurking: true });
+    expect(returned).toMatchObject({ pointsAwarded: 5, totalPoints: 5 });
+  });
+
+  it('keeps the active observation window at least as long as the required interval', async () => {
+    const testRuntime = runtime({ accountLinks: ['alex|twitch|123456'], chatCooldownSeconds: 0, chatMessagePoints: 0, activeMinutesRequired: 30, activeWindowMinutes: 5, activeMinutesPoints: 7 });
+    await processViewerEvent(event(), testRuntime.context, 1_000);
+    const settled = await processViewerEvent(event({ eventId: 'event-2', source: { eventId: 'provider-2' } }), testRuntime.context, 1_801_000);
+    expect(settled).toMatchObject({ pointsAwarded: 7, totalPoints: 7 });
+  });
+
+  it('settles lurk time only after the final live platform goes offline', async () => {
+    const session = runtime({ accountLinks: ['alex|twitch|123456'], lurkCommand: 'lurk', lurkMinutesRequired: 10, lurkMinutesPoints: 4 });
+    await processViewerEvent(event({ eventId: 'online-twitch', eventType: 'stream.online', platform: 'twitch', user: undefined, source: { eventId: 'online-twitch' }, payload: {} }), session.context, 1_000);
+    await processViewerEvent(event({ eventId: 'online-youtube', eventType: 'stream.online', platform: 'youtube', user: undefined, source: { eventId: 'online-youtube' }, payload: {} }), session.context, 1_000);
+    await processViewerEvent(event({ eventId: 'lurk-session', eventType: 'command.received', source: { eventId: 'lurk-session' }, payload: { command: 'lurk', arguments: [] } }), session.context, 2_000);
+    const twitchEnded = await processViewerEvent(event({ eventId: 'offline-twitch', eventType: 'stream.offline', platform: 'twitch', user: undefined, source: { eventId: 'offline-twitch' }, payload: {} }), session.context, 602_000);
+    expect(twitchEnded).toEqual({ streamEnded: false, livePlatforms: 1 });
+    expect((session.value() as { viewers: { alex: { points: number } } }).viewers.alex.points).toBe(0);
+    const youtubeEnded = await processViewerEvent(event({ eventId: 'offline-youtube', eventType: 'stream.offline', platform: 'youtube', user: undefined, source: { eventId: 'offline-youtube' }, payload: {} }), session.context, 602_000);
+    expect(youtubeEnded).toMatchObject({ streamEnded: true, viewersSettled: 1, pointsAwarded: 4 });
+    expect((session.value() as { viewers: { alex: { points: number } } }).viewers.alex.points).toBe(4);
   });
 
   it('shrinks hostile persisted collections below the broker state ceiling', () => {

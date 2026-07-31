@@ -1,15 +1,15 @@
 # Translate setup
 
 **Module:** `thsv.user-translate`
-**Version:** `2.5.1`
+**Version:** `2.5.2`
 **Publisher:** THSV StreamBridge
 
 Translate combines viewer commands and optional privacy-gated automatic translation. Results return only to the originating platform, and message text is never retained.
 
 ## Install
 
-1. Install `THSV-Translate-2.5.1.thsv-addon` in **Setup Wizard > Add-ons**.
-2. Import `Streamer.bot/THSV-StreamBridge-User-Translate-2.5.1.sb`.
+1. Install `THSV-Translate-2.5.2.thsv-addon` in **Setup Wizard > Add-ons**.
+2. Import `Streamer.bot/THSV-StreamBridge-User-Translate-2.5.2.sb`.
 3. Inspect Streamer.bot and approve only `THSV Addon - Translate - Translate Text`.
 4. Do not attach a trigger to that action; StreamBridge dispatches it through the capability broker.
 5. In the wizard choose Manual, Automatic, or Both, then select the provider and language pair.

@@ -27,9 +27,9 @@ The preferred tier can combine two lists:
 
 ## Install
 
-1. Import `THSV-StreamBridge-Raid-Scout-2.5.1.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Raid-Scout-2.5.2.sb` into Streamer.bot.
 2. Leave `THSV Addon - Raid Scout - Controller` triggerless.
-3. Install `thsv.raid-scout-2.5.1.thsv-addon` through the StreamBridge wizard.
+3. Install `thsv.raid-scout-2.5.2.thsv-addon` through the StreamBridge wizard.
 4. Inspect Streamer.bot and approve only the Raid Scout Controller action.
 5. Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.
 6. Open the add-on overlay URL as a private browser/OBS/Meld dock so you can review the suggestion.

@@ -6,7 +6,7 @@ describe('wizard launcher package', () => {
   it('contains author, description, reviewed source, and only a loopback wizard URL', async () => {
     const root = 'packages/streamerbot/wizard-launcher';
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as { name: string; version: string; author: string; description: string; action: { source: string; importFile: string } };
-    expect(manifest).toMatchObject({ version: '2.5.1', author: 'surakage' });
+    expect(manifest).toMatchObject({ version: '2.5.2', author: 'surakage' });
     expect(manifest.description.length).toBeGreaterThan(20);
     const source = await readFile(`${root}/${manifest.action.source}`, 'utf8');
     expect(source).toContain('open-wizard.mjs');
@@ -47,10 +47,27 @@ describe('wizard launcher package', () => {
     expect(script).toContain("'shoutout-basic'");
     expect(script).toContain("'commands-help':{name:'commands'");
     expect(script).toContain("'coin-flip':{name:'coinflip'");
+    expect(script).toContain("'magic-8-ball':{name:'8ball'");
+    expect(script).toContain("'game-suggestion':{name:'suggest'");
     expect(script).toContain("'random-joke':{name:'joke'");
+    expect(script).toContain("'prize-wheel':{name:'spinwheel'");
+    expect(script).toContain("'village-draw-info':{name:'giveaway'");
+    expect(script).toContain("'village-draw-enter':{name:'enter'");
+    expect(script).toContain("'village-draw-tickets':{name:'tickets'");
+    expect(script).toContain("'village-draw-balance':{name:'mytickets'");
+    expect(script).toContain("'viewer-points':{name:'points',actionName:'THSV Command - Viewer Points'");
+    expect(script).toContain("'creator-counter':{name:'counter',actionName:'THSV Command - Creator Counter'");
+    expect(script).toContain("'creator-poll':{name:'poll',actionName:'THSV Command - Creator Poll'");
+    expect(script).toContain("'creator-vote':{name:'vote',actionName:'THSV Command - Creator Vote'");
+    expect(script).toContain("'account-age':{name:'accountage'");
+    expect(script).toContain("uptime:{name:'uptime'");
     expect(script).toContain("'follow-age':{name:'followage'");
+    expect(script).toContain('https://api.twitch.tv/helix/users');
+    expect(script).toContain('https://api.twitch.tv/helix/streams');
     expect(script).toContain('https://api.twitch.tv/helix/channels/followers');
     expect(script).toContain("commandSources:['twitch']");
+    expect(script).toContain('thsv.command.game-suggestions.v1');
+    expect(script).not.toContain('Game Suggestions.txt');
     expect(script).toContain('Lurk tracker — Multi-platform');
     expect(script).toContain('Hug leaderboard — Multi-platform');
     expect(script).toContain('Follow age — Twitch only');
@@ -58,6 +75,11 @@ describe('wizard launcher package', () => {
     expect(script).toContain('thsv.command.hugs.counts.v1');
     expect(script).toContain('TimeZoneInfo.Local');
     expect(script).toContain("for(const removedTemplate of ['rules','love','specs','emotes','bot'])");
+    expect(addOnScript).toContain("addOn.moduleId === 'thsv.stream-labels'");
+    expect(addOnScript).toContain("addOn.moduleId === 'thsv.village-roll-call'");
+    expect(addOnScript).toContain("addOn.moduleId === 'thsv.prize-wheel'");
+    expect(addOnScript).toContain("addOn.moduleId === 'thsv.creator-utility-pack'");
+    expect(addOnScript).toContain('No import or extra trigger');
     expect(script).toContain('chatEventMinimalTemplates');
     expect(script).toContain('apply-chat-event-style');
     expect(script).toContain('alertMinimalTitles');

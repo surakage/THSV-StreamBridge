@@ -1,6 +1,6 @@
 # Production-readiness gate
 
-`2.5.1` is the current published stable baseline. The bridge, all twenty-eight current first-party add-ons, and every required Streamer.bot import share that visible version while the add-on/event API contract remains independently versioned. The automated, packaging, installed-update, and visual gates below pass; the live-runtime items listed under "Remaining live verification" are still in progress. The runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
+`2.5.2` is the current release candidate. It contains thirty-two first-party add-ons at the same visible version, a regenerated portable Windows archive, a synchronized add-on index, verified checksums, and thirty-five version-aligned Streamer.bot imports. The add-on/event API contract remains independently versioned. The automated and visual gates below pass; tag-triggered GitHub publication and the live-runtime items listed under "Remaining live verification" are still in progress. The runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
 
 ## Automated gate
 

@@ -16,7 +16,7 @@ import type { BrowserOverlayHub } from './browser-overlay-hub.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -29,6 +29,7 @@ export interface DiagnosticsTarget {
   administerCommunityAnalytics?(request: CommunityAnalyticsAdminRequestV1): Promise<CommunityAnalyticsAdminResultV1>;
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1>;
+  administerVillageDraw?(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1>;
 }
 
 class UnsupportedContentEncodingError extends Error {}
@@ -226,6 +227,12 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerViewerSpotlight(JSON.parse(body.text) as ViewerSpotlightAdminRequestV1));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/village-draw/admin' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerVillageDraw === undefined) return this.reply(response, 503, { error: 'Village Draw administration is unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.target.administerVillageDraw(JSON.parse(body.text) as VillageDrawAdminRequestV1));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/chat-guard/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         if (this.target.administerChatGuard === undefined) return this.reply(response, 503, { error: 'Chat Guard administration is unavailable.' });
@@ -280,8 +287,11 @@ export class DiagnosticsServer {
         const moduleId = decodeURIComponent(addOnOverlayPreviewMatch[1]);
         const addOn = (await this.wizard.listAddOns()).find((candidate) => candidate.moduleId === moduleId);
         if (!this.overlayHub.clientConfig().enabled || addOn === undefined || addOn.health !== 'installed' || !addOn.enabled || !addOn.permissions.includes('overlay.publish')) return this.reply(response, 404, { error: 'Enabled add-on overlay not found' });
-        this.overlayHub.publishAddOn(moduleId, `${moduleId}.card.show`, buildAddOnOverlayPreview(addOn));
-        return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic: `${moduleId}.card.show` });
+        const topic = moduleId === 'thsv.stream-labels' ? `${moduleId}.labels.update`
+          : moduleId === 'thsv.prize-wheel' ? `${moduleId}.wheel.spin`
+            : `${moduleId}.card.show`;
+        this.overlayHub.publishAddOn(moduleId, topic, buildAddOnOverlayPreview(addOn));
+        return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic });
       }
       const addOnRemoveMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/remove$/u.exec(request.url ?? '') : null;
       if (addOnRemoveMatch?.[1] !== undefined && this.wizard !== undefined) {
@@ -490,6 +500,86 @@ async function readLegacyViewerMigration(dataRoot: string): Promise<LegacyViewer
 }
 
 export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource): Readonly<Record<string, unknown>> {
+  if (addOn.moduleId === 'thsv.village-draw') {
+    return {
+      title: 'WINNER • Example Villager',
+      text: `${previewText(addOn.settings['prizeItem'], 'Mystery Prize')} • ${previewText(addOn.settings['giveawayName'], 'Village Giveaway')}`,
+      imageUrl: typeof addOn.settings['prizeImageUrl'] === 'string' && addOn.settings['prizeImageUrl'].startsWith('https://') ? addOn.settings['prizeImageUrl'] : '',
+      durationMs: boundedPreviewInteger(addOn.settings['cardSeconds'], 5, 60, 12) * 1_000,
+      preview: true,
+      style: {
+        backgroundMode: 'glass',
+        backgroundColor: previewColor(addOn.settings['backgroundColor'], '#10201b'),
+        backgroundOpacity: 0.94,
+        accentColor: previewColor(addOn.settings['winnerColor'], '#ffd166'),
+        textColor: previewColor(addOn.settings['textColor'], '#ffffff'),
+        fontFamily: previewEnum(addOn.settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
+        fontSize: 34,
+      },
+    };
+  }
+  if (addOn.moduleId === 'thsv.prize-wheel') {
+    const rawOptions = Array.isArray(addOn.settings['options']) ? addOn.settings['options'] : [];
+    const options = rawOptions.map((value) => previewText(value, '')).filter(Boolean).slice(0, 10);
+    const boundedOptions = options.length >= 2 ? options : ['Cozy Game', 'Community Night', 'Story Game', 'Wildcard'];
+    const winnerIndex = Math.min(1, boundedOptions.length - 1);
+    return {
+      title: previewText(addOn.settings['wheelTitle'], 'SPIN THE WHEEL'),
+      options: boundedOptions,
+      winnerIndex,
+      winner: boundedOptions[winnerIndex],
+      spinDurationMs: boundedPreviewInteger(addOn.settings['spinSeconds'], 6, 20, 9) * 1_000,
+      winnerDurationMs: boundedPreviewInteger(addOn.settings['winnerCardSeconds'], 4, 30, 8) * 1_000,
+      sequence: Date.now(),
+      preview: true,
+      style: {
+        backgroundColor: previewColor(addOn.settings['backgroundColor'], '#101521'),
+        wheelColors: Array.isArray(addOn.settings['wheelColors']) ? addOn.settings['wheelColors'].filter((value) => typeof value === 'string' && /^#[0-9a-f]{6}$/iu.test(value)).slice(0, 10) : [],
+        textColor: previewColor(addOn.settings['textColor'], '#ffffff'),
+        accentColor: previewColor(addOn.settings['accentColor'], '#ffd166'),
+        winnerColor: previewColor(addOn.settings['winnerColor'], '#7ff5cc'),
+      },
+    };
+  }
+  if (addOn.moduleId === 'thsv.stream-labels') {
+    const settings = addOn.settings;
+    const titles = {
+      follower: previewText(settings['followerTitle'], 'Latest Follower'),
+      member: previewText(settings['memberTitle'], 'Latest Member'),
+      'gift-membership': previewText(settings['giftMembershipTitle'], 'Latest Gift Membership'),
+      support: previewText(settings['supportTitle'], 'Latest Support'),
+      raid: previewText(settings['raidTitle'], 'Latest Raid'),
+      reward: previewText(settings['rewardTitle'], 'Latest Reward'),
+      latest: previewText(settings['latestTitle'], 'Latest Event'),
+    };
+    const labels = Object.fromEntries(Object.entries(titles).map(([key, title], index) => [key, {
+      key, title, value: ['Example Follower', 'Example Member · 6 months', 'Example Gifter · 5 gifted', 'Example Supporter · 25.00 USD', 'Example Raider · 42 viewers', 'Example Viewer · Hydrate', 'Example Supporter · 25.00 USD'][index],
+      platform: ['twitch', 'youtube', 'kick', 'tiktok', 'twitch', 'twitch', 'youtube'][index], eventType: 'preview', eventId: `preview-${key}`, at: Date.now(),
+    }]));
+    return {
+      labels, enabledLabels: Object.keys(labels), preview: true,
+      style: {
+        showLabelTitle: settings['showLabelTitle'] !== false,
+        showPlatform: settings['showPlatform'] !== false,
+        backgroundMode: previewEnum(settings['backgroundMode'], ['glass', 'solid', 'none'], 'glass'),
+        backgroundColor: typeof settings['backgroundColor'] === 'string' ? settings['backgroundColor'] : '#101820',
+        backgroundOpacity: typeof settings['backgroundOpacity'] === 'number' ? settings['backgroundOpacity'] : 0.88,
+        accentColor: typeof settings['accentColor'] === 'string' ? settings['accentColor'] : '#7ff5cc',
+        textColor: typeof settings['textColor'] === 'string' ? settings['textColor'] : '#ffffff',
+        fontFamily: previewEnum(settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
+        fontSize: boundedPreviewInteger(settings['fontSize'], 18, 96, 42),
+        textAlign: previewEnum(settings['textAlign'], ['left', 'center', 'right'], 'left'),
+      },
+    };
+  }
+  if (addOn.moduleId === 'thsv.village-roll-call') {
+    return {
+      title: 'VILLAGE ROLL CALL • PREVIEW',
+      text: '1. Example Villager (7) • 2. CozySloth (5) • 3. Early Bird (4)',
+      durationMs: boundedPreviewInteger(addOn.settings['cardSeconds'], 5, 3_600, 20) * 1_000,
+      preview: true,
+    };
+  }
   if (addOn.moduleId !== 'thsv.viewer-spotlight') return { title: addOn.name, text: 'Overlay connection and scoped publication are working.', durationMs: 5_000, preview: true };
   const settings = addOn.settings;
   const fields: string[] = [];
@@ -517,6 +607,10 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource): Readonly<Re
       fontFamily: previewEnum(settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
     },
   };
+}
+
+function previewText(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length > 0 ? Array.from(value.trim()).slice(0, 80).join('') : fallback;
 }
 
 function boundedPreviewInteger(value: unknown, minimum: number, maximum: number, fallback: number): number {

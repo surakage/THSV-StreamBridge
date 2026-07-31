@@ -1,0 +1,104 @@
+{
+    "packageFormat":  "thsv-addon-v2",
+    "packageKind":  "executable",
+    "author":  "THSV StreamBridge",
+    "description":  "Projects equivalent Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into persistent OBS-ready stream labels.",
+    "changelog":  "2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with bounded latest-value persistence, multi-platform semantic grouping, simulator-safe previews, individual browser-source selectors, and a combined label panel.",
+    "permissions":  [
+                        "events.subscribe",
+                        "overlay.publish",
+                        "state.private"
+                    ],
+    "trust":  {
+                  "publisherId":  "thsv.streambridge",
+                  "sourceUrl":  "https://github.com/surakage/THSV-StreamBridge",
+                  "supportUrl":  "https://www.slothbloom.com/tip",
+                  "updateManifestUrl":  "https://github.com/surakage/THSV-StreamBridge/releases",
+                  "revocationListUrl":  "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+              },
+    "manifest":  {
+                     "contractVersion":  "2.0.0-preview.1",
+                     "moduleId":  "thsv.stream-labels",
+                     "name":  "Stream Labels",
+                     "version":  "2.5.2",
+                     "minimumCoreVersion":  "2.0.0-preview.1",
+                     "maximumTestedCoreVersion":  "2.0.0-preview.1",
+                     "minimumBridgeVersion":  "2.5.2",
+                     "maximumTestedBridgeVersion":  "2.5.2",
+                     "dependencies":  [
+
+                                      ],
+                     "requiredCapabilities":  [
+
+                                              ],
+                     "configurationSchema":  "schemas/config.json",
+                     "eventSubscriptions":  [
+                                                "channel.follow",
+                                                "channel.subscription",
+                                                "channel.membership",
+                                                "channel.gift-subscription",
+                                                "engagement.gift",
+                                                "engagement.donation",
+                                                "engagement.cheer",
+                                                "engagement.super-chat",
+                                                "channel.raid",
+                                                "engagement.milestone",
+                                                "reward.redemption"
+                                            ],
+                     "commandsProvided":  [
+
+                                          ],
+                     "actionsProvided":  [
+
+                                         ],
+                     "browserSourcesProvided":  [
+
+                                                ],
+                     "dataStorageOwned":  [
+                                              "data/addons/thsv.stream-labels/",
+                                              "data/addons/.state/thsv.stream-labels/"
+                                          ],
+                     "installationSteps":  [
+                                               "Install and enable Stream Labels. No separate Streamer.bot import or direct trigger is required.",
+                                               "Choose the platforms, label groups, and simple visual style in the wizard.",
+                                               "Copy one individual label URL or the combined preview URL into an OBS, Meld, or Streamlabs browser source.",
+                                               "Use the normal StreamBridge simulator to verify mappings before going live."
+                                           ],
+                     "uninstallationSteps":  [
+                                                 "Uninstall the add-on. Its latest label values remain preserved for a later reinstall."
+                                             ],
+                     "migrations":  [
+
+                                    ],
+                     "healthChecks":  [
+                                          {
+                                              "id":  "thsv.stream-labels.runtime",
+                                              "description":  "Confirms bounded latest-event persistence and namespaced overlay publication."
+                                          }
+                                      ]
+                 },
+    "entrypoint":  "dist/index.js",
+    "settingsUi":  "ui/settings.json",
+    "files":  [
+                  {
+                      "path":  "dist/index.js",
+                      "size":  11238,
+                      "sha256":  "089443e225cedfd8679ca072da1589b9b32543361fc917e12b7f04efc46e13dc"
+                  },
+                  {
+                      "path":  "schemas/config.json",
+                      "size":  3296,
+                      "sha256":  "efcfcb5ef82d8b5f54d4a7f8ae376877bad5024aebd09c9c574267093292af22"
+                  },
+                  {
+                      "path":  "ui/settings.json",
+                      "size":  3283,
+                      "sha256":  "540e28495d8dbb52874ffeafa581af248dc20ad67c7e29490ab642085342afee"
+                  },
+                  {
+                      "path":  "README.md",
+                      "size":  1670,
+                      "sha256":  "e3a0a2c55c7c6bfae4ac4e0d2e0417e54966339653689b6de1374257b0bcec7f"
+                  }
+              ]
+}

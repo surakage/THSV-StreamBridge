@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-07-31
+
+- Added beginner-first Bridge Core and all-add-on setup guides, exact wizard connection steps for the newest no-import add-ons, and Command Sync templates for Creator Utility counters, poll control, and voting.
+- Hardened Viewer Foundation so chat inside a viewer's award cooldown cannot farm consistency bonuses, repeated lurk commands preserve the original lurk start, and an undersized activity window is safely raised to the required award interval.
+- Serialized Stream Labels, Village Roll Call, and Prize Wheel event handling so simultaneous provider events cannot overwrite label/check-in state or start overlapping spins.
+
+- Expanded Viewer Foundation into a creator-configurable cross-platform points system with a custom currency name, a source-routed `!points` command, chat consistency bonuses, observation-based active-chat and lurk awards, configurable supported-event values, replay protection, and bounded catch-up behavior. Silent viewing is not guessed or tracked.
+- Removed Creator Utility Pack's older in-memory giveaway so Village Draw is the single giveaway system; Creator Utility Pack now owns only counters and polls.
+- Hardened Prize Wheel lifecycle handling so overlapping spins are rejected and disabling or stopping the add-on cancels its delayed result instead of allowing a late chat or overlay announcement.
+- Added Prize Wheel, a casual multi-platform command-controlled wheel with two through ten equal slices, server-authoritative winner selection, a studded decelerating OBS animation, cropped winner card, per-platform bounded chat templates, and a safe Command Sync control template.
+- Added Village Draw, a standalone cross-platform giveaway add-on with free or Viewer Foundation points entry, bounded weighted tickets, authenticated wizard controls, secure snapshot-based selection, source-routed confirmations, responsive winner cards, and persisted batched cancellation refunds.
+- Added Village Roll Call, a Twitch daily Channel Points check-in add-on with stable-user daily uniqueness, configurable calendar time zone, bounded monthly rankings, editable winner messages, simulation-safe testing, and an optional cropped-OBS-safe leaderboard card.
+- Added the Stream Labels add-on. It groups equivalent Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into persistent Latest Follower, Member, Gift Membership, Support, Raid, Reward, and Latest Event browser-source labels without adding Streamer.bot triggers or WebSocket connections.
+- Added four Command Sync templates: Twitch Account Age and Uptime use the official Helix API with Streamer.bot-held broadcaster credentials; Game Suggestion keeps one bounded, case-insensitive multi-platform list without a hard-coded file path; and Magic 8-Ball returns one source-gated answer from an original editable response set.
 - Updated Streamer.bot guidance to recommend `1.0.5-beta.5` while retaining beta.2 as the latest directly observed THSV runtime evidence. The compatibility review confirmed that OBS retry handling, Speaker.bot timeout improvements, and Twitch user-lookup guards require no C# import, trigger, reference, normalized-event, or add-on API change.
 - Added Raid Scout's private phased search presentation and optional single public Twitch clip preview before an already-confirmed raid. The preview is bounded, retained nowhere, and safely falls through to the raid when no clip can play.
 - Declared Raid Scout's bounded-scheduling capability so live phased-search and clip-preview lifecycle events are accepted by the add-on broker.

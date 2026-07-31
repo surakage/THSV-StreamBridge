@@ -160,6 +160,41 @@ describe('Browser Overlay Hub contract', () => {
     await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
   });
 
+  it('replays the latest persistent add-on labels when an OBS browser source connects later', async () => {
+    const config = await testConfig();
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const server = createServer();
+    hub.attach(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (address === null || typeof address === 'string') throw new Error('Expected a TCP test server address');
+    hub.publishAddOn('sample.labels', 'sample.labels.labels.update', { labels: { follower: { value: 'Late Viewer' } } });
+    hub.publishAddOn('sample.labels', 'sample.labels.labels.update', { labels: { follower: { value: 'Latest Viewer' } } });
+
+    const received: Array<Record<string, unknown>> = [];
+    const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`, { origin: `http://127.0.0.1:${String(address.port)}` });
+    await new Promise<void>((resolve, reject) => {
+      client.on('error', reject);
+      client.on('message', (raw) => {
+        const message = Buffer.isBuffer(raw)
+          ? raw.toString('utf8')
+          : Array.isArray(raw)
+            ? Buffer.concat(raw).toString('utf8')
+            : Buffer.from(raw).toString('utf8');
+        received.push(JSON.parse(message) as Record<string, unknown>);
+        if (received.length === 2) resolve();
+      });
+    });
+    expect(received).toMatchObject([
+      { kind: 'hub.ready' },
+      { kind: 'addon.publish', moduleId: 'sample.labels', topic: 'sample.labels.labels.update', payload: { labels: { follower: { value: 'Latest Viewer' } } } },
+    ]);
+    expect(hub.status()).toMatchObject({ retainedLabelSnapshots: 1 });
+    client.close();
+    hub.stop();
+    await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
+  });
+
   it('adds enabled platform activity to chat and truncates it within the Unicode-safe platform cap', async () => {
     const source = await fixture('youtube-super-chat.json');
     const config = await testConfig();

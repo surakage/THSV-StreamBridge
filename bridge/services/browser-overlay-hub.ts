@@ -33,6 +33,7 @@ export class BrowserOverlayHub {
   private readonly activeMediaMessages = new Map<string, Map<string, ActiveMediaMessage>>();
   private readonly startedPlaybackIds = new Map<string, Set<string>>();
   private readonly playbackOwners = new Map<string, Map<string, string>>();
+  private readonly retainedLabelMessages = new Map<string, string>();
   private readonly mediaStartRetryTimer: NodeJS.Timeout;
   private readonly upgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
     if (request.url !== '/overlay/events' || !isLoopback(request.socket.remoteAddress) || !isTrustedOverlayOrigin(request)) { socket.destroy(); return; }
@@ -43,6 +44,7 @@ export class BrowserOverlayHub {
     this.sockets.on('connection', (socket) => {
       socket.send(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'hub.ready', emittedAt: new Date().toISOString() }));
       this.replayActiveMedia(socket);
+      this.replayRetainedLabels(socket);
       this.logger.info('Browser overlay client connected', { clients: this.sockets.clients.size });
       socket.on('close', () => this.logger.info('Browser overlay client disconnected', { clients: this.sockets.clients.size }));
       socket.on('message', (data) => this.receiveClientMessage(rawDataText(data)));
@@ -111,6 +113,10 @@ export class BrowserOverlayHub {
       messages.set(playbackId, { playbackId, message, expiresAt: Date.now() + mediaReplayTtl(payload['durationMs']) });
       this.activeMediaMessages.set(moduleId, messages);
     }
+    if (topic === `${moduleId}.labels.update`) {
+      if (!this.retainedLabelMessages.has(moduleId) && this.retainedLabelMessages.size >= 200) throw new Error('Too many add-on label snapshots are retained.');
+      this.retainedLabelMessages.set(moduleId, message);
+    }
     for (const socket of this.sockets.clients) if (socket.readyState === WebSocket.OPEN) socket.send(message);
     this.addOnPublished += 1;
   }
@@ -122,7 +128,7 @@ export class BrowserOverlayHub {
     return () => { listeners.delete(listener); if (listeners.size === 0) this.lifecycleListeners.delete(moduleId); };
   }
 
-  public status(): Readonly<Record<string, unknown>> { return { enabled: this.config.enabled, clients: this.sockets.clients.size, published: this.published, addOnPublished: this.addOnPublished, addOnLifecycleReports: this.addOnLifecycleReports, lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0) }; }
+  public status(): Readonly<Record<string, unknown>> { return { enabled: this.config.enabled, clients: this.sockets.clients.size, published: this.published, addOnPublished: this.addOnPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0) }; }
   public clientConfig(): BrowserOverlayConfig { return { ...this.config }; }
 
   public stop(): void {
@@ -136,6 +142,7 @@ export class BrowserOverlayHub {
     this.activeMediaMessages.clear();
     this.startedPlaybackIds.clear();
     this.playbackOwners.clear();
+    this.retainedLabelMessages.clear();
   }
 
   private replayActiveMedia(socket: WebSocket): void {
@@ -143,6 +150,10 @@ export class BrowserOverlayHub {
     for (const messages of this.activeMediaMessages.values()) {
       for (const active of messages.values()) socket.send(active.message);
     }
+  }
+
+  private replayRetainedLabels(socket: WebSocket): void {
+    for (const message of this.retainedLabelMessages.values()) socket.send(message);
   }
 
   private replayUnstartedMedia(): void {

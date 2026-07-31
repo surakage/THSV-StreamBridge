@@ -49,6 +49,40 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 .timer-meta { margin-top: clamp(12px, 2vw, 22px); color: var(--timer-muted); font: 600 clamp(14px, 1.8vw, 25px)/1.25 Inter, sans-serif; }
 .timer-meta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) { .timer-meta { align-items: flex-start; flex-direction: column; gap: .3rem; } .timer-time { font-size: clamp(48px, 17vw, 96px); } }
+.label-shell { --label-background: #101820; --label-background-rendered: rgb(16 24 32 / 88%); --label-accent: #7ff5cc; --label-text: #fff; width: min(96vw, 1200px); color: var(--label-text); }
+.label-shell[data-font="display"] { font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; }
+.label-shell[data-font="broadcast"] { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.label-shell[data-font="serif"] { font-family: Georgia, "Times New Roman", serif; }
+.label-shell[data-font="mono"] { font-family: "Cascadia Mono", Consolas, monospace; }
+.label-list { display: grid; gap: clamp(8px, 1.4vmin, 18px); }
+.label-shell:not([data-view="all"]) .stream-label:not([data-selected="true"]) { display: none; }
+.stream-label { min-width: 0; padding: clamp(12px, 2vmin, 28px) clamp(16px, 3vmin, 38px); overflow: hidden; border: 1px solid rgb(255 255 255 / 18%); border-left: clamp(4px, .6vmin, 8px) solid var(--label-accent); border-radius: clamp(10px, 1.6vmin, 22px); background: var(--label-background-rendered); box-shadow: 0 14px 44px rgb(0 0 0 / 36%); text-align: var(--label-align, left); }
+.label-shell[data-background="solid"] .stream-label { background: var(--label-background); }
+.label-shell[data-background="none"] .stream-label { border-color: transparent; border-left-color: var(--label-accent); background: transparent; box-shadow: none; }
+.stream-label-title { display: block; overflow: hidden; color: var(--label-accent); font-size: clamp(12px, 1.45vmin, 22px); font-weight: 800; letter-spacing: .1em; line-height: 1.15; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.stream-label-value { display: block; margin-top: .18em; overflow: hidden; overflow-wrap: anywhere; color: var(--label-text); font-size: min(var(--label-font-size, 42px), clamp(20px, 5vmin, 72px)); font-weight: 800; line-height: 1.08; text-wrap: balance; }
+.stream-label-platform { display: block; margin-top: .35em; color: color-mix(in srgb, var(--label-text) 72%, transparent); font-size: clamp(11px, 1.2vmin, 18px); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.wheel-shell { --wheel-panel: #101521; --wheel-text: #fff; --wheel-accent: #ffd166; --wheel-winner: #7ff5cc; width: min(96vw, 960px); max-height: 96vh; color: var(--wheel-text); }
+.wheel-panel { display: grid; justify-items: center; gap: clamp(8px, 1.8vmin, 20px); max-height: 96vh; padding: clamp(12px, 2.6vmin, 30px); overflow: hidden; border: 1px solid rgb(255 255 255 / 18%); border-radius: clamp(18px, 2.8vmin, 34px); background: color-mix(in srgb, var(--wheel-panel) 94%, transparent); box-shadow: 0 24px 80px rgb(0 0 0 / 48%); }
+.wheel-title { max-width: 100%; overflow: hidden; color: var(--wheel-accent); font: 900 clamp(20px, 3.5vmin, 44px)/1 Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; letter-spacing: .08em; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.wheel-stage { position: relative; width: min(72vmin, 700px); height: min(72vmin, 700px); max-width: calc(96vh - 150px); max-height: calc(96vh - 150px); aspect-ratio: 1; }
+.wheel { position: absolute; inset: 3%; overflow: hidden; border: clamp(5px, .8vmin, 10px) solid var(--wheel-accent); border-radius: 50%; box-shadow: 0 0 0 clamp(4px, .6vmin, 8px) rgb(0 0 0 / 55%), 0 18px 55px rgb(0 0 0 / 48%); transform: rotate(0deg); will-change: transform; }
+.wheel::after { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, transparent 57%, rgb(0 0 0 / 32%) 100%); content: ""; pointer-events: none; }
+.wheel-studs, .wheel-labels { position: absolute; inset: 0; border-radius: 50%; }
+.wheel-stud { position: absolute; left: 50%; top: 50%; width: clamp(8px, 1.4vmin, 15px); height: clamp(8px, 1.4vmin, 15px); margin: calc(clamp(8px, 1.4vmin, 15px) / -2); border: 2px solid rgb(255 255 255 / 70%); border-radius: 50%; background: var(--wheel-accent); box-shadow: 0 2px 6px rgb(0 0 0 / 60%); transform: rotate(var(--stud-angle)) translateY(-45.5%) translateY(calc(-1 * min(31vmin, 290px))); transform-origin: center; }
+.wheel-option-position { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(var(--label-angle)) translateY(calc(-1 * min(18.5vmin, 180px))); transform-origin: center; }
+.wheel-option { display: -webkit-box; width: var(--wheel-option-width, clamp(76px, 18vmin, 150px)); overflow: hidden; overflow-wrap: anywhere; color: var(--wheel-text); font: 900 min(var(--wheel-option-size, 22px), clamp(11px, 2vmin, 24px))/1.02 Inter, ui-sans-serif, system-ui, sans-serif; text-align: center; text-shadow: 0 2px 5px rgb(0 0 0 / 75%); transform: translate(-50%, -50%) rotate(calc(-1 * var(--label-angle))); transform-origin: center; transition-property: transform; transition-timing-function: cubic-bezier(.11,.67,.08,1); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.wheel-hub { position: absolute; left: 50%; top: 50%; width: 18%; aspect-ratio: 1; border: clamp(4px, .6vmin, 8px) solid rgb(255 255 255 / 65%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, var(--wheel-accent) 24%, #8b5e13 82%); box-shadow: 0 5px 16px rgb(0 0 0 / 65%); transform: translate(-50%, -50%); z-index: 4; }
+.wheel-pointer { position: absolute; left: 50%; top: -1%; width: clamp(42px, 7vmin, 78px); height: clamp(56px, 9vmin, 96px); z-index: 8; filter: drop-shadow(0 5px 5px rgb(0 0 0 / 65%)); transform: translateX(-50%); transform-origin: 50% 12%; }
+.wheel-pointer::before { display: block; width: 100%; height: 100%; background: var(--wheel-accent); clip-path: polygon(8% 0, 92% 0, 50% 100%); content: ""; }
+.wheel-pointer.ticking { animation: wheel-pointer-tick .12s ease-out; }
+@keyframes wheel-pointer-tick { 0% { transform: translateX(-50%) rotate(0); } 45% { transform: translateX(-50%) rotate(8deg); } 100% { transform: translateX(-50%) rotate(0); } }
+.wheel-result { display: grid; min-height: clamp(58px, 8vmin, 92px); max-width: 92%; align-content: center; justify-items: center; opacity: 0; text-align: center; transform: translateY(10px) scale(.96); transition: opacity .35s ease, transform .35s ease; }
+.wheel-result.revealed { opacity: 1; transform: none; }
+.wheel-result small { color: var(--wheel-accent); font-size: clamp(11px, 1.4vmin, 16px); font-weight: 900; letter-spacing: .16em; }
+.wheel-result strong { display: -webkit-box; max-width: 100%; overflow: hidden; overflow-wrap: anywhere; color: var(--wheel-winner); font-size: clamp(24px, 4.3vmin, 54px); line-height: 1.02; text-wrap: balance; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+@media (max-aspect-ratio: 4 / 5) { .wheel-stage { width: min(88vw, 68vh); height: min(88vw, 68vh); } .wheel-panel { gap: 8px; } }
+@media (prefers-reduced-motion: reduce) { .wheel { transition-duration: .01ms !important; } .wheel-pointer.ticking { animation: none; } }
 /* Matches overlays/browser/styles.css's .connection-status: red "OFFLINE" while disconnected, a
    brief green "LIVE" flash on connect, then hidden -- the same pattern every overlay surface uses. */
 .status { position: absolute; right: 16px; bottom: 12px; padding: 5px 9px; border-radius: 999px; background: rgb(0 0 0 / 70%); color: #ff9c9c; font-size: 12px; letter-spacing: 0.08em; opacity: 1; transition: opacity .2s ease; }

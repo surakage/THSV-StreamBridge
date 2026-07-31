@@ -5,8 +5,9 @@ Viewer Foundation is the optional identity and progression authority for future 
 - Stable platform IDs are salted before pseudonymous viewer IDs are persisted.
 - Cross-platform accounts are linked only through explicit creator-authored rules.
 - Display names, avatars, messages, OAuth data, and financial amounts are not retained.
-- Fixed point awards are replay protected and serialized before atomic private-state writes.
-- Chat awards have a per-viewer cooldown; simulated events are excluded by default.
+- The creator names the currency and configures chat, consistency, observed active/lurk time, and supported event awards.
+- Fixed awards are replay protected and serialized before atomic private-state writes; simulated events are excluded by default.
+- Viewers can use a source-routed balance command without exposing another viewer's record.
 - State and replay collections have hard caps and time-based pruning.
 - Five optional point-milestone achievements are derived from the existing points projection. They do not create a second identity store and disappear when achievements are disabled.
 
@@ -19,5 +20,7 @@ Creator-approved deletion also emits one broker-local notice containing only the
 The authenticated local wizard provides live private-state status, bounded privacy export, audited point corrections, and creator-confirmed viewer deletion. These operations share the provider's serialized state queue with ordinary awards, preventing lost updates. Account links remain explicit creator settings; remove the link, save, and restart before deleting a linked viewer when the stable-ID link must be erased too. No administration operation is exposed as a public chat command.
 
 Achievements are intentionally deterministic: First Steps (100), Village Regular (500), Community Supporter (1,000), Village Veteran (2,500), and Village Legend (5,000). Changing point-award settings does not rewrite prior event history; the unlocked list is recalculated from the viewer's current total.
+
+Silent viewer presence cannot be verified consistently across Twitch, YouTube, Kick, and TikTok. Active-time awards therefore settle only when a viewer continues chatting inside the configured activity window. Lurk time begins with the configured normalized lurk command and settles on the viewer's next message or after the final observed platform goes offline. Catch-up awards are capped per event.
 
 The wizard can preview the legacy `data/state/viewer-progression.json` file and show its exact bounded records before import. Applying the migration requires an explicit confirmation plus the preview's SHA-256 digest; a changed file is rejected, replaying the same digest is ignored, and existing viewers keep the higher point total. The legacy file is never deleted automatically.

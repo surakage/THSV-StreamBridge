@@ -1,5 +1,5 @@
 # Creator Utility Pack
 
-Cross-platform counters, casual giveaways, and local chat polls using normalized commands and source-routed replies. Moderator/broadcaster roles control mutations. Giveaway display names exist only in memory and reset on restart; persistent poll voters are one-way account hashes.
+Cross-platform counters and local chat polls using normalized commands, bounded private state, and source-routed replies. Moderator or broadcaster roles control mutations. Poll voters are stored only as installation-salted account hashes.
 
-This add-on is not suitable for regulated or high-value prize drawings.
+The older in-memory giveaway has been removed. Use Village Draw for free or Viewer Foundation points giveaways.

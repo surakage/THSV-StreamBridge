@@ -19,8 +19,8 @@ Commands are read from normalized public chat. Do not create a separate Streamer
 
 ## Setup
 
-1. Install `THSV-Translate-2.5.1.thsv-addon` from the matching release bundle.
-2. Import `Streamer.bot/THSV-StreamBridge-User-Translate-2.5.1.sb`.
+1. Install `THSV-Translate-2.5.2.thsv-addon` from the matching release bundle.
+2. Import `Streamer.bot/THSV-StreamBridge-User-Translate-2.5.2.sb`.
 3. Inspect Streamer.bot in the wizard and approve only `THSV Addon - Translate - Translate Text`.
 4. Choose Manual, Automatic, or Both.
 5. Select a provider and language pair:

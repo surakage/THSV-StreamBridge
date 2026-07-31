@@ -221,8 +221,8 @@ describe('AddOnCapabilityBroker', () => {
   it('brokers Viewer Foundation projections and mutations only to explicit dependent consumers', async () => {
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
     const providerContext = broker.contextFor({ moduleId: 'thsv.viewer-foundation', permissions: ['viewer.foundation.provide'], approvedActionIds: [] });
-    const getProjection = vi.fn(async () => ({ contractVersion: '1.0.0' as const, viewerId: 'viewer-one', linked: false, points: 25, level: 1, nextLevelAt: 100 }));
-    const mutate = vi.fn(async (request: ViewerFoundationMutationRequestV1 & { readonly callerModuleId: string }) => ({ contractVersion: '1.0.0' as const, viewerId: request.viewerId, linked: false, points: 15, level: 1, nextLevelAt: 100, operation: request.operation, amount: request.amount, previousPoints: 25, duplicate: false }));
+    const getProjection = vi.fn(async () => ({ contractVersion: '1.0.0' as const, viewerId: 'viewer-one', linked: false, currencyName: 'Acorns', points: 25, level: 1, nextLevelAt: 100 }));
+    const mutate = vi.fn(async (request: ViewerFoundationMutationRequestV1 & { readonly callerModuleId: string }) => ({ contractVersion: '1.0.0' as const, viewerId: request.viewerId, linked: false, currencyName: 'Acorns', points: 15, level: 1, nextLevelAt: 100, operation: request.operation, amount: request.amount, previousPoints: 25, duplicate: false }));
     const administer = vi.fn(async () => ({ operation: 'status', viewerCount: 1 }));
     providerContext.viewerFoundation.provide({ getProjection, mutate, administer });
 
@@ -233,7 +233,7 @@ describe('AddOnCapabilityBroker', () => {
 
     const consumer = broker.contextFor({ moduleId: 'sample.consumer', permissions: ['viewer.foundation.read', 'viewer.foundation.mutate'], approvedActionIds: [] }, {}, ['thsv.viewer-foundation']);
     const deleted = vi.fn(); const unsubscribeDeleted = consumer.viewerFoundation.onDeleted(deleted);
-    await expect(consumer.viewerFoundation.getProjection({ viewerId: 'viewer-one' })).resolves.toEqual({ contractVersion: '1.0.0', viewerId: 'viewer-one', linked: false, points: 25, level: 1, nextLevelAt: 100 });
+    await expect(consumer.viewerFoundation.getProjection({ viewerId: 'viewer-one' })).resolves.toEqual({ contractVersion: '1.0.0', viewerId: 'viewer-one', linked: false, currencyName: 'Acorns', points: 25, level: 1, nextLevelAt: 100 });
     await expect(consumer.viewerFoundation.mutate({ viewerId: 'viewer-one', operation: 'spend', amount: 10, reason: 'game entry', idempotencyKey: 'game-1' })).resolves.toMatchObject({ points: 15, operation: 'spend' });
     expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ callerModuleId: 'sample.consumer', reason: 'game entry' }));
     await expect(broker.administerViewerFoundation({ operation: 'status' })).resolves.toEqual({ operation: 'status', viewerCount: 1 });

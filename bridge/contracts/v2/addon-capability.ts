@@ -134,6 +134,8 @@ export interface ViewerFoundationProjectionV1 {
   readonly contractVersion: '1.0.0';
   readonly viewerId: string;
   readonly linked: boolean;
+  /** Creator-configured display name for this points balance. Older providers may omit it. */
+  readonly currencyName?: string;
   readonly points: number;
   readonly level: number;
   readonly nextLevelAt: number;
@@ -202,6 +204,20 @@ export type ChatGuardAdminRequestV1 =
   | { readonly operation: 'clear'; readonly approvedByCreator: true };
 
 export type ChatGuardAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
+
+export type VillageDrawAdminRequestV1 =
+  | { readonly operation: 'status' }
+  | { readonly operation: 'open'; readonly approvedByCreator: true }
+  | { readonly operation: 'pause'; readonly approvedByCreator: true }
+  | { readonly operation: 'resume'; readonly approvedByCreator: true }
+  | { readonly operation: 'close'; readonly approvedByCreator: true }
+  | { readonly operation: 'draw'; readonly approvedByCreator: true }
+  | { readonly operation: 'confirm'; readonly approvedByCreator: true }
+  | { readonly operation: 'redraw'; readonly approvedByCreator: true }
+  | { readonly operation: 'cancel'; readonly approvedByCreator: true }
+  | { readonly operation: 'reset'; readonly approvedByCreator: true };
+
+export type VillageDrawAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
 export interface ViewerFoundationProviderV1 {
   getProjection(query: ViewerFoundationProjectionQueryV1): Promise<ViewerFoundationProjectionV1 | undefined>;

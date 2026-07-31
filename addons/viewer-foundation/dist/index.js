@@ -12,6 +12,7 @@ const EVENT_POINTS = Object.freeze({
   'channel.raid': 'raidPoints',
   'reward.redemption': 'rewardRedemptionPoints',
 });
+const ACTIVITY_KEYS = Object.freeze([...Object.keys(EVENT_POINTS), 'chat.consistency', 'time.active', 'time.lurk']);
 const ACHIEVEMENTS = Object.freeze([
   Object.freeze({ id: 'first-steps', label: 'First Steps', points: 100 }),
   Object.freeze({ id: 'village-regular', label: 'Village Regular', points: 500 }),
@@ -24,25 +25,30 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.viewer-foundation',
   name: 'Viewer Foundation',
-  version: '2.5.1',
+  version: '2.5.2',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.1', maximumTestedBridgeVersion: '2.5.1',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.5.2', maximumTestedBridgeVersion: '2.5.2',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: Object.keys(EVENT_POINTS), commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  eventSubscriptions: [...Object.keys(EVENT_POINTS), 'command.received', 'stream.online', 'stream.offline'],
+  commandsProvided: [{ id: 'viewer-foundation.balance', name: 'points' }], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.viewer-foundation/', 'data/addons/.state/thsv.viewer-foundation/'],
   installationSteps: [
     'Install Viewer Foundation in the wizard and review its private-state permission.',
     'Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.',
-    'Choose point awards and cooldowns, save, and restart StreamBridge.',
+    'Name the currency and choose chat, consistency, observed time, lurk, and event awards; then save and restart StreamBridge.',
+    'Create the Viewer Foundation balance command in Command Sync so viewers can use !points.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its pseudonymous progression state remains preserved for a later reinstall or privacy export.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.viewer-foundation.runtime', description: 'Confirms salted identity resolution, bounded replay protection, and atomic private progression state.' }],
+  healthChecks: [{ id: 'thsv.viewer-foundation.runtime', description: 'Confirms named currency, salted identity resolution, bounded chat/time/event awards, replay protection, and atomic private progression state.' }],
 };
 
 const FALLBACKS = Object.freeze({
-  enabled: true, includeSimulated: false, accountLinks: [],
+  enabled: true, includeSimulated: false, currencyName: 'Village Points', pointsCommand: 'points', accountLinks: [],
   chatMessagePoints: 1, chatCooldownSeconds: 60,
+  chatConsistencyMessages: 5, chatConsistencyPoints: 5,
+  activeMinutesRequired: 10, activeMinutesPoints: 5, activeWindowMinutes: 20,
+  lurkCommand: 'lurk', lurkMinutesRequired: 10, lurkMinutesPoints: 5, maximumTimeAwardsPerEvent: 6,
   followPoints: 25, subscriptionPoints: 100, membershipPoints: 100,
   giftSubscriptionPoints: 75, giftPoints: 50, cheerPoints: 25,
   superChatPoints: 100, raidPoints: 100, rewardRedemptionPoints: 25,
@@ -54,8 +60,10 @@ const PLATFORM = /^(twitch|youtube|kick|tiktok)$/u;
 const VIEWER_ID = /^[a-z][a-z0-9-]{0,63}$/u;
 const GENERATED_VIEWER_ID = /^(?:twitch|youtube|kick|tiktok)-[a-f0-9]{24}$/u;
 const MAXIMUM_STATE_BYTES = 60_000;
+const CHAT_LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
 let operation = Promise.resolve();
 let unregisterProvider;
+const livePlatforms = new Set();
 
 function clean(value, maximum = 256) {
   const normalized = typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, '').trim() : '';
@@ -95,12 +103,25 @@ export function parseAccountLinks(values) {
 function settingsFor(context) {
   const raw = { ...FALLBACKS, ...(context.settings || {}) };
   const links = parseAccountLinks(raw.accountLinks);
+  const activeMinutesRequired = integer(raw.activeMinutesRequired, 1, 120, 10);
+  const activeWindowMinutes = Math.max(activeMinutesRequired, integer(raw.activeWindowMinutes, 1, 240, 20));
   if (links.conflicts.length > 0) throw new Error('One stable platform account is assigned to more than one Viewer Foundation ID.');
   return {
     ...raw,
     links,
+    currencyName: clean(raw.currencyName, 40) || 'Village Points',
+    pointsCommand: clean(raw.pointsCommand, 40).toLowerCase() || 'points',
     chatMessagePoints: integer(raw.chatMessagePoints, 0, 10000, 1),
     chatCooldownSeconds: integer(raw.chatCooldownSeconds, 0, 86400, 60),
+    chatConsistencyMessages: integer(raw.chatConsistencyMessages, 2, 100, 5),
+    chatConsistencyPoints: integer(raw.chatConsistencyPoints, 0, 10000, 5),
+    activeMinutesRequired,
+    activeMinutesPoints: integer(raw.activeMinutesPoints, 0, 10000, 5),
+    activeWindowMinutes,
+    lurkCommand: clean(raw.lurkCommand, 40).toLowerCase() || 'lurk',
+    lurkMinutesRequired: integer(raw.lurkMinutesRequired, 1, 120, 10),
+    lurkMinutesPoints: integer(raw.lurkMinutesPoints, 0, 10000, 5),
+    maximumTimeAwardsPerEvent: integer(raw.maximumTimeAwardsPerEvent, 1, 24, 6),
     followPoints: integer(raw.followPoints, 0, 10000, 25),
     subscriptionPoints: integer(raw.subscriptionPoints, 0, 10000, 100),
     membershipPoints: integer(raw.membershipPoints, 0, 10000, 100),
@@ -122,12 +143,19 @@ function sanitizeViewer(value, levelStepPoints) {
   const points = integer(value.points, 0, Number.MAX_SAFE_INTEGER, 0);
   const lastAwardAt = {};
   if (value.lastAwardAt && typeof value.lastAwardAt === 'object') {
-    for (const eventType of Object.keys(EVENT_POINTS)) {
+    for (const eventType of ACTIVITY_KEYS) {
       const time = value.lastAwardAt[eventType];
       if (Number.isSafeInteger(time) && time >= 0) lastAwardAt[eventType] = time;
     }
   }
-  return { points, level: Math.floor(points / levelStepPoints) + 1, lastAwardAt, lastSeenAt: integer(value.lastSeenAt, 0, Number.MAX_SAFE_INTEGER, 0) };
+  return {
+    points, level: Math.floor(points / levelStepPoints) + 1, lastAwardAt,
+    lastSeenAt: integer(value.lastSeenAt, 0, Number.MAX_SAFE_INTEGER, 0),
+    lastChatAt: integer(value.lastChatAt, 0, Number.MAX_SAFE_INTEGER, 0),
+    attendanceAwardedAt: integer(value.attendanceAwardedAt, 0, Number.MAX_SAFE_INTEGER, 0),
+    lurkSince: integer(value.lurkSince, 0, Number.MAX_SAFE_INTEGER, 0),
+    chatProgress: integer(value.chatProgress, 0, 99, 0),
+  };
 }
 
 export function sanitizeViewerFoundationState(value, settings = FALLBACKS, now = Date.now()) {
@@ -200,6 +228,45 @@ function pointValue(settings, eventType) {
   return key ? settings[key] : 0;
 }
 
+function emptyViewer() {
+  return { points: 0, level: 1, lastAwardAt: {}, lastSeenAt: 0, lastChatAt: 0, attendanceAwardedAt: 0, lurkSince: 0, chatProgress: 0 };
+}
+
+function completedIntervals(now, startedAt, awardedAt, minutes, maximum) {
+  if (!Number.isSafeInteger(startedAt) || startedAt <= 0) return { count: 0, awardedAt: now };
+  const intervalMs = minutes * 60_000;
+  const baseline = Math.max(startedAt, Number.isSafeInteger(awardedAt) && awardedAt > 0 ? awardedAt : startedAt);
+  const count = Math.min(maximum, Math.max(0, Math.floor((now - baseline) / intervalMs)));
+  return { count, awardedAt: baseline + count * intervalMs };
+}
+
+function applyObservedActivity(viewerValue, settings, now) {
+  const viewer = { ...emptyViewer(), ...viewerValue, lastAwardAt: { ...(viewerValue?.lastAwardAt || {}) } };
+  let awarded = 0;
+  if (viewer.lurkSince > 0) {
+    const settled = completedIntervals(now, viewer.lurkSince, viewer.attendanceAwardedAt, settings.lurkMinutesRequired, settings.maximumTimeAwardsPerEvent);
+    awarded += settled.count * settings.lurkMinutesPoints;
+    if (settled.count > 0) viewer.lastAwardAt['time.lurk'] = now;
+    viewer.lurkSince = 0;
+    viewer.attendanceAwardedAt = now;
+  } else if (viewer.lastChatAt > 0 && now - viewer.lastChatAt <= settings.activeWindowMinutes * 60_000) {
+    const settled = completedIntervals(now, viewer.lastChatAt, viewer.attendanceAwardedAt, settings.activeMinutesRequired, settings.maximumTimeAwardsPerEvent);
+    awarded += settled.count * settings.activeMinutesPoints;
+    if (settled.count > 0) viewer.lastAwardAt['time.active'] = now;
+    viewer.attendanceAwardedAt = settled.count > 0 ? settled.awardedAt : (viewer.attendanceAwardedAt || viewer.lastChatAt);
+  } else {
+    viewer.attendanceAwardedAt = now;
+  }
+  return { viewer, awarded };
+}
+
+async function sendBalance(context, event, displayName, viewer, settings) {
+  const maximum = CHAT_LIMITS[event.platform] || 150;
+  const message = clean(`${displayName}, you have ${String(viewer.points)} ${settings.currencyName} and are level ${String(viewer.level)}.`, maximum);
+  try { await context.chat.send({ message, routing: 'source', sourcePlatform: event.platform, overflow: 'reject' }); }
+  catch { /* A balance reply failure cannot change progression state. */ }
+}
+
 function achievementProjection(points, settings) {
   if (settings.achievementsEnabled !== true) return {};
   const achievements = ACHIEVEMENTS.filter((achievement) => points >= achievement.points).map((achievement) => ({ ...achievement }));
@@ -208,29 +275,86 @@ function achievementProjection(points, settings) {
 
 export async function processViewerEvent(event, context, now = Date.now()) {
   const settings = settingsFor(context);
-  if (!settings.enabled || !EVENT_POINTS[event.eventType] || event.user?.actorType !== 'human' || !event.user?.id) return undefined;
+  if (!settings.enabled) return undefined;
   if (event.metadata?.simulated === true && !settings.includeSimulated) return undefined;
   const state = sanitizeViewerFoundationState(await context.state.read(), settings, now);
+
+  if (event.eventType === 'stream.online') {
+    livePlatforms.add(clean(event.platform, 64));
+    return { streamStarted: true, livePlatforms: livePlatforms.size };
+  }
+
+  if (event.eventType === 'stream.offline') {
+    livePlatforms.delete(clean(event.platform, 64));
+    if (livePlatforms.size > 0) return { streamEnded: false, livePlatforms: livePlatforms.size };
+    let pointsAwarded = 0; let viewersSettled = 0;
+    for (const viewer of Object.values(state.viewers)) {
+      if (viewer.lurkSince <= 0) continue;
+      const settled = completedIntervals(now, viewer.lurkSince, viewer.attendanceAwardedAt, settings.lurkMinutesRequired, settings.maximumTimeAwardsPerEvent);
+      const points = settled.count * settings.lurkMinutesPoints;
+      viewer.points = Math.min(Number.MAX_SAFE_INTEGER, viewer.points + points);
+      viewer.level = Math.floor(viewer.points / settings.levelStepPoints) + 1;
+      viewer.lurkSince = 0; viewer.attendanceAwardedAt = now; viewer.lastSeenAt = now;
+      if (points > 0) viewer.lastAwardAt['time.lurk'] = now;
+      pointsAwarded += points; viewersSettled += 1;
+    }
+    if (viewersSettled > 0) await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { streamEnded: true, viewersSettled, pointsAwarded };
+  }
+
+  if (event.user?.actorType !== 'human' || !event.user?.id) return undefined;
   const identity = await resolveViewer(event, state, settings);
   if (!identity) return undefined;
+  const command = event.eventType === 'command.received' ? clean(event.payload?.command, 40).toLowerCase() : '';
+  if (command === settings.pointsCommand) {
+    const viewer = state.viewers[identity.viewerId] || emptyViewer();
+    await sendBalance(context, event, clean(event.user?.displayName || event.user?.name, 80) || 'Viewer', viewer, settings);
+    return { ...identity, balance: true, totalPoints: viewer.points, level: viewer.level, currencyName: settings.currencyName };
+  }
+  if (command === settings.lurkCommand) {
+    const eventId = await eventIdentity(event);
+    if (!eventId || state.processed.some((item) => item.id === eventId)) return { ...identity, duplicate: true, pointsAwarded: 0 };
+    const existingViewer = state.viewers[identity.viewerId] || emptyViewer();
+    const alreadyLurking = existingViewer.lurkSince > 0;
+    const viewer = { ...existingViewer, lurkSince: alreadyLurking ? existingViewer.lurkSince : now,
+      attendanceAwardedAt: alreadyLurking ? existingViewer.attendanceAwardedAt : now, lastSeenAt: now };
+    state.viewers[identity.viewerId] = viewer; state.processed.push({ id: eventId, at: now });
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { ...identity, duplicate: false, lurking: true, alreadyLurking, pointsAwarded: 0, totalPoints: viewer.points, currencyName: settings.currencyName };
+  }
+  if (!EVENT_POINTS[event.eventType]) return undefined;
   const eventId = await eventIdentity(event);
   if (!eventId || state.processed.some((item) => item.id === eventId)) return { ...identity, duplicate: true, pointsAwarded: 0 };
-  const existing = state.viewers[identity.viewerId] || { points: 0, level: 1, lastAwardAt: {}, lastSeenAt: 0 };
+  const existing = state.viewers[identity.viewerId] || emptyViewer();
   const configured = pointValue(settings, event.eventType);
   const cooldownMs = event.eventType === 'chat.message' ? settings.chatCooldownSeconds * 1000 : 0;
   const lastAwardAt = existing.lastAwardAt[event.eventType];
-  const pointsAwarded = lastAwardAt === undefined || now - lastAwardAt >= cooldownMs ? configured : 0;
+  const awardEligible = lastAwardAt === undefined || now - lastAwardAt >= cooldownMs;
+  let pointsAwarded = awardEligible ? configured : 0;
+  let nextViewer = { ...existing, lastAwardAt: { ...existing.lastAwardAt } };
+  if (event.eventType === 'chat.message') {
+    const activity = applyObservedActivity(existing, settings, now); nextViewer = activity.viewer; pointsAwarded += activity.awarded;
+    if (awardEligible) {
+      const progress = nextViewer.chatProgress + 1;
+      if (progress >= settings.chatConsistencyMessages) {
+        pointsAwarded += settings.chatConsistencyPoints; nextViewer.chatProgress = 0;
+        if (settings.chatConsistencyPoints > 0) nextViewer.lastAwardAt['chat.consistency'] = now;
+      } else nextViewer.chatProgress = progress;
+    }
+    nextViewer.lastChatAt = now;
+  }
   const totalPoints = Math.min(Number.MAX_SAFE_INTEGER, existing.points + pointsAwarded);
   const level = Math.floor(totalPoints / settings.levelStepPoints) + 1;
   state.viewers[identity.viewerId] = {
-    points: totalPoints, level,
-    lastAwardAt: pointsAwarded > 0 ? { ...existing.lastAwardAt, [event.eventType]: now } : { ...existing.lastAwardAt },
+    ...nextViewer, points: totalPoints, level,
+    lastAwardAt: configured > 0 && awardEligible
+      ? { ...nextViewer.lastAwardAt, [event.eventType]: now } : { ...nextViewer.lastAwardAt },
     lastSeenAt: now,
   };
   state.processed.push({ id: eventId, at: now });
   const bounded = sanitizeViewerFoundationState(state, settings, now);
   await context.state.write(bounded);
-  return { ...identity, duplicate: false, pointsAwarded, totalPoints, previousLevel: existing.level, level, leveledUp: level > existing.level };
+  return { ...identity, duplicate: false, pointsAwarded, totalPoints, previousLevel: existing.level, level, leveledUp: level > existing.level, currencyName: settings.currencyName };
 }
 
 export function viewerProjection(stateValue, viewerId, settingsValue = {}) {
@@ -239,7 +363,7 @@ export function viewerProjection(stateValue, viewerId, settingsValue = {}) {
   const state = sanitizeViewerFoundationState(stateValue, settings);
   const viewer = state.viewers[viewerId];
   if (!viewer) return undefined;
-  return Object.freeze({ contractVersion: '1.0.0', viewerId, linked: settings.links.viewerIds.has(viewerId), points: viewer.points, level: viewer.level, nextLevelAt: viewer.level * settings.levelStepPoints, ...achievementProjection(viewer.points, settings) });
+  return Object.freeze({ contractVersion: '1.0.0', viewerId, linked: settings.links.viewerIds.has(viewerId), currencyName: settings.currencyName, points: viewer.points, level: viewer.level, nextLevelAt: viewer.level * settings.levelStepPoints, ...achievementProjection(viewer.points, settings) });
 }
 
 export function deleteViewerRecord(stateValue, viewerId, settingsValue = {}) {
@@ -269,7 +393,7 @@ async function projectionForQuery(query, context) {
   const viewer = state.viewers[viewerId];
   const points = viewer?.points || 0;
   const level = viewer?.level || 1;
-  return Object.freeze({ contractVersion: '1.0.0', viewerId, linked, points, level, nextLevelAt: level * settings.levelStepPoints, ...achievementProjection(points, settings) });
+  return Object.freeze({ contractVersion: '1.0.0', viewerId, linked, currencyName: settings.currencyName, points, level, nextLevelAt: level * settings.levelStepPoints, ...achievementProjection(points, settings) });
 }
 
 async function mutateViewer(request, context, now = Date.now()) {
@@ -281,11 +405,11 @@ async function mutateViewer(request, context, now = Date.now()) {
   if (previous) {
     const level = Math.floor(previous.totalPoints / settings.levelStepPoints) + 1;
     return { contractVersion: '1.0.0', viewerId: previous.viewerId, linked: settings.links.viewerIds.has(previous.viewerId),
-      points: previous.totalPoints, level, nextLevelAt: level * settings.levelStepPoints,
+      currencyName: settings.currencyName, points: previous.totalPoints, level, nextLevelAt: level * settings.levelStepPoints,
       ...achievementProjection(previous.totalPoints, settings),
       operation: previous.operation, amount: previous.amount, previousPoints: previous.previousPoints, duplicate: true };
   }
-  const current = state.viewers[request.viewerId] || { points: 0, level: 1, lastAwardAt: {}, lastSeenAt: 0 };
+  const current = state.viewers[request.viewerId] || emptyViewer();
   if (request.operation === 'spend' && current.points < request.amount) throw new Error(`Viewer has ${String(current.points)} points but the requested spend is ${String(request.amount)}.`);
   const totalPoints = request.operation === 'spend'
     ? current.points - request.amount
@@ -296,7 +420,7 @@ async function mutateViewer(request, context, now = Date.now()) {
     previousPoints: current.points, totalPoints, at: now, callerModuleId: clean(request.callerModuleId, 128), reason: clean(request.reason, 120) });
   await context.state.write(sanitizeViewerFoundationState(state, settings, now));
   return { contractVersion: '1.0.0', viewerId: request.viewerId, linked: settings.links.viewerIds.has(request.viewerId),
-    points: totalPoints, level, nextLevelAt: level * settings.levelStepPoints,
+    currencyName: settings.currencyName, points: totalPoints, level, nextLevelAt: level * settings.levelStepPoints,
     ...achievementProjection(totalPoints, settings),
     operation: request.operation, amount: request.amount, previousPoints: current.points, duplicate: false };
 }
@@ -305,7 +429,7 @@ async function administerViewer(request, context, now = Date.now()) {
   const settings = settingsFor(context);
   const state = sanitizeViewerFoundationState(await context.state.read(), settings, now);
   if (request.operation === 'status') {
-    return { operation: 'status', enabled: Boolean(settings.enabled), viewerCount: Object.keys(state.viewers).length,
+    return { operation: 'status', enabled: Boolean(settings.enabled), currencyName: settings.currencyName, viewerCount: Object.keys(state.viewers).length,
       linkedViewerCount: settings.links.viewerIds.size, processedEventCount: state.processed.length,
       mutationCount: state.mutations.length, auditCount: state.adminAudit.length, legacyImportCount: state.legacyImports.length };
   }
@@ -337,7 +461,7 @@ async function administerViewer(request, context, now = Date.now()) {
       .filter((entry) => entry[1] === viewerId)
       .map(([key]) => { const [platform, userId] = key.split('\u0000'); return { platform, userId }; });
     return { operation: 'export', found: viewer !== undefined || linkedAccounts.length > 0, viewerId,
-      projection: viewer ? { points: viewer.points, level: viewer.level, lastSeenAt: viewer.lastSeenAt, lastAwardAt: viewer.lastAwardAt, ...achievementProjection(viewer.points, settings) } : null,
+      projection: viewer ? { currencyName: settings.currencyName, points: viewer.points, level: viewer.level, lastSeenAt: viewer.lastSeenAt, lastAwardAt: viewer.lastAwardAt, ...achievementProjection(viewer.points, settings) } : null,
       linkedAccounts, mutations: state.mutations.filter((item) => item.viewerId === viewerId) };
   }
   if (request.operation === 'delete') {
@@ -349,7 +473,7 @@ async function administerViewer(request, context, now = Date.now()) {
       accountLinksRequireRemoval: settings.links.viewerIds.has(viewerId) };
   }
   if (request.operation !== 'correct') throw new Error('Unsupported Viewer Foundation administration operation.');
-  const existing = state.viewers[viewerId] || { points: 0, level: 1, lastAwardAt: {}, lastSeenAt: 0 };
+  const existing = state.viewers[viewerId] || emptyViewer();
   const amount = integer(request.amount, 1, 1_000_000, 1);
   const totalPoints = request.adjustment === 'reset' ? 0
     : request.adjustment === 'remove' ? Math.max(0, existing.points - amount)
@@ -360,15 +484,16 @@ async function administerViewer(request, context, now = Date.now()) {
     previousPoints: existing.points, totalPoints });
   await context.state.write(sanitizeViewerFoundationState(state, settings, now));
   return { operation: 'correct', viewerId, adjustment: request.adjustment, previousPoints: existing.points,
-    points: totalPoints, level, nextLevelAt: level * settings.levelStepPoints, ...achievementProjection(totalPoints, settings) };
+    currencyName: settings.currencyName, points: totalPoints, level, nextLevelAt: level * settings.levelStepPoints, ...achievementProjection(totalPoints, settings) };
 }
 
-export function resetViewerFoundationRuntime() { operation = Promise.resolve(); unregisterProvider = undefined; }
+export function resetViewerFoundationRuntime() { operation = Promise.resolve(); unregisterProvider = undefined; livePlatforms.clear(); }
 
 export default {
   manifest, required: false,
   async start(context) {
     operation = Promise.resolve();
+    livePlatforms.clear();
     const settings = settingsFor(context);
     if (!settings.enabled) return;
     const state = sanitizeViewerFoundationState(await context.state.read(), settings);
@@ -379,6 +504,6 @@ export default {
       administer: (request) => serialize(() => administerViewer(request, context)),
     }));
   },
-  async stop() { await operation.catch(() => undefined); unregisterProvider?.(); unregisterProvider = undefined; operation = Promise.resolve(); },
+  async stop() { await operation.catch(() => undefined); unregisterProvider?.(); unregisterProvider = undefined; livePlatforms.clear(); operation = Promise.resolve(); },
   async onEvent(event, context) { await serialize(() => processViewerEvent(event, context)); },
 };

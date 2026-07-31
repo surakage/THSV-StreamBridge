@@ -26,7 +26,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.locator('.workspace > nav .nav-heading')).toHaveText(['Core setup', 'Automation', 'On stream', 'Extensions', 'Advanced']);
   await expect(page.locator('[data-panel="overview"] .page-kicker')).toHaveText('Home');
   const versionCard = page.locator('#overview-cards .stat').filter({ hasText: 'Version' });
-  await expect(versionCard).toContainText('2.5.1');
+  await expect(versionCard).toContainText('2.5.2');
   await expect(page.locator('#overview-cards .stat').filter({ hasText: 'Preview' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Add-ons' }).click();
   await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
@@ -102,7 +102,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const userTranslateSettings = page.locator('[data-addon-settings="thsv.user-translate"]');
-  await expect(page.getByRole('article').getByText('Translate 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Translate 2.5.2', { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.user-translate"] .addon-quick-summary')).toContainText('No direct trigger');
   await expect(userTranslateSettings.getByText('One translation add-on, one Streamer.bot action.', { exact: false })).toBeVisible();
   await expect(userTranslateSettings.locator('input[name="enabledPlatforms"][value="twitch"]')).toBeChecked();
@@ -140,7 +140,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const shoutoutSettings = page.locator('[data-addon-settings="thsv.automated-shoutouts"]');
-  await expect(page.getByRole('article').getByText('Automated Shoutouts 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Automated Shoutouts 2.5.2', { exact: true })).toBeVisible();
   await expect(shoutoutSettings.locator('summary')).toHaveCount(8);
   await shoutoutSettings.locator('summary').filter({ hasText: 'Twitch visual popup' }).click();
   await expect(shoutoutSettings.getByLabel('Show a Twitch visual popup')).toBeChecked();
@@ -164,7 +164,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const subathonSettings = page.locator('[data-addon-settings="thsv.subathon-timer"]');
-  await expect(page.getByRole('article').getByText('Subathon Timer 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Subathon Timer 2.5.2', { exact: true })).toBeVisible();
   await expect(subathonSettings.locator('summary')).toHaveCount(11);
   await expect(subathonSettings.getByLabel('Enable Subathon Timer')).toBeChecked();
   await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(6);
@@ -189,7 +189,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const countdownSettings = page.locator('[data-addon-settings="thsv.starting-soon-countdown"]');
-  await expect(page.getByRole('article').getByText('Stream Launch Countdown 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Stream Launch Countdown 2.5.2', { exact: true })).toBeVisible();
   await expect(countdownSettings.locator('summary')).toHaveCount(6);
   await expect(countdownSettings.locator('input[name="durationMinutes"]')).toHaveValue('10');
   await countdownSettings.locator('summary').filter({ hasText: 'Completion' }).click();
@@ -215,7 +215,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const sceneSettings = page.locator('[data-addon-settings="thsv.scene-actions"]');
-  await expect(page.getByRole('article').getByText('Scene Actions 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Scene Actions 2.5.2', { exact: true })).toBeVisible();
   const sceneTriggerStatus = page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness');
   await expect(sceneTriggerStatus).toContainText('Not checked');
   await expect(sceneTriggerStatus).toContainText('OBS Studio > Scene Changed');
@@ -268,7 +268,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
-  await expect(page.getByRole('article').getByText('Raid Scout 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Raid Scout 2.5.2', { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.raid-scout"] .addon-trigger-readiness')).toContainText('No direct trigger needed');
   await expect(raidScoutSettings.locator('summary')).toHaveCount(12);
   await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
@@ -303,7 +303,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const chatGuardSettings = page.locator('[data-addon-settings="thsv.chat-guard"]');
-  await expect(page.getByRole('article').getByText('Chat Guard 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Chat Guard 2.5.2', { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.chat-guard"] .addon-trigger-readiness')).toContainText('Import needed');
   await expect(page.locator('[data-addon-id="thsv.chat-guard"] .addon-trigger-readiness')).toContainText('!guardtrust');
   await expect(chatGuardSettings.locator(':scope > details')).toHaveCount(7);
@@ -334,7 +334,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Add-on package').setInputFiles({ name: 'clip-library-cache.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(clipCacheArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
-  await expect(page.getByRole('article').getByText('Clip Library Cache 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Clip Library Cache 2.5.2', { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.clip-library-cache"] .addon-trigger-readiness')).toContainText('Why this is separate');
   await expect(page.locator('[data-addon-settings="thsv.clip-library-cache"]')).toContainText('shared background infrastructure');
   await expect(page.locator('[data-addon-settings="thsv.clip-library-cache"]')).toContainText('Nothing appears on stream');
@@ -343,13 +343,34 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Add-on package').setInputFiles({ name: 'clip-courier.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(clipCourierArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
-  await expect(page.getByRole('article').getByText('Clip Courier 2.5.1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText('Clip Courier 2.5.2', { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('Connect !clip and Discord');
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('30 or 60');
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('No old-library posting');
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('Approve only Deliver');
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"]')).toContainText('viewer uses !clip');
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"]')).not.toContainText('Publish an existing clip');
+
+  const villageDrawArchive = await packageAddOn('addons/village-draw');
+  await page.getByLabel('Add-on package').setInputFiles({ name: 'village-draw.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(villageDrawArchive) });
+  await page.getByLabel(/I reviewed and trust/u).check();
+  await page.getByRole('button', { name: 'Verify and install' }).click();
+  await expect(page.getByRole('article').getByText('Village Draw 2.5.2', { exact: true })).toBeVisible();
+  const villageDrawSettings = page.locator('[data-addon-settings="thsv.village-draw"]');
+  await expect(villageDrawSettings).toContainText('casual community giveaways');
+  await villageDrawSettings.locator('summary').filter({ hasText: 'Entry and ticket rules' }).click();
+  await expect(villageDrawSettings.getByLabel('Entry method')).toHaveValue('free-single');
+  await expect(villageDrawSettings.getByLabel('Viewer Foundation points per ticket')).toBeHidden();
+  await villageDrawSettings.getByLabel('Entry method').selectOption('points-multiple');
+  await expect(villageDrawSettings.getByLabel('Viewer Foundation points per ticket')).toBeVisible();
+  await expect(villageDrawSettings.getByLabel('Maximum tickets per viewer')).toBeVisible();
+  await expect(page.locator('[data-addon-id="thsv.village-draw"] .addon-trigger-readiness')).toContainText('Create the four viewer commands');
+  await expect(page.locator('[data-addon-id="thsv.village-draw"] .addon-trigger-readiness')).toContainText('No add-on import needed');
+  await page.evaluate(`state.addOns.find((addOn) => addOn.moduleId === 'thsv.village-draw').enabled = true; renderAddOns();`);
+  await expect(page.getByText('Run the giveaway', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open entries' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cancel and refund' })).toBeVisible();
+  expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
   const executableRoot = 'examples/addons/no-op';
   const descriptor = JSON.parse(await readFile(join(executableRoot, 'module-package.json'), 'utf8')) as { permissions: string[] };

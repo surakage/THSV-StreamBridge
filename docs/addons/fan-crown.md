@@ -1,16 +1,16 @@
 # Fan Crown setup
 
 **Module:** `thsv.fan-crown`
-**Version:** `2.5.1`
+**Version:** `2.5.2`
 **Publisher:** THSV StreamBridge
 
 Runs one rotating Streamer.bot-owned Twitch Fan Crown reward with bounded pricing, stable-identity eligibility, result-confirmed mutations, and a private monthly leaderboard.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Fan-Crown-2.5.1.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Fan-Crown-2.5.1.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Fan-Crown-2.5.1.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Fan-Crown-2.5.2.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Fan-Crown-2.5.2.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Fan-Crown-2.5.2.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
