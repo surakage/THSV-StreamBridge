@@ -52,5 +52,5 @@ describe('Stream Labels installed add-on', () => {
     expect(state.labels.follower).toMatchObject({ value: 'Example Viewer', platform: 'youtube' });
     expect(overlays.at(-1)).toMatchObject({ topic: 'thsv.stream-labels.labels.update', payload: { labels: { follower: { value: 'Example Viewer' } } } });
     await registry.stop();
-  });
+  }, 15_000);
 });

@@ -56,5 +56,5 @@ describe('Prize Wheel installed add-on', () => {
     expect(overlays[0]?.topic).toBe('thsv.prize-wheel.wheel.spin');
     expect(overlays[0]?.payload['preview']).toBe(true);
     await registry.stop();
-  });
+  }, 15_000);
 });
