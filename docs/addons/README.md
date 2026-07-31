@@ -5,7 +5,6 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | Add-on | Module | Streamer.bot import |
 | --- | --- | --- |
 | [Accessibility Captions](./accessibility-captions.md) | `thsv.accessibility-captions` | Not required |
-| [Auto Translate](./auto-translate.md) | `thsv.auto-translate` | Included in add-on ZIP |
 | [Automated Shoutouts](./automated-shoutouts.md) | `thsv.automated-shoutouts` | Included in add-on ZIP |
 | [Category Pilot](./category-pilot.md) | `thsv.category-pilot` | Included in add-on ZIP |
 | [Chat Guard](./chat-guard.md) | `thsv.chat-guard` | Included in add-on ZIP |
@@ -28,7 +27,7 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [Scene Actions](./scene-actions.md) | `thsv.scene-actions` | Included in add-on ZIP |
 | [Stream Launch Countdown](./starting-soon-countdown.md) | `thsv.starting-soon-countdown` | Included in add-on ZIP |
 | [Subathon Timer](./subathon-timer.md) | `thsv.subathon-timer` | Included in add-on ZIP |
-| [User Translate](./user-translate.md) | `thsv.user-translate` | Included in add-on ZIP |
+| [Translate](./user-translate.md) | `thsv.user-translate` | Included in add-on ZIP |
 | [Viewer Foundation](./viewer-foundation.md) | `thsv.viewer-foundation` | Not required |
 | [Viewer Lobby](./viewer-lobby.md) | `thsv.viewer-lobby` | Included in add-on ZIP |
 | [Viewer Spotlight](./viewer-spotlight.md) | `thsv.viewer-spotlight` | Included in add-on ZIP |

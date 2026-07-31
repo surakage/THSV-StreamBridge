@@ -8,8 +8,17 @@ const MAXIMUM_HISTORY = 100;
 const MAXIMUM_BAG = 40;
 const MAXIMUM_VIEWER_SUGGESTIONS = 25;
 const MAXIMUM_PENDING_MS = 60_000;
+const MAXIMUM_CLIP_PENDING_MS = 120_000;
+const PROGRESS_STEP_MS = 1_350;
+const CLIP_FAILURE_GRACE_MS = 12_000;
+const CLIP_START_TIMEOUT_MS = 30_000;
+const RAID_MEDIA_LEASE_MS = 600_000;
 let eventQueue = Promise.resolve();
 let stopped = true;
+let lifecycleUnsubscribe;
+let clipFallbackTask;
+let progressTasks = [];
+let mediaLeaseId;
 
 const manifest = {
   contractVersion: '2.0.0-preview.1',
@@ -53,7 +62,9 @@ const FALLBACKS = Object.freeze({
   confirmedRaidMessage: 'Next stop: {displayName} playing {category}! https://twitch.tv/{login}',
   announceNoCandidate: false,
   noCandidateMessage: 'Raid Scout could not find a safe live destination with the current filters.',
+  showSearchProgress: true,
   showSuggestionCard: true, showConfirmedCard: true, cardSeconds: 20, overlayBackgroundMode: 'glass',
+  previewClipBeforeRaid: false, pauseOtherVideoOverlays: true, clipLookupCount: 20, clipPreviewMuted: false, clipPreviewVolume: 0.8,
   overlayBackgroundColor: '#17122b', overlayBackgroundOpacity: 0.94, overlayAccentColor: '#9146ff',
   overlayTextColor: '#ffffff', overlayFontFamily: 'display',
 });
@@ -127,8 +138,14 @@ function settingsFor(context) {
     confirmedRaidMessage: clean(raw.confirmedRaidMessage, 1_000) || FALLBACKS.confirmedRaidMessage,
     announceNoCandidate: boolean(raw.announceNoCandidate, false),
     noCandidateMessage: clean(raw.noCandidateMessage, 500) || FALLBACKS.noCandidateMessage,
+    showSearchProgress: boolean(raw.showSearchProgress, true),
     showSuggestionCard: boolean(raw.showSuggestionCard, true), showConfirmedCard: boolean(raw.showConfirmedCard, true),
     cardSeconds: integer(raw.cardSeconds, 5, 3_600, FALLBACKS.cardSeconds),
+    previewClipBeforeRaid: boolean(raw.previewClipBeforeRaid, false),
+    pauseOtherVideoOverlays: boolean(raw.pauseOtherVideoOverlays, true),
+    clipLookupCount: integer(raw.clipLookupCount, 1, 40, FALLBACKS.clipLookupCount),
+    clipPreviewMuted: boolean(raw.clipPreviewMuted, false),
+    clipPreviewVolume: decimal(raw.clipPreviewVolume, 0, 1, FALLBACKS.clipPreviewVolume),
     overlayBackgroundMode: ['glass', 'solid', 'none'].includes(raw.overlayBackgroundMode) ? raw.overlayBackgroundMode : FALLBACKS.overlayBackgroundMode,
     overlayBackgroundColor: safeColor(raw.overlayBackgroundColor, FALLBACKS.overlayBackgroundColor),
     overlayBackgroundOpacity: decimal(raw.overlayBackgroundOpacity, 0, 1, FALLBACKS.overlayBackgroundOpacity),
@@ -167,11 +184,25 @@ function historyRecord(value) {
 }
 function pendingRecord(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const operation = ['discover', 'raid'].includes(value.operation) ? value.operation : '';
+  const operation = ['discover', 'clip', 'clip-playback', 'raid'].includes(value.operation) ? value.operation : '';
   const requestId = clean(value.requestId, 100); const startedAt = integer(value.startedAt, 0, Number.MAX_SAFE_INTEGER, 0);
   const candidate = candidateRecord(value.candidate);
-  if (!operation || !requestId || !startedAt || (operation === 'raid' && !candidate)) return undefined;
-  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}) };
+  const playbackId = clean(value.playbackId, 100);
+  const durationMs = integer(value.durationMs, 5_000, 90_000, 0);
+  if (!operation || !requestId || !startedAt || (operation !== 'discover' && !candidate)
+    || (operation === 'clip-playback' && (!playbackId || durationMs === 0))) return undefined;
+  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(playbackId ? { playbackId, durationMs } : {}) };
+}
+
+function clipRecord(value) {
+  if (!value || typeof value !== 'object') return undefined;
+  const id = clean(value.id, 100); const embedUrl = safeHttps(value.embedUrl);
+  let parsed;
+  try { parsed = new URL(embedUrl); } catch { return undefined; }
+  if (!id || parsed.hostname !== 'clips.twitch.tv' || parsed.pathname !== '/embed') return undefined;
+  const durationSeconds = decimal(value.durationSeconds, 5, 90, 0);
+  if (durationSeconds <= 0) return undefined;
+  return { id, embedUrl, title: clean(value.title, 300), thumbnailUrl: safeHttps(value.thumbnailUrl), durationSeconds };
 }
 function viewerSuggestionRecord(value) {
   if (!value || typeof value !== 'object') return undefined;
@@ -205,7 +236,7 @@ export function sanitizeState(value) {
     pendingViewerSuggestions: Array.isArray(source.pendingViewerSuggestions)
       ? source.pendingViewerSuggestions.map(pendingViewerSuggestionRecord).filter(Boolean).slice(-MAXIMUM_VIEWER_SUGGESTIONS) : [],
     lastError: clean(source.lastError, 300), ...(suggestion ? { suggestion } : {}),
-    ...(pending && Date.now() - pending.startedAt <= MAXIMUM_PENDING_MS ? { pending } : {}),
+    ...(pending && Date.now() - pending.startedAt <= (pending.operation === 'clip-playback' ? MAXIMUM_CLIP_PENDING_MS : MAXIMUM_PENDING_MS) ? { pending } : {}),
   };
 }
 
@@ -314,6 +345,54 @@ function overlayStyle(settings) {
     textColor: settings.overlayTextColor, fontFamily: settings.overlayFontFamily,
   };
 }
+function cancelProgress(context) {
+  for (const taskId of progressTasks) context?.schedule?.cancel?.(taskId);
+  progressTasks = [];
+}
+function cancelClipFallback(context) {
+  if (clipFallbackTask) context?.schedule?.cancel?.(clipFallbackTask);
+  clipFallbackTask = undefined;
+}
+async function publishStatusCard(context, settings, title, text, durationMs = PROGRESS_STEP_MS) {
+  try {
+    await context.overlay.publish('thsv.raid-scout.card.show', {
+      title: clean(title, 200), text: clean(text, 500), durationMs, style: overlayStyle(settings),
+    });
+  } catch { /* Optional private dock or browser source may be closed. */ }
+}
+function sourceResultRecords(value, sourceOrder) {
+  const incoming = Array.isArray(value) ? value : [];
+  const bySource = new Map(incoming.map((item) => [clean(item?.source, 20), item]));
+  return sourceOrder.map((source) => {
+    const item = bySource.get(source) || {};
+    const status = ['skipped', 'found', 'none', 'unavailable'].includes(item.status) ? item.status : 'none';
+    return { source, status, candidateCount: integer(item.candidateCount, 0, MAXIMUM_CANDIDATES, 0) };
+  });
+}
+function sourceLabel(source) {
+  return source === 'preferred' ? 'preferred channels' : source === 'followed' ? 'followed live channels' : 'same-category channels';
+}
+function queueProgressCard(context, delayMs, settings, title, text, durationMs = PROGRESS_STEP_MS) {
+  const taskId = context.schedule.after(Math.max(1_000, delayMs), async () => {
+    progressTasks = progressTasks.filter((candidate) => candidate !== taskId);
+    if (stopped) return;
+    await publishStatusCard(context, settings, title, text, durationMs);
+  });
+  progressTasks.push(taskId);
+}
+function queueDiscoveryPhases(context, settings, results) {
+  let delay = 1_000;
+  for (const result of results) {
+    const label = sourceLabel(result.source);
+    queueProgressCard(context, delay, settings, 'CHECKING...', `Checking ${label}.`); delay += PROGRESS_STEP_MS;
+    const summary = result.status === 'found' ? `Found ${String(result.candidateCount)} live option${result.candidateCount === 1 ? '' : 's'} — applying your safety filters.`
+      : result.status === 'unavailable' ? `Could not check ${label} — moving on safely.`
+        : result.status === 'skipped' ? `${label[0].toUpperCase()}${label.slice(1)} are disabled — moving on.`
+          : `No live options found in ${label} — moving on.`;
+    queueProgressCard(context, delay, settings, result.status === 'found' ? 'OPTIONS FOUND' : 'NONE FOUND', summary); delay += PROGRESS_STEP_MS;
+  }
+  return delay;
+}
 async function publishCard(context, settings, candidate, confirmed) {
   if ((confirmed && !settings.showConfirmedCard) || (!confirmed && !settings.showSuggestionCard)) return;
   const reason = candidate.source === 'preferred' ? 'Preferred channel' : candidate.source === 'followed' ? 'Followed live channel' : 'Same category';
@@ -329,6 +408,8 @@ async function publishCard(context, settings, candidate, confirmed) {
 
 async function requestDiscovery(context, settings, state) {
   if (state.pending || !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
+  cancelProgress(context);
+  if (settings.showSearchProgress) await publishStatusCard(context, settings, 'RAID SCOUT', 'Starting a safe destination search...', 1_500);
   const pending = { operation: 'discover', requestId: requestId('discover'), startedAt: Date.now() };
   const reserved = { ...state, pending, lastError: '' }; await context.state.write(reserved);
   try {
@@ -434,6 +515,49 @@ async function clearViewerSuggestions(context, state, beginStream) {
   };
   await context.state.write(next); return next;
 }
+
+async function claimRaidMediaSlot(context, settings) {
+  if (!settings.pauseOtherVideoOverlays) return true;
+  if (mediaLeaseId) return true;
+  const lease = await context.mediaSlot.acquire({ durationMs: RAID_MEDIA_LEASE_MS, priority: 100 });
+  if (!lease.acquired || typeof lease.leaseId !== 'string') {
+    await publishStatusCard(context, settings, 'VIDEO PREVIEW BUSY', 'Another THSV video overlay is currently protected. Moving directly to the raid.', 2_500);
+    return false;
+  }
+  mediaLeaseId = lease.leaseId;
+  return true;
+}
+
+async function releaseRaidMediaSlot(context) {
+  const leaseId = mediaLeaseId; mediaLeaseId = undefined;
+  if (!leaseId || typeof context?.mediaSlot?.release !== 'function') return;
+  try { await context.mediaSlot.release(leaseId); } catch { /* Cleanup must never block the raid flow. */ }
+}
+
+async function requestClip(context, settings, state, candidate) {
+  if (state.pending || !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
+  if (!await claimRaidMediaSlot(context, settings)) return requestRaid(context, state, candidate);
+  const pending = { operation: 'clip', requestId: requestId('clip'), startedAt: Date.now(), candidate };
+  const reserved = { ...state, pending, lastError: '' }; await context.state.write(reserved);
+  await publishStatusCard(context, settings, 'RAID CLIP', `Finding one clip from ${candidate.displayName}...`, 2_000);
+  try {
+    await runController(context, {
+      raidScoutOperation: 'clip', raidScoutRequestId: pending.requestId,
+      raidScoutTargetUserId: candidate.userId, raidScoutClipLookupCount: settings.clipLookupCount,
+    });
+    return reserved;
+  } catch {
+    const next = withoutPending(reserved);
+    await context.state.write(next);
+    await releaseRaidMediaSlot(context);
+    return requestRaid(context, next, candidate);
+  }
+}
+
+async function beginConfirmedDestination(context, settings, state, candidate) {
+  return settings.previewClipBeforeRaid ? requestClip(context, settings, state, candidate) : requestRaid(context, state, candidate);
+}
+
 async function requestRaid(context, state, candidate) {
   if (state.pending || !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
   const pending = { operation: 'raid', requestId: requestId('raid'), startedAt: Date.now(), candidate };
@@ -449,8 +573,79 @@ async function requestRaid(context, state, candidate) {
       ...withoutPending(reserved), lastError: 'Streamer.bot could not start the confirmed raid.',
       history: [...reserved.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: state.streamCycle, error: 'Controller dispatch failed.' }].slice(-MAXIMUM_HISTORY),
     };
-    await context.state.write(failed); return failed;
+    await context.state.write(failed); await releaseRaidMediaSlot(context); return failed;
   }
+}
+
+async function finishClipPreview(context, settings, state, playbackId) {
+  if (state.pending?.operation !== 'clip-playback' || state.pending.playbackId !== playbackId) return state;
+  cancelClipFallback(context);
+  const candidate = state.pending.candidate;
+  const next = withoutPending(state); await context.state.write(next);
+  return requestRaid(context, next, candidate);
+}
+
+async function handleClipResult(event, context, settings, state) {
+  if (state.pending?.operation !== 'clip' || clean(event.payload?.requestId, 100) !== state.pending.requestId) return state;
+  const candidate = state.pending.candidate; const base = withoutPending(state);
+  const clips = Array.isArray(event.payload?.clips) ? event.payload.clips.map(clipRecord).filter(Boolean) : [];
+  if (event.payload?.success !== true || clips.length === 0) {
+    await publishStatusCard(context, settings, 'NO CLIP AVAILABLE', `Moving directly to ${candidate.displayName}'s raid.`, 1_800);
+    await context.state.write(base); await releaseRaidMediaSlot(context); return requestRaid(context, base, candidate);
+  }
+  const clip = clips[Math.floor(Math.random() * clips.length)];
+  const playbackId = requestId('raid-clip');
+  const durationMs = Math.round(clip.durationSeconds * 1_000);
+  const pending = { operation: 'clip-playback', requestId: state.pending.requestId, startedAt: Date.now(), candidate, playbackId, durationMs };
+  const reserved = { ...base, pending, lastError: '' }; await context.state.write(reserved);
+  try {
+    await context.overlay.publish('thsv.raid-scout.media.play', {
+      playbackId, embedUrl: clip.embedUrl, durationMs,
+      muted: settings.clipPreviewMuted, volume: settings.clipPreviewVolume,
+      ...(clip.title ? { title: clip.title } : {}), ...(clip.thumbnailUrl ? { posterUrl: clip.thumbnailUrl } : {}),
+    });
+  } catch {
+    const next = withoutPending(reserved); await context.state.write(next); await releaseRaidMediaSlot(context); return requestRaid(context, next, candidate);
+  }
+  cancelClipFallback(context);
+  // This timer covers a browser source that never starts. The actual playback budget is armed
+  // only after the owning overlay reports `started`, so buffering cannot consume the clip.
+  clipFallbackTask = context.schedule.after(CLIP_START_TIMEOUT_MS, async () => {
+    clipFallbackTask = undefined;
+    const current = sanitizeState(await context.state.read());
+    await finishClipPreview(context, settingsFor(context), current, playbackId);
+  });
+  return reserved;
+}
+
+async function handleOverlayLifecycle(event, context) {
+  if (!['started', 'ended', 'failed', 'timeout', 'stopped'].includes(event.phase)) return;
+  eventQueue = eventQueue.then(async () => {
+    const state = sanitizeState(await context.state.read());
+    if (event.phase === 'started' && state.pending?.operation === 'clip-playback' && state.pending.playbackId === clean(event.playbackId, 100)) {
+      cancelClipFallback(context);
+      clipFallbackTask = context.schedule.after(state.pending.durationMs + CLIP_FAILURE_GRACE_MS, async () => {
+        clipFallbackTask = undefined;
+        const current = sanitizeState(await context.state.read());
+        await finishClipPreview(context, settingsFor(context), current, state.pending.playbackId);
+      });
+      return;
+    }
+    await finishClipPreview(context, settingsFor(context), state, clean(event.playbackId, 100));
+  }, async () => {
+    const state = sanitizeState(await context.state.read());
+    if (event.phase === 'started' && state.pending?.operation === 'clip-playback' && state.pending.playbackId === clean(event.playbackId, 100)) {
+      cancelClipFallback(context);
+      clipFallbackTask = context.schedule.after(state.pending.durationMs + CLIP_FAILURE_GRACE_MS, async () => {
+        clipFallbackTask = undefined;
+        const current = sanitizeState(await context.state.read());
+        await finishClipPreview(context, settingsFor(context), current, state.pending.playbackId);
+      });
+      return;
+    }
+    await finishClipPreview(context, settingsFor(context), state, clean(event.playbackId, 100));
+  });
+  await eventQueue;
 }
 
 async function handleControl(event, context, settings, state) {
@@ -458,31 +653,45 @@ async function handleControl(event, context, settings, state) {
   const action = clean(event.payload?.action, 30);
   if (action === 'suggest') return requestDiscovery(context, settings, state);
   if (action === 'cancel') {
-    if (!state.suggestion) return state;
-    const canceled = { ...withoutSuggestion(state), lastError: '' }; await context.state.write(canceled); return canceled;
+    cancelProgress(context); cancelClipFallback(context);
+    if (state.pending?.operation === 'clip-playback') {
+      try { await context.overlay.publish('thsv.raid-scout.media.stop', { fade: true }); } catch { /* Optional overlay. */ }
+    }
+    await releaseRaidMediaSlot(context);
+    if (!state.suggestion && !state.pending) return state;
+    const canceled = { ...withoutSuggestion(withoutPending(state)), lastError: '' }; await context.state.write(canceled); return canceled;
   }
   if (action !== 'confirm' || !state.suggestion || settings.confirmationMode === 'suggest-only') return state;
   if (Date.parse(state.suggestion.expiresAt) <= Date.now()) {
     const expired = { ...withoutSuggestion(state), lastError: 'The raid suggestion expired. Request another suggestion.' };
     await context.state.write(expired); return expired;
   }
-  return requestRaid(context, state, state.suggestion.candidate);
+  return beginConfirmedDestination(context, settings, state, state.suggestion.candidate);
 }
 async function handleDiscoveryResult(event, context, settings, state) {
   if (state.pending?.operation !== 'discover' || clean(event.payload?.requestId, 100) !== state.pending.requestId) return state;
   const base = withoutPending(state);
   if (event.payload?.success !== true) {
     const failed = { ...base, lastError: clean(event.payload?.error, 300) || 'Twitch discovery failed.' };
-    await context.state.write(failed); if (settings.announceNoCandidate) await sendChat(context, settings.noCandidateMessage); return failed;
+    await context.state.write(failed);
+    if (settings.showSearchProgress) await publishStatusCard(context, settings, 'SEARCH UNAVAILABLE', 'Twitch discovery could not finish. Try Suggest again.', 4_000);
+    if (settings.announceNoCandidate) await sendChat(context, settings.noCandidateMessage); return failed;
   }
   const candidates = Array.isArray(event.payload?.candidates) ? event.payload.candidates : [];
   const broadcaster = { userId: clean(event.payload?.broadcasterUserId, 64), login: normalizedLogin(event.payload?.broadcasterLogin) };
   const eligible = filterCandidates(candidates, base, settings, broadcaster);
   const currentAudience = integer(event.payload?.currentAudience, 0, 10_000_000, settings.currentAudienceEstimate);
   const selected = selectCandidate(eligible, base, settings, currentAudience);
+  const sourceResults = sourceResultRecords(event.payload?.sourceResults, settings.sourceOrder);
+  cancelProgress(context);
   if (!selected.candidate) {
     const empty = { ...withoutSuggestion(base), bags: selected.bags, lastError: 'No eligible live channel matched the current filters.' };
-    await context.state.write(empty); if (settings.announceNoCandidate) await sendChat(context, settings.noCandidateMessage); return empty;
+    await context.state.write(empty);
+    if (settings.showSearchProgress) {
+      const delay = queueDiscoveryPhases(context, settings, sourceResults);
+      queueProgressCard(context, delay, settings, 'NO SAFE MATCH', 'No live destination passed the current safety filters. Nothing was raided.', 5_000);
+    }
+    if (settings.announceNoCandidate) await sendChat(context, settings.noCandidateMessage); return empty;
   }
   const now = Date.now();
   const suggestion = { candidate: selected.candidate, suggestedAt: new Date(now).toISOString(), expiresAt: new Date(now + settings.suggestionExpiryMinutes * 60_000).toISOString() };
@@ -490,8 +699,25 @@ async function handleDiscoveryResult(event, context, settings, state) {
     ...base, bags: selected.bags, suggestion, lastError: '',
     history: [...base.history, { candidate: selected.candidate, at: suggestion.suggestedAt, status: 'suggested', streamCycle: base.streamCycle, error: '' }].slice(-MAXIMUM_HISTORY),
   };
-  await context.state.write(suggested); await publishCard(context, settings, selected.candidate, false);
-  return settings.confirmationMode === 'automatic' ? requestRaid(context, suggested, selected.candidate) : suggested;
+  await context.state.write(suggested);
+  if (!settings.showSearchProgress) {
+    await publishCard(context, settings, selected.candidate, false);
+    return settings.confirmationMode === 'automatic' ? beginConfirmedDestination(context, settings, suggested, selected.candidate) : suggested;
+  }
+  const delay = queueDiscoveryPhases(context, settings, sourceResults);
+  const taskId = context.schedule.after(Math.max(1_000, delay), async () => {
+    progressTasks = progressTasks.filter((candidate) => candidate !== taskId);
+    if (stopped) return;
+    await publishCard(context, settingsFor(context), selected.candidate, false);
+    if (settings.confirmationMode === 'automatic') {
+      const current = sanitizeState(await context.state.read());
+      if (current.suggestion?.candidate?.userId === selected.candidate.userId && !current.pending) {
+        await beginConfirmedDestination(context, settingsFor(context), current, selected.candidate);
+      }
+    }
+  });
+  progressTasks.push(taskId);
+  return suggested;
 }
 async function handleRaidResult(event, context, settings, state) {
   if (state.pending?.operation !== 'raid' || clean(event.payload?.requestId, 100) !== state.pending.requestId) return state;
@@ -502,7 +728,7 @@ async function handleRaidResult(event, context, settings, state) {
       ...next, lastError: error,
       history: [...next.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: state.streamCycle, error }].slice(-MAXIMUM_HISTORY),
     };
-    await context.state.write(next); return next;
+    await context.state.write(next); await releaseRaidMediaSlot(context); return next;
   }
   next = {
     ...withoutSuggestion(next), lastError: '',
@@ -527,14 +753,28 @@ async function processEvent(event, context) {
   const operation = clean(event.payload?.operation, 20);
   if (operation === 'redemption-fulfill' || operation === 'redemption-cancel') await handleViewerRedemptionResult(event, context, settings, state);
   else if (operation === 'discover') await handleDiscoveryResult(event, context, settings, state);
+  else if (operation === 'clip') await handleClipResult(event, context, settings, state);
   else if (operation === 'raid') await handleRaidResult(event, context, settings, state);
 }
 
 const moduleDefinition = {
   manifest,
   required: false,
-  async start(context) { stopped = false; await context.state.write(sanitizeState(await context.state.read())); },
-  async stop() { stopped = true; await eventQueue.catch(() => undefined); },
+  async start(context) {
+    stopped = false; mediaLeaseId = undefined;
+    lifecycleUnsubscribe = context.overlay.onLifecycle((event) => { void handleOverlayLifecycle(event, context); });
+    let state = sanitizeState(await context.state.read());
+    if (state.pending?.operation === 'clip' || state.pending?.operation === 'clip-playback') {
+      state = { ...withoutPending(state), lastError: 'The clip preview was interrupted. Confirm the suggestion again when ready.' };
+    }
+    await context.state.write(state);
+  },
+  async stop(context) {
+    stopped = true; cancelProgress(context); cancelClipFallback(context); lifecycleUnsubscribe?.(); lifecycleUnsubscribe = undefined;
+    try { await context?.overlay?.publish?.('thsv.raid-scout.media.stop', { fade: true }); } catch { /* Optional overlay. */ }
+    await releaseRaidMediaSlot(context);
+    await eventQueue.catch(() => undefined);
+  },
   async onEvent(event, context) {
     if (stopped) stopped = false;
     eventQueue = eventQueue.then(() => processEvent(event, context), () => processEvent(event, context));

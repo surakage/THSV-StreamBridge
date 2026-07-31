@@ -7,7 +7,7 @@ This is the recommended path for a first installation of THSV StreamBridge on Wi
 You need:
 
 - Windows 10 or later on a 64-bit computer
-- Streamer.bot `1.0.5-alpha.31` or later; `1.0.5-beta.2` is recommended for new installations (beta builds are optional pre-release software, so back up the Streamer.bot folder before upgrading)
+- Streamer.bot `1.0.5-alpha.31` or later; `1.0.5-beta.5` is recommended for new installations (beta builds are optional pre-release software, so back up the Streamer.bot folder before upgrading and complete the [focused beta.5 checks](streamerbot-1.0.5-beta.5.md))
 - Twitch, YouTube, and/or Kick connected inside Streamer.bot
 - TikFinity connected to Streamer.bot if you want TikTok support
 - Meld Studio, OBS Studio, Streamlabs Desktop, or another Chromium-compatible browser-source host if you want overlays

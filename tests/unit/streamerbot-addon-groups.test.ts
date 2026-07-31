@@ -4,8 +4,7 @@ import { describe, expect, it } from 'vitest';
 const EXPECTED_GROUPS: Readonly<Record<string, string>> = Object.freeze({
   'random-clip-player': 'THSV Addon - Random Clip Player',
   'automated-shoutouts': 'THSV Addon - Automated Shoutouts',
-  'user-translate': 'THSV Addon - User Translate',
-  'auto-translate': 'THSV Addon - Auto Translate',
+  'user-translate': 'THSV Addon - Translate',
   'kofi-donations': 'THSV Addon - Ko-fi Donations',
   'subathon-timer': 'THSV Addon - Subathon Timer',
   'starting-soon-countdown': 'THSV Addon - Stream Launch Countdown',

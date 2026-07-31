@@ -2,8 +2,8 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Coalesces verified Twitch, YouTube, Kick, and optional TikTok live starts into one guarded Discord channel or forum notification.",
-  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
+  "description": "Posts separate guarded Twitch, YouTube, Kick, and optional TikTok live embeds to a Discord channel or forum.",
+  "changelog": "2.5.1: adds separate platform embeds, direct live links, and a creator-controlled OBS, Meld, or Streamlabs Desktop start fallback for TikTok. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -29,10 +29,16 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "stream.online",
+      "addon.thsv.live-beacon.broadcast-control",
       "addon.thsv.live-beacon.delivery-result"
     ],
     "commandsProvided": [],
-    "actionsProvided": [],
+    "actionsProvided": [
+      {
+        "id": "live-beacon.broadcast-started",
+        "name": "THSV Addon - Live Beacon - Broadcast Started"
+      }
+    ],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
       "data/addons/thsv.live-beacon/",
@@ -40,7 +46,9 @@
     ],
     "installationSteps": [
       "Import the Live Beacon Streamer.bot package.",
-      "Put a private Discord webhook URL in its Set Argument, compile it, and run a harmless manual test.",
+      "Set the one shared private Discord webhook in Deliver. Advanced creators may manually add a platform-specific webhook argument only when a platform uses a different parent channel or forum.",
+      "Choose Create for me or Use existing posts. Create for me makes and remembers each permanent post on its first genuine live event; existing mode uses copied Discord Channel IDs.",
+      "Leave Deliver triggerless. Attach OBS, Meld, or Streamlabs Desktop Streaming Started to Broadcast Started only when selected platforms need a broadcast-app fallback.",
       "Approve only its triggerless Deliver action, configure platform links/templates, then enable the add-on."
     ],
     "uninstallationSteps": [
@@ -50,7 +58,7 @@
     "healthChecks": [
       {
         "id": "thsv.live-beacon.runtime",
-        "description": "Confirms verified online events can coalesce into one guarded Discord delivery."
+        "description": "Confirms verified online events can produce guarded per-platform Discord deliveries."
       }
     ],
     "minimumBridgeVersion": "2.5.1",
@@ -61,23 +69,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 7547,
-      "sha256": "323dd08f0673e5c204de6ff2660091babebc34c248faa953b817f4588d0a36eb"
+      "size": 15967,
+      "sha256": "072e8cb60e824a8850d03ad320e3b967986496191fc3af9bf758ce902d1036d6"
     },
     {
       "path": "schemas/config.json",
-      "size": 1918,
-      "sha256": "c03f012e6b9d19e2f8221fab3c97afbd878035a221f3132f083733dbd1f05bf6"
+      "size": 7339,
+      "sha256": "5d798a60a15e7c5241e6d0c32edfd11cb936874e34842c052c2a1972e0fec265"
     },
     {
       "path": "ui/settings.json",
-      "size": 1334,
-      "sha256": "ce86baa253f5966b81aacd65b9e729cc4c2eee0d869bfbb865e87d9d99c5a3d8"
+      "size": 5479,
+      "sha256": "bf28b049b339480a274115b088fad1265c272e71b5b1489346e52f6768727bba"
     },
     {
       "path": "README.md",
-      "size": 678,
-      "sha256": "ba6229ad6eb4999c87f041272da3d8af76df3bba79257305441ac4e3510e73ab"
+      "size": 3352,
+      "sha256": "7359ebbb018700a3ae099953bd5d9a8b2677ff613fa1941c402328cb48cdc52d"
     }
   ]
 }

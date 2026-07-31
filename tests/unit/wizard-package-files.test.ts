@@ -121,7 +121,9 @@ describe('wizard launcher package', () => {
     expect(script).toContain("`${moduleId}.media.play`");
     expect(script).toContain("`${moduleId}.timer.update`");
     expect(script).toContain('safeColor(style.backgroundColor');
-    expect(script).toContain("media.addEventListener('playing', () => {");
+      expect(script).toContain("media.addEventListener('playing', () => {");
+      expect(script).toContain('if (activePlaybackId === playbackId) return;');
+      expect(script).toContain('rendererId, playbackId: activePlaybackId');
     expect(script).toContain("transportState('live');");
     expect(script).toContain("mediaShell.classList.add('fading')");
     expect(script).toContain('textContent');

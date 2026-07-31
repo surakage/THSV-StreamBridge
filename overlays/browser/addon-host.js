@@ -14,6 +14,7 @@
   const cardText = document.getElementById('card-text');
   const mediaShell = document.getElementById('media-shell');
   const media = document.getElementById('media');
+  const embedMedia = document.getElementById('embed-media');
   const mediaTitle = document.getElementById('media-title');
   const timerShell = document.getElementById('timer-shell');
   const timerLabel = document.getElementById('timer-label');
@@ -28,8 +29,13 @@
   let mediaTimer;
   let mediaFadeTimer;
   let pendingMediaDurationMs;
+  let embeddedPlayback = false;
   let heartbeatTimer;
   let activePlaybackId = '';
+  // Every browser-source instance has its own identity. OBS can keep multiple copies of the
+  // same source alive across scenes; the bridge uses this ID to ensure that only the copy that
+  // actually started a clip is allowed to report its completion.
+  const rendererId = globalThis.crypto?.randomUUID?.() || `renderer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   let lastCompletionSequence = -1;
   let sendTransport = () => undefined;
   const mediaFadeMs = 750;
@@ -39,6 +45,18 @@
     try {
       const url = new URL(value, location.origin);
       return url.protocol === 'https:' || url.origin === location.origin ? url.href : undefined;
+    } catch { return undefined; }
+  }
+
+  function safeTwitchClipEmbed(value, muted) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > 4_096) return undefined;
+    try {
+      const url = new URL(value);
+      if (url.protocol !== 'https:' || url.hostname !== 'clips.twitch.tv' || url.pathname !== '/embed') return undefined;
+      url.searchParams.set('parent', location.hostname);
+      url.searchParams.set('autoplay', 'true');
+      url.searchParams.set('muted', muted === true ? 'true' : 'false');
+      return url.href;
     } catch { return undefined; }
   }
 
@@ -170,7 +188,7 @@
 
   function reportLifecycle(phase, error) {
     if (!activePlaybackId) return;
-    sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId, playbackId: activePlaybackId, phase, currentTime: Number.isFinite(media.currentTime) ? media.currentTime : 0, duration: Number.isFinite(media.duration) ? media.duration : 0, ...(error ? { error: String(error).slice(0, 300) } : {}) });
+    sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId, rendererId, playbackId: activePlaybackId, phase, currentTime: Number.isFinite(media.currentTime) ? media.currentTime : 0, duration: Number.isFinite(media.duration) ? media.duration : 0, ...(error ? { error: String(error).slice(0, 300) } : {}) });
   }
 
   function clearMedia(phase) {
@@ -182,6 +200,10 @@
     media.pause();
     media.removeAttribute('src');
     media.load();
+    embedMedia.removeAttribute('src');
+    embedMedia.classList.add('hidden');
+    media.classList.remove('hidden');
+    embeddedPlayback = false;
     mediaTitle.textContent = '';
     mediaTitle.classList.add('hidden');
     mediaShell.classList.remove('fading');
@@ -189,19 +211,38 @@
     activePlaybackId = '';
   }
 
-  function stopMedia() { clearMedia('stopped'); }
+  function stopMedia(payload = {}) {
+    if (payload.fade !== true || mediaShell.classList.contains('hidden')) { clearMedia('stopped'); return; }
+    clearTimeout(mediaTimer); clearTimeout(mediaFadeTimer); clearInterval(heartbeatTimer);
+    reportLifecycle('stopped');
+    media.pause();
+    mediaShell.classList.add('fading');
+    mediaFadeTimer = setTimeout(() => clearMedia(), mediaFadeMs);
+  }
 
   function playMedia(payload) {
-    const url = safeUrl(payload.url);
+    const embedUrl = safeTwitchClipEmbed(payload.embedUrl, payload.muted === true);
+    const url = embedUrl || safeUrl(payload.url);
     const playbackId = typeof payload.playbackId === 'string' && /^[A-Za-z0-9._:-]{1,100}$/u.test(payload.playbackId) ? payload.playbackId : '';
     if (!url || !playbackId) return;
+    // Recovery broadcasts and late OBS connections may deliver the same play message more than
+    // once. It is an acknowledgement retry, not a request to seek back to zero. Reloading here
+    // caused clips to stutter for a second and then appear to skip.
+    if (activePlaybackId === playbackId) return;
     clearMedia(activePlaybackId ? 'stopped' : undefined);
     hideCard();
     hideTimer();
     activePlaybackId = playbackId;
-    media.src = url;
-    media.muted = payload.muted !== false;
-    media.volume = typeof payload.volume === 'number' && Number.isFinite(payload.volume) ? Math.max(0, Math.min(1, payload.volume)) : 1;
+    embeddedPlayback = Boolean(embedUrl);
+    if (embedUrl) {
+      media.classList.add('hidden');
+      embedMedia.classList.remove('hidden');
+      embedMedia.src = embedUrl;
+    } else {
+      media.src = url;
+      media.muted = payload.muted !== false;
+      media.volume = typeof payload.volume === 'number' && Number.isFinite(payload.volume) ? Math.max(0, Math.min(1, payload.volume)) : 1;
+    }
     const posterUrl = safeUrl(payload.posterUrl);
     if (posterUrl) media.poster = posterUrl; else media.removeAttribute('poster');
     const title = typeof payload.title === 'string' ? payload.title.slice(0, 300) : '';
@@ -210,9 +251,41 @@
     mediaShell.classList.remove('fading');
     mediaShell.classList.remove('hidden');
     reportLifecycle('loading');
-    void media.play().catch((error) => { status.textContent = 'PLAYBACK BLOCKED'; status.dataset.state = 'error'; reportLifecycle('failed', error?.message || 'Playback blocked'); clearMedia(); });
     pendingMediaDurationMs = payload.durationMs;
+    if (!embedUrl) void startNativeMedia();
   }
+
+  async function startNativeMedia() {
+    try {
+      await media.play();
+    } catch (firstError) {
+      // Chromium can reject unmuted autoplay before the browser source receives a user gesture.
+      // Preserve visual playback by retrying muted; OBS creators can still route audio when its
+      // browser runtime permits unmuted autoplay.
+      if (!media.muted) {
+        media.muted = true;
+        try { await media.play(); return; } catch { /* Report the original useful policy error below. */ }
+      }
+      status.textContent = 'PLAYBACK BLOCKED';
+      status.dataset.state = 'error';
+      reportLifecycle('failed', firstError?.message || 'Playback blocked');
+      clearMedia();
+    }
+  }
+
+  embedMedia.addEventListener('load', () => {
+    if (!activePlaybackId || !embeddedPlayback || !embedMedia.getAttribute('src')) return;
+    transportState('live');
+    reportLifecycle('started');
+    clearTimeout(mediaTimer);
+    const durationWithGrace = Number.isInteger(pendingMediaDurationMs) ? pendingMediaDurationMs + 4_000 : undefined;
+    mediaTimer = setTimeout(() => {
+      if (!activePlaybackId || !embeddedPlayback) return;
+      reportLifecycle('ended');
+      mediaShell.classList.add('fading');
+      mediaFadeTimer = setTimeout(() => clearMedia(), mediaFadeMs);
+    }, boundedDuration(durationWithGrace, 64_000));
+  });
 
   media.addEventListener('playing', () => {
     // A previous unmuted autoplay attempt may have left a visible failure badge. Once the
@@ -244,7 +317,7 @@
     if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.media.play`) playMedia(event.payload);
-    else if (event.topic === `${moduleId}.media.stop`) stopMedia();
+    else if (event.topic === `${moduleId}.media.stop`) stopMedia(event.payload);
     else if (event.topic === `${moduleId}.timer.update`) showTimer(event.payload);
     else if (event.topic === `${moduleId}.timer.hide`) hideTimer();
   }

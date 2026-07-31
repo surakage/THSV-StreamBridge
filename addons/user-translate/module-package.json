@@ -2,8 +2,8 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Translates only explicit viewer requests through a disclosed no-key provider, then returns bounded results to the originating platform without retaining message text.",
-  "changelog": "2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
+  "description": "Combines viewer-requested and privacy-gated automatic translation, then returns bounded results only to the originating platform without retaining message text.",
+  "changelog": "2.5.1: combined Manual, Automatic, and Both modes; fixed !translate buenos dias; added automatic source detection through the disclosed Google web option; retained MyMemory as the documented fixed-source fallback; and regenerated the Streamer.bot import. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -21,7 +21,7 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.user-translate",
-    "name": "User Translate",
+    "name": "Translate",
     "version": "2.5.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
@@ -35,7 +35,7 @@
     "commandsProvided": [
       {
         "id": "user-translate.generic",
-        "name": "translate (usage: !translate es hello)"
+        "name": "translate (usage: !translate buenos dias)"
       },
       {
         "id": "user-translate.language-code",
@@ -45,7 +45,7 @@
     "actionsProvided": [
       {
         "id": "user-translate.translate",
-        "name": "Required no-key MyMemory translation request"
+        "name": "Required bounded translation request"
       }
     ],
     "browserSourcesProvided": [],
@@ -54,10 +54,10 @@
       "data/addons/.state/thsv.user-translate/"
     ],
     "installationSteps": [
-      "Install and enable the add-on, then review the external translation privacy disclosure in its settings.",
-      "Import the User Translate Streamer.bot package and approve its Translate Text action for this add-on.",
-      "Choose the command prefix and enabled language codes in the add-on settings; no separate Streamer.bot command is required.",
-      "Examples: !translate es hello, !es hello, or on Twitch reply to a message with !es."
+      "Install the add-on, choose Manual, Automatic, or Both, then review the provider privacy disclosure.",
+      "Import the Translate Streamer.bot package and approve its one Translate Text action.",
+      "Manual examples: !translate buenos dias, !translate fr hello, !es hello, or a Twitch reply containing !en.",
+      "Automatic mode starts allowlist-only and remains bounded by cooldown, percentage, and per-minute limits."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Only bounded cooldown metadata is retained; message text is never stored."
@@ -66,7 +66,7 @@
     "healthChecks": [
       {
         "id": "thsv.user-translate.runtime",
-        "description": "Confirms bounded command handling, provider dispatch, and source-platform response routing."
+        "description": "Confirms bounded manual/automatic selection, provider dispatch, and source-platform response routing."
       }
     ],
     "minimumBridgeVersion": "2.5.1",
@@ -77,18 +77,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11566,
-      "sha256": "90b4d5f1e3b8e639d4777c4e4d279db00f9ee7015bdb2c91efe3bf1d8ba15c82"
+      "size": 16428,
+      "sha256": "916d2a0fa2803cc4b878caffb035aa3de272e863785195a66f2f44747bdd1df7"
     },
     {
       "path": "schemas/config.json",
-      "size": 3331,
-      "sha256": "966ff807d1c300de390014ba5161b340e417f5eb1f31af378463039b647c8437"
+      "size": 5881,
+      "sha256": "d6e01dd5ac377b15c314ba145c9bf78e1af9959124a972d3e14a66ada1e7a480"
     },
     {
       "path": "ui/settings.json",
-      "size": 2267,
-      "sha256": "65b2923263925953a7b61c147a53f8140db57865b544b8fecc71c7bd83884422"
+      "size": 4417,
+      "sha256": "79ad3e21a630bca80053cb21b8a40f73be6117904ced9bee5e2ab0cf1de75ab5"
     }
   ]
 }

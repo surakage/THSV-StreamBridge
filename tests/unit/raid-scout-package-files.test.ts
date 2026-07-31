@@ -31,6 +31,9 @@ describe('Raid Scout package files', () => {
       'TimeSpan.FromSeconds(10)',
       'MaximumResponseCharacters = 262144',
       'MaximumCandidates = 40',
+      'sourceResults',
+      'clips?broadcaster_id=',
+      'https://clips.twitch.tv/embed?',
     ]) expect(controller).toContain(contract);
     expect(controller).toContain('CPH.TwitchOAuthToken');
     expect(controller).toContain('CPH.TwitchClientId');
@@ -39,6 +42,9 @@ describe('Raid Scout package files', () => {
   });
 
   it('has a guided UI, safe default confirmation, and no public progress spam', async () => {
+    const descriptor = JSON.parse(await readFile('addons/raid-scout/module-package.json', 'utf8')) as {
+      permissions: string[];
+    };
     const schema = JSON.parse(await readFile('addons/raid-scout/schemas/config.json', 'utf8')) as {
       properties: Record<string, { default?: unknown }>;
     };
@@ -48,14 +54,21 @@ describe('Raid Scout package files', () => {
     const runtime = await readFile('addons/raid-scout/dist/index.js', 'utf8');
     expect(schema.properties['confirmationMode']?.default).toBe('required');
     expect(schema.properties['showSuggestionCard']?.default).toBe(true);
+    expect(schema.properties['showSearchProgress']?.default).toBe(true);
+    expect(schema.properties['previewClipBeforeRaid']?.default).toBe(false);
+    expect(schema.properties['pauseOtherVideoOverlays']?.default).toBe(true);
     expect(schema.properties['viewerSuggestionsEnabled']?.default).toBe(false);
     expect(schema.properties['maximumViewerSuggestions']?.default).toBe(20);
     expect(ui.sections.map((section) => section.id)).toEqual([
       'quick-start', 'discovery', 'preferred', 'limits', 'audience', 'language-category',
-      'channels-history', 'messages', 'overlay-content', 'overlay-style', 'maintenance',
+      'channels-history', 'messages', 'overlay-content', 'clip-preview', 'overlay-style', 'maintenance',
     ]);
-    expect(runtime).not.toContain('Checking Local Database');
-    expect(runtime).not.toContain('Loading raid');
+    expect(runtime).toContain('Starting a safe destination search');
+    expect(runtime).toContain('NO SAFE MATCH');
+    expect(runtime).toContain('thsv.raid-scout.media.play');
+    expect(runtime).toContain('context.mediaSlot.acquire');
+    expect(runtime).toContain('releaseRaidMediaSlot');
+    expect(descriptor.permissions).toContain('media.exclusive');
     expect(runtime).not.toMatch(/innerHTML/u);
   });
 });

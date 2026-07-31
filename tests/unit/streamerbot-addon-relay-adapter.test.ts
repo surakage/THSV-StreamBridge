@@ -74,6 +74,18 @@ describe('Streamer.bot add-on relay adapter', () => {
     }))).toMatchObject({ eventType: 'addon.thsv.random-clip-player.control', payload: { enabled: true } });
   });
 
+  it('permits only the exact Live Beacon broadcast-app fallback control', () => {
+    const control = {
+      moduleId: 'thsv.live-beacon', eventType: 'addon.thsv.live-beacon.broadcast-control',
+      sourceEventType: 'THSV Addon - Live Beacon - Broadcast Started', relayToken: '',
+      payload: { action: 'online', startedAt: '2026-07-31T01:00:00.000Z' },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({ eventType: control.eventType, payload: control.payload });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'offline', startedAt: '2026-07-31T01:00:00.000Z' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'Untrusted Broadcast Started' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { ...control.payload, platform: 'tiktok' } }))).toThrow('relay token');
+  });
+
   it('permits only the exact authorized Chat Guard stable-ID enrollment envelope', () => {
     const control = { moduleId: 'thsv.chat-guard', eventType: 'addon.thsv.chat-guard.trusted-account-request', sourceEventType: 'THSV Addon - Chat Guard - Trust Viewer', relayToken: '', payload: { platform: 'twitch', userId: 'stable-42', label: 'Helpful Viewer', authorized: true } };
     expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({ eventType: control.eventType, payload: control.payload });

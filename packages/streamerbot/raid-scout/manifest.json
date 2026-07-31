@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Raid Scout",
   "version": "2.5.1",
   "author": "surakage",
-  "description": "Provides one triggerless bounded Twitch discovery, raid, and viewer-redemption controller plus three creator controls for Raid Scout.",
+  "description": "Provides one triggerless bounded Twitch discovery, public clip lookup, raid, and viewer-redemption controller plus three creator controls for Raid Scout.",
   "minimumStreamerBotVersion": "1.0.5-alpha.33",
   "actions": [
     {
@@ -105,5 +105,5 @@
     ]
   },
   "triggerSafety": "Controller must remain triggerless and is dispatched only through Raid Scout's approved stable action ID. Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Viewer suggestions arrive through the existing THSV Twitch Intake reward trigger, not a new Raid Scout trigger.",
-  "verificationStatus": "Streamer.bot broadcaster, raid, redemption fulfill/cancel method signatures and Twitch Helix followed/category contracts are source-verified; live Twitch discovery, reward settlement, and raid acceptance remain creator-tested."
+  "verificationStatus": "Streamer.bot broadcaster, raid, redemption fulfill/cancel method signatures and Twitch Helix followed/category/clip contracts are source-verified; live Twitch discovery, clip playback, reward settlement, and raid acceptance remain creator-tested."
 }

@@ -1,6 +1,6 @@
 # Streamer.bot C# compiler references
 
-THSV StreamBridge keeps Streamer.bot `1.0.5-alpha.31` as its backward-compatible minimum and recommends `1.0.5-beta.2` for new installs. Beta.1 remains the latest build with recorded THSV startup, WebSocket/EventSub connection, focused C# compilation, controller relay, reward mutation, and reset checks. Beta.2 does not introduce a new C# method requirement for THSV, so existing package minimums remain valid; complete the [focused beta.2 re-acceptance checklist](streamerbot-1.0.5-beta.2.md) after upgrading. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning.
+THSV StreamBridge keeps Streamer.bot `1.0.5-alpha.31` as its backward-compatible minimum and recommends `1.0.5-beta.5` for new installs. Beta.2 remains the latest build with directly recorded THSV grouped-action, bridge-routing, and audible Voice Relay evidence. Beta.5 does not introduce a new C# method or compiler-reference requirement for THSV, so existing package minimums remain valid; complete the [focused beta.5 re-acceptance checklist](streamerbot-1.0.5-beta.5.md) after upgrading. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning.
 
 ## Required references
 
@@ -15,14 +15,13 @@ Every generated import now carries the standard `mscorlib.dll` and `System.dll` 
 - TikFinity Intake
 - Timed Message Output
 - Automated Shoutouts
-- User Translate
-- Auto Translate
+- Translate
 - Discord Chat Archive
 - Quote Vault
 
 Normally no manual reference step is required after importing a current package. In the **Execute C# Code** editor, verify the reference list if compilation reports a missing type. Use only the `Newtonsoft.Json.dll` supplied with Streamer.bot; do not download a random DLL or replace Streamer.bot's bundled assembly.
 
-The current source does **not** require `System.Core.dll`, `System.Net.Http.dll`, or any downloaded third-party reference. Packages that consume Streamer.bot model types or `Newtonsoft.Json` may also declare the Windows Framework `netstandard.dll` compatibility facade. User Translate and Auto Translate intentionally use `System.Net.HttpWebRequest` from `System.dll`, so no extra HTTP assembly is needed.
+The current source does **not** require `System.Core.dll`, `System.Net.Http.dll`, or any downloaded third-party reference. Packages that consume Streamer.bot model types or `Newtonsoft.Json` may also declare the Windows Framework `netstandard.dll` compatibility facade. Translate intentionally uses `System.Net.HttpWebRequest` from `System.dll`, so no extra HTTP assembly is needed.
 
 ## Packages using only built-in references
 

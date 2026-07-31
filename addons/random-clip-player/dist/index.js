@@ -118,6 +118,8 @@ function toJsonState(state) {
 // cancelled the instant the real response arrives instead of firing a redundant retry later.
 let safetyTaskId;
 let nextTaskId;
+let mediaSlotUnsubscribe;
+let suspendedByMediaSlot = false;
 
 function armSafetyNet(context, task) {
   if (safetyTaskId !== undefined) context.schedule.cancel(safetyTaskId);
@@ -151,7 +153,7 @@ function scheduleNext(context, delayMs) {
 
 async function requestClipList(context) {
   const state = sanitizeState(await context.state.read());
-  if (!state.playbackEnabled) return;
+  if (!state.playbackEnabled || suspendedByMediaSlot) return;
   const settings = readSettings(context);
   // Give the shared Clip Library Cache a short opportunity to publish its snapshot. The
   // legacy action remains a compatibility fallback when that helper is unavailable.
@@ -167,7 +169,7 @@ async function requestClipList(context) {
 
 async function requestClipDownload(context, clipId) {
   const state = sanitizeState(await context.state.read());
-  if (!state.playbackEnabled || state.pendingClipId !== clipId) return;
+  if (!state.playbackEnabled || suspendedByMediaSlot || state.pendingClipId !== clipId) return;
   armSafetyNet(context, () => requestClipDownload(context, clipId));
   try { await context.streamerbot.runApprovedAction(GET_CLIP_DOWNLOAD_ACTION_ID, { clipId }); }
   catch { armConnectionRetry(context, () => requestClipDownload(context, clipId)); }
@@ -181,7 +183,7 @@ async function requestClipDownload(context, clipId) {
 async function requestNextClip(context) {
   const settings = readSettings(context);
   const state = sanitizeState(await context.state.read());
-  if (!state.playbackEnabled) return;
+  if (!state.playbackEnabled || suspendedByMediaSlot) return;
   const eligible = filterClipsByDuration(state.clips, settings.minDurationSeconds, settings.maxDurationSeconds);
   if (eligible.length === 0 || eligible.every((clip) => state.seenClipIds.includes(clip.id))) {
     await requestClipList(context);
@@ -196,7 +198,7 @@ async function requestNextClip(context) {
 async function handleClipsReceived(event, context) {
   const clips = Array.isArray(event.payload?.clips) ? event.payload.clips.filter((clip) => clip && typeof clip.id === 'string') : [];
   const state = sanitizeState(await context.state.read());
-  if (!state.playbackEnabled) return;
+  if (!state.playbackEnabled || suspendedByMediaSlot) return;
   if (state.pendingClipId !== undefined) return;
   disarmSafetyNet(context);
   // Drop seen-IDs for clips no longer in the refreshed list (deleted, or aged out of the fetch
@@ -224,7 +226,7 @@ async function handleClipDownloadReceived(event, context) {
   const landscapeUrl = event.payload?.landscapeUrl;
   if (typeof clipId !== 'string' || typeof landscapeUrl !== 'string' || landscapeUrl === '') return;
   const state = sanitizeState(await context.state.read());
-  if (!state.playbackEnabled || state.pendingClipId !== clipId) return; // Stale, disabled, or mismatched response; ignore.
+  if (!state.playbackEnabled || suspendedByMediaSlot || state.pendingClipId !== clipId) return; // Stale, disabled, suspended, or mismatched response; ignore.
   disarmSafetyNet(context);
   const clip = state.clips.find((candidate) => candidate.id === clipId);
   const settings = readSettings(context);
@@ -249,14 +251,17 @@ export default {
   required: false,
   async start(context) {
     context.overlay.onLifecycle((event) => { void onLifecycle(event, context); });
+    mediaSlotUnsubscribe = context.mediaSlot.onChange((slot) => onMediaSlotChanged(slot, context));
+    const slot = context.mediaSlot.current();
+    suspendedByMediaSlot = typeof slot.ownerModuleId === 'string' && slot.ownerModuleId !== context.moduleId;
     // Playback is deliberately session-scoped. A prior run's enabled flag must never make clips
     // start merely because StreamBridge restarted; only the creator-controlled Enable action may
     // begin a new session. Preserve the rotation bag, but clear stale in-flight playback state.
     const state = sanitizeState(await context.state.read());
     await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false }));
-    try { await context.overlay.publish(`${context.moduleId}.media.stop`, {}); } catch { /* Optional overlay may be closed. */ }
+    try { await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }); } catch { /* Optional overlay may be closed. */ }
   },
-  async stop(context) { disarmSafetyNet(context); cancelNextTask(context); },
+  async stop(context) { disarmSafetyNet(context); cancelNextTask(context); mediaSlotUnsubscribe?.(); mediaSlotUnsubscribe = undefined; suspendedByMediaSlot = false; },
   async onEvent(event, context) {
     if (event.eventType === GET_CLIPS_EVENT || event.eventType === SHARED_CLIPS_EVENT) return handleClipsReceived(event, context);
     if (event.eventType === GET_CLIP_DOWNLOAD_EVENT) return handleClipDownloadReceived(event, context);
@@ -272,11 +277,30 @@ async function handleControl(event, context) {
   cancelNextTask(context);
   if (!event.payload.enabled) {
     await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false }));
-    try { await context.overlay.publish(`${context.moduleId}.media.stop`, {}); } catch { /* Optional overlay may be closed. */ }
+    try { await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }); } catch { /* Optional overlay may be closed. */ }
     return;
   }
   await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: true }));
+  if (suspendedByMediaSlot) return;
   await requestNextClip(context);
+}
+
+async function onMediaSlotChanged(slot, context) {
+  const shouldSuspend = typeof slot?.ownerModuleId === 'string' && slot.ownerModuleId !== context.moduleId;
+  if (shouldSuspend === suspendedByMediaSlot) return;
+  suspendedByMediaSlot = shouldSuspend;
+  disarmSafetyNet(context); cancelNextTask(context);
+  const state = sanitizeState(await context.state.read());
+  if (shouldSuspend) {
+    // Keep the creator's Enable state and no-repeat bag, but discard the interrupted in-flight
+    // request so a released slot starts a clean clip instead of accepting a stale response.
+    await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: state.playbackEnabled }));
+    if (state.playbackEnabled) {
+      try { await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }); } catch { /* Optional overlay may be closed. */ }
+    }
+    return;
+  }
+  if (state.playbackEnabled) scheduleNext(context, 1_000);
 }
 
 // The real driver of playback pacing: the next clip is requested a fixed pause after the current
@@ -285,7 +309,7 @@ async function handleControl(event, context) {
 // work, which played clips on a schedule with no relationship to how long the current one was.
 async function onLifecycle(event, context) {
   const state = sanitizeState(await context.state.read());
-  if (!state.playbackEnabled || state.pendingClipId === undefined || state.pendingPlaybackId !== event.playbackId) return;
+  if (!state.playbackEnabled || suspendedByMediaSlot || state.pendingClipId === undefined || state.pendingPlaybackId !== event.playbackId) return;
   if (event.phase === 'loading') return;
   if (event.phase === 'started' || event.phase === 'heartbeat') { disarmSafetyNet(context); return; }
   if (event.phase !== 'ended' && event.phase !== 'stopped' && event.phase !== 'failed' && event.phase !== 'timeout') return;

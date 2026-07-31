@@ -54,7 +54,9 @@ try {
     Get-ChildItem -LiteralPath $resolvedPackages -Filter 'THSV-StreamBridge-AddOn-*.zip*' -File | Remove-Item -Force
     $addOnOutputs = @()
     $addOnPackageFolderNames = @()
-    Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory | Sort-Object Name | ForEach-Object {
+    Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory |
+        Sort-Object Name |
+        ForEach-Object {
         $descriptorPath = Join-Path $_.FullName 'module-package.json'
         if (-not (Test-Path -LiteralPath $descriptorPath)) { return }
         $descriptor = Get-Content -Raw -LiteralPath $descriptorPath | ConvertFrom-Json
@@ -179,7 +181,7 @@ try {
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'config'), (Join-Path $appRoot 'docs') | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'config\bridge.example.json') -Destination (Join-Path $appRoot 'config')
     $releaseDocs = @(
-        'add-on-capabilities.md', 'add-on-development.md', 'architecture.md', 'auto-translate.md', 'automated-shoutouts.md', 'browser-overlay.md',
+        'add-on-capabilities.md', 'add-on-development.md', 'architecture.md', 'automated-shoutouts.md', 'browser-overlay.md',
         'compatibility.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
         'discord-chat-archive.md', 'future-add-ons.md', 'future-projects-and-addons.md', 'getting-started.md', 'kofi-donations.md', 'module-system.md',
         'product-scope.md', 'production-readiness.md', 'quote-vault.md', 'release-candidate-status.md', 'release.md', 'rewards.md', 'scene-actions.md', 'security.md', 'setup.md',

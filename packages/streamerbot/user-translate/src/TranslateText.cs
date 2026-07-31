@@ -1,5 +1,5 @@
-// Purpose: Sends one creator-requested public chat segment to MyMemory's documented no-key API,
-// then returns only the bounded result to the User Translate add-on through its authenticated relay.
+// Purpose: Sends one broker-approved manual or automatic translation request to the selected
+// no-key provider, then returns only the bounded result to the combined Translate add-on.
 // Privacy: The source text leaves the local computer. It is never logged or stored by this action.
 // References: mscorlib.dll, System.dll, netstandard.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
@@ -26,12 +26,16 @@ public class CPHInline
         string relayToken = ReadArgument("thsvAddonRelayToken", 256);
         string requestId = ReadArgument("requestId", 100);
         string text = Normalize(ReadArgument("text", MaximumInputCharacters));
+        string provider = ReadArgument("provider", 20).ToLowerInvariant();
         string sourceLanguage = ReadArgument("sourceLanguage", 20).ToLowerInvariant();
         string targetLanguage = ReadArgument("targetLanguage", 20).ToLowerInvariant();
         int timeoutSeconds = ReadInteger("timeoutSeconds", 8, 3, 15);
         if (String.IsNullOrWhiteSpace(relayToken)) return Fail("StreamBridge did not dispatch this translation action.");
         if (String.IsNullOrWhiteSpace(requestId) || String.IsNullOrWhiteSpace(text)) return Fail("A request ID and text are required.");
-        if (!LanguagePattern.IsMatch(sourceLanguage) || !LanguagePattern.IsMatch(targetLanguage) || sourceLanguage == targetLanguage) return Fail("The language pair is invalid.");
+        if (provider != "google-web" && provider != "mymemory") return Fail("The translation provider is invalid.");
+        bool automaticSource = sourceLanguage == "auto";
+        if ((!automaticSource && !LanguagePattern.IsMatch(sourceLanguage)) || !LanguagePattern.IsMatch(targetLanguage) || sourceLanguage == targetLanguage) return Fail("The language pair is invalid.");
+        if (provider == "mymemory" && automaticSource) return Fail("MyMemory requires an explicit source language.");
 
         bool succeeded = false;
         string translatedText = "";
@@ -41,7 +45,7 @@ public class CPHInline
             var translatedSegments = new List<string>();
             foreach (string segment in SplitUtf8(text))
             {
-                translatedSegments.Add(TranslateSegment(segment, sourceLanguage, targetLanguage, timeoutSeconds));
+                translatedSegments.Add(TranslateSegment(segment, provider, sourceLanguage, targetLanguage, timeoutSeconds));
             }
             translatedText = Bounded(Normalize(String.Join(" ", translatedSegments.ToArray())), MaximumOutputCharacters);
             succeeded = !String.IsNullOrWhiteSpace(translatedText);
@@ -78,13 +82,47 @@ public class CPHInline
         return succeeded;
     }
 
-    private string TranslateSegment(string text, string sourceLanguage, string targetLanguage, int timeoutSeconds)
+    private string TranslateSegment(string text, string provider, string sourceLanguage, string targetLanguage, int timeoutSeconds)
+    {
+        if (provider == "google-web") return TranslateGoogleWeb(text, sourceLanguage, targetLanguage, timeoutSeconds);
+        return TranslateMyMemory(text, sourceLanguage, targetLanguage, timeoutSeconds);
+    }
+
+    private string TranslateMyMemory(string text, string sourceLanguage, string targetLanguage, int timeoutSeconds)
     {
         string url = "https://api.mymemory.translated.net/get?q=" + Uri.EscapeDataString(text) + "&langpair=" + Uri.EscapeDataString(sourceLanguage + "|" + targetLanguage) + "&mt=1";
+        JObject root = RequestJson(url, timeoutSeconds, "THSV-StreamBridge-Translate/2.5.1");
+        int status = root.Value<int?>("responseStatus") ?? 0;
+        string translated = root["responseData"] == null ? "" : (string)root["responseData"]["translatedText"];
+        if (status != 200 || String.IsNullOrWhiteSpace(translated)) throw new InvalidDataException("Translation provider returned no usable translation.");
+        return WebUtility.HtmlDecode(translated);
+    }
+
+    private string TranslateGoogleWeb(string text, string sourceLanguage, string targetLanguage, int timeoutSeconds)
+    {
+        // This is an optional, explicitly disclosed no-key consumer endpoint. It is not the
+        // authenticated Google Cloud Translation API and may change without notice.
+        string url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" + Uri.EscapeDataString(sourceLanguage) + "&tl=" + Uri.EscapeDataString(targetLanguage) + "&dt=t&dj=1&q=" + Uri.EscapeDataString(text);
+        JObject root = RequestJson(url, timeoutSeconds, "THSV-StreamBridge-Translate/2.5.1");
+        var sentences = root["sentences"] as JArray;
+        if (sentences == null || sentences.Count == 0) throw new InvalidDataException("Translation provider returned no sentences.");
+        var translated = new StringBuilder();
+        foreach (JToken sentence in sentences)
+        {
+            string value = Convert.ToString(sentence["trans"]) ?? "";
+            if (translated.Length + value.Length > MaximumOutputCharacters) break;
+            translated.Append(value);
+        }
+        if (translated.Length == 0) throw new InvalidDataException("Translation provider returned no usable translation.");
+        return WebUtility.HtmlDecode(translated.ToString());
+    }
+
+    private JObject RequestJson(string url, int timeoutSeconds, string userAgent)
+    {
         var request = (HttpWebRequest)WebRequest.Create(url);
         request.Method = "GET";
         request.Accept = "application/json";
-        request.UserAgent = "THSV-StreamBridge-User-Translate/1.0";
+        request.UserAgent = userAgent;
         request.Timeout = timeoutSeconds * 1000;
         request.ReadWriteTimeout = timeoutSeconds * 1000;
         using (var response = (HttpWebResponse)request.GetResponse())
@@ -93,11 +131,7 @@ public class CPHInline
         {
             if (response.StatusCode != HttpStatusCode.OK) throw new WebException("Translation provider returned an HTTP error.");
             // Bound third-party data before JSON parsing so a bad provider response cannot grow memory without limit.
-            var root = JObject.Parse(ReadBoundedProviderResponse(reader));
-            int status = root.Value<int?>("responseStatus") ?? 0;
-            string translated = root["responseData"] == null ? "" : (string)root["responseData"]["translatedText"];
-            if (status != 200 || String.IsNullOrWhiteSpace(translated)) throw new InvalidDataException("Translation provider returned no usable translation.");
-            return WebUtility.HtmlDecode(translated);
+            return JObject.Parse(ReadBoundedProviderResponse(reader));
         }
     }
 
@@ -155,6 +189,6 @@ public class CPHInline
     private bool Fail(string reason)
     {
         CPH.SetArgument("userTranslateValid", false); CPH.SetArgument("userTranslateErrorCode", "invalid-request");
-        CPH.LogWarn("THSV User Translate: " + reason); return false;
+        CPH.LogWarn("THSV Translate: " + reason); return false;
     }
 }

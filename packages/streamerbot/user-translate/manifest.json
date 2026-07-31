@@ -1,17 +1,19 @@
 {
   "schemaVersion": "1.0.0",
-  "name": "THSV StreamBridge - User Translate",
+  "name": "THSV StreamBridge - Translate",
   "version": "2.5.1",
   "author": "surakage",
-  "description": "Performs creator-approved, timeout-bounded MyMemory translation requests for the User Translate add-on and relays the result to StreamBridge.",
+  "description": "Performs creator-approved, timeout-bounded manual or automatic translation requests for the combined Translate add-on.",
   "minimumStreamerBotVersion": "1.0.5-alpha.31",
   "actions": [
     {
       "id": "a6c9d452-7627-4bc2-b0b3-46735d8aa120",
-      "name": "THSV Addon - User Translate - Translate Text",
-      "group": "THSV Addon - User Translate",
+      "name": "THSV Addon - Translate - Translate Text",
+      "group": "THSV Addon - Translate",
       "source": "src/TranslateText.cs",
       "importFile": "THSV-StreamBridge-User-Translate-2.5.1.sb",
+      "excludeFromHistory": true,
+      "excludeFromPending": true,
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

@@ -432,7 +432,7 @@ export class DiagnosticsServer {
     response.statusCode = 200;
     response.setHeader('content-type', file.endsWith('.html') ? 'text/html; charset=utf-8' : file.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
     response.setHeader('cache-control', 'no-store');
-    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:; media-src 'self' https:; base-uri 'none'; form-action 'none'");
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:; media-src 'self' https:; frame-src https://clips.twitch.tv; base-uri 'none'; form-action 'none'");
     response.end(body);
   }
 

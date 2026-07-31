@@ -65,6 +65,8 @@ describe('native platform intake package', () => {
     const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
     expect(source).toContain('["streamId"]');
     expect(source).toContain('["streamTitle"]');
+    expect(source).toContain('Read("broadcasterChannel.title")');
+    expect(source).toContain('Read("broadcasterChannel.gameName")');
     expect(source).toContain('["streamCategoryName"]');
     expect(source).toContain('"stream-start:" + startedAt');
   });

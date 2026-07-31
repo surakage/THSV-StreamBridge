@@ -13,6 +13,7 @@ Supported permission declarations are:
 - `events.subscribe`
 - `streamerbot.run-approved-action`
 - `overlay.publish`
+- `media.exclusive` (bounded coordination for add-ons that must not play video simultaneously)
 - `chat.send`
 - `provider.events.publish` (first-party provider modules only; never a generic event emitter)
 - `schedule.bounded`

@@ -153,6 +153,14 @@ function isCreatorControl(relay: AddOnRelay): boolean {
     if (!['THSV Addon - Random Clip Player - Enable', 'THSV Addon - Random Clip Player - Disable'].includes(relay.sourceEventType)) return false;
     return Object.keys(relay.payload).length === 1 && typeof relay.payload['enabled'] === 'boolean';
   }
+  if (relay.moduleId === 'thsv.live-beacon' && relay.eventType === 'addon.thsv.live-beacon.broadcast-control') {
+    if (relay.sourceEventType !== 'THSV Addon - Live Beacon - Broadcast Started') return false;
+    const keys = Object.keys(relay.payload);
+    const startedAt = relay.payload['startedAt'];
+    return keys.length === 2
+      && relay.payload['action'] === 'online'
+      && typeof startedAt === 'string' && startedAt.length <= 40 && Number.isFinite(Date.parse(startedAt));
+  }
   if (relay.moduleId === 'thsv.first-five' && relay.eventType === 'addon.thsv.first-five.control') {
     return relay.sourceEventType === 'THSV Addon - First Five - Reset'
       && Object.keys(relay.payload).length === 1

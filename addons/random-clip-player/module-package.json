@@ -7,6 +7,7 @@
   "permissions": [
     "streamerbot.run-approved-action",
     "overlay.publish",
+    "media.exclusive",
     "schedule.bounded",
     "state.private",
     "events.subscribe"
@@ -87,8 +88,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 17196,
-      "sha256": "3639ae36cc3dcfbdf9f58e2963e02b0e9541a720bb18616e4d9f654542f3c662"
+      "size": 18794,
+      "sha256": "74dc8d9bfec6e3711eb9fb825515e4f68ec8882e6b3b9460a15723991fd74f47"
     },
     {
       "path": "schemas/config.json",

@@ -90,10 +90,21 @@ describe('Random Clip Player add-on package', () => {
     expect(publishedTopics).toHaveLength(2);
     expect(publishedTopics[1]).toMatchObject({ topic: 'thsv.random-clip-player.media.play', payload: { url: 'https://example.com/clip.mp4', title: 'A great play', posterUrl: 'https://example.com/thumb.jpg', durationMs: 12_000, muted: false, volume: 1 } });
 
+    // A higher-priority add-on can temporarily take the one shared video surface without
+    // disabling the creator's Random Clip Player session or opening another WebSocket.
+    const raidContext = broker.contextFor({ moduleId: 'sample.raid-scout', permissions: ['media.exclusive'], approvedActionIds: [] });
+    const raidLease = await raidContext.mediaSlot.acquire({ durationMs: 60_000, priority: 100 });
+    expect(raidLease.acquired).toBe(true);
+    expect(publishedTopics[2]).toMatchObject({ topic: 'thsv.random-clip-player.media.stop', payload: { fade: true } });
+    expect(broker.diagnostics()['mediaSlot']).toMatchObject({ ownerModuleId: 'sample.raid-scout', priority: 100 });
+    if (!raidLease.acquired) throw new Error('The higher-priority Raid Scout lease must be acquired.');
+    await raidContext.mediaSlot.release(raidLease.leaseId);
+    expect(broker.diagnostics()['scheduledTasks']).toBe(1);
+
     await registry.publish({
       ...clipsEvent, eventId: 'test-control-disable', eventType: 'addon.thsv.random-clip-player.control', payload: { enabled: false },
     });
-    expect(publishedTopics[2]).toMatchObject({ topic: 'thsv.random-clip-player.media.stop' });
+    expect(publishedTopics[3]).toMatchObject({ topic: 'thsv.random-clip-player.media.stop', payload: { fade: true } });
     const actionsWhileDisabled = dispatchedActions.length;
     await registry.publish(downloadEvent);
     expect(dispatchedActions).toHaveLength(actionsWhileDisabled);
@@ -183,6 +194,10 @@ describe('Random Clip Player add-on package', () => {
     // Both playable clips have now been played once. Ask the cache for one refreshed batch while
     // leaving enough time for it to respond before the legacy Streamer.bot fallback runs.
     lifecycleListener?.({ playbackId: String(secondPlaybackId), phase: 'ended', occurredAt: new Date().toISOString() });
+    // Lifecycle listeners are intentionally fire-and-forget in the overlay broker. Wait until the
+    // async handler has persisted the completed clip and armed the post-clip task before advancing
+    // the wall clock, otherwise a busy full-suite run can publish the cache snapshot too early.
+    await expect.poll(() => broker.diagnostics()['scheduledTasks']).toBe(1);
     await new Promise((resolve) => setTimeout(resolve, 1_100));
     expect(dispatchedActions).toHaveLength(2);
 

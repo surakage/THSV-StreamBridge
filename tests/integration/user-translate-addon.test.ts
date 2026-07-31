@@ -36,7 +36,7 @@ describe('User Translate installed add-on', () => {
     const registry = new ModuleRegistry([{ ...module, capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: ['a6c9d452-7627-4bc2-b0b3-46735d8aa120'] } }], silentLogger, 5_000, broker);
     await registry.start(); await registry.publish(command());
     expect(actions).toHaveLength(1);
-    expect(actions[0]).toMatchObject({ actionId: 'a6c9d452-7627-4bc2-b0b3-46735d8aa120', argumentsValue: { requestId: 'command-es-1', text: 'hello world', sourceLanguage: 'en', targetLanguage: 'es', timeoutSeconds: 8 } });
+    expect(actions[0]).toMatchObject({ actionId: 'a6c9d452-7627-4bc2-b0b3-46735d8aa120', argumentsValue: { requestId: 'command-es-1', text: 'hello world', provider: 'google-web', sourceLanguage: 'auto', targetLanguage: 'es', timeoutSeconds: 8 } });
     expect(actions[0]?.argumentsValue['thsvAddonRelayToken']).toEqual(expect.any(String));
     await registry.publish(command({ eventId: 'translation-1', eventType: 'addon.thsv.user-translate.translation-received', platform: 'system', user: undefined, source: { adapter: 'streamerbot-addon-relay', eventId: 'translation-relay-1', eventName: 'Translate Text' }, payload: { requestId: 'command-es-1', succeeded: true, translatedText: 'hola mundo' } }));
     expect(sends).toEqual([{ message: 'Viewer: (es) hola mundo', routing: 'source', sourcePlatform: 'twitch', overflow: 'split' }]);

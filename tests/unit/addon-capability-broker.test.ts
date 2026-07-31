@@ -30,10 +30,11 @@ describe('AddOnCapabilityBroker', () => {
     await expect(context.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toBeInstanceOf(CapabilityDeniedError);
     expect(() => context.schedule.after(1_000, () => undefined)).toThrow(CapabilityDeniedError);
     await expect(context.overlay.publish('sample.denied.card', { message: 'private-payload' })).rejects.toBeInstanceOf(CapabilityDeniedError);
+    expect(() => context.mediaSlot.current()).toThrow(CapabilityDeniedError);
     const encoded = JSON.stringify(broker.diagnostics());
     expect(encoded).not.toContain('do-not-report');
     expect(encoded).not.toContain('private-payload');
-    expect(encoded).toContain('"denied":4');
+    expect(encoded).toContain('"denied":5');
   });
 
   it('exposes creator-saved settings on the context, frozen and defaulted to an empty object', async () => {
@@ -177,6 +178,26 @@ describe('AddOnCapabilityBroker', () => {
     expect(unsubscribe).toHaveBeenCalledOnce();
     broker.cleanup('sample.media');
     expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('coordinates one bounded exclusive media owner and releases it during cleanup', async () => {
+    vi.useFakeTimers();
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const player = broker.contextFor({ moduleId: 'sample.player', permissions: ['media.exclusive'], approvedActionIds: [] });
+    const raid = broker.contextFor({ moduleId: 'sample.raid', permissions: ['media.exclusive'], approvedActionIds: [] });
+    const other = broker.contextFor({ moduleId: 'sample.other', permissions: ['media.exclusive'], approvedActionIds: [] });
+    const changes = vi.fn(); player.mediaSlot.onChange(changes);
+
+    const first = await raid.mediaSlot.acquire({ durationMs: 60_000, priority: 100 });
+    expect(first).toMatchObject({ acquired: true, ownerModuleId: 'sample.raid', priority: 100 });
+    expect(player.mediaSlot.current()).toMatchObject({ ownerModuleId: 'sample.raid' });
+    await expect(other.mediaSlot.acquire({ durationMs: 60_000, priority: 100 })).resolves.toMatchObject({ acquired: false, ownerModuleId: 'sample.raid' });
+    expect(changes).toHaveBeenLastCalledWith(expect.objectContaining({ ownerModuleId: 'sample.raid' }));
+
+    broker.cleanup('sample.raid');
+    await vi.runAllTimersAsync();
+    expect(player.mediaSlot.current()).toEqual({});
+    expect(changes).toHaveBeenLastCalledWith({});
   });
 
   it('revokes every capability exposed by a stopped or superseded runtime context', async () => {

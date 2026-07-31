@@ -1,60 +1,51 @@
-# User Translate setup
+# Translate setup
 
 **Module:** `thsv.user-translate`
 **Version:** `2.5.1`
 **Publisher:** THSV StreamBridge
 
-Translates only explicit viewer requests through a disclosed no-key provider, then returns bounded results to the originating platform without retaining message text.
+Translate combines viewer commands and optional privacy-gated automatic translation. Results return only to the originating platform, and message text is never retained.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-User-Translate-2.5.1.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-User-Translate-2.5.1.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-User-Translate-2.5.1.sb` in Streamer.bot.
-4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. Install `THSV-Translate-2.5.1.thsv-addon` in **Setup Wizard > Add-ons**.
+2. Import `Streamer.bot/THSV-StreamBridge-User-Translate-2.5.1.sb`.
+3. Inspect Streamer.bot and approve only `THSV Addon - Translate - Translate Text`.
+4. Do not attach a trigger to that action; StreamBridge dispatches it through the capability broker.
+5. In the wizard choose Manual, Automatic, or Both, then select the provider and language pair.
 
-### Add-on-specific steps
+The default Manual setup uses Google web, source `auto`, and target `en`. `!translate buenos dias` therefore translates Spanish text into English. MyMemory is the documented fallback and requires an explicit source language.
 
-1. Install and enable the add-on, then review the external translation privacy disclosure in its settings.
-2. Import the User Translate Streamer.bot package and approve its Translate Text action for this add-on.
-3. Choose the command prefix and enabled language codes in the add-on settings; no separate Streamer.bot command is required.
-4. Examples: !translate es hello, !es hello, or on Twitch reply to a message with !es.
+## Automatic mode
+
+Automatic starts allowlist-only. Add exact viewer names or stable IDs, then review the ignore list, cooldowns, per-minute ceiling, and translated-chat percentage ceiling before enabling it for a wider audience.
 
 ## Streamer.bot
 
 Minimum supported Streamer.bot version: `1.0.5-alpha.31`.
 
-Imported group: `THSV Addon - User Translate`
+Imported group: `THSV Addon - Translate`
 
-- `THSV Addon - User Translate - Translate Text` in `THSV Addon - User Translate`
+- `THSV Addon - Translate - Translate Text`
 
-Broker-dispatched only. Do not attach triggers; StreamBridge restricts calls to the creator-approved action ID.
-
-## Browser source
-
-When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.user-translate` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.
+The action is broker-dispatched only and excluded from routine action history/pending views to reduce noise.
 
 ## Offline test
 
-1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.
-2. Save the intended settings and use its preview, test, or manual control where available.
-3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.
-4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.
+Static/offline validation confirms parsing, settings visibility, package integrity, provider bounds, and source-platform routing. A real translation requires network access and must be checked from live chat:
 
-### Health checks
-
-- **thsv.user-translate.runtime:** Confirms bounded command handling, provider dispatch, and source-platform response routing.
+1. Send `!translate buenos dias`.
+2. Confirm exactly one Translate action runs.
+3. Confirm the English response returns only to the source platform.
+4. Enable Both with one allowlisted test account and confirm only that account's eligible ordinary messages translate.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `chat.send`, `schedule.bounded`, `state.private`, `streamerbot.run-approved-action`.
+Permissions: `events.subscribe`, `chat.send`, `schedule.bounded`, `state.private`, `streamerbot.run-approved-action`.
 
-Private storage: `data/addons/thsv.user-translate/`, `data/addons/.state/thsv.user-translate/`.
+Private storage contains correlation and cooldown metadata only:
 
-Dependencies: none.
+- `data/addons/thsv.user-translate/`
+- `data/addons/.state/thsv.user-translate/`
 
-## Remove or repair
-
-1. Uninstall the add-on. Only bounded cooldown metadata is retained; message text is never stored.
-
-If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.
+See [Translate](../user-translate.md) for provider disclosure, privacy rules, migration, and acceptance steps.

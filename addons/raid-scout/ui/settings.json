@@ -8,7 +8,8 @@
     "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio", "preferredLanguage",
     "requireMatchingLanguage", "excludedChannels", "excludedCategories", "excludedTags", "recentRaidStreams",
     "confirmationMode", "suggestionExpiryMinutes", "announceConfirmedRaid", "confirmedRaidMessage", "announceNoCandidate",
-    "noCandidateMessage", "showSuggestionCard", "showConfirmedCard", "cardSeconds", "overlayBackgroundMode",
+    "noCandidateMessage", "showSearchProgress", "showSuggestionCard", "showConfirmedCard", "cardSeconds",
+    "previewClipBeforeRaid", "pauseOtherVideoOverlays", "clipLookupCount", "clipPreviewMuted", "clipPreviewVolume", "overlayBackgroundMode",
     "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"
   ],
   "fields": {
@@ -45,6 +46,10 @@
     "preferredLanguage": { "visibleWhen": { "field": "requireMatchingLanguage", "equals": true } },
     "confirmedRaidMessage": { "visibleWhen": { "field": "announceConfirmedRaid", "equals": true } },
     "noCandidateMessage": { "visibleWhen": { "field": "announceNoCandidate", "equals": true } },
+    "clipLookupCount": { "visibleWhen": { "field": "previewClipBeforeRaid", "equals": true } },
+    "pauseOtherVideoOverlays": { "visibleWhen": { "field": "previewClipBeforeRaid", "equals": true } },
+    "clipPreviewMuted": { "visibleWhen": { "field": "previewClipBeforeRaid", "equals": true } },
+    "clipPreviewVolume": { "visibleWhen": { "field": "previewClipBeforeRaid", "equals": true } },
     "overlayBackgroundMode": { "labels": { "glass": "Glass", "solid": "Solid", "none": "Transparent" } },
     "overlayFontFamily": { "labels": { "display": "Display", "broadcast": "Broadcast", "serif": "Serif", "mono": "Monospace" } }
   },
@@ -64,8 +69,9 @@
     { "id": "language-category", "title": "6. Language, category, and tags", "description": "Require a matching language when needed, then exclude categories or tags you do not want recommended.", "fields": ["requireMatchingLanguage", "preferredLanguage", "excludedCategories", "excludedTags"] },
     { "id": "channels-history", "title": "7. Blocked channels and repeat protection", "description": "Your own channel, offline channels, the current suggestion, blocked channels, and recent confirmed raids are always removed.", "fields": ["excludedChannels", "recentRaidStreams"] },
     { "id": "messages", "title": "8. Confirmation and chat messages", "description": "Set how long a suggestion remains valid and choose which outcomes should be announced in chat. Message boxes appear only when their announcement is enabled.", "fields": ["suggestionExpiryMinutes", "announceConfirmedRaid", "confirmedRaidMessage", "announceNoCandidate", "noCandidateMessage"] },
-    { "id": "overlay-content", "title": "9. Dock and on-stream cards", "description": "Use the add-on URL privately as a dock to review suggestions. Disable suggestion cards if an unconfirmed destination should not appear on-stream.", "fields": ["showSuggestionCard", "showConfirmedCard", "cardSeconds"] },
-    { "id": "overlay-style", "title": "10. Card appearance", "description": "Choose a readable card style for OBS, Meld, Streamlabs, or a private browser dock.", "fields": ["overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"] },
+    { "id": "overlay-content", "title": "9. Search progress and cards", "description": "Use the add-on URL privately as a dock to watch Raid Scout check each source. Search steps stay out of chat; disable suggestion cards only when an unconfirmed destination must remain private from the on-stream source.", "fields": ["showSearchProgress", "showSuggestionCard", "showConfirmedCard", "cardSeconds"] },
+    { "id": "clip-preview", "title": "10. Optional raid clip preview", "description": "After you Confirm a suggestion, optionally play one public clip from that channel before Twitch starts the raid. No clip is downloaded or retained. If Twitch returns no usable clip, the confirmed raid continues without one.", "notice": "The recommended pause option uses StreamBridge's single internal video slot: Random Clip Player fades out without being disabled, Raid Scout plays its clip, and cancellation or failure allows normal playback to resume. Twitch clip embeds do not expose a precise playback-ended event, so Raid Scout uses the reported duration plus a short bounded grace period.", "links": [{ "label": "Twitch clip embedding rules", "url": "https://dev.twitch.tv/docs/embed/video-and-clips/" }], "fields": ["previewClipBeforeRaid", "pauseOtherVideoOverlays", "clipLookupCount", "clipPreviewMuted", "clipPreviewVolume"] },
+    { "id": "overlay-style", "title": "11. Card appearance", "description": "Choose a readable card style for OBS, Meld, Streamlabs, or a private browser dock.", "fields": ["overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"] },
     {
       "id": "maintenance",
       "title": "Safety, controls, and privacy",

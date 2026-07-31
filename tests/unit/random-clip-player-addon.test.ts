@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error plain-JS add-on entrypoint has no type declarations
 import { filterClipsByDuration, selectNextClip } from '../../addons/random-clip-player/dist/index.js';
@@ -45,5 +46,16 @@ describe('Random Clip Player - selectNextClip', () => {
     const clips = [clip('a', 10), clip('b', 10), clip('c', 10)];
     expect(pickNext(clips, [], () => 0)?.id).toBe('a');
     expect(pickNext(clips, [], () => 0.999)?.id).toBe('c');
+  });
+});
+
+describe('Random Clip Player - shared video coordination', () => {
+  it('declares the exclusive-media permission and suspends cleanly for another owner', async () => {
+    const descriptor = JSON.parse(await readFile('addons/random-clip-player/module-package.json', 'utf8')) as { permissions: string[] };
+    const runtime = await readFile('addons/random-clip-player/dist/index.js', 'utf8');
+    expect(descriptor.permissions).toContain('media.exclusive');
+    expect(runtime).toContain('context.mediaSlot.onChange');
+    expect(runtime).toContain('onMediaSlotChanged');
+    expect(runtime).toContain('fade: true');
   });
 });

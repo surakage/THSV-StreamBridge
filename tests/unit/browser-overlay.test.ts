@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { describe, expect, it } from 'vitest';
+import { WebSocket } from 'ws';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { BrowserOverlayConfig } from '../../schemas/config.js';
 import { projectBrowserOverlayEvent, projectBrowserOverlayEvents } from '../../bridge/core/browser-overlay.js';
@@ -98,12 +100,64 @@ describe('Browser Overlay Hub contract', () => {
     receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'unknown', phase: 'ended' }));
     expect(observed).toEqual([]);
     hub.publishAddOn('sample.clips', 'sample.clips.media.play', { playbackId: 'clip-17', url: 'https://clips.example/video.mp4' });
-    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'clip-17', phase: 'started', currentTime: 0 }));
-    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'clip-17', phase: 'ended', currentTime: 8, duration: 8 }));
-    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'clip-17', phase: 'ended' }));
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'hidden-source', playbackId: 'clip-17', phase: 'failed' }));
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'visible-source', playbackId: 'clip-17', phase: 'started', currentTime: 0 }));
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'hidden-source', playbackId: 'clip-17', phase: 'timeout' }));
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'visible-source', playbackId: 'clip-17', phase: 'ended', currentTime: 8, duration: 8 }));
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'visible-source', playbackId: 'clip-17', phase: 'ended' }));
     expect(observed).toMatchObject([{ playbackId: 'clip-17', phase: 'started' }, { playbackId: 'clip-17', phase: 'ended' }]);
     expect(hub.status()).toMatchObject({ addOnLifecycleReports: 2, lifecycleSubscribers: 1 });
     hub.stop();
+  });
+
+  it('replays active add-on media when an OBS browser source connects after play was published', async () => {
+    const config = await testConfig();
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const server = createServer();
+    hub.attach(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (address === null || typeof address === 'string') throw new Error('Expected a TCP test server address');
+    hub.publishAddOn('sample.clips', 'sample.clips.media.play', { playbackId: 'clip-late-obs', url: 'https://clips.example/video.mp4', durationMs: 30_000 });
+
+    const received: Array<Record<string, unknown>> = [];
+    const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`, { origin: `http://127.0.0.1:${String(address.port)}` });
+    await new Promise<void>((resolve, reject) => {
+      client.on('error', reject);
+      client.on('message', (raw) => {
+        const message = Buffer.isBuffer(raw)
+          ? raw.toString('utf8')
+          : Array.isArray(raw)
+            ? Buffer.concat(raw).toString('utf8')
+            : Buffer.from(raw).toString('utf8');
+        received.push(JSON.parse(message) as Record<string, unknown>);
+        if (received.length === 2) resolve();
+      });
+    });
+    expect(received).toMatchObject([
+      { kind: 'hub.ready' },
+      { kind: 'addon.publish', moduleId: 'sample.clips', topic: 'sample.clips.media.play', payload: { playbackId: 'clip-late-obs' } },
+    ]);
+
+    const retryReceived = new Promise<void>((resolve) => client.once('message', () => resolve()));
+    (hub as unknown as { replayUnstartedMedia(): void }).replayUnstartedMedia();
+    await retryReceived;
+    expect(received).toHaveLength(3);
+
+    const startedReceived = new Promise<void>((resolve) => {
+      const remove = hub.subscribeAddOnLifecycle('sample.clips', (event) => {
+        if (event.playbackId === 'clip-late-obs' && event.phase === 'started') { remove(); resolve(); }
+      });
+    });
+    client.send(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'clip-late-obs', phase: 'started' }));
+    await startedReceived;
+    (hub as unknown as { replayUnstartedMedia(): void }).replayUnstartedMedia();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(received).toHaveLength(3);
+
+    client.close();
+    hub.stop();
+    await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
   });
 
   it('adds enabled platform activity to chat and truncates it within the Unicode-safe platform cap', async () => {

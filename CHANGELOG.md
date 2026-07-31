@@ -6,7 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-No unreleased changes.
+- Updated Streamer.bot guidance to recommend `1.0.5-beta.5` while retaining beta.2 as the latest directly observed THSV runtime evidence. The compatibility review confirmed that OBS retry handling, Speaker.bot timeout improvements, and Twitch user-lookup guards require no C# import, trigger, reference, normalized-event, or add-on API change.
+- Added Raid Scout's private phased search presentation and optional single public Twitch clip preview before an already-confirmed raid. The preview is bounded, retained nowhere, and safely falls through to the raid when no clip can play.
+- Declared Raid Scout's bounded-scheduling capability so live phased-search and clip-preview lifecycle events are accepted by the add-on broker.
+- Added a permission-gated exclusive video slot shared by media add-ons. A confirmed Raid Scout preview now fades and pauses Random Clip Player without disabling it or losing its shuffle bag; cancellation and failure release the slot, while a successful raid keeps the ending-scene clip hidden through the bounded handoff window.
+- Expanded Live Beacon with per-platform channel/forum destinations, existing forum-post IDs, and a create-for-me mode that creates each permanent welcome post on its first genuine live event and privately persists the confirmed thread ID. The standard import now asks for one shared webhook; advanced platform-specific webhook arguments remain available only for platforms routed to different parent destinations. Each linked embed includes explicit stream-title, game/category, direct-link, and start-time fields, plus Twitch broadcaster-title/category fallbacks.
+- Consolidated manual and automatic translation into the current Translate add-on. The legacy Auto Translate package remains migration-only in source and is excluded from new release bundles.
 
 ## [2.5.1] - 2026-07-30
 

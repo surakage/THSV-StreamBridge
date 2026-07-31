@@ -2,8 +2,9 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('User Translate Streamer.bot package', () => {
-  it('uses a documented HTTPS provider with timeouts and never logs translated text', async () => {
+  it('supports the disclosed easy provider and documented fallback with timeouts without logging text', async () => {
     const source = await readFile('packages/streamerbot/user-translate/src/TranslateText.cs', 'utf8');
+    expect(source).toContain('https://translate.googleapis.com/translate_a/single?');
     expect(source).toContain('https://api.mymemory.translated.net/get?q=');
     expect(source).toContain('request.Timeout = timeoutSeconds * 1000');
     expect(source).toContain('MaximumSegmentBytes = 450');
@@ -16,8 +17,9 @@ describe('User Translate Streamer.bot package', () => {
   });
 
   it('pins the broker-approved action and only declares required references', async () => {
-    const manifest = JSON.parse(await readFile('packages/streamerbot/user-translate/manifest.json', 'utf8')) as { actions: Array<{ id: string; references: string[] }> };
+    const manifest = JSON.parse(await readFile('packages/streamerbot/user-translate/manifest.json', 'utf8')) as { actions: Array<{ id: string; references: string[]; excludeFromHistory: boolean }> };
     expect(manifest.actions[0]?.id).toBe('a6c9d452-7627-4bc2-b0b3-46735d8aa120');
+    expect(manifest.actions[0]?.excludeFromHistory).toBe(true);
     expect(manifest.actions[0]?.references).not.toContain('C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll');
   });
 });

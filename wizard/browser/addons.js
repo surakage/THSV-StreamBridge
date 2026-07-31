@@ -40,8 +40,10 @@ function addOnOptionLabel(value) {
 
 function addOnVisibilityAttributes(ui) {
   const condition = ui?.visibleWhen;
-  if (!condition || typeof condition.field !== 'string' || !Object.hasOwn(condition, 'equals')) return '';
-  return ` data-addon-visible-field="${safe(condition.field)}" data-addon-visible-value="${safe(JSON.stringify(condition.equals))}"`;
+  if (!condition || typeof condition.field !== 'string') return '';
+  if (Object.hasOwn(condition, 'equals')) return ` data-addon-visible-field="${safe(condition.field)}" data-addon-visible-value="${safe(JSON.stringify(condition.equals))}"`;
+  if (Array.isArray(condition.in) && condition.in.length > 0) return ` data-addon-visible-field="${safe(condition.field)}" data-addon-visible-values="${safe(JSON.stringify(condition.in))}"`;
+  return '';
 }
 
 function safeAddOnLink(value) {
@@ -220,8 +222,14 @@ function updateAddOnFieldVisibility(form) {
     else if (controller?.type === 'checkbox') current = controller.checked;
     else current = controller?.value;
     let expected;
-    try { expected = JSON.parse(container.dataset.addonVisibleValue); } catch { expected = container.dataset.addonVisibleValue; }
-    container.hidden = current !== expected;
+    if (container.dataset.addonVisibleValues !== undefined) {
+      let values;
+      try { values = JSON.parse(container.dataset.addonVisibleValues); } catch { values = []; }
+      container.hidden = !Array.isArray(values) || !values.includes(current);
+    } else {
+      try { expected = JSON.parse(container.dataset.addonVisibleValue); } catch { expected = container.dataset.addonVisibleValue; }
+      container.hidden = current !== expected;
+    }
   });
 }
 
@@ -241,7 +249,7 @@ const DIRECT_ADDON_TRIGGER_REQUIREMENTS = {
 };
 
 const BROKER_ROUTED_ADDONS = new Set([
-  'thsv.auto-translate', 'thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.fan-crown',
+  'thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.fan-crown',
   'thsv.first-five', 'thsv.quote-vault', 'thsv.raid-scout', 'thsv.random-clip-player',
   'thsv.subathon-timer', 'thsv.user-translate', 'thsv.chat-guard', 'thsv.community-analytics', 'thsv.viewer-foundation', 'thsv.viewer-spotlight',
   'thsv.creator-controls',
@@ -257,7 +265,6 @@ const BROKER_ROUTED_ADDONS = new Set([
 // Direct commands and creator controls such as Enable, Reset, Pause, !clip, and !guardtrust are
 // intentionally omitted: Streamer.bot invokes those itself and they need no action grant.
 const RECOMMENDED_ADDON_ACTION_NAMES = {
-  'thsv.auto-translate': ['THSV Addon - Auto Translate - Translate Text'],
   'thsv.automated-shoutouts': ['THSV Addon - Automated Shoutouts - Lookup Twitch Creator', 'THSV Addon - Automated Shoutouts - Twitch Native Shoutout', 'THSV Addon - Automated Shoutouts - Get Twitch Clip'],
   'thsv.category-pilot': ['THSV Addon - Category Pilot - Process Probe'],
   'thsv.chat-guard': ['THSV Addon - Chat Guard - Moderate'],
@@ -272,7 +279,7 @@ const RECOMMENDED_ADDON_ACTION_NAMES = {
   'thsv.live-beacon': ['THSV Addon - Live Beacon - Deliver'],
   'thsv.raid-scout': ['THSV Addon - Raid Scout - Controller'],
   'thsv.random-clip-player': ['THSV Addon - Random Clip Player - Get Clips', 'THSV Addon - Random Clip Player - Get Clip Download'],
-  'thsv.user-translate': ['THSV Addon - User Translate - Translate Text'],
+  'thsv.user-translate': ['THSV Addon - Translate - Translate Text'],
   'thsv.viewer-spotlight': ['THSV Addon - Viewer Spotlight - Settle Reward', 'THSV Addon - Viewer Spotlight - Discord Snapshot'],
   'thsv.voice-relay': ['THSV Addon - Voice Relay - Speak'],
 };

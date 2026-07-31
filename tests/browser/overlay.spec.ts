@@ -531,3 +531,31 @@ test('Viewer Spotlight stays crisp and bounded with long names, maximum fields, 
   await expect(page.locator('#card-title')).toHaveText('Reconnected cleanly');
   await expect(page.locator('#card-text')).toHaveText('One fresh card after reconnect');
 });
+
+test('Raid Scout mounts only the bounded official Twitch clip embed', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.raid-scout', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.route('https://clips.twitch.tv/embed**', async (route) => await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>clip</title>' }));
+  await page.goto('/overlay/addons/thsv.raid-scout');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.raid-scout',
+    topic: 'thsv.raid-scout.media.play',
+    payload: { playbackId: 'raid-clip-1', embedUrl: 'https://clips.twitch.tv/embed?clip=SafeClipId', durationMs: 60_000, muted: true, title: 'One raid preview' },
+  }));
+  await expect(page.locator('#embed-media')).toBeVisible();
+  const source = await page.locator('#embed-media').getAttribute('src');
+  expect(source).toContain('clip=SafeClipId');
+  expect(source).toContain('parent=127.0.0.1');
+  expect(source).toContain('autoplay=true');
+  expect(source).toContain('muted=true');
+  await expect(page.locator('#media')).toBeHidden();
+  await expect(page.locator('#media-title')).toHaveText('One raid preview');
+
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.raid-scout',
+    topic: 'thsv.raid-scout.media.stop', payload: { fade: true },
+  }));
+  await expect(page.locator('#media-shell')).toHaveClass(/fading/u);
+  await expect(page.locator('#media-shell')).toBeHidden({ timeout: 2_000 });
+});

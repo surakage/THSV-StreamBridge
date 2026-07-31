@@ -17,8 +17,7 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | --- | --- | --- | --- |
 | Random Clip Player | Passed | Pending | Twitch clip lookup and complete playback lifecycle in each intended browser host. |
 | Automated Shoutouts | Passed | Pending | Twitch first-chat/manual shoutout, optional clip, and each enabled source-routed welcome. |
-| User Translate | Passed | Pending | Translation provider timeout, Unicode, attribution, splitting, and source-only reply. |
-| Auto Translate | Passed | Pending | Sustained-chat rate limits, moderation behavior, privacy disclosure, and source-only reply. |
+| Translate | Passed | Pending | Provider timeout, Unicode, attribution, splitting, sustained-chat limits, privacy disclosure, and source-only reply. |
 | Ko-fi Donations | Passed | Passed | Streamer.bot Test-trigger routing, stable-ID normalization, simulation marking, and durable delivery are locally accepted. One real Ko-fi test webhook plus stable-ID replay suppression remains provider acceptance. |
 | Subathon Timer | Passed | Pending | Real contribution rules, restart recovery, pause/resume, and long-running overlay. |
 | Stream Launch Countdown | Passed | Pending | Streamer.bot controls, finish sound, optional approved scene action, and browser-host rendering. |

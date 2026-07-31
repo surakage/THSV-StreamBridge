@@ -38,6 +38,8 @@ Creator-selected triggers:
 - **enable:** Attach the streaming host's scene-active trigger for the scene that should play clips.
 - **disable:** Attach the same scene's scene-inactive trigger, or the next scene's scene-active trigger.
 
+When Raid Scout confirms a clip preview with its recommended coordination option enabled, Random Clip Player keeps its Enable state and no-repeat rotation, fades out, and pauses requests while Raid Scout owns the shared video slot. Cancellation, lookup failure, playback failure, or raid failure releases the slot and allows Random Clip Player to resume. A successful raid keeps the slot protected for the bounded handoff window so the ending-scene clip cannot cover the raid preview.
+
 ## Browser source
 
 When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.random-clip-player` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.
@@ -55,7 +57,7 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `streamerbot.run-approved-action`, `overlay.publish`, `schedule.bounded`, `state.private`, `events.subscribe`.
+Package kind: **executable**. Requested permissions: `streamerbot.run-approved-action`, `overlay.publish`, `media.exclusive`, `schedule.bounded`, `state.private`, `events.subscribe`.
 
 Private storage: `data/addons/thsv.random-clip-player/`, `data/addons/.state/thsv.random-clip-player/`.
 

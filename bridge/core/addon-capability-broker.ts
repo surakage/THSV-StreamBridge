@@ -4,7 +4,7 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { Logger } from '../services/logger.js';
@@ -24,6 +24,10 @@ const MAXIMUM_PENDING_ACTIONS_PER_MODULE = 2;
 const MAXIMUM_ACTIONS_PER_MINUTE = 30;
 const MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE = 10;
 const MAXIMUM_PROVIDER_EVENTS_PER_MINUTE = 120;
+const MINIMUM_MEDIA_LEASE_MS = 1_000;
+const MAXIMUM_MEDIA_LEASE_MS = 600_000;
+const MAXIMUM_MEDIA_PRIORITY = 100;
+const MEDIA_LISTENER_TIMEOUT_MS = 2_000;
 const VIEWER_FOUNDATION_MODULE_ID = 'thsv.viewer-foundation';
 const COMMUNITY_ANALYTICS_MODULE_ID = 'thsv.community-analytics';
 const VIEWER_PROVIDER_TIMEOUT_MS = 2_000;
@@ -39,6 +43,7 @@ const providerDonationSchema = z.object({
   message: z.string().max(2_000).optional(),
   simulated: z.boolean(),
 }).strict();
+const mediaSlotRequestSchema = z.object({ durationMs: z.number().int().min(MINIMUM_MEDIA_LEASE_MS).max(MAXIMUM_MEDIA_LEASE_MS), priority: z.number().int().min(0).max(MAXIMUM_MEDIA_PRIORITY) }).strict();
 const PROVIDER_MODULES: Readonly<Record<string, string>> = Object.freeze({ 'thsv.kofi-donations': 'kofi' });
 const viewerIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u);
 const viewerProjectionQuerySchema = z.object({
@@ -106,6 +111,8 @@ interface ScheduledEntry { readonly moduleId: string; readonly timer: NodeJS.Tim
 interface ActionActivity { pending: number; readonly startedAt: number[]; readonly controllers: Set<AbortController> }
 interface OutboundActivity { pending: number; readonly startedAt: number[]; readonly controllers: Set<AbortController> }
 interface ViewerDeletionListener { readonly grant: ActiveModuleCapabilityGrant; readonly listener: (viewerId: string) => void | Promise<void> }
+interface MediaSlotListener { readonly grant: ActiveModuleCapabilityGrant; readonly listener: (state: AddOnMediaSlotStateV2) => void | Promise<void> }
+interface MediaSlotLease { readonly grant: ActiveModuleCapabilityGrant; readonly leaseId: string; readonly priority: number; readonly expiresAt: number; readonly timer: NodeJS.Timeout }
 
 export class CapabilityDeniedError extends Error {
   public constructor(public readonly moduleId: string, public readonly permission: AddOnPermissionV2, message: string) {
@@ -124,6 +131,8 @@ export class AddOnCapabilityBroker {
   private viewerFoundationProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: ViewerFoundationProviderV1 } | undefined;
   private readonly viewerDeletionListeners = new Map<string, Set<ViewerDeletionListener>>();
   private communityAnalyticsProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: CommunityAnalyticsProviderV1 } | undefined;
+  private mediaSlotLease: MediaSlotLease | undefined;
+  private readonly mediaSlotListeners = new Map<string, Set<MediaSlotListener>>();
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {}
 
@@ -156,6 +165,12 @@ export class AddOnCapabilityBroker {
         publish: (topic: string, payload: Readonly<Record<string, z.infer<typeof jsonValueV2Schema>>>) => this.publishOverlay(grant, topic, payload),
         onLifecycle: (listener: (event: AddOnOverlayLifecycleV2) => void) => this.subscribeOverlayLifecycle(grant, listener),
       }),
+      mediaSlot: Object.freeze({
+        current: () => this.currentMediaSlot(grant),
+        acquire: (request: AddOnMediaSlotRequestV2) => this.acquireMediaSlot(grant, request),
+        release: (leaseId: string) => this.releaseMediaSlot(grant, leaseId),
+        onChange: (listener: (state: AddOnMediaSlotStateV2) => void | Promise<void>) => this.subscribeMediaSlot(grant, listener),
+      }),
       chat: Object.freeze({ send: (request: AddOnOutboundMessageRequestV2) => this.sendChat(grant, request) }),
       provider: Object.freeze({ publishDonation: (request: AddOnProviderDonationRequestV2) => this.publishProviderDonation(grant, request) }),
       viewerFoundation: Object.freeze({
@@ -187,6 +202,11 @@ export class AddOnCapabilityBroker {
     }
     for (const unsubscribe of this.overlaySubscriptions.get(moduleId) ?? []) unsubscribe();
     this.overlaySubscriptions.delete(moduleId);
+    this.mediaSlotListeners.delete(moduleId);
+    if (this.mediaSlotLease?.grant.moduleId === moduleId) {
+      clearTimeout(this.mediaSlotLease.timer); this.mediaSlotLease = undefined;
+      void this.notifyMediaSlotChanged();
+    }
     const outbound = this.outboundActivity.get(moduleId);
     if (outbound !== undefined) for (const controller of outbound.controllers) controller.abort(new Error(`Add-on ${moduleId} stopped before its outbound chat request completed.`));
     this.outboundActivity.delete(moduleId);
@@ -206,6 +226,7 @@ export class AddOnCapabilityBroker {
       viewerFoundation: { available: this.viewerFoundationProvider !== undefined, providerModuleId: this.viewerFoundationProvider?.grant.moduleId },
       viewerDeletionSubscribers: this.viewerDeletionListeners.size,
       communityAnalytics: { available: this.communityAnalyticsProvider !== undefined, providerModuleId: this.communityAnalyticsProvider?.grant.moduleId },
+      mediaSlot: this.mediaSlotSnapshot(),
       limits: { maximumJsonBytes: MAXIMUM_JSON_BYTES, maximumRecordKeys: MAXIMUM_RECORD_KEYS, maximumArguments: MAXIMUM_ARGUMENTS, minimumDelayMs: MINIMUM_DELAY_MS, maximumDelayMs: MAXIMUM_DELAY_MS, maximumTimersPerModule: MAXIMUM_TIMERS_PER_MODULE, taskTimeoutMs: TASK_TIMEOUT_MS, maximumPendingActionsPerModule: MAXIMUM_PENDING_ACTIONS_PER_MODULE, maximumActionsPerMinute: MAXIMUM_ACTIONS_PER_MINUTE, maximumOutboundRequestsPerMinute: MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE, maximumProviderEventsPerMinute: MAXIMUM_PROVIDER_EVENTS_PER_MINUTE },
       modules: Object.fromEntries([...this.audits.entries()].map(([moduleId, audit]) => [moduleId, { ...audit }])),
     };
@@ -302,6 +323,79 @@ export class AddOnCapabilityBroker {
     if (this.dependencies.publishOverlay === undefined) return this.deny(grant.moduleId, 'overlay.publish', 'overlay.publish', 'The hosted add-on overlay contract is not available yet.');
     try { await this.dependencies.publishOverlay(grant.moduleId, topic, parsed); this.record(grant.moduleId, 'overlay.publish', 'granted'); }
     catch (error) { this.record(grant.moduleId, 'overlay.publish', 'failed'); throw error; }
+  }
+
+  private currentMediaSlot(grant: ActiveModuleCapabilityGrant): AddOnMediaSlotStateV2 {
+    this.require(grant, 'media.exclusive', 'mediaSlot.current');
+    this.expireMediaSlotIfNeeded();
+    this.record(grant.moduleId, 'mediaSlot.current', 'granted');
+    return this.mediaSlotSnapshot();
+  }
+
+  private async acquireMediaSlot(grant: ActiveModuleCapabilityGrant, request: AddOnMediaSlotRequestV2): Promise<AddOnMediaSlotLeaseV2> {
+    this.require(grant, 'media.exclusive', 'mediaSlot.acquire');
+    const parsed = mediaSlotRequestSchema.parse(request);
+    this.expireMediaSlotIfNeeded();
+    const current = this.mediaSlotLease;
+    if (current !== undefined && current.grant.moduleId !== grant.moduleId && current.priority >= parsed.priority) {
+      this.record(grant.moduleId, 'mediaSlot.acquire', 'denied');
+      return Object.freeze({ acquired: false, ...this.mediaSlotSnapshot() });
+    }
+    if (current !== undefined) clearTimeout(current.timer);
+    const leaseId = randomUUID(); const expiresAt = Date.now() + parsed.durationMs;
+    const timer = setTimeout(() => {
+      if (this.mediaSlotLease?.leaseId !== leaseId) return;
+      this.mediaSlotLease = undefined;
+      void this.notifyMediaSlotChanged();
+    }, parsed.durationMs);
+    this.mediaSlotLease = { grant, leaseId, priority: parsed.priority, expiresAt, timer };
+    this.record(grant.moduleId, 'mediaSlot.acquire', 'granted');
+    await this.notifyMediaSlotChanged();
+    return Object.freeze({ acquired: true, ownerModuleId: grant.moduleId, leaseId, priority: parsed.priority, expiresAt: new Date(expiresAt).toISOString() });
+  }
+
+  private async releaseMediaSlot(grant: ActiveModuleCapabilityGrant, leaseId: string): Promise<boolean> {
+    this.require(grant, 'media.exclusive', 'mediaSlot.release');
+    if (!ACTION_ID.test(leaseId)) throw new Error('Media slot leaseId must be a UUID.');
+    const current = this.mediaSlotLease;
+    if (current === undefined || current.grant.moduleId !== grant.moduleId || current.leaseId !== leaseId) return false;
+    clearTimeout(current.timer); this.mediaSlotLease = undefined;
+    this.record(grant.moduleId, 'mediaSlot.release', 'granted');
+    await this.notifyMediaSlotChanged();
+    return true;
+  }
+
+  private subscribeMediaSlot(grant: ActiveModuleCapabilityGrant, listener: (state: AddOnMediaSlotStateV2) => void | Promise<void>): () => void {
+    this.require(grant, 'media.exclusive', 'mediaSlot.onChange');
+    if (typeof listener !== 'function') throw new Error('Media slot listener must be a function.');
+    const entry: MediaSlotListener = { grant, listener };
+    const listeners = this.mediaSlotListeners.get(grant.moduleId) ?? new Set<MediaSlotListener>();
+    listeners.add(entry); this.mediaSlotListeners.set(grant.moduleId, listeners);
+    this.record(grant.moduleId, 'mediaSlot.onChange', 'granted');
+    let active = true;
+    return () => { if (!active) return; active = false; listeners.delete(entry); if (listeners.size === 0) this.mediaSlotListeners.delete(grant.moduleId); };
+  }
+
+  private mediaSlotSnapshot(): AddOnMediaSlotStateV2 {
+    const lease = this.mediaSlotLease;
+    return lease === undefined ? Object.freeze({}) : Object.freeze({ ownerModuleId: lease.grant.moduleId, leaseId: lease.leaseId, priority: lease.priority, expiresAt: new Date(lease.expiresAt).toISOString() });
+  }
+
+  private expireMediaSlotIfNeeded(): void {
+    if (this.mediaSlotLease === undefined || this.mediaSlotLease.expiresAt > Date.now()) return;
+    clearTimeout(this.mediaSlotLease.timer); this.mediaSlotLease = undefined;
+    void this.notifyMediaSlotChanged();
+  }
+
+  private async notifyMediaSlotChanged(): Promise<void> {
+    const snapshot = this.mediaSlotSnapshot();
+    for (const listeners of this.mediaSlotListeners.values()) {
+      for (const entry of [...listeners]) {
+        if (!this.isActive(entry.grant)) continue;
+        try { await withTimeout(Promise.resolve(entry.listener(snapshot)), MEDIA_LISTENER_TIMEOUT_MS, `Media slot listener for ${entry.grant.moduleId}`); }
+        catch (error) { this.record(entry.grant.moduleId, 'mediaSlot.onChange', 'failed'); this.logger.warn('Add-on media slot listener failed', { moduleId: entry.grant.moduleId, error }); }
+      }
+    }
   }
 
   private subscribeOverlayLifecycle(grant: ActiveModuleCapabilityGrant, listener: (event: AddOnOverlayLifecycleV2) => void): () => void {

@@ -39,9 +39,15 @@ const settings = {
   confirmedRaidMessage: 'Raiding {displayName} in {category}: https://twitch.tv/{login}',
   announceNoCandidate: false,
   noCandidateMessage: 'No destination.',
+  showSearchProgress: true,
   showSuggestionCard: false,
   showConfirmedCard: true,
   cardSeconds: 20,
+  previewClipBeforeRaid: false,
+  pauseOtherVideoOverlays: true,
+  clipLookupCount: 20,
+  clipPreviewMuted: false,
+  clipPreviewVolume: 0.8,
   overlayBackgroundMode: 'glass',
   overlayBackgroundColor: '#17122b',
   overlayBackgroundOpacity: 0.94,
@@ -70,8 +76,17 @@ function candidate(userId: string, source = 'preferred', overrides: Record<strin
 
 function runtime(overrides: Record<string, unknown> = {}, initialState: Record<string, unknown> = {}) {
   let state: Record<string, unknown> = initialState;
+  let lifecycleListener: ((event: Record<string, unknown>) => void) | undefined;
+  let taskSequence = 0;
+  const scheduled = new Map<string, () => unknown>();
+  let mediaOwner: Record<string, unknown> = {};
   return {
     value: () => state,
+    lifecycle: (event: Record<string, unknown>) => lifecycleListener?.(event),
+    runScheduled: async () => {
+      const tasks = [...scheduled.values()]; scheduled.clear();
+      for (const task of tasks) await task();
+    },
     context: {
       settings: {
         enabled: true,
@@ -109,9 +124,15 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
         confirmedRaidMessage: 'Raiding {displayName} in {category}: https://twitch.tv/{login}',
         announceNoCandidate: false,
         noCandidateMessage: 'No destination.',
+        showSearchProgress: true,
         showSuggestionCard: false,
         showConfirmedCard: true,
         cardSeconds: 20,
+        previewClipBeforeRaid: false,
+        pauseOtherVideoOverlays: true,
+        clipLookupCount: 20,
+        clipPreviewMuted: false,
+        clipPreviewVolume: 0.8,
         overlayBackgroundMode: 'glass',
         overlayBackgroundColor: '#17122b',
         overlayBackgroundOpacity: 0.94,
@@ -124,7 +145,23 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
       state: { read: vi.fn(async () => state), write: vi.fn(async (value) => { state = value; }) },
       streamerbot: { runApprovedAction: vi.fn(async () => {}) },
       chat: { send: vi.fn(async () => []) },
-      overlay: { publish: vi.fn(async () => {}) },
+      overlay: {
+        publish: vi.fn(async () => {}),
+        onLifecycle: vi.fn((listener) => { lifecycleListener = listener; return () => { lifecycleListener = undefined; }; }),
+      },
+      mediaSlot: {
+        current: vi.fn(() => mediaOwner),
+        acquire: vi.fn(async () => {
+          mediaOwner = { ownerModuleId: 'thsv.raid-scout', leaseId: '11111111-1111-4111-8111-111111111111', priority: 100, expiresAt: new Date(Date.now() + 600_000).toISOString() };
+          return { acquired: true, ...mediaOwner };
+        }),
+        release: vi.fn(async () => { mediaOwner = {}; return true; }),
+        onChange: vi.fn(() => () => undefined),
+      },
+      schedule: {
+        after: vi.fn((_delay: number, task: () => unknown) => { const id = `task-${String(++taskSequence)}`; scheduled.set(id, task); return id; }),
+        cancel: vi.fn((id: string) => scheduled.delete(id)),
+      },
     },
   };
 }
@@ -297,6 +334,28 @@ describe('Raid Scout add-on', () => {
     }));
   });
 
+  it('finishes a phased no-match search without treating card duration as a callback', async () => {
+    const testRuntime = runtime({ showSearchProgress: true, announceNoCandidate: false });
+    await raidScout.onEvent(control('suggest'), testRuntime.context);
+    const discoverPending = testRuntime.value().pending as { requestId: string };
+    await raidScout.onEvent({
+      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
+      payload: {
+        operation: 'discover', requestId: discoverPending.requestId, success: true,
+        broadcasterUserId: 'owner', broadcasterLogin: 'owner', currentAudience: 50, candidates: [],
+        sourceResults: [
+          { source: 'preferred', status: 'none', candidateCount: 0 },
+          { source: 'followed', status: 'none', candidateCount: 0 },
+          { source: 'category', status: 'none', candidateCount: 0 },
+        ],
+      },
+    }, testRuntime.context);
+    await expect(testRuntime.runScheduled()).resolves.toBeUndefined();
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({
+      title: 'NO SAFE MATCH', durationMs: 5_000,
+    }));
+  });
+
   it('does not dispatch simulated controls or confirm an expired suggestion', async () => {
     const expired = sanitizeState({
       suggestion: {
@@ -311,5 +370,34 @@ describe('Raid Scout add-on', () => {
     await raidScout.onEvent(control('confirm'), testRuntime.context);
     expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
     expect(testRuntime.value().lastError).toContain('expired');
+  });
+
+  it('plays one bounded clip after confirmation and raids when the preview completes', async () => {
+    const initial = sanitizeState({
+      suggestion: { candidate: candidate('alpha'), suggestedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 60_000).toISOString() },
+    });
+    const testRuntime = runtime({ previewClipBeforeRaid: true, showSearchProgress: false }, initial as Record<string, unknown>);
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent(control('confirm'), testRuntime.context);
+    const clipPending = testRuntime.value().pending as { requestId: string };
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({
+      raidScoutOperation: 'clip', raidScoutTargetUserId: 'alpha', raidScoutClipLookupCount: 20,
+    }));
+    await raidScout.onEvent({
+      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
+      payload: { operation: 'clip', requestId: clipPending.requestId, success: true, clips: [{ id: 'clip-1', embedUrl: 'https://clips.twitch.tv/embed?clip=clip-1', title: 'A clip', thumbnailUrl: 'https://example.com/clip.jpg', durationSeconds: 12 }] },
+    }, testRuntime.context);
+    const playback = testRuntime.value().pending as { playbackId: string; durationMs: number };
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ embedUrl: 'https://clips.twitch.tv/embed?clip=clip-1', durationMs: 12_000 }));
+    expect(testRuntime.context.mediaSlot.acquire).toHaveBeenCalledWith({ durationMs: 600_000, priority: 100 });
+    expect(playback.durationMs).toBe(12_000);
+    expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(30_000, expect.any(Function));
+    testRuntime.lifecycle({ playbackId: playback.playbackId, phase: 'started', occurredAt: new Date().toISOString() });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid' }));
+    expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(24_000, expect.any(Function));
+    testRuntime.lifecycle({ playbackId: playback.playbackId, phase: 'ended', occurredAt: new Date().toISOString() });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid', raidScoutTargetLogin: 'alpha' }));
   });
 });

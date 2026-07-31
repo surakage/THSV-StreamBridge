@@ -4,7 +4,7 @@
 **Version:** `2.5.1`
 **Publisher:** THSV StreamBridge
 
-Finds a safe live Twitch raid destination from creator or viewer-suggested preferred channels, followed-live channels, or the current category, then requires creator confirmation before starting the raid.
+Finds a safe live Twitch raid destination from creator or viewer-suggested preferred channels, followed-live channels, or the current category, shows each search phase in the private overlay, then requires creator confirmation before starting the raid.
 
 ## Install
 
@@ -20,6 +20,8 @@ Finds a safe live Twitch raid destination from creator or viewer-suggested prefe
 3. Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.
 4. Optionally configure one Streamer.bot-owned Twitch reward ID for stream-scoped viewer suggestions.
 5. Configure preferred channels and filters, then test Suggest before enabling automatic mode.
+6. Optional: enable **Play one random clip before starting the confirmed raid**. Keep the Raid Scout overlay URL open so the official Twitch clip embed can play.
+7. Keep **Pause other THSV video overlays during the raid preview** enabled when Random Clip Player shares the ending scene. Confirm claims one bounded internal video slot, fades out Random Clip Player without disabling it, and releases the slot on cancellation or failure.
 
 ## Streamer.bot
 
@@ -44,6 +46,8 @@ Creator-selected triggers:
 
 When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.raid-scout` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.
 
+Search phases are overlay-only and report each configured source as found, none found, skipped, or unavailable. The optional clip is fetched only after Confirm, is not downloaded or retained, and falls through to the confirmed raid when no usable clip is available. Twitch embeds do not expose an exact playback-ended event, so completion uses the provider-reported duration plus a short grace period.
+
 ## Offline test
 
 1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.
@@ -57,7 +61,7 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `media.exclusive`, `schedule.bounded`.
 
 Private storage: `data/addons/thsv.raid-scout/`, `data/addons/.state/thsv.raid-scout/`.
 
@@ -67,4 +71,4 @@ Dependencies: none.
 
 1. Uninstall the add-on. Its bounded private suggestion and raid history remains preserved for a later reinstall.
 
-If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.
+If setup drifts, first back up Streamer.bot, then reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, and rerun the offline test. If a Streamer.bot beta rejects an in-place same-ID replacement as **Invalid Export**, remove only the old **THSV Addon - Raid Scout** group after making the backup, then import the matching package once as a clean replacement.

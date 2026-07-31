@@ -22,6 +22,7 @@ public class CPHInline
         "streakMonths", "tier", "subTier", "subscriptionTier", "giftName", "itemName", "rewardName", "rewardId", "reward.id",
         "reward.title", "rewardCost", "reward.cost", "requiresUserInput", "reward.requiresUserInput", "skipsQueue", "redemptionId", "broadcastId",
         "broadcastUserId", "broadcastUserName", "broadcastUsername", "broadcastUser", "title", "game", "gameId", "startedAt",
+        "broadcasterChannel.title", "broadcasterChannel.gameId", "broadcasterChannel.gameName",
         "category.id", "category.name", "category.thumbnail", "broadcast.id", "broadcast.title", "broadcast.publishedAt", "broadcast.thumbnailUrl",
         "recipientId", "cumulativeMonths", "totalGifts", "totalSubsGifted", "id",
         "recipient.userId", "subscribedAt", "expiresAt", "kicks.amount", "kicks.name", "microAmount",
@@ -122,9 +123,9 @@ public class CPHInline
             // are not real Streamer.bot arguments on any platform and never matched anything.
             ["channelName"] = First(Read("broadcastUserName"), Read("broadcastUsername"), Read("broadcastUser")),
             ["streamId"] = First(Read("broadcast.id"), Read("broadcastId")),
-            ["streamTitle"] = First(Read("broadcast.title"), Read("title")),
-            ["streamCategoryId"] = First(ReadInvariant("gameId"), ReadInvariant("category.id")),
-            ["streamCategoryName"] = First(Read("game"), Read("category.name")),
+            ["streamTitle"] = First(Read("broadcast.title"), Read("title"), Read("broadcasterChannel.title")),
+            ["streamCategoryId"] = First(ReadInvariant("gameId"), ReadInvariant("category.id"), ReadInvariant("broadcasterChannel.gameId")),
+            ["streamCategoryName"] = First(Read("game"), Read("category.name"), Read("broadcasterChannel.gameName")),
             ["streamThumbnailUrl"] = First(Read("broadcast.thumbnailUrl"), Read("category.thumbnail")),
             ["streamStartedAt"] = First(Read("startedAt"), Read("broadcast.publishedAt")),
             ["argumentKeys"] = argumentKeys

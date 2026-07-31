@@ -59,6 +59,39 @@ export interface AddOnOverlayLifecycleV2 {
   readonly error?: string;
 }
 
+export interface AddOnMediaSlotStateV2 {
+  readonly ownerModuleId?: string;
+  readonly leaseId?: string;
+  readonly priority?: number;
+  readonly expiresAt?: string;
+}
+
+export interface AddOnMediaSlotRequestV2 {
+  readonly durationMs: number;
+  readonly priority: number;
+}
+
+export type AddOnMediaSlotLeaseV2 =
+  | (AddOnMediaSlotStateV2 & { readonly acquired: false })
+  | {
+      readonly acquired: true;
+      readonly ownerModuleId: string;
+      readonly leaseId: string;
+      readonly priority: number;
+      readonly expiresAt: string;
+    };
+
+export interface AddOnMediaSlotCapabilityV2 {
+  /** Returns the current exclusive video owner without exposing add-on state or media payloads. */
+  current(): AddOnMediaSlotStateV2;
+  /** Claims the single shared video slot for a bounded period. Higher-priority claims may preempt lower-priority owners. */
+  acquire(request: AddOnMediaSlotRequestV2): Promise<AddOnMediaSlotLeaseV2>;
+  /** Releases only a lease created by this module. */
+  release(leaseId: string): Promise<boolean>;
+  /** Notifies video add-ons when they should yield or may resume. */
+  onChange(listener: (state: AddOnMediaSlotStateV2) => void | Promise<void>): () => void;
+}
+
 export type AddOnOutboundPlatformV2 = 'twitch' | 'youtube' | 'kick' | 'tiktok';
 
 export interface AddOnOutboundMessageRequestV2 {
@@ -256,6 +289,7 @@ export interface ModuleRuntimeContextV2 {
   readonly streamerbot: AddOnStreamerBotCapabilityV2;
   readonly schedule: AddOnScheduleCapabilityV2;
   readonly overlay: AddOnOverlayCapabilityV2;
+  readonly mediaSlot: AddOnMediaSlotCapabilityV2;
   readonly chat: AddOnChatCapabilityV2;
   readonly provider: AddOnProviderCapabilityV2;
   readonly viewerFoundation: AddOnViewerFoundationCapabilityV2;

@@ -1,4 +1,4 @@
-// Purpose: Performs bounded Twitch raid discovery, starts one creator-confirmed raid, and settles Raid Scout viewer-suggestion redemptions.
+// Purpose: Performs bounded Twitch raid discovery, fetches public clip metadata for an optional preview, starts one creator-confirmed raid, and settles viewer-suggestion redemptions.
 // Keep this action triggerless. The wizard grants its stable ID only to the Raid Scout add-on.
 // Twitch credentials stay inside this action and are used only with fixed api.twitch.tv Helix endpoints.
 // References: mscorlib.dll, System.dll, System.Core.dll, System.Net.Http.dll, netstandard.dll, and Newtonsoft.Json.dll.
@@ -33,6 +33,7 @@ public class CPHInline
         try
         {
             if (operation == "discover") return Discover(requestId, relayToken);
+            if (operation == "clip") return FetchClips(requestId, relayToken);
             if (operation == "raid") return StartRaid(requestId, relayToken);
             if (operation == "redemption-fulfill") return SettleRedemption(operation, requestId, relayToken, true);
             if (operation == "redemption-cancel") return SettleRedemption(operation, requestId, relayToken, false);
@@ -67,6 +68,7 @@ public class CPHInline
         var candidates = new List<JObject>();
         var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var sourceErrors = new JArray();
+        var sourceResults = new JArray();
 
         int currentAudience = fallbackAudience;
         string currentCategory = "";
@@ -104,18 +106,27 @@ public class CPHInline
 
         foreach (string source in sourceOrder)
         {
+            int before = CountSource(candidates, source);
+            int errorCount = sourceErrors.Count;
+            string status = "skipped";
             if (source == "preferred" && usePreferred && preferred.Count > 0)
             {
+                status = "checked";
                 DiscoverPreferred(preferred, token, clientId, candidates, seenIds, sourceErrors);
             }
             else if (source == "followed" && useFollowed)
             {
+                status = "checked";
                 DiscoverFollowed(broadcaster.UserId, followedLimit, followedPages, token, clientId, candidates, seenIds, sourceErrors);
             }
             else if (source == "category" && useCategory && currentGameId.Length > 0)
             {
+                status = "checked";
                 DiscoverCategory(currentGameId, categoryLimit, token, clientId, candidates, seenIds, sourceErrors);
             }
+            int found = CountSource(candidates, source) - before;
+            if (status == "checked") status = sourceErrors.Count > errorCount ? "unavailable" : found > 0 ? "found" : "none";
+            sourceResults.Add(new JObject { ["source"] = source, ["status"] = status, ["candidateCount"] = Math.Max(0, found) });
             if (candidates.Count >= MaximumCandidates) break;
         }
 
@@ -127,12 +138,51 @@ public class CPHInline
             ["currentAudience"] = currentAudience,
             ["currentCategory"] = currentCategory,
             ["candidates"] = new JArray(candidates),
+            ["sourceResults"] = sourceResults,
             ["sourceErrors"] = sourceErrors
         };
         Emit("discover", requestId, relayToken, true, "", payload);
         CPH.SetArgument("raidScoutDiscoveryValid", true);
         CPH.SetArgument("raidScoutCandidateCount", candidates.Count);
         CPH.LogInfo("THSV Raid Scout returned " + candidates.Count.ToString() + " bounded live candidate(s).");
+        return true;
+    }
+
+    private bool FetchClips(string requestId, string relayToken)
+    {
+        string token = Bounded(CPH.TwitchOAuthToken, 4096);
+        string clientId = Bounded(CPH.TwitchClientId, 256);
+        string userId = Bounded(Read("raidScoutTargetUserId"), 64);
+        int count = ReadInteger("raidScoutClipLookupCount", 20, 1, MaximumCandidates);
+        if (token.Length == 0 || clientId.Length == 0 || userId.Length == 0)
+            return Fail("clip", requestId, relayToken, "Authenticated Twitch access and a target user ID are required for clip lookup.");
+
+        JObject root = GetJson("clips?broadcaster_id=" + Uri.EscapeDataString(userId) + "&first=" + count.ToString(), token, clientId);
+        var clips = new JArray();
+        JArray data = root["data"] as JArray;
+        if (data != null)
+        {
+            foreach (JToken item in data)
+            {
+                if (clips.Count >= count) break;
+                string id = Bounded((string)item["id"], 100);
+                string embedUrl = Bounded((string)item["embed_url"], 2048);
+                double duration = BoundedDouble(item["duration"], 0, 5, 90);
+                if (id.Length == 0 || !embedUrl.StartsWith("https://clips.twitch.tv/embed?", StringComparison.OrdinalIgnoreCase) || duration <= 0) continue;
+                clips.Add(new JObject
+                {
+                    ["id"] = id,
+                    ["embedUrl"] = embedUrl,
+                    ["title"] = Bounded((string)item["title"], 300),
+                    ["thumbnailUrl"] = Bounded((string)item["thumbnail_url"], 2048),
+                    ["durationSeconds"] = duration
+                });
+            }
+        }
+        Emit("clip", requestId, relayToken, true, "", new JObject { ["clips"] = clips, ["targetUserId"] = userId });
+        CPH.SetArgument("raidScoutClipLookupValid", true);
+        CPH.SetArgument("raidScoutClipCount", clips.Count);
+        CPH.LogInfo("THSV Raid Scout returned " + clips.Count.ToString() + " bounded public clip(s).");
         return true;
     }
 
@@ -377,6 +427,13 @@ public class CPHInline
         return token != null && Int32.TryParse(token.ToString(), out value) ? Math.Max(minimum, Math.Min(maximum, value)) : fallback;
     }
 
+    private double BoundedDouble(JToken token, double fallback, double minimum, double maximum)
+    {
+        double value;
+        return token != null && Double.TryParse(token.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value)
+            ? Math.Max(minimum, Math.Min(maximum, value)) : fallback;
+    }
+
     private int ReadInteger(string name, int fallback, int minimum, int maximum)
     {
         int value;
@@ -406,6 +463,7 @@ public class CPHInline
         CPH.LogWarn("THSV Raid Scout: " + error);
         if (relayToken.Length >= 20) Emit(operation, requestId, relayToken, false, error, new JObject());
         CPH.SetArgument("raidScoutDiscoveryValid", false);
+        CPH.SetArgument("raidScoutClipLookupValid", false);
         CPH.SetArgument("raidScoutRaidAccepted", false);
         return false;
     }
