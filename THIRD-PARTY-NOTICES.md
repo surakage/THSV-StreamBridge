@@ -12,11 +12,13 @@ Bloom and SlothBloom project names may function as source identifiers. The MIT L
 
 ## Bundled runtime and production npm dependencies
 
-The portable Windows archive bundles the official 64-bit Node.js 22 runtime and exact lockfile-resolved production dependencies so installation does not run npm or download executable code. The release builder verifies the Node archive against Node.js's published SHA-256 list before copying `node.exe` and its license. Version `2.0.0-rc.1` uses:
+The portable Windows archive bundles the official 64-bit Node.js 22 runtime and exact lockfile-resolved production dependencies so installation does not run npm or download executable code. The release builder verifies the Node archive against Node.js's published SHA-256 list before copying `node.exe` and its license. The current release uses these direct production dependencies plus their lockfile-resolved transitive dependencies:
 
 | Package | Version | License | Project |
 |---|---:|---|---|
 | `fflate` | `0.8.3` | MIT | <https://github.com/101arrowz/fflate> |
+| `sigstore` | `5.0.0` | Apache-2.0 | <https://github.com/sigstore/sigstore-js> |
+| `snappyjs` | `0.7.0` | MIT | <https://github.com/zhipeng-jia/snappyjs> |
 | `ws` | `8.21.1` | MIT | <https://github.com/websockets/ws> |
 | `zod` | `4.4.3` | MIT | <https://zod.dev> |
 

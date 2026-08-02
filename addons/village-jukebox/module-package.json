@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.",
-  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
+  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-jukebox",
     "name": "Village Jukebox",
-    "version": "2.6.0",
+    "version": "3.0.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.6.0",
-    "maximumTestedBridgeVersion": "2.6.0",
+    "minimumBridgeVersion": "3.0.0",
+    "maximumTestedBridgeVersion": "3.0.0",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -50,7 +50,7 @@
       },
       {
         "id": "village-jukebox.queue",
-        "name": "queue"
+        "name": "songqueue"
       },
       {
         "id": "village-jukebox.when",
@@ -106,13 +106,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 31837,
-      "sha256": "3252fb41d1c2688ccf6d0e0101bb71ce649fa2e3ea18856bdb0c5161639da756"
+      "size": 31849,
+      "sha256": "cc6310df61080375e0ffd2fd4e0ee535d32be471d8a31ed71bb6fc55a54daabf"
     },
     {
       "path": "schemas/config.json",
-      "size": 4782,
-      "sha256": "2d93eef67266c7f4c50c3574c2e177dd5ed004d56b1824713163f55bea5ae95c"
+      "size": 4786,
+      "sha256": "4328548579c4a586e3f63ce13611da8264394b17ccddbe0c132c184d4835d340"
     },
     {
       "path": "ui/settings.json",
@@ -121,8 +121,8 @@
     },
     {
       "path": "README.md",
-      "size": 2742,
-      "sha256": "f2e3a066663432325ec81d07e46675efbc8ee5878ff3b239c7ce8401d16fc9ba"
+      "size": 2819,
+      "sha256": "85f0ea281b515a63fe60fa8ce7cd90b23aaa5e60cabd50312ee20a062c5d6ef9"
     }
   ]
 }

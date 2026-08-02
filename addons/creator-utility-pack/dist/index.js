@@ -3,9 +3,9 @@
 const MODULE_ID = 'thsv.creator-utility-pack';
 const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Creator Utility Pack', version: '2.6.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
-  dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received', 'stream.offline'],
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Creator Utility Pack', version: '3.0.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0',
+  dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'creator-utility.counter', name: 'counter' }, { id: 'creator-utility.vote', name: 'vote' }, { id: 'creator-utility.poll', name: 'poll' }],
   actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.creator-utility-pack/', 'data/addons/.state/thsv.creator-utility-pack/'],
   installationSteps: ['Install and choose command names.', 'Create matching no-response commands in Command Sync.', 'Use moderator/broadcaster commands to manage counters and polls.'],
@@ -13,6 +13,8 @@ const manifest = {
   healthChecks: [{ id: 'thsv.creator-utility-pack.runtime', description: 'Confirms bounded counter/poll state and platform-limited source replies are available.' }],
 };
 let operation = Promise.resolve();
+const livePlatforms = new Set();
+const commandCooldowns = new Map();
 
 function text(value, maximum = 300) {
   return Array.from(typeof value === 'string' ? value.replace(/[\p{Cc}\p{Cf}]+/gu, ' ').replace(/\s+/gu, ' ').trim() : '').slice(0, maximum).join('');
@@ -23,8 +25,9 @@ function id(value) {
 }
 function settingsFor(context) {
   const raw = context.settings || {};
+  const counterCommand = id(raw.counterCommand) || 'counter'; const pollCommand = id(raw.pollCommand) || 'poll'; const voteCommand = id(raw.voteCommand) || 'vote';
   return {
-    enabled: raw.enabled !== false, counterCommand: id(raw.counterCommand) || 'counter', pollCommand: id(raw.pollCommand) || 'poll', voteCommand: id(raw.voteCommand) || 'vote',
+    enabled: raw.enabled === true, counterCommand, pollCommand, voteCommand, commandCollision: new Set([counterCommand, pollCommand, voteCommand]).size !== 3,
     closePollOnStreamEnd: raw.closePollOnStreamEnd !== false,
     maximumCounters: Number.isInteger(raw.maximumCounters) ? Math.min(100, Math.max(1, raw.maximumCounters)) : 25,
     maximumPollOptions: Number.isInteger(raw.maximumPollOptions) ? Math.min(10, Math.max(2, raw.maximumPollOptions)) : 6,
@@ -41,14 +44,25 @@ function stateFor(raw, settings) {
       if (id(key) && Number.isSafeInteger(count)) counters[id(key)] = Math.min(1_000_000_000, Math.max(-1_000_000_000, count));
     }
   }
-  const poll = value.poll && typeof value.poll === 'object' && Array.isArray(value.poll.options)
-    ? { open: value.poll.open === true, question: text(value.poll.question, 180), options: value.poll.options.map((item) => text(item, 80)).filter(Boolean).slice(0, settings.maximumPollOptions), votes: value.poll.votes && typeof value.poll.votes === 'object' ? Object.fromEntries(Object.entries(value.poll.votes).filter(([key, choice]) => /^[a-f0-9]{64}$/u.test(key) && Number.isSafeInteger(choice)).slice(0, 5000)) : {} }
-    : { open: false, question: '', options: [], votes: {} };
+  let poll = { open: false, question: '', options: [], votes: {} };
+  if (value.poll && typeof value.poll === 'object' && Array.isArray(value.poll.options)) {
+    const options = value.poll.options.map((item) => text(item, 80)).filter(Boolean).slice(0, settings.maximumPollOptions);
+    if (options.length >= 2 && new Set(options.map((item) => item.toLowerCase())).size === options.length) {
+      const votes = value.poll.votes && typeof value.poll.votes === 'object' ? Object.fromEntries(Object.entries(value.poll.votes).filter(([key, choice]) => /^[a-f0-9]{64}$/u.test(key) && Number.isSafeInteger(choice) && choice >= 0 && choice < options.length).slice(0, 5000)) : {};
+      poll = { open: value.poll.open === true, question: text(value.poll.question, 180), options, votes };
+    }
+  }
   return { accountSalt: /^[a-f0-9]{48}$/u.test(value.accountSalt) ? value.accountSalt : randomSalt(), counters, poll };
 }
 function moderator(event) {
   const roles = new Set((event.user?.roles || []).map((role) => text(role, 30).toLowerCase()));
   return roles.has('broadcaster') || roles.has('moderator') || roles.has('mod');
+}
+function coolingDown(event, commandName, now = Date.now()) {
+  const userId = text(event.user?.id, 256); if (!userId) return true;
+  const key = `${event.platform}:${userId}:${commandName}`; const previous = commandCooldowns.get(key);
+  if (Number.isFinite(previous) && now - previous < 3_000) return true;
+  commandCooldowns.set(key, now); if (commandCooldowns.size > 2_000) commandCooldowns.delete(commandCooldowns.keys().next().value); return false;
 }
 async function hashAccount(event, salt) {
   const raw = `${salt}|${event.platform}|${text(event.user?.id, 256)}`;
@@ -62,24 +76,29 @@ async function reply(context, event, message) {
   catch { return []; }
 }
 async function process(event, context) {
-  const settings = settingsFor(context); if (!settings.enabled) return;
-  const state = stateFor(await context.state.read(), settings);
-  if (event.eventType === 'stream.offline' && settings.closePollOnStreamEnd) { state.poll.open = false; await context.state.write(state); return; }
-  if (event.eventType !== 'command.received' || event.metadata?.simulated === true || event.user?.actorType !== 'human') return;
+  const settings = settingsFor(context); if (!settings.enabled || settings.commandCollision) return;
+  if (event.eventType === 'stream.online' && event.metadata?.simulated !== true && LIMITS[event.platform]) { livePlatforms.add(event.platform); return; }
+  if (event.eventType === 'stream.offline' && event.metadata?.simulated !== true && LIMITS[event.platform]) { livePlatforms.delete(event.platform); if (settings.closePollOnStreamEnd && livePlatforms.size === 0) { const state = stateFor(await context.state.read(), settings); state.poll.open = false; await context.state.write(state); } return; }
+  if (event.eventType !== 'command.received' || event.metadata?.simulated === true || event.user?.actorType !== 'human' || !LIMITS[event.platform]) return;
   const command = id(event.payload?.command); const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments.map((item) => text(item, 180)).filter(Boolean) : [];
+  if (![settings.counterCommand, settings.pollCommand, settings.voteCommand].includes(command) || (!moderator(event) && coolingDown(event, command))) return;
+  const state = stateFor(await context.state.read(), settings);
   if (command === settings.counterCommand) {
     const name = id(args[0] || 'default'); if (!name) return reply(context, event, 'Usage: !counter name [show|+1|-1|reset]');
     const action = (args[1] || 'show').toLowerCase(); if (action !== 'show' && !moderator(event)) return reply(context, event, 'Only a moderator or broadcaster may change counters.');
+    if (!['show', '+1', '-1', 'reset'].includes(action)) return reply(context, event, `Usage: !${settings.counterCommand} name [show|+1|-1|reset]`);
     if (!Object.hasOwn(state.counters, name) && Object.keys(state.counters).length >= settings.maximumCounters) return reply(context, event, 'The counter limit has been reached.');
-    const current = state.counters[name] || 0; if (action === '+1') state.counters[name] = current + 1; else if (action === '-1') state.counters[name] = current - 1; else if (action === 'reset') state.counters[name] = 0;
+    const current = state.counters[name] || 0; if (action === '+1') state.counters[name] = Math.min(1_000_000_000, current + 1); else if (action === '-1') state.counters[name] = Math.max(-1_000_000_000, current - 1); else if (action === 'reset') state.counters[name] = 0;
     await context.state.write(state); return reply(context, event, `${name}: ${String(state.counters[name] || 0)}`);
   }
-  if (command === settings.pollCommand && moderator(event)) {
+  if (command === settings.pollCommand && !moderator(event)) return reply(context, event, 'Only a moderator or broadcaster may manage polls.');
+  if (command === settings.pollCommand) {
     const action = (args[0] || '').toLowerCase();
     if (action === 'open') {
       const parts = args.slice(1).join(' ').split('|').map((item) => text(item, 180)).filter(Boolean);
       if (parts.length < 3) return reply(context, event, `Usage: !${settings.pollCommand} open Question | Option 1 | Option 2`);
-      state.poll = { open: true, question: parts[0], options: parts.slice(1, settings.maximumPollOptions + 1), votes: {} }; await context.state.write(state);
+      const options = parts.slice(1, settings.maximumPollOptions + 1); if (new Set(options.map((item) => item.toLowerCase())).size !== options.length) return reply(context, event, 'Poll choices must be different.');
+      state.poll = { open: true, question: parts[0], options, votes: {} }; await context.state.write(state);
       return reply(context, event, `${state.poll.question} ${state.poll.options.map((item, index) => `${String(index + 1)}) ${item}`).join(' ')}`);
     }
     if (action === 'close') {
@@ -100,8 +119,8 @@ async function process(event, context) {
 }
 export default {
   manifest, required: false,
-  async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); await context.state.write(stateFor(await context.state.read(), settings)); },
-  async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); },
+  async start(context) { operation = Promise.resolve(); livePlatforms.clear(); commandCooldowns.clear(); const settings = settingsFor(context); await context.state.write(stateFor(await context.state.read(), settings)); },
+  async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); commandCooldowns.clear(); },
   async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; },
 };
 export { stateFor };

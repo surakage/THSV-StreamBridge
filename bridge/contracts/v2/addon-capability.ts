@@ -92,6 +92,55 @@ export interface AddOnMediaSlotCapabilityV2 {
   onChange(listener: (state: AddOnMediaSlotStateV2) => void | Promise<void>): () => void;
 }
 
+export interface AddOnMediaCacheCapabilityV2 {
+  /** Caches one temporary Twitch CDN clip for no more than 24 hours and returns a loopback overlay URL. */
+  fetch(request: { readonly sourceUrl: string; readonly cacheKey: string; readonly ttlSeconds: number; readonly maximumBytes: number }): Promise<{ readonly url: string; readonly cacheHit: boolean; readonly bytes: number; readonly expiresAt: string }>;
+}
+
+export type AddOnCoordinationModeV2 = 'exclusive' | 'queueable' | 'independent' | 'background';
+export type AddOnCoordinationStatusV2 = 'queued' | 'active' | 'completed' | 'cancelled' | 'timed-out' | 'skipped';
+
+export interface AddOnCoordinationRequestV2 {
+  /** A shared dotted resource such as media.playback or alerts.presentation. */
+  readonly resource: string;
+  readonly mode: AddOnCoordinationModeV2;
+  readonly priority?: number;
+  readonly timeoutMs?: number;
+  readonly cooldownMs?: number;
+  /** Queueable work may be skipped when its bounded wait expires. */
+  readonly skippable?: boolean;
+}
+
+export interface AddOnCoordinationGrantV2 {
+  readonly requestId: string;
+  readonly leaseId: string;
+  readonly resource: string;
+  readonly mode: AddOnCoordinationModeV2;
+  readonly priority: number;
+  readonly startedAt: string;
+  readonly expiresAt: string;
+}
+
+export interface AddOnCoordinationTicketV2 {
+  readonly requestId: string;
+  readonly status: 'queued' | 'active';
+  readonly ready: Promise<AddOnCoordinationGrantV2>;
+}
+
+export interface AddOnCoordinationSnapshotV2 {
+  readonly resource: string;
+  readonly active: readonly Readonly<{ moduleId: string; leaseId: string; mode: AddOnCoordinationModeV2; priority: number; expiresAt: string }>[];
+  readonly queued: readonly Readonly<{ moduleId: string; requestId: string; mode: AddOnCoordinationModeV2; priority: number }>[];
+}
+
+export interface AddOnCoordinationCapabilityV2 {
+  request(request: AddOnCoordinationRequestV2): AddOnCoordinationTicketV2;
+  release(leaseId: string): Promise<boolean>;
+  cancel(requestId: string): Promise<boolean>;
+  current(resource: string): AddOnCoordinationSnapshotV2;
+  onChange(listener: (snapshot: AddOnCoordinationSnapshotV2) => void | Promise<void>): () => void;
+}
+
 export type AddOnOutboundPlatformV2 = 'twitch' | 'youtube' | 'kick' | 'tiktok';
 
 export interface AddOnOutboundMessageRequestV2 {
@@ -165,11 +214,16 @@ export interface ViewerFoundationMutationResultV1 extends ViewerFoundationProjec
 }
 
 export interface ViewerFoundationAdminRequestV1 {
-  readonly operation: 'status' | 'export' | 'correct' | 'delete' | 'import-legacy';
+  readonly operation: 'status' | 'search' | 'export' | 'correct' | 'undo-correction' | 'delete' | 'audit' | 'link-audit' | 'import-legacy';
   readonly viewerId?: string;
+  readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok';
+  readonly userId?: string;
   readonly adjustment?: 'add' | 'remove' | 'reset';
   readonly amount?: number;
   readonly reason?: string;
+  readonly auditId?: string;
+  readonly limit?: number;
+  readonly linkAction?: 'add' | 'remove';
   readonly approvedByCreator?: boolean;
   readonly migrationDigest?: string;
   readonly legacyViewers?: readonly Readonly<{ viewerId: string; points: number; lastAwardAt: Readonly<Record<string, number>> }>[];
@@ -195,6 +249,7 @@ export type ViewerSpotlightAdminResultV1 = Readonly<Record<string, JsonValueV2>>
 
 export type ChatGuardAdminRequestV1 =
   | { readonly operation: 'status' }
+  | { readonly operation: 'incidents'; readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly rule?: 'blocked-term' | 'blocked-domain' | 'unapproved-domain' | 'excessive-links' | 'excessive-caps' | 'repeated-characters' | 'long-message' | 'repeated-message'; readonly review?: 'unreviewed' | 'confirmed' | 'false-positive'; readonly enforcementStatus?: 'none' | 'dispatched' | 'succeeded' | 'failed' | 'unsupported'; readonly offset?: number; readonly limit?: number }
   | { readonly operation: 'test'; readonly message: string; readonly priorMatchingMessages: number }
   | { readonly operation: 'trust-add'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly label: string; readonly approvedByCreator: true }
   | { readonly operation: 'trust-remove'; readonly accountKey: string; readonly approvedByCreator: true }
@@ -306,6 +361,8 @@ export interface ModuleRuntimeContextV2 {
   readonly schedule: AddOnScheduleCapabilityV2;
   readonly overlay: AddOnOverlayCapabilityV2;
   readonly mediaSlot: AddOnMediaSlotCapabilityV2;
+  readonly mediaCache: AddOnMediaCacheCapabilityV2;
+  readonly coordination: AddOnCoordinationCapabilityV2;
   readonly chat: AddOnChatCapabilityV2;
   readonly provider: AddOnProviderCapabilityV2;
   readonly viewerFoundation: AddOnViewerFoundationCapabilityV2;

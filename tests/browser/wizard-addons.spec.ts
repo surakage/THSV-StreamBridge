@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { zipSync } from 'fflate';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 async function packageAddOn(root: string): Promise<Uint8Array> {
   const descriptorBytes = await readFile(join(root, 'module-package.json'));
@@ -26,12 +27,12 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.locator('.workspace > nav .nav-heading')).toHaveText(['Core setup', 'Automation', 'On stream', 'Extensions', 'Advanced']);
   await expect(page.locator('[data-panel="overview"] .page-kicker')).toHaveText('Home');
   const versionCard = page.locator('#overview-cards .stat').filter({ hasText: 'Version' });
-  await expect(versionCard).toContainText('2.6.0');
+  await expect(versionCard).toContainText(STREAMBRIDGE_VERSION);
   await expect(page.locator('#overview-cards .stat').filter({ hasText: 'Preview' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Add-ons' }).click();
   await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
   await expect(page.locator('[data-panel="addons"] > .page-header')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Check updates' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Check official updates' })).toBeVisible();
   await expect(page.getByText('Update checks are creator-started and never silently install or enable code.', { exact: false })).toBeVisible();
   await expect(page.getByText('No add-ons are installed')).toBeVisible();
   await page.locator('[data-disclosure-key="panel:addons:install"] summary').click();
@@ -51,8 +52,9 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.getByText('state.private', { exact: false })).toBeVisible();
   await page.evaluate(`state.addOnUpdates = { available: true, updateCount: 1, revokedCount: 0, addOns: [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', installedVersion: '1.0.0', latestVersion: '1.1.0', state: 'update-available', sha256: '${'a'.repeat(64)}', downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.4.1/sample.zip' }] }; renderAddOns();`);
   await expect(page.getByText('Update available.', { exact: false })).toBeVisible();
-  await expect(page.getByText('Latest official version: 1.1.0.', { exact: false })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Download verified update' })).toHaveAttribute('href', 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.4.1/sample.zip');
+  await expect(page.getByText('Latest authenticated version: 1.1.0.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download & verify update' })).toBeVisible();
+  await expect(page.getByText('Installation still requires your separate review and approval', { exact: false })).toBeVisible();
 
   const addOnHeading = page.locator('[data-addon-settings] [name="heading"]');
   await addOnHeading.fill('My private add-on setting');
@@ -102,7 +104,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const userTranslateSettings = page.locator('[data-addon-settings="thsv.user-translate"]');
-  await expect(page.getByRole('article').getByText('Translate 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Translate ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.user-translate"] .addon-quick-summary')).toContainText('No direct trigger');
   await expect(userTranslateSettings.getByText('One translation add-on, one Streamer.bot action.', { exact: false })).toBeVisible();
   await expect(userTranslateSettings.locator('input[name="enabledPlatforms"][value="twitch"]')).toBeChecked();
@@ -140,7 +142,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const shoutoutSettings = page.locator('[data-addon-settings="thsv.automated-shoutouts"]');
-  await expect(page.getByRole('article').getByText('Automated Shoutouts 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Automated Shoutouts ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(shoutoutSettings.locator('summary')).toHaveCount(8);
   await shoutoutSettings.locator('summary').filter({ hasText: 'Twitch visual popup' }).click();
   await expect(shoutoutSettings.getByLabel('Show a Twitch visual popup')).toBeChecked();
@@ -164,7 +166,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const subathonSettings = page.locator('[data-addon-settings="thsv.subathon-timer"]');
-  await expect(page.getByRole('article').getByText('Subathon Timer 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Subathon Timer ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(subathonSettings.locator('summary')).toHaveCount(11);
   await expect(subathonSettings.getByLabel('Enable Subathon Timer')).toBeChecked();
   await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(6);
@@ -189,7 +191,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const countdownSettings = page.locator('[data-addon-settings="thsv.starting-soon-countdown"]');
-  await expect(page.getByRole('article').getByText('Stream Launch Countdown 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Stream Launch Countdown ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(countdownSettings.locator('summary')).toHaveCount(6);
   await expect(countdownSettings.locator('input[name="durationMinutes"]')).toHaveValue('10');
   await countdownSettings.locator('summary').filter({ hasText: 'Completion' }).click();
@@ -215,7 +217,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const sceneSettings = page.locator('[data-addon-settings="thsv.scene-actions"]');
-  await expect(page.getByRole('article').getByText('Scene Actions 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Scene Actions ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   const sceneTriggerStatus = page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness');
   await expect(sceneTriggerStatus).toContainText('Not checked');
   await expect(sceneTriggerStatus).toContainText('OBS Studio > Scene Changed');
@@ -268,7 +270,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
-  await expect(page.getByRole('article').getByText('Raid Scout 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Raid Scout ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.raid-scout"] .addon-trigger-readiness')).toContainText('No direct trigger needed');
   await expect(raidScoutSettings.locator('summary')).toHaveCount(12);
   await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
@@ -303,7 +305,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const chatGuardSettings = page.locator('[data-addon-settings="thsv.chat-guard"]');
-  await expect(page.getByRole('article').getByText('Chat Guard 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Chat Guard ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.chat-guard"] .addon-trigger-readiness')).toContainText('Import needed');
   await expect(page.locator('[data-addon-id="thsv.chat-guard"] .addon-trigger-readiness')).toContainText('!guardtrust');
   await expect(chatGuardSettings.locator(':scope > details')).toHaveCount(7);
@@ -313,7 +315,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(chatGuardSettings.getByLabel('Turn on safe observation')).not.toBeChecked();
   await page.evaluate(`state.addOns.find((addOn) => addOn.moduleId === 'thsv.chat-guard').enabled = true; renderAddOns();`);
   await expect(page.getByText('Optional: trust a specific viewer', { exact: true })).toBeVisible();
-  await expect(page.getByText('Test safely before automatic actions', { exact: true })).toBeVisible();
+  await expect(page.getByText('Moderation dashboard', { exact: true })).toBeVisible();
   await expect(chatGuardSettings.getByLabel('Allow Chat Guard to take automatic actions')).toHaveCount(1);
   await expect(chatGuardSettings.getByLabel('Confirm that I want automatic moderation')).toHaveCount(1);
   await expect(page.locator('[data-disclosure-key="addon:thsv.chat-guard:approved-actions"]')).toContainText('Observation-only users can leave this empty');
@@ -321,12 +323,19 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.getByText(/Reply to the viewer's message/u)).toBeVisible();
   await page.getByText('Manual stable-ID fallback', { exact: true }).click();
   await expect(page.locator('[data-chat-guard-trust-form]').getByLabel('Friendly label')).toBeVisible();
-  await page.getByText('Test safely before automatic actions', { exact: true }).click();
+  await page.getByText('Moderation dashboard', { exact: true }).click();
+  const moderationFilters = page.locator('[data-chat-guard-incident-filters]');
+  await expect(moderationFilters.getByLabel('Platform')).toHaveValue('');
+  await expect(moderationFilters.getByLabel('Matched rule')).toHaveValue('');
+  await expect(moderationFilters.getByLabel('Review')).toHaveValue('');
+  await expect(moderationFilters.getByLabel('Action outcome')).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Download bounded report' })).toBeVisible();
+  await page.getByText('Test current rules safely', { exact: true }).click();
   await expect(page.getByLabel('Sample public-chat message')).toBeVisible();
   await expect(page.getByLabel('Prior matching messages')).toHaveValue('0');
   await page.getByText('Temporary link permit', { exact: true }).click();
   await expect(page.locator('[data-chat-guard-permit-form]').getByLabel('Stable platform user ID')).toBeVisible();
-  await page.getByText('Review a recent incident', { exact: true }).click();
+  await page.getByText('Review by incident ID', { exact: true }).click();
   await expect(page.getByLabel('Decision')).toHaveValue('confirmed');
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
@@ -334,7 +343,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Add-on package').setInputFiles({ name: 'clip-library-cache.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(clipCacheArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
-  await expect(page.getByRole('article').getByText('Clip Library Cache 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Clip Library Cache ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.clip-library-cache"] .addon-trigger-readiness')).toContainText('Why this is separate');
   await expect(page.locator('[data-addon-settings="thsv.clip-library-cache"]')).toContainText('shared background infrastructure');
   await expect(page.locator('[data-addon-settings="thsv.clip-library-cache"]')).toContainText('Nothing appears on stream');
@@ -343,7 +352,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Add-on package').setInputFiles({ name: 'clip-courier.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(clipCourierArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
-  await expect(page.getByRole('article').getByText('Clip Courier 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Clip Courier ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('Connect !clip and Discord');
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('30 or 60');
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('No old-library posting');
@@ -355,7 +364,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Add-on package').setInputFiles({ name: 'village-draw.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(villageDrawArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
-  await expect(page.getByRole('article').getByText('Village Draw 2.6.0', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Village Draw ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   const villageDrawSettings = page.locator('[data-addon-settings="thsv.village-draw"]');
   await expect(villageDrawSettings).toContainText('casual community giveaways');
   await villageDrawSettings.locator('summary').filter({ hasText: 'Entry and ticket rules' }).click();

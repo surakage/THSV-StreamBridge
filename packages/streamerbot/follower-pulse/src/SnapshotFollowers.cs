@@ -50,7 +50,7 @@ public class CPHInline
                 {
                     string id = Bounded((string)item["user_id"], 32);
                     string login = Bounded((string)item["user_login"], 25).ToLowerInvariant();
-                    string name = Bounded((string)item["user_name"], 100);
+                    string name = Bounded((string)item["user_name"], 25);
                     string followedAt = Bounded((string)item["followed_at"], 40);
                     if (!Digits(id) || !Login(login) || name.Length == 0 || !followedAt.Contains("T")) continue;
                     followers.Add(new JObject { ["id"] = id, ["login"] = login, ["name"] = name, ["followedAt"] = followedAt });
@@ -58,7 +58,7 @@ public class CPHInline
             }
             string nextCursor = Bounded((string)root["pagination"]?["cursor"], 512);
             var payload = new JObject { ["scanId"] = scanId, ["page"] = page, ["total"] = total, ["nextCursor"] = nextCursor, ["followers"] = followers };
-            var envelope = new JObject { ["type"] = "thsv.addon", ["version"] = "1.0.0", ["moduleId"] = ModuleId, ["eventType"] = PageEvent, ["sourceEventType"] = SourceName, ["relayId"] = Guid.NewGuid().ToString("N"), ["relayToken"] = relayToken, ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = false, ["payload"] = payload };
+            var envelope = new JObject { ["type"] = "thsv.addon", ["version"] = "1.0.0", ["moduleId"] = ModuleId, ["eventType"] = PageEvent, ["sourceEventType"] = SourceName, ["relayId"] = Guid.NewGuid().ToString("N"), ["relayToken"] = relayToken, ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = ReadBool("isTest"), ["payload"] = payload };
             CPH.WebsocketBroadcastJson(envelope.ToString(Formatting.None));
             CPH.SetArgument("followerPulseSnapshotValid", true);
             CPH.SetArgument("followerPulseSnapshotPage", page);
@@ -96,6 +96,7 @@ public class CPHInline
 
     private static HttpClient CreateClient() { var client = new HttpClient(); client.Timeout = TimeSpan.FromSeconds(12); return client; }
     private string Read(string key, int maximum) { object value; return Bounded(CPH.TryGetArg(key, out value) && value != null ? Convert.ToString(value).Trim() : "", maximum); }
+    private bool ReadBool(string key) { bool value; return Boolean.TryParse(Read(key, 10), out value) && value; }
     private int ReadInteger(string key, int fallback, int minimum, int maximum) { int value; return Int32.TryParse(Read(key, 20), out value) ? Math.Min(maximum, Math.Max(minimum, value)) : fallback; }
     private int BoundedInteger(JToken value, int fallback, int minimum, int maximum) { int number; return value != null && Int32.TryParse(value.ToString(), out number) ? Math.Min(maximum, Math.Max(minimum, number)) : fallback; }
     private string Bounded(string value, int maximum) { value = value ?? ""; return value.Length <= maximum ? value : value.Substring(0, maximum); }

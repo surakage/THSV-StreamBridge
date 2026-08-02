@@ -30,4 +30,14 @@ describe('Follower Pulse', () => {
     expect(normalizeFollowerPage({ scanId: '', page: 0, total: 0, followers: [] })).toBeUndefined();
     expect(normalizeFollowerPage({ scanId: 'scan-1', page: 0, total: 1, followers: [{ id: 'not-numeric', login: 'bad', name: 'Bad', followedAt: 'now' }] })?.followers).toHaveLength(0);
   });
+
+  it('restores only bounded suspects that still belong to tracked followers', () => {
+    const limited = { ...settings, maximumTrackedFollowers: 25 };
+    const followers = Object.fromEntries(Array.from({ length: 30 }, (_, index) => { const id = String(index + 1); return [id, { l: `user${id}`, n: `User ${id}`, a: '2026-07-27T12:00:00Z' }]; }));
+    const suspects = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [String(index + 1), 2]));
+    const state = stateFor({ followers, suspects }, limited);
+    expect(Object.keys(state.followers)).toHaveLength(25);
+    expect(Object.keys(state.suspects)).toHaveLength(25);
+    expect(Object.keys(state.suspects).every((id) => Object.hasOwn(state.followers, id))).toBe(true);
+  });
 });

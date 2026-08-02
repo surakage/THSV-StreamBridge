@@ -1,16 +1,26 @@
+import { createHash } from 'node:crypto';
+import { resolve } from 'node:path';
+import { unzipSync } from 'fflate';
 import { compareVersions, type InstalledAddOnSummary } from './addon-package-manager.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
+import { verifyGitHubArtifactProvenance, type ProvenanceVerifier, type ProvenanceVerification } from './release-update-service.js';
 
 const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge';
 const INDEX_ASSET_NAME = 'THSV-StreamBridge-AddOns-index.json';
 const MAXIMUM_INDEX_BYTES = 1_048_576;
 const REQUEST_TIMEOUT_MS = 10_000;
+const DOWNLOAD_TIMEOUT_MS = 30_000;
 const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const SHA256 = /^[a-f0-9]{64}$/u;
 const VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 
 interface GitHubReleaseAsset { readonly name?: unknown; readonly browser_download_url?: unknown; readonly size?: unknown; }
-interface GitHubRelease { readonly html_url?: unknown; readonly draft?: unknown; readonly prerelease?: unknown; readonly assets?: unknown; }
+const MAXIMUM_RELEASE_BUNDLE_BYTES = 268_435_456;
+const MAXIMUM_RELEASE_BUNDLE_FILES = 100;
+const MAXIMUM_RELEASE_BUNDLE_EXPANDED_BYTES = 32_000_000;
+const MAXIMUM_INNER_ADDON_BYTES = 7_500_000;
+
+interface GitHubRelease { readonly tag_name?: unknown; readonly html_url?: unknown; readonly draft?: unknown; readonly prerelease?: unknown; readonly assets?: unknown; }
 
 interface AddOnIndexPackage {
   readonly moduleId: string;
@@ -47,11 +57,26 @@ export interface AddOnUpdateStatus {
   readonly checkedAt: string;
   readonly available: boolean;
   readonly releaseUrl?: string;
+  readonly releaseVersion?: string;
   readonly indexAssetUrl?: string;
   readonly updateCount: number;
   readonly revokedCount: number;
   readonly addOns: readonly AddOnUpdateItem[];
   readonly error?: string;
+}
+
+export interface VerifiedAddOnUpdatePackage {
+  readonly moduleId: string;
+  readonly version: string;
+  readonly publisherId?: string;
+  readonly filename: string;
+  readonly archive: Uint8Array;
+  readonly sha256: string;
+  readonly outerArchiveName: string;
+  readonly outerSha256: string;
+  readonly provenance: 'verified';
+  readonly repository: string;
+  readonly workflow: string;
 }
 
 export class AddOnUpdateService {
@@ -60,10 +85,66 @@ export class AddOnUpdateService {
     private readonly repository = DEFAULT_REPOSITORY,
     private readonly request: typeof fetch = fetch,
     private readonly currentBridgeVersion: string = STREAMBRIDGE_VERSION,
+    private readonly cacheRoot = resolve('data', 'updates'),
+    private readonly provenanceVerifier: ProvenanceVerifier = (artifact, input) => verifyGitHubArtifactProvenance(artifact, {
+      repository: this.repository,
+      version: input.version,
+      archiveName: input.archiveName,
+      sha256: input.sha256,
+      request: this.request,
+      userAgentVersion: this.currentBridgeVersion,
+      cacheRoot: this.cacheRoot,
+    }),
   ) {
     compareVersions(currentCoreVersion, currentCoreVersion);
     compareVersions(currentBridgeVersion, currentBridgeVersion);
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repository)) throw new Error('GitHub repository must be owner/name.');
+  }
+
+  /** Creates an equally strict updater for a creator-approved GitHub repository. */
+  public forRepository(repository: string): AddOnUpdateService {
+    return new AddOnUpdateService(
+      this.currentCoreVersion,
+      repository,
+      this.request,
+      this.currentBridgeVersion,
+      this.cacheRoot,
+    );
+  }
+
+  public async stage(installed: readonly InstalledAddOnSummary[], input: unknown): Promise<VerifiedAddOnUpdatePackage> {
+    const request = stageRequest(input);
+    const status = await this.check(installed);
+    if (!status.available) throw new Error(status.error ?? 'The official add-on release could not be checked.');
+    const update = status.addOns.find((entry) => entry.moduleId === request.moduleId);
+    if (update?.state !== 'update-available' || update.latestVersion === undefined || update.downloadUrl === undefined || update.archiveName === undefined || update.sha256 === undefined) {
+      throw new Error('No compatible official update is available for this installed add-on.');
+    }
+    if (request.version !== update.latestVersion) throw new Error('The available add-on release changed. Check for updates again before downloading.');
+    if (status.releaseVersion === undefined) throw new Error('The official release does not declare a valid version tag.');
+
+    const outerArchive = await this.download(update.downloadUrl, update.archiveName, MAXIMUM_RELEASE_BUNDLE_BYTES);
+    const outerSha256 = digest(outerArchive);
+    if (outerSha256 !== update.sha256) throw new Error('The downloaded add-on release bundle does not match the official add-on index SHA-256.');
+    const provenance: ProvenanceVerification = await this.provenanceVerifier(outerArchive, {
+      version: status.releaseVersion,
+      archiveName: update.archiveName,
+      sha256: outerSha256,
+    });
+    const inner = extractInnerAddOn(outerArchive);
+    return {
+      moduleId: update.moduleId,
+      version: update.latestVersion,
+      ...(update.publisherId === undefined ? {} : { publisherId: update.publisherId }),
+      filename: inner.filename,
+      archive: inner.archive,
+      sha256: inner.sha256,
+      outerArchiveName: update.archiveName,
+      outerSha256,
+      provenance: 'verified',
+      repository: provenance.repository,
+      workflow: provenance.workflow,
+    };
   }
 
   public async check(installed: readonly InstalledAddOnSummary[]): Promise<AddOnUpdateStatus> {
@@ -73,6 +154,7 @@ export class AddOnUpdateService {
       if (!releaseResponse.ok) throw new Error(`GitHub add-on update check returned HTTP ${String(releaseResponse.status)}.`);
       const release = await releaseResponse.json() as GitHubRelease;
       if (release.draft === true || release.prerelease === true) throw new Error('The latest GitHub release is not a public stable release.');
+      const releaseVersion = version(text(release.tag_name, 'release tag', 100).replace(/^v/u, ''), 'release version');
       const releaseUrl = trustedUrl(release.html_url, 'release page', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${this.repository}/releases/`));
       const indexAsset = findIndexAsset(release.assets, this.repository);
       const indexResponse = await this.request(indexAsset.url, this.requestOptions());
@@ -94,6 +176,7 @@ export class AddOnUpdateService {
         checkedAt,
         available: true,
         releaseUrl,
+        releaseVersion,
         indexAssetUrl: indexAsset.url,
         updateCount: addOns.filter((addOn) => addOn.state === 'update-available').length,
         revokedCount: addOns.filter((addOn) => addOn.state === 'revoked').length,
@@ -110,6 +193,76 @@ export class AddOnUpdateService {
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     };
   }
+
+  private async download(url: string, name: string, maximumBytes: number): Promise<Uint8Array> {
+    const response = await this.request(url, {
+      headers: { accept: 'application/octet-stream', 'user-agent': `THSV-StreamBridge/${this.currentBridgeVersion}` },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new Error(`Downloading ${name} returned HTTP ${String(response.status)}.`);
+    const declaredLength = Number(response.headers.get('content-length') ?? '0');
+    if (Number.isFinite(declaredLength) && declaredLength > maximumBytes) throw new Error(`${name} exceeds the add-on update download safety limit.`);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength === 0 || bytes.byteLength > maximumBytes) throw new Error(`${name} is empty or exceeds the add-on update download safety limit.`);
+    return bytes;
+  }
+}
+
+function stageRequest(value: unknown): { readonly moduleId: string; readonly version: string } {
+  const input = record(value, 'staged add-on update request');
+  if (input['approvedByCreator'] !== true) throw new Error('Downloading an add-on update requires explicit creator approval.');
+  return {
+    moduleId: moduleId(input['moduleId'], 'requested module ID'),
+    version: version(input['version'], 'requested add-on version'),
+  };
+}
+
+function extractInnerAddOn(outerArchive: Uint8Array): { readonly filename: string; readonly archive: Uint8Array; readonly sha256: string } {
+  let files = 0;
+  let expandedBytes = 0;
+  const names = new Set<string>();
+  const extracted = unzipSync(outerArchive, {
+    filter: (file) => {
+      const normalizedName = file.name.replaceAll('\\', '/');
+      if (normalizedName.endsWith('/')) return false;
+      if (!normalizedName || normalizedName.startsWith('/') || /^[A-Za-z]:/u.test(normalizedName) || !normalizedName.split('/').every((segment) => segment.length > 0 && segment !== '.' && segment !== '..')) {
+        throw new Error(`Unsafe add-on release bundle path: ${file.name}`);
+      }
+      if (names.has(normalizedName)) throw new Error(`Duplicate add-on release bundle path: ${file.name}`);
+      names.add(normalizedName);
+      files += 1;
+      expandedBytes += file.originalSize;
+      if (files > MAXIMUM_RELEASE_BUNDLE_FILES || expandedBytes > MAXIMUM_RELEASE_BUNDLE_EXPANDED_BYTES) throw new Error('The add-on release bundle exceeds its extraction safety limits.');
+      return true;
+    },
+  });
+  const normalizedEntries = new Map(Object.entries(extracted).map(([name, bytes]) => [name.replaceAll('\\', '/'), bytes]));
+  const packageNames = [...normalizedEntries.keys()].filter((name) => !name.includes('/') && name.toLowerCase().endsWith('.thsv-addon'));
+  if (packageNames.length !== 1) throw new Error('The verified add-on release bundle must contain exactly one root .thsv-addon package.');
+  const filename = packageNames[0];
+  if (filename === undefined) throw new Error('The add-on release bundle does not contain an installable package.');
+  const archive = normalizedEntries.get(filename);
+  if (archive === undefined || archive.byteLength === 0 || archive.byteLength > MAXIMUM_INNER_ADDON_BYTES) throw new Error('The inner add-on package is empty or exceeds the package safety limit.');
+  const checksumName = `${filename}.sha256`;
+  const checksumBytes = normalizedEntries.get(checksumName);
+  if (checksumBytes === undefined || checksumBytes.byteLength > 1_024) throw new Error(`The add-on release bundle must contain ${checksumName}.`);
+  const publishedSha256 = parseInnerChecksum(new TextDecoder('utf-8', { fatal: true }).decode(checksumBytes), filename);
+  const actualSha256 = digest(archive);
+  if (actualSha256 !== publishedSha256) throw new Error('The inner add-on package does not match its adjacent SHA-256 checksum.');
+  return { filename, archive, sha256: actualSha256 };
+}
+
+function parseInnerChecksum(value: string, filename: string): string {
+  const lines = value.replace(/^\uFEFF/u, '').trim().split(/\r?\n/u).filter(Boolean);
+  if (lines.length !== 1) throw new Error('The inner add-on checksum must contain exactly one entry.');
+  const match = /^([a-fA-F0-9]{64})\s+\*?(.+)$/u.exec(lines[0] ?? '');
+  if (match?.[1] === undefined || match[2] !== filename) throw new Error('The inner add-on checksum does not name the expected package.');
+  return match[1].toLowerCase();
+}
+
+function digest(value: Uint8Array): string {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 function findIndexAsset(value: unknown, repository: string): { readonly url: string } {

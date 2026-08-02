@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Classifies normalized public chat, manages creator-approved trusted stable IDs, and optionally performs narrowly scoped, rate-limited moderation.",
-  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a disabled !guardtrust Streamer.bot command, wizard trusted-viewer manager, enforcement platform/rule selection, minimum-match threshold, per-viewer cooldown, safer guided setup, and regenerated imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline. 2.4.2: initial disabled-by-default observe-only release with bounded pseudonymous incident state.",
+  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: added a privacy-safe moderation dashboard with filtered and paginated incidents, action outcomes, salted viewer fingerprints, inline reviews, and bounded report download. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a disabled !guardtrust Streamer.bot command, wizard trusted-viewer manager, enforcement platform/rule selection, minimum-match threshold, per-viewer cooldown, safer guided setup, and regenerated imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline. 2.4.2: initial disabled-by-default observe-only release with bounded pseudonymous incident state.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.chat-guard",
     "name": "Chat Guard",
-    "version": "2.6.0",
+    "version": "3.0.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.6.0",
-    "maximumTestedBridgeVersion": "2.6.0",
+    "minimumBridgeVersion": "3.0.0",
+    "maximumTestedBridgeVersion": "3.0.0",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -58,7 +58,7 @@
     "installationSteps": [
       "Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.",
       "Import the matching Chat Guard Streamer.bot package. Leave Moderate enabled and triggerless. Review the disabled !guardtrust command before enabling it.",
-      "Use the rule tester and observation summary. Tune only rules that create false positives; beginner defaults are already supplied.",
+      "Use the rule tester and privacy-safe moderation dashboard. Filter incidents and label false positives before changing enforcement rules.",
       "To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator, then refresh Trusted viewers in the wizard.",
       "Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance."
     ],
@@ -78,8 +78,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 30893,
-      "sha256": "8bcc4cbae3df250aaeaa4f831eeb970703d75ade40db46bae518301388abc96c"
+      "size": 32420,
+      "sha256": "875c73eb6cc22c399977d29ef70320839c4a160dc8f2fa81ac3115f07bbc9420"
     },
     {
       "path": "schemas/config.json",
@@ -93,8 +93,8 @@
     },
     {
       "path": "README.md",
-      "size": 4255,
-      "sha256": "bdd3f07cc50d58f7b932bdc602e6ecd65144ecad81aebb499cc4e803579ba21d"
+      "size": 4732,
+      "sha256": "917e8c599dcd90b73c240467136212c2b43badd079147a641e24d8c805eda46c"
     }
   ]
 }

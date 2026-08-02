@@ -23,10 +23,11 @@ import {
   type CommandAdministrationRequest,
 } from '../core/command-administration.js';
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
-import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, WizardAddOnSummary } from './addon-wizard-service.js';
-import type { ReleaseUpdateService, ReleaseUpdateStatus } from './release-update-service.js';
+import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, TrustedAddOnPublisher, WizardAddOnSummary } from './addon-wizard-service.js';
+import type { ReleaseUpdateService, ReleaseUpdateStatus, StagedReleaseUpdate } from './release-update-service.js';
 import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
+import { REWARD_BLUEPRINTS, REWARD_PLATFORM_POLICY } from '../core/reward-blueprints.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -163,6 +164,7 @@ export class WizardService {
       mutationSupport: this.configuration !== undefined,
       navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Chat Overlay', 'Alerts', 'Rewards', 'Add-ons', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
+      rewardManifest: { platforms: REWARD_PLATFORM_POLICY, blueprints: REWARD_BLUEPRINTS },
       transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
       lastInspection: this.lastInspection,
       lastCommandSync: this.lastCommandSync,
@@ -425,9 +427,61 @@ export class WizardService {
     return this.updates.check();
   }
 
+  public async stageReleaseUpdate(input: unknown): Promise<StagedReleaseUpdate> {
+    if (this.updates === undefined) throw new WizardTransactionError(503, 'Release update checks are not configured.');
+    return this.updates.stage(input);
+  }
+
   public async checkForAddOnUpdates(): Promise<AddOnUpdateStatus> {
     if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on update checks are not configured.');
     return this.addOnUpdates.check(await this.addOns.list());
+  }
+
+  public async stageAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
+    const verified = await this.addOnUpdates.stage(await this.addOns.list(), input);
+    return this.addOns.stageVerifiedOfficialUpdate(verified);
+  }
+
+  public async listTrustedAddOnPublishers(): Promise<readonly TrustedAddOnPublisher[]> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.listTrustedPublishers();
+  }
+
+  public async saveTrustedAddOnPublisher(input: unknown): Promise<TrustedAddOnPublisher> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.saveTrustedPublisher(input);
+  }
+
+  public async removeTrustedAddOnPublisher(publisherId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.removeTrustedPublisher(publisherId, input);
+  }
+
+  public async checkTrustedPublisherAddOnUpdates(input: unknown): Promise<AddOnUpdateStatus> {
+    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
+    const publisher = await this.trustedPublisherFromInput(input, false);
+    const installed = (await this.addOns.list()).filter((addOn) => addOn.trust.publisherId === publisher.publisherId);
+    if (installed.length === 0) throw new WizardTransactionError(404, 'No installed add-ons declare this trusted publisher ID.');
+    return this.addOnUpdates.forRepository(publisher.repository).check(installed);
+  }
+
+  public async stageTrustedPublisherAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
+    const publisher = await this.trustedPublisherFromInput(input, true);
+    const installed = (await this.addOns.list()).filter((addOn) => addOn.trust.publisherId === publisher.publisherId);
+    const verified = await this.addOnUpdates.forRepository(publisher.repository).stage(installed, input);
+    return this.addOns.stageVerifiedPublisherUpdate(verified, publisher);
+  }
+
+  private async trustedPublisherFromInput(input: unknown, requireApproval: boolean): Promise<TrustedAddOnPublisher> {
+    if (typeof input !== 'object' || input === null || Array.isArray(input)) throw new WizardTransactionError(400, 'Trusted publisher request must be an object.');
+    const record = input as Record<string, unknown>;
+    if (requireApproval && record['approvedByCreator'] !== true) throw new WizardTransactionError(403, 'Downloading a third-party update requires explicit creator approval.');
+    const publisherId = typeof record['publisherId'] === 'string' ? record['publisherId'] : '';
+    const publisher = (await this.listTrustedAddOnPublishers()).find((entry) => entry.publisherId === publisherId);
+    if (publisher === undefined) throw new WizardTransactionError(404, 'Trusted publisher not found.');
+    return publisher;
   }
 
   public async installAddOn(input: unknown): Promise<Readonly<Record<string, unknown>>> {

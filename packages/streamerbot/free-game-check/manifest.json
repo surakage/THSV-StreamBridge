@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Free Game Check",
-  "version": "2.6.0",
+  "version": "3.0.0",
   "author": "surakage",
-  "description": "Fetches a bounded public giveaway snapshot for Free Game Check.",
+  "description": "Fetches bounded public giveaways and optionally delivers verified entries to Discord.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
   "actions": [
     {
@@ -11,9 +11,34 @@
       "name": "THSV Addon - Free Game Check - Refresh",
       "group": "THSV Addon - Free Game Check",
       "source": "src/RefreshGames.cs",
-      "importFile": "THSV-StreamBridge-Free-Game-Check-2.6.0.sb",
+      "importFile": "THSV-StreamBridge-Free-Game-Check-3.0.0.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "7e9b4db8-5d33-4ed2-a8d1-11f8d04ab662",
+      "name": "THSV Addon - Free Game Check - Discord Deliver",
+      "group": "THSV Addon - Free Game Check",
+      "source": "src/DeliverDiscord.cs",
+      "importFile": "THSV-StreamBridge-Free-Game-Check-3.0.0.sb",
+      "excludeFromHistory": true,
+      "excludeFromPending": true,
+      "arguments": [
+        {
+          "name": "freeGameDiscordWebhookUrl",
+          "value": "REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL",
+          "autoType": false,
+          "id": "5e594055-b172-4a26-a840-50f1d2c4faca"
+        }
+      ],
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -29,8 +54,9 @@
     "concurrent": false
   },
   "manualTriggerSetup": {
-    "refresh": []
+    "refresh": [],
+    "discord": []
   },
-  "triggerSafety": "Refresh stays triggerless and can call only the fixed GamerPower HTTPS endpoint.",
+  "triggerSafety": "Both actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh can call only the fixed GamerPower HTTPS endpoint. Discord Deliver requires a one-use broker token and keeps its webhook in a private Set Argument.",
   "verificationStatus": "Static package and endpoint validation are automated; live provider availability remains creator-accepted."
 }

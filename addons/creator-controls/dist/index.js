@@ -5,10 +5,11 @@ const RESULT_EVENT = 'addon.thsv.creator-controls.result';
 const CONTROLLER_ACTION_ID = '183afef4-fc53-4337-859f-c9fe6d1961e1';
 const PROFILE_IDS = Object.freeze(['profile-1', 'profile-2', 'profile-3']);
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick']);
+const pendingRequests = new Map();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.creator-controls', name: 'Creator Controls', version: '2.6.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.creator-controls', name: 'Creator Controls', version: '3.0.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: [CONTROL_EVENT, RESULT_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.creator-controls/', 'data/addons/.state/thsv.creator-controls/'],
   installationSteps: ['Import the bundled Creator Controls Streamer.bot package.', 'Approve only its triggerless Provider Controller action in the wizard.', 'Edit the three profiles, then attach Profile 1/2/3 only to creator-controlled hotkeys, deck buttons, or scene actions.'],
@@ -32,31 +33,42 @@ function profileFor(settings, id) {
 }
 function boundedState(value) {
   const source = value && typeof value === 'object' ? value : {};
-  const history = Array.isArray(source.history) ? source.history.filter((entry) => entry && typeof entry === 'object' && PROFILE_IDS.includes(entry.profileId) && typeof entry.at === 'string').slice(-19) : [];
+  const history = Array.isArray(source.history) ? source.history.filter((entry) => entry && typeof entry === 'object' && PROFILE_IDS.includes(entry.profileId) && typeof entry.at === 'string').slice(-19).map((entry) => {
+    const results = Array.isArray(entry.results) ? entry.results.filter((item) => item && PLATFORMS.includes(item.platform)).slice(0, 3).map((item) => ({ platform: item.platform, success: item.success === true })) : [];
+    return { profileId: entry.profileId, at: clean(entry.at, 40), success: entry.success === true, resultCount: Number.isInteger(entry.resultCount) ? Math.min(3, Math.max(0, entry.resultCount)) : results.length, results };
+  }) : [];
   return { history };
 }
 
 const module = {
-  manifest, required: false, async start() {}, async stop() {},
+  manifest, required: false, async start() { pendingRequests.clear(); }, async stop() { pendingRequests.clear(); },
   async onEvent(event, context) {
     const settings = settingsFor(context); if (settings.enabled !== true) return;
     if (event?.eventType === CONTROL_EVENT) {
       if (event.metadata?.simulated === true && settings.allowSimulatedControls !== true) return;
       const profileId = clean(event.payload?.profileId, 20); const profile = profileFor(settings, profileId);
       if (!profile?.enabled || profile.platforms.length === 0 || (profile.title === '' && profile.twitchCategoryId === '' && profile.youtubeCategoryName === '' && profile.kickCategoryName === '')) return;
-      await context.streamerbot.runApprovedAction(CONTROLLER_ACTION_ID, {
+      const requestId = clean(event.eventId, 100); if (!requestId) return;
+      pendingRequests.set(requestId, { profileId, expiresAt: Date.now() + 60_000 });
+      if (pendingRequests.size > 100) pendingRequests.delete(pendingRequests.keys().next().value);
+      try { await context.streamerbot.runApprovedAction(CONTROLLER_ACTION_ID, {
         providerControlModuleId: manifest.moduleId, providerControlResultEvent: RESULT_EVENT, providerControlRequestId: event.eventId,
+        providerControlOriginRequestId: clean(event.payload?.categoryPilotRequestId, 100),
+        providerControlSimulated: event.metadata?.simulated === true,
         providerControlProfileId: profile.id, providerControlProfileName: profile.name, providerControlPlatforms: profile.platforms.join(','),
         providerControlTitle: profile.title, providerControlTwitchCategoryId: profile.twitchCategoryId,
         providerControlYoutubeCategoryName: profile.youtubeCategoryName, providerControlYoutubeBroadcastId: profile.youtubeBroadcastId,
         providerControlKickCategoryName: profile.kickCategoryName,
-      });
+      }); } catch (error) { pendingRequests.delete(requestId); throw error; }
       return;
     }
     if (event?.eventType !== RESULT_EVENT) return;
-    const profileId = clean(event.payload?.profileId, 20); if (!PROFILE_IDS.includes(profileId)) return;
+    const requestId = clean(event.payload?.requestId, 100); const pending = pendingRequests.get(requestId); pendingRequests.delete(requestId);
+    if (!pending || pending.expiresAt < Date.now()) return;
+    const profileId = clean(event.payload?.profileId, 20); if (!PROFILE_IDS.includes(profileId) || profileId !== pending.profileId) return;
     const state = boundedState(await context.state.read());
-    const entry = { profileId, at: event.receivedAt, success: event.payload?.success === true, resultCount: Number.isInteger(event.payload?.resultCount) ? Math.min(3, Math.max(0, event.payload.resultCount)) : 0 };
+    const results = Array.isArray(event.payload?.results) ? event.payload.results.filter((item) => item && PLATFORMS.includes(item.platform)).slice(0, 3).map((item) => ({ platform: item.platform, success: item.success === true })) : [];
+    const entry = { profileId, at: event.receivedAt, success: event.payload?.success === true, resultCount: Number.isInteger(event.payload?.resultCount) ? Math.min(3, Math.max(0, event.payload.resultCount)) : 0, results };
     await context.state.write({ history: [...state.history, entry].slice(-20) });
   },
 };

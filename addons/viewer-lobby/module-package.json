@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.",
-  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with serialized queue state, four source-routed commands, creator-only controls, offline policy, and privacy-bounded overlay projection.",
+  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with serialized queue state, four source-routed commands, creator-only controls, offline policy, and privacy-bounded overlay projection.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-lobby",
     "name": "Viewer Lobby",
-    "version": "2.6.0",
+    "version": "3.0.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -29,6 +29,7 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "chat.message",
+      "stream.online",
       "stream.offline",
       "addon.thsv.viewer-lobby.control"
     ],
@@ -71,21 +72,21 @@
         "description": "Confirms serialized source-routed queue commands and creator-only controls are available."
       }
     ],
-    "minimumBridgeVersion": "2.6.0",
-    "maximumTestedBridgeVersion": "2.6.0"
+    "minimumBridgeVersion": "3.0.0",
+    "maximumTestedBridgeVersion": "3.0.0"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 9396,
-      "sha256": "2838229ea12a484f224ba10fc6518a04875290c3da2692c3f8c61a64fb893f0e"
+      "size": 12250,
+      "sha256": "d953c6283e3e5000f96597f5134981b4c74d285360aef7c7ce24f9e20385dcc4"
     },
     {
       "path": "schemas/config.json",
-      "size": 1766,
-      "sha256": "c29718f4925f58b3ccdf46f21fce7be60cc7fdba94e5adc5223b80ff8b99754b"
+      "size": 1854,
+      "sha256": "bd78f9f7336af66efe1a1a758057221ad8963267ffa5cb029dbee8e2a36dcc43"
     },
     {
       "path": "ui/settings.json",
@@ -94,8 +95,8 @@
     },
     {
       "path": "README.md",
-      "size": 296,
-      "sha256": "e0133307baa9886fe5ddc5fac82591dd541c6739550047f93748205048298ab9"
+      "size": 553,
+      "sha256": "9e3196c1cd6f15447db739bea9dd6ca5a241610c13cdea0a986ebed165c4ddb6"
     }
   ]
 }

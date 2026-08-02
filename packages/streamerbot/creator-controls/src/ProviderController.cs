@@ -12,7 +12,7 @@ public class CPHInline
     public bool Execute()
     {
         string token = Read("thsvAddonRelayToken"); string moduleId = Read("providerControlModuleId"); string resultEvent = Read("providerControlResultEvent");
-        string requestId = Read("providerControlRequestId"); string profileId = Read("providerControlProfileId");
+        string requestId = Read("providerControlRequestId"); string profileId = Read("providerControlProfileId"); string originRequestId = Read("providerControlOriginRequestId"); bool simulated = ReadBool("providerControlSimulated");
         if (token.Length < 20 || moduleId != "thsv.creator-controls" || resultEvent != "addon.thsv.creator-controls.result" || requestId.Length == 0) return Fail("the broker authorization arguments were missing or invalid.");
         var requested = new HashSet<string>(Read("providerControlPlatforms").Split(','), StringComparer.OrdinalIgnoreCase);
         var results = new JArray(); bool allSucceeded = true;
@@ -27,8 +27,8 @@ public class CPHInline
         {
             ["type"] = "thsv.addon", ["version"] = "1.0.0", ["moduleId"] = moduleId, ["eventType"] = resultEvent,
             ["sourceEventType"] = "THSV Addon - Creator Controls - Provider Controller", ["relayId"] = Guid.NewGuid().ToString("N"), ["relayToken"] = token,
-            ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = false,
-            ["payload"] = new JObject { ["requestId"] = requestId, ["profileId"] = profileId, ["success"] = allSucceeded, ["resultCount"] = results.Count, ["results"] = results }
+            ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = simulated,
+            ["payload"] = new JObject { ["requestId"] = requestId, ["categoryPilotRequestId"] = originRequestId, ["profileId"] = profileId, ["success"] = allSucceeded, ["resultCount"] = results.Count, ["results"] = results }
         };
         try { CPH.WebsocketBroadcastJson(envelope.ToString(Formatting.None)); }
         catch (Exception error) { return Fail("the provider result could not be relayed (" + error.GetType().Name + ")."); }
@@ -64,6 +64,7 @@ public class CPHInline
         return false;
     }
     private string Read(string name) { object value; return CPH.TryGetArg(name, out value) && value != null ? Clean(Convert.ToString(value, CultureInfo.InvariantCulture), 256) : ""; }
+    private bool ReadBool(string name) { bool value; return Boolean.TryParse(Read(name), out value) && value; }
     private string Clean(string value, int maximum) { value = (value ?? "").Trim(); return value.Length <= maximum ? value : value.Substring(0, maximum); }
     private bool Fail(string reason) { CPH.SetArgument("providerControlSuccess", false); CPH.SetArgument("providerControlError", reason); CPH.LogError("THSV Creator Controls controller failed: " + reason); return false; }
 }

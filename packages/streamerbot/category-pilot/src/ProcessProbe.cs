@@ -14,6 +14,7 @@ public class CPHInline
     public bool Execute()
     {
         string token = Read("thsvAddonRelayToken"); if (token.Length < 20) return Fail("the broker authorization token was missing.");
+        string requestId = Read("categoryPilotRequestId"); if (requestId.Length == 0 || requestId.Length > 100) return Fail("the probe request ID was missing or invalid.");
         var allowed = new HashSet<string>(Read("categoryPilotAllowedProcesses").Split(',').Select(Normalize).Where(value => value.Length > 0).Take(20), StringComparer.OrdinalIgnoreCase);
         if (allowed.Count == 0) return Fail("no allowed process names were supplied.");
         var running = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -32,7 +33,7 @@ public class CPHInline
             ["type"] = "thsv.addon", ["version"] = "1.0.0", ["moduleId"] = "thsv.category-pilot", ["eventType"] = "addon.thsv.category-pilot.processes-received",
             ["sourceEventType"] = "THSV Addon - Category Pilot - Process Probe", ["relayId"] = Guid.NewGuid().ToString("N"), ["relayToken"] = token,
             ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = false,
-            ["payload"] = new JObject { ["runningProcesses"] = new JArray(running.OrderBy(value => value).Take(5)), ["matchCount"] = Math.Min(5, running.Count) }
+            ["payload"] = new JObject { ["requestId"] = requestId, ["runningProcesses"] = new JArray(running.OrderBy(value => value).Take(5)), ["matchCount"] = Math.Min(5, running.Count) }
         };
         try { CPH.WebsocketBroadcastJson(envelope.ToString(Formatting.None)); }
         catch (Exception error) { return Fail("the bounded process result could not be relayed (" + error.GetType().Name + ")."); }

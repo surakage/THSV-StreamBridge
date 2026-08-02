@@ -13,8 +13,8 @@ let purchaseRecoveryTaskId;
 let stopped = true;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Draw', version: '2.6.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Draw', version: '3.0.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received', 'stream.offline'],
   commandsProvided: [
     { id: 'village-draw.manage', name: 'giveaway' }, { id: 'village-draw.enter', name: 'enter' },

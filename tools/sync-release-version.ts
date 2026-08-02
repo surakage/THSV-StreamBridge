@@ -55,7 +55,7 @@ async function alignAddOns(): Promise<void> {
     manifest['maximumTestedCoreVersion'] = contractVersion;
     manifest['minimumBridgeVersion'] = targetVersion;
     manifest['maximumTestedBridgeVersion'] = targetVersion;
-    descriptor['changelog'] = stableChangelog(descriptor['changelog']);
+    descriptor['changelog'] = releaseChangelog(descriptor['changelog']);
 
     const runtimePath = join(addOnRoot, 'dist', 'index.js');
     let runtime = await readFile(runtimePath, 'utf8');
@@ -121,10 +121,12 @@ async function alignStreamerBotPackages(): Promise<void> {
   }
 }
 
-function stableChangelog(value: unknown): string {
+function releaseChangelog(value: unknown): string {
   const existing = typeof value === 'string' ? value.trim() : '';
+  const stablePrefix = `${targetVersion}: aligned with the stable THSV StreamBridge ${targetVersion} baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports.`;
+  const prefix = `${targetVersion}: aligned with THSV StreamBridge ${targetVersion}, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports.`;
+  if (existing.startsWith(stablePrefix)) return `${prefix}${existing.slice(stablePrefix.length)}`;
   if (existing.startsWith(`${targetVersion}:`)) return existing;
-  const prefix = `${targetVersion}: aligned with the stable THSV StreamBridge ${targetVersion} baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports.`;
   return existing.length === 0 ? prefix : `${prefix} ${existing}`;
 }
 

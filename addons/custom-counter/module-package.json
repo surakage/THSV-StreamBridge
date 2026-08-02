@@ -1,0 +1,103 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Provides bounded persistent creator counters with role-gated controls and a customizable core-hosted overlay.",
+  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: initial Custom Counter implementation.",
+  "permissions": [
+    "events.subscribe",
+    "overlay.publish",
+    "state.private",
+    "chat.send"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.custom-counter",
+    "name": "Custom Counter",
+    "version": "3.0.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "3.0.0",
+    "maximumTestedBridgeVersion": "3.0.0",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "addon.thsv.custom-counter.control",
+      "command.received",
+      "channel.follow",
+      "channel.subscription",
+      "channel.membership",
+      "engagement.raid"
+    ],
+    "commandsProvided": [
+      {
+        "id": "custom-counter.command",
+        "name": "streamcounter"
+      }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "coordination": [
+      {
+        "resource": "overlay.counter",
+        "mode": "background",
+        "priority": 10,
+        "timeoutMs": 600000,
+        "cooldownMs": 0,
+        "skippable": false
+      }
+    ],
+    "dataStorageOwned": [
+      "data/addons/thsv.custom-counter/",
+      "data/addons/.state/thsv.custom-counter/"
+    ],
+    "installationSteps": [
+      "Install Custom Counter and import its separate Streamer.bot controls.",
+      "Create the optional no-response counter command through Command Sync.",
+      "Attach creator controls only to trusted hotkeys, Stream Deck buttons, or manual triggers.",
+      "Add /overlay/addons/thsv.custom-counter as a browser source."
+    ],
+    "uninstallationSteps": [
+      "Uninstalling preserves bounded counter values and presets for a later reinstall."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.custom-counter.runtime",
+        "description": "Confirms serialized persistent counters, creator controls, role gates, and overlay projection are available."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 12243,
+      "sha256": "826ccec55ea657a1b9809b00b0c72f48fac9949f9e4f0c6bb1018c351ba715af"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3551,
+      "sha256": "ad7303188d2d2c4f1517396309912b581a99dab010ae1a917a9a6859a863ba02"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 3360,
+      "sha256": "b13ab899192a25376b0d7db3a87d87ed48bb2cedbd47427e84844a4ca63395a5"
+    },
+    {
+      "path": "README.md",
+      "size": 1136,
+      "sha256": "3c0ea9a4704e57e59e2f3f35c270e45c5379f49147e5e5f68827244c84a262aa"
+    }
+  ]
+}

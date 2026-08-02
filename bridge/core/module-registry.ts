@@ -127,6 +127,8 @@ export class ModuleRegistry {
 
   public capabilityDiagnostics(): Readonly<Record<string, unknown>> { return this.broker.diagnostics(); }
 
+  public resetCoordination(resource?: string): Readonly<Record<string, unknown>> { return this.broker.resetCoordination(resource); }
+
   public administerViewerFoundation(request: ViewerFoundationAdminRequestV1): Promise<ViewerFoundationAdminResultV1> {
     return this.broker.administerViewerFoundation(request);
   }
@@ -198,6 +200,7 @@ const viewerSpotlightAdminSchema = z.discriminatedUnion('operation', [
 const viewerSpotlightAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Viewer Spotlight administration result exceeded the safe response size.');
 const chatGuardAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
+  z.object({ operation: z.literal('incidents'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']).optional(), rule: z.enum(['blocked-term', 'blocked-domain', 'unapproved-domain', 'excessive-links', 'excessive-caps', 'repeated-characters', 'long-message', 'repeated-message']).optional(), review: z.enum(['unreviewed', 'confirmed', 'false-positive']).optional(), enforcementStatus: z.enum(['none', 'dispatched', 'succeeded', 'failed', 'unsupported']).optional(), offset: z.number().int().min(0).max(1_000).optional(), limit: z.number().int().min(1).max(100).optional() }).strict(),
   z.object({ operation: z.literal('test'), message: z.string().trim().min(1).max(2_000), priorMatchingMessages: z.number().int().min(0).max(9) }).strict(),
   z.object({ operation: z.literal('trust-add'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), label: z.string().trim().min(1).max(80), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('trust-remove'), accountKey: z.string().regex(/^[a-f0-9]{64}$/u), approvedByCreator: z.literal(true) }).strict(),

@@ -54,8 +54,11 @@ describe('Random Clip Player - shared video coordination', () => {
     const descriptor = JSON.parse(await readFile('addons/random-clip-player/module-package.json', 'utf8')) as { permissions: string[] };
     const runtime = await readFile('addons/random-clip-player/dist/index.js', 'utf8');
     expect(descriptor.permissions).toContain('media.exclusive');
+    expect(descriptor.permissions).toContain('media.cache');
     expect(runtime).toContain('context.mediaSlot.onChange');
     expect(runtime).toContain('onMediaSlotChanged');
     expect(runtime).toContain('fade: true');
+    expect(runtime).toContain('context.mediaCache.fetch');
+    expect(runtime).toContain('maximumBytes: settings.cacheMaximumFileMb * 1_048_576');
   });
 });

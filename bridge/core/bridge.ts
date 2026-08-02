@@ -279,6 +279,10 @@ export class StreamBridge {
     return this.modules.administerChatGuard(request);
   }
 
+  public resetAddOnCoordination(resource?: string): Readonly<Record<string, unknown>> {
+    return this.modules.resetCoordination(resource);
+  }
+
   private async publishEvents(events: readonly NormalizedEvent[], initialDecision: FilterDecision): Promise<readonly string[]> {
     // Persist the external-delivery obligation before any fallible local projection. Once
     // this resolves, a crash can replay the event and the ingest response may safely say queued.

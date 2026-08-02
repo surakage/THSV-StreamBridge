@@ -15,7 +15,7 @@ Streamer.bot also exposes native First Words triggers for Twitch, YouTube, and K
 
 ## Documented platform variables and methods
 
-The intake packages—not this add-on—translate provider variables into `event.user`, `event.payload`, and `event.source`. These are the source facts reviewed for this implementation:
+The intake packagesâ€”not this add-onâ€”translate provider variables into `event.user`, `event.payload`, and `event.source`. These are the source facts reviewed for this implementation:
 
 | Provider | Useful documented inputs | Output used |
 |---|---|---|
@@ -46,7 +46,7 @@ Streamer.bot does not currently document an arbitrary-channel native shoutout fo
 1. Download and extract `THSV-StreamBridge-AddOn-Automated-Shoutouts-1.1.0.zip`, then install its `THSV-Automated-Shoutouts-1.1.0.thsv-addon` through the authenticated wizard and enable it.
 2. Review the settings. Keep first-chat automation disabled until its allowlist is populated.
 3. For manual use, open **Command Sync** and create the command named by **Manual command name**. Recommended aliases are `so` and `shoutout`; set the reference role to Moderator and enable the desired message sources.
-4. Import `Streamer.bot/THSV-StreamBridge-Automated-Shoutouts-2.6.0.sb` from the extracted add-on bundle. The native platform intake remains a core import supplied by the main StreamBridge download. Do not attach triggers to the Automated Shoutouts actions. Approve `Lookup Twitch Creator` whenever Twitch triggers are enabled. Approve `Twitch Native Shoutout` only when the Twitch mode is `native` or `both`. Approve `Get Twitch Clip` only when the visual popup uses random clips.
+4. Import `Streamer.bot/THSV-StreamBridge-Automated-Shoutouts-3.0.0.sb` from the extracted add-on bundle. The native platform intake remains a core import supplied by the main StreamBridge download. Do not attach triggers to the Automated Shoutouts actions. Approve `Lookup Twitch Creator` whenever Twitch triggers are enabled. Approve `Twitch Native Shoutout` only when the Twitch mode is `native` or `both`. Approve `Get Twitch Clip` only when the visual popup uses random clips.
 5. For TikTok output, enable **Allow Streamer.bot to push messages to TikFinity** in TikFinity's Chatbot settings.
 6. Optionally add the concise **Shoutouts** source, `http://127.0.0.1:8787/overlay/shoutouts`, to OBS, Meld, or Streamlabs and use **Send preview card** in the wizard. The previous module-ID URL remains supported for existing scenes.
 
@@ -87,7 +87,7 @@ The add-on never persists chat message text. Private state contains only a bound
 ## Live acceptance
 
 1. Start StreamBridge and confirm `/ready` reports ready.
-2. Run `npm run simulate -- tests/fixtures/twitch-raid.json` and confirm only the optional overlay preview appears—no live chat output.
+2. Run `npm run simulate -- tests/fixtures/twitch-raid.json` and confirm only the optional overlay preview appearsâ€”no live chat output.
 3. Trigger a controlled Twitch raid from a channel with a category and confirm the message contains the name, category, and complete channel URL exactly once.
 4. Test an allowlisted Twitch chatter whose relayed `firstMessage` is true and whose lookup returns no category. Confirm the editable viewer welcome appears exactly once, without a channel/category promotion. Confirm a returning chatter (`firstMessage=false` or absent) and an empty-category raid produce no automatic promotion.
 5. Repeat the same source event and confirm no second message is posted.

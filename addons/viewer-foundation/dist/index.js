@@ -25,9 +25,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.viewer-foundation',
   name: 'Viewer Foundation',
-  version: '2.6.0',
+  version: '3.0.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...Object.keys(EVENT_POINTS), 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'viewer-foundation.balance', name: 'points' }], actionsProvided: [], browserSourcesProvided: [],
@@ -184,12 +184,16 @@ export function sanitizeViewerFoundationState(value, settings = FALLBACKS, now =
       callerModuleId: clean(item.callerModuleId, 128), reason: clean(item.reason, 120) }))
     .slice(-200) : [];
   const adminAudit = Array.isArray(source.adminAudit) ? source.adminAudit
-    .filter((item) => item && typeof item === 'object' && ['correct', 'delete', 'import-legacy'].includes(item.operation)
+    .filter((item) => item && typeof item === 'object' && ['correct', 'undo-correction', 'delete', 'import-legacy', 'link-add', 'link-remove'].includes(item.operation)
       && typeof item.subject === 'string' && Number.isSafeInteger(item.at) && item.at >= 0
       && typeof item.reason === 'string')
     .map((item) => ({ operation: item.operation, subject: clean(item.subject, 64), at: item.at,
       reason: clean(item.reason, 200), ...(Number.isSafeInteger(item.previousPoints) ? { previousPoints: item.previousPoints } : {}),
-      ...(Number.isSafeInteger(item.totalPoints) ? { totalPoints: item.totalPoints } : {}) }))
+      ...(Number.isSafeInteger(item.totalPoints) ? { totalPoints: item.totalPoints } : {}),
+      ...(/^[a-f0-9]{32}$/u.test(item.id) ? { id: item.id } : {}),
+      ...(/^[a-f0-9]{32}$/u.test(item.revertsAuditId) ? { revertsAuditId: item.revertsAuditId } : {}),
+      ...(PLATFORM.test(item.platform) ? { platform: item.platform } : {}),
+      ...(/^[a-f0-9]{24}$/u.test(item.accountFingerprint) ? { accountFingerprint: item.accountFingerprint } : {}) }))
     .slice(-100) : [];
   const legacyImports = Array.isArray(source.legacyImports) ? source.legacyImports
     .filter((item) => item && typeof item === 'object' && /^[a-f0-9]{64}$/u.test(item.digest) && Number.isSafeInteger(item.at) && item.at >= 0 && Number.isSafeInteger(item.records) && item.records >= 0)
@@ -433,6 +437,26 @@ async function administerViewer(request, context, now = Date.now()) {
       linkedViewerCount: settings.links.viewerIds.size, processedEventCount: state.processed.length,
       mutationCount: state.mutations.length, auditCount: state.adminAudit.length, legacyImportCount: state.legacyImports.length };
   }
+  if (request.operation === 'search') {
+    let viewerId = clean(request.viewerId, 64); let linked = settings.links.viewerIds.has(viewerId);
+    if (!viewerId && request.platform && request.userId) {
+      const identity = await resolveViewer({ platform: request.platform, user: { id: request.userId } }, state, settings);
+      if (!identity) throw new Error('A supported platform and stable user ID are required.');
+      viewerId = identity.viewerId; linked = identity.linked;
+    }
+    if (!VIEWER_ID.test(viewerId)) throw new Error('Search by a lowercase Viewer Foundation ID or a stable platform account ID.');
+    const viewer = state.viewers[viewerId];
+    const linkedAccounts = [...settings.links.accounts.entries()]
+      .filter((entry) => entry[1] === viewerId)
+      .map(([key]) => { const [platform, userId] = key.split('\u0000'); return { platform, userId }; });
+    return { operation: 'search', found: viewer !== undefined || linkedAccounts.length > 0, viewerId, linked,
+      displayNamesStored: false, linkedAccounts,
+      projection: viewer ? { currencyName: settings.currencyName, points: viewer.points, level: viewer.level, lastSeenAt: viewer.lastSeenAt, lastAwardAt: viewer.lastAwardAt, ...achievementProjection(viewer.points, settings) } : null };
+  }
+  if (request.operation === 'audit') {
+    const limit = integer(request.limit, 1, 100, 25);
+    return { operation: 'audit', entries: state.adminAudit.slice(-limit).reverse(), retained: state.adminAudit.length };
+  }
   if (request.operation === 'import-legacy') {
     if (request.approvedByCreator !== true || !/^[a-f0-9]{64}$/u.test(clean(request.migrationDigest, 64))) throw new Error('Legacy import requires explicit creator approval and the exact preview digest.');
     const migrationDigest = clean(request.migrationDigest, 64);
@@ -454,7 +478,7 @@ async function administerViewer(request, context, now = Date.now()) {
     return { operation: 'import-legacy', duplicate: false, imported, merged, skipped, sourceRecords: records.length };
   }
   const viewerId = clean(request.viewerId, 64);
-  if (!VIEWER_ID.test(viewerId)) throw new Error('viewerId must be a lowercase identifier.');
+  if (request.operation !== 'undo-correction' && !VIEWER_ID.test(viewerId)) throw new Error('viewerId must be a lowercase identifier.');
   if (request.operation === 'export') {
     const viewer = state.viewers[viewerId];
     const linkedAccounts = [...settings.links.accounts.entries()]
@@ -472,6 +496,34 @@ async function administerViewer(request, context, now = Date.now()) {
     return { operation: 'delete', viewerId, removed: result.removed,
       accountLinksRequireRemoval: settings.links.viewerIds.has(viewerId) };
   }
+  if (request.operation === 'link-audit') {
+    if (request.approvedByCreator !== true) throw new Error('Account-link changes require explicit creator approval.');
+    const viewerId = clean(request.viewerId, 64); const platform = clean(request.platform, 16); const userId = clean(request.userId, 256);
+    if (!VIEWER_ID.test(viewerId) || GENERATED_VIEWER_ID.test(viewerId) || !PLATFORM.test(platform) || !userId) throw new Error('The account-link audit request is invalid.');
+    const accountFingerprint = (await digest(`${platform}\u0000${userId}`)).slice(0, 24);
+    const auditOperation = request.linkAction === 'remove' ? 'link-remove' : 'link-add';
+    const id = (await digest(`${auditOperation}\u0000${viewerId}\u0000${accountFingerprint}\u0000${String(now)}`)).slice(0, 32);
+    state.adminAudit.push({ id, operation: auditOperation, subject: viewerId, platform, accountFingerprint, at: now, reason: clean(request.reason, 200) });
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { operation: 'link-audit', auditId: id, linkAction: request.linkAction, viewerId, platform, accountFingerprint, restartRequired: true };
+  }
+  if (request.operation === 'undo-correction') {
+    if (request.approvedByCreator !== true) throw new Error('Undoing a correction requires explicit creator approval.');
+    const auditId = clean(request.auditId, 32);
+    const correction = state.adminAudit.find((item) => item.id === auditId && item.operation === 'correct');
+    if (!correction || !VIEWER_ID.test(correction.subject) || !Number.isSafeInteger(correction.previousPoints) || !Number.isSafeInteger(correction.totalPoints)) throw new Error('The requested correction audit entry is unavailable or cannot be undone.');
+    if (state.adminAudit.some((item) => item.operation === 'undo-correction' && item.revertsAuditId === auditId)) throw new Error('That correction was already undone.');
+    const current = state.viewers[correction.subject];
+    if (!current || current.points !== correction.totalPoints) throw new Error('Viewer points changed after that correction. Refusing to overwrite newer activity.');
+    const level = Math.floor(correction.previousPoints / settings.levelStepPoints) + 1;
+    state.viewers[correction.subject] = { ...current, points: correction.previousPoints, level, lastSeenAt: now };
+    const undoId = (await digest(`undo-correction\u0000${auditId}\u0000${String(now)}`)).slice(0, 32);
+    state.adminAudit.push({ id: undoId, operation: 'undo-correction', subject: correction.subject, revertsAuditId: auditId, at: now,
+      reason: clean(request.reason, 200), previousPoints: current.points, totalPoints: correction.previousPoints });
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { operation: 'undo-correction', auditId: undoId, revertsAuditId: auditId, viewerId: correction.subject,
+      previousPoints: current.points, points: correction.previousPoints, level, currencyName: settings.currencyName };
+  }
   if (request.operation !== 'correct') throw new Error('Unsupported Viewer Foundation administration operation.');
   const existing = state.viewers[viewerId] || emptyViewer();
   const amount = integer(request.amount, 1, 1_000_000, 1);
@@ -480,10 +532,11 @@ async function administerViewer(request, context, now = Date.now()) {
       : Math.min(Number.MAX_SAFE_INTEGER, existing.points + amount);
   const level = Math.floor(totalPoints / settings.levelStepPoints) + 1;
   state.viewers[viewerId] = { ...existing, points: totalPoints, level, lastSeenAt: now };
-  state.adminAudit.push({ operation: 'correct', subject: viewerId, at: now, reason: clean(request.reason, 200),
+  const auditId = (await digest(`correct\u0000${viewerId}\u0000${String(existing.points)}\u0000${String(totalPoints)}\u0000${String(now)}`)).slice(0, 32);
+  state.adminAudit.push({ id: auditId, operation: 'correct', subject: viewerId, at: now, reason: clean(request.reason, 200),
     previousPoints: existing.points, totalPoints });
   await context.state.write(sanitizeViewerFoundationState(state, settings, now));
-  return { operation: 'correct', viewerId, adjustment: request.adjustment, previousPoints: existing.points,
+  return { operation: 'correct', auditId, viewerId, adjustment: request.adjustment, previousPoints: existing.points,
     currencyName: settings.currencyName, points: totalPoints, level, nextLevelAt: level * settings.levelStepPoints, ...achievementProjection(totalPoints, settings) };
 }
 

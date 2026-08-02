@@ -6,7 +6,10 @@
     "minDurationSeconds",
     "maxDurationSeconds",
     "muted",
-    "volume"
+    "volume",
+    "cacheVideo",
+    "cacheTtlHours",
+    "cacheMaximumFileMb"
   ],
   "sections": [
     {
@@ -29,8 +32,15 @@
       "fields": ["muted", "volume"]
     },
     {
+      "id": "cache",
+      "title": "4. Optional smoother playback",
+      "description": "Prefetch the selected clip to a private, bounded loopback cache before playback.",
+      "notice": "Disabled by default. Only Twitch CDN HTTPS video is accepted. Files are capped at 50 MB each, 250 MB total, expire within 24 hours, and are removed automatically.",
+      "fields": ["cacheVideo", "cacheTtlHours", "cacheMaximumFileMb"]
+    },
+    {
       "id": "review",
-      "title": "4. Review before enabling",
+      "title": "5. Review before enabling",
       "description": "Confirm the required Streamer.bot actions and browser source.",
       "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Run or trigger Enable to begin playback and Disable to end it. Restarting StreamBridge always returns the player to off.",
       "fields": []

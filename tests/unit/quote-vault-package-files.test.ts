@@ -14,7 +14,7 @@ describe('Quote Vault Streamer.bot package', () => {
 
   it('packages two optional controls with editable platform arguments', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/quote-vault/manifest.json', 'utf8')) as {
-      minimumStreamerBotVersion: string;
+      version: string; minimumStreamerBotVersion: string;
       actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string }> }>;
     };
     expect(manifest.minimumStreamerBotVersion).toBe('1.0.5-alpha.33');
@@ -23,7 +23,7 @@ describe('Quote Vault Streamer.bot package', () => {
       'THSV Addon - Quote Vault - Statistics',
     ]);
     expect(manifest.actions.every((action) => action.group === 'THSV Addon - Quote Vault')).toBe(true);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Quote-Vault-2.6.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Quote-Vault-${manifest.version}.sb`]));
     expect(manifest.actions.every((action) => action.arguments.some((argument) => argument.name === 'quoteVaultSourcePlatform' && argument.value === 'twitch'))).toBe(true);
   });
 });

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 describe('First Five Streamer.bot package', () => {
   it('ships one triggerless controller and one optional manual reset action', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/first-five/manifest.json', 'utf8')) as {
-      actions: Array<{ id: string; name: string; group: string; importFile: string }>;
+      version: string; actions: Array<{ id: string; name: string; group: string; importFile: string }>;
       triggerSafety: string;
     };
     expect(manifest.actions).toHaveLength(2);
@@ -13,7 +13,7 @@ describe('First Five Streamer.bot package', () => {
       name: 'THSV Addon - First Five - Controller',
       group: 'THSV Addon - First Five',
     });
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-First-Five-2.6.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-First-Five-${manifest.version}.sb`]));
     expect(manifest.triggerSafety).toContain('Controller must remain triggerless');
   });
 

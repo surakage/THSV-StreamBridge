@@ -12,6 +12,10 @@ describe('Follower Pulse Streamer.bot package', () => {
     expect(source).toContain('CPH.TwitchOAuthToken');
     expect(source).toContain('&first=100');
     expect(source).toContain('relayToken');
+    expect(source).toContain('ReadBool("isTest")');
+    expect(source).toContain('Bounded((string)item["user_name"], 25)');
+    const reconcile = await readFile('packages/streamerbot/follower-pulse/src/ReconcileNow.cs', 'utf8');
+    expect(reconcile).toContain('ReadBool("isTest")');
     expect(source).not.toMatch(/SetGlobalVar|File\.|Directory\.|Process\.Start/u);
   });
 });

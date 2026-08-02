@@ -1,23 +1,23 @@
 # Chat Guard setup
 
 **Module:** `thsv.chat-guard`
-**Version:** `2.6.0`
+**Version:** `3.0.0`
 **Publisher:** THSV StreamBridge
 
 Classifies normalized public chat, manages creator-approved trusted stable IDs, and optionally performs narrowly scoped, rate-limited moderation.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Chat-Guard-2.6.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Chat-Guard-2.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Chat-Guard-2.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Chat-Guard-3.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Chat-Guard-3.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Chat-Guard-3.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
 1. Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.
 2. Import the matching Chat Guard Streamer.bot package. Leave Moderate enabled and triggerless. Review the disabled !guardtrust command before enabling it.
-3. Use the rule tester and observation summary. Tune only rules that create false positives; beginner defaults are already supplied.
+3. Use the rule tester and privacy-safe moderation dashboard. Filter incidents and label false positives before changing enforcement rules.
 4. To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator, then refresh Trusted viewers in the wizard.
 5. Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance.
 

@@ -17,7 +17,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 ## 1. Download and verify core
 
 1. Open the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest).
-2. Download `THSV-StreamBridge-2.6.0.zip` and `THSV-StreamBridge-2.6.0.zip.sha256`.
+2. Download `THSV-StreamBridge-3.0.0.zip` and `THSV-StreamBridge-3.0.0.zip.sha256` from the Version 3 release.
 3. Follow [Release verification](../RELEASE-VERIFICATION.md) to verify the SHA-256 digest and GitHub artifact attestation.
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
 5. Extract the ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.
@@ -155,6 +155,10 @@ Starting again safely replaces the previously tracked StreamBridge instance. It 
 3. Run its `Install THSV StreamBridge.cmd`.
 4. Let the installer stage and verify the new version, stop the old version, activate the new version, and run its health check.
 5. Reopen the wizard and review compatibility or add-on update notices.
+
+For an official add-on update, open **Add-ons**, choose **Check official add-on updates**, and select **Download & verify update** on the affected package. This verifies the official release provenance, outer index hash, inner checksum, publisher, version, compatibility, and manifest before placing it under **Discovered packages**. Review the package there and choose **Verify and install** as a separate approval, then restart StreamBridge. Staging alone does not install, enable, or restart the add-on.
+
+Advanced creators may expand **Optional third-party publishers** and bind one declared publisher ID to one GitHub `owner/repository`. Third-party repositories must publish the same bounded add-on index/bundle format from a tagged `.github/workflows/release.yml` run with GitHub artifact attestation. StreamBridge locks verification to that exact repository, workflow, tag, checksum, package publisher, and installed publisher before staging. Adding trust never downloads, installs, enables, or updates an add-on; every check, download, inbox installation, and restart remains a separate creator action. Remove the trust record at any time without deleting installed add-ons or their private state.
 
 Configuration, secrets, uploads, logs, backups, and add-on state are preserved. The installer keeps the previous application version for rollback and retries transient Windows file-lock errors during activation.
 

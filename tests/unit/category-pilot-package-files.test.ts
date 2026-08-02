@@ -9,6 +9,8 @@ describe('Category Pilot Streamer.bot package', () => {
     const probe = await readFile('packages/streamerbot/category-pilot/src/ProcessProbe.cs', 'utf8');
     expect(probe).toContain('Process.GetProcesses()');
     expect(probe).toContain('allowed.Contains(name)');
+    expect(probe).toContain('categoryPilotRequestId');
+    expect(probe).toContain('["requestId"] = requestId');
     expect(probe).not.toMatch(/MainWindowTitle|MainModule|StartInfo|CommandLine/iu);
   });
 });

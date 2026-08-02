@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 describe('Fan Crown Streamer.bot package', () => {
   it('ships a stable triggerless controller and two creator maintenance actions', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/fan-crown/manifest.json', 'utf8')) as {
-      actions: Array<{ id: string; name: string; group: string; source: string; importFile: string; arguments?: Array<{ name: string; value: string }> }>;
+      version: string; actions: Array<{ id: string; name: string; group: string; source: string; importFile: string; arguments?: Array<{ name: string; value: string }> }>;
       triggerSafety: string;
     };
     expect(manifest.actions).toHaveLength(3);
@@ -15,7 +15,7 @@ describe('Fan Crown Streamer.bot package', () => {
     });
     expect(manifest.actions[1]?.arguments).toEqual([expect.objectContaining({ name: 'fanCrownControlAction', value: 'reset-crown' })]);
     expect(manifest.actions[2]?.arguments).toEqual([expect.objectContaining({ name: 'fanCrownControlAction', value: 'reset-month' })]);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Fan-Crown-2.6.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Fan-Crown-${manifest.version}.sb`]));
     expect(manifest.triggerSafety).toContain('Controller must remain triggerless');
   });
 

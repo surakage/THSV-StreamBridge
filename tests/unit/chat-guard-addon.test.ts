@@ -73,6 +73,20 @@ describe('Chat Guard add-on', () => {
     await expect(administerChatGuard({ operation: 'status' }, testRuntime.context, 2000)).resolves.toMatchObject({ incidentCount: 0, trackedObservationCount: 0 });
   });
 
+  it('provides a filtered, paginated, privacy-safe moderation dashboard', async () => {
+    const testRuntime = runtime({ blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'warn' });
+    await processChatGuardEvent(event('flag twitch', { eventId: 'dashboard-twitch' }), testRuntime.context, 1_000);
+    await processChatGuardEvent(event('flag youtube', { eventId: 'dashboard-youtube', platform: 'youtube', user: { id: 'youtube-private-id', name: 'Private Name', actorType: 'human', roles: [] } }), testRuntime.context, 2_000);
+    const firstPage = await administerChatGuard({ operation: 'incidents', offset: 0, limit: 1 }, testRuntime.context, 3_000);
+    expect(firstPage).toMatchObject({ operation: 'incidents', totalMatching: 2, offset: 0, limit: 1, hasMore: true, nextOffset: 1,
+      incidents: [expect.objectContaining({ platform: 'youtube', review: 'unreviewed', viewerFingerprint: expect.stringMatching(/^[a-f0-9]{12}$/u), enforcement: { mode: 'warn', status: 'succeeded', error: '' } })] });
+    const filtered = await administerChatGuard({ operation: 'incidents', platform: 'twitch', rule: 'blocked-term', review: 'unreviewed', enforcementStatus: 'succeeded', offset: 0, limit: 25 }, testRuntime.context, 3_000);
+    expect(filtered).toMatchObject({ totalMatching: 1, hasMore: false, incidents: [expect.objectContaining({ platform: 'twitch', rules: ['blocked-term'] })] });
+    const serialized = JSON.stringify({ firstPage, filtered });
+    expect(serialized).not.toContain('flag twitch'); expect(serialized).not.toContain('flag youtube');
+    expect(serialized).not.toContain('youtube-private-id'); expect(serialized).not.toContain('Private Name');
+  });
+
   it('uses creator-approved temporary link permits once without bypassing unrelated rules or storing account IDs', async () => {
     const testRuntime = runtime({ blockedDomains: ['blocked.test'], detectLinks: false, detectCaps: false, detectRepeatedCharacters: false, detectLongMessages: false, detectRepeatedMessages: false });
     await expect(administerChatGuard({ operation: 'permit', platform: 'twitch', userId: 'stable-user-id', durationMinutes: 15, maximumUses: 1, approvedByCreator: true }, testRuntime.context, 1000)).resolves.toMatchObject({ activePermitCount: 1, maximumUses: 1, enforcementPerformed: false });

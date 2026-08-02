@@ -7,18 +7,18 @@ const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const COLORS = /^#[0-9a-f]{6}$/iu;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/u;
 const FALLBACKS = Object.freeze({
-  enabled: false, rightsAcknowledged: false, requestCommand: 'sr', queueCommand: 'queue', whenCommand: 'when', wrongSongCommand: 'wrongsong', voteSkipCommand: 'voteskip', moderatorSkipCommand: 'skip', allowTextSearch: true, dailyTextSearchLimit: 50,
+  enabled: false, rightsAcknowledged: false, requestCommand: 'sr', queueCommand: 'songqueue', whenCommand: 'when', wrongSongCommand: 'wrongsong', voteSkipCommand: 'voteskip', moderatorSkipCommand: 'skip', allowTextSearch: true, dailyTextSearchLimit: 50,
   enabledPlatforms: PLATFORMS, pointsPlatforms: ['youtube', 'tiktok'], pointsCost: 100, rewardRequestsEnabled: false, twitchRewardId: '', kickRewardId: '',
   maximumQueueSize: 25, maximumRequestsPerViewer: 1, viewerCooldownSeconds: 60, maximumTrackMinutes: 8, recentNoRepeatCount: 20, voteSkipRequired: 5,
   secondsBetweenTracks: 4, announceNowPlaying: true, volume: 0.7, backgroundColor: '#101820', accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast',
 });
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Jukebox', version: '2.6.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Jukebox', version: '3.0.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'addon.thsv.village-jukebox.track-resolved', 'stream.online', 'stream.offline'],
   commandsProvided: [
-    { id: 'village-jukebox.request', name: 'sr' }, { id: 'village-jukebox.queue', name: 'queue' }, { id: 'village-jukebox.when', name: 'when' },
+    { id: 'village-jukebox.request', name: 'sr' }, { id: 'village-jukebox.queue', name: 'songqueue' }, { id: 'village-jukebox.when', name: 'when' },
     { id: 'village-jukebox.wrongsong', name: 'wrongsong' }, { id: 'village-jukebox.voteskip', name: 'voteskip' }, { id: 'village-jukebox.skip', name: 'skip' },
   ],
   actionsProvided: [
@@ -54,7 +54,7 @@ function platformSet(value, fallback) { return new Set(Array.isArray(value) ? va
 function settingsFor(context) {
   const raw = { ...FALLBACKS, ...(context.settings || {}) };
   return {
-    enabled: raw.enabled === true, rightsAcknowledged: raw.rightsAcknowledged === true, requestCommand: command(raw.requestCommand, 'sr'), queueCommand: command(raw.queueCommand, 'queue'), whenCommand: command(raw.whenCommand, 'when'),
+    enabled: raw.enabled === true, rightsAcknowledged: raw.rightsAcknowledged === true, requestCommand: command(raw.requestCommand, 'sr'), queueCommand: command(raw.queueCommand, 'songqueue'), whenCommand: command(raw.whenCommand, 'when'),
     wrongSongCommand: command(raw.wrongSongCommand, 'wrongsong'), voteSkipCommand: command(raw.voteSkipCommand, 'voteskip'), moderatorSkipCommand: command(raw.moderatorSkipCommand, 'skip'),
     allowTextSearch: raw.allowTextSearch !== false, dailyTextSearchLimit: integer(raw.dailyTextSearchLimit, 1, 100, 50),
     enabledPlatforms: platformSet(raw.enabledPlatforms, PLATFORMS), pointsPlatforms: platformSet(raw.pointsPlatforms, ['youtube', 'tiktok']), pointsCost: integer(raw.pointsCost, 1, 1_000_000, 100),

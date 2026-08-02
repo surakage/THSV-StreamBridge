@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Adds bounded cross-platform counters and local chat polls; giveaways are handled only by Village Draw.",
-  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: removed the older in-memory giveaway in favor of Village Draw and retained bounded cross-platform counters and polls. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
+  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: removed the older in-memory giveaway in favor of Village Draw and retained bounded cross-platform counters and polls. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,16 +21,17 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.creator-utility-pack",
     "name": "Creator Utility Pack",
-    "version": "2.6.0",
+    "version": "3.0.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.6.0",
-    "maximumTestedBridgeVersion": "2.6.0",
+    "minimumBridgeVersion": "3.0.0",
+    "maximumTestedBridgeVersion": "3.0.0",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "command.received",
+      "stream.online",
       "stream.offline"
     ],
     "commandsProvided": [
@@ -74,13 +75,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 8844,
-      "sha256": "ac4e5cdde79188bacb580da59beb05714a67e1a941eed8c2cb15044021ff901c"
+      "size": 10896,
+      "sha256": "a14532b1d61c46972189891bcd355ea07bbb053802df61b14278869d1d8f8caf"
     },
     {
       "path": "schemas/config.json",
-      "size": 1024,
-      "sha256": "2b10ad8b64eac7e12373b5b9a2b5c607ae0a5117035ba20ab6ca2b22cabbacf9"
+      "size": 1097,
+      "sha256": "21edf69b4ebd4844d32db256f9bf0167afefaf80a0731cb69a7ccbecf87d524f"
     },
     {
       "path": "ui/settings.json",
@@ -89,8 +90,8 @@
     },
     {
       "path": "README.md",
-      "size": 376,
-      "sha256": "6cb929096e2d603bf152464ee9b6c1c29b94d5764710ad2d7e4ee8d1581ec204"
+      "size": 615,
+      "sha256": "a05382dadc4d699d501aed3b993b69ea3dadd37dc9406b531d9eb17c920bae26"
     }
   ]
 }

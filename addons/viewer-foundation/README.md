@@ -17,7 +17,9 @@ The broker exposes only a versioned projection and idempotent, audited point mut
 
 Creator-approved deletion also emits one broker-local notice containing only the deleted pseudonymous Viewer Foundation ID. Dependent add-ons use it to remove their own caches and projections immediately; the notice never contains a platform ID, name, avatar, or chat content.
 
-The authenticated local wizard provides live private-state status, bounded privacy export, audited point corrections, and creator-confirmed viewer deletion. These operations share the provider's serialized state queue with ordinary awards, preventing lost updates. Account links remain explicit creator settings; remove the link, save, and restart before deleting a linked viewer when the stable-ID link must be erased too. No administration operation is exposed as a public chat command.
+The authenticated local wizard provides live private-state status, search by Viewer Foundation ID or stable platform ID, guided verified account linking, recent audit review, bounded privacy export, audited point corrections, safe correction undo, and creator-confirmed viewer deletion. These operations share the provider's serialized state queue with ordinary awards, preventing lost updates. Link history stores only a short SHA-256 fingerprint of the platform account ID; the raw ID remains only in creator-private settings. Link changes require a StreamBridge restart. No administration operation is exposed as a public chat command.
+
+Correction undo is intentionally conservative. Copy the correction audit ID from the result or recent history; undo succeeds only while the current balance still equals that correction's recorded result. Any later award, spend, refund, or correction makes the old undo fail rather than overwrite newer activity.
 
 Achievements are intentionally deterministic: First Steps (100), Village Regular (500), Community Supporter (1,000), Village Veteran (2,500), and Village Legend (5,000). Changing point-award settings does not rewrite prior event history; the unlocked list is recalculated from the viewer's current total.
 

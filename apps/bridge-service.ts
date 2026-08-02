@@ -22,6 +22,7 @@ import { AddOnUpdateService } from '../bridge/services/addon-update-service.js';
 import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
 import { STREAMBRIDGE_VERSION } from '../bridge/version.js';
 import { OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
+import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -47,6 +48,7 @@ const enabledPlatformIds = new Set(Object.entries(config.platforms).filter(([, p
 const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
+const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
   if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is not configured.');
   await streamerBotInspector.runApprovedAction(TIMED_MESSAGE_OUTPUT_ACTION_ID, {
@@ -65,6 +67,7 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   publishProviderEvent: async (event) => {
     await activeBridge.ingest(event);
   },
+  cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
 });
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
@@ -74,8 +77,8 @@ const wizard = new WizardService(
   new WizardConfigurationGateway(configPath, (platforms) => registry.capabilityReports(platforms)),
   new FileCommandSyncStore(join(dataRoot, 'state', 'command-sync.json'), logger),
   new AddOnWizardService(addOnsRoot, addOnStateRoot),
-  new ReleaseUpdateService(STREAMBRIDGE_VERSION),
-  new AddOnUpdateService(CORE_CONTRACT_VERSION),
+  new ReleaseUpdateService(STREAMBRIDGE_VERSION, undefined, undefined, join(dataRoot, 'updates')),
+  new AddOnUpdateService(CORE_CONTRACT_VERSION, undefined, undefined, undefined, join(dataRoot, 'updates')),
 );
 activeBridge.subscribe((event) => overlayHub.publish(event));
 let stopping = false;

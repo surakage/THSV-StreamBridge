@@ -17,6 +17,7 @@ import { WizardConfigurationError, WizardTransactionError } from './wizard-servi
 import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import { readCachedClip } from './clip-media-cache.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -30,6 +31,7 @@ export interface DiagnosticsTarget {
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1>;
   administerVillageDraw?(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1>;
+  resetAddOnCoordination?(resource?: string): Readonly<Record<string, unknown>>;
 }
 
 class UnsupportedContentEncodingError extends Error {}
@@ -53,6 +55,7 @@ export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
   private readonly overlayAssetDirectory: string;
+  private readonly clipMediaCacheDirectory: string;
 
   public constructor(
     private readonly config: BridgeConfig['service'] & BridgeConfig['security'],
@@ -70,6 +73,7 @@ export class DiagnosticsServer {
     // app/<version>/ folder, which is deleted on every upgrade. Anything meant to outlive an upgrade
     // has to be anchored to dataRoot, the one directory the installer promises to preserve.
     this.overlayAssetDirectory = join(dataRoot, 'runtime', 'overlay-assets');
+    this.clipMediaCacheDirectory = join(dataRoot, 'runtime', 'clip-media-cache');
   }
 
   public async start(): Promise<void> {
@@ -196,6 +200,15 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.diagnostics());
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/coordination/reset' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.resetAddOnCoordination === undefined) return this.reply(response, 503, { error: 'Add-on coordination reset is unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        const input = JSON.parse(body.text) as Record<string, unknown>;
+        if (input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Coordination reset requires explicit creator approval.' });
+        const resource = typeof input['resource'] === 'string' && input['resource'].length > 0 ? input['resource'] : undefined;
+        return this.reply(response, 200, this.target.resetAddOnCoordination(resource));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/viewer-foundation/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         if (this.target.administerViewerFoundation === undefined) return this.reply(response, 503, { error: 'Viewer Foundation administration is unavailable.' });
@@ -245,7 +258,7 @@ export class DiagnosticsServer {
       }
       if (request.method === 'GET' && request.url === '/wizard/api/addons' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), discovered: await this.wizard.discoverAddOns() });
+        return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), discovered: await this.wizard.discoverAddOns(), trustedPublishers: await this.wizard.listTrustedAddOnPublishers() });
       }
       if (request.method === 'GET' && request.url === '/wizard/api/addons/acceptance' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -255,9 +268,44 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.checkForUpdates());
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/updates/stage' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.stageReleaseUpdate(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/addons/updates/check' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.checkForAddOnUpdates());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/updates/stage' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.stageAddOnUpdate(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/addons/trusted-publishers' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { publishers: await this.wizard.listTrustedAddOnPublishers() });
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/trusted-publishers' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 201, await this.wizard.saveTrustedAddOnPublisher(JSON.parse(body.text) as unknown));
+      }
+      const trustedPublisherDeleteMatch = request.method === 'DELETE' ? /^\/wizard\/api\/addons\/trusted-publishers\/([^/]+)$/u.exec(request.url ?? '') : null;
+      if (trustedPublisherDeleteMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.removeTrustedAddOnPublisher(decodeURIComponent(trustedPublisherDeleteMatch[1]), JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/trusted-updates/check' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.checkTrustedPublisherAddOnUpdates(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/trusted-updates/stage' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.stageTrustedPublisherAddOnUpdate(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/addons/install' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
@@ -332,6 +380,15 @@ export class DiagnosticsServer {
         const contentTypes: Readonly<Record<string, string>> = { mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', mp4: 'video/mp4', webm: 'video/webm' };
         const body = await readFile(join(this.overlayAssetDirectory, overlayAssetMatch[1]));
         response.statusCode = 200; response.setHeader('content-type', contentTypes[extension] ?? 'application/octet-stream'); response.setHeader('cache-control', 'public, max-age=31536000, immutable'); response.end(body); return;
+      }
+      const cachedClipMatch = request.method === 'GET' ? /^\/overlay\/cache\/([a-f0-9]{64}\.mp4)$/u.exec(request.url ?? '') : null;
+      if (cachedClipMatch?.[1] !== undefined) {
+        const cached = await readCachedClip(this.clipMediaCacheDirectory, cachedClipMatch[1]);
+        if (cached === undefined) return this.reply(response, 404, { error: 'Cached clip not found or expired.' });
+        const range = /^bytes=(\d*)-(\d*)$/u.exec(request.headers.range ?? ''); let start = 0; let end = cached.bytes.length - 1;
+        if (range !== null) { start = range[1] ? Number(range[1]) : 0; end = range[2] ? Number(range[2]) : end; if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || end >= cached.bytes.length) { response.statusCode = 416; response.setHeader('content-range', `bytes */${String(cached.bytes.length)}`); response.end(); return; } response.statusCode = 206; response.setHeader('content-range', `bytes ${String(start)}-${String(end)}/${String(cached.bytes.length)}`); }
+        else response.statusCode = 200;
+        response.setHeader('content-type', 'video/mp4'); response.setHeader('accept-ranges', 'bytes'); response.setHeader('content-length', String(end - start + 1)); response.setHeader('cache-control', 'private, max-age=60'); response.end(cached.bytes.subarray(start, end + 1)); return;
       }
       if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);

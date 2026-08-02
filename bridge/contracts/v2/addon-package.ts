@@ -18,6 +18,8 @@ export const ADD_ON_PERMISSION_VALUES = [
   'streamerbot.run-approved-action',
   'overlay.publish',
   'media.exclusive',
+  'media.cache',
+  'coordination.use',
   'chat.send',
   'provider.events.publish',
   'schedule.bounded',

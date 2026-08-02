@@ -86,7 +86,8 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[data-guided-section="command-response"]')).toHaveAttribute('open', '');
   await expect(commandForm.locator('[data-guided-section="command-safety"]')).not.toHaveAttribute('open', '');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
-  await expect(commandForm.locator('[name="template"] option')).toHaveCount(37);
+  await expect(commandForm.locator('[name="template"] option')).toHaveCount(38);
+  await expect(commandForm.locator('[name="template"] option[value="free-games"]')).toHaveText('Free Games Discord guide — YouTube + TikTok');
   await expect(commandForm.locator('[name="template"] option[value="village-jukebox-request"]')).toHaveText('Village Jukebox request — Multi-platform');
   await expect(commandForm.locator('[name="template"] option[value="village-jukebox-skip"]')).toHaveText('Village Jukebox moderator skip — Multi-platform');
   await expect(commandForm.locator('[name="template"] option[value="weather"]')).toHaveCount(0);

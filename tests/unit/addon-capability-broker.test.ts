@@ -23,6 +23,17 @@ async function stateRoot(): Promise<string> {
 }
 
 describe('AddOnCapabilityBroker', () => {
+  it('requires media.cache permission and forwards only Twitch CDN requests', async () => {
+    const cache = vi.fn(async (moduleId: string, request: { sourceUrl: string }, signal: AbortSignal) => { void moduleId; void request; void signal; return { url: '/overlay/cache/a.mp4', cacheHit: false, bytes: 100, expiresAt: '2026-08-01T12:00:00.000Z' }; });
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { cacheClipMedia: cache });
+    const denied = broker.contextFor({ moduleId: 'sample.denied-cache', permissions: [], approvedActionIds: [] });
+    await expect(denied.mediaCache.fetch({ sourceUrl: 'https://production.assets.clips.twitchcdn.net/a.mp4', cacheKey: 'a', ttlSeconds: 3600, maximumBytes: 5_000_000 })).rejects.toBeInstanceOf(CapabilityDeniedError);
+    const allowed = broker.contextFor({ moduleId: 'sample.allowed-cache', permissions: ['media.cache'], approvedActionIds: [] });
+    await expect(allowed.mediaCache.fetch({ sourceUrl: 'https://evil.example/a.mp4', cacheKey: 'a', ttlSeconds: 3600, maximumBytes: 5_000_000 })).rejects.toThrow('only Twitch CDN');
+    await expect(allowed.mediaCache.fetch({ sourceUrl: 'https://production.assets.clips.twitchcdn.net/a.mp4', cacheKey: 'a', ttlSeconds: 3600, maximumBytes: 5_000_000 })).resolves.toMatchObject({ url: '/overlay/cache/a.mp4', bytes: 100 });
+    expect(cache).toHaveBeenCalledOnce();
+  });
+
   it('denies every unsupported operation without exposing payloads in diagnostics', async () => {
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
     const context = broker.contextFor({ moduleId: 'sample.denied', permissions: [], approvedActionIds: [] });
@@ -200,6 +211,68 @@ describe('AddOnCapabilityBroker', () => {
     expect(changes).toHaveBeenLastCalledWith({});
   });
 
+  it('coordinates priority queues while independent and background work remain non-blocking', async () => {
+    vi.useFakeTimers();
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const player = broker.contextFor({ moduleId: 'sample.player-v3', permissions: ['coordination.use'], approvedActionIds: [] });
+    const alert = broker.contextFor({ moduleId: 'sample.alert-v3', permissions: ['coordination.use'], approvedActionIds: [] });
+    const counter = broker.contextFor({ moduleId: 'sample.counter-v3', permissions: ['coordination.use'], approvedActionIds: [] });
+    const changes = vi.fn(); counter.coordination.onChange(changes);
+
+    const playing = player.coordination.request({ resource: 'media.playback', mode: 'queueable', priority: 25, timeoutMs: 60_000 });
+    const playingLease = await playing.ready;
+    const passive = counter.coordination.request({ resource: 'media.playback', mode: 'background', priority: 0, timeoutMs: 60_000 });
+    const passiveLease = await passive.ready;
+    expect(counter.coordination.current('media.playback').active).toHaveLength(2);
+
+    const queued = counter.coordination.request({ resource: 'media.playback', mode: 'queueable', priority: 20, timeoutMs: 60_000 });
+    expect(queued.status).toBe('queued');
+    const urgent = alert.coordination.request({ resource: 'media.playback', mode: 'exclusive', priority: 100, timeoutMs: 60_000 });
+    const urgentLease = await urgent.ready;
+    expect(await player.coordination.release(playingLease.leaseId)).toBe(false);
+    const snapshot = alert.coordination.current('media.playback');
+    expect(snapshot.active.some((entry) => entry.moduleId === 'sample.alert-v3' && entry.priority === 100)).toBe(true);
+    expect(snapshot.queued.map((entry) => entry.moduleId)).toEqual(['sample.counter-v3']);
+
+    await alert.coordination.release(urgentLease.leaseId);
+    const queuedLease = await queued.ready;
+    expect(queuedLease).toMatchObject({ resource: 'media.playback', priority: 20 });
+    await counter.coordination.release(queuedLease.leaseId);
+    await counter.coordination.release(passiveLease.leaseId);
+    expect(changes).toHaveBeenCalled();
+  });
+
+  it('times out queued coordination and clears active or queued work during module cleanup', async () => {
+    vi.useFakeTimers();
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const owner = broker.contextFor({ moduleId: 'sample.owner-v3', permissions: ['coordination.use'], approvedActionIds: [] });
+    const waiting = broker.contextFor({ moduleId: 'sample.waiting-v3', permissions: ['coordination.use'], approvedActionIds: [] });
+    const ownerTicket = owner.coordination.request({ resource: 'alerts.presentation', mode: 'exclusive', timeoutMs: 60_000 });
+    await ownerTicket.ready;
+    const waitingTicket = waiting.coordination.request({ resource: 'alerts.presentation', mode: 'queueable', timeoutMs: 1_000, skippable: true });
+    const rejected = expect(waitingTicket.ready).rejects.toThrow('expired in the queue');
+    await vi.advanceTimersByTimeAsync(1_000);
+    await rejected;
+    expect(owner.coordination.current('alerts.presentation').queued).toEqual([]);
+    broker.cleanup('sample.owner-v3');
+    expect(waiting.coordination.current('alerts.presentation').active).toEqual([]);
+  });
+
+  it('provides a host-only emergency reset without leaving queued requests pending', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const owner = broker.contextFor({ moduleId: 'sample.owner-reset', permissions: ['coordination.use', 'media.exclusive'], approvedActionIds: [] });
+    const waiting = broker.contextFor({ moduleId: 'sample.waiting-reset', permissions: ['coordination.use'], approvedActionIds: [] });
+    const ownerTicket = owner.coordination.request({ resource: 'alerts.presentation', mode: 'exclusive', timeoutMs: 60_000 });
+    await ownerTicket.ready;
+    const waitingTicket = waiting.coordination.request({ resource: 'alerts.presentation', mode: 'queueable', timeoutMs: 60_000 });
+    await owner.mediaSlot.acquire({ durationMs: 60_000, priority: 50 });
+
+    expect(broker.resetCoordination('alerts.presentation')).toMatchObject({ reset: true, cancelledQueued: 1, cancelledActive: 1, mediaSlotCleared: true });
+    await expect(waitingTicket.ready).rejects.toThrow('reset by the creator');
+    expect(owner.coordination.current('alerts.presentation')).toEqual({ resource: 'alerts.presentation', active: [], queued: [] });
+    expect(owner.mediaSlot.current()).toEqual({});
+  });
+
   it('revokes every capability exposed by a stopped or superseded runtime context', async () => {
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
     const grant = { moduleId: 'sample.revoked', permissions: ['state.private', 'schedule.bounded'] as const, approvedActionIds: [] };
@@ -237,6 +310,12 @@ describe('AddOnCapabilityBroker', () => {
     await expect(consumer.viewerFoundation.mutate({ viewerId: 'viewer-one', operation: 'spend', amount: 10, reason: 'game entry', idempotencyKey: 'game-1' })).resolves.toMatchObject({ points: 15, operation: 'spend' });
     expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ callerModuleId: 'sample.consumer', reason: 'game entry' }));
     await expect(broker.administerViewerFoundation({ operation: 'status' })).resolves.toEqual({ operation: 'status', viewerCount: 1 });
+    await expect(broker.administerViewerFoundation({ operation: 'search', platform: 'twitch', userId: '123456' })).resolves.toEqual({ operation: 'status', viewerCount: 1 });
+    await expect(broker.administerViewerFoundation({ operation: 'search' })).rejects.toThrow();
+    await expect(broker.administerViewerFoundation({ operation: 'search', viewerId: 'viewer-one', platform: 'twitch', userId: '123456' })).rejects.toThrow();
+    await expect(broker.administerViewerFoundation({ operation: 'audit', limit: 25 })).resolves.toEqual({ operation: 'status', viewerCount: 1 });
+    await expect(broker.administerViewerFoundation({ operation: 'undo-correction', auditId: 'a'.repeat(32), reason: 'mistaken correction', approvedByCreator: true })).resolves.toEqual({ operation: 'status', viewerCount: 1 });
+    await expect(broker.administerViewerFoundation({ operation: 'link-audit', linkAction: 'add', viewerId: 'viewer-one', platform: 'twitch', userId: '123456', reason: 'verified ownership', approvedByCreator: true })).resolves.toEqual({ operation: 'status', viewerCount: 1 });
     await expect(broker.administerViewerFoundation({ operation: 'delete', viewerId: 'viewer-one', approvedByCreator: false })).rejects.toThrow();
     await expect(consumer.viewerFoundation.getProjection({ viewerId: 'Viewer Name' })).rejects.toThrow();
     await providerContext.viewerFoundation.notifyDeleted('viewer-one');

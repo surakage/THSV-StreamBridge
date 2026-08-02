@@ -18,7 +18,7 @@ The API key remains in Streamer.bot. It is never stored in StreamBridge settings
 ## Commands
 
 - `!sr <YouTube link or title>` requests a track.
-- `!queue` shows the current queue length and track.
+- `!songqueue` shows the current queue length and track. The distinct name avoids colliding with Viewer Lobby's `!queue` command.
 - `!when` reports the viewer's queue position.
 - `!wrongsong` removes the viewer's newest queued request.
 - `!voteskip` records one vote per stable viewer account for the current track.

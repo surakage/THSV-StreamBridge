@@ -153,13 +153,49 @@ describe('Viewer Foundation add-on', () => {
     await expect(provider?.mutate(request)).resolves.toMatchObject({ viewerId: 'alex', points: 125, level: 2, previousPoints: 0, duplicate: false });
     await expect(provider?.mutate(request)).resolves.toMatchObject({ points: 125, previousPoints: 0, duplicate: true });
     expect(JSON.stringify(testRuntime.value())).toContain('thsv.chat-play-pack');
-    await expect(provider?.administer({ operation: 'correct', viewerId: 'alex', adjustment: 'remove', amount: 25, reason: 'creator correction', approvedByCreator: true })).resolves.toMatchObject({ points: 100, level: 2 });
-    await expect(provider?.administer({ operation: 'export', viewerId: 'alex' })).resolves.toMatchObject({ found: true, viewerId: 'alex', projection: { points: 100 } });
+    const correction = await provider?.administer({ operation: 'correct', viewerId: 'alex', adjustment: 'remove', amount: 25, reason: 'creator correction', approvedByCreator: true });
+    expect(correction).toMatchObject({ points: 100, level: 2, auditId: expect.stringMatching(/^[a-f0-9]{32}$/u) });
+    await expect(provider?.administer({ operation: 'audit', limit: 10 })).resolves.toMatchObject({
+      retained: 1,
+      entries: [expect.objectContaining({ id: correction?.auditId, operation: 'correct', subject: 'alex', previousPoints: 125, totalPoints: 100 })],
+    });
+    await expect(provider?.administer({ operation: 'search', viewerId: 'alex' })).resolves.toMatchObject({
+      found: true, viewerId: 'alex', linked: true, displayNamesStored: false,
+      linkedAccounts: [{ platform: 'twitch', userId: '123456' }], projection: { points: 100 },
+    });
+    await expect(provider?.administer({ operation: 'search', platform: 'twitch', userId: '123456' })).resolves.toMatchObject({
+      found: true, viewerId: 'alex', linked: true, displayNamesStored: false, projection: { points: 100 },
+    });
+    await expect(provider?.administer({ operation: 'undo-correction', auditId: correction?.auditId, reason: 'mistaken correction', approvedByCreator: true })).resolves.toMatchObject({
+      viewerId: 'alex', previousPoints: 100, points: 125, level: 2, revertsAuditId: correction?.auditId,
+    });
+    await expect(provider?.administer({ operation: 'undo-correction', auditId: correction?.auditId, reason: 'second attempt', approvedByCreator: true })).rejects.toThrow('already undone');
+    await expect(provider?.administer({ operation: 'export', viewerId: 'alex' })).resolves.toMatchObject({ found: true, viewerId: 'alex', projection: { points: 125 } });
     await expect(provider?.administer({ operation: 'delete', viewerId: 'alex', approvedByCreator: true })).resolves.toMatchObject({ removed: true, accountLinksRequireRemoval: true });
     await expect(provider?.administer({ operation: 'export', viewerId: 'alex' })).resolves.toMatchObject({ found: true, projection: null });
     const serialized = JSON.stringify(testRuntime.value());
     expect(serialized).not.toContain('round-1');
     expect(serialized).not.toContain('thsv.chat-play-pack');
+  });
+
+  it('refuses to undo a stale correction after newer point activity', async () => {
+    const testRuntime = runtime({ accountLinks: ['alex|twitch|123456'], levelStepPoints: 100 });
+    let provider: { mutate(request: Record<string, unknown>): Promise<Record<string, unknown>>; administer(request: Record<string, unknown>): Promise<Record<string, unknown>> } | undefined;
+    await viewerFoundation.start({ ...testRuntime.context, viewerFoundation: { provide: vi.fn((value) => { provider = value; return vi.fn(); }) } });
+    const correction = await provider?.administer({ operation: 'correct', viewerId: 'alex', adjustment: 'add', amount: 50, reason: 'creator correction', approvedByCreator: true });
+    await provider?.mutate({ viewerId: 'alex', operation: 'add', amount: 5, reason: 'new activity', idempotencyKey: 'new-activity', callerModuleId: 'sample.consumer' });
+    await expect(provider?.administer({ operation: 'undo-correction', auditId: correction?.auditId, reason: 'too late', approvedByCreator: true })).rejects.toThrow('Refusing to overwrite newer activity');
+  });
+
+  it('audits account-link changes without retaining the raw platform account ID', async () => {
+    const testRuntime = runtime();
+    let provider: { administer(request: Record<string, unknown>): Promise<Record<string, unknown>> } | undefined;
+    await viewerFoundation.start({ ...testRuntime.context, viewerFoundation: { provide: vi.fn((value) => { provider = value; return vi.fn(); }) } });
+    const result = await provider?.administer({ operation: 'link-audit', linkAction: 'add', viewerId: 'alex', platform: 'youtube', userId: 'UC-sensitive-account', reason: 'creator verified ownership', approvedByCreator: true });
+    expect(result).toMatchObject({ operation: 'link-audit', viewerId: 'alex', platform: 'youtube', restartRequired: true, accountFingerprint: expect.stringMatching(/^[a-f0-9]{24}$/u) });
+    const serialized = JSON.stringify(testRuntime.value());
+    expect(serialized).toContain('link-add');
+    expect(serialized).not.toContain('UC-sensitive-account');
   });
 
   it('imports one creator-approved legacy snapshot once and keeps higher current totals', async () => {

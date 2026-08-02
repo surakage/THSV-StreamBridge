@@ -6,8 +6,8 @@ Chat Guard is a disabled-by-default public-chat safety add-on for Twitch, YouTub
 
 1. In the wizard, turn on **safe observation** and select the public-chat platforms you use.
 2. Optionally add obvious blocked words or website hostnames. The supplied spam limits are suitable for a first test.
-3. Save, restart StreamBridge, and import `THSV-StreamBridge-Chat-Guard-2.5.0.sb` into Streamer.bot. Do not attach platform chat triggers to its actions.
-4. Paste a harmless sample into **Test safely before automatic actions**. Observation and testing cannot moderate anyone.
+3. Save, restart StreamBridge, and import `THSV-StreamBridge-Chat-Guard-2.6.0.sb` into Streamer.bot. Do not attach platform chat triggers to its actions.
+4. Paste a harmless sample into **Test current rules safely**. Observation and testing cannot moderate anyone.
 5. Stop here if reports are all you need. For automatic moderation, approve only **THSV Addon - Chat Guard - Moderate**, turn on both automatic-action switches, and start with **Warn**.
 
 The import also creates a disabled `!guardtrust` command. Review it before enabling it. As the broadcaster or a moderator, reply to a viewer's message with `!guardtrust`, then refresh the wizard's trusted-viewer list. TikTok uses the manual stable-ID fallback for now.
@@ -23,9 +23,11 @@ An observation-only configuration is a valid finished setup. Delete, timeout, an
 - Raw messages, names, avatars, and platform account IDs are never written to private state.
 - Retained incidents contain only salted account/message hashes, time, platform, rule identifiers, and simulation status.
 - Incident history, replay identities, and repeat observations are time-, count-, and byte-bounded.
-- The authenticated wizard can show aggregate rule/platform counts and an explicit capability matrix, or clear all retained observations after confirmation. It never returns message text or viewer identity.
+- The authenticated wizard provides a filtered, paginated moderation dashboard with aggregate counts, short installation-local viewer fingerprints, rule/review filters, provider-action outcomes, inline confirmed/false-positive review, and a bounded JSON report. It never returns message text, display names, or raw viewer identity.
 - The local rule tester evaluates creator-supplied sample text and repeat counts without writing the sample to state, returning it, or performing enforcement.
-- Recent incident review exposes only incident ID, time, platform, rule IDs, simulation status, and review label. Creators can mark confirmed or false-positive results without recovering the message or viewer.
+- Recent incident review exposes only incident ID, time, platform, rule IDs, simulation status, a short salted viewer fingerprint, enforcement outcome, and review label. Creators can mark confirmed or false-positive results without recovering the message or viewer. The fingerprint helps identify repeated behavior only inside this installation and retention window.
+
+The dashboard is deliberately an incident history, not a chat transcript. Its report contains at most 100 incidents matching the current filters and omits trusted-viewer labels as well as raw account IDs.
 
 Use observe mode and the preview to tune false positives first. The wizard separates observation rules from the signals allowed to enforce, so caps or repeated-character observations do not need to trigger moderation.
 

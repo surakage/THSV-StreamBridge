@@ -5,12 +5,14 @@ import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 interface AddOnDescriptor {
   manifest: {
+    moduleId: string;
     contractVersion: string;
     version: string;
     minimumCoreVersion: string;
     maximumTestedCoreVersion: string;
     minimumBridgeVersion: string;
     maximumTestedBridgeVersion: string;
+    commandsProvided: Array<{ id: string; name: string }>;
   };
 }
 
@@ -47,6 +49,21 @@ describe('stable release version cohesion', () => {
       expect(new Set(imports).size, `${folder.name} must use one import file`).toBe(1);
       expect(files, `${folder.name} must contain only its current generated import`).toEqual([...new Set(imports)]);
       expect(imports[0], `${folder.name} import filename`).toContain(`-${stableVersion}.sb`);
+    }
+  });
+
+  it('does not ship colliding first-party command names', async () => {
+    const commandOwners = new Map<string, string>();
+    const addOnFolders = (await readdir('addons', { withFileTypes: true })).filter((entry) => entry.isDirectory());
+
+    for (const folder of addOnFolders) {
+      const descriptor = JSON.parse(await readFile(join('addons', folder.name, 'module-package.json'), 'utf8')) as AddOnDescriptor;
+      for (const command of descriptor.manifest.commandsProvided) {
+        const normalized = command.name.trim().toLocaleLowerCase('en-US');
+        expect(normalized, `${descriptor.manifest.moduleId} command ${command.id}`).not.toBe('');
+        expect(commandOwners.get(normalized), `command !${normalized} is also declared by ${descriptor.manifest.moduleId}`).toBeUndefined();
+        commandOwners.set(normalized, descriptor.manifest.moduleId);
+      }
     }
   });
 });

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 describe('Raid Scout package files', () => {
   it('ships one stable triggerless controller and exact Suggest, Confirm, and Cancel actions', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/raid-scout/manifest.json', 'utf8')) as {
-      actions: Array<{ id: string; name: string; group: string; importFile: string; arguments?: Array<{ name: string; value: string }> }>;
+      version: string; actions: Array<{ id: string; name: string; group: string; importFile: string; arguments?: Array<{ name: string; value: string }> }>;
       triggerSafety: string;
     };
     expect(manifest.actions).toHaveLength(4);
@@ -14,7 +14,7 @@ describe('Raid Scout package files', () => {
       group: 'THSV Addon - Raid Scout',
     });
     expect(manifest.actions.slice(1).map((action) => action.arguments?.[0]?.value)).toEqual(['suggest', 'confirm', 'cancel']);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Raid-Scout-2.6.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Raid-Scout-${manifest.version}.sb`]));
     expect(manifest.triggerSafety).toContain('Controller must remain triggerless');
   });
 

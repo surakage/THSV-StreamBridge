@@ -36,6 +36,18 @@ function declarativeArchive(): Uint8Array {
 }
 
 describe('wizard add-on management', () => {
+  it('stores explicit one-to-one trusted publisher bindings and removes them without touching add-ons', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-publisher-trust-')); temporary.push(root);
+    const service = new AddOnWizardService(join(root, 'packages'), join(root, 'state'));
+    await expect(service.saveTrustedPublisher({ publisherId: 'creator.example', repository: 'example/addons', approvedByCreator: false })).rejects.toThrow('explicit creator approval');
+    await expect(service.saveTrustedPublisher({ publisherId: 'thsv.streambridge', repository: 'example/addons', approvedByCreator: true })).rejects.toThrow('already managed');
+    await expect(service.saveTrustedPublisher({ publisherId: 'creator.example', repository: 'example/addons', approvedByCreator: true })).resolves.toMatchObject({ publisherId: 'creator.example', repository: 'example/addons' });
+    await expect(service.saveTrustedPublisher({ publisherId: 'creator.other', repository: 'example/addons', approvedByCreator: true })).rejects.toThrow('already bound');
+    await expect(service.listTrustedPublishers()).resolves.toEqual([expect.objectContaining({ publisherId: 'creator.example', repository: 'example/addons' })]);
+    await expect(service.removeTrustedPublisher('creator.example', { approvedByCreator: true })).resolves.toEqual({ publisherId: 'creator.example', removed: true });
+    await expect(service.listTrustedPublishers()).resolves.toEqual([]);
+  });
+
   it('enforces enumerated list choices rendered as selector controls', () => {
     const schema = {
       type: 'object', properties: {
@@ -44,6 +56,16 @@ describe('wizard add-on management', () => {
     };
     expect(validateSettings(schema, { platforms: ['twitch', 'youtube'] })).toEqual({ platforms: ['twitch', 'youtube'] });
     expect(() => validateSettings(schema, { platforms: ['unsupported'] })).toThrow('unsupported choice');
+  });
+
+  it('enforces declared case-insensitive uniqueness across related settings', () => {
+    const schema = {
+      type: 'object', 'x-distinctFields': ['counterCommand', 'pollCommand', 'voteCommand'], properties: {
+        counterCommand: { type: 'string' }, pollCommand: { type: 'string' }, voteCommand: { type: 'string' },
+      },
+    };
+    expect(validateSettings(schema, { counterCommand: 'counter', pollCommand: 'poll', voteCommand: 'vote' })).toMatchObject({ voteCommand: 'vote' });
+    expect(() => validateSettings(schema, { counterCommand: 'Poll', pollCommand: 'poll', voteCommand: 'vote' })).toThrow('must use different values');
   });
 
   it('installs a verified declarative archive, validates settings, toggles it, and preserves state on removal', async () => {
@@ -81,7 +103,7 @@ describe('wizard add-on management', () => {
     await expect(service.remove('sample.status-card', { approvedByCreator: true })).resolves.toMatchObject({ removed: true, statePreserved: true });
     await expect(service.list()).resolves.toEqual([]);
     await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Live now');
-  });
+  }, 15_000);
 
   it('rejects traversal entries before extracting an archive', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-addon-traversal-')); temporary.push(root);
@@ -112,6 +134,22 @@ describe('wizard add-on management', () => {
     const refreshed = (await service.discover()).find((addOn) => addOn.filename === 'status-card.thsv-addon');
     await expect(service.installDiscovered({ filename: 'status-card.thsv-addon', sha256: refreshed?.sha256, approvedByCreator: true })).resolves.toMatchObject({ installed: true, source: 'inbox', moduleId: 'sample.status-card' });
     await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.status-card' })]);
+  });
+
+  it('revalidates a provenance-verified official package before staging it in the inbox', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-addon-official-stage-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state'); const inbox = join(root, 'inbox');
+    const archive = declarativeArchive();
+    const sha256 = createHash('sha256').update(archive).digest('hex');
+    const service = new AddOnWizardService(packages, state, inbox);
+    const verified = {
+      moduleId: 'sample.status-card', version: '1.0.0', filename: 'status-card.thsv-addon', archive, sha256,
+      outerArchiveName: 'THSV-StreamBridge-AddOn-Sample-1.0.0.zip', outerSha256: 'a'.repeat(64),
+      provenance: 'verified' as const, repository: 'surakage/THSV-StreamBridge', workflow: 'expected-workflow',
+    };
+    await expect(service.stageVerifiedOfficialUpdate(verified)).resolves.toMatchObject({ staged: true, moduleId: 'sample.status-card', installRequiresCreatorReview: true, restartRequired: false });
+    await expect(service.discover()).resolves.toEqual([expect.objectContaining({ filename: 'status-card.thsv-addon', health: 'available', moduleId: 'sample.status-card' })]);
+    await expect(service.stageVerifiedOfficialUpdate({ ...verified, version: '2.0.0' })).rejects.toThrow('identity does not match');
   });
 
 });

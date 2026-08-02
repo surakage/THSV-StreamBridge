@@ -2,8 +2,8 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Discovers and announces bounded newly observed public game giveaways.",
-  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
+  "description": "Discovers bounded public game giveaways and routes reward or command requests to a Discord list.",
+  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,22 +22,35 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.free-game-check",
     "name": "Free Game Check",
-    "version": "2.6.0",
+    "version": "3.0.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.6.0",
-    "maximumTestedBridgeVersion": "2.6.0",
+    "minimumBridgeVersion": "3.0.0",
+    "maximumTestedBridgeVersion": "3.0.0",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
-      "addon.thsv.free-game-check.results"
+      "addon.thsv.free-game-check.results",
+      "addon.thsv.free-game-check.discord-result",
+      "reward.redemption",
+      "command.received",
+      "chat.message"
     ],
-    "commandsProvided": [],
+    "commandsProvided": [
+      {
+        "id": "free-game-check.command",
+        "name": "freegames"
+      }
+    ],
     "actionsProvided": [
       {
         "id": "free-game-check.refresh",
         "name": "THSV Addon - Free Game Check - Refresh"
+      },
+      {
+        "id": "free-game-check.discord",
+        "name": "THSV Addon - Free Game Check - Discord Deliver"
       }
     ],
     "browserSourcesProvided": [],
@@ -46,17 +59,20 @@
       "data/addons/.state/thsv.free-game-check/"
     ],
     "installationSteps": [
-      "Import the Free Game Check Streamer.bot package and leave Refresh triggerless.",
-      "Approve Refresh in the wizard, choose destination platforms, then enable the add-on."
+      "Import the Free Game Check Streamer.bot package and leave both actions triggerless.",
+      "Approve Refresh and, only when Discord is enabled, Discord Deliver. Keep the private webhook only in its Set Argument.",
+      "Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.",
+      "Create the configured no-response command for YouTube and TikTok through Command Sync.",
+      "Add the Discord invite and guide wording, then enable the add-on."
     ],
     "uninstallationSteps": [
-      "Uninstalling preserves only bounded giveaway IDs and refresh status."
+      "Uninstalling preserves only bounded giveaway IDs, cooldowns, and refresh/delivery status."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.free-game-check.runtime",
-        "description": "Confirms bounded public giveaway discovery is available."
+        "description": "Confirms bounded public giveaway discovery and source-routed viewer guidance are available."
       }
     ]
   },
@@ -65,23 +81,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 5009,
-      "sha256": "d43fae6299fb9cfba82032c2d5070d3890d5863bc57b6c4b73f8f315d1cac569"
+      "size": 12151,
+      "sha256": "acf37d8e2cf26a82e14c2b90e67fdfb4b73e7ac3e60a7e2cf839c79b548ae801"
     },
     {
       "path": "schemas/config.json",
-      "size": 735,
-      "sha256": "e14aa90c543022a4f2ac3ee2735488d9046d85a81428cb1a5818169da8535676"
+      "size": 2375,
+      "sha256": "9c9459e86804ea19a392b7b69081dc4b2466ee772646b80a7150daa0835da908"
     },
     {
       "path": "ui/settings.json",
-      "size": 646,
-      "sha256": "b5a64dd0c0ae00b5b77371ae7d47cd883dbd8879cdab6ae914f974f5768a4d28"
+      "size": 1777,
+      "sha256": "1a16d640d11dcee6a5c7c35e7e2b97638e178677b20886ccf80bd93e92e936ae"
     },
     {
       "path": "README.md",
-      "size": 612,
-      "sha256": "48489c3f602493e20c6be07e41bc69ca0120e4266c1e27027d2a2870e99aeef4"
+      "size": 1690,
+      "sha256": "5428d25ed345f5dc10e945ef6651bac7c0e57bda88b8be105e6f61e0086b8d21"
     }
   ]
 }

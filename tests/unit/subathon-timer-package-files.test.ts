@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 describe('Subathon Timer Streamer.bot package', () => {
   it('creates five bounded local controls in the add-on group', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/subathon-timer/manifest.json', 'utf8')) as {
-      actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string }> }>;
+      version: string; actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string }> }>;
     };
     expect(manifest.actions.map((action) => action.name)).toEqual([
       'THSV Addon - Subathon Timer - Start', 'THSV Addon - Subathon Timer - Pause',
@@ -12,7 +12,7 @@ describe('Subathon Timer Streamer.bot package', () => {
       'THSV Addon - Subathon Timer - Add Time',
     ]);
     expect(manifest.actions.every((action) => action.group === 'THSV Addon - Subathon Timer')).toBe(true);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Subathon-Timer-2.6.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Subathon-Timer-${manifest.version}.sb`]));
     expect(manifest.actions[4]?.arguments).toContainEqual({ name: 'subathonSeconds', value: '300', autoType: true });
   });
 

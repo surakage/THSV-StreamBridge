@@ -4,7 +4,8 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import type { ClipMediaCacheRequest, ClipMediaCacheResult } from '../services/clip-media-cache.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { Logger } from '../services/logger.js';
@@ -28,6 +29,11 @@ const MINIMUM_MEDIA_LEASE_MS = 1_000;
 const MAXIMUM_MEDIA_LEASE_MS = 600_000;
 const MAXIMUM_MEDIA_PRIORITY = 100;
 const MEDIA_LISTENER_TIMEOUT_MS = 2_000;
+const COORDINATION_RESOURCE = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){0,3}$/u;
+const MAXIMUM_COORDINATION_TIMEOUT_MS = 600_000;
+const MAXIMUM_COORDINATION_COOLDOWN_MS = 86_400_000;
+const MAXIMUM_COORDINATION_QUEUE = 100;
+const COORDINATION_LISTENER_TIMEOUT_MS = 2_000;
 const VIEWER_FOUNDATION_MODULE_ID = 'thsv.viewer-foundation';
 const COMMUNITY_ANALYTICS_MODULE_ID = 'thsv.community-analytics';
 const VIEWER_PROVIDER_TIMEOUT_MS = 2_000;
@@ -44,6 +50,15 @@ const providerDonationSchema = z.object({
   simulated: z.boolean(),
 }).strict();
 const mediaSlotRequestSchema = z.object({ durationMs: z.number().int().min(MINIMUM_MEDIA_LEASE_MS).max(MAXIMUM_MEDIA_LEASE_MS), priority: z.number().int().min(0).max(MAXIMUM_MEDIA_PRIORITY) }).strict();
+const coordinationRequestSchema = z.object({
+  resource: z.string().regex(COORDINATION_RESOURCE),
+  mode: z.enum(['exclusive', 'queueable', 'independent', 'background']),
+  priority: z.number().int().min(0).max(100).default(50),
+  timeoutMs: z.number().int().min(1_000).max(MAXIMUM_COORDINATION_TIMEOUT_MS).default(60_000),
+  cooldownMs: z.number().int().min(0).max(MAXIMUM_COORDINATION_COOLDOWN_MS).default(0),
+  skippable: z.boolean().default(false),
+}).strict();
+const mediaCacheRequestSchema = z.object({ sourceUrl: z.url(), cacheKey: z.string().trim().min(1).max(200), ttlSeconds: z.number().int().min(60).max(86_400), maximumBytes: z.number().int().min(1_048_576).max(52_428_800) }).strict();
 const PROVIDER_MODULES: Readonly<Record<string, string>> = Object.freeze({ 'thsv.kofi-donations': 'kofi' });
 const viewerIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u);
 const viewerProjectionQuerySchema = z.object({
@@ -70,6 +85,12 @@ function parsedViewerMutation(value: unknown): ViewerFoundationMutationResultV1 
 }
 const viewerAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
+  z.object({ operation: z.literal('search'), viewerId: viewerIdSchema.optional(), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']).optional(), userId: z.string().trim().min(1).max(256).optional() }).strict()
+    .superRefine((value, context) => {
+      const byViewer = value.viewerId !== undefined;
+      const byAccount = value.platform !== undefined && value.userId !== undefined;
+      if (byViewer === byAccount || ((value.platform === undefined) !== (value.userId === undefined))) context.addIssue({ code: 'custom', message: 'Search by exactly one Viewer Foundation ID or one platform/stable-user-ID pair.' });
+    }),
   z.object({ operation: z.literal('export'), viewerId: viewerIdSchema }).strict(),
   z.object({ operation: z.literal('delete'), viewerId: viewerIdSchema, approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('correct'), viewerId: viewerIdSchema, adjustment: z.enum(['add', 'remove', 'reset']), amount: z.number().int().min(1).max(1_000_000).optional(), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict()
@@ -77,6 +98,9 @@ const viewerAdminSchema = z.discriminatedUnion('operation', [
       if (value.adjustment !== 'reset' && value.amount === undefined) context.addIssue({ code: 'custom', message: 'Add and remove corrections require an amount.' });
       if (value.adjustment === 'reset' && value.amount !== undefined) context.addIssue({ code: 'custom', message: 'Reset corrections must not include an amount.' });
     }),
+  z.object({ operation: z.literal('undo-correction'), auditId: z.string().regex(/^[a-f0-9]{32}$/u), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('audit'), limit: z.number().int().min(1).max(100).optional() }).strict(),
+  z.object({ operation: z.literal('link-audit'), linkAction: z.enum(['add', 'remove']), viewerId: viewerIdSchema, platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('import-legacy'), migrationDigest: z.string().regex(/^[a-f0-9]{64}$/u), approvedByCreator: z.literal(true), legacyViewers: z.array(z.object({ viewerId: viewerIdSchema, points: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), lastAwardAt: z.record(z.string().regex(/^[a-z][a-z0-9.-]{0,63}$/u), z.number().int().nonnegative()).refine((value) => Object.keys(value).length <= 50) }).strict()).max(500) }).strict(),
 ]);
 const analyticsCountersSchema = z.object({ messages: z.number().int().nonnegative(), commands: z.number().int().nonnegative(), follows: z.number().int().nonnegative(), subscriptions: z.number().int().nonnegative(), memberships: z.number().int().nonnegative(), giftSubscriptions: z.number().int().nonnegative(), gifts: z.number().int().nonnegative(), cheers: z.number().int().nonnegative(), superChats: z.number().int().nonnegative(), raids: z.number().int().nonnegative(), rewardRedemptions: z.number().int().nonnegative() }).strict();
@@ -96,6 +120,7 @@ export interface AddOnCapabilityBrokerDependencies {
   readonly subscribeOverlayLifecycle?: (moduleId: string, listener: (event: AddOnOverlayLifecycleV2) => void) => () => void;
   readonly routeOutboundMessage?: (request: AddOnOutboundMessageRequestV2, signal: AbortSignal) => Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
   readonly publishProviderEvent?: (event: NormalizedEvent) => Promise<void>;
+  readonly cacheClipMedia?: (moduleId: string, request: ClipMediaCacheRequest, signal: AbortSignal) => Promise<ClipMediaCacheResult>;
 }
 
 interface CapabilityAudit {
@@ -113,6 +138,23 @@ interface OutboundActivity { pending: number; readonly startedAt: number[]; read
 interface ViewerDeletionListener { readonly grant: ActiveModuleCapabilityGrant; readonly listener: (viewerId: string) => void | Promise<void> }
 interface MediaSlotListener { readonly grant: ActiveModuleCapabilityGrant; readonly listener: (state: AddOnMediaSlotStateV2) => void | Promise<void> }
 interface MediaSlotLease { readonly grant: ActiveModuleCapabilityGrant; readonly leaseId: string; readonly priority: number; readonly expiresAt: number; readonly timer: NodeJS.Timeout }
+interface CoordinationEntry {
+  readonly grant: ActiveModuleCapabilityGrant;
+  readonly requestId: string;
+  readonly request: z.infer<typeof coordinationRequestSchema>;
+  readonly queuedAt: number;
+  readonly resolve: (grant: AddOnCoordinationGrantV2) => void;
+  readonly reject: (error: Error) => void;
+  queueTimer?: NodeJS.Timeout;
+}
+interface CoordinationLease {
+  readonly entry: CoordinationEntry;
+  readonly leaseId: string;
+  readonly startedAt: number;
+  readonly expiresAt: number;
+  readonly timer: NodeJS.Timeout;
+}
+interface CoordinationListener { readonly grant: ActiveModuleCapabilityGrant; readonly listener: (snapshot: AddOnCoordinationSnapshotV2) => void | Promise<void> }
 
 export class CapabilityDeniedError extends Error {
   public constructor(public readonly moduleId: string, public readonly permission: AddOnPermissionV2, message: string) {
@@ -133,6 +175,10 @@ export class AddOnCapabilityBroker {
   private communityAnalyticsProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: CommunityAnalyticsProviderV1 } | undefined;
   private mediaSlotLease: MediaSlotLease | undefined;
   private readonly mediaSlotListeners = new Map<string, Set<MediaSlotListener>>();
+  private readonly coordinationQueues = new Map<string, CoordinationEntry[]>();
+  private readonly coordinationLeases = new Map<string, CoordinationLease>();
+  private readonly coordinationListeners = new Map<string, Set<CoordinationListener>>();
+  private readonly coordinationCooldowns = new Map<string, number>();
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {}
 
@@ -171,6 +217,14 @@ export class AddOnCapabilityBroker {
         release: (leaseId: string) => this.releaseMediaSlot(grant, leaseId),
         onChange: (listener: (state: AddOnMediaSlotStateV2) => void | Promise<void>) => this.subscribeMediaSlot(grant, listener),
       }),
+      mediaCache: Object.freeze({ fetch: (request: ClipMediaCacheRequest) => this.cacheMedia(grant, request) }),
+      coordination: Object.freeze({
+        request: (request: AddOnCoordinationRequestV2) => this.requestCoordination(grant, request),
+        release: (leaseId: string) => this.releaseCoordination(grant, leaseId, 'completed'),
+        cancel: (requestId: string) => this.cancelCoordination(grant, requestId),
+        current: (resource: string) => this.currentCoordination(grant, resource),
+        onChange: (listener: (snapshot: AddOnCoordinationSnapshotV2) => void | Promise<void>) => this.subscribeCoordination(grant, listener),
+      }),
       chat: Object.freeze({ send: (request: AddOnOutboundMessageRequestV2) => this.sendChat(grant, request) }),
       provider: Object.freeze({ publishDonation: (request: AddOnProviderDonationRequestV2) => this.publishProviderDonation(grant, request) }),
       viewerFoundation: Object.freeze({
@@ -207,6 +261,7 @@ export class AddOnCapabilityBroker {
       clearTimeout(this.mediaSlotLease.timer); this.mediaSlotLease = undefined;
       void this.notifyMediaSlotChanged();
     }
+    this.cleanupCoordination(moduleId);
     const outbound = this.outboundActivity.get(moduleId);
     if (outbound !== undefined) for (const controller of outbound.controllers) controller.abort(new Error(`Add-on ${moduleId} stopped before its outbound chat request completed.`));
     this.outboundActivity.delete(moduleId);
@@ -227,9 +282,40 @@ export class AddOnCapabilityBroker {
       viewerDeletionSubscribers: this.viewerDeletionListeners.size,
       communityAnalytics: { available: this.communityAnalyticsProvider !== undefined, providerModuleId: this.communityAnalyticsProvider?.grant.moduleId },
       mediaSlot: this.mediaSlotSnapshot(),
+      coordination: Object.fromEntries([...new Set([...this.coordinationQueues.keys(), ...[...this.coordinationLeases.values()].map((lease) => lease.entry.request.resource)])].map((resource) => [resource, this.coordinationSnapshot(resource)])),
       limits: { maximumJsonBytes: MAXIMUM_JSON_BYTES, maximumRecordKeys: MAXIMUM_RECORD_KEYS, maximumArguments: MAXIMUM_ARGUMENTS, minimumDelayMs: MINIMUM_DELAY_MS, maximumDelayMs: MAXIMUM_DELAY_MS, maximumTimersPerModule: MAXIMUM_TIMERS_PER_MODULE, taskTimeoutMs: TASK_TIMEOUT_MS, maximumPendingActionsPerModule: MAXIMUM_PENDING_ACTIONS_PER_MODULE, maximumActionsPerMinute: MAXIMUM_ACTIONS_PER_MINUTE, maximumOutboundRequestsPerMinute: MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE, maximumProviderEventsPerMinute: MAXIMUM_PROVIDER_EVENTS_PER_MINUTE },
       modules: Object.fromEntries([...this.audits.entries()].map(([moduleId, audit]) => [moduleId, { ...audit }])),
     };
+  }
+
+  /** Host-only emergency recovery. This is never exposed to add-on code. */
+  public resetCoordination(resource?: string): Readonly<Record<string, unknown>> {
+    if (resource !== undefined && !COORDINATION_RESOURCE.test(resource)) throw new Error('Invalid coordination resource.');
+    const resources = resource === undefined
+      ? new Set([...this.coordinationQueues.keys(), ...[...this.coordinationLeases.values()].map((lease) => lease.entry.request.resource)])
+      : new Set([resource]);
+    let cancelledQueued = 0; let cancelledActive = 0;
+    for (const currentResource of resources) {
+      const queue = this.coordinationQueues.get(currentResource) ?? [];
+      this.coordinationQueues.delete(currentResource);
+      for (const entry of queue) {
+        if (entry.queueTimer !== undefined) clearTimeout(entry.queueTimer);
+        entry.reject(new Error(`Coordination resource ${currentResource} was reset by the creator.`));
+        cancelledQueued += 1;
+      }
+      for (const lease of [...this.coordinationLeases.values()]) {
+        if (lease.entry.request.resource !== currentResource) continue;
+        clearTimeout(lease.timer); this.coordinationLeases.delete(lease.leaseId); cancelledActive += 1;
+      }
+      void this.notifyCoordinationChanged(currentResource);
+    }
+    for (const key of [...this.coordinationCooldowns.keys()]) {
+      if (resource === undefined || key.endsWith(`:${resource}`)) this.coordinationCooldowns.delete(key);
+    }
+    const mediaSlotCleared = this.mediaSlotLease !== undefined;
+    if (this.mediaSlotLease !== undefined) { clearTimeout(this.mediaSlotLease.timer); this.mediaSlotLease = undefined; void this.notifyMediaSlotChanged(); }
+    this.logger.warn('Add-on coordination reset by creator', { resource: resource ?? 'all', cancelledQueued, cancelledActive, mediaSlotCleared });
+    return Object.freeze({ reset: true, resource: resource ?? 'all', cancelledQueued, cancelledActive, mediaSlotCleared });
   }
 
   private async readState(grant: ActiveModuleCapabilityGrant): Promise<AddOnPrivateStateV2> {
@@ -245,6 +331,18 @@ export class AddOnCapabilityBroker {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') { this.record(grant.moduleId, 'state.read', 'granted'); return Object.freeze({}); }
       this.record(grant.moduleId, 'state.read', 'failed'); throw error;
     }
+  }
+
+  private async cacheMedia(grant: ActiveModuleCapabilityGrant, request: ClipMediaCacheRequest): Promise<ClipMediaCacheResult> {
+    this.require(grant, 'media.cache', 'media.cache.fetch');
+    const parsed = mediaCacheRequestSchema.parse(request);
+    const host = new URL(parsed.sourceUrl).hostname.toLowerCase();
+    if (!(host === 'twitchcdn.net' || host.endsWith('.twitchcdn.net') || host === 'ttvnw.net' || host.endsWith('.ttvnw.net'))) { this.record(grant.moduleId, 'media.cache.fetch', 'denied'); throw new CapabilityDeniedError(grant.moduleId, 'media.cache', 'Media cache accepts only Twitch CDN URLs.'); }
+    if (this.dependencies.cacheClipMedia === undefined) { this.record(grant.moduleId, 'media.cache.fetch', 'failed'); throw new Error('Clip media caching is not available yet.'); }
+    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(new Error('Clip media cache request timed out.')), 35_000);
+    try { const result = await this.dependencies.cacheClipMedia(grant.moduleId, parsed, controller.signal); this.record(grant.moduleId, 'media.cache.fetch', 'granted'); return Object.freeze(result); }
+    catch (error) { this.record(grant.moduleId, 'media.cache.fetch', 'failed'); throw error; }
+    finally { clearTimeout(timeout); }
   }
 
   private async writeState(grant: ActiveModuleCapabilityGrant, value: AddOnPrivateStateV2): Promise<void> {
@@ -323,6 +421,170 @@ export class AddOnCapabilityBroker {
     if (this.dependencies.publishOverlay === undefined) return this.deny(grant.moduleId, 'overlay.publish', 'overlay.publish', 'The hosted add-on overlay contract is not available yet.');
     try { await this.dependencies.publishOverlay(grant.moduleId, topic, parsed); this.record(grant.moduleId, 'overlay.publish', 'granted'); }
     catch (error) { this.record(grant.moduleId, 'overlay.publish', 'failed'); throw error; }
+  }
+
+  private requestCoordination(grant: ActiveModuleCapabilityGrant, request: AddOnCoordinationRequestV2): AddOnCoordinationTicketV2 {
+    this.require(grant, 'coordination.use', 'coordination.request');
+    const parsed = coordinationRequestSchema.parse(request);
+    const cooldownUntil = this.coordinationCooldowns.get(`${grant.moduleId}:${parsed.resource}`) ?? 0;
+    if (cooldownUntil > Date.now()) return this.deny(grant.moduleId, 'coordination.use', 'coordination.request', `Coordination resource ${parsed.resource} is cooling down for this add-on.`);
+    const queuedCount = [...this.coordinationQueues.values()].reduce((total, entries) => total + entries.length, 0);
+    if (queuedCount >= MAXIMUM_COORDINATION_QUEUE) return this.deny(grant.moduleId, 'coordination.use', 'coordination.request', 'The shared coordination queue is full.');
+    const requestId = randomUUID();
+    let resolveReady!: (value: AddOnCoordinationGrantV2) => void;
+    let rejectReady!: (error: Error) => void;
+    const ready = new Promise<AddOnCoordinationGrantV2>((resolvePromise, rejectPromise) => { resolveReady = resolvePromise; rejectReady = rejectPromise; });
+    const entry: CoordinationEntry = { grant, requestId, request: parsed, queuedAt: Date.now(), resolve: resolveReady, reject: rejectReady };
+    const blocking = this.blockingCoordinationLease(parsed.resource);
+    const immediate = parsed.mode === 'independent' || parsed.mode === 'background' || blocking === undefined;
+    if (immediate) {
+      this.activateCoordination(entry);
+      this.record(grant.moduleId, 'coordination.request', 'granted');
+      return Object.freeze({ requestId, status: 'active' as const, ready });
+    }
+    if (parsed.priority > blocking.entry.request.priority) {
+      this.endCoordinationLease(blocking, 'skipped', false);
+      this.activateCoordination(entry);
+      this.record(grant.moduleId, 'coordination.request', 'granted');
+      return Object.freeze({ requestId, status: 'active' as const, ready });
+    }
+    const queue = this.coordinationQueues.get(parsed.resource) ?? [];
+    queue.push(entry);
+    queue.sort((left, right) => right.request.priority - left.request.priority || left.queuedAt - right.queuedAt);
+    this.coordinationQueues.set(parsed.resource, queue);
+    entry.queueTimer = setTimeout(() => {
+      const activeQueue = this.coordinationQueues.get(parsed.resource) ?? [];
+      const index = activeQueue.findIndex((candidate) => candidate.requestId === requestId);
+      if (index < 0) return;
+      activeQueue.splice(index, 1);
+      if (activeQueue.length === 0) this.coordinationQueues.delete(parsed.resource);
+      entry.reject(new Error(parsed.skippable ? `Skippable coordination request ${requestId} expired in the queue.` : `Coordination request ${requestId} timed out in the queue.`));
+      this.record(grant.moduleId, 'coordination.timeout', 'failed');
+      void this.notifyCoordinationChanged(parsed.resource);
+    }, parsed.timeoutMs);
+    this.record(grant.moduleId, 'coordination.request', 'granted');
+    void this.notifyCoordinationChanged(parsed.resource);
+    return Object.freeze({ requestId, status: 'queued' as const, ready });
+  }
+
+  private activateCoordination(entry: CoordinationEntry): void {
+    if (entry.queueTimer !== undefined) clearTimeout(entry.queueTimer);
+    const leaseId = randomUUID();
+    const startedAt = Date.now();
+    const expiresAt = startedAt + entry.request.timeoutMs;
+    const timer = setTimeout(() => {
+      const lease = this.coordinationLeases.get(leaseId);
+      if (lease !== undefined) this.endCoordinationLease(lease, 'timed-out');
+    }, entry.request.timeoutMs);
+    const lease: CoordinationLease = { entry, leaseId, startedAt, expiresAt, timer };
+    this.coordinationLeases.set(leaseId, lease);
+    entry.resolve(Object.freeze({ requestId: entry.requestId, leaseId, resource: entry.request.resource, mode: entry.request.mode, priority: entry.request.priority, startedAt: new Date(startedAt).toISOString(), expiresAt: new Date(expiresAt).toISOString() }));
+    void this.notifyCoordinationChanged(entry.request.resource);
+  }
+
+  private async releaseCoordination(grant: ActiveModuleCapabilityGrant, leaseId: string, result: 'completed' | 'cancelled'): Promise<boolean> {
+    this.require(grant, 'coordination.use', 'coordination.release');
+    if (!ACTION_ID.test(leaseId)) throw new Error('Coordination leaseId must be a UUID.');
+    const lease = this.coordinationLeases.get(leaseId);
+    if (lease === undefined || lease.entry.grant.moduleId !== grant.moduleId) return false;
+    this.endCoordinationLease(lease, result);
+    this.record(grant.moduleId, 'coordination.release', 'granted');
+    return true;
+  }
+
+  private async cancelCoordination(grant: ActiveModuleCapabilityGrant, requestId: string): Promise<boolean> {
+    this.require(grant, 'coordination.use', 'coordination.cancel');
+    if (!ACTION_ID.test(requestId)) throw new Error('Coordination requestId must be a UUID.');
+    for (const [resource, queue] of this.coordinationQueues) {
+      const index = queue.findIndex((entry) => entry.requestId === requestId && entry.grant.moduleId === grant.moduleId);
+      if (index < 0) continue;
+      const [entry] = queue.splice(index, 1);
+      if (entry?.queueTimer !== undefined) clearTimeout(entry.queueTimer);
+      entry?.reject(new Error(`Coordination request ${requestId} was cancelled.`));
+      if (queue.length === 0) this.coordinationQueues.delete(resource);
+      this.record(grant.moduleId, 'coordination.cancel', 'granted');
+      await this.notifyCoordinationChanged(resource);
+      return true;
+    }
+    const lease = [...this.coordinationLeases.values()].find((candidate) => candidate.entry.requestId === requestId && candidate.entry.grant.moduleId === grant.moduleId);
+    if (lease === undefined) return false;
+    this.endCoordinationLease(lease, 'cancelled');
+    this.record(grant.moduleId, 'coordination.cancel', 'granted');
+    return true;
+  }
+
+  private currentCoordination(grant: ActiveModuleCapabilityGrant, resource: string): AddOnCoordinationSnapshotV2 {
+    this.require(grant, 'coordination.use', 'coordination.current');
+    if (!COORDINATION_RESOURCE.test(resource)) throw new Error('Invalid coordination resource.');
+    this.record(grant.moduleId, 'coordination.current', 'granted');
+    return this.coordinationSnapshot(resource);
+  }
+
+  private subscribeCoordination(grant: ActiveModuleCapabilityGrant, listener: (snapshot: AddOnCoordinationSnapshotV2) => void | Promise<void>): () => void {
+    this.require(grant, 'coordination.use', 'coordination.onChange');
+    if (typeof listener !== 'function') throw new Error('Coordination listener must be a function.');
+    const entry: CoordinationListener = { grant, listener };
+    const listeners = this.coordinationListeners.get(grant.moduleId) ?? new Set<CoordinationListener>();
+    listeners.add(entry); this.coordinationListeners.set(grant.moduleId, listeners);
+    this.record(grant.moduleId, 'coordination.onChange', 'granted');
+    let active = true;
+    return () => { if (!active) return; active = false; listeners.delete(entry); if (listeners.size === 0) this.coordinationListeners.delete(grant.moduleId); };
+  }
+
+  private coordinationSnapshot(resource: string): AddOnCoordinationSnapshotV2 {
+    const active = [...this.coordinationLeases.values()].filter((lease) => lease.entry.request.resource === resource).map((lease) => Object.freeze({ moduleId: lease.entry.grant.moduleId, leaseId: lease.leaseId, mode: lease.entry.request.mode, priority: lease.entry.request.priority, expiresAt: new Date(lease.expiresAt).toISOString() }));
+    const queued = (this.coordinationQueues.get(resource) ?? []).map((entry) => Object.freeze({ moduleId: entry.grant.moduleId, requestId: entry.requestId, mode: entry.request.mode, priority: entry.request.priority }));
+    return Object.freeze({ resource, active: Object.freeze(active), queued: Object.freeze(queued) });
+  }
+
+  private blockingCoordinationLease(resource: string): CoordinationLease | undefined {
+    return [...this.coordinationLeases.values()].find((lease) => lease.entry.request.resource === resource && (lease.entry.request.mode === 'exclusive' || lease.entry.request.mode === 'queueable'));
+  }
+
+  private endCoordinationLease(lease: CoordinationLease, _result: 'completed' | 'cancelled' | 'timed-out' | 'skipped', processQueue = true): void {
+    clearTimeout(lease.timer);
+    this.coordinationLeases.delete(lease.leaseId);
+    if (lease.entry.request.cooldownMs > 0) this.coordinationCooldowns.set(`${lease.entry.grant.moduleId}:${lease.entry.request.resource}`, Date.now() + lease.entry.request.cooldownMs);
+    if (processQueue) this.processCoordinationQueue(lease.entry.request.resource);
+    void this.notifyCoordinationChanged(lease.entry.request.resource);
+  }
+
+  private processCoordinationQueue(resource: string): void {
+    if (this.blockingCoordinationLease(resource) !== undefined) return;
+    const queue = this.coordinationQueues.get(resource);
+    if (queue === undefined || queue.length === 0) return;
+    const entry = queue.shift();
+    if (queue.length === 0) this.coordinationQueues.delete(resource);
+    if (entry !== undefined && this.isActive(entry.grant)) this.activateCoordination(entry);
+    else if (entry !== undefined) { if (entry.queueTimer !== undefined) clearTimeout(entry.queueTimer); entry.reject(new Error(`Add-on ${entry.grant.moduleId} stopped while waiting for coordination.`)); this.processCoordinationQueue(resource); }
+  }
+
+  private cleanupCoordination(moduleId: string): void {
+    const affected = new Set<string>();
+    this.coordinationListeners.delete(moduleId);
+    for (const [resource, queue] of this.coordinationQueues) {
+      const removed = queue.filter((entry) => entry.grant.moduleId === moduleId);
+      if (removed.length === 0) continue;
+      affected.add(resource);
+      for (const entry of removed) { if (entry.queueTimer !== undefined) clearTimeout(entry.queueTimer); entry.reject(new Error(`Add-on ${moduleId} stopped while waiting for coordination.`)); }
+      const remaining = queue.filter((entry) => entry.grant.moduleId !== moduleId);
+      if (remaining.length === 0) this.coordinationQueues.delete(resource); else this.coordinationQueues.set(resource, remaining);
+    }
+    for (const lease of [...this.coordinationLeases.values()]) {
+      if (lease.entry.grant.moduleId !== moduleId) continue;
+      affected.add(lease.entry.request.resource); this.endCoordinationLease(lease, 'cancelled', false);
+    }
+    for (const key of [...this.coordinationCooldowns.keys()]) if (key.startsWith(`${moduleId}:`)) this.coordinationCooldowns.delete(key);
+    for (const resource of affected) { this.processCoordinationQueue(resource); void this.notifyCoordinationChanged(resource); }
+  }
+
+  private async notifyCoordinationChanged(resource: string): Promise<void> {
+    const snapshot = this.coordinationSnapshot(resource);
+    for (const listeners of this.coordinationListeners.values()) for (const entry of [...listeners]) {
+      if (!this.isActive(entry.grant)) continue;
+      try { await withTimeout(Promise.resolve(entry.listener(snapshot)), COORDINATION_LISTENER_TIMEOUT_MS, `Coordination listener for ${entry.grant.moduleId}`); }
+      catch (error) { this.record(entry.grant.moduleId, 'coordination.onChange', 'failed'); this.logger.warn('Add-on coordination listener failed', { moduleId: entry.grant.moduleId, resource, error }); }
+    }
   }
 
   private currentMediaSlot(grant: ActiveModuleCapabilityGrant): AddOnMediaSlotStateV2 {

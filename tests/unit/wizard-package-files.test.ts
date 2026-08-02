@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 describe('wizard launcher package', () => {
   it('contains author, description, reviewed source, and only a loopback wizard URL', async () => {
     const root = 'packages/streamerbot/wizard-launcher';
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as { name: string; version: string; author: string; description: string; action: { source: string; importFile: string } };
-    expect(manifest).toMatchObject({ version: '2.6.0', author: 'surakage' });
+    expect(manifest).toMatchObject({ version: STREAMBRIDGE_VERSION, author: 'surakage' });
     expect(manifest.description.length).toBeGreaterThan(20);
     const source = await readFile(`${root}/${manifest.action.source}`, 'utf8');
     expect(source).toContain('open-wizard.mjs');
@@ -56,6 +57,7 @@ describe('wizard launcher package', () => {
     expect(script).toContain("'village-draw-tickets':{name:'tickets'");
     expect(script).toContain("'village-draw-balance':{name:'mytickets'");
     expect(script).toContain("'viewer-points':{name:'points',actionName:'THSV Command - Viewer Points'");
+    expect(script).toContain("'free-games':{name:'freegames',actionName:'THSV Command - Free Games'");
     expect(script).toContain("'creator-counter':{name:'counter',actionName:'THSV Command - Creator Counter'");
     expect(script).toContain("'creator-poll':{name:'poll',actionName:'THSV Command - Creator Poll'");
     expect(script).toContain("'creator-vote':{name:'vote',actionName:'THSV Command - Creator Vote'");
@@ -117,6 +119,10 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain('data-spotlight-stream-score');
     expect(addOnScript).toContain('data-analytics-report');
     expect(addOnScript).toContain('data-viewer-correction-form');
+    expect(addOnScript).toContain('data-viewer-search-account-form');
+    expect(addOnScript).toContain('data-viewer-link-form');
+    expect(addOnScript).toContain('data-viewer-undo-form');
+    expect(addOnScript).toContain('Show recent administration history');
     expect(addOnScript).toContain('data-viewer-delete-form');
     expect(addOnScript).toContain('Why this is separate:');
     expect(addOnScript).toContain('Approve only Deliver below');
@@ -124,6 +130,10 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain('No add-on import needed');
     expect(addOnScript).toContain('Keep Twitch, YouTube, Kick, and TikTok triggers attached');
     expect(addOnScript).toContain('!guardtrust');
+    expect(addOnScript).toContain('data-chat-guard-incident-filters');
+    expect(addOnScript).toContain('data-chat-guard-inline-review');
+    expect(addOnScript).toContain('Download bounded report');
+    expect(addOnScript).toContain('Chat text, names, and raw account IDs are never retained.');
     expect(addOnScript).toContain('addon-settings-section');
     expect(addOnScript).toContain('data-addon-enum-list');
     expect(addOnScript).toContain('data-addon-visible-field');

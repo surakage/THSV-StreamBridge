@@ -6,6 +6,10 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: false,
+  // The wizard acceptance installs and verifies many real add-on archives.
+  // Serial browser workers avoid filesystem/CPU contention with overlay tests
+  // and make the same release gate deterministic on creator Windows systems.
+  workers: 1,
   retries: process.env['CI'] ? 1 : 0,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {

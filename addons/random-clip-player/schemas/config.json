@@ -48,6 +48,26 @@
       "minimum": 0,
       "maximum": 1,
       "default": 1
+    },
+    "cacheVideo": {
+      "type": "boolean",
+      "title": "Prefetch clip video locally",
+      "description": "Optional. Downloads the selected Twitch clip before playback to reduce CDN stalls. Cached video expires automatically and is never shared outside the loopback overlay server.",
+      "default": false
+    },
+    "cacheTtlHours": {
+      "type": "integer",
+      "title": "Cache lifetime (hours)",
+      "minimum": 1,
+      "maximum": 24,
+      "default": 12
+    },
+    "cacheMaximumFileMb": {
+      "type": "integer",
+      "title": "Maximum cached clip size (MB)",
+      "minimum": 5,
+      "maximum": 50,
+      "default": 40
     }
   }
 }

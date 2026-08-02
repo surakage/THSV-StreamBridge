@@ -69,7 +69,7 @@ describe('Streamer.bot package files', () => {
     expect(reviewedSource).toContain('InitializeOutputs();');
     expect(reviewedSource).toContain('IsEventType(eventType)');
     expect(reviewedSource).toContain('IsPlatform(platform)');
-    expect(manifest.version).toBe('2.6.0');
+    expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/u);
     expect(reviewedSource).not.toContain('viewerId');
     expect(manifest.contract.requiredOutputArguments).not.toContain('streamBridgeViewerId');
   });

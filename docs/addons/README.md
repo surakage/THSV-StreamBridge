@@ -14,6 +14,7 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [Community Analytics](./community-analytics.md) | `thsv.community-analytics` | Not required |
 | [Creator Controls](./creator-controls.md) | `thsv.creator-controls` | Included in add-on ZIP |
 | [Creator Utility Pack](./creator-utility-pack.md) | `thsv.creator-utility-pack` | Not required |
+| [Custom Counter](./custom-counter.md) | `thsv.custom-counter` | Included in add-on ZIP |
 | [Discord Chat Archive](./discord-chat-archive.md) | `thsv.discord-chat-archive` | Included in add-on ZIP |
 | [Fan Crown](./fan-crown.md) | `thsv.fan-crown` | Included in add-on ZIP |
 | [First Five](./first-five.md) | `thsv.first-five` | Included in add-on ZIP |

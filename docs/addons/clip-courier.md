@@ -1,16 +1,16 @@
 # Clip Courier setup
 
 **Module:** `thsv.clip-courier`
-**Version:** `2.6.0`
+**Version:** `3.0.0`
 **Publisher:** THSV StreamBridge
 
 Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Clip-Courier-2.6.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Courier-2.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Clip-Courier-2.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Clip-Courier-3.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Courier-3.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Clip-Courier-3.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps

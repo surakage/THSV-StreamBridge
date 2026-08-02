@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Adds bounded cross-platform Number Guess, Trivia, and Prediction rounds.",
-  "changelog": "2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
+  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -23,11 +23,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.chat-play-pack",
     "name": "Chat Play Pack",
-    "version": "2.6.0",
+    "version": "3.0.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "2.6.0",
-    "maximumTestedBridgeVersion": "2.6.0",
+    "minimumBridgeVersion": "3.0.0",
+    "maximumTestedBridgeVersion": "3.0.0",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -35,6 +35,7 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "command.received",
+      "stream.online",
       "stream.offline"
     ],
     "commandsProvided": [
@@ -82,13 +83,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 8798,
-      "sha256": "a5a9c16916af122b4418043f80e59027b241892aac6a46b14cbe5d8225b8d66e"
+      "size": 11904,
+      "sha256": "135f972cbe507e78a02f325e783674296f598cb2fe00234027475a5213d1d35f"
     },
     {
       "path": "schemas/config.json",
-      "size": 1423,
-      "sha256": "ce652cb3bc4727c69597eb63af9b5b54bfb023c1987635d8e0373190d856d8f4"
+      "size": 1506,
+      "sha256": "369c78fe031287ce1615410787043e56cc0152984ca93ef6855334608970b6b8"
     },
     {
       "path": "ui/settings.json",

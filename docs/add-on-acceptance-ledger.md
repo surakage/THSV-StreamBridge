@@ -1,6 +1,6 @@
 # Add-on acceptance ledger
 
-Snapshot: July 31, 2026. Release baseline: `2.6.0`.
+Snapshot: August 1, 2026. Current release candidate and installed baseline: `3.0.0`.
 
 This ledger prevents **packaged**, **offline accepted**, and **provider accepted** from being treated as the same claim. A package is production-capable only for the rows and environments whose evidence has actually been recorded.
 
@@ -31,7 +31,7 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | Village Roll Call | Passed | Pending | One genuine Twitch reward redemption, daily replay rejection, month rollover, winner announcement, and cropped OBS card. |
 | Prize Wheel | Passed | Pending | Cropped hosted-wheel rendering is automated-test accepted. One live moderator command and source-routed result on each selected platform remain pending. |
 | Village Draw | Passed | Pending | Verified-package tests cover Viewer Foundation identity, free entry, weighted points tickets, draw receipts, and restart-safe batched refunds. Live command, overlay, points spend/refund, and winner confirmation remain pending. |
-| Village Jukebox | Passed | Pending | Import, private YouTube API resolution, source-routed commands, complete hosted playback, Viewer Foundation spending/refunds, native reward intake, Twitch settlement, queue controls, and music-rights acceptance. |
+| Village Jukebox | Passed | Pending | The two reviewed triggerless helpers are imported, grouped separately, stable-ID verified, and creator-approved. Private YouTube API resolution, source-routed commands, complete hosted playback, Viewer Foundation spending/refunds, native reward intake, Twitch settlement, queue controls, and music-rights acceptance remain pending. |
 | Viewer Foundation | Passed | Pending | Identity link, progression, achievements, digest-locked legacy migration, privacy export/correction/deletion, and consumer isolation. |
 | Community Analytics | Passed | Pending | Stream rollover, ignored identities, bounded reports, and deletion propagation. |
 | Viewer Spotlight | Passed | Pending | Self/manual/reward card, fade/credits, Stream Score, Discord snapshot, settlement, browser hosts, reconnect, and deletion cleanup. |
@@ -48,14 +48,18 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | Chat Play Pack | Passed | Pending | Number Guess, creator-authored Trivia, Prediction rounds, anti-replay awards, and source-routed replies. |
 | Free Game Check | Passed | Pending | Fixed-provider lookup, silent baseline, deduplication, attribution, and selected-platform announcements. |
 | Accessibility Captions | Passed | Pending | Browser-host readability, public-chat consent, bot suppression, bounds, cropping, transparency, and reconnect behavior. |
+| Custom Counter | Passed | Passed | The Version 3 package imported locally as a new triggerless eleven-action group. Chat-command permissions, Stream Deck/hotkey binding, custom icon, and long-running OBS presentation remain creator acceptance rather than provider requirements. |
 
 ## Current automated and local evidence
 
-- `141` Vitest files and `780` tests pass on the current source baseline.
+- `146` Vitest files and `825` tests pass on Version `3.0.0`.
 - `17` Playwright checks pass, including add-on installation/configuration, persisted collapsible UI state, Chat Guard safety controls, overlay presentation, cropped Stream Labels, Village Roll Call, Prize Wheel, Village Draw, Village Jukebox, and the acceptance ledger.
 - lint, typecheck, configuration validation, production build, release packaging, and the production dependency audit pass; the audit reports zero known vulnerabilities.
-- Thirty-three first-party add-on implementations are synchronized at `2.6.0`. The release build verifies all `33` add-on archives/checksums and `36` generated Streamer.bot imports together. Stream Labels, Village Roll Call, Prize Wheel, and Village Draw use the shared core intakes and require no extra Streamer.bot import.
-- On July 28, the local bridge reported `healthy`/`ready`; its creator-selected `19` add-ons were upgraded to compatible `2.5.0` packages and all reported `installed`. Installing the missing Clip Library Cache dependency then brought the synchronized profile to `20` healthy `2.5.0` add-ons. Their private acceptance entries carry the installed release rather than `unknown`.
+- Thirty-four first-party add-on implementations and all `37` generated Streamer.bot imports are synchronized at `3.0.0`. The portable release, add-on index, all `34` add-on bundles, and `38` archive checksums verify successfully. Stream Labels, Village Roll Call, Prize Wheel, and Village Draw continue to use the shared core intakes and require no extra Streamer.bot import.
+- On August 1, the installed bridge reported `healthy`/`ready` after upgrading from `2.6.1` to `3.0.0`. All `34` first-party add-ons were installed and version-aligned; `33` remained enabled because the creator's previous disabled state was preserved. All `38` loaded modules reported healthy, Streamer.bot was connected, and settings, private state, grants, secrets, and intake triggers were preserved.
+- Custom Counter's Version 3 import created its eleven reviewed triggerless actions inside the dedicated `THSV Addon - Custom Counter` group. Existing trigger-bearing packages were not blindly overwritten; their Version 3 import files are installed locally for intentional upgrades that preserve or reattach creator trigger bindings using the published trigger matrix.
+- Village Jukebox's two reviewed helpers were imported into `THSV Addon - Village Jukebox`, verified by their stable IDs, and granted only to that add-on. A harmless Twitch chat fixture was then accepted and queued through the installed full add-on set without a new warning or error. This closes package installation and grant wiring only; the row remains pending for its resolver, playback, points, and reward paths.
+- The July 28 `2.5.0`/20-add-on and earlier August 1 `2.6.0`/33-add-on snapshots remain historical evidence but are superseded by the Version 3 local installation above.
 - Disposable Windows lifecycle coverage passed `21` focused installer/package tests plus custom-port start, replacement-start, stale-build rebuilding, active-config shutdown, upgrade data preservation, downgrade/tamper rejection, and conservative uninstall behavior.
 - Safe local overlay smoke on July 28 returned HTTP `200` and accepted simulated wizard previews for Automated Shoutouts, Fan Crown, First Five, Raid Scout, Random Clip Player, Stream Launch Countdown, Subathon Timer, and Viewer Spotlight. Their rows remain pending because control/state, Streamer.bot, and genuine-provider behavior was not covered by that visual-only smoke.
 - Streamer.bot `1.0.5-beta.2` was inspected directly with `93` actions and separate add-on groups. One harmless Twitch, YouTube, and Kick chat **Test Trigger** per platform reached the installed bridge exactly once as an accepted, non-duplicate, durably queued event. This validates shared native intake routing only and does not change any add-on or provider-acceptance row.

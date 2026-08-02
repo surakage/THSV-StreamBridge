@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import {
   AddOnPackageError,
@@ -11,12 +11,16 @@ import {
   setAddOnPackageEnabled,
   type InstalledAddOnSummary,
 } from './addon-package-manager.js';
+import type { VerifiedAddOnUpdatePackage } from './addon-update-service.js';
 
 const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const MAXIMUM_ARCHIVE_BYTES = 7_500_000;
 const MAXIMUM_SETTINGS_BYTES = 65_536;
 const MAXIMUM_ACCEPTANCE_BYTES = 131_072;
+const MAXIMUM_TRUSTED_PUBLISHERS_BYTES = 32_768;
 const ACCEPTANCE_STATUS = new Set(['pending', 'passed', 'failed', 'not-required']);
+const PUBLISHER_ID = /^[a-z][a-z0-9.-]{1,99}$/u;
+const GITHUB_REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 
 export class AddOnWizardError extends Error {
   public constructor(public readonly statusCode: number, message: string) { super(message); this.name = 'AddOnWizardError'; }
@@ -56,6 +60,12 @@ export interface DiscoveredAddOnSummary {
   readonly error?: string;
 }
 
+export interface TrustedAddOnPublisher {
+  readonly publisherId: string;
+  readonly repository: string;
+  readonly addedAt: string;
+}
+
 export class AddOnWizardService {
   public constructor(private readonly packagesRoot: string, private readonly stateRoot: string, private readonly inboxRoot = join(resolve(packagesRoot), 'inbox')) {}
 
@@ -66,6 +76,36 @@ export class AddOnWizardService {
       try { return { ...addOn, settings: await this.readSettings(addOn.moduleId, addOn.configurationSchema) }; }
       catch (error) { return { ...addOn, enabled: false, health: 'rejected' as const, error: error instanceof Error ? error.message : String(error), settings: {} }; }
     }));
+  }
+
+  public async listTrustedPublishers(): Promise<readonly TrustedAddOnPublisher[]> {
+    return this.readTrustedPublishers();
+  }
+
+  public async saveTrustedPublisher(input: unknown): Promise<TrustedAddOnPublisher> {
+    const body = objectInput(input);
+    if (body['approvedByCreator'] !== true) throw new AddOnWizardError(403, 'Trusting a third-party publisher requires explicit creator approval.');
+    const publisherId = stringInput(body['publisherId'], 'publisherId', 100).toLowerCase();
+    const repository = stringInput(body['repository'], 'repository', 200);
+    if (!PUBLISHER_ID.test(publisherId)) throw new AddOnWizardError(400, 'Publisher ID must be a lowercase dotted identifier.');
+    if (publisherId === 'thsv.streambridge') throw new AddOnWizardError(400, 'The official THSV publisher is already managed by the built-in update source.');
+    if (!GITHUB_REPOSITORY.test(repository)) throw new AddOnWizardError(400, 'GitHub repository must use owner/name format.');
+    const current = await this.readTrustedPublishers();
+    const conflict = current.find((entry) => entry.publisherId === publisherId || entry.repository.toLowerCase() === repository.toLowerCase());
+    if (conflict !== undefined && (conflict.publisherId !== publisherId || conflict.repository.toLowerCase() !== repository.toLowerCase())) throw new AddOnWizardError(409, 'That publisher ID or repository is already bound to a different trust record.');
+    const entry = { publisherId, repository, addedAt: conflict?.addedAt ?? new Date().toISOString() };
+    await this.writeTrustedPublishers([...current.filter((item) => item.publisherId !== publisherId), entry]);
+    return entry;
+  }
+
+  public async removeTrustedPublisher(publisherId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (!PUBLISHER_ID.test(publisherId)) throw new AddOnWizardError(400, 'Invalid publisher ID.');
+    const body = objectInput(input);
+    if (body['approvedByCreator'] !== true) throw new AddOnWizardError(403, 'Removing a trusted publisher requires explicit creator approval.');
+    const current = await this.readTrustedPublishers();
+    if (!current.some((entry) => entry.publisherId === publisherId)) throw new AddOnWizardError(404, 'Trusted publisher not found.');
+    await this.writeTrustedPublishers(current.filter((entry) => entry.publisherId !== publisherId));
+    return { publisherId, removed: true };
   }
 
   public async install(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -114,6 +154,45 @@ export class AddOnWizardService {
       const installed = await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
       return { installed: true, source: 'inbox', filename, moduleId: installed.descriptor.manifest.moduleId, version: installed.descriptor.manifest.version, restartRequired: true };
     } catch (error) { throw asWizardError(error); }
+  }
+
+  public async stageVerifiedOfficialUpdate(update: VerifiedAddOnUpdatePackage): Promise<Readonly<Record<string, unknown>>> {
+    assertInboxFilename(update.filename);
+    if (update.archive.byteLength === 0 || update.archive.byteLength > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(413, 'The verified add-on package exceeds the inbox package safety limit.');
+    if (digest(update.archive) !== update.sha256) throw new AddOnWizardError(409, 'The verified add-on package changed before it reached the inbox.');
+    try {
+      const descriptor = await inspectAddOnArchive(update.archive, this.packagesRoot);
+      if (descriptor.manifest.moduleId !== update.moduleId || descriptor.manifest.version !== update.version) throw new AddOnWizardError(409, 'The inner add-on identity does not match the official update index.');
+      if (descriptor.trust.publisherId !== update.publisherId) throw new AddOnWizardError(409, 'The inner add-on publisher does not match the installed package and official update index.');
+      await mkdir(this.inboxRoot, { recursive: true, mode: 0o700 });
+      const destination = join(this.inboxRoot, update.filename);
+      const temporary = `${destination}.${randomUUID()}.tmp`;
+      await writeFile(temporary, update.archive, { flag: 'wx', mode: 0o600 });
+      try {
+        await rm(destination, { force: true });
+        await rename(temporary, destination);
+      } catch (error) {
+        await rm(temporary, { force: true }).catch(() => undefined);
+        throw error;
+      }
+      return {
+        staged: true,
+        filename: update.filename,
+        moduleId: update.moduleId,
+        version: update.version,
+        sha256: update.sha256,
+        provenance: update.provenance,
+        repository: update.repository,
+        workflow: update.workflow,
+        installRequiresCreatorReview: true,
+        restartRequired: false,
+      };
+    } catch (error) { throw asWizardError(error); }
+  }
+
+  public async stageVerifiedPublisherUpdate(update: VerifiedAddOnUpdatePackage, publisher: TrustedAddOnPublisher): Promise<Readonly<Record<string, unknown>>> {
+    if (update.publisherId !== publisher.publisherId || update.repository.toLowerCase() !== publisher.repository.toLowerCase()) throw new AddOnWizardError(409, 'The verified update does not match the selected trusted publisher.');
+    return this.stageVerifiedOfficialUpdate(update);
   }
 
   public async setEnabled(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -198,6 +277,36 @@ export class AddOnWizardService {
     await writeFile(temporary, encoded, { encoding: 'utf8', mode: 0o600 });
     await rename(temporary, path);
     return entry;
+  }
+
+  private trustedPublishersPath(): string { return join(this.stateRoot, 'trusted-publishers.json'); }
+
+  private async readTrustedPublishers(): Promise<readonly TrustedAddOnPublisher[]> {
+    try {
+      const raw = await readFile(this.trustedPublishersPath(), 'utf8');
+      if (Buffer.byteLength(raw) > MAXIMUM_TRUSTED_PUBLISHERS_BYTES) throw new AddOnWizardError(409, 'Trusted publisher registry exceeds its safety limit.');
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed) || parsed.length > 50) throw new AddOnWizardError(409, 'Trusted publisher registry is invalid.');
+      const seenPublishers = new Set<string>(); const seenRepositories = new Set<string>();
+      return parsed.map((value) => {
+        const item = objectInput(value); const publisherId = stringInput(item['publisherId'], 'publisherId', 100).toLowerCase(); const repository = stringInput(item['repository'], 'repository', 200); const addedAt = stringInput(item['addedAt'], 'addedAt', 50);
+        const normalizedRepository = repository.toLowerCase();
+        if (!PUBLISHER_ID.test(publisherId) || !GITHUB_REPOSITORY.test(repository) || seenPublishers.has(publisherId) || seenRepositories.has(normalizedRepository)) throw new AddOnWizardError(409, 'Trusted publisher registry is invalid.');
+        seenPublishers.add(publisherId); seenRepositories.add(normalizedRepository);
+        return { publisherId, repository, addedAt };
+      });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      if (error instanceof AddOnWizardError) throw error;
+      throw new AddOnWizardError(409, 'Trusted publisher registry could not be read safely.');
+    }
+  }
+
+  private async writeTrustedPublishers(entries: readonly TrustedAddOnPublisher[]): Promise<void> {
+    const encoded = `${JSON.stringify([...entries].sort((a, b) => a.publisherId.localeCompare(b.publisherId)), null, 2)}\n`;
+    if (Buffer.byteLength(encoded) > MAXIMUM_TRUSTED_PUBLISHERS_BYTES) throw new AddOnWizardError(413, 'Trusted publisher registry exceeds its safety limit.');
+    const path = this.trustedPublishersPath(); await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, encoded, { encoding: 'utf8', mode: 0o600 }); await rename(temporary, path);
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
@@ -308,6 +417,13 @@ export function validateSettings(schemaValue: unknown, input: Record<string, unk
       continue;
     }
     result[key] = validateSettingValue(key, property, value);
+  }
+  const distinctFields = schema['x-distinctFields'];
+  if (distinctFields !== undefined) {
+    if (!Array.isArray(distinctFields) || distinctFields.length < 2 || distinctFields.length > 20 || !distinctFields.every((entry) => typeof entry === 'string' && Object.hasOwn(properties, entry))) throw new AddOnWizardError(400, 'The add-on configuration distinct-field list is invalid.');
+    const fields = distinctFields as string[];
+    const normalized = fields.map((key) => typeof result[key] === 'string' ? result[key].trim().toLowerCase() : result[key]);
+    if (new Set(normalized).size !== normalized.length) throw new AddOnWizardError(400, `${fields.join(', ')} must use different values.`);
   }
   return Object.freeze(result);
 }

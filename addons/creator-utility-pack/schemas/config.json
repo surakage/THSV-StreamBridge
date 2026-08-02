@@ -3,8 +3,9 @@
   "title": "Creator Utility Pack",
   "type": "object",
   "additionalProperties": false,
+  "x-distinctFields": ["counterCommand", "pollCommand", "voteCommand"],
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Creator Utility Pack", "default": true },
+    "enabled": { "type": "boolean", "title": "Enable Creator Utility Pack", "default": false },
     "counterCommand": { "type": "string", "title": "Counter command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "counter" },
     "pollCommand": { "type": "string", "title": "Poll control command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "poll" },
     "voteCommand": { "type": "string", "title": "Poll vote command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "vote" },

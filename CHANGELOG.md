@@ -1,10 +1,45 @@
 # Changelog
 
+## [3.0.0] - 2026-08-01
+
+- Synchronized the bridge, 34 first-party add-ons, 37 generated Streamer.bot packages, overlay assets, wizard, package manifests, and public documentation at Version `3.0.0`.
+- Added centralized add-on coordination with exclusive, queueable, independent, background, priority, cooldown, cancellation, timeout recovery, failure cleanup, diagnostics, and creator-confirmed emergency reset behavior.
+- Added Custom Counter with role-gated chat/action controls, up to 20 private persistent counters, optional normalized-event deltas, source-routed replies, and a customizable core-hosted overlay.
+- Added one central reward blueprint catalogue covering names, descriptions, costs, colors, text input, cooldowns, limits, settlement expectations, and coordination behavior while preserving honest Twitch/Kick capability differences.
+- Regenerated every Streamer.bot import with Version 3 metadata and dedicated core or add-on groups, without claiming automatic preservation of creator-owned trigger bindings during overwrite import.
+- Added the Version 3 migration, rollback, first-live checklist, reward, trigger, emergency-reset, and release documentation.
+- Preserved runtime blocking of high-impact events that lack provider-stable IDs. Simulated and automated tests remain separate from genuine Twitch, Kick, YouTube, TikTok, Streamlabs, Ko-fi, Discord, TTS, scene, and reward acceptance.
+
+## 2.6.1 - Free Game viewer access follow-up
+
+- Free Game Check now accepts Twitch and Kick channel-reward requests through the existing platform intakes and the configurable `!freegames` command from YouTube and TikTok.
+- Matching requests send one source-routed, creator-editable chat message that directs the viewer to a validated Discord invite, with a bounded per-viewer cooldown.
+- Added a guided wizard setup card and Command Sync template without adding another platform trigger or WebSocket connection.
+
+- Added optional authenticated third-party add-on publishers. Creators explicitly bind one publisher ID to one GitHub repository; staged updates must pass the existing tagged-workflow artifact-attestation, release-index, outer/inner checksum, compatibility, and publisher checks before a separate inbox install approval.
+- Added opt-in bounded Twitch clip video prefetch for Random Clip Player. Only Twitch CDN HTTPS URLs and redirects are accepted; files are limited to 50 MiB each and 250 MiB total, expire within 24 hours, remain loopback-only, and are byte-range served for smoother browser-source playback. Cache failures fall back to the provider URL.
+- Added optional Free Game Check Discord channel/forum delivery with a private Streamer.bot webhook argument, disabled mentions, correlated acknowledgements, bounded rate-limit retries, and strict Discord/GamerPower URL validation.
+
 All notable changes to this project will be documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+- Added a creator-approved core update staging flow that downloads only the exact official release archive, verifies its adjacent SHA-256 checksum, cryptographically verifies GitHub Actions Sigstore provenance for the tagged release workflow, and fails closed before writing an update archive when any identity, digest, workflow, size, or format check fails.
+- Added creator-approved add-on update staging: the wizard verifies the official outer release bundle against the add-on index and GitHub Actions Sigstore provenance, safely extracts exactly one inner package, verifies its adjacent checksum, publisher, version, compatibility, and manifest integrity, then places it in the inbox for a separate creator-approved installation.
+- Renamed Village Jukebox's default queue command from `!queue` to `!songqueue` so it cannot silently collide with Viewer Lobby's queue command; schema defaults, wizard guidance, package metadata, tests, and setup documentation now agree.
+- Reconciled the current-status, production-readiness, acceptance-ledger, and future-roadmap documents with the synchronized local `2.6.0` installation: all 33 first-party add-ons are installed and healthy, Village Jukebox's two reviewed helpers are imported and narrowly approved, and remaining implementation work is separated from live-provider acceptance.
+- Expanded Viewer Foundation's authenticated local administration with stable-ID search, guided verified account linking and unlinking, privacy-preserving link audit fingerprints, recent audit review, and correction undo that fails closed when newer point activity exists. Display names remain deliberately unstored.
+- Expanded Chat Guard with a privacy-safe moderation dashboard: aggregate health cards, bounded filtering and pagination, provider-action outcomes, short salted repeat-viewer fingerprints, inline review labels, and a report capped at 100 filtered incidents without chat text, names, raw account IDs, or trusted-viewer labels.
+- Hardened Category Pilot with correlated probe responses, a 30-second lost-response recovery timeout, simulation suppression, and automatic clearing of stale suggestions when the allowlisted process is no longer running.
+- Hardened Viewer Lobby so disabled or simulated controls cannot mutate the real queue, departed entries are removed instead of accumulating, selected viewers receive accurate status wording, and one failed event can no longer poison all later serialized work.
+- Tightened Creator Utility Pack counter and poll controls with explicit invalid-operation responses, moderator feedback, and bounded counter arithmetic; repaired Creator Controls setup text and removed a stale version-specific Free Game Check user agent.
+- Corrected multi-platform stream lifecycle handling in Category Pilot, Viewer Lobby, and Creator Utility Pack so one platform going offline cannot stop work while another platform remains live.
+- Correlated Category Pilot profile application with Creator Controls provider results so profiles are recorded as applied only after the real provider operation succeeds, while retaining a bounded per-platform outcome audit.
+- Hardened Free Game Check with one-use request correlation and an HTTPS GamerPower host allowlist, and made Streamer.bot test actions preserve simulated provenance across Viewer Lobby, Follower Pulse, and Free Game Check.
+- Added case-insensitive cross-field command collision validation, safe disabled-by-default Creator Utility settings, bounded viewer command cooldowns, duplicate poll-option rejection, and bounded Viewer Lobby command cooldowns.
+- Hardened Chat Play Pack, Viewer Lobby, Follower Pulse, Accessibility Captions, Creator Controls, Category Pilot, and Free Game Check with bounded restored state, final-platform lifecycle handling, correlated one-use results, fail-soft optional outputs, flood limits, strict provider URLs, and bounded remote-response reads.
 
 ## [2.6.0] - 2026-07-31
 

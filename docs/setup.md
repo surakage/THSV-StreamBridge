@@ -2,7 +2,7 @@
 
 These steps are for contributors running a source checkout. Public release users should follow [Getting started](getting-started.md) instead; it covers downloading, installing, Streamer.bot wiring, overlays, testing, add-ons, updating, and uninstalling.
 
-1. Install Node.js 22 or later and Git.
+1. Install Node.js 22.22.2 or later and Git.
 2. Open PowerShell in the repository root.
 3. Run `scripts\install.ps1`.
 4. Start Streamer.bot's local WebSocket server, or explicitly enable `streamerbot.testMode` in a runtime-only configuration.

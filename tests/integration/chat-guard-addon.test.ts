@@ -62,6 +62,10 @@ describe('Chat Guard integration', () => {
     if (recentIncident === null || typeof recentIncident !== 'object' || Array.isArray(recentIncident)) throw new Error('Expected structured Chat Guard incident metadata.');
     const incidentId = recentIncident['incidentId'];
     if (typeof incidentId !== 'string') throw new Error('Expected a pseudonymous Chat Guard incident ID.');
+    await expect(registry.administerChatGuard({ operation: 'incidents', platform: 'twitch', rule: 'blocked-domain', review: 'unreviewed', enforcementStatus: 'none', offset: 0, limit: 25 })).resolves.toMatchObject({
+      operation: 'incidents', totalMatching: 1, hasMore: false,
+      incidents: [expect.objectContaining({ incidentId, viewerFingerprint: expect.stringMatching(/^[a-f0-9]{12}$/u), enforcement: { mode: 'observe', status: 'none', error: '' } })],
+    });
     await expect(registry.administerChatGuard({ operation: 'review', incidentId, decision: 'false-positive', approvedByCreator: true })).resolves.toMatchObject({
       incidentId, decision: 'false-positive', enforcementPerformed: false,
     });

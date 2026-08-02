@@ -4,11 +4,11 @@ const MODERATE_ACTION_ID = '9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9';
 const RESULT_EVENT = 'addon.thsv.chat-guard.moderation-result';
 const TRUST_EVENT = 'addon.thsv.chat-guard.trusted-account-request';
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.chat-guard', name: 'Chat Guard', version: '2.6.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.chat-guard', name: 'Chat Guard', version: '3.0.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', RESULT_EVENT, TRUST_EVENT], commandsProvided: [{ id: 'chat-guard.trust-viewer', name: '!guardtrust' }], actionsProvided: [{ id: 'chat-guard.moderate', name: 'THSV Addon - Chat Guard - Moderate' }, { id: 'chat-guard.trust-viewer', name: 'THSV Addon - Chat Guard - Trust Viewer' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.chat-guard/', 'data/addons/.state/thsv.chat-guard/'],
-  installationSteps: ['Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.', 'Import the matching Chat Guard Streamer.bot package. Leave Moderate enabled and triggerless. Review the disabled !guardtrust command before enabling it.', 'Use the rule tester and observation summary. Tune only rules that create false positives; beginner defaults are already supplied.', 'To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator, then refresh Trusted viewers in the wizard.', 'Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance.'],
+  installationSteps: ['Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.', 'Import the matching Chat Guard Streamer.bot package. Leave Moderate enabled and triggerless. Review the disabled !guardtrust command before enabling it.', 'Use the rule tester and privacy-safe moderation dashboard. Filter incidents and label false positives before changing enforcement rules.', 'To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator, then refresh Trusted viewers in the wizard.', 'Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance.'],
   uninstallationSteps: ['Uninstall the add-on. Its private pseudonymous incident state remains preserved for a later reinstall or creator review.'], migrations: [],
   healthChecks: [{ id: 'thsv.chat-guard.runtime', description: 'Confirms bounded public-chat classification and fail-closed optional moderation dispatch are available.' }],
 };
@@ -137,9 +137,29 @@ export async function processChatGuardEvent(event, context, now = Date.now()) {
   let enforcement = 'none'; if (incident !== undefined) { try { enforcement = await enforceIncident(event, incident, context, settings, state, now); } catch { state.enforcementResults.push({ incidentId: incident.id, accountHash: incident.accountHash, at: now, platform: event.platform, mode: settings.enforcementMode, status: 'failed', error: 'Moderation dispatch failed before provider confirmation.' }); enforcement = 'failed'; } }
   await context.state.write(sanitizeState(state, settings, now)); return { observed: true, flagged: incident !== undefined, rules, enforcement, permitApplied };
 }
-export function summarizeChatGuardState(value, settings = FALLBACKS, now = Date.now()) { const state = sanitizeState(value, settings, now); const byRule = {}; const byPlatform = {}; const byReview = { unreviewed: 0, confirmed: 0, 'false-positive': 0 }; for (const incident of state.incidents) { byPlatform[incident.platform] = (byPlatform[incident.platform] || 0) + 1; byReview[incident.review] += 1; for (const rule of incident.rules) byRule[rule] = (byRule[rule] || 0) + 1; } const recentIncidents = state.incidents.slice(-20).reverse().map((incident) => ({ incidentId: incident.id, at: incident.at, platform: incident.platform, rules: incident.rules, simulated: incident.simulated, review: incident.review })); const enforcement = { dispatched: 0, succeeded: 0, failed: 0, unsupported: 0 }; for (const result of state.enforcementResults) enforcement[result.status] += 1; return { mode: settings.enforcementEnabled && settings.creatorApprovedEnforcement ? settings.enforcementMode : 'observe', incidentCount: state.incidents.length, trackedObservationCount: state.observations.length, byRule, byPlatform, byReview, enforcement, recentIncidents }; }
+function incidentProjection(state, incident) {
+  const enforcement = [...state.enforcementResults].reverse().find((item) => item.incidentId === incident.id);
+  return { incidentId: incident.id, at: incident.at, platform: incident.platform, rules: incident.rules, simulated: incident.simulated,
+    review: incident.review, viewerFingerprint: incident.accountHash.slice(0, 12),
+    enforcement: enforcement ? { mode: enforcement.mode, status: enforcement.status, error: enforcement.error || '' } : { mode: 'observe', status: 'none', error: '' } };
+}
+function queryIncidents(state, request = {}) {
+  const matching = state.incidents.filter((incident) => {
+    if (request.platform && incident.platform !== request.platform) return false;
+    if (request.rule && !incident.rules.includes(request.rule)) return false;
+    if (request.review && incident.review !== request.review) return false;
+    const status = incidentProjection(state, incident).enforcement.status;
+    return !request.enforcementStatus || status === request.enforcementStatus;
+  }).reverse();
+  const offset = integer(request.offset, 0, 1_000, 0); const limit = integer(request.limit, 1, 100, 25);
+  return { totalMatching: matching.length, offset, limit, hasMore: offset + limit < matching.length,
+    nextOffset: offset + limit < matching.length ? offset + limit : null,
+    incidents: matching.slice(offset, offset + limit).map((incident) => incidentProjection(state, incident)) };
+}
+export function summarizeChatGuardState(value, settings = FALLBACKS, now = Date.now()) { const state = sanitizeState(value, settings, now); const byRule = {}; const byPlatform = {}; const byReview = { unreviewed: 0, confirmed: 0, 'false-positive': 0 }; for (const incident of state.incidents) { byPlatform[incident.platform] = (byPlatform[incident.platform] || 0) + 1; byReview[incident.review] += 1; for (const rule of incident.rules) byRule[rule] = (byRule[rule] || 0) + 1; } const recentIncidents = state.incidents.slice(-20).reverse().map((incident) => incidentProjection(state, incident)); const enforcement = { dispatched: 0, succeeded: 0, failed: 0, unsupported: 0 }; for (const result of state.enforcementResults) enforcement[result.status] += 1; return { mode: settings.enforcementEnabled && settings.creatorApprovedEnforcement ? settings.enforcementMode : 'observe', incidentCount: state.incidents.length, trackedObservationCount: state.observations.length, byRule, byPlatform, byReview, enforcement, recentIncidents }; }
 export async function administerChatGuard(request, context, now = Date.now()) {
   const settings = settingsFor(context); const state = sanitizeState(await context.state.read(), settings, now);
+  if (request.operation === 'incidents') return { operation: 'incidents', privacy: 'No chat text, display names, or raw account IDs are retained.', ...queryIncidents(state, request) };
   if (request.operation === 'test') {
     const message = clean(request.message, 2000); if (!message) throw new Error('A non-empty sample message is required.');
     const priorMatchingMessages = integer(request.priorMatchingMessages, 0, 9, 0); const rules = classify(message, priorMatchingMessages, settings);

@@ -13,6 +13,7 @@ async function loadAddOns() {
     }
     state.addOns = result.addOns;
     state.discoveredAddOns = result.discovered || [];
+    state.trustedAddOnPublishers = result.trustedPublishers || [];
     state.addOnAcceptance = acceptanceResult.acceptance || {};
     if (!state.addOnActionDrafts) state.addOnActionDrafts = {};
     if (!state.addOnActionGroupDrafts) state.addOnActionGroupDrafts = {};
@@ -24,12 +25,40 @@ async function loadAddOns() {
     if (!state.selectedAddOnId && state.addOns.length) state.selectedAddOnId = state.addOns[0].moduleId;
     renderAddOns();
     renderDiscoveredAddOns();
+    renderTrustedPublishers();
     status.textContent = `${state.addOns.length} installed and ${state.discoveredAddOns.length} discovered add-on package(s) inspected. Changes take effect after StreamBridge restarts.`;
   } catch (error) {
     status.textContent = error.message;
   } finally {
     status.removeAttribute('aria-busy');
   }
+}
+
+function renderTrustedPublishers() {
+  const list = byId('trusted-publisher-list');
+  const publishers = state.trustedAddOnPublishers || [];
+  if (!publishers.length) { list.innerHTML = '<p class="notice">No third-party publishers are trusted. Official THSV updates remain available above.</p>'; return; }
+  list.innerHTML = publishers.map((publisher) => `<article class="item"><strong>${safe(publisher.publisherId)}</strong><small>${safe(publisher.repository)}</small><div class="button-row"><button type="button" class="compact" data-check-trusted-publisher="${safe(publisher.publisherId)}">Check updates</button><button type="button" class="ghost compact" data-remove-trusted-publisher="${safe(publisher.publisherId)}">Remove trust</button></div></article>`).join('');
+  document.querySelectorAll('[data-check-trusted-publisher]').forEach((button) => button.addEventListener('click', checkTrustedPublisherUpdates));
+  document.querySelectorAll('[data-remove-trusted-publisher]').forEach((button) => button.addEventListener('click', removeTrustedPublisher));
+}
+
+async function checkTrustedPublisherUpdates(event) {
+  const publisherId = event.currentTarget.dataset.checkTrustedPublisher;
+  const status = byId('addon-update-state'); status.textContent = `Checking the authenticated release for ${publisherId}...`;
+  try {
+    const result = await api('/wizard/api/addons/trusted-updates/check', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ publisherId }) });
+    state.addOnUpdates = result.available ? result : null; state.addOnUpdatePublisherId = publisherId;
+    status.textContent = result.available ? `${result.updateCount} compatible update(s) found for ${publisherId}. Nothing was downloaded or installed.` : `Publisher update check unavailable: ${result.error}`;
+    renderAddOns();
+  } catch (error) { status.textContent = error.message; }
+}
+
+async function removeTrustedPublisher(event) {
+  const publisherId = event.currentTarget.dataset.removeTrustedPublisher;
+  if (!confirm(`Remove update trust for ${publisherId}? Installed add-ons and their data are preserved.`)) return;
+  try { await api(`/wizard/api/addons/trusted-publishers/${encodeURIComponent(publisherId)}`, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ approvedByCreator: true }) }); await loadAddOns(); }
+  catch (error) { byId('addon-state').textContent = error.message; }
 }
 
 function addOnOptionLabel(value) {
@@ -82,13 +111,12 @@ function renderAddOnUpdate(addOn) {
     'not-listed': 'Not in official index',
     rejected: 'Local package rejected',
   };
-  const version = update.latestVersion ? ` Latest official version: ${update.latestVersion}.` : '';
+  const version = update.latestVersion ? ` Latest authenticated version: ${update.latestVersion}.` : '';
   const warning = update.warning ? ` ${update.warning}` : '';
-  const archive = update.archiveName ? `<small><strong>Official package:</strong> ${safe(update.archiveName)}</small>` : '';
+  const archive = update.archiveName ? `<small><strong>Verified release package:</strong> ${safe(update.archiveName)}</small>` : '';
   const checksum = update.sha256 ? `<small><strong>Published SHA-256:</strong> <code>${safe(update.sha256)}</code></small>` : '';
-  const downloadUrl = safeAddOnLink(update.downloadUrl);
-  const download = update.state === 'update-available' && downloadUrl
-    ? `<div class="button-row"><a class="button-link compact" href="${safe(downloadUrl)}" target="_blank" rel="noreferrer noopener">Download verified update</a></div>`
+  const download = update.state === 'update-available' && update.latestVersion
+    ? `<div class="button-row"><button type="button" class="compact" data-stage-addon-update="${safe(update.moduleId)}" data-stage-addon-version="${safe(update.latestVersion)}">Download &amp; verify update</button></div><small>The wizard verifies the official release bundle, SHA-256 checksums, GitHub build provenance, publisher, version, and inner package before placing it in the inbox. Installation still requires your separate review and approval.</small>`
     : '';
   return `<div class="notice addon-update-result" data-addon-update-state="${safe(update.state)}"><strong>${safe(labels[update.state] || update.state)}.</strong>${safe(version + warning)}${archive}${checksum}${download}</div>`;
 }
@@ -300,6 +328,7 @@ function renderAddOnQuickSummary(addOn, hasSettings) {
 }
 
 function renderAddOnTriggerReadiness(addOn) {
+  if (addOn.moduleId === 'thsv.free-game-check') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.free-game-check:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect viewer requests once</strong><small>Rewards and commands reuse the existing platform intake actions.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Free Game Check</strong>. Leave Refresh and Discord Deliver triggerless.</li><li>Approve <strong>Refresh</strong> below. Approve <strong>Discord Deliver</strong> only when the Discord posting option is enabled.</li><li>Create a <strong>Free Games</strong> reward on Twitch and Kick, then paste each stable reward ID in the settings. Keep one Reward Redemption trigger on the existing Twitch and Kick intake actions.</li><li>In Command Sync, apply <strong>Free Games Discord guide</strong>, generate and import the command package, then enable <code>!freegames</code> for YouTube and TikTok.</li><li>Add a Discord invite link, save, restart StreamBridge, and test each enabled platform once.</li></ol><p class="notice"><strong>Source-routed and spam bounded:</strong> a request replies only in the platform where it originated. Per-viewer cooldowns prevent repeated command spam, and scheduled full-list announcements remain separately optional.</p></div></details>`;
   if (addOn.moduleId === 'thsv.village-jukebox') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-jukebox:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the jukebox safely</strong><small>One private resolver validates YouTube tracks; the main intakes receive viewer commands.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first if YouTube or TikTok viewers will spend bridge points.</li><li>Import <strong>THSV StreamBridge - Village Jukebox</strong> in Streamer.bot.</li><li>Open <strong>Resolve YouTube Track</strong>, replace the private <code>villageJukeboxYouTubeApiKey</code> Set Argument value, then Save and Compile. Leave both imported actions triggerless.</li><li>Approve <strong>Resolve YouTube Track</strong> below. Approve <strong>Settle Twitch Reward</strong> only when the Twitch reward path is enabled.</li><li>In Command Sync, add the Village Jukebox commands you want, generate one package, import it, and enable those commands. Keep all platform message/command triggers on the existing main THSV intake actions.</li><li>Add the browser-source URL below at <strong>640 x 460</strong>, save, restart StreamBridge, and request a track with <code>!sr song or YouTube link</code>.</li></ol><p class="notice"><strong>Keep the API key private:</strong> it stays in Streamer.bot and must never be pasted into the wizard, logs, or support messages. Spotify playback is intentionally excluded; only use music you are permitted to broadcast.</p></div></details>`;
   if (addOn.moduleId === 'thsv.first-five') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.first-five:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect each platform once</strong><small>Rewards use the main intakes; one controller changes Twitch rewards safely.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before using YouTube or TikTok points.</li><li>Import the First Five Streamer.bot package. Leave <strong>Controller</strong> triggerless and approve only that action below.</li><li>Keep one Twitch and one Kick Reward Redemption trigger on their existing main THSV intake actions. Paste the five stable reward IDs for each platform in placement order.</li><li>Create the configured no-response command through Command Sync for YouTube and TikTok.</li><li>Save, restart StreamBridge, then test each path separately. Never attach reward triggers to the controller.</li></ol><p class="notice"><strong>One claim path per platform:</strong> duplicate intake triggers can process the same claim twice. Twitch can settle pending rewards; Kick claims are accepted directly because equivalent refund methods are unavailable.</p></div></details>`;
   if (addOn.moduleId === 'thsv.fan-crown') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.fan-crown:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the crown safely</strong><small>Twitch uses its controller; Kick rewards and point commands stay on the main intakes.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before enabling YouTube or TikTok crown claims.</li><li>Import the Fan Crown package. Leave <strong>Controller</strong> triggerless and approve only that action below.</li><li>Create the Twitch reward inside Streamer.bot and paste its stable ID. Paste the Kick reward ID only if Kick claims are enabled.</li><li>Create the configured no-response command through Command Sync for YouTube and TikTok.</li><li>Save, restart StreamBridge, test one claim, and use the imported Reset action only as a creator control.</li></ol><p class="notice"><strong>Do not duplicate reward triggers:</strong> both native rewards arrive through the existing platform intakes. Twitch supports fulfillment and rollback; Kick does not expose the same settlement controls.</p></div></details>`;
@@ -351,7 +380,18 @@ function renderAddOnTriggerReadiness(addOn) {
 
 function renderViewerFoundationAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.viewer-foundation' || !addOn.enabled) return '';
-  return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-foundation:administration"><summary>Identity, points &amp; privacy administration</summary><p class="notice">These live operations use the active Viewer Foundation provider and its serialized state queue. Account links are edited in Configure add-on above and require a bridge restart.</p><div class="button-row"><button type="button" class="ghost" data-viewer-admin-status>Refresh private-state summary</button></div><pre class="diagnostic" data-viewer-admin-output>Choose an operation. Viewer records are identified only by their lowercase Viewer Foundation ID.</pre><form class="addon-settings-grid" data-viewer-export-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="alex"></label><div class="button-row full-row"><button type="submit" class="ghost">Prepare privacy export</button></div></form><form class="addon-settings-grid" data-viewer-correction-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label>Correction<select name="adjustment"><option value="add">Add points</option><option value="remove">Remove points</option><option value="reset">Reset to zero</option></select></label><label>Amount<input name="amount" type="number" min="1" max="1000000" step="1" value="1"></label><label>Audit reason<input name="reason" required minlength="3" maxlength="200" placeholder="Creator correction"></label><div class="button-row full-row"><button type="submit">Apply correction</button></div></form><form class="addon-settings-grid" data-viewer-delete-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label class="check full-row"><input name="approved" type="checkbox" required> I understand this permanently erases the viewer record and its mutation history.</label><div class="button-row full-row"><button type="submit" class="danger">Delete viewer record</button></div></form><details data-disclosure-key="addon:thsv.viewer-foundation:legacy-migration"><summary>Import preserved Viewer Progression state</summary><p class="notice">Preview reads the preserved local data/state/viewer-progression.json file without changing it. Import keeps the higher point total when an ID already exists and records the file digest so the same snapshot cannot run twice.</p><div class="button-row"><button type="button" class="ghost" data-viewer-migration-preview>Preview legacy records</button><button type="button" data-viewer-migration-apply disabled>Import exact preview</button></div><pre class="diagnostic" data-viewer-migration-output>No legacy file has been previewed.</pre></details></details>`;
+  const links = (addOn.settings?.accountLinks || []).map((value) => String(value).split('|')).filter((parts) => parts.length === 3);
+  const linkedAccounts = links.length === 0
+    ? '<p class="notice">No cross-platform accounts are linked. Platform accounts still receive private installation-local IDs.</p>'
+    : `<ul class="entity-list">${links.map(([viewerId, platform, userId]) => `<li class="entity-row"><span class="entity-item"><strong>${safe(viewerId)}</strong><small>${safe(addOnOptionLabel(platform))} stable ID: ${safe(userId)}</small></span><button type="button" class="entity-remove" data-viewer-link-remove="${safe(`${viewerId}|${platform}|${userId}`)}" aria-label="Remove ${safe(platform)} link from ${safe(viewerId)}">Remove</button></li>`).join('')}</ul>`;
+  return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-foundation:administration"><summary><span><strong>Viewer accounts, points &amp; privacy</strong><small>Find a viewer, manage verified links, correct points, export data, or erase a record.</small></span></summary><div class="addon-step-body">
+    <p class="notice"><strong>Stable IDs only:</strong> Viewer Foundation never stores display names, chat text, avatars, or OAuth data. Link accounts only after verifying that the same person owns both platform IDs.</p>
+    <details class="addon-settings-section" data-disclosure-key="addon:thsv.viewer-foundation:find"><summary>1. Find a viewer</summary><div class="addon-step-body"><p>Search with either the lowercase Viewer Foundation ID or one stable platform account ID.</p><div class="button-row"><button type="button" class="ghost" data-viewer-admin-status>Refresh private-state summary</button><button type="button" class="ghost" data-viewer-admin-audit>Show recent administration history</button></div><form class="addon-settings-grid" data-viewer-search-id-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="alex"></label><div class="button-row full-row"><button type="submit">Find by Viewer ID</button></div></form><form class="addon-settings-grid" data-viewer-search-account-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Not a display name or channel URL"></label><div class="button-row full-row"><button type="submit">Find by platform account</button></div></form><pre class="diagnostic full-row" data-viewer-admin-output>Choose a search or administration operation.</pre></div></details>
+    <details class="addon-settings-section" data-disclosure-key="addon:thsv.viewer-foundation:links"><summary>2. Link verified platform accounts</summary><div class="addon-step-body">${linkedAccounts}<form class="addon-settings-grid" data-viewer-link-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="alex"></label><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off"></label><label>Audit reason<input name="reason" required minlength="3" maxlength="200" placeholder="Verified both accounts with the viewer"></label><label class="check full-row"><input name="approved" type="checkbox" required> I verified this stable account belongs to this viewer.</label><div class="button-row full-row"><button type="submit">Add verified link</button></div></form><small>Link changes are saved atomically and audited without retaining the raw account ID in audit history. Restart StreamBridge to apply them.</small></div></details>
+    <details class="addon-settings-section" data-disclosure-key="addon:thsv.viewer-foundation:points"><summary>3. Correct or safely undo points</summary><div class="addon-step-body"><form class="addon-settings-grid" data-viewer-correction-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label>Correction<select name="adjustment"><option value="add">Add points</option><option value="remove">Remove points</option><option value="reset">Reset to zero</option></select></label><label>Amount<input name="amount" type="number" min="1" max="1000000" step="1" value="1"></label><label>Audit reason<input name="reason" required minlength="3" maxlength="200" placeholder="Creator correction"></label><div class="button-row full-row"><button type="submit">Apply correction</button></div></form><form class="addon-settings-grid" data-viewer-undo-form><label>Correction audit ID<input name="auditId" required pattern="[a-f0-9]{32}" maxlength="32" autocomplete="off"></label><label>Undo reason<input name="reason" required minlength="3" maxlength="200" placeholder="Correction entered incorrectly"></label><label class="check full-row"><input name="approved" type="checkbox" required> Undo only if no newer point activity has changed this balance.</label><div class="button-row full-row"><button type="submit" class="ghost">Undo correction safely</button></div></form><p class="notice">Undo fails closed when points changed after the correction, preventing older data from overwriting newer viewer activity.</p></div></details>
+    <details class="addon-settings-section" data-disclosure-key="addon:thsv.viewer-foundation:privacy"><summary>4. Export or erase viewer data</summary><div class="addon-step-body"><form class="addon-settings-grid" data-viewer-export-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="alex"></label><div class="button-row full-row"><button type="submit" class="ghost">Prepare privacy export</button></div></form><form class="addon-settings-grid" data-viewer-delete-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label class="check full-row"><input name="approved" type="checkbox" required> I understand this permanently erases the viewer record and its mutation history.</label><div class="button-row full-row"><button type="submit" class="danger">Delete viewer record</button></div></form></div></details>
+    <details class="addon-settings-section" data-disclosure-key="addon:thsv.viewer-foundation:legacy-migration"><summary>5. Import preserved Viewer Progression state</summary><div class="addon-step-body"><p class="notice">Preview reads the preserved local data/state/viewer-progression.json file without changing it. Import keeps the higher point total when an ID already exists and records the file digest so the same snapshot cannot run twice.</p><div class="button-row"><button type="button" class="ghost" data-viewer-migration-preview>Preview legacy records</button><button type="button" data-viewer-migration-apply disabled>Import exact preview</button></div><pre class="diagnostic" data-viewer-migration-output>No legacy file has been previewed.</pre></div></details>
+  </div></details>`;
 }
 
 function renderCommunityAnalyticsAdmin(addOn) {
@@ -374,13 +414,14 @@ function renderChatGuardAdmin(addOn) {
     '<div class="item-list" data-chat-guard-trusted-list><p class="notice">Refresh to view trusted accounts.</p></div>',
     '<details data-disclosure-key="addon:thsv.chat-guard:manual-trust"><summary>Manual stable-ID fallback</summary><p class="notice">Use this only when a provider cannot supply reply identity. Display names alone are not accepted.</p><form class="addon-settings-grid" data-chat-guard-trust-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Friendly label<input name="label" required maxlength="80" autocomplete="off" placeholder="Name used only in this manager"></label><label class="check full-row"><input name="approved" type="checkbox" required> Save this stable ID as a trusted Chat Guard exception.</label><div class="button-row full-row"><button type="submit">Add trusted viewer</button></div></form></details>',
     '</div></details>',
-    '<details class="form-section addon-step" data-disclosure-key="addon:thsv.chat-guard:observations"><summary><span><span class="step-number">6</span><strong>Test safely before automatic actions</strong><small>Paste a harmless sample and see which rules would match.</small></span></summary><div class="addon-step-body">',
-    '<p class="notice"><strong>No moderation happens during this test.</strong> The sample is not saved. Results contain only the matching rule names and character count.</p>',
-    '<div class="button-row"><button type="button" class="ghost" data-chat-guard-status>Refresh observation summary</button><button type="button" class="danger" data-chat-guard-clear>Clear retained observations</button></div>',
-    '<pre class="diagnostic" data-chat-guard-output>Use Test current rules below, or refresh the observation summary after chat activity.</pre>',
-    '<form class="addon-settings-grid" data-chat-guard-test-form><label class="full-row">Sample public-chat message<textarea name="message" required minlength="1" maxlength="2000" rows="4" placeholder="Paste a safe test sample. It will not be saved."></textarea></label><label>Prior matching messages<input name="priorMatchingMessages" type="number" min="0" max="9" step="1" value="0"></label><div class="button-row full-row"><button type="submit" class="ghost">Test current rules</button></div><small class="full-row">Only the character count and matched rule IDs are returned. The sample is not persisted or echoed back.</small></form>',
+    '<details class="form-section addon-step" data-disclosure-key="addon:thsv.chat-guard:observations"><summary><span><span class="step-number">6</span><strong>Moderation dashboard</strong><small>Review privacy-safe incidents, outcomes, and false positives without retaining chat text.</small></span></summary><div class="addon-step-body">',
+    '<p class="notice"><strong>Privacy boundary:</strong> incident rows contain time, platform, matched rules, review state, enforcement outcome, and a short installation-local viewer fingerprint. Chat text, names, and raw account IDs are never retained.</p>',
+    '<div class="grid" data-chat-guard-dashboard-summary><article class="stat"><span>Mode</span><strong>Not loaded</strong></article><article class="stat"><span>Incidents</span><strong>0</strong></article><article class="stat"><span>Needs review</span><strong>0</strong></article><article class="stat"><span>Failed actions</span><strong>0</strong></article></div>',
+    '<form class="addon-settings-grid" data-chat-guard-incident-filters><label>Platform<select name="platform"><option value="">All platforms</option><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok</option></select></label><label>Matched rule<select name="rule"><option value="">All rules</option><option value="blocked-term">Blocked term</option><option value="blocked-domain">Blocked domain</option><option value="unapproved-domain">Unapproved domain</option><option value="excessive-links">Too many links</option><option value="excessive-caps">Excessive capitals</option><option value="repeated-characters">Repeated characters</option><option value="long-message">Long message</option><option value="repeated-message">Repeated message</option></select></label><label>Review<select name="review"><option value="">All reviews</option><option value="unreviewed">Needs review</option><option value="confirmed">Confirmed match</option><option value="false-positive">False positive</option></select></label><label>Action outcome<select name="enforcementStatus"><option value="">All outcomes</option><option value="none">Observed only</option><option value="dispatched">Awaiting provider result</option><option value="succeeded">Succeeded</option><option value="failed">Failed</option><option value="unsupported">Skipped by safety gate</option></select></label><div class="button-row full-row"><button type="submit">Load incidents</button><button type="button" class="ghost" data-chat-guard-report>Download bounded report</button><button type="button" class="danger" data-chat-guard-clear>Clear retained history</button></div></form>',
+    '<div class="item-list" data-chat-guard-incident-list><p class="notice">Choose Load incidents to open the private local dashboard.</p></div><div class="button-row"><button type="button" class="ghost" data-chat-guard-incidents-prev disabled>Previous</button><span data-chat-guard-page-state>Page not loaded</span><button type="button" class="ghost" data-chat-guard-incidents-next disabled>Next</button></div>',
+    '<details data-disclosure-key="addon:thsv.chat-guard:rule-test"><summary>Test current rules safely</summary><p class="notice"><strong>No moderation happens during this test.</strong> The sample is not saved. Results contain only matching rule names and character count.</p><pre class="diagnostic" data-chat-guard-output>Paste a harmless sample to check the current rule settings.</pre><form class="addon-settings-grid" data-chat-guard-test-form><label class="full-row">Sample public-chat message<textarea name="message" required minlength="1" maxlength="2000" rows="4" placeholder="Paste a safe test sample. It will not be saved."></textarea></label><label>Prior matching messages<input name="priorMatchingMessages" type="number" min="0" max="9" step="1" value="0"></label><div class="button-row full-row"><button type="submit" class="ghost">Test current rules</button></div><small class="full-row">Only the character count and matched rule IDs are returned. The sample is not persisted or echoed back.</small></form></details>',
     '<details data-disclosure-key="addon:thsv.chat-guard:temporary-permit"><summary>Temporary link permit</summary><p class="notice">A permit bypasses blocked/unapproved-domain signals only. Other spam rules continue to observe the message.</p><form class="addon-settings-grid" data-chat-guard-permit-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Expires after (minutes)<input name="durationMinutes" type="number" min="1" max="1440" step="1" value="15"></label><label>Maximum uses<input name="maximumUses" type="number" min="1" max="20" step="1" value="1"></label><label class="check full-row"><input name="approved" type="checkbox" required> I approve this time- and use-bounded domain exception.</label><div class="button-row full-row"><button type="submit">Create permit</button><button type="button" class="danger" data-chat-guard-clear-permits>Clear all permits</button></div></form></details>',
-    '<details data-disclosure-key="addon:thsv.chat-guard:incident-review"><summary>Review a recent incident</summary><p class="notice">Copy an incident ID from the observation summary. Review labels measure false positives without retaining the message or viewer identity.</p><form class="addon-settings-grid" data-chat-guard-review-form><label class="full-row">Incident ID<input name="incidentId" required pattern="[a-f0-9]{64}" maxlength="64" autocomplete="off"></label><label>Decision<select name="decision"><option value="confirmed">Confirmed match</option><option value="false-positive">False positive</option></select></label><label class="check full-row"><input name="approved" type="checkbox" required> Save this review label to the private incident record.</label><div class="button-row full-row"><button type="submit">Save review</button></div></form></details>',
+    '<details data-disclosure-key="addon:thsv.chat-guard:incident-review"><summary>Review by incident ID</summary><p class="notice">Usually, use the inline buttons in the dashboard. This fallback accepts an incident ID copied from a report.</p><form class="addon-settings-grid" data-chat-guard-review-form><label class="full-row">Incident ID<input name="incidentId" required pattern="[a-f0-9]{64}" maxlength="64" autocomplete="off"></label><label>Decision<select name="decision"><option value="confirmed">Confirmed match</option><option value="false-positive">False positive</option></select></label><label class="check full-row"><input name="approved" type="checkbox" required> Save this review label to the private incident record.</label><div class="button-row full-row"><button type="submit">Save review</button></div></form></details>',
     '</div></details>',
   ].join('');
 }
@@ -441,6 +482,7 @@ function renderAddOns() {
   byId('addon-selector').addEventListener('change', (event) => { state.selectedAddOnId = event.target.value; renderAddOns(); });
   document.querySelectorAll('[data-toggle-addon]').forEach((button) => button.addEventListener('click', toggleAddOn));
   document.querySelectorAll('[data-remove-addon]').forEach((button) => button.addEventListener('click', removeAddOn));
+  document.querySelectorAll('[data-stage-addon-update]').forEach((button) => button.addEventListener('click', stageOfficialAddOnUpdate));
   document.querySelectorAll('[data-addon-settings]').forEach((form) => {
     form.addEventListener('submit', saveAddOnSettings);
     form.addEventListener('change', () => updateAddOnFieldVisibility(form));
@@ -461,8 +503,14 @@ function renderAddOns() {
   document.querySelectorAll('[data-preview-addon-overlay]').forEach((button) => button.addEventListener('click', previewAddOnOverlay));
   document.querySelector('[data-addon-acceptance-form]')?.addEventListener('submit', saveAddOnAcceptance);
   document.querySelector('[data-viewer-admin-status]')?.addEventListener('click', refreshViewerFoundationStatus);
+  document.querySelector('[data-viewer-admin-audit]')?.addEventListener('click', refreshViewerFoundationAudit);
+  document.querySelector('[data-viewer-search-id-form]')?.addEventListener('submit', searchViewerFoundationId);
+  document.querySelector('[data-viewer-search-account-form]')?.addEventListener('submit', searchViewerFoundationAccount);
+  document.querySelector('[data-viewer-link-form]')?.addEventListener('submit', addViewerFoundationLink);
+  document.querySelectorAll('[data-viewer-link-remove]').forEach((button) => button.addEventListener('click', removeViewerFoundationLink));
   document.querySelector('[data-viewer-export-form]')?.addEventListener('submit', exportViewerFoundationRecord);
   document.querySelector('[data-viewer-correction-form]')?.addEventListener('submit', correctViewerFoundationRecord);
+  document.querySelector('[data-viewer-undo-form]')?.addEventListener('submit', undoViewerFoundationCorrection);
   document.querySelector('[data-viewer-delete-form]')?.addEventListener('submit', deleteViewerFoundationRecord);
   document.querySelector('[data-viewer-migration-preview]')?.addEventListener('click', previewViewerFoundationMigration);
   document.querySelector('[data-viewer-migration-apply]')?.addEventListener('click', applyViewerFoundationMigration);
@@ -474,6 +522,10 @@ function renderAddOns() {
   document.querySelector('[data-spotlight-stream-score]')?.addEventListener('click', showViewerSpotlightStreamScore);
   document.querySelector('[data-spotlight-display-form]')?.addEventListener('submit', displayViewerSpotlightCard);
   document.querySelectorAll('[data-chat-guard-status]').forEach((button) => button.addEventListener('click', refreshChatGuardStatus));
+  document.querySelector('[data-chat-guard-incident-filters]')?.addEventListener('submit', loadChatGuardIncidents);
+  document.querySelector('[data-chat-guard-incidents-prev]')?.addEventListener('click', previousChatGuardIncidents);
+  document.querySelector('[data-chat-guard-incidents-next]')?.addEventListener('click', nextChatGuardIncidents);
+  document.querySelector('[data-chat-guard-report]')?.addEventListener('click', downloadChatGuardReport);
   document.querySelector('[data-chat-guard-trust-form]')?.addEventListener('submit', addChatGuardTrustedViewer);
   document.querySelectorAll('[data-chat-guard-trust-remove]').forEach((button) => button.addEventListener('click', removeChatGuardTrustedViewer));
   document.querySelector('[data-chat-guard-clear]')?.addEventListener('click', clearChatGuardObservations);
@@ -482,6 +534,32 @@ function renderAddOns() {
   document.querySelector('[data-chat-guard-clear-permits]')?.addEventListener('click', clearChatGuardPermits);
   document.querySelector('[data-chat-guard-review-form]')?.addEventListener('submit', reviewChatGuardIncident);
   document.querySelectorAll('[data-village-draw-operation]').forEach((button) => button.addEventListener('click', runVillageDrawOperation));
+}
+
+async function stageOfficialAddOnUpdate(event) {
+  const moduleId = event.currentTarget.dataset.stageAddonUpdate;
+  const version = event.currentTarget.dataset.stageAddonVersion;
+  if (!confirm(`Download and cryptographically verify ${moduleId} ${version}? This only stages the package for review; it will not install, enable, or restart anything.`)) return;
+  const button = event.currentTarget;
+  const status = byId('addon-update-state');
+  button.disabled = true;
+  status.setAttribute('aria-busy', 'true');
+  status.textContent = `Downloading and verifying ${moduleId} ${version}...`;
+  try {
+    const publisherId = state.addOnUpdatePublisherId || '';
+    const result = await api(publisherId ? '/wizard/api/addons/trusted-updates/stage' : '/wizard/api/addons/updates/stage', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ moduleId, version, approvedByCreator: true, ...(publisherId ? { publisherId } : {}) }),
+    });
+    await loadAddOns();
+    status.textContent = `${result.moduleId} ${result.version} passed authenticated release provenance and package verification. Review it under Discovered packages, then choose Verify and install.`;
+  } catch (error) {
+    status.textContent = error.message;
+  } finally {
+    status.removeAttribute('aria-busy');
+    button.disabled = false;
+  }
 }
 
 function acceptanceOptions(selected) {
@@ -518,6 +596,71 @@ async function refreshViewerFoundationStatus() {
   try { await viewerFoundationAdmin({ operation: 'status' }); } catch (error) { viewerAdminOutput(error.message); }
 }
 
+async function refreshViewerFoundationAudit() {
+  try { await viewerFoundationAdmin({ operation: 'audit', limit: 25 }); } catch (error) { viewerAdminOutput(error.message); }
+}
+
+async function searchViewerFoundationId(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try { await viewerFoundationAdmin({ operation: 'search', viewerId: form.elements.viewerId.value.trim() }); } catch (error) { viewerAdminOutput(error.message); }
+}
+
+async function searchViewerFoundationAccount(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try { await viewerFoundationAdmin({ operation: 'search', platform: form.elements.platform.value, userId: form.elements.userId.value.trim() }); } catch (error) { viewerAdminOutput(error.message); }
+}
+
+function viewerFoundationAddOn() {
+  return state.addOns.find((candidate) => candidate.moduleId === 'thsv.viewer-foundation');
+}
+
+async function saveViewerFoundationLinks(nextLinks, auditRequest) {
+  const addOn = viewerFoundationAddOn();
+  if (!addOn) throw new Error('Viewer Foundation is not installed.');
+  const previousSettings = { ...addOn.settings, accountLinks: [...(addOn.settings?.accountLinks || [])] };
+  const nextSettings = { ...addOn.settings, accountLinks: nextLinks };
+  await api('/wizard/api/addons/thsv.viewer-foundation/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(nextSettings) });
+  try {
+    await viewerFoundationAdmin(auditRequest);
+  } catch (error) {
+    try {
+      await api('/wizard/api/addons/thsv.viewer-foundation/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(previousSettings) });
+    } catch (rollbackError) {
+      throw new Error(`The link audit failed and the previous settings could not be restored. Do not restart StreamBridge; review Viewer Foundation links now. Audit: ${error.message} Rollback: ${rollbackError.message}`);
+    }
+    throw new Error(`The link audit failed, so the settings change was rolled back: ${error.message}`);
+  }
+  await loadAddOns();
+  byId('addon-state').textContent = 'Verified account links were saved and audited. Restart StreamBridge to apply the new identity mapping.';
+}
+
+async function addViewerFoundationLink(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  const viewerId = form.elements.viewerId.value.trim(); const platform = form.elements.platform.value; const userId = form.elements.userId.value.trim();
+  if (/^(?:twitch|youtube|kick|tiktok)-[a-f0-9]{24}$/u.test(viewerId)) { viewerAdminOutput('Generated platform-scoped IDs cannot become shared link IDs. Choose a short creator-defined ID such as alex.'); return; }
+  const link = `${viewerId}|${platform}|${userId}`;
+  const existing = [...(viewerFoundationAddOn()?.settings?.accountLinks || [])];
+  if (existing.includes(link)) { viewerAdminOutput('That exact account link already exists.'); return; }
+  if (existing.some((value) => { const parts = String(value).split('|'); return parts[1] === platform && parts[2] === userId && parts[0] !== viewerId; })) { viewerAdminOutput('That stable platform account is already assigned to another Viewer Foundation ID.'); return; }
+  if (existing.length >= 100) { viewerAdminOutput('Viewer Foundation supports at most 100 explicit account links.'); return; }
+  if (!confirm(`Link ${platform} stable account ${userId} to ${viewerId}? Verify ownership before continuing.`)) return;
+  try { await saveViewerFoundationLinks([...existing, link], { operation: 'link-audit', linkAction: 'add', viewerId, platform, userId, reason: form.elements.reason.value.trim(), approvedByCreator: true }); }
+  catch (error) { viewerAdminOutput(error.message); }
+}
+
+async function removeViewerFoundationLink(event) {
+  const link = event.currentTarget.dataset.viewerLinkRemove; const parts = String(link || '').split('|');
+  if (parts.length !== 3) return;
+  const [viewerId, platform, userId] = parts;
+  if (!confirm(`Remove the ${platform} stable account link from ${viewerId}? The viewer may receive a separate platform-scoped identity after restart.`)) return;
+  const existing = [...(viewerFoundationAddOn()?.settings?.accountLinks || [])];
+  try { await saveViewerFoundationLinks(existing.filter((value) => value !== link), { operation: 'link-audit', linkAction: 'remove', viewerId, platform, userId, reason: 'Creator removed a verified account link', approvedByCreator: true }); }
+  catch (error) { viewerAdminOutput(error.message); }
+}
+
 async function exportViewerFoundationRecord(event) {
   event.preventDefault(); const form = event.currentTarget;
   if (!form.checkValidity()) return form.reportValidity();
@@ -532,6 +675,15 @@ async function correctViewerFoundationRecord(event) {
   const request = { operation: 'correct', viewerId, adjustment, reason: form.elements.reason.value.trim(), approvedByCreator: true };
   if (adjustment !== 'reset') request.amount = Number(form.elements.amount.value);
   try { await viewerFoundationAdmin(request); } catch (error) { viewerAdminOutput(error.message); }
+}
+
+async function undoViewerFoundationCorrection(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  const auditId = form.elements.auditId.value.trim();
+  if (!confirm(`Undo correction ${auditId}? This succeeds only when no newer point activity changed the balance.`)) return;
+  try { await viewerFoundationAdmin({ operation: 'undo-correction', auditId, reason: form.elements.reason.value.trim(), approvedByCreator: true }); form.reset(); }
+  catch (error) { viewerAdminOutput(error.message); }
 }
 
 async function deleteViewerFoundationRecord(event) {
@@ -658,8 +810,88 @@ async function chatGuardAdmin(request) {
   chatGuardOutput(result); return result;
 }
 
+let chatGuardIncidentPage = { offset: 0, limit: 25, totalMatching: 0, hasMore: false, filters: {} };
+
+function chatGuardIncidentRequest(offset = 0, limit = 25) {
+  const form = document.querySelector('[data-chat-guard-incident-filters]');
+  const request = { operation: 'incidents', offset, limit };
+  if (!form) return request;
+  for (const name of ['platform', 'rule', 'review', 'enforcementStatus']) {
+    const value = form.elements[name].value;
+    if (value) request[name] = value;
+  }
+  return request;
+}
+
+function renderChatGuardDashboardSummary(status) {
+  const summary = document.querySelector('[data-chat-guard-dashboard-summary]');
+  if (!summary) return;
+  const failed = Number(status.enforcement?.failed || 0); const pending = Number(status.enforcement?.dispatched || 0);
+  summary.innerHTML = `<article class="stat"><span>Mode</span><strong>${safe(status.mode || 'observe')}</strong></article><article class="stat"><span>Incidents</span><strong>${safe(status.incidentCount || 0)}</strong></article><article class="stat"><span>Needs review</span><strong>${safe(status.byReview?.unreviewed || 0)}</strong></article><article class="stat"><span>Failed / pending actions</span><strong>${safe(`${failed} / ${pending}`)}</strong></article>`;
+}
+
+function renderChatGuardIncidents(result) {
+  const list = document.querySelector('[data-chat-guard-incident-list]'); const pageState = document.querySelector('[data-chat-guard-page-state]');
+  const previous = document.querySelector('[data-chat-guard-incidents-prev]'); const next = document.querySelector('[data-chat-guard-incidents-next]');
+  if (!list || !pageState || !previous || !next) return;
+  const incidents = Array.isArray(result.incidents) ? result.incidents : [];
+  list.innerHTML = incidents.length === 0 ? '<p class="notice">No retained incidents match these filters.</p>' : incidents.map((incident) => {
+    const enforcement = incident.enforcement || { mode: 'observe', status: 'none', error: '' };
+    const reviewActions = incident.review === 'unreviewed' ? `<div class="button-row"><button type="button" class="ghost compact" data-chat-guard-inline-review="confirmed" data-chat-guard-incident-id="${safe(incident.incidentId)}">Confirm match</button><button type="button" class="ghost compact" data-chat-guard-inline-review="false-positive" data-chat-guard-incident-id="${safe(incident.incidentId)}">Mark false positive</button></div>` : '';
+    const error = enforcement.error ? `<small class="error">${safe(enforcement.error)}</small>` : '';
+    return `<article class="item"><div class="title-row"><div><strong>${safe(addOnOptionLabel(incident.platform))} · ${safe(new Date(incident.at).toLocaleString())}</strong><small>Viewer fingerprint ${safe(incident.viewerFingerprint)} · ${incident.simulated ? 'simulated' : 'provider event'}</small></div><span class="status-chip ${incident.review === 'false-positive' ? 'status-warning' : incident.review === 'confirmed' ? 'status-ready' : 'status-neutral'}">${safe(incident.review)}</span></div><p><strong>Rules:</strong> ${safe((incident.rules || []).map(addOnOptionLabel).join(', ') || 'none')}</p><p><strong>Action:</strong> ${safe(enforcement.mode)} · ${safe(enforcement.status)}</p>${error}${reviewActions}<small>Incident ${safe(incident.incidentId)}</small></article>`;
+  }).join('');
+  list.querySelectorAll('[data-chat-guard-inline-review]').forEach((button) => button.addEventListener('click', reviewChatGuardIncidentInline));
+  const start = result.totalMatching === 0 ? 0 : result.offset + 1; const end = Math.min(result.offset + incidents.length, result.totalMatching);
+  pageState.textContent = `${start}-${end} of ${result.totalMatching}`; previous.disabled = result.offset <= 0; next.disabled = !result.hasMore;
+}
+
+async function refreshChatGuardDashboard(offset = 0) {
+  const [status, incidents] = await Promise.all([
+    api('/wizard/api/chat-guard/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) }),
+    api('/wizard/api/chat-guard/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(chatGuardIncidentRequest(offset, chatGuardIncidentPage.limit)) }),
+  ]);
+  chatGuardIncidentPage = { offset: incidents.offset, limit: incidents.limit, totalMatching: incidents.totalMatching, hasMore: incidents.hasMore, filters: chatGuardIncidentRequest(0, chatGuardIncidentPage.limit) };
+  renderChatGuardDashboardSummary(status); renderChatGuardIncidents(incidents); renderChatGuardTrustedAccounts(status.trustedAccounts);
+}
+
+async function loadChatGuardIncidents(event) {
+  event.preventDefault();
+  try { await refreshChatGuardDashboard(0); } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function previousChatGuardIncidents() {
+  try { await refreshChatGuardDashboard(Math.max(0, chatGuardIncidentPage.offset - chatGuardIncidentPage.limit)); } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function nextChatGuardIncidents() {
+  if (!chatGuardIncidentPage.hasMore) return;
+  try { await refreshChatGuardDashboard(chatGuardIncidentPage.offset + chatGuardIncidentPage.limit); } catch (error) { chatGuardOutput(error.message); }
+}
+
+async function reviewChatGuardIncidentInline(event) {
+  const button = event.currentTarget; const decision = button.dataset.chatGuardInlineReview; const incidentId = button.dataset.chatGuardIncidentId;
+  if (!confirm(`Mark this incident as ${decision === 'confirmed' ? 'a confirmed match' : 'a false positive'}? This changes only its private review label.`)) return;
+  try { await chatGuardAdmin({ operation: 'review', incidentId, decision, approvedByCreator: true }); await refreshChatGuardDashboard(chatGuardIncidentPage.offset); }
+  catch (error) { chatGuardOutput(error.message); }
+}
+
+async function downloadChatGuardReport() {
+  try {
+    const [status, incidents] = await Promise.all([
+      api('/wizard/api/chat-guard/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) }),
+      api('/wizard/api/chat-guard/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(chatGuardIncidentRequest(0, 100)) }),
+    ]);
+    const privacySafeStatus = { ...status }; delete privacySafeStatus.trustedAccounts;
+    const report = { generatedAt: new Date().toISOString(), privacy: incidents.privacy, boundedTo: 100, summary: privacySafeStatus, filteredIncidents: incidents };
+    const blob = new Blob([`${JSON.stringify(report, null, 2)}\n`], { type: 'application/json;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a');
+    link.href = url; link.download = `thsv-chat-guard-report-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url);
+    chatGuardOutput('Downloaded a privacy-safe report containing at most 100 filtered incidents. It contains no chat text, display names, or raw account IDs.');
+  } catch (error) { chatGuardOutput(error.message); }
+}
+
 async function refreshChatGuardStatus() {
-  try { const result = await chatGuardAdmin({ operation: 'status' }); renderChatGuardTrustedAccounts(result.trustedAccounts); } catch (error) { chatGuardOutput(error.message); }
+  try { const result = await chatGuardAdmin({ operation: 'status' }); renderChatGuardTrustedAccounts(result.trustedAccounts); renderChatGuardDashboardSummary(result); } catch (error) { chatGuardOutput(error.message); }
 }
 
 function renderChatGuardTrustedAccounts(accounts) {
@@ -687,7 +919,7 @@ async function removeChatGuardTrustedViewer(event) {
 
 async function clearChatGuardObservations() {
   if (!confirm('Clear all retained Chat Guard incidents, repeat observations, and replay fingerprints? This cannot be undone.')) return;
-  try { await chatGuardAdmin({ operation: 'clear', approvedByCreator: true }); } catch (error) { chatGuardOutput(error.message); }
+  try { await chatGuardAdmin({ operation: 'clear', approvedByCreator: true }); await refreshChatGuardDashboard(0); } catch (error) { chatGuardOutput(error.message); }
 }
 
 async function testChatGuardRules(event) {
@@ -713,7 +945,7 @@ async function clearChatGuardPermits() {
 async function reviewChatGuardIncident(event) {
   event.preventDefault(); const form = event.currentTarget;
   if (!form.checkValidity()) return form.reportValidity();
-  try { await chatGuardAdmin({ operation: 'review', incidentId: form.elements.incidentId.value.trim(), decision: form.elements.decision.value, approvedByCreator: true }); form.reset(); } catch (error) { chatGuardOutput(error.message); }
+  try { await chatGuardAdmin({ operation: 'review', incidentId: form.elements.incidentId.value.trim(), decision: form.elements.decision.value, approvedByCreator: true }); form.reset(); await refreshChatGuardDashboard(chatGuardIncidentPage.offset); } catch (error) { chatGuardOutput(error.message); }
 }
 
 function villageDrawOutput(value) {
@@ -1011,6 +1243,7 @@ byId('check-addon-updates').addEventListener('click', async () => {
   status.textContent = 'Checking the official GitHub add-on index...';
   try {
     const result = await api('/wizard/api/addons/updates/check', { method: 'POST' });
+    state.addOnUpdatePublisherId = '';
     state.addOnUpdates = result.available ? result : null;
     if (!result.available) status.textContent = `Add-on update check unavailable: ${result.error}`;
     else {
@@ -1023,6 +1256,14 @@ byId('check-addon-updates').addEventListener('click', async () => {
     renderAddOns();
   } catch (error) { status.textContent = error.message; }
   finally { status.removeAttribute('aria-busy'); button.disabled = false; }
+});
+byId('trusted-publisher-form').addEventListener('submit', async (event) => {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+  try {
+    await api('/wizard/api/addons/trusted-publishers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ publisherId: form.elements.publisherId.value.trim(), repository: form.elements.repository.value.trim(), approvedByCreator: form.elements.approvedByCreator.checked }) });
+    form.reset(); await loadAddOns(); byId('addon-state').textContent = 'Trusted publisher saved. No package was downloaded or installed.';
+  } catch (error) { byId('addon-state').textContent = error.message; }
 });
 document.querySelector('[data-view="addons"]').addEventListener('click', loadAddOns);
 // If navigation persistence restores the Add-ons page after a reload, authentication loads its

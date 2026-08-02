@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Viewer Lobby", "type": "object", "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Viewer Lobby", "type": "object", "additionalProperties": false, "x-distinctFields": ["joinCommand", "leaveCommand", "positionCommand", "queueCommand"],
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable Viewer Lobby", "default": false },
     "platforms": { "type": "array", "title": "Platforms", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },

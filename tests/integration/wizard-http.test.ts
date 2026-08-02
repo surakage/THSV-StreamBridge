@@ -44,6 +44,8 @@ describe('wizard HTTP surface', () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-addon-http-'));
     const config = await testConfig(); config.service.port = 0;
     const bridge = createTestBridge(config);
+    const coordinationResets: Array<string | undefined> = [];
+    (bridge as unknown as { resetAddOnCoordination(resource?: string): Readonly<Record<string, unknown>> }).resetAddOnCoordination = (resource) => { coordinationResets.push(resource); return { reset: true, resource: resource ?? 'all', cancelledActive: 0, cancelledQueued: 0, mediaSlotCleared: false }; };
     const addOns = new AddOnWizardService(join(root, 'packages'), join(root, 'state'));
     const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined, undefined, undefined, addOns));
     await bridge.start(); await server.start();
@@ -55,13 +57,18 @@ describe('wizard HTTP surface', () => {
     expect((await fetch(`${baseUrl}/wizard/api/community-analytics/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-spotlight/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/chat-guard/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/coordination/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ approvedByCreator: true }) })).status).toBe(401);
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
     const inventory = await fetch(`${baseUrl}/wizard/api/addons`, { headers });
     expect(inventory.status).toBe(200);
-    expect(await inventory.json()).toEqual({ addOns: [], discovered: [] });
+    expect(await inventory.json()).toEqual({ addOns: [], discovered: [], trustedPublishers: [] });
     const acceptance = await fetch(`${baseUrl}/wizard/api/addons/acceptance`, { headers });
     expect(acceptance.status).toBe(200);
     expect(await acceptance.json()).toEqual({ acceptance: {} });
+    const deniedReset = await fetch(`${baseUrl}/wizard/api/coordination/reset`, { method: 'POST', headers, body: JSON.stringify({ approvedByCreator: false }) });
+    expect(deniedReset.status).toBe(403);
+    const reset = await fetch(`${baseUrl}/wizard/api/coordination/reset`, { method: 'POST', headers, body: JSON.stringify({ approvedByCreator: true, resource: 'media.playback' }) });
+    expect(reset.status).toBe(200); expect(coordinationResets).toEqual(['media.playback']);
     const install = await fetch(`${baseUrl}/wizard/api/addons/install`, { method: 'POST', headers, body: JSON.stringify({ filename: 'sample.thsv-addon', contentBase64: Buffer.from('not a zip').toString('base64'), approvedByCreator: false }) });
     expect(install.status).toBe(403);
     expect(await install.text()).toContain('approve');

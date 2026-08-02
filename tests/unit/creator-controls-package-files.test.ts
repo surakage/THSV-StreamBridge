@@ -12,6 +12,10 @@ describe('Creator Controls Streamer.bot package', () => {
     expect(controller).toContain('CPH.SetChannelGameById');
     expect(controller).toContain('CPH.YouTubeSetCategory');
     expect(controller).toContain('CPH.KickSetCategory');
+    expect(controller).toContain('providerControlOriginRequestId');
+    expect(controller).toContain('categoryPilotRequestId');
+    expect(controller).toContain('ReadBool("providerControlSimulated")');
+    expect(controller).toContain('["simulated"] = simulated');
     expect(controller).not.toMatch(/SetGlobalVar|Process\.Start|PowerShell|cmd\.exe/iu);
   });
 });

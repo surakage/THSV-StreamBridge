@@ -7,9 +7,9 @@ This matrix records tested versions separately from recommended updates. A newer
 | Component | Verified or required version | Status |
 |---|---|---|
 | Windows | Windows 10 or later | Required for the supported installer and PowerShell lifecycle |
-| Node.js | 22 or later | Required; installer rejects older major versions |
+| Node.js | 22.22.2 or later | Required for source development; public packages bundle the tested runtime |
 | Windows PowerShell | 5.1 or later | Required for release install, upgrade, verification, and uninstall |
-| Streamer.bot | Minimum `1.0.5-alpha.31`; recommended `1.0.5-beta.5` | Beta.2 has the latest directly recorded THSV grouped-action, bridge-routing, and audible Voice Relay evidence. Beta.5 is recommended for OBS v5 retries, safer Speaker.bot timeout/test handling, additional Twitch lookup guards, and cumulative beta stability fixes, but requires the focused THSV re-acceptance pass below. |
+| Streamer.bot | Minimum `1.0.5-alpha.31`; locally connected `1.0.5-beta.6` | Beta.6 is the current creator installation used for the Version 3 bridge connection and Custom Counter import. Earlier beta.2 evidence still contains the broadest directly recorded grouped-action, routing, and audible Voice Relay acceptance; a host upgrade does not convert pending provider rows into accepted evidence. |
 | Speaker.bot | `0.1.7` | Live transport/dry-run verified; playback completion acknowledgement is unavailable |
 | Meld Studio | `0.10.3.1` | Live Browser Source verification for Chat, Alerts, and Companion-compatible routes |
 | OBS Studio | Exact accepted build was not recorded | Live standards-based Browser Source verification completed July 16, 2026 |
@@ -17,7 +17,7 @@ This matrix records tested versions separately from recommended updates. A newer
 
 Do not infer a version range from one verified build. Existing packages keep their declared backward-compatible minimum; packages that require newer APIs declare a higher minimum individually. After upgrading, compile every installed THSV C# action, repeat relay tests, verify Action History fields, and then update the live-verification record. Re-importing unchanged `.sb` files is not required solely because Streamer.bot was upgraded.
 
-See [Streamer.bot 1.0.5-beta.5 adoption](streamerbot-1.0.5-beta.5.md) for the current change impact and focused acceptance checklist. The earlier [beta.2 record](streamerbot-1.0.5-beta.2.md) remains historical live evidence.
+See [Streamer.bot 1.0.5-beta.5 adoption](streamerbot-1.0.5-beta.5.md) for the cumulative change impact and focused acceptance checklist. The earlier [beta.2 record](streamerbot-1.0.5-beta.2.md) remains historical live evidence. The Version 3 local deployment records beta.6 connectivity and import success only; run the same focused provider checks before expanding that claim.
 
 Streamer.bot 1.0.5 removes the deprecated legacy Twitch WebSocket `Message` object as chat completes its move to EventSub. THSV's native intake consumes the documented action arguments (`message`, IDs, user fields, badges, and flags) rather than that legacy object, so no compatibility shim is required.
 

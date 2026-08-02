@@ -26,6 +26,10 @@
   const timerPlatforms = document.getElementById('timer-platforms');
   const labelShell = document.getElementById('label-shell');
   const labelList = document.getElementById('label-list');
+  const counterShell = document.getElementById('counter-shell');
+  const counterIcon = document.getElementById('counter-icon');
+  const counterName = document.getElementById('counter-name');
+  const counterValue = document.getElementById('counter-value');
   const wheelShell = document.getElementById('wheel-shell');
   const wheel = document.getElementById('wheel');
   const wheelStuds = document.getElementById('wheel-studs');
@@ -121,6 +125,36 @@
   function hideLabels() {
     labelShell.classList.add('hidden');
     labelList.replaceChildren();
+  }
+
+  function hideCounter() {
+    counterShell.classList.add('hidden');
+    counterIcon.classList.add('hidden'); counterIcon.removeAttribute('src');
+  }
+
+  function showCounter(payload) {
+    hideCard(); hideTimer(); hideLabels(); hideWheel(); clearMedia(activePlaybackId ? 'stopped' : undefined);
+    if (payload.visible !== true) return hideCounter();
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    const iconUrl = safeUrl(payload.iconUrl);
+    if (iconUrl && style.showIcon !== false) { counterIcon.src = iconUrl; counterIcon.classList.remove('hidden'); } else { counterIcon.classList.add('hidden'); counterIcon.removeAttribute('src'); }
+    counterName.textContent = boundedText(payload.name, 80, 'STREAM COUNTER') || 'STREAM COUNTER';
+    counterValue.textContent = Number.isSafeInteger(payload.value) ? payload.value.toLocaleString('en-US') : '0';
+    counterName.classList.toggle('hidden', style.showLabel === false);
+    counterShell.dataset.animation = ['pop', 'pulse', 'bounce', 'flash', 'slide', 'none'].includes(style.animation) ? style.animation : 'pop';
+    counterShell.dataset.font = ['display', 'broadcast', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
+    counterShell.dataset.layout = ['horizontal', 'vertical'].includes(style.layout) ? style.layout : 'horizontal';
+    counterShell.style.setProperty('--counter-background', safeColor(style.backgroundColor, '#111827'));
+    counterShell.style.setProperty('--counter-accent', safeColor(style.accentColor, '#7ee0ff'));
+    counterShell.style.setProperty('--counter-text', safeColor(style.textColor, '#ffffff'));
+    counterShell.style.setProperty('--counter-border', safeColor(style.borderColor, '#7ee0ff'));
+    counterShell.style.setProperty('--counter-border-width', `${Number.isInteger(style.borderWidth) ? Math.max(0, Math.min(12, style.borderWidth)) : 3}px`);
+    counterShell.style.setProperty('--counter-radius', `${Number.isInteger(style.borderRadius) ? Math.max(0, Math.min(64, style.borderRadius)) : 24}px`);
+    counterShell.style.setProperty('--counter-spacing', `${Number.isInteger(style.spacing) ? Math.max(0, Math.min(64, style.spacing)) : 24}px`);
+    counterShell.style.setProperty('--counter-value-size', `${Number.isInteger(style.fontSize) ? Math.max(24, Math.min(120, style.fontSize)) : 72}px`);
+    counterShell.style.setProperty('--counter-align', ['left', 'center', 'right'].includes(style.alignment) ? style.alignment : 'left');
+    counterShell.dataset.shadow = style.shadow === false ? 'off' : 'on';
+    counterShell.classList.remove('hidden', 'counter-change'); void counterShell.offsetWidth; counterShell.classList.add('counter-change');
   }
 
   function hideWheel() {
@@ -556,6 +590,7 @@
     else if (event.topic === `${moduleId}.timer.update`) showTimer(event.payload);
     else if (event.topic === `${moduleId}.timer.hide`) hideTimer();
     else if (event.topic === `${moduleId}.labels.update`) showLabels(event.payload);
+    else if (event.topic === `${moduleId}.counter.update`) showCounter(event.payload);
     else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
   }
 

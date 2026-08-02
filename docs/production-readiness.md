@@ -1,47 +1,35 @@
 # Production-readiness gate
 
-`2.6.0` is the current stable release. It contains thirty-three first-party add-ons at the same visible version, a regenerated portable Windows archive, a synchronized add-on index, verified checksums, and thirty-six version-aligned Streamer.bot imports. The add-on/event API contract remains independently versioned. The automated, visual, and tag-triggered GitHub publication gates pass; the live-runtime items listed under "Remaining live verification" are still in progress. The runtime independently blocks high-impact operations without verified provider-stable IDs, so the remaining verification limits which events can drive high-impact automation rather than the safety of installing the release.
+`3.0.0` passed the repository, browser, package-integrity, dependency-audit, and local-upgrade gates on August 1, 2026. The release contains thirty-four first-party add-ons and thirty-seven generated Streamer.bot imports on the same visible version. The normalized event and add-on API contract remains independently versioned at `2.0.0-preview.1` by design.
+
+Version 3 is safe for installation and controlled live-stream testing. It is not evidence that every genuine provider event or provider mutation has been accepted. High-impact financial, reward, raid, moderation, Discord, outbound-chat, voice, and scene-changing paths remain limited by the dated provider evidence in the [acceptance ledger](add-on-acceptance-ledger.md).
 
 ## Automated gate
 
-- Clean install of production dependencies
-- Lint, typecheck, build, unit, integration, and browser tests pass
-- Example and migrated configurations validate
-- Streamer.bot imports reproducibly contain the reviewed C# sources
-- Windows release ZIP, SHA-256 file, SBOM, and GitHub artifact attestation are produced
-- No secret, control token, creator configuration, log, upload, or runtime state is included
+- Typecheck, lint, production build, and configuration validation pass.
+- The complete Vitest suite passes: `146` files and `825` tests.
+- The complete Playwright suite passes: `17` browser tests.
+- Both production-only and full dependency audits report zero known vulnerabilities.
+- All thirty-seven Streamer.bot exports are deterministically generated from the reviewed manifests and C# sources.
+- The Windows release archive, thirty-four add-on bundles, add-on index, checksums, and extracted release manifest verify with zero mismatches.
+- The release archive contains `2,259` manifest-tracked files and no creator token, configuration, log, upload, backup, or private runtime state.
 
-## Clean-machine Windows gate
+## Local Windows upgrade gate
 
-- Install from the self-contained ZIP without a preinstalled Node.js or npm
-- Installer creates private runtime storage and a unique control token
-- Start, replacement-start, custom-port stop, restart, upgrade, rollback, and uninstall pass
-- Wizard, diagnostics, Chat, Alerts, and dock URLs open on loopback only
-- Creator data survives a normal upgrade and default uninstall
-
-## Streamer.bot runtime gate
-
-- Every imported C# action compiles with the documented references
-- Only platform intake actions receive platform triggers
-- Core Receiver, Multi-Chat, Multi-Commands, Multi-Alerts, Multi-Timed Actions, Timed Message Output, administration actions, and wizard action remain triggerless
-- Twitch, YouTube, and Kick chat plus stream-online/offline lifecycle triggers reach the bridge once
-- Financial, gift, subscription, and reward events carry provider-stable IDs or remain blocked from high-impact automation
-- Simulated events never send live chat or perform reward mutations
-- Timed messages observe per-platform limits and shuffle without repeats
-
-## Visual and load gate
-
-- Chat and Alerts pass at 1920 x 1080 and cropped browser-source sizes
-- Long names, Unicode, emoji, badges, missing avatars, compact mode, transparency, and reconnects remain crisp and bounded
-- Alert storms and high-volume chat stay within configured queues and do not grow memory without a bound
-- Slow Streamer.bot delivery demonstrates retry, restart replay, dead-letter handling, and no duplicate high-impact action
+- The previous `2.6.1` creator installation was backed up before replacement.
+- The Version 3 installer preserved creator data, settings, private add-on state, enabled flags, action grants, secrets, and the previous application version for rollback.
+- The installed manifest reports active version `3.0.0`, previous version `2.6.1`, and bundled Node.js `22.23.1`.
+- All `34` first-party add-ons are installed at `3.0.0`; `33` remain enabled because the creator's prior disabled state was preserved.
+- After restart, `/health` reports `healthy`, `/ready` reports `ready`, Streamer.bot is connected, and all `38` loaded modules report healthy.
+- The new triggerless **THSV Addon - Custom Counter** Streamer.bot package imported successfully and created its eleven reviewed creator controls. Existing packages were not blindly overwritten, because re-importing intake actions can replace creator trigger bindings; Version 3 import files are installed locally for intentional, package-by-package upgrades.
 
 ## Remaining live verification
 
-- Twitch, YouTube, and Kick trigger field names and provider-stable identifiers have been captured and corrected against real Streamer.bot Action History argument dumps for most high-impact events (see the platform matrix in [integration assumptions](integration-assumptions.md)); Kick Mass Gift Subscription is the one exception, confirmed only against Streamer.bot's published variable reference because its live test trigger crashes Streamer.bot. None of the three has a genuine live-stream, real-viewer soak test yet.
-- TikFinity does not document a stable event ID or trustworthy simulation marker; TikTok financial/progression use remains unsuitable.
-- Kick reward mutations remain disabled because Streamer.bot does not document them.
-- GitHub release [`v2.6.0`](https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.6.0) is published with the core archive, thirty-three add-on archives, checksums, the add-on index, production SBOM, and fresh GitHub provenance/SBOM attestations. The tag workflow passed on July 31, 2026.
-- A paid Windows executable certificate is not used. Users verify the SHA-256 file and GitHub artifact attestation instead.
+- Run genuine Twitch and Kick chat, follow, subscription, gift, raid, Bits/Kicks, reward, and stream-lifecycle events and record their actual Action History arguments.
+- Confirm Twitch reward fulfillment/refund paths and Kick's documented non-parity. Kick reward creation, editing, enablement, fulfillment, and refund are not claimed.
+- Confirm financial-provider stable IDs before enabling any money-driven mutation.
+- Confirm real Discord channel/forum delivery, outbound chat, Speaker.bot playback, scene changes, and media playback in the creator's chosen host.
+- Confirm reconnect, restart persistence, coordination queueing, independent Custom Counter/Subathon behavior, and emergency coordination reset during a controlled live test.
+- TikFinity does not provide the same trustworthy stable-event and simulation guarantees as the native Streamer.bot providers; TikTok financial or progression mutations remain conservative.
 
-Do not describe unverified high-impact events as production-ready for financial, reward, or destructive automation until the remaining live-verification items above have dated evidence in the release notes.
+Use [Version 3 live testing](live-test-checklist.md) for the first controlled stream. Do not describe a Streamer.bot Test trigger or a fixture as genuine provider acceptance.

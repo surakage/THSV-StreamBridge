@@ -13,10 +13,10 @@ describe('Creator Controls add-on', () => {
   it('dispatches one validated saved profile through the shared stable controller', async () => {
     const runApprovedAction = vi.fn(async () => {});
     const context = { settings, streamerbot: { runApprovedAction }, state: { read: vi.fn(async () => ({})), write: vi.fn(async () => {}) } };
-    await creatorControls.onEvent({ eventId: 'request-1', eventType: 'addon.thsv.creator-controls.control', metadata: { simulated: false }, payload: { profileId: 'profile-2' } }, context);
+    await creatorControls.onEvent({ eventId: 'request-1', eventType: 'addon.thsv.creator-controls.control', metadata: { simulated: false }, payload: { profileId: 'profile-2', categoryPilotRequestId: 'apply-1' } }, context);
     expect(runApprovedAction).toHaveBeenCalledOnce();
     expect(runApprovedAction).toHaveBeenCalledWith('183afef4-fc53-4337-859f-c9fe6d1961e1', expect.objectContaining({
-      providerControlPlatforms: 'twitch,youtube,kick', providerControlTitle: 'Playing now', providerControlTwitchCategoryId: '12345', providerControlKickCategoryName: 'Fortnite',
+      providerControlPlatforms: 'twitch,youtube,kick', providerControlTitle: 'Playing now', providerControlTwitchCategoryId: '12345', providerControlKickCategoryName: 'Fortnite', providerControlOriginRequestId: 'apply-1',
     }));
   });
 
@@ -30,9 +30,27 @@ describe('Creator Controls add-on', () => {
 
   it('retains only a bounded provider-result audit without titles or category values', async () => {
     let stored: Record<string, unknown> = {};
-    const context = { settings, streamerbot: { runApprovedAction: vi.fn() }, state: { read: vi.fn(async () => stored), write: vi.fn(async (value) => { stored = value; }) } };
-    for (let index = 0; index < 25; index += 1) await creatorControls.onEvent({ eventType: 'addon.thsv.creator-controls.result', receivedAt: `2026-07-27T00:00:${String(index).padStart(2, '0')}.000Z`, payload: { profileId: 'profile-2', success: index % 2 === 0, resultCount: 3, title: 'must-not-persist' } }, context);
+    const context = { settings, streamerbot: { runApprovedAction: vi.fn(async () => {}) }, state: { read: vi.fn(async () => stored), write: vi.fn(async (value) => { stored = value; }) } };
+    await creatorControls.start();
+    for (let index = 0; index < 25; index += 1) {
+      const requestId = `request-${String(index)}`;
+      await creatorControls.onEvent({ eventId: requestId, eventType: 'addon.thsv.creator-controls.control', metadata: { simulated: false }, payload: { profileId: 'profile-2' } }, context);
+      await creatorControls.onEvent({ eventType: 'addon.thsv.creator-controls.result', receivedAt: `2026-07-27T00:00:${String(index).padStart(2, '0')}.000Z`, payload: { requestId, profileId: 'profile-2', success: index % 2 === 0, resultCount: 3, results: [{ platform: 'twitch', success: true, title: 'must-not-persist' }, { platform: 'invalid', success: true }], title: 'must-not-persist' } }, context);
+    }
     expect((stored['history'] as unknown[])).toHaveLength(20);
     expect(JSON.stringify(stored)).not.toContain('must-not-persist');
+    expect(stored).toMatchObject({ history: expect.arrayContaining([expect.objectContaining({ results: [{ platform: 'twitch', success: true }] })]) });
+    await creatorControls.stop();
+  });
+
+  it('ignores unaffiliated or profile-mismatched provider results', async () => {
+    let stored: Record<string, unknown> = {};
+    const context = { settings, streamerbot: { runApprovedAction: vi.fn(async () => {}) }, state: { read: vi.fn(async () => stored), write: vi.fn(async (value) => { stored = value; }) } };
+    await creatorControls.start();
+    await creatorControls.onEvent({ eventType: 'addon.thsv.creator-controls.result', receivedAt: '2026-08-01T00:00:00.000Z', payload: { requestId: 'foreign', profileId: 'profile-2', success: true } }, context);
+    await creatorControls.onEvent({ eventId: 'real', eventType: 'addon.thsv.creator-controls.control', metadata: { simulated: false }, payload: { profileId: 'profile-2' } }, context);
+    await creatorControls.onEvent({ eventType: 'addon.thsv.creator-controls.result', receivedAt: '2026-08-01T00:00:01.000Z', payload: { requestId: 'real', profileId: 'profile-1', success: true } }, context);
+    expect(stored).toEqual({});
+    await creatorControls.stop();
   });
 });

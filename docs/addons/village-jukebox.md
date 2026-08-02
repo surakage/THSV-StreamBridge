@@ -1,72 +1,61 @@
 # Village Jukebox setup
 
-Village Jukebox is a YouTube-first, multi-platform song-request queue. It reuses StreamBridge's existing platform intakes and overlay connection, validates every request before accepting it, and never stores the creator's YouTube API key in StreamBridge.
+**Module:** `thsv.village-jukebox`
+**Version:** `3.0.0`
+**Publisher:** THSV StreamBridge
+
+Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.
 
 ## Install
 
-- Only play music and videos you are permitted to broadcast. Platform availability does not grant streaming rights.
-- Install and enable Viewer Foundation if YouTube or TikTok viewers will spend bridge points.
-- Create a restricted YouTube Data API v3 key for the resolver. Keep it private.
-- Spotify playback is intentionally unsupported. Spotify's playback services are not used as a broadcast music source.
+1. Download and extract `THSV-StreamBridge-AddOn-Village-Jukebox-3.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Village-Jukebox-3.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Village-Jukebox-3.0.0.sb` in Streamer.bot.
+4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+
+### Add-on-specific steps
+
+1. Install and enable Viewer Foundation.
+2. Import the Village Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.
+3. Approve the resolver and Twitch reward helper, generate the six no-response command templates, and add the hosted browser source.
+4. Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback.
 
 ## Streamer.bot
 
-1. Import `THSV-StreamBridge-Village-Jukebox-2.6.0.sb` from the add-on release ZIP.
-2. Open `THSV Addon - Village Jukebox - Resolve YouTube Track`.
-3. Replace the `villageJukeboxYouTubeApiKey` Set Argument placeholder with the private API key, then Save and Compile.
-4. Leave Resolve YouTube Track and Settle Twitch Reward triggerless.
-5. In the wizard, approve Resolve YouTube Track. Approve Settle Twitch Reward only if Twitch Channel Points requests are enabled.
+Minimum supported Streamer.bot version: `1.0.5-beta.5`.
 
-The key stays inside Streamer.bot. Do not paste it into the wizard, logs, screenshots, exports, or support messages.
+Imported group: `THSV Addon - Village Jukebox`
 
-## 3. Create commands
+- `THSV Addon - Village Jukebox - Resolve YouTube Track` in `THSV Addon - Village Jukebox`
+- `THSV Addon - Village Jukebox - Settle Twitch Reward` in `THSV Addon - Village Jukebox`
 
-Use Command Sync to add whichever commands you want:
+Both actions are broker-dispatched only. Leave them triggerless. The YouTube API key belongs only in the resolver action's Set Argument.
 
-| Command | Purpose | Default permission |
-| --- | --- | --- |
-| `!sr song or YouTube link` | Validate and request one track | Viewer |
-| `!queue` | Show the current queue count | Viewer |
-| `!when` | Show the viewer's next queue position | Viewer |
-| `!wrongsong` | Remove the viewer's newest queued request | Viewer |
-| `!voteskip` | Add one stable-viewer skip vote | Viewer |
-| `!skip` | Stop the current track | Moderator |
+## Browser source
 
-Generate one command package, import it, review it, and enable the commands. Keep Twitch, YouTube, Kick, and TikTok chat/command triggers on their existing main THSV intake actions; do not add duplicate platform triggers to the jukebox helpers.
-
-## 4. Optional rewards and points
-
-- Twitch and Kick may use configured native reward IDs.
-- Twitch can fulfill or refund a redemption through the imported settlement helper while it is pending validation. Once a valid track joins the queue, Twitch marks the reward fulfilled and `!wrongsong` cannot reverse that native redemption.
-- Kick requests are accepted only from the verified native reward transport, but Kick does not provide the same refund workflow.
-- YouTube and TikTok can spend Viewer Foundation points after YouTube metadata validation succeeds.
-- A failed, unavailable, duplicate, recent, over-length, or unembeddable result spends no points.
-- Song-title searches use a creator-configurable UTC daily allowance because YouTube search is quota-expensive. Direct YouTube links do not consume that allowance, and links-only mode is available.
-
-## 5. Add the overlay
-
-Add this browser source to OBS, Meld, or Streamlabs Desktop:
-
-`http://127.0.0.1:8787/overlay/addons/thsv.village-jukebox`
-
-Recommended starting size: **640 × 460**. The source uses the shared exclusive media slot, so it will not fight another THSV media add-on for playback.
+When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.village-jukebox` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.
 
 ## Offline test
 
-1. Accept the music-rights responsibility, save the add-on settings, and restart StreamBridge.
-2. Confirm Resolve YouTube Track appears as an approved action in the wizard.
-3. Open the overlay URL in a browser or broadcasting-app browser source.
-4. Use `!sr` with a short, public, embeddable YouTube video.
-5. Confirm the lookup message, queue confirmation, now-playing card, full playback, and automatic advance.
-6. Test `!wrongsong`, `!voteskip`, and moderator `!skip` before using the queue live.
+1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.
+2. Save the intended settings and use its preview, test, or manual control where available.
+3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.
+4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.
 
-The queue, recent-video bag, cooldowns, and request identities are bounded and restart-persisted. Video history, search results, API responses, and message content are not retained as an unbounded library.
+### Health checks
+
+- **thsv.village-jukebox.runtime:** Confirms bounded resolution, fair persistent queueing, serialized media playback, and source-routed chat responses.
 
 ## Data and permissions
 
-- `events.subscribe` receives only declared normalized commands, rewards, lifecycle events, and the authenticated resolver result.
-- `state.private` stores a bounded queue, recent YouTube IDs, cooldown timestamps, pending request metadata, and replay IDs.
-- `streamerbot.run-approved-action` can call only the exact resolver and optional Twitch settlement actions approved by the creator.
-- `viewer.foundation.read` and `viewer.foundation.mutate` check and spend or refund points without exposing Viewer Foundation's salt or raw account-link table.
-- `overlay.publish`, `media.exclusive`, `chat.send`, and `schedule.bounded` reuse StreamBridge's shared overlay, media, output, and scheduling services.
-- The YouTube API key remains a private Streamer.bot action argument and is never copied into add-on state or wizard configuration.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `streamerbot.run-approved-action`, `overlay.publish`, `media.exclusive`, `chat.send`, `schedule.bounded`, `viewer.foundation.read`, `viewer.foundation.mutate`.
+
+Private storage: `data/addons/thsv.village-jukebox/`, `data/addons/.state/thsv.village-jukebox/`.
+
+Dependencies: `thsv.viewer-foundation`.
+
+## Remove or repair
+
+1. Uninstalling preserves the bounded queue, cooldowns, and recently played IDs for a later reinstall.
+
+If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.

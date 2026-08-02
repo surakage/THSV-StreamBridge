@@ -1,0 +1,21 @@
+{
+  "intro": "Create persistent counters without editing C#. Start with one counter, then add only the controls and event awards you need.",
+  "order": ["enabled", "defaultCounterId", "defaultCounterName", "initialValue", "maximumCounters", "commandEnabled", "commandName", "allowBroadcaster", "allowModerators", "followDelta", "subscriptionDelta", "membershipDelta", "raidDelta", "iconUrl", "showIcon", "showLabel", "layout", "alignment", "fontFamily", "fontSize", "animation", "backgroundColor", "accentColor", "textColor", "borderColor", "borderWidth", "borderRadius", "spacing", "shadow"],
+  "sections": [
+    { "id": "start", "title": "1. Start here", "description": "Name the first counter and choose the value Reset returns to.", "open": true, "fields": ["enabled", "defaultCounterId", "defaultCounterName", "initialValue", "maximumCounters"] },
+    { "id": "controls", "title": "2. Who can change it", "description": "Imported Streamer.bot actions are for creator hotkeys and buttons. The optional chat command is broadcaster/moderator only.", "notice": "Do not attach mutation actions to public unfiltered triggers. You can use Stream Deck, hotkeys, or manual Streamer.bot tests safely.", "fields": ["commandEnabled", "commandName", "allowBroadcaster", "allowModerators"] },
+    { "id": "events", "title": "3. Optional automatic counting", "description": "Zero means ignored. Non-zero awards apply only to genuine normalized events.", "fields": ["followDelta", "subscriptionDelta", "membershipDelta", "raidDelta"] },
+    { "id": "overlay-layout", "title": "4. Overlay layout", "description": "Add the overlay URL shown above to OBS, Meld, or Streamlabs Desktop. Use a 512 x 512 transparent PNG or WebP; the overlay preserves its 1:1 box and never stretches the image.", "fields": ["iconUrl", "showIcon", "showLabel", "layout", "alignment", "spacing"] },
+    { "id": "overlay-style", "title": "5. Overlay style", "description": "Choose readable typography, colors, border, and motion. Reduced-motion browser settings disable animation automatically.", "fields": ["fontFamily", "fontSize", "animation", "backgroundColor", "accentColor", "textColor", "borderColor", "borderWidth", "borderRadius", "shadow"] },
+    { "id": "usage", "title": "6. Controls", "description": "Increment, decrement, add, subtract, set, reset, show, hide, rename, save, and load are provided in the separate Streamer.bot import.", "notice": "Each action exposes counterId. Add/Subtract/Set expose counterAmount; Rename exposes counterName; Save/Load expose counterPreset. Values and presets are stored atomically in private local JSON.", "fields": [] }
+  ],
+  "fields": {
+    "commandName": { "visibleWhen": { "field": "commandEnabled", "equals": true } },
+    "allowBroadcaster": { "visibleWhen": { "field": "commandEnabled", "equals": true } },
+    "allowModerators": { "visibleWhen": { "field": "commandEnabled", "equals": true } },
+    "fontFamily": { "labels": { "display": "Display", "broadcast": "Broadcast", "mono": "Mono" } },
+    "animation": { "labels": { "pop": "Soft pop", "pulse": "Pulse", "bounce": "Bounce", "flash": "Count-change flash", "slide": "Slide", "none": "No animation" } },
+    "layout": { "labels": { "horizontal": "Icon beside value", "vertical": "Icon above value" } },
+    "iconUrl": { "placeholder": "https://example.com/square-icon.png" }
+  }
+}

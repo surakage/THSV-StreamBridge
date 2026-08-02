@@ -7,7 +7,7 @@
     "enabled": { "type": "boolean", "title": "Enable Village Jukebox", "default": false },
     "rightsAcknowledged": { "type": "boolean", "title": "I understand that I am responsible for permission to rebroadcast requested music", "default": false },
     "requestCommand": { "type": "string", "title": "Song request command", "description": "Do not include the ! prefix.", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "sr" },
-    "queueCommand": { "type": "string", "title": "Queue status command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "queue" },
+    "queueCommand": { "type": "string", "title": "Queue status command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "songqueue" },
     "whenCommand": { "type": "string", "title": "Viewer position command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "when" },
     "wrongSongCommand": { "type": "string", "title": "Remove own request command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "wrongsong" },
     "voteSkipCommand": { "type": "string", "title": "Vote-skip command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "voteskip" },

@@ -35,6 +35,9 @@ const FALLBACKS = Object.freeze({
   maxDurationSeconds: 60,
   muted: false,
   volume: 1,
+  cacheVideo: false,
+  cacheTtlHours: 12,
+  cacheMaximumFileMb: 40,
 });
 
 function readSettings(context) {
@@ -45,16 +48,19 @@ function readSettings(context) {
   const maxDurationSeconds = Number.isFinite(settings.maxDurationSeconds) && settings.maxDurationSeconds >= minDurationSeconds ? settings.maxDurationSeconds : FALLBACKS.maxDurationSeconds;
   const muted = typeof settings.muted === 'boolean' ? settings.muted : FALLBACKS.muted;
   const volume = Number.isFinite(settings.volume) && settings.volume >= 0 && settings.volume <= 1 ? settings.volume : FALLBACKS.volume;
-  return { secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume };
+  const cacheVideo = settings.cacheVideo === true;
+  const cacheTtlHours = Number.isInteger(settings.cacheTtlHours) ? Math.min(24, Math.max(1, settings.cacheTtlHours)) : FALLBACKS.cacheTtlHours;
+  const cacheMaximumFileMb = Number.isInteger(settings.cacheMaximumFileMb) ? Math.min(50, Math.max(5, settings.cacheMaximumFileMb)) : FALLBACKS.cacheMaximumFileMb;
+  return { secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume, cacheVideo, cacheTtlHours, cacheMaximumFileMb };
 }
 
 const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '2.6.0',
+  version: '3.0.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
@@ -66,7 +72,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-2.6.0.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.0.0.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Bind or manually run the imported Enable and Disable actions. Playback always starts off after StreamBridge launches and cannot begin until Enable is triggered.',
     'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.',
@@ -247,6 +253,11 @@ async function handleClipDownloadReceived(event, context) {
   disarmSafetyNet(context);
   const clip = state.clips.find((candidate) => candidate.id === clipId);
   const settings = readSettings(context);
+  let playbackUrl = landscapeUrl;
+  if (settings.cacheVideo) {
+    try { playbackUrl = (await context.mediaCache.fetch({ sourceUrl: landscapeUrl, cacheKey: clipId, ttlSeconds: settings.cacheTtlHours * 3_600, maximumBytes: settings.cacheMaximumFileMb * 1_048_576 })).url; }
+    catch { /* Cache is optional. A provider/cache failure falls back to the original temporary Twitch URL. */ }
+  }
   const playbackId = `${clipId}-${Date.now()}`;
   await context.state.write(toJsonState({ ...state, pendingPlaybackId: playbackId }));
   // Keep retrying until this exact playback reports that it started. A publication sent while the
@@ -254,7 +265,7 @@ async function handleClipDownloadReceived(event, context) {
   armSafetyNet(context, () => requestClipDownload(context, clipId));
   try { await context.overlay.publish(`${context.moduleId}.media.play`, {
     playbackId,
-    url: landscapeUrl,
+    url: playbackUrl,
     muted: settings.muted,
     volume: settings.volume,
     ...(clip?.thumbnailUrl ? { posterUrl: clip.thumbnailUrl } : {}),

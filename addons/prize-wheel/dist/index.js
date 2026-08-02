@@ -7,8 +7,8 @@ let announcementTaskId;
 let stopped = true;
 let operation = Promise.resolve();
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Prize Wheel', version: '2.6.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '2.6.0', maximumTestedBridgeVersion: '2.6.0', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Prize Wheel', version: '3.0.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received'],
   commandsProvided: [{ id: 'prize-wheel.spin', name: 'spinwheel' }], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.prize-wheel/', 'data/addons/.state/thsv.prize-wheel/'],

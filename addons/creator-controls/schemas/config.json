@@ -9,7 +9,7 @@
     "profile1Enabled": { "type": "boolean", "title": "Enable profile 1", "default": true },
     "profile1Name": { "type": "string", "title": "Profile 1 name", "minLength": 1, "maxLength": 80, "default": "Starting Soon" },
     "profile1Platforms": { "type": "array", "title": "Profile 1 platforms", "items": { "type": "string", "enum": ["twitch", "youtube", "kick"] }, "maxItems": 3, "uniqueItems": true, "default": ["twitch", "youtube", "kick"] },
-    "profile1Title": { "type": "string", "title": "Profile 1 channel title", "maxLength": 100, "default": "Starting soon — welcome in!" },
+    "profile1Title": { "type": "string", "title": "Profile 1 channel title", "maxLength": 100, "default": "Starting soon - welcome in!" },
     "profile1TwitchCategoryId": { "type": "string", "title": "Profile 1 Twitch category ID", "pattern": "^[0-9]{0,20}$", "maxLength": 20, "default": "" },
     "profile1YoutubeCategoryName": { "type": "string", "title": "Profile 1 YouTube category name", "maxLength": 100, "default": "Gaming" },
     "profile1YoutubeBroadcastId": { "type": "string", "title": "Profile 1 YouTube broadcast ID (optional)", "maxLength": 128, "default": "" },

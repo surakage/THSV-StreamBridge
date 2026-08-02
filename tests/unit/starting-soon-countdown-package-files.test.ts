@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 describe('Stream Launch Countdown Streamer.bot package', () => {
   it('creates seven scene-friendly controls in the add-on group', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/starting-soon-countdown/manifest.json', 'utf8')) as {
-      actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string; autoType?: boolean }> }>;
+      version: string; actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string; autoType?: boolean }> }>;
     };
     expect(manifest.actions.map((action) => action.name)).toEqual([
       'THSV Addon - Stream Launch Countdown - Start', 'THSV Addon - Stream Launch Countdown - Pause',
@@ -13,7 +13,7 @@ describe('Stream Launch Countdown Streamer.bot package', () => {
       'THSV Addon - Stream Launch Countdown - Set & Start',
     ]);
     expect(manifest.actions.every((action) => action.group === 'THSV Addon - Stream Launch Countdown')).toBe(true);
-    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set(['THSV-StreamBridge-Stream-Launch-Countdown-2.6.0.sb']));
+    expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Stream-Launch-Countdown-${manifest.version}.sb`]));
     expect(manifest.actions.at(-1)?.arguments).toContainEqual({ name: 'countdownSeconds', value: '600', autoType: true });
   });
 

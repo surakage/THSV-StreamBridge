@@ -129,8 +129,9 @@ describe('native platform intake package', () => {
 
   it('packages the current reviewed relay source into all three actions', async () => {
     const root = 'packages/streamerbot/native-platform-intake';
+    const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as { actions: Array<{ importFile: string }> };
     const reviewed = (await readFile(`${root}/src/RelayPlatform.cs`, 'utf8')).replaceAll('\r\n', '\n').trimEnd();
-    const decoded = Buffer.from((await readFile(`${root}/THSV-StreamBridge-Native-Platform-Intake-2.6.0.sb`, 'utf8')).trim(), 'base64');
+    const decoded = Buffer.from((await readFile(`${root}/${manifest.actions[0]?.importFile ?? ''}`, 'utf8')).trim(), 'base64');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as {
       data: { actions: Array<{ subActions: Array<{ type: number; enabled: boolean; byteCode?: string }> }> };
     };

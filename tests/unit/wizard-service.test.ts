@@ -6,6 +6,7 @@ import { WizardService, WizardTransactionError, type StreamerBotInspector } from
 import { WizardConfigurationGateway } from '../../bridge/services/wizard-configuration.js';
 import type { CommandSyncStore } from '../../bridge/services/command-sync-store.js';
 import type { CommandSyncState } from '../../bridge/contracts/v2/command-sync.js';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 function inspector(): StreamerBotInspector {
   const requests: Array<{ request: 'GetActions' | 'GetCommands'; requestedAt: string }> = [];
@@ -42,7 +43,7 @@ function commandSyncStore(commandIds: readonly string[]): CommandSyncStore {
 describe('Stage 3 wizard service', () => {
   it('reports the creator-facing release version separately from the internal contract version', async () => {
     await expect(new WizardService(undefined).overview()).resolves.toMatchObject({
-      version: '2.6.0',
+      version: STREAMBRIDGE_VERSION,
       contractVersion: '2.0.0-preview.1',
     });
   });
