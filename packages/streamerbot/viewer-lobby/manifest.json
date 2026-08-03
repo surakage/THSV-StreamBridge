@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Viewer Lobby",
-  "version": "3.0.0",
+  "version": "3.5.0",
   "author": "surakage",
   "description": "Creator-only controls for the local multi-platform Viewer Lobby queue.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
@@ -17,7 +17,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -36,7 +36,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -55,7 +55,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -74,7 +74,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -93,7 +93,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -112,7 +112,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -131,7 +131,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -150,7 +150,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

@@ -6,7 +6,7 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Version 3:** the bridge, all 34 first-party add-ons, and all 37 generated Streamer.bot imports are synchronized at `3.0.0`. The complete automated, browser, Windows package, archive, dependency-audit, and local-upgrade gates pass. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [production-readiness gate](docs/production-readiness.md).
+> **Version 3:** the bridge, all 34 first-party add-ons, and all 38 generated Streamer.bot imports are synchronized at `3.5.0`. The complete automated, browser, Windows package, archive, dependency-audit, and local-upgrade gates pass. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [production-readiness gate](docs/production-readiness.md).
 
 ## Start here
 
@@ -41,7 +41,7 @@ Streamer.bot remains the automation and decision engine. StreamBridge does not a
 
 Public releases are distributed as self-contained Windows x64 ZIP files from the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest). The main archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, and core Streamer.bot packages. Optional add-on Streamer.bot actions are deliberately kept out of the main import list. Each add-on has its own ZIP containing the wizard-installable `.thsv-addon`, only that add-on's `.sb` import, setup instructions, and checksums. Users do not need to install Node.js, npm, Docker, or a database.
 
-1. Download `THSV-StreamBridge-3.0.0.zip` and its adjacent `.sha256` file from the Version 3 release.
+1. Download `THSV-StreamBridge-3.5.0.zip` and its adjacent `.sha256` file from the Version 3 release.
 2. Verify the download using [RELEASE-VERIFICATION.md](RELEASE-VERIFICATION.md). GitHub artifact attestations provide a free publisher-verification path without requiring a paid Windows code-signing certificate.
 3. If Windows shows **Unblock** in the ZIP's Properties, select it before extracting.
 4. Extract the ZIP to a temporary folder; do not run the installer from inside the ZIP preview.
@@ -110,7 +110,7 @@ Chat Guard defaults to observe-only behavior. Optional moderation modes require 
 
 Review [Security](docs/security.md), [release verification](RELEASE-VERIFICATION.md), and [integration assumptions](docs/integration-assumptions.md) before using financial, reward, or destructive automation.
 
-Version 3 builds on the v2 contracts and module host while synchronizing the full creator-facing product at `3.0.0`. The normalized event and add-on API contract remains independently versioned at `2.0.0-preview.1`, so compatibility checks describe the interface rather than the marketing release. Existing Version 1 and Version 2 installations should follow the [Version 3 migration guide](docs/version-3-migration.md).
+Version 3 builds on the v2 contracts and module host while synchronizing the full creator-facing product at `3.5.0`. The normalized event and add-on API contract remains independently versioned at `2.0.0-preview.1`, so compatibility checks describe the interface rather than the marketing release. Existing Version 1 and Version 2 installations should follow the [Version 3 migration guide](docs/version-3-migration.md).
 
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
@@ -217,13 +217,13 @@ Streamer.bot inspection sends only documented `GetActions` and `GetCommands` req
 
 ## TikFinity intake
 
-The reviewed TikFinity-to-Streamer.bot intake relays TikTok chat, follows, gifts, 100-like milestones, and subscriptions. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-3.0.0.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
+The reviewed TikFinity-to-Streamer.bot intake relays TikTok chat, follows, gifts, 100-like milestones, and subscriptions. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-3.5.0.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
 
 TikFinity does not currently document a stable source-event ID or reliable simulator marker. Intake events therefore expose those limitations explicitly and default to simulated until live provenance is verified; do not use them for production progression or financial statistics yet.
 
 ## Native Streamer.bot platform intake
 
-Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-3.0.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
+Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-3.5.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
 
 Stage 8 adds Twitch and Kick reward-redemption intake to those native actions. The separate triggerless `THSV StreamBridge - Reward Administration` package exposes only documented, creator-approved Twitch operations; Kick mutations are hidden and rejected until Streamer.bot documents them. See [Channel rewards](docs/rewards.md).
 
@@ -256,7 +256,7 @@ See [Getting started](docs/getting-started.md), the [Stage 2 completion record](
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 
-Version 3 release target: [THSV StreamBridge v3.0.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v3.0.0). Until that tag is published, use the latest release page rather than an unverified source archive.
+Version 3 release target: [THSV StreamBridge v3.5.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v3.5.0). Until that tag is published, use the latest release page rather than an unverified source archive.
 
 ## License
 

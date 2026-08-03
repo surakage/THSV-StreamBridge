@@ -1,16 +1,16 @@
 # Quote Vault setup
 
 **Module:** `thsv.quote-vault`
-**Version:** `3.0.0`
+**Version:** `3.5.0`
 **Publisher:** THSV StreamBridge
 
 Provides one bounded, moderated, local quote library shared by Twitch, YouTube, Kick, and TikTok with source-platform-only responses.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Quote-Vault-3.0.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Quote-Vault-3.0.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Quote-Vault-3.0.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Quote-Vault-3.5.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Quote-Vault-3.5.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Quote-Vault-3.5.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps

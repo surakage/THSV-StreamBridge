@@ -1,6 +1,6 @@
 # Version 3 migration
 
-Version 3 upgrades the bridge, every first-party add-on, browser overlays, and generated Streamer.bot imports to the same `3.0.0` product version. The normalized event and add-on API contract remains `2.0.0-preview.1`; that interface version is intentionally independent from the product release.
+Version 3 upgrades the bridge, every first-party add-on, browser overlays, and generated Streamer.bot imports to the same `3.5.0` product version. The normalized event and add-on API contract remains `2.0.0-preview.1`; that interface version is intentionally independent from the product release.
 
 ## Before updating
 
@@ -15,7 +15,7 @@ Version 3 upgrades the bridge, every first-party add-on, browser overlays, and g
 1. Extract the verified ZIP to a temporary folder.
 2. Run `Install THSV StreamBridge.cmd`, or run `runtime\node.exe installer\install.mjs` from PowerShell if Windows policy blocks command files.
 3. The installer verifies the release manifest, stages the new application, preserves creator data, starts Version 3, checks health, and rolls back the application version if activation fails.
-4. Open the wizard and confirm the displayed version is `3.0.0`, the bridge is healthy, and Streamer.bot is connected.
+4. Open the wizard and confirm the displayed version is `3.5.0`, the bridge is healthy, and Streamer.bot is connected.
 5. Install or update optional add-ons from their matching Version 3 ZIPs. Do not copy add-on JavaScript directly into the installed application.
 6. Re-import only packages whose code you are intentionally replacing. Preserve or reattach intake triggers using the [trigger matrix](streamerbot-trigger-matrix.md).
 

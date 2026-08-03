@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Custom Counter",
-  "version": "3.0.0",
+  "version": "3.5.0",
   "author": "surakage",
   "description": "Creator controls for persistent Custom Counter values, presets, visibility, and names.",
   "minimumStreamerBotVersion": "1.0.5-beta.1",
@@ -21,7 +21,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -43,7 +43,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -70,7 +70,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -97,7 +97,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -124,7 +124,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -146,7 +146,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -168,7 +168,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -190,7 +190,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -216,7 +216,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -242,7 +242,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -268,7 +268,7 @@
         }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.0.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

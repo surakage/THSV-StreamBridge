@@ -1,15 +1,15 @@
 # Viewer Foundation setup
 
 **Module:** `thsv.viewer-foundation`
-**Version:** `3.0.0`
+**Version:** `3.5.0`
 **Publisher:** THSV StreamBridge
 
 Provides named, configurable, privacy-conscious cross-platform points for chat consistency, observed active/lurk time, and supported community events.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Foundation-3.0.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Foundation-3.0.0.thsv-addon` and review its permissions.
+1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Foundation-3.5.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Foundation-3.5.0.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 

@@ -5,7 +5,7 @@ Complete the offline checklist before going live. Record the date, platform, eve
 ## Before the stream
 
 - [ ] Bridge `/health` is `healthy` and `/ready` is `ready`.
-- [ ] Wizard reports Version `3.0.0`, Streamer.bot connected, and only intended platforms/add-ons enabled.
+- [ ] Wizard reports Version `3.5.0`, Streamer.bot connected, and only intended platforms/add-ons enabled.
 - [ ] Twitch and Kick intake actions contain only the triggers listed in the [trigger matrix](streamerbot-trigger-matrix.md).
 - [ ] Core Receiver and downstream processors remain triggerless.
 - [ ] Chat and Alerts browser sources connect and show no persistent OFFLINE badge.

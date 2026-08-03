@@ -17,7 +17,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 ## 1. Download and verify core
 
 1. Open the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest).
-2. Download `THSV-StreamBridge-3.0.0.zip` and `THSV-StreamBridge-3.0.0.zip.sha256` from the Version 3 release.
+2. Download `THSV-StreamBridge-3.5.0.zip` and `THSV-StreamBridge-3.5.0.zip.sha256` from the Version 3 release.
 3. Follow [Release verification](../RELEASE-VERIFICATION.md) to verify the SHA-256 digest and GitHub artifact attestation.
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
 5. Extract the ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.

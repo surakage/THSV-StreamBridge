@@ -3,8 +3,8 @@ const MODULE_ID = 'thsv.village-polls';
 const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Polls', version: '3.0.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Polls', version: '3.5.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'village-polls.vote', name: 'vote' }, { id: 'village-polls.poll', name: 'poll' }],
   actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.village-polls/', 'data/addons/.state/thsv.village-polls/'],

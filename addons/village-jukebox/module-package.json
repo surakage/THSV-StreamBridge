@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.",
-  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
+  "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-jukebox",
     "name": "Village Jukebox",
-    "version": "3.0.0",
+    "version": "3.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "3.0.0",
-    "maximumTestedBridgeVersion": "3.0.0",
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -107,7 +107,7 @@
     {
       "path": "dist/index.js",
       "size": 31849,
-      "sha256": "cc6310df61080375e0ffd2fd4e0ee535d32be471d8a31ed71bb6fc55a54daabf"
+      "sha256": "06a61f6c2f6b90deab01feccc8970b5750b871470231ee287e5f598e76aeb374"
     },
     {
       "path": "schemas/config.json",

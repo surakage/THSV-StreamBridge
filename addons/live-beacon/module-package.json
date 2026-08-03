@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Posts separate guarded Twitch, YouTube, Kick, and optional TikTok live embeds to a Discord channel or forum.",
-  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: adds separate platform embeds, direct live links, and a creator-controlled OBS, Meld, or Streamlabs Desktop start fallback for TikTok. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
+  "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: adds separate platform embeds, direct live links, and a creator-controlled OBS, Meld, or Streamlabs Desktop start fallback for TikTok. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.live-beacon",
     "name": "Live Beacon",
-    "version": "3.0.0",
+    "version": "3.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -61,8 +61,8 @@
         "description": "Confirms verified online events can produce guarded per-platform Discord deliveries."
       }
     ],
-    "minimumBridgeVersion": "3.0.0",
-    "maximumTestedBridgeVersion": "3.0.0"
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -70,7 +70,7 @@
     {
       "path": "dist/index.js",
       "size": 15967,
-      "sha256": "8e1e63a91528c85fc03a3230297ec690f759f17eed5e1f4e18e4927b410fb548"
+      "sha256": "125e00a46580a22e91d3c187f1944148c43dfac2203262ccd237345f46293083"
     },
     {
       "path": "schemas/config.json",

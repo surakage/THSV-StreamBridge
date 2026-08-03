@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Shared background service that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, and other approved clip consumers.",
-  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
+  "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-library-cache",
     "name": "Clip Library Cache",
-    "version": "3.0.0",
+    "version": "3.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "3.0.0",
-    "maximumTestedBridgeVersion": "3.0.0",
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -67,7 +67,7 @@
     {
       "path": "dist/index.js",
       "size": 5106,
-      "sha256": "ae6e9e7b93a9f8cbc14f3d66d3112b6b25ea01072d84f72e2d1e68a08127f576"
+      "sha256": "f5f28a51d05a4fd92501196083b79229f3ed23a01d4ea7a4cb92692cbca8044e"
     },
     {
       "path": "schemas/config.json",

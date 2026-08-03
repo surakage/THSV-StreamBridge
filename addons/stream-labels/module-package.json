@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Projects equivalent Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into persistent OBS-ready stream labels.",
-  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with bounded latest-value persistence, multi-platform semantic grouping, simulator-safe previews, individual browser-source selectors, and a combined label panel.",
+  "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with bounded latest-value persistence, multi-platform semantic grouping, simulator-safe previews, individual browser-source selectors, and a combined label panel.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.stream-labels",
     "name": "Stream Labels",
-    "version": "3.0.0",
+    "version": "3.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "3.0.0",
-    "maximumTestedBridgeVersion": "3.0.0",
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -71,7 +71,7 @@
     {
       "path": "dist/index.js",
       "size": 11238,
-      "sha256": "320a7c1f6b06a51cf6711e348e685b7a5fe0b317f9783542917144535953fd3b"
+      "sha256": "29f9cc08125bb559e61d6dba57c947b05ce2b6f7595263f90b60cd7ad910350b"
     },
     {
       "path": "schemas/config.json",

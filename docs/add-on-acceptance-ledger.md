@@ -1,6 +1,6 @@
 # Add-on acceptance ledger
 
-Snapshot: August 1, 2026. Current release candidate and installed baseline: `3.0.0`.
+Snapshot: August 2, 2026. Current release candidate and installed baseline: `3.5.0`.
 
 This ledger prevents **packaged**, **offline accepted**, and **provider accepted** from being treated as the same claim. A package is production-capable only for the rows and environments whose evidence has actually been recorded.
 
@@ -52,11 +52,11 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 
 ## Current automated and local evidence
 
-- `146` Vitest files and `825` tests pass on Version `3.0.0`.
+- `148` Vitest files and `859` tests pass on Version `3.5.0`.
 - `17` Playwright checks pass, including add-on installation/configuration, persisted collapsible UI state, Chat Guard safety controls, overlay presentation, cropped Stream Labels, Village Roll Call, Prize Wheel, Village Draw, Village Jukebox, and the acceptance ledger.
 - lint, typecheck, configuration validation, production build, release packaging, and the production dependency audit pass; the audit reports zero known vulnerabilities.
-- Thirty-four first-party add-on implementations and all `37` generated Streamer.bot imports are synchronized at `3.0.0`. The portable release, add-on index, all `34` add-on bundles, and `38` archive checksums verify successfully. Stream Labels, Village Roll Call, Prize Wheel, and Village Draw continue to use the shared core intakes and require no extra Streamer.bot import.
-- On August 1, the installed bridge reported `healthy`/`ready` after upgrading from `2.6.1` to `3.0.0`. All `34` first-party add-ons were installed and version-aligned; `33` remained enabled because the creator's previous disabled state was preserved. All `38` loaded modules reported healthy, Streamer.bot was connected, and settings, private state, grants, secrets, and intake triggers were preserved.
+- Thirty-four first-party add-on implementations and all `37` generated Streamer.bot imports are synchronized at `3.5.0`. The portable release, add-on index, all `34` add-on bundles, and `38` archive checksums verify successfully. Stream Labels, Village Roll Call, Prize Wheel, and Village Draw continue to use the shared core intakes and require no extra Streamer.bot import.
+- On August 2, the installed bridge reported `healthy`/`ready` after upgrading from `3.0.0` to `3.5.0`. All `34` first-party add-ons were installed, enabled, integrity-verified, and version-aligned. All `39` loaded modules reported healthy, Streamer.bot was connected, the latest startup contained no warnings/errors, all `20` add-on overlay routes returned HTTP 200, and all `23` recommended helper actions were found before exact stable-ID grants were saved for the `18` add-ons that require them.
 - Custom Counter's Version 3 import created its eleven reviewed triggerless actions inside the dedicated `THSV Addon - Custom Counter` group. Existing trigger-bearing packages were not blindly overwritten; their Version 3 import files are installed locally for intentional upgrades that preserve or reattach creator trigger bindings using the published trigger matrix.
 - Village Jukebox's two reviewed helpers were imported into `THSV Addon - Village Jukebox`, verified by their stable IDs, and granted only to that add-on. A harmless Twitch chat fixture was then accepted and queued through the installed full add-on set without a new warning or error. This closes package installation and grant wiring only; the row remains pending for its resolver, playback, points, and reward paths.
 - The July 28 `2.5.0`/20-add-on and earlier August 1 `2.6.0`/33-add-on snapshots remain historical evidence but are superseded by the Version 3 local installation above.

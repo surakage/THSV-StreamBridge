@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Sends bounded, cooldown-protected shoutouts and welcomes after creator-selected raids, approved first chats, or moderator commands, using StreamBridge's shared platform router.",
-  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
+  "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -23,7 +23,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.automated-shoutouts",
     "name": "Automated Shoutouts",
-    "version": "3.0.0",
+    "version": "3.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -81,8 +81,8 @@
         "description": "Confirms shoutout event handling, bounded state, and broker access are healthy."
       }
     ],
-    "minimumBridgeVersion": "3.0.0",
-    "maximumTestedBridgeVersion": "3.0.0"
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -90,7 +90,7 @@
     {
       "path": "dist/index.js",
       "size": 29410,
-      "sha256": "55510f11f6bb08e05dc4ef9485df8c6e20d7b42e00d77d4ade0f83126a31d43f"
+      "sha256": "87b2ae916dc6739ed6443d2e4663f70a1c7d0bace00457e67c4d3c58b7c46ad4"
     },
     {
       "path": "schemas/config.json",

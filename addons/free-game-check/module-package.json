@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Discovers bounded public game giveaways and routes reward or command requests to a Discord list.",
-  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
+  "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,11 +22,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.free-game-check",
     "name": "Free Game Check",
-    "version": "3.0.0",
+    "version": "3.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "3.0.0",
-    "maximumTestedBridgeVersion": "3.0.0",
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -82,7 +82,7 @@
     {
       "path": "dist/index.js",
       "size": 12151,
-      "sha256": "acf37d8e2cf26a82e14c2b90e67fdfb4b73e7ac3e60a7e2cf839c79b548ae801"
+      "sha256": "2fa7299804eb7fff1ad1e98dcc690a75393fc0c1a6e3c4abe0f5976adf7094f0"
     },
     {
       "path": "schemas/config.json",

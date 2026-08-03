@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Score from bounded projections.",
-  "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
+  "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-spotlight",
     "name": "Viewer Spotlight",
-    "version": "3.0.0",
+    "version": "3.5.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "3.0.0",
-    "maximumTestedBridgeVersion": "3.0.0",
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0",
     "dependencies": [
       "thsv.viewer-foundation",
       "thsv.community-analytics"
@@ -86,7 +86,7 @@
     {
       "path": "dist/index.js",
       "size": 23282,
-      "sha256": "699fb24ee980df256eb31030e3e0a7573e4b5dacea1028d217f9718e048b4654"
+      "sha256": "a907b91d63e6b472aee93c27a2e5d8b76cba2867fd8432f1b83a50596cad3e5d"
     },
     {
       "path": "schemas/config.json",

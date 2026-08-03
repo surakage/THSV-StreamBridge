@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.5.0] - 2026-08-02
+
+- Promoted the complete post-3.0 wizard, add-on, command-directory, Village Polls, Chat Play, Viewer Lobby, Village Draw, and reliability work into one synchronized 3.5.0 release.
+- Regenerated all 38 Streamer.bot imports and all 34 independently installable add-on bundles at 3.5.0 while preserving the one-intake-per-platform trigger contract and Twitch/Kick reward-redemption routing.
+- Added local-deployment verification that installs every first-party add-on into the creator-owned add-on package root, preserves private settings/state, and confirms module, overlay, wizard, health, and readiness cohesion before publication.
+- Kept provider acceptance separate from automated acceptance: financial, reward, moderation, raid, Discord, voice, scene, and outbound-chat actions still require the documented creator-controlled live checks.
+- Added a privacy-safe viewer command directory, authenticated creator-specific publishing, dictionary-backed Chat Play content, bundled Chat Play commands, creator-approved core/add-on update staging with checksum and provenance verification, and the `!songqueue` collision fix.
+- Expanded Viewer Foundation administration and Chat Guard review tools while preserving private identities and chat text.
+- Hardened Category Pilot, Viewer Lobby, Creator Controls, Free Game Check, Chat Play Pack, Accessibility Captions, Follower Pulse, and multi-platform lifecycle processing against stale results, simulation leakage, floods, and partial-provider shutdowns.
+
 - Village Draw now reads commands directly from existing normalized chat intakes instead of generating inert no-response actions. Pending point purchases can no longer cross draw lifecycle boundaries, cancellation waits for recovery before refunding, multi-platform stream-end handling waits for the final observed platform, and chat/overlay delivery failures are exposed through its authenticated status.
 - Renamed Creator Utility Pack to Village Polls, including its internal module ID (`thsv.village-polls`), and retired its duplicate counter so Custom Counter is the only counter system. Village Polls now reads commands directly from the existing normalized chat intakes, removes the generated no-op poll actions, deduplicates chat and derived-command copies, surfaces delivery failures, publishes results when a stream closes an open poll, announces polls/results across all four chats, rejects empty closes, and strictly caps unique voters at 5,000.
 
@@ -28,24 +38,6 @@ All notable changes to this project will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
-- Added a privacy-safe viewer command directory at `/commands`, a stable JSON catalogue endpoint, a single-file static export, and optional authenticated publishing to a creator-specific SlothBloom page. It automatically groups public Command Sync and enabled add-on commands while excluding creator controls and all private settings.
-- Added optional dictionary-backed Unscramble batches to Chat Play Pack. A triggerless, creator-approved Streamer.bot action fetches bounded random English candidates, validates them through Free Dictionary API, returns definitions as hints, caches the batch without repeats, and automatically uses the creator word list when Mixed mode encounters a provider failure. The simplified seven-step wizard now ships 20 editable Trivia questions with answers and 20 editable Unscramble words with hints.
-- Bundled Chat Play's 11 ready-to-use commands in its own Streamer.bot import and removed their Command Sync templates. Chat Play now reads normalized public chat through the existing Twitch, YouTube, Kick, and TikFinity intakes, ignores the bridge's derived command copy, and adds no command action triggers or WebSocket connections.
-- Added a creator-approved core update staging flow that downloads only the exact official release archive, verifies its adjacent SHA-256 checksum, cryptographically verifies GitHub Actions Sigstore provenance for the tagged release workflow, and fails closed before writing an update archive when any identity, digest, workflow, size, or format check fails.
-- Added creator-approved add-on update staging: the wizard verifies the official outer release bundle against the add-on index and GitHub Actions Sigstore provenance, safely extracts exactly one inner package, verifies its adjacent checksum, publisher, version, compatibility, and manifest integrity, then places it in the inbox for a separate creator-approved installation.
-- Renamed Village Jukebox's default queue command from `!queue` to `!songqueue` so it cannot silently collide with Viewer Lobby's queue command; schema defaults, wizard guidance, package metadata, tests, and setup documentation now agree.
-- Reconciled the current-status, production-readiness, acceptance-ledger, and future-roadmap documents with the synchronized local `2.6.0` installation: all 33 first-party add-ons are installed and healthy, Village Jukebox's two reviewed helpers are imported and narrowly approved, and remaining implementation work is separated from live-provider acceptance.
-- Expanded Viewer Foundation's authenticated local administration with stable-ID search, guided verified account linking and unlinking, privacy-preserving link audit fingerprints, recent audit review, and correction undo that fails closed when newer point activity exists. Display names remain deliberately unstored.
-- Expanded Chat Guard with a privacy-safe moderation dashboard: aggregate health cards, bounded filtering and pagination, provider-action outcomes, short salted repeat-viewer fingerprints, inline review labels, and a report capped at 100 filtered incidents without chat text, names, raw account IDs, or trusted-viewer labels.
-- Hardened Category Pilot with correlated probe responses, a 30-second lost-response recovery timeout, simulation suppression, and automatic clearing of stale suggestions when the allowlisted process is no longer running.
-- Hardened Viewer Lobby so disabled or simulated controls cannot mutate the real queue, departed entries are removed instead of accumulating, selected viewers receive accurate status wording, and one failed event can no longer poison all later serialized work.
-- Tightened Creator Utility Pack counter and poll controls with explicit invalid-operation responses, moderator feedback, and bounded counter arithmetic; repaired Creator Controls setup text and removed a stale version-specific Free Game Check user agent.
-- Corrected multi-platform stream lifecycle handling in Category Pilot, Viewer Lobby, and Creator Utility Pack so one platform going offline cannot stop work while another platform remains live.
-- Correlated Category Pilot profile application with Creator Controls provider results so profiles are recorded as applied only after the real provider operation succeeds, while retaining a bounded per-platform outcome audit.
-- Hardened Free Game Check with one-use request correlation and an HTTPS GamerPower host allowlist, and made Streamer.bot test actions preserve simulated provenance across Viewer Lobby, Follower Pulse, and Free Game Check.
-- Added case-insensitive cross-field command collision validation, safe disabled-by-default Creator Utility settings, bounded viewer command cooldowns, duplicate poll-option rejection, and bounded Viewer Lobby command cooldowns.
-- Hardened Chat Play Pack, Viewer Lobby, Follower Pulse, Accessibility Captions, Creator Controls, Category Pilot, and Free Game Check with bounded restored state, final-platform lifecycle handling, correlated one-use results, fail-soft optional outputs, flood limits, strict provider URLs, and bounded remote-response reads.
 
 ## [2.6.0] - 2026-07-31
 
