@@ -43,7 +43,7 @@ const manifest = {
 const FALLBACKS = Object.freeze({
   enabled: true, enabledPlatforms: PLATFORMS, triggerOnRaids: true, minimumRaidViewers: 1,
   triggerOnFirstChat: false, firstChatResetHours: 12, firstChatAllowlist: [], triggerOnManualCommand: true,
-  manualCommandName: 'shoutout', ignoredUsers: [], deliveryMode: 'source', selectedPlatforms: ['twitch'],
+  manualCommandName: 'shoutout', ignoredUsers: ['twitch:nightbot', 'twitch:streamelements', 'youtube:streamelements', 'kick:streamelements', 'twitch:fossabot', 'twitch:moobot', 'twitch:sery_bot', 'twitch:soundalerts', 'twitch:wizebot', 'twitch:kofistreambot', 'twitch:streamlabs', 'twitch:botrix', 'youtube:botrix', 'kick:botrix', 'tiktok:botrix'], deliveryMode: 'source', selectedPlatforms: ['twitch'],
   raidTemplate: 'Thank you {displayName} for the raid with {viewers} viewers! They stream {category}. Watch them at {channelUrl}',
   twitchFirstChatTemplate: 'Go watch {displayName} streaming {category}: {channelUrl}',
   twitchViewerWelcomeTemplate: 'Welcome to the stream, {displayName}! Thanks for joining us on Twitch.',

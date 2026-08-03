@@ -30,7 +30,7 @@ const FALLBACKS = Object.freeze({
   commandPrefix: '!', genericCommandName: 'translate', languageCommands: ['en', 'es', 'fr', 'de', 'pt'],
   tutorialMessage: 'Usage: !translate text, !translate {targetLanguage} text, or !{targetLanguage} text. On Twitch, you can also reply with !{targetLanguage}.',
   responseTemplate: '{author}: ({targetLanguage}) {translation}', errorMessage: 'Translation is temporarily unavailable. Please try again later.',
-  automaticAudienceMode: 'allowlist-only', automaticAllowedNames: [], automaticIgnoredNames: [],
+  automaticAudienceMode: 'allowlist-only', automaticAllowedNames: [], automaticIgnoredNames: ['nightbot', 'streamelements', 'fossabot', 'moobot', 'sery_bot', 'soundalerts', 'wizebot', 'kofistreambot', 'botrix', 'streamlabs'],
   automaticResponseTemplate: '{author}: ({sourceLanguage} to {targetLanguage}) {translation}',
   showAutomaticErrors: false, automaticErrorMessage: 'Automatic translation is temporarily unavailable.',
   maximumInputCharacters: 1000, timeoutSeconds: 8, userCooldownSeconds: 15, globalCooldownSeconds: 2, maximumPendingRequests: 10,

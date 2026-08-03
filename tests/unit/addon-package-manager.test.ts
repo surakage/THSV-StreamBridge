@@ -125,7 +125,10 @@ describe('Stage 9 add-on packages', () => {
     const actionId = '11111111-1111-4111-8111-111111111111';
     await expect(setAddOnApprovedActionIds('sample.no-op', addOns, [actionId], false)).rejects.toThrow('explicit creator approval');
     await setAddOnApprovedActionIds('sample.no-op', addOns, [actionId], true);
-    await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.no-op', approvedActionIds: [actionId] })]);
+    const installed = await listInstalledAddOnPackages(addOns);
+    expect(installed).toEqual([expect.objectContaining({ moduleId: 'sample.no-op', approvedActionIds: [actionId], commandsProvided: [] })]);
+    expect(installed[0]?.installationSteps.length).toBeGreaterThan(0);
+    expect(installed[0]?.healthChecks.length).toBeGreaterThan(0);
     await installAddOnPackage(source, addOns, true);
     await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([expect.objectContaining({ approvedActionIds: [actionId] })]);
     await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['not-an-id'], true)).rejects.toThrow('valid UUIDs');

@@ -12,7 +12,7 @@ const manifest = {
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: [CONTROL_EVENT, RESULT_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.creator-controls/', 'data/addons/.state/thsv.creator-controls/'],
-  installationSteps: ['Import the bundled Creator Controls Streamer.bot package.', 'Approve only its triggerless Provider Controller action in the wizard.', 'Edit the three profiles, then attach Profile 1/2/3 only to creator-controlled hotkeys, deck buttons, or scene actions.'],
+  installationSteps: ['Import the bundled Creator Controls Streamer.bot package.', 'Turn on the add-on and edit only the stream profiles you plan to use.', 'Approve only its triggerless Provider Controller action in the wizard.', 'Connect Apply Profile 1, 2, or 3 to your matching creator-controlled scene trigger, hotkey, or deck button.'],
   uninstallationSteps: ['Uninstall the add-on. Its bounded last-result audit remains preserved for a later reinstall.'], migrations: [],
   healthChecks: [{ id: 'thsv.creator-controls.runtime', description: 'Confirms guarded creator profiles can use the shared provider controller.' }],
 };

@@ -17,7 +17,7 @@ const manifest = {
   uninstallationSteps: ['Uninstall the add-on. Its bounded private counters remain preserved for a later reinstall or creator export.'], migrations: [],
   healthChecks: [{ id: 'thsv.community-analytics.runtime', description: 'Confirms Viewer Foundation identity resolution and bounded private session counters.' }],
 };
-const FALLBACKS = Object.freeze({ enabled: true, includeSimulated: false, enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], ignoredAccounts: [], ignoredViewerIds: [], maximumViewers: 500, retainedSessions: 30, processedEventLimit: 500,
+const FALLBACKS = Object.freeze({ enabled: true, includeSimulated: false, enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], ignoredAccounts: ['twitch|name:nightbot', 'twitch|name:streamelements', 'youtube|name:streamelements', 'kick|name:streamelements', 'twitch|name:fossabot', 'twitch|name:moobot', 'twitch|name:sery_bot', 'twitch|name:soundalerts', 'twitch|name:wizebot', 'twitch|name:kofistreambot', 'twitch|name:streamlabs', 'twitch|name:botrix', 'youtube|name:botrix', 'kick|name:botrix', 'tiktok|name:botrix'], ignoredViewerIds: [], maximumViewers: 500, retainedSessions: 30, processedEventLimit: 500,
   engagementScoreEnabled: false, scoreMessagePoints: 1, scoreMessageCap: 200, scoreCommandPoints: 2, scoreCommandCap: 50, scoreSessionPoints: 10, scoreSessionCap: 20, minimumRankCohort: 5 });
 const VIEWER_ID = /^[a-z][a-z0-9-]{0,63}$/u;
 const PLATFORM = /^(twitch|youtube|kick|tiktok)$/u;
@@ -71,7 +71,7 @@ function sanitizeState(value, settings = FALLBACKS) {
 }
 function beginSession(state, platform, now, approximate) { if (!state.current) state.current = { id: `session-${now.toString(36)}`, startedAt: now, approximate, livePlatforms: [], attendees: {}, counters: emptyCounters() }; if (!state.current.livePlatforms.includes(platform)) state.current.livePlatforms.push(platform); }
 function closeSession(state, now) { if (!state.current) return; state.sessions.push({ id: state.current.id, startedAt: state.current.startedAt, endedAt: now, approximate: state.current.approximate, uniqueViewers: Object.keys(state.current.attendees).length, counters: state.current.counters }); delete state.current; }
-function ignored(event, settings) { const platform = clean(event.platform, 64); const id = clean(event.user?.id, 256); return !settings.enabledPlatforms.has(platform) || !id || settings.ignoredAccounts.has(`${platform}|${id}`.toLowerCase()); }
+function ignored(event, settings) { const platform = clean(event.platform, 64); const id = clean(event.user?.id, 256); const name = clean(event.user?.name, 256); const displayName = clean(event.user?.displayName, 256); return !settings.enabledPlatforms.has(platform) || !id || [`${platform}|${id}`, `${platform}|id:${id}`, `${platform}|name:${name}`, `${platform}|name:${displayName}`].some((rule) => settings.ignoredAccounts.has(rule.toLowerCase())); }
 
 export async function processAnalyticsEvent(event, context, now = Date.now()) {
   const settings = settingsFor(context); if (!settings.enabled || (event.metadata?.simulated === true && !settings.includeSimulated)) return undefined;

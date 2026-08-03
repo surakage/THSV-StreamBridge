@@ -1,17 +1,26 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Viewer Lobby", "type": "object", "additionalProperties": false, "x-distinctFields": ["joinCommand", "leaveCommand", "positionCommand", "queueCommand"],
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Viewer Lobby", "default": false },
-    "platforms": { "type": "array", "title": "Platforms", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
-    "commandPrefix": { "type": "string", "title": "Command prefix", "minLength": 1, "maxLength": 1, "default": "!" },
-    "joinCommand": { "type": "string", "title": "Join command", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "join" },
-    "leaveCommand": { "type": "string", "title": "Leave command", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "leave" },
-    "positionCommand": { "type": "string", "title": "Position command", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "position" },
-    "queueCommand": { "type": "string", "title": "Queue summary command", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "queue" },
-    "maximumEntries": { "type": "integer", "title": "Maximum waiting viewers", "minimum": 1, "maximum": 200, "default": 30 },
-    "allowGamertag": { "type": "boolean", "title": "Allow !join gamertag", "default": true },
-    "showGamertags": { "type": "boolean", "title": "Show gamertags on public overlay", "default": false },
-    "offlinePolicy": { "type": "string", "title": "When the stream ends", "enum": ["close", "clear"], "default": "close" },
-    "ignoredUsers": { "type": "array", "title": "Ignored viewers/bots", "items": { "type": "string", "minLength": 1, "maxLength": 200 }, "maxItems": 500, "uniqueItems": true, "default": [] }
+    "enabled": { "type": "boolean", "title": "Enable Viewer Lobby", "description": "Turn on viewer chat commands and creator controls after setup is complete.", "default": false },
+    "platforms": { "type": "array", "title": "Platforms allowed to join", "description": "Only viewers chatting on checked platforms can use the lobby commands.", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "commandPrefix": { "type": "string", "title": "Command prefix", "description": "The one character viewers type before every lobby command.", "minLength": 1, "maxLength": 1, "default": "!" },
+    "joinCommand": { "type": "string", "title": "Join command", "description": "A viewer types this command to enter the waiting list.", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "join" },
+    "leaveCommand": { "type": "string", "title": "Leave command", "description": "A viewer types this command to remove only their own entry.", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "leave" },
+    "positionCommand": { "type": "string", "title": "Position command", "description": "Shows the invoking viewer's current waiting position.", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "position" },
+    "queueCommand": { "type": "string", "title": "Queue summary command", "description": "Shows whether the lobby is open and how many viewers are waiting.", "pattern": "^[a-z][a-z0-9-]{0,31}$", "default": "queue" },
+    "maximumEntries": { "type": "integer", "title": "Maximum waiting viewers", "description": "New joins stop at this private queue limit.", "minimum": 1, "maximum": 200, "default": 30 },
+    "maximumVisibleEntries": { "type": "integer", "title": "Viewers shown on overlay", "description": "Limits the public browser source while the full private queue remains available.", "minimum": 1, "maximum": 20, "default": 10 },
+    "allowGamertag": { "type": "boolean", "title": "Allow an optional gamertag after !join", "description": "When enabled, viewers can type !join followed by a gamertag.", "default": true },
+    "showGamertags": { "type": "boolean", "title": "Show gamertags on the public overlay", "description": "Off is safer; gamertags remain private unless this is explicitly enabled.", "default": false },
+    "showPlatforms": { "type": "boolean", "title": "Show platform names on the overlay", "description": "Displays Twitch, YouTube, Kick, or TikTok beside each visible viewer.", "default": true },
+    "offlinePolicy": { "type": "string", "title": "When the final live platform ends", "description": "Close keeps the queue for later; Clear permanently removes every entry.", "enum": ["close", "clear"], "default": "close" },
+    "backgroundMode": { "type": "string", "title": "Overlay background", "description": "Glass is recommended; None leaves only text visible.", "enum": ["glass", "solid", "none"], "default": "glass" },
+    "backgroundColor": { "type": "string", "title": "Background color", "description": "Six-digit hexadecimal color used behind the queue.", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#101820" },
+    "backgroundOpacity": { "type": "number", "title": "Background opacity", "description": "0 is transparent and 1 is fully opaque.", "minimum": 0, "maximum": 1, "default": 0.92 },
+    "accentColor": { "type": "string", "title": "Accent color", "description": "Used for borders and highlights.", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ff5cc" },
+    "textColor": { "type": "string", "title": "Text color", "description": "Choose a high-contrast color for readable names and queue details.", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
+    "fontFamily": { "type": "string", "title": "Font style", "enum": ["broadcast", "display", "serif", "mono"], "default": "broadcast" },
+    "fontSize": { "type": "integer", "title": "Overlay text size", "minimum": 18, "maximum": 56, "default": 32 },
+    "ignoredUsers": { "type": "array", "title": "Ignored viewers/bots", "description": "Preloaded with common service bots; add or remove exact login names as needed.", "items": { "type": "string", "minLength": 1, "maxLength": 200 }, "maxItems": 500, "uniqueItems": true, "default": ["nightbot", "streamelements", "fossabot", "moobot", "sery_bot", "soundalerts", "wizebot", "kofistreambot", "botrix", "streamlabs"] }
   }
 }

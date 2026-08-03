@@ -1,1 +1,46 @@
-{"intro":"Cross-platform Number Guess, creator-authored Trivia, and Prediction rounds. Disabled by default and dependent on Viewer Foundation for idempotent rewards.","order":["enabled","numberGuessEnabled","triviaEnabled","predictionEnabled","playCommand","guessCommand","answerCommand","predictCommand","awardPoints","roundTimeoutSeconds","triviaQuestions"],"sections":[{"id":"setup","title":"1. Quick setup","open":true,"fields":["enabled","awardPoints","roundTimeoutSeconds"]},{"id":"games","title":"2. Games","fields":["numberGuessEnabled","triviaEnabled","predictionEnabled"]},{"id":"commands","title":"3. Commands","fields":["playCommand","guessCommand","answerCommand","predictCommand"]},{"id":"trivia","title":"4. Trivia library","notice":"Use only original, public-domain, or properly licensed questions.","fields":["triviaQuestions"]}],"fields":{"triviaQuestions":{"rows":8},"guessCommand":{"visibleWhen":{"field":"numberGuessEnabled","equals":true}},"answerCommand":{"visibleWhen":{"field":"triviaEnabled","equals":true}}}}
+{
+  "intro": "Pick the games you want, keep the included starter content, and save. Viewer Foundation handles points safely; viewers never lose points for losing a game.",
+  "order": ["enabled", "commandPrefix", "numberGuessEnabled", "triviaEnabled", "predictionEnabled", "coinFlipEnabled", "slotsEnabled", "rouletteEnabled", "rpsEnabled", "unscrambleEnabled", "duelEnabled", "playCommand", "guessCommand", "answerCommand", "predictCommand", "coinFlipCommand", "slotsCommand", "rouletteCommand", "rpsCommand", "duelCommand", "acceptCommand", "declineCommand", "awardPoints", "triviaPoints", "unscramblePoints", "coinFlipPoints", "slotsMatchPoints", "slotsJackpotPoints", "roulettePoints", "rouletteGreenPoints", "rpsPoints", "duelPoints", "maximumPointsPerViewerPerHour", "instantCooldownSeconds", "duelCooldownSeconds", "duelRecentViewerMinutes", "roundTimeoutSeconds", "triviaSource", "openTdbCategory", "openTdbDifficulty", "openTdbType", "openTdbBatchSize", "triviaQuestions", "unscrambleSource", "dictionaryBatchSize", "dictionaryMinimumLength", "dictionaryMaximumLength", "unscrambleWords", "announceSharedRoundsEverywhere", "showOverlayResults"],
+  "sections": [
+    { "id": "setup", "title": "1. Turn it on and choose games", "open": true, "notice": "Required: install Viewer Foundation, enable Chat Play Pack, then switch on only the games you want viewers to use.", "fields": ["enabled", "numberGuessEnabled", "triviaEnabled", "unscrambleEnabled", "predictionEnabled", "coinFlipEnabled", "slotsEnabled", "rouletteEnabled", "rpsEnabled", "duelEnabled"] },
+    { "id": "commands", "title": "2. Included commands", "notice": "The Chat Play .sb import includes all command entries. Existing platform intakes deliver the chat messages, so do not attach triggers or use Command Sync for these commands. Game toggles above decide which commands respond.", "fields": ["commandPrefix", "playCommand", "guessCommand", "answerCommand", "predictCommand", "coinFlipCommand", "slotsCommand", "rouletteCommand", "rpsCommand", "duelCommand", "acceptCommand", "declineCommand"] },
+    { "id": "trivia", "title": "3. Trivia setup", "notice": "Twenty questions and answers are already included. Creator library works offline. Mixed tries OpenTDB first and automatically uses this list if the provider is unavailable.", "fields": ["triviaSource", "openTdbCategory", "openTdbDifficulty", "openTdbType", "openTdbBatchSize", "triviaQuestions"] },
+    { "id": "unscramble", "title": "4. Unscramble setup", "notice": "Twenty words and hints are already included. Mixed fetches dictionary-backed words in small cached batches and automatically uses this list if fetching fails.", "fields": ["unscrambleSource", "dictionaryBatchSize", "dictionaryMinimumLength", "dictionaryMaximumLength", "unscrambleWords"] },
+    { "id": "rewards", "title": "5. Winner points", "notice": "Choose how many Viewer Foundation points each winner receives. Losing never removes points.", "fields": ["awardPoints", "triviaPoints", "unscramblePoints", "coinFlipPoints", "slotsMatchPoints", "slotsJackpotPoints", "roulettePoints", "rouletteGreenPoints", "rpsPoints", "duelPoints"] },
+    { "id": "safety", "title": "6. Cooldowns and safety", "notice": "The recommended defaults stop repeated commands from farming points. The hourly limit covers all Chat Play games and survives restarts.", "fields": ["maximumPointsPerViewerPerHour", "instantCooldownSeconds", "roundTimeoutSeconds", "duelCooldownSeconds", "duelRecentViewerMinutes"] },
+    { "id": "presentation", "title": "7. Chat and overlay", "notice": "Shared rounds may be announced on every live platform. Solo results reply only where the viewer used the command.", "fields": ["announceSharedRoundsEverywhere", "showOverlayResults"] }
+  ],
+  "fields": {
+    "triviaQuestions": { "rows": 14, "visibleWhen": { "field": "triviaSource", "in": ["creator", "mixed"] } },
+    "unscrambleWords": { "rows": 14, "visibleWhen": { "field": "unscrambleSource", "in": ["creator", "mixed"] } },
+    "openTdbCategory": { "visibleWhen": { "field": "triviaSource", "in": ["opentdb", "mixed"] }, "labels": { "any": "Any category", "9": "General Knowledge", "10": "Entertainment: Books", "11": "Entertainment: Film", "12": "Entertainment: Music", "13": "Entertainment: Musicals and Theatres", "14": "Entertainment: Television", "15": "Entertainment: Video Games", "16": "Entertainment: Board Games", "17": "Science and Nature", "18": "Science: Computers", "19": "Science: Mathematics", "20": "Mythology", "21": "Sports", "22": "Geography", "23": "History", "24": "Politics", "25": "Art", "26": "Celebrities", "27": "Animals", "28": "Vehicles", "29": "Entertainment: Comics", "30": "Science: Gadgets", "31": "Entertainment: Anime and Manga", "32": "Entertainment: Cartoon and Animations" } },
+    "openTdbType": { "visibleWhen": { "field": "triviaSource", "in": ["opentdb", "mixed"] }, "labels": { "any": "Multiple choice and True/False", "multiple": "Multiple choice only", "boolean": "True/False only" } },
+    "guessCommand": { "visibleWhen": { "field": "numberGuessEnabled", "equals": true } },
+    "predictCommand": { "visibleWhen": { "field": "predictionEnabled", "equals": true } },
+    "coinFlipCommand": { "visibleWhen": { "field": "coinFlipEnabled", "equals": true } },
+    "slotsCommand": { "visibleWhen": { "field": "slotsEnabled", "equals": true } },
+    "rouletteCommand": { "visibleWhen": { "field": "rouletteEnabled", "equals": true } },
+    "rpsCommand": { "visibleWhen": { "field": "rpsEnabled", "equals": true } },
+    "duelCommand": { "visibleWhen": { "field": "duelEnabled", "equals": true } },
+    "acceptCommand": { "visibleWhen": { "field": "duelEnabled", "equals": true } },
+    "declineCommand": { "visibleWhen": { "field": "duelEnabled", "equals": true } },
+    "triviaSource": { "visibleWhen": { "field": "triviaEnabled", "equals": true }, "labels": { "creator": "Included and creator questions only (offline)", "opentdb": "OpenTDB only", "mixed": "OpenTDB with included fallback (recommended)" } },
+    "unscrambleSource": { "visibleWhen": { "field": "unscrambleEnabled", "equals": true }, "labels": { "creator": "Included and creator words only (offline)", "dictionary": "Dictionary API only", "mixed": "Dictionary API with included fallback (recommended)" } },
+    "openTdbDifficulty": { "visibleWhen": { "field": "triviaSource", "in": ["opentdb", "mixed"] } },
+    "openTdbBatchSize": { "visibleWhen": { "field": "triviaSource", "in": ["opentdb", "mixed"] } },
+    "dictionaryBatchSize": { "visibleWhen": { "field": "unscrambleSource", "in": ["dictionary", "mixed"] } },
+    "dictionaryMinimumLength": { "visibleWhen": { "field": "unscrambleSource", "in": ["dictionary", "mixed"] } },
+    "dictionaryMaximumLength": { "visibleWhen": { "field": "unscrambleSource", "in": ["dictionary", "mixed"] } },
+    "triviaPoints": { "visibleWhen": { "field": "triviaEnabled", "equals": true } },
+    "unscramblePoints": { "visibleWhen": { "field": "unscrambleEnabled", "equals": true } },
+    "coinFlipPoints": { "visibleWhen": { "field": "coinFlipEnabled", "equals": true } },
+    "slotsMatchPoints": { "visibleWhen": { "field": "slotsEnabled", "equals": true } },
+    "slotsJackpotPoints": { "visibleWhen": { "field": "slotsEnabled", "equals": true } },
+    "roulettePoints": { "visibleWhen": { "field": "rouletteEnabled", "equals": true } },
+    "rouletteGreenPoints": { "visibleWhen": { "field": "rouletteEnabled", "equals": true } },
+    "rpsPoints": { "visibleWhen": { "field": "rpsEnabled", "equals": true } },
+    "duelPoints": { "visibleWhen": { "field": "duelEnabled", "equals": true } },
+    "duelCooldownSeconds": { "visibleWhen": { "field": "duelEnabled", "equals": true } },
+    "duelRecentViewerMinutes": { "visibleWhen": { "field": "duelEnabled", "equals": true } }
+  }
+}

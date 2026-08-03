@@ -42,6 +42,7 @@ describe('Windows release installer', () => {
       runPowerShell(join(source, 'scripts', 'install-release.ps1'), ['-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall']);
       expect(await readFile(join(install, 'dist', 'app.js'), 'utf8')).toBe('first release\n');
       expect(JSON.parse(await readFile(join(install, 'data', 'runtime', 'install-manifest.json'), 'utf8'))).toMatchObject({ product: 'THSV StreamBridge', version: '0.13.0-test.1' });
+      await writeFile(join(install, 'data', 'runtime', 'install-manifest.json'), JSON.stringify({ product: 'THSV StreamBridge', layoutVersion: 2, activeVersion: '0.13.0-test.1' }));
       await writeFile(join(install, 'data', 'runtime', 'bridge.local.json'), '{"creator":"preserved"}\n');
       await writeFile(join(install, 'data', 'state', 'viewer-progression.json'), '{"points":42}\n');
       await writeFile(join(install, 'data', 'state', 'companion.json'), '{"sleeping":true}\n');
@@ -49,6 +50,7 @@ describe('Windows release installer', () => {
       await writeRelease(source, '0.13.0-test.2', 'second release\n');
       runPowerShell(join(source, 'scripts', 'install-release.ps1'), ['-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall']);
       expect(await readFile(join(install, 'dist', 'app.js'), 'utf8')).toBe('second release\n');
+      expect(JSON.parse(await readFile(join(install, 'data', 'runtime', 'install-manifest.json'), 'utf8'))).toMatchObject({ version: '0.13.0-test.2', activeVersion: '0.13.0-test.2', previousVersion: '0.13.0-test.1' });
       expect(await readFile(join(install, 'data', 'runtime', 'bridge.local.json'), 'utf8')).toContain('preserved');
       expect(await readFile(join(install, 'data', 'state', 'viewer-progression.json'), 'utf8')).toContain('42');
       expect(await readFile(join(install, 'data', 'state', 'companion.json'), 'utf8')).toContain('true');

@@ -2,13 +2,14 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Adds bounded cross-platform Number Guess, Trivia, and Prediction rounds.",
+  "description": "Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, idempotent points, optional OpenTDB trivia, and dictionary-backed Unscramble.",
   "changelog": "3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
     "chat.send",
     "overlay.publish",
+    "streamerbot.run-approved-action",
     "viewer.foundation.read",
     "viewer.foundation.mutate"
   ],
@@ -34,9 +35,12 @@
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
+      "chat.message",
       "command.received",
       "stream.online",
-      "stream.offline"
+      "stream.offline",
+      "addon.thsv.chat-play-pack.trivia-received",
+      "addon.thsv.chat-play-pack.unscramble-received"
     ],
     "commandsProvided": [
       {
@@ -54,9 +58,46 @@
       {
         "id": "chat-play.predict",
         "name": "predict"
+      },
+      {
+        "id": "chat-play.coinflip",
+        "name": "coinflip"
+      },
+      {
+        "id": "chat-play.slots",
+        "name": "slots"
+      },
+      {
+        "id": "chat-play.roulette",
+        "name": "roulette"
+      },
+      {
+        "id": "chat-play.rps",
+        "name": "rps"
+      },
+      {
+        "id": "chat-play.duel",
+        "name": "duel"
+      },
+      {
+        "id": "chat-play.accept",
+        "name": "accept"
+      },
+      {
+        "id": "chat-play.decline",
+        "name": "decline"
       }
     ],
-    "actionsProvided": [],
+    "actionsProvided": [
+      {
+        "id": "chat-play.fetch-trivia",
+        "name": "Optional bounded OpenTDB question fetch"
+      },
+      {
+        "id": "chat-play.fetch-unscramble",
+        "name": "Optional bounded dictionary word fetch"
+      }
+    ],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
       "data/addons/thsv.chat-play-pack/",
@@ -64,8 +105,9 @@
     ],
     "installationSteps": [
       "Install Viewer Foundation first.",
-      "Create matching no-response commands in Command Sync.",
-      "Configure original trivia questions before enabling Trivia."
+      "Import Chat Play Pack once; it includes all eleven command entries and the two optional provider actions.",
+      "Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.",
+      "Configure creator fallback questions and words before enabling provider-backed games."
     ],
     "uninstallationSteps": [
       "Uninstalling preserves only bounded round statistics and pseudonymous Viewer Foundation IDs."
@@ -74,7 +116,7 @@
     "healthChecks": [
       {
         "id": "thsv.chat-play-pack.runtime",
-        "description": "Confirms bounded rounds, cooldowns, and idempotent Viewer Foundation awards."
+        "description": "Confirms serialized rounds, bounded cooldowns, stable duel identities, trivia fallback, and idempotent Viewer Foundation awards."
       }
     ]
   },
@@ -83,23 +125,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11904,
-      "sha256": "135f972cbe507e78a02f325e783674296f598cb2fe00234027475a5213d1d35f"
+      "size": 43660,
+      "sha256": "a5dabb72f3da1a307382c4d80490299f4e321118d1bd6856f977c369b005b6f1"
     },
     {
       "path": "schemas/config.json",
-      "size": 1506,
-      "sha256": "369c78fe031287ce1615410787043e56cc0152984ca93ef6855334608970b6b8"
+      "size": 9481,
+      "sha256": "8d7f8309dfdfaf7bbb85cf31f1d3fe5b9690c27bf1c0e8d91f56fe0df883b03a"
     },
     {
       "path": "ui/settings.json",
-      "size": 1036,
-      "sha256": "a3f92c1dacc62b7d71e088f83e8ad58c055a8d613932a752a8a55946dbd695cc"
+      "size": 7805,
+      "sha256": "1e82e914b4defce3536a174e05498eb1d97acd92058acbb02329b1231a12924a"
     },
     {
       "path": "README.md",
-      "size": 276,
-      "sha256": "b86721cf2d265a3714a86f08e712f60f71b464ccbd791ff6c229555d5747f8aa"
+      "size": 2797,
+      "sha256": "2aab4dcc200cf4fa30c8641304014fac94fc147cd35f638bcc36fa58a66380de"
     }
   ]
 }

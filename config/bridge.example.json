@@ -67,7 +67,18 @@
       "showPlatformLabels": true,
       "showProfilePictures": true,
       "showBadges": true,
-      "ignoredNames": [],
+      "ignoredNames": [
+        "nightbot",
+        "streamelements",
+        "fossabot",
+        "moobot",
+        "sery_bot",
+        "soundalerts",
+        "wizebot",
+        "kofistreambot",
+        "botrix",
+        "streamlabs"
+      ],
       "events": {
         "enabled": true,
         "platforms": { "twitch": true, "youtube": true, "kick": true, "tiktok": true, "streamlabs": true, "kofi": true },

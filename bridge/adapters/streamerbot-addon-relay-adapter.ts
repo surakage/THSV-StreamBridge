@@ -223,7 +223,7 @@ function isCreatorControl(relay: AddOnRelay): boolean {
   }
   if (relay.moduleId === 'thsv.viewer-lobby' && relay.eventType === 'addon.thsv.viewer-lobby.control') {
     const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
-    if (!['open', 'close', 'pause', 'resume', 'next', 'random', 'clear'].includes(action)) return false;
+    if (!['open', 'close', 'pause', 'resume', 'next', 'random', 'complete', 'clear'].includes(action)) return false;
     const label = `${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
     return relay.sourceEventType === `THSV Addon - Viewer Lobby - ${label}` && Object.keys(relay.payload).length === 1;
   }

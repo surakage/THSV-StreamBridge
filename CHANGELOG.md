@@ -1,5 +1,8 @@
 # Changelog
 
+- Village Draw now reads commands directly from existing normalized chat intakes instead of generating inert no-response actions. Pending point purchases can no longer cross draw lifecycle boundaries, cancellation waits for recovery before refunding, multi-platform stream-end handling waits for the final observed platform, and chat/overlay delivery failures are exposed through its authenticated status.
+- Renamed Creator Utility Pack to Village Polls, including its internal module ID (`thsv.village-polls`), and retired its duplicate counter so Custom Counter is the only counter system. Village Polls now reads commands directly from the existing normalized chat intakes, removes the generated no-op poll actions, deduplicates chat and derived-command copies, surfaces delivery failures, publishes results when a stream closes an open poll, announces polls/results across all four chats, rejects empty closes, and strictly caps unique voters at 5,000.
+
 ## [3.0.0] - 2026-08-01
 
 - Synchronized the bridge, 34 first-party add-ons, 37 generated Streamer.bot packages, overlay assets, wizard, package manifests, and public documentation at Version `3.0.0`.
@@ -26,6 +29,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Added a privacy-safe viewer command directory at `/commands`, a stable JSON catalogue endpoint, a single-file static export, and optional authenticated publishing to a creator-specific SlothBloom page. It automatically groups public Command Sync and enabled add-on commands while excluding creator controls and all private settings.
+- Added optional dictionary-backed Unscramble batches to Chat Play Pack. A triggerless, creator-approved Streamer.bot action fetches bounded random English candidates, validates them through Free Dictionary API, returns definitions as hints, caches the batch without repeats, and automatically uses the creator word list when Mixed mode encounters a provider failure. The simplified seven-step wizard now ships 20 editable Trivia questions with answers and 20 editable Unscramble words with hints.
+- Bundled Chat Play's 11 ready-to-use commands in its own Streamer.bot import and removed their Command Sync templates. Chat Play now reads normalized public chat through the existing Twitch, YouTube, Kick, and TikFinity intakes, ignores the bridge's derived command copy, and adds no command action triggers or WebSocket connections.
 - Added a creator-approved core update staging flow that downloads only the exact official release archive, verifies its adjacent SHA-256 checksum, cryptographically verifies GitHub Actions Sigstore provenance for the tagged release workflow, and fails closed before writing an update archive when any identity, digest, workflow, size, or format check fails.
 - Added creator-approved add-on update staging: the wizard verifies the official outer release bundle against the add-on index and GitHub Actions Sigstore provenance, safely extracts exactly one inner package, verifies its adjacent checksum, publisher, version, compatibility, and manifest integrity, then places it in the inbox for a separate creator-approved installation.
 - Renamed Village Jukebox's default queue command from `!queue` to `!songqueue` so it cannot silently collide with Viewer Lobby's queue command; schema defaults, wizard guidance, package metadata, tests, and setup documentation now agree.

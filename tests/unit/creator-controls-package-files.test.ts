@@ -18,4 +18,16 @@ describe('Creator Controls Streamer.bot package', () => {
     expect(controller).toContain('["simulated"] = simulated');
     expect(controller).not.toMatch(/SetGlobalVar|Process\.Start|PowerShell|cmd\.exe/iu);
   });
+
+  it('presents profiles as short guided sections with advanced categories collapsed', async () => {
+    const schema = await readFile('addons/creator-controls/schemas/config.json', 'utf8');
+    const ui = await readFile('addons/creator-controls/ui/settings.json', 'utf8');
+    expect(schema).toContain('"title": "Turn on Creator Controls"');
+    expect(schema).toContain('"title": "Stream title"');
+    expect(schema).toContain('Usually leave blank to use the latest monitored broadcast.');
+    expect(schema).not.toContain('"title": "Profile 1 channel title"');
+    expect(ui).toContain('"title": "2. Starting Soon"');
+    expect(ui).toContain('"title": "Starting Soon categories (optional)"');
+    expect(ui).toContain('"visibleWhen": { "field": "profile1Enabled", "equals": true }');
+  });
 });

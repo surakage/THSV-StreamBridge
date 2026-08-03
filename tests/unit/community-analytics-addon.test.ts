@@ -33,6 +33,12 @@ describe('Community Analytics add-on', () => {
     expect(testRuntime.context.viewerFoundation.getProjection).not.toHaveBeenCalled();
   });
 
+  it('skips preinstalled platform name rules when actor classification is unavailable', async () => {
+    const testRuntime = runtime({ ignoredAccounts: ['twitch|name:nightbot'] });
+    await expect(processAnalyticsEvent(event('chat.message', { user: { id: 'unverified-id', name: 'NightBot', displayName: 'Nightbot', actorType: 'human', roles: [] } }), testRuntime.context, 1000)).resolves.toBeUndefined();
+    expect(testRuntime.context.viewerFoundation.getProjection).not.toHaveBeenCalled();
+  });
+
   it('bounds persisted viewers, sessions, and replay identities below the private-state ceiling', () => {
     const state = sanitizeCommunityAnalyticsState({ viewers: Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`viewer-${String(index)}`, { firstSeenAt: index, lastSeenAt: index, sessions: 1, counters: { messages: index } }])), sessions: Array.from({ length: 50 }, (_, index) => ({ id: `session-${String(index)}`, startedAt: index, endedAt: index + 1, counters: {} })), processed: Array.from({ length: 100 }, (_, index) => ({ id: index.toString(16).padStart(32, '0'), at: index })) }, { maximumViewers: 25, retainedSessions: 5, processedEventLimit: 50 });
     expect(Object.keys(state.viewers)).toHaveLength(25); expect(state.sessions).toHaveLength(5); expect(state.processed).toHaveLength(50); expect(JSON.stringify(state).length).toBeLessThanOrEqual(60_000);

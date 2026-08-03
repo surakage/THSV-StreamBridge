@@ -288,6 +288,11 @@ export interface InstalledAddOnSummary {
   readonly error?: string;
   readonly configurationSchema: unknown;
   readonly settingsUi?: unknown;
+  readonly installationSteps: AddOnPackageV2['manifest']['installationSteps'];
+  readonly uninstallationSteps: AddOnPackageV2['manifest']['uninstallationSteps'];
+  readonly healthChecks: AddOnPackageV2['manifest']['healthChecks'];
+  readonly commandsProvided: AddOnPackageV2['manifest']['commandsProvided'];
+  readonly browserSourcesProvided: AddOnPackageV2['manifest']['browserSourcesProvided'];
 }
 
 export async function listInstalledAddOnPackages(addOnsRoot: string): Promise<readonly InstalledAddOnSummary[]> {
@@ -316,10 +321,15 @@ export async function listInstalledAddOnPackages(addOnsRoot: string): Promise<re
         approvedActionIds: validateInstalledActionIds(record.approvedActionIds),
         health: 'installed',
         configurationSchema,
+        installationSteps: verified.descriptor.manifest.installationSteps,
+        uninstallationSteps: verified.descriptor.manifest.uninstallationSteps,
+        healthChecks: verified.descriptor.manifest.healthChecks,
+        commandsProvided: verified.descriptor.manifest.commandsProvided,
+        browserSourcesProvided: verified.descriptor.manifest.browserSourcesProvided,
         ...(settingsUi === undefined ? {} : { settingsUi }),
       });
     } catch (error) {
-      result.push({ moduleId: entry.name, name: entry.name, version: 'unknown', author: 'Unknown publisher', description: 'This installed add-on failed integrity or compatibility verification and will not be loaded.', changelog: '', packageKind: 'executable', permissions: [], trust: {}, enabled: false, approvedActionIds: [], health: 'rejected', error: error instanceof Error ? error.message : String(error), configurationSchema: { type: 'object', properties: {}, additionalProperties: false } });
+      result.push({ moduleId: entry.name, name: entry.name, version: 'unknown', author: 'Unknown publisher', description: 'This installed add-on failed integrity or compatibility verification and will not be loaded.', changelog: '', packageKind: 'executable', permissions: [], trust: {}, enabled: false, approvedActionIds: [], health: 'rejected', error: error instanceof Error ? error.message : String(error), configurationSchema: { type: 'object', properties: {}, additionalProperties: false }, installationSteps: [], uninstallationSteps: [], healthChecks: [], commandsProvided: [], browserSourcesProvided: [] });
     }
   }
   return result;

@@ -26,7 +26,7 @@ const FALLBACKS = Object.freeze({
   enabled: false,
   enabledPlatforms: PLATFORMS,
   ignoreBots: true,
-  ignoredUsers: [],
+  ignoredUsers: ['twitch:nightbot', 'twitch:streamelements', 'youtube:streamelements', 'kick:streamelements', 'twitch:fossabot', 'twitch:moobot', 'twitch:sery_bot', 'twitch:soundalerts', 'twitch:wizebot', 'twitch:kofistreambot', 'twitch:streamlabs', 'twitch:botrix', 'youtube:botrix', 'kick:botrix', 'tiktok:botrix'],
   ignoreCommands: false,
   commandPrefix: '!',
   includeSimulatedMessages: false,

@@ -16,8 +16,9 @@ Applies creator-authored Twitch, YouTube, and Kick channel profiles through one 
 ### Add-on-specific steps
 
 1. Import the bundled Creator Controls Streamer.bot package.
-2. Approve only its triggerless Provider Controller action in the wizard.
-3. Edit the three profiles, then attach Profile 1/2/3 only to creator-controlled hotkeys, deck buttons, or scene actions.
+2. Turn on the add-on and edit only the stream profiles you plan to use.
+3. Approve only its triggerless Provider Controller action in the wizard.
+4. Connect Apply Profile 1, 2, or 3 to your matching creator-controlled scene trigger, hotkey, or deck button.
 
 ## Streamer.bot
 

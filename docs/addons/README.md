@@ -8,12 +8,11 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [Automated Shoutouts](./automated-shoutouts.md) | `thsv.automated-shoutouts` | Included in add-on ZIP |
 | [Category Pilot](./category-pilot.md) | `thsv.category-pilot` | Included in add-on ZIP |
 | [Chat Guard](./chat-guard.md) | `thsv.chat-guard` | Included in add-on ZIP |
-| [Chat Play Pack](./chat-play-pack.md) | `thsv.chat-play-pack` | Not required |
+| [Chat Play Pack](./chat-play-pack.md) | `thsv.chat-play-pack` | Included in add-on ZIP |
 | [Clip Courier](./clip-courier.md) | `thsv.clip-courier` | Included in add-on ZIP |
 | [Clip Library Cache](./clip-library-cache.md) | `thsv.clip-library-cache` | Included in add-on ZIP |
 | [Community Analytics](./community-analytics.md) | `thsv.community-analytics` | Not required |
 | [Creator Controls](./creator-controls.md) | `thsv.creator-controls` | Included in add-on ZIP |
-| [Creator Utility Pack](./creator-utility-pack.md) | `thsv.creator-utility-pack` | Not required |
 | [Custom Counter](./custom-counter.md) | `thsv.custom-counter` | Included in add-on ZIP |
 | [Discord Chat Archive](./discord-chat-archive.md) | `thsv.discord-chat-archive` | Included in add-on ZIP |
 | [Fan Crown](./fan-crown.md) | `thsv.fan-crown` | Included in add-on ZIP |
@@ -36,5 +35,6 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [Viewer Spotlight](./viewer-spotlight.md) | `thsv.viewer-spotlight` | Included in add-on ZIP |
 | [Village Draw](./village-draw.md) | `thsv.village-draw` | Not required |
 | [Village Jukebox](./village-jukebox.md) | `thsv.village-jukebox` | Included in add-on ZIP |
+| [Village Polls](./village-polls.md) | `thsv.village-polls` | Not required |
 | [Village Roll Call](./village-roll-call.md) | `thsv.village-roll-call` | Not required |
 | [Village Voice](./voice-relay.md) | `thsv.voice-relay` | Included in add-on ZIP |

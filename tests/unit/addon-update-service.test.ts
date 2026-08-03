@@ -19,6 +19,11 @@ function installed(moduleId: string, version: string, publisherId = 'thsv.stream
     approvedActionIds: [],
     health: 'installed',
     configurationSchema: { type: 'object', properties: {} },
+    installationSteps: [],
+    uninstallationSteps: [],
+    healthChecks: [],
+    commandsProvided: [],
+    browserSourcesProvided: [],
   };
 }
 

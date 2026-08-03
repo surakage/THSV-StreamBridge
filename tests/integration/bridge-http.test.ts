@@ -3,6 +3,8 @@ import { DiagnosticsServer } from '../../bridge/services/http-server.js';
 import { BrowserOverlayHub } from '../../bridge/services/browser-overlay-hub.js';
 import { createTestBridge, fixture, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
 import type { StreamBridge } from '../../bridge/core/bridge.js';
+import { ModuleRegistry } from '../../bridge/core/module-registry.js';
+import { CommandDirectoryService } from '../../bridge/services/command-directory.js';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
@@ -20,6 +22,38 @@ async function runningService(maxPayloadBytes = 262_144): Promise<{ bridge: Stre
 }
 
 describe('bridge HTTP integration', () => {
+  it('serves the public command page and JSON but protects the portable export', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    config.commands = { enabled: true, prefix: '!', definitions: [{ name: 'hello', aliases: ['hi'], minimumRole: 'viewer', allowBots: false, source: 'manual' }] };
+    const bridge = createTestBridge(config);
+    const directory = new CommandDirectoryService(config, new ModuleRegistry([], silentLogger), { publishUrl: '', tokenFile: '' });
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, undefined, 'data', directory);
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+
+    const page = await fetch(`${baseUrl}/commands`);
+    expect(page.status).toBe(200);
+    expect(await page.text()).toContain('!hello');
+    const catalogue = await fetch(`${baseUrl}/commands/catalog.json`);
+    expect(catalogue.status).toBe(200);
+    expect(await catalogue.json()).toMatchObject({ commandCount: 1, privacy: 'public-command-metadata-only' });
+    expect((await fetch(`${baseUrl}/wizard/api/commands/directory`)).status).toBe(401);
+    const directoryStatus = await fetch(`${baseUrl}/wizard/api/commands/directory`, { headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect(directoryStatus.status).toBe(200);
+    expect(await directoryStatus.json()).toMatchObject({ commandCount: 1, publishing: { enabled: false, state: 'disabled' } });
+    for (const method of ['POST', 'DELETE']) {
+      expect((await fetch(`${baseUrl}/wizard/api/commands/directory/publish`, { method })).status).toBe(401);
+      expect((await fetch(`${baseUrl}/wizard/api/commands/directory/publish`, { method, headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(409);
+    }
+    expect((await fetch(`${baseUrl}/wizard/api/commands/directory/export`)).status).toBe(401);
+    const exported = await fetch(`${baseUrl}/wizard/api/commands/directory/export`, { headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect(exported.status).toBe(200);
+    expect(exported.headers.get('content-disposition')).toContain('thsv-stream-commands.html');
+  });
+
   it('accepts a valid event, ignores its duplicate, and reports health and readiness', async () => {
     const { baseUrl } = await runningService();
     const body = JSON.stringify(await fixture());

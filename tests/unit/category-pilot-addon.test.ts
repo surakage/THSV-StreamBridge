@@ -32,7 +32,7 @@ describe('Category Pilot add-on', () => {
     await test.runScheduled(20_000);
     const secondRequestId = test.runApprovedAction.mock.calls[1]?.[1]['categoryPilotRequestId'];
     await categoryPilot.onEvent({ eventType: 'addon.thsv.category-pilot.processes-received', metadata: { simulated: false }, payload: { requestId: secondRequestId, runningProcesses: ['fortniteclient-win64-shipping'] } }, test.context);
-    expect(test.publish).toHaveBeenCalledWith('card.show', expect.objectContaining({ title: 'Category Pilot suggestion' }));
+    expect(test.publish).toHaveBeenCalledWith('thsv.category-pilot.card.show', expect.objectContaining({ title: 'Category Pilot suggestion' }));
     expect(test.runApprovedAction).toHaveBeenCalledTimes(2);
     expect(test.stored()).toMatchObject({ pendingProfileId: 'profile-2' });
     await categoryPilot.stop(test.context);

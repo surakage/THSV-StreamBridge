@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFile } from 'node:fs/promises';
-import { bridgeConfigSchema } from '../../schemas/config.js';
+import { bridgeConfigSchema, DEFAULT_IGNORED_BOT_NAMES } from '../../schemas/config.js';
 import { testConfig } from '../helpers.js';
 
 describe('bridge configuration', () => {
@@ -29,6 +29,14 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.safeParse(config).success).toBe(true);
     const raw = JSON.parse(await readFile('config/bridge.example.json', 'utf8')) as { streamerbot: { testMode: boolean } };
     expect(raw.streamerbot.testMode).toBe(false);
+  });
+
+  it('preloads conservative ignored bot names when chat settings omit the list', async () => {
+    const config = await testConfig();
+    const chat = { ...config.browserOverlay.chat } as Record<string, unknown>;
+    delete chat['ignoredNames'];
+    const parsed = bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat } });
+    expect(parsed.browserOverlay.chat.ignoredNames).toEqual([...DEFAULT_IGNORED_BOT_NAMES]);
   });
 
   it('rejects invalid port and unsafe network binding', async () => {

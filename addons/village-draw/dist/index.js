@@ -11,11 +11,14 @@ let deleteUnsubscribe;
 let refundTaskId;
 let purchaseRecoveryTaskId;
 let stopped = true;
+const livePlatforms = new Set();
+const recentlyHandledCommands = new Map();
+const commandCooldowns = new Map();
 
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Draw', version: '3.0.0',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.0.0', maximumTestedBridgeVersion: '3.0.0', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
-  configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received', 'stream.offline'],
+  configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [
     { id: 'village-draw.manage', name: 'giveaway' }, { id: 'village-draw.enter', name: 'enter' },
     { id: 'village-draw.tickets', name: 'tickets' }, { id: 'village-draw.my-tickets', name: 'mytickets' },
@@ -24,7 +27,7 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.village-draw/', 'data/addons/.state/thsv.village-draw/'],
   installationSteps: [
     'Install and enable Viewer Foundation first; Village Draw never creates a second points balance.',
-    'Create the four no-response commands in Command Sync, keeping giveaway management restricted to moderators.',
+    'Keep chat-message triggers on the existing main THSV platform intake actions; no separate giveaway commands or triggers are required in Streamer.bot.',
     'Configure the prize and ticket rules, save, restart, then use the authenticated wizard controls to open the draw.',
     'Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview.',
   ],
@@ -51,6 +54,7 @@ function settingsFor(context) {
   const raw = context.settings || {};
   return {
     enabled: raw.enabled === true,
+    commandPrefix: typeof raw.commandPrefix === 'string' && /^\S$/u.test(raw.commandPrefix) ? raw.commandPrefix : '!',
     giveawayCommand: clean(raw.giveawayCommand, 40).toLowerCase() || 'giveaway',
     enterCommand: clean(raw.enterCommand, 40).toLowerCase() || 'enter',
     ticketsCommand: clean(raw.ticketsCommand, 40).toLowerCase() || 'tickets',
@@ -115,18 +119,20 @@ function safeActive(value) {
     maxTicketsPerViewer: integer(value.maxTicketsPerViewer, 1, 100, 10), maximumEntrants: integer(value.maximumEntrants, 10, 80, 80),
     maximumTotalTickets: integer(value.maximumTotalTickets, 10, 50_000, 10_000), eligiblePlatforms: uniquePlatforms(value.eligiblePlatforms),
     createdAt: clean(value.createdAt, 40), openedAt: clean(value.openedAt, 40), closedAt: clean(value.closedAt, 40), drawnAt: clean(value.drawnAt, 40),
-    entries, pendingPurchases, pendingRefunds, ...(winner ? { winner } : {}), ...(receipt ? { receipt } : {}),
+    entries, pendingPurchases, pendingRefunds, closeRequested: value.closeRequested === true, ...(winner ? { winner } : {}), ...(receipt ? { receipt } : {}),
   };
 }
 function stateFor(value) {
   const raw = value && typeof value === 'object' ? value : {};
+  const rawDeliveryError = raw.lastDeliveryError && typeof raw.lastDeliveryError === 'object' ? raw.lastDeliveryError : undefined;
+  const lastDeliveryError = rawDeliveryError ? { at: clean(rawDeliveryError.at, 40), scope: clean(rawDeliveryError.scope, 40), message: clean(rawDeliveryError.message, 500) } : undefined;
   const history = Array.isArray(raw.history) ? raw.history.map((item) => {
     if (!item || typeof item !== 'object') return undefined;
     const id = clean(item.id, 100); const winner = clean(item.winner, 80); const drawnAt = clean(item.drawnAt, 40); const receipt = safeReceipt(item.receipt);
     const entrantCount = integer(item.entrantCount, 1, 80, 0); const ticketCount = integer(item.totalTickets, 1, 50_000, 0);
     return id && winner && drawnAt && entrantCount > 0 && ticketCount > 0 ? { id, winner, entrantCount, totalTickets: ticketCount, drawnAt, ...(receipt ? { receipt } : {}) } : undefined;
   }).filter(Boolean).slice(-5) : [];
-  return { version: 1, sequence: integer(raw.sequence, 0, 1_000_000_000, 0), active: safeActive(raw.active), history };
+  return { version: 1, sequence: integer(raw.sequence, 0, 1_000_000_000, 0), active: safeActive(raw.active), history, ...(lastDeliveryError?.at && lastDeliveryError.message ? { lastDeliveryError } : {}) };
 }
 function moderator(event) {
   const roles = new Set((event.user?.roles || []).map((role) => clean(role, 30).toLowerCase()));
@@ -139,8 +145,20 @@ function format(template, values, maximum) {
   const chars = Array.from(result); return chars.length <= maximum ? result : `${chars.slice(0, Math.max(1, maximum - 1)).join('').trimEnd()}…`;
 }
 function sourceLimit(platform) { return LIMITS[platform] || 150; }
+async function recordDeliveryWarning(context, scope, message) {
+  const state = stateFor(await context.state.read());
+  state.lastDeliveryError = { at: new Date().toISOString(), scope: clean(scope, 40), message: clean(message, 500) || 'Unknown delivery failure.' };
+  await context.state.write(state);
+}
 async function reply(context, event, message) {
-  try { await context.chat.send({ message: clean(message, sourceLimit(event.platform)), routing: 'source', sourcePlatform: event.platform, overflow: 'reject' }); } catch { /* A reply failure cannot corrupt giveaway state. */ }
+  try {
+    const deliveries = await context.chat.send({ message: clean(message, sourceLimit(event.platform)), routing: 'source', sourcePlatform: event.platform, overflow: 'reject' });
+    if (deliveries.length > 0 && !deliveries.some((delivery) => delivery.accepted)) await recordDeliveryWarning(context, `reply:${event.platform}`, deliveries.map((delivery) => delivery.error || 'delivery rejected').join('; '));
+    return deliveries;
+  } catch (error) {
+    await recordDeliveryWarning(context, `reply:${event.platform}`, error instanceof Error ? error.message : String(error));
+    return [];
+  }
 }
 async function announce(context, settings, template, values) {
   const deliveries = [];
@@ -149,21 +167,55 @@ async function announce(context, settings, template, values) {
     try { deliveries.push(...await context.chat.send({ message, routing: 'selected', selectedPlatforms: [platform], overflow: 'reject' })); }
     catch (error) { deliveries.push({ platform, accepted: false, parts: 0, error: clean(error instanceof Error ? error.message : String(error), 200) }); }
   }
+  const failures = deliveries.filter((delivery) => !delivery.accepted);
+  if (failures.length > 0) await recordDeliveryWarning(context, 'announcement', failures.map((delivery) => `${delivery.platform}: ${delivery.error || 'delivery rejected'}`).join('; '));
   return deliveries;
 }
 function cardStyle(settings, winner = false) {
   return { backgroundMode: 'glass', backgroundColor: settings.backgroundColor, backgroundOpacity: 0.94, accentColor: winner ? settings.winnerColor : settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily, fontSize: 34 };
+}
+async function publishCard(context, topic, payload) {
+  try { await context.overlay.publish(topic, payload); return true; }
+  catch (error) { await recordDeliveryWarning(context, 'overlay', error instanceof Error ? error.message : String(error)); return false; }
 }
 async function publishOpenCard(context, settings, active) {
   if (!settings.showOpenCard) return;
   const entryHint = active.entryMode === 'free-single' ? `Use !${settings.enterCommand} for one free entry.`
     : active.entryMode === 'points-single' ? `Use !${settings.enterCommand} for one ${active.ticketCost}-point ticket.`
       : `Use !${settings.ticketsCommand} <1-${active.maxTicketsPerViewer}>. Each ticket costs ${active.ticketCost} points.`;
-  await context.overlay.publish(`${MODULE_ID}.card.show`, { title: active.name, text: `${active.prize} • ${active.description} • ${entryHint}`, imageUrl: active.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings) });
+  await publishCard(context, `${MODULE_ID}.card.show`, { title: active.name, text: `${active.prize} • ${active.description} • ${entryHint}`, imageUrl: active.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings) });
 }
 async function publishWinnerCard(context, settings, active) {
   if (!settings.showWinnerCard || !active.winner) return;
-  await context.overlay.publish(`${MODULE_ID}.card.show`, { title: `WINNER • ${active.winner.displayName}`, text: `${active.prize} • ${active.name}`, imageUrl: active.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings, true) });
+  await publishCard(context, `${MODULE_ID}.card.show`, { title: `WINNER • ${active.winner.displayName}`, text: `${active.prize} • ${active.name}`, imageUrl: active.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings, true) });
+}
+function commandFrom(event, settings) {
+  if (event.eventType === 'command.received') {
+    const command = clean(event.payload?.command, 40).toLowerCase();
+    const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments.map((item) => clean(item, 100)).filter(Boolean) : [];
+    return command ? { command, args, rawInput: clean(event.payload?.rawInput, 1_000) || `${settings.commandPrefix}${command}${args.length ? ` ${args.join(' ')}` : ''}` } : undefined;
+  }
+  if (event.eventType !== 'chat.message') return undefined;
+  const message = clean(event.payload?.message, 1_000); if (!message.startsWith(settings.commandPrefix)) return undefined;
+  const input = message.slice(settings.commandPrefix.length).trim(); if (!input) return undefined;
+  const separator = input.search(/\s/u); const invoked = separator < 0 ? input : input.slice(0, separator);
+  const command = clean(invoked, 40).toLowerCase(); if (!/^[a-z][a-z0-9-]{0,39}$/u.test(command)) return undefined;
+  const remainder = separator < 0 ? '' : input.slice(separator).trim();
+  return { command, args: remainder ? remainder.split(/\s+/u).map((item) => clean(item, 100)).filter(Boolean) : [], rawInput: message };
+}
+function duplicateCommand(event, parsed, now = Date.now()) {
+  const key = `${event.platform}|${clean(event.user?.id, 256)}|${event.receivedAt || ''}|${parsed.command}|${parsed.rawInput}`;
+  const previous = recentlyHandledCommands.get(key); recentlyHandledCommands.set(key, now);
+  const cutoff = now - 10_000;
+  while ((recentlyHandledCommands.values().next().value ?? Number.POSITIVE_INFINITY) < cutoff) recentlyHandledCommands.delete(recentlyHandledCommands.keys().next().value);
+  if (recentlyHandledCommands.size > 2_000) recentlyHandledCommands.delete(recentlyHandledCommands.keys().next().value);
+  return Number.isFinite(previous) && now - previous < 10_000;
+}
+function coolingDown(event, command, now = Date.now()) {
+  if (moderator(event)) return false;
+  const key = `${event.platform}:${clean(event.user?.id, 256)}:${command}`; const previous = commandCooldowns.get(key);
+  commandCooldowns.set(key, now); if (commandCooldowns.size > 2_000) commandCooldowns.delete(commandCooldowns.keys().next().value);
+  return Number.isFinite(previous) && now - previous < 2_000;
 }
 function secureRandomIndex(maximum) {
   if (!Number.isSafeInteger(maximum) || maximum < 1) throw new Error('A draw requires at least one ticket.');
@@ -184,12 +236,13 @@ async function snapshotDigest(active) {
   return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');
 }
 function summary(state) {
-  const active = state.active; if (!active) return { available: true, status: 'draft', entrantCount: 0, totalTickets: 0, totalPointsSpent: 0, historyCount: state.history.length };
-  return { available: true, giveawayId: active.id, status: active.status, name: active.name, prize: active.prize, entryMode: active.entryMode, entrantCount: active.receipt?.entrantCount ?? active.entries.length, totalTickets: active.receipt?.totalTickets ?? totalTickets(active), totalPointsSpent: active.entries.reduce((sum, entry) => sum + entry.pointsSpent - entry.refundedPoints, 0), ...(active.winner ? { winner: active.winner.displayName } : {}), ...(active.receipt ? { receipt: active.receipt } : {}), historyCount: state.history.length };
+  const warning = state.lastDeliveryError ? { deliveryWarning: `${state.lastDeliveryError.scope}: ${state.lastDeliveryError.message}`, deliveryWarningAt: state.lastDeliveryError.at } : {};
+  const active = state.active; if (!active) return { available: true, status: 'draft', entrantCount: 0, totalTickets: 0, pendingPurchases: 0, totalPointsSpent: 0, historyCount: state.history.length, ...warning };
+  return { available: true, giveawayId: active.id, status: active.status, name: active.name, prize: active.prize, entryMode: active.entryMode, entrantCount: active.receipt?.entrantCount ?? active.entries.length, totalTickets: active.receipt?.totalTickets ?? totalTickets(active), pendingPurchases: active.pendingPurchases.length, totalPointsSpent: active.entries.reduce((sum, entry) => sum + entry.pointsSpent - entry.refundedPoints, 0), ...(active.winner ? { winner: active.winner.displayName } : {}), ...(active.receipt ? { receipt: active.receipt } : {}), historyCount: state.history.length, ...warning };
 }
 function activeFromSettings(settings, sequence, now) {
   const stamp = new Date(now).toISOString();
-  return { id: `draw-${String(sequence)}-${String(now)}`.slice(0, 100), status: 'open', name: settings.name, description: settings.description, prize: settings.prize, imageUrl: settings.imageUrl, entryMode: settings.entryMode, ticketCost: settings.ticketCost, maxTicketsPerViewer: settings.entryMode === 'points-multiple' ? settings.maxTicketsPerViewer : 1, maximumEntrants: settings.maximumEntrants, maximumTotalTickets: settings.maximumTotalTickets, eligiblePlatforms: settings.eligiblePlatforms, createdAt: stamp, openedAt: stamp, closedAt: '', drawnAt: '', entries: [], pendingPurchases: [], pendingRefunds: [] };
+  return { id: `draw-${String(sequence)}-${String(now)}`.slice(0, 100), status: 'open', name: settings.name, description: settings.description, prize: settings.prize, imageUrl: settings.imageUrl, entryMode: settings.entryMode, ticketCost: settings.ticketCost, maxTicketsPerViewer: settings.entryMode === 'points-multiple' ? settings.maxTicketsPerViewer : 1, maximumEntrants: settings.maximumEntrants, maximumTotalTickets: settings.maximumTotalTickets, eligiblePlatforms: settings.eligiblePlatforms, createdAt: stamp, openedAt: stamp, closedAt: '', drawnAt: '', entries: [], pendingPurchases: [], pendingRefunds: [], closeRequested: false };
 }
 function armPurchaseRecovery(context, delayMs = 30_000) {
   if (stopped || purchaseRecoveryTaskId !== undefined) return;
@@ -224,12 +277,15 @@ async function recoverPendingPurchases(context, state, strict = true) {
     if (result.duplicate && entry.tickets > active.maxTicketsPerViewer) entry.tickets = active.maxTicketsPerViewer;
     await context.state.write(state);
   }
+  if (active.closeRequested && active.pendingPurchases.length === 0 && active.status === 'paused') {
+    active.closeRequested = false; active.status = 'closed'; active.closedAt = new Date().toISOString(); await context.state.write(state);
+  }
   return state;
 }
 async function beginRefund(context, state) {
   const active = state.active; if (!active) return state;
   if (active.status !== 'canceling') {
-    active.status = 'canceling';
+    active.status = 'canceling'; active.closeRequested = false;
     active.pendingRefunds = active.entries.filter((entry) => entry.pointsSpent > entry.refundedPoints).map((entry) => entry.viewerId);
     await context.state.write(state);
   }
@@ -244,8 +300,10 @@ function armRefund(context, delayMs = 1_000) {
   });
 }
 async function refundBatch(context) {
-  const settings = settingsFor(context); const state = stateFor(await context.state.read()); const active = state.active;
+  const settings = settingsFor(context); const state = await recoverPendingPurchases(context, stateFor(await context.state.read()), false); const active = state.active;
   if (!active || active.status !== 'canceling') return summary(state);
+  if (active.pendingPurchases.length > 0) { armPurchaseRecovery(context); armRefund(context, 30_000); return summary(state); }
+  active.pendingRefunds = [...new Set([...active.pendingRefunds, ...active.entries.filter((entry) => entry.pointsSpent > entry.refundedPoints).map((entry) => entry.viewerId)])];
   let retryNeeded = false;
   for (const viewerId of active.pendingRefunds.slice(0, 10)) {
     const entry = active.entries.find((candidate) => candidate.viewerId === viewerId); const amount = entry ? entry.pointsSpent - entry.refundedPoints : 0;
@@ -258,7 +316,7 @@ async function refundBatch(context) {
     await context.state.write(state);
   }
   if (active.pendingRefunds.length > 0) { armRefund(context, retryNeeded ? 30_000 : 1_000); return summary(state); }
-  active.status = 'canceled'; active.entries = []; await context.state.write(state);
+  active.status = 'canceled'; active.entries = []; active.pendingPurchases = []; await context.state.write(state);
   await announce(context, settings, settings.canceledMessage, { name: active.name, prize: active.prize });
   return summary(state);
 }
@@ -296,6 +354,8 @@ async function buyTickets(event, context, state, requested) {
 }
 async function control(request, context, now = Date.now(), randomIndex = secureRandomIndex) {
   const settings = settingsFor(context); let state = stateFor(await context.state.read()); state = await recoverPendingPurchases(context, state, false); if (state.active?.pendingPurchases.length) armPurchaseRecovery(context);
+  const frozenOperations = new Set(['open', 'close', 'draw', 'confirm', 'redraw', 'reset']);
+  if (state.active?.pendingPurchases.length && frozenOperations.has(request.operation)) throw new Error(`Wait for ${String(state.active.pendingPurchases.length)} pending ticket purchase(s) to settle, or cancel and refund the giveaway.`);
   switch (request.operation) {
     case 'status': return summary(state);
     case 'open': {
@@ -336,16 +396,26 @@ async function control(request, context, now = Date.now(), randomIndex = secureR
 }
 async function processEvent(event, context) {
   const settings = settingsFor(context); if (!settings.enabled) return;
-  let state = stateFor(await context.state.read()); state = await recoverPendingPurchases(context, state, false); if (state.active?.pendingPurchases.length) armPurchaseRecovery(context); if (state.active?.status === 'canceling') return;
-  if (event.eventType === 'stream.offline' && state.active?.status === 'open') {
-    if (settings.streamEndBehavior === 'pause') state.active.status = 'paused';
-    if (settings.streamEndBehavior === 'close') { state.active.status = 'closed'; state.active.closedAt = new Date().toISOString(); }
-    if (settings.streamEndBehavior !== 'leave-open') await context.state.write(state); return;
+  if (event.eventType === 'stream.online' && event.metadata?.simulated !== true && PLATFORMS.includes(event.platform)) { livePlatforms.add(event.platform); return; }
+  if (event.eventType === 'stream.offline' && event.metadata?.simulated !== true && PLATFORMS.includes(event.platform)) {
+    if (!livePlatforms.has(event.platform)) return;
+    livePlatforms.delete(event.platform); if (livePlatforms.size > 0 || settings.streamEndBehavior === 'leave-open') return;
+    let state = stateFor(await context.state.read()); state = await recoverPendingPurchases(context, state, false); const active = state.active;
+    if (!active || !['open', 'paused'].includes(active.status)) return;
+    if (settings.streamEndBehavior === 'pause') active.status = 'paused';
+    if (settings.streamEndBehavior === 'close') {
+      if (active.pendingPurchases.length > 0) { active.status = 'paused'; active.closeRequested = true; armPurchaseRecovery(context); }
+      else { active.status = 'closed'; active.closedAt = new Date().toISOString(); active.closeRequested = false; }
+    }
+    await context.state.write(state); return;
   }
-  if (event.eventType !== 'command.received' || event.user?.actorType !== 'human') return;
-  const command = clean(event.payload?.command, 40).toLowerCase(); const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments.map((item) => clean(item, 100)).filter(Boolean) : [];
+  let state = stateFor(await context.state.read()); state = await recoverPendingPurchases(context, state, false); if (state.active?.pendingPurchases.length) armPurchaseRecovery(context); if (state.active?.status === 'canceling') return;
+  if (event.user?.actorType !== 'human' || !PLATFORMS.includes(event.platform)) return;
+  const parsed = commandFrom(event, settings); if (!parsed || duplicateCommand(event, parsed)) return;
+  const { command, args } = parsed;
+  if (![settings.giveawayCommand, settings.enterCommand, settings.ticketsCommand, settings.myTicketsCommand].includes(command) || coolingDown(event, command)) return;
   if (event.metadata?.simulated === true) {
-    if ([settings.giveawayCommand, settings.enterCommand, settings.ticketsCommand, settings.myTicketsCommand].includes(command)) await context.overlay.publish(`${MODULE_ID}.card.show`, { title: 'VILLAGE DRAW • PREVIEW', text: `${settings.prize} • ${settings.description}`, imageUrl: settings.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings) });
+    await publishCard(context, `${MODULE_ID}.card.show`, { title: 'VILLAGE DRAW • PREVIEW', text: `${settings.prize} • ${settings.description}`, imageUrl: settings.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings) });
     return;
   }
   if (command === settings.giveawayCommand) {
@@ -369,10 +439,10 @@ async function processEvent(event, context) {
 export default {
   manifest, required: false,
   async start(context) {
-    stopped = false; operation = Promise.resolve(); let state = stateFor(await context.state.read()); state = await recoverPendingPurchases(context, state, false); await context.state.write(state); if (state.active?.pendingPurchases.length) armPurchaseRecovery(context); if (state.active?.status === 'canceling') armRefund(context);
+    stopped = false; operation = Promise.resolve(); livePlatforms.clear(); recentlyHandledCommands.clear(); commandCooldowns.clear(); let state = stateFor(await context.state.read()); state = await recoverPendingPurchases(context, state, false); await context.state.write(state); if (state.active?.pendingPurchases.length) armPurchaseRecovery(context); if (state.active?.status === 'canceling') armRefund(context);
     deleteUnsubscribe = context.viewerFoundation.onDeleted(async (viewerId) => { operation = operation.then(async () => { const current = stateFor(await context.state.read()); if (!current.active) return; current.active.entries = current.active.entries.filter((entry) => entry.viewerId !== viewerId); current.active.pendingPurchases = current.active.pendingPurchases.filter((entry) => entry.viewerId !== viewerId); current.active.pendingRefunds = current.active.pendingRefunds.filter((entry) => entry !== viewerId); await context.state.write(current); }); await operation; });
   },
-  async stop(context) { stopped = true; deleteUnsubscribe?.(); deleteUnsubscribe = undefined; if (refundTaskId !== undefined) context.schedule.cancel(refundTaskId); if (purchaseRecoveryTaskId !== undefined) context.schedule.cancel(purchaseRecoveryTaskId); refundTaskId = undefined; purchaseRecoveryTaskId = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); },
+  async stop(context) { stopped = true; deleteUnsubscribe?.(); deleteUnsubscribe = undefined; if (refundTaskId !== undefined) context.schedule.cancel(refundTaskId); if (purchaseRecoveryTaskId !== undefined) context.schedule.cancel(purchaseRecoveryTaskId); refundTaskId = undefined; purchaseRecoveryTaskId = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); recentlyHandledCommands.clear(); commandCooldowns.clear(); },
   async onEvent(event, context) { operation = operation.then(() => processEvent(event, context), () => processEvent(event, context)); await operation; },
   async administerVillageDraw(request, context) { operation = operation.then(() => control(request, context), () => control(request, context)); return operation; },
 };

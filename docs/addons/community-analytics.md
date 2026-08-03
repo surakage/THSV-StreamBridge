@@ -52,4 +52,4 @@ Dependencies: `thsv.viewer-foundation`.
 
 1. Uninstall the add-on. Its bounded private counters remain preserved for a later reinstall or creator export.
 
-If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.
+If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.

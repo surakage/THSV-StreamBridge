@@ -16,7 +16,7 @@ Runs restart-safe free or Viewer Foundation points giveaways with bounded weight
 ### Add-on-specific steps
 
 1. Install and enable Viewer Foundation first; Village Draw never creates a second points balance.
-2. Create the four no-response commands in Command Sync, keeping giveaway management restricted to moderators.
+2. Keep chat-message triggers on the existing main THSV platform intake actions; no separate giveaway commands or triggers are required in Streamer.bot.
 3. Configure the prize and ticket rules, save, restart, then use the authenticated wizard controls to open the draw.
 4. Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview.
 
@@ -51,4 +51,4 @@ Dependencies: `thsv.viewer-foundation`.
 
 1. Cancel and refund an open points draw before uninstalling. Private bounded history remains available for a later reinstall.
 
-If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.
+If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.

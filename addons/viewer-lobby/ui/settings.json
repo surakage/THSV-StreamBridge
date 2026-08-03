@@ -1,11 +1,12 @@
 {
-  "intro": "Viewer Lobby is a local, multi-platform play queue. Viewer commands can only change the invoking viewer's entry. Imported controls are creator-only, and the overlay is read-only.",
-  "order": ["enabled", "platforms", "commandPrefix", "joinCommand", "leaveCommand", "positionCommand", "queueCommand", "maximumEntries", "allowGamertag", "showGamertags", "offlinePolicy", "ignoredUsers"],
+  "intro": "Viewer Lobby is a local multi-platform play queue. Follow the sections in order: choose who can join, review the chat commands, decide what the public overlay may show, then import the creator controls.",
+  "order": ["enabled", "platforms", "maximumEntries", "offlinePolicy", "commandPrefix", "joinCommand", "leaveCommand", "positionCommand", "queueCommand", "allowGamertag", "showGamertags", "ignoredUsers", "maximumVisibleEntries", "showPlatforms", "backgroundMode", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "fontFamily", "fontSize"],
   "sections": [
-    { "id": "quick", "title": "1. Quick setup", "open": true, "fields": ["enabled", "platforms", "maximumEntries"], "notice": "Import the controls and attach them only to creator hotkeys/deck buttons. Use /overlay/addons/thsv.viewer-lobby as the read-only browser source." },
-    { "id": "commands", "title": "2. Viewer commands", "fields": ["commandPrefix", "joinCommand", "leaveCommand", "positionCommand", "queueCommand"] },
-    { "id": "privacy", "title": "3. Gamertags and privacy", "fields": ["allowGamertag", "showGamertags", "ignoredUsers"] },
-    { "id": "lifecycle", "title": "4. Stream lifecycle", "fields": ["offlinePolicy"] }
+    { "id": "quick", "title": "1. Lobby basics", "description": "Choose who can join and what happens when the stream ends.", "open": true, "fields": ["enabled", "platforms", "maximumEntries", "offlinePolicy"], "notice": "Recommended first test: enable Twitch only, keep the queue at 30, and choose Close so test entries are not erased automatically." },
+    { "id": "commands", "title": "2. Viewer chat commands", "description": "These commands already use the main platform chat intakes.", "fields": ["commandPrefix", "joinCommand", "leaveCommand", "positionCommand", "queueCommand"], "notice": "Do not recreate these commands in Command Sync. Viewers type them directly in Twitch, YouTube, Kick, or TikTok chat." },
+    { "id": "gamertags", "title": "3. Optional gamertags", "description": "Keep private player names off the public overlay unless you need them.", "fields": ["allowGamertag", "showGamertags"] },
+    { "id": "ignored", "title": "4. Ignored accounts", "description": "Service bots on this list cannot join or run lobby commands.", "fields": ["ignoredUsers"] },
+    { "id": "overlay", "title": "5. OBS overlay appearance", "description": "Control only what viewers see in the read-only browser source.", "fields": ["maximumVisibleEntries", "showPlatforms", "backgroundMode", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "fontFamily", "fontSize"], "notice": "Add the source at its intended browser resolution and crop it. Stretching a browser source makes text blurry." }
   ],
-  "fields": { "showGamertags": { "visibleWhen": { "field": "allowGamertag", "equals": true } }, "ignoredUsers": { "rows": 6 } }
+  "fields": { "showGamertags": { "visibleWhen": { "field": "allowGamertag", "equals": true } }, "backgroundColor": { "visibleWhen": { "field": "backgroundMode", "in": ["glass", "solid"] } }, "backgroundOpacity": { "visibleWhen": { "field": "backgroundMode", "in": ["glass", "solid"] } }, "ignoredUsers": { "rows": 6 } }
 }

@@ -42,6 +42,12 @@ describe('Chat Guard add-on', () => {
     expect(testRuntime.context.state.write).not.toHaveBeenCalled();
   });
 
+  it('ignores preinstalled platform name rules when a relay misses bot classification', async () => {
+    const testRuntime = runtime({ blockedTerms: ['flag'], ignoredAccounts: ['twitch|name:nightbot'] });
+    await expect(processChatGuardEvent(event('flag', { user: { id: 'unverified-id', name: 'NightBot', displayName: 'Nightbot', actorType: 'human', roles: [] } }), testRuntime.context, 1000)).resolves.toBeUndefined();
+    expect(testRuntime.context.state.write).not.toHaveBeenCalled();
+  });
+
   it('persists hashes and rule metadata without raw messages, names, or account IDs', async () => {
     const testRuntime = runtime({ blockedTerms: ['private phrase'] });
     await processChatGuardEvent(event('a private phrase from chat'), testRuntime.context, 1000);

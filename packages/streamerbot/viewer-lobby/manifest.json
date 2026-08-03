@@ -121,6 +121,25 @@
       ]
     },
     {
+      "id": "3ac82372-a9bd-4e87-bcae-4ca7a61d8df5",
+      "name": "THSV Addon - Viewer Lobby - Complete",
+      "group": "THSV Addon - Viewer Lobby",
+      "arguments": [
+        {
+          "name": "viewerLobbyAction",
+          "value": "complete"
+        }
+      ],
+      "source": "src/Control.cs",
+      "importFile": "THSV-StreamBridge-Viewer-Lobby-3.0.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
       "id": "010d9005-6772-4e4c-b7be-0fd48e8984ce",
       "name": "THSV Addon - Viewer Lobby - Clear",
       "group": "THSV Addon - Viewer Lobby",

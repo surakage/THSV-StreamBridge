@@ -52,4 +52,11 @@ describe('hosted add-on overlay previews', () => {
       style: { backgroundMode: 'glass', backgroundColor: '#102030', backgroundOpacity: 0.94, accentColor: '#abcdef', textColor: '#fedcba', fontFamily: 'serif', fontSize: 34 },
     });
   });
+
+  it('builds a Viewer Lobby queue preview on the queue contract', () => {
+    const preview = buildAddOnOverlayPreview({ moduleId: 'thsv.viewer-lobby', name: 'Viewer Lobby', settings: { backgroundMode: 'solid', backgroundColor: '#102030', backgroundOpacity: 0.8, accentColor: '#abcdef', textColor: '#fedcba', fontFamily: 'mono', fontSize: 40 } });
+    expect(preview).toMatchObject({ status: 'open', count: 4, selectedEntryId: 'preview-selected', preview: true, style: { backgroundMode: 'solid', backgroundColor: '#102030', backgroundOpacity: 0.8, accentColor: '#abcdef', textColor: '#fedcba', fontFamily: 'mono', fontSize: 40 } });
+    expect((preview.entries as unknown[])).toHaveLength(4);
+    expect(JSON.stringify(preview)).not.toContain(':id:');
+  });
 });

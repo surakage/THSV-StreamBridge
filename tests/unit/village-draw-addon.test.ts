@@ -16,6 +16,24 @@ function command(name: string, args: string[] = [], simulated = false, userId = 
   };
 }
 
+function chatCommand(message: string, userId = 'viewer-1', roles: string[] = [], receivedAt = '2026-07-31T12:00:00.000Z'): NormalizedEvent {
+  return {
+    schemaVersion: '1.0.0', eventId: `chat-${userId}-${message}`, eventType: 'chat.message', platform: 'twitch',
+    source: { adapter: 'test', eventId: `source-chat-${userId}-${message}`, eventName: 'Chat Message' }, receivedAt,
+    channel: { id: 'channel-1', name: 'Example Channel' },
+    user: { id: userId, name: userId, displayName: userId === 'viewer-1' ? 'Viewer One' : 'Viewer Two', actorType: 'human', roles },
+    payload: { message }, metadata: { simulated: false },
+  };
+}
+
+function streamEvent(eventType: 'stream.online' | 'stream.offline', platform: 'twitch' | 'youtube'): NormalizedEvent {
+  return {
+    schemaVersion: '1.0.0', eventId: `${eventType}-${platform}`, eventType, platform,
+    source: { adapter: 'test', eventId: `source-${eventType}-${platform}`, eventName: eventType }, receivedAt: '2026-07-31T12:00:00.000Z',
+    channel: { id: 'channel-1', name: 'Example Channel' }, payload: {}, metadata: { simulated: false },
+  };
+}
+
 function harness(settings: Record<string, unknown> = {}) {
   let state: unknown;
   const balances = new Map([['viewer-one', 1_000], ['viewer-two', 1_000]]);
@@ -24,11 +42,12 @@ function harness(settings: Record<string, unknown> = {}) {
   const scheduled: Array<() => Promise<unknown>> = [];
   const chat: Array<Record<string, unknown>> = [];
   const overlays: Array<{ topic: string; payload: Record<string, unknown> }> = [];
+  let failSpend = settings['testFailSpend'] === true;
   const context = {
     settings: { enabled: true, giveawayName: 'Cozy Draw', description: 'A friendly test draw.', prizeItem: 'Cozy Key', announcementPlatforms: ['twitch'], ...settings },
     state: { read: vi.fn(async () => state), write: vi.fn(async (value: unknown) => { state = structuredClone(value); }) },
     schedule: { after: vi.fn((_delay: number, task: () => Promise<unknown>) => { scheduled.push(task); return `task-${String(scheduled.length)}`; }), cancel: vi.fn(() => true) },
-    chat: { send: vi.fn(async (request: Record<string, unknown>) => { chat.push(request); return [{ platform: 'twitch', accepted: true, parts: 1 }]; }) },
+    chat: { send: vi.fn(async (request: Record<string, unknown>) => { chat.push(request); return [{ platform: 'twitch', accepted: true, parts: 1, error: undefined as string | undefined }]; }) },
     overlay: { publish: vi.fn(async (topic: string, payload: Record<string, unknown>) => { overlays.push({ topic, payload }); }) },
     viewerFoundation: {
       getProjection: vi.fn(async (query: Record<string, unknown>) => {
@@ -39,6 +58,7 @@ function harness(settings: Record<string, unknown> = {}) {
         const key = String(request['idempotencyKey']); const duplicate = mutations.has(key); const viewerId = String(request['viewerId']); const previousPoints = balances.get(viewerId) ?? 0;
         if (!duplicate) {
           const amount = Number(request['amount']); const operation = String(request['operation']);
+          if (operation === 'spend' && failSpend) throw new Error('Temporary points provider failure.');
           if (operation === 'spend' && previousPoints < amount) throw new Error('Insufficient points.');
           balances.set(viewerId, operation === 'spend' ? previousPoints - amount : previousPoints + amount);
           mutations.set(key, { viewerId, operation, amount, previousPoints });
@@ -48,7 +68,7 @@ function harness(settings: Record<string, unknown> = {}) {
       onDeleted: vi.fn(() => vi.fn()),
     },
   };
-  return { context, scheduled, chat, overlays, state: () => state, points: (id: string) => balances.get(id) };
+  return { context, scheduled, chat, overlays, state: () => state, points: (id: string) => balances.get(id), setFailSpend: (value: boolean) => { failSpend = value; } };
 }
 
 describe('Village Draw add-on', () => {
@@ -79,6 +99,57 @@ describe('Village Draw add-on', () => {
     await runtime.scheduled[0]?.();
     expect(runtime.points('viewer-one')).toBe(1_000);
     expect(stateFor(runtime.state()).active).toMatchObject({ status: 'canceled', pendingRefunds: [] });
+    await villageDraw.stop(runtime.context);
+  });
+
+  it('reads commands directly from normalized chat and deduplicates the derived command copy', async () => {
+    const runtime = harness({ entryMode: 'free-single', commandPrefix: '?' });
+    await villageDraw.start(runtime.context);
+    await villageDraw.onEvent(chatCommand('?giveaway open', 'viewer-2', ['broadcaster']), runtime.context);
+    const receivedAt = '2026-07-31T12:01:00.000Z';
+    await villageDraw.onEvent(chatCommand('?enter', 'viewer-1', [], receivedAt), runtime.context);
+    expect(runtime.chat).toHaveLength(3);
+    const derived = command('enter'); derived.receivedAt = receivedAt; derived.payload = { ...derived.payload, rawInput: '?enter', prefix: '?' };
+    await villageDraw.onEvent(derived, runtime.context);
+    expect(stateFor(runtime.state()).active).toMatchObject({ status: 'open', entries: [expect.objectContaining({ viewerId: 'viewer-one', tickets: 1 })] });
+    expect(runtime.chat).toHaveLength(3);
+    await villageDraw.stop(runtime.context);
+  });
+
+  it('waits for every live platform to end before applying the stream-end close rule', async () => {
+    const runtime = harness({ entryMode: 'free-single', streamEndBehavior: 'close' });
+    await villageDraw.start(runtime.context); await villageDraw.administerVillageDraw({ operation: 'open', approvedByCreator: true }, runtime.context);
+    await villageDraw.onEvent(streamEvent('stream.online', 'twitch'), runtime.context);
+    await villageDraw.onEvent(streamEvent('stream.online', 'youtube'), runtime.context);
+    await villageDraw.onEvent(streamEvent('stream.offline', 'twitch'), runtime.context);
+    expect(stateFor(runtime.state()).active?.status).toBe('open');
+    await villageDraw.onEvent(streamEvent('stream.offline', 'youtube'), runtime.context);
+    expect(stateFor(runtime.state()).active?.status).toBe('closed');
+    await villageDraw.stop(runtime.context);
+  });
+
+  it('blocks a frozen draw while a purchase is unresolved and refunds it safely after cancellation', async () => {
+    const runtime = harness({ entryMode: 'points-multiple', ticketCost: 50, testFailSpend: true });
+    await villageDraw.start(runtime.context); await villageDraw.administerVillageDraw({ operation: 'open', approvedByCreator: true }, runtime.context, 1_000);
+    const state = stateFor(runtime.state());
+    state.active?.pendingPurchases.push({ viewerId: 'viewer-one', idempotencyKey: 'purchase-recovery-test', displayName: 'Viewer One', platform: 'twitch', tickets: 1, amount: 50, createdAt: '2026-07-31T12:00:00.000Z' });
+    await runtime.context.state.write(state);
+    await expect(villageDraw.administerVillageDraw({ operation: 'close', approvedByCreator: true }, runtime.context)).rejects.toThrow('pending ticket purchase');
+    expect(stateFor(runtime.state()).active?.status).toBe('open');
+    await expect(villageDraw.administerVillageDraw({ operation: 'cancel', approvedByCreator: true }, runtime.context)).resolves.toMatchObject({ status: 'canceling', pendingPurchases: 1 });
+    runtime.setFailSpend(false);
+    await runtime.scheduled[0]?.();
+    await runtime.scheduled[1]?.();
+    expect(stateFor(runtime.state()).active).toMatchObject({ status: 'canceled', entries: [], pendingPurchases: [] });
+    expect(runtime.points('viewer-one')).toBe(1_000);
+    await villageDraw.stop(runtime.context);
+  });
+
+  it('records an actionable warning when every selected chat delivery is rejected', async () => {
+    const runtime = harness();
+    runtime.context.chat.send.mockResolvedValue([{ platform: 'twitch', accepted: false, parts: 0, error: 'not connected' }]);
+    await villageDraw.start(runtime.context); await villageDraw.administerVillageDraw({ operation: 'open', approvedByCreator: true }, runtime.context);
+    await expect(villageDraw.administerVillageDraw({ operation: 'status' }, runtime.context)).resolves.toMatchObject({ deliveryWarning: expect.stringContaining('not connected') });
     await villageDraw.stop(runtime.context);
   });
 

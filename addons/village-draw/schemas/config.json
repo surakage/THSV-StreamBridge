@@ -5,6 +5,7 @@
   "additionalProperties": false,
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable Village Draw", "default": false },
+    "commandPrefix": { "type": "string", "title": "Command prefix", "description": "Use the same one-character prefix viewers already use in chat.", "pattern": "^\\S$", "minLength": 1, "maxLength": 1, "default": "!" },
     "giveawayCommand": { "type": "string", "title": "Giveaway information and moderator command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "giveaway" },
     "enterCommand": { "type": "string", "title": "Single-entry command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "enter" },
     "ticketsCommand": { "type": "string", "title": "Multiple-ticket purchase command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "tickets" },

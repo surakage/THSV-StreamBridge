@@ -1,5 +1,20 @@
 import { z } from 'zod';
 
+// Conservative, editable defaults for well-known service accounts. These names
+// supplement actorType=bot because some provider relays do not classify bots.
+export const DEFAULT_IGNORED_BOT_NAMES = [
+  'nightbot',
+  'streamelements',
+  'fossabot',
+  'moobot',
+  'sery_bot',
+  'soundalerts',
+  'wizebot',
+  'kofistreambot',
+  'botrix',
+  'streamlabs',
+] as const;
+
 export const CAPABILITY_VALUES = [
   'chatInput',
   'chatOutput',
@@ -269,7 +284,7 @@ export const chatOverlaySchema = z.object({
   showPlatformLabels: z.boolean().default(true),
   showProfilePictures: z.boolean().default(true),
   showBadges: z.boolean().default(true),
-  ignoredNames: z.array(z.string().trim().min(1).max(256)).max(500).default([]),
+  ignoredNames: z.array(z.string().trim().min(1).max(256)).max(500).default([...DEFAULT_IGNORED_BOT_NAMES]),
   events: z.object({
     enabled: z.boolean().default(true),
     platforms: z.object({ twitch: z.boolean(), youtube: z.boolean(), kick: z.boolean(), tiktok: z.boolean(), streamlabs: z.boolean(), kofi: z.boolean() }).strict().default({ twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }),
@@ -307,7 +322,7 @@ const browserOverlaySchema = z.object({
   showSimulated: z.boolean().default(true),
   chat: chatOverlaySchema.default({
     layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9,
-    messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [],
+    messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [...DEFAULT_IGNORED_BOT_NAMES],
     events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } },
   }),
   alerts: alertPresentationSchema.default({ profiles: {} }),
@@ -413,7 +428,7 @@ const bridgeConfigObjectSchema = z
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({
       enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
-      chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
+      chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [...DEFAULT_IGNORED_BOT_NAMES], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
       alerts: { profiles: {} },
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),

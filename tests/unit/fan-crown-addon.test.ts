@@ -204,6 +204,15 @@ describe('Fan Crown add-on', () => {
     expect(testRuntime.value().pending).toMatchObject({ operation: 'reset-month', announceWinner: true });
   });
 
+  it('retries a failed monthly provider reset after one bounded minute', async () => {
+    const stale = sanitizeState({ seasonMonth: '2000-01', currentCost: 5_000 }, 500, Date.parse('2000-01-15T12:00:00.000Z'));
+    const testRuntime = runtime({}, stale as Record<string, unknown>);
+    testRuntime.context.streamerbot.runApprovedAction.mockRejectedValueOnce(new Error('provider starting'));
+    await fanCrown.start(testRuntime.context);
+    expect(testRuntime.context.schedule.after).toHaveBeenCalledWith(60_000, expect.any(Function));
+    expect(testRuntime.value()).not.toHaveProperty('pending');
+  });
+
   it('never dispatches a controller for a simulated redemption', async () => {
     const testRuntime = runtime();
     await fanCrown.onEvent({ ...rewardEvent(), metadata: { simulated: true } }, testRuntime.context);

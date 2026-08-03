@@ -4,24 +4,32 @@
 **Version:** `3.0.0`
 **Publisher:** THSV StreamBridge
 
-Adds bounded cross-platform Number Guess, Trivia, and Prediction rounds.
+Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, idempotent points, optional OpenTDB trivia, and dictionary-backed Unscramble.
 
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Chat-Play-Pack-3.0.0.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-Chat-Play-Pack-3.0.0.thsv-addon` and review its permissions.
-3. No separate Streamer.bot import is required.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+3. Import `Streamer.bot/THSV-StreamBridge-Chat-Play-Pack-3.0.0.sb` in Streamer.bot.
+4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
 1. Install Viewer Foundation first.
-2. Create matching no-response commands in Command Sync.
-3. Configure original trivia questions before enabling Trivia.
+2. Import Chat Play Pack once; it includes all eleven command entries and the two optional provider actions.
+3. Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.
+4. Configure creator fallback questions and words before enabling provider-backed games.
 
 ## Streamer.bot
 
-This add-on uses normalized bridge events and does not install a Streamer.bot action package.
+Minimum supported Streamer.bot version: `1.0.5-beta.5`.
+
+Imported group: `THSV Addon - Chat Play Pack`
+
+- `THSV Addon - Chat Play Pack - Fetch Trivia Questions` in `THSV Addon - Chat Play Pack`
+- `THSV Addon - Chat Play Pack - Fetch Unscramble Words` in `THSV Addon - Chat Play Pack`
+
+Fetch actions remain broker-dispatched and triggerless. Imported commands need no action triggers because the existing THSV platform intake actions already relay normalized public chat; TikTok uses the existing TikFinity intake.
 
 ## Browser source
 
@@ -36,11 +44,11 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ### Health checks
 
-- **thsv.chat-play-pack.runtime:** Confirms bounded rounds, cooldowns, and idempotent Viewer Foundation awards.
+- **thsv.chat-play-pack.runtime:** Confirms serialized rounds, bounded cooldowns, stable duel identities, trivia fallback, and idempotent Viewer Foundation awards.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `streamerbot.run-approved-action`, `viewer.foundation.read`, `viewer.foundation.mutate`.
 
 Private storage: `data/addons/thsv.chat-play-pack/`, `data/addons/.state/thsv.chat-play-pack/`.
 

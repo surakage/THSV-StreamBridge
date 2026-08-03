@@ -31,6 +31,15 @@ interface ModuleRuntimeState {
   message: string | undefined;
 }
 
+export interface CommandDirectoryModuleSource {
+  readonly moduleId: string;
+  readonly moduleName: string;
+  readonly status: 'stopped' | 'healthy' | 'failed';
+  readonly commandsProvided: ModuleManifestV2['commandsProvided'];
+  /** Kept inside the host. Consumers must read only explicitly allowlisted keys. */
+  readonly settings: Readonly<Record<string, unknown>>;
+}
+
 export class ModuleRegistry {
   private readonly states = new Map<string, ModuleRuntimeState>();
   private readonly order: readonly string[];
@@ -122,6 +131,25 @@ export class ModuleRegistry {
         failures,
         ...(state.message === undefined ? {} : { message: state.message }),
       };
+    });
+  }
+
+  /**
+   * Returns the narrow host-owned input used to build the public command directory.
+   * The directory service never serializes settings; it may only consult explicitly
+   * allowlisted command-name and enable-toggle keys.
+   */
+  public commandDirectorySources(): readonly CommandDirectoryModuleSource[] {
+    return this.order.map((moduleId) => {
+      const state = this.states.get(moduleId);
+      if (state === undefined) throw new Error(`Module state disappeared: ${moduleId}`);
+      return Object.freeze({
+        moduleId,
+        moduleName: state.module.manifest.name,
+        status: state.status,
+        commandsProvided: state.module.manifest.commandsProvided,
+        settings: state.module.settings ?? Object.freeze({}),
+      });
     });
   }
 

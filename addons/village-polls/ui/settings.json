@@ -1,0 +1,16 @@
+{
+  "intro": "Run one shared command-based poll across Twitch, YouTube, Kick, and TikTok directly from the existing THSV chat intakes. No separate Streamer.bot commands or triggers are required.",
+  "order": ["enabled", "commandPrefix", "pollCommand", "voteCommand", "maximumPollOptions", "closePollOnStreamEnd"],
+  "sections": [
+    { "id": "setup", "title": "1. Turn on universal polls", "open": true, "fields": ["enabled", "commandPrefix"], "notice": "Keep the default ! prefix for the easiest setup. Opening and closing are announced to all four supported chats; vote confirmations remain in the viewer's source chat." },
+    { "id": "poll-behavior", "title": "2. Poll behavior", "fields": ["maximumPollOptions", "closePollOnStreamEnd"], "notice": "Moderator: !poll open Best snack? | Cookies | Chips. Viewers: !vote 1. Moderator: !poll close. Closing sends results to chat and shows the result card for 12 seconds." },
+    { "id": "advanced-commands", "title": "Advanced: change command names", "fields": ["pollCommand", "voteCommand"], "notice": "Change these only when another command already uses the same name. The names must remain different. Village Polls reads them directly from normalized chat." }
+  ],
+  "fields": {
+    "maximumPollOptions": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "closePollOnStreamEnd": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "commandPrefix": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "pollCommand": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "voteCommand": { "visibleWhen": { "field": "enabled", "equals": true } }
+  }
+}

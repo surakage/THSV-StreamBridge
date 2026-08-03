@@ -51,4 +51,4 @@ Dependencies: none.
 
 1. Uninstall the add-on. Its latest label values remain preserved for a later reinstall.
 
-If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.
+If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.

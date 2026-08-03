@@ -8,10 +8,10 @@ Viewer Foundation is required and remains the only authority for identity, balan
 
 1. Install and live-accept Viewer Foundation.
 2. Install Village Draw and leave it disabled.
-3. Generate the `giveaway`, `enter`, `tickets`, and `mytickets` commands in Command Sync. Keep giveaway management restricted to Moderator or Broadcaster.
-4. Configure the prize and entry rules. Use free single entry first.
+3. Keep chat-message triggers on the existing main Twitch, YouTube, Kick, and TikTok intake actions. Do not generate separate giveaway commands or triggers in Streamer.bot.
+4. Configure the command prefix, prize, and entry rules. Use free single entry first.
 5. Save, restart StreamBridge, enable the package and feature, then send an overlay preview.
-6. Open the authenticated Live controls section and choose **Open entries**.
+6. Open the authenticated Live controls section and choose **Open entries**. Viewers can then use `!enter`, `!tickets`, and `!mytickets` directly in chat.
 
 Overlay URL: `http://127.0.0.1:8787/overlay/addons/thsv.village-draw`
 

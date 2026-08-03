@@ -69,7 +69,7 @@ const FALLBACKS = Object.freeze({
   communitySubmissionRole: 'viewer',
   directAddRole: 'moderator',
   ignoreBots: true,
-  ignoredUsers: [],
+  ignoredUsers: ['twitch:nightbot', 'twitch:streamelements', 'youtube:streamelements', 'kick:streamelements', 'twitch:fossabot', 'twitch:moobot', 'twitch:sery_bot', 'twitch:soundalerts', 'twitch:wizebot', 'twitch:kofistreambot', 'twitch:streamlabs', 'twitch:botrix', 'youtube:botrix', 'kick:botrix', 'tiktok:botrix'],
   allowLinks: false,
   maximumQuoteCharacters: 240,
   maximumApprovedQuotes: 100,

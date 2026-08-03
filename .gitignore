@@ -21,10 +21,12 @@ data/runtime/*
 data/state/*
 data/logs/*
 data/backups/*
+data/secrets/*
 !data/runtime/.gitkeep
 !data/state/.gitkeep
 !data/logs/.gitkeep
 !data/backups/.gitkeep
+!data/secrets/.gitkeep
 
 # Logs and temporary files
 *.log

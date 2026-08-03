@@ -23,6 +23,7 @@ import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
 import { STREAMBRIDGE_VERSION } from '../bridge/version.js';
 import { OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
 import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
+import { CommandDirectoryService } from '../bridge/services/command-directory.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -70,6 +71,7 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
 });
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);
+const commandDirectory = new CommandDirectoryService(config, modules);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
 const activeBridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, deliveryOutboxStore, modules });
 const wizard = new WizardService(
@@ -98,7 +100,7 @@ async function shutdown(signal: string): Promise<void> {
   }
 }
 
-const server = new DiagnosticsServer({ ...config.service, ...config.security }, activeBridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub, wizard, dataRoot);
+const server = new DiagnosticsServer({ ...config.service, ...config.security }, activeBridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub, wizard, dataRoot, commandDirectory);
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
 process.once('SIGTERM', () => void shutdown('SIGTERM'));
@@ -109,6 +111,11 @@ try {
   await activeBridge.start();
   await server.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
+  if (commandDirectory.publicationStatus().enabled) {
+    const publication = await commandDirectory.publish();
+    if (publication.state === 'published' || publication.state === 'unchanged') logger.info('Public command directory synchronized', { state: publication.state, publicUrl: publication.publicUrl, catalogHash: publication.catalogHash });
+    else logger.warn('Public command directory was not synchronized', { state: publication.state, error: publication.error });
+  }
 } catch (error) {
   logger.error('Startup failed', { error });
   await activeBridge.stop().catch(() => undefined);

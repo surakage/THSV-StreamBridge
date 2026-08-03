@@ -60,7 +60,7 @@
     "installationSteps": [
       "Install Viewer Lobby and import its creator controls.",
       "Configure commands, limits, privacy, and overlay fields.",
-      "Attach Open/Close/Pause/Resume/Next/Random/Clear only to creator-controlled triggers."
+      "Attach Open/Close/Pause/Resume/Next/Random/Complete/Clear only to creator-controlled triggers."
     ],
     "uninstallationSteps": [
       "Export any wanted queue summary before uninstalling. Private state remains preserved."
@@ -80,23 +80,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 12250,
-      "sha256": "d953c6283e3e5000f96597f5134981b4c74d285360aef7c7ce24f9e20385dcc4"
+      "size": 13973,
+      "sha256": "b64d3a71f20b2b875407bbf2d8fbf32e2be77bedcd8f5ceb13d20926b61325e5"
     },
     {
       "path": "schemas/config.json",
-      "size": 1854,
-      "sha256": "bd78f9f7336af66efe1a1a758057221ad8963267ffa5cb029dbee8e2a36dcc43"
+      "size": 4652,
+      "sha256": "1b7cd55b73a5c39ae53abebfd41e0fd5d7d3db6f85664a7ceb49fef38a0ff637"
     },
     {
       "path": "ui/settings.json",
-      "size": 1190,
-      "sha256": "041a7001e710e1529223479cecaebd1286cdeab13ee1b9fff56d307c9cd5a2d7"
+      "size": 2432,
+      "sha256": "ab3c673d3fae6a8a9018d86d8126862c3b3ed0213e6ed6f4d0652cf322b95360"
     },
     {
       "path": "README.md",
-      "size": 553,
-      "sha256": "9e3196c1cd6f15447db739bea9dd6ca5a241610c13cdea0a986ebed165c4ddb6"
+      "size": 666,
+      "sha256": "84c361666de1d127e1e178a9cb62823707e49820abbb0b451bb30f6d15928f70"
     }
   ]
 }

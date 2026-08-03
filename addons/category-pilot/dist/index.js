@@ -75,7 +75,7 @@ async function decide(profileId, matchedProcess, settings, context) {
     return;
   }
   await persistDecision({ ...current, pendingProfileId: profileId, pendingProcessName: matchedProcess }, context);
-  await publish(context, 'card.show', { title: 'Category Pilot suggestion', text: `${matchedProcess} is running. Apply ${profileId.replace('-', ' ')}?`, durationMs: 15000 });
+  await publish(context, `${manifest.moduleId}.card.show`, { title: 'Category Pilot suggestion', text: `${matchedProcess} is running. Apply ${profileId.replace('-', ' ')}?`, durationMs: 15000 });
 }
 
 const module = {
@@ -90,7 +90,7 @@ const module = {
       livePlatforms.delete(event.platform); if (!settings.requireLive || livePlatforms.size > 0) return;
       probePending = false; activeProbeId = ''; activeApply = undefined; candidate = ''; candidateCount = 0; cancel(context); cancelProbeTimeout(context); cancelApplyTimeout(context);
       const current = stateFor(await context.state.read()); if (current.pendingProfileId) await persistDecision({ ...current, pendingProfileId: '', pendingProcessName: '' }, context);
-      await publish(context, 'card.hide', {}); return;
+      await publish(context, `${manifest.moduleId}.card.hide`, {}); return;
     }
     if (event.eventType === PROBE_RESULT) {
       const requestId = clean(event.payload?.requestId, 100);
@@ -102,7 +102,7 @@ const module = {
       if (match && candidateCount >= settings.confirmationCount) { candidateCount = 0; await decide(match.profileId, match.processName, settings, context); }
       if (!match) {
         const current = stateFor(await context.state.read());
-        if (current.pendingProfileId) { await persistDecision({ ...current, pendingProfileId: '', pendingProcessName: '' }, context); await publish(context, 'card.hide', {}); }
+        if (current.pendingProfileId) { await persistDecision({ ...current, pendingProfileId: '', pendingProcessName: '' }, context); await publish(context, `${manifest.moduleId}.card.hide`, {}); }
       }
       arm(context, settings.intervalSeconds * 1000); return;
     }
@@ -111,13 +111,13 @@ const module = {
       const completed = activeApply; activeApply = undefined; cancelApplyTimeout(context);
       if (event.payload?.success === true) {
         const current = stateFor(await context.state.read()); await persistDecision({ ...current, lastAppliedProfileId: completed.profileId, lastAppliedAt: event.receivedAt || new Date().toISOString(), pendingProfileId: '', pendingProcessName: '' }, context);
-        await publish(context, 'card.hide', {});
+        await publish(context, `${manifest.moduleId}.card.hide`, {});
       }
       return;
     }
     if (event.eventType !== CONTROL_EVENT || event.metadata?.simulated === true) return;
     const action = clean(event.payload?.action, 20); const current = stateFor(await context.state.read());
-    if (action === 'dismiss') { await persistDecision({ ...current, pendingProfileId: '', pendingProcessName: '' }, context); await publish(context, 'card.hide', {}); return; }
+    if (action === 'dismiss') { await persistDecision({ ...current, pendingProfileId: '', pendingProcessName: '' }, context); await publish(context, `${manifest.moduleId}.card.hide`, {}); return; }
     if (action === 'apply' && current.pendingProfileId) await applyProfile(current.pendingProfileId, current.pendingProcessName, 'suggest', context);
     };
     operation = operation.then(work, work); return operation;

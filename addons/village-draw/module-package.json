@@ -35,7 +35,9 @@
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
+      "chat.message",
       "command.received",
+      "stream.online",
       "stream.offline"
     ],
     "commandsProvided": [
@@ -64,7 +66,7 @@
     ],
     "installationSteps": [
       "Install and enable Viewer Foundation first; Village Draw never creates a second points balance.",
-      "Create the four no-response commands in Command Sync, keeping giveaway management restricted to moderators.",
+      "Keep chat-message triggers on the existing main THSV platform intake actions; no separate giveaway commands or triggers are required in Streamer.bot.",
       "Configure the prize and ticket rules, save, restart, then use the authenticated wizard controls to open the draw.",
       "Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview."
     ],
@@ -84,23 +86,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 33894,
-      "sha256": "b9771ecc58fe12b119bc0d26da15ffe8df74bc7ee5763ed3696fbf5f652a6169"
+      "size": 40281,
+      "sha256": "2a378531dd773caae0f8ac267b330af4b24da92f159285bb3c753584f4e15818"
     },
     {
       "path": "schemas/config.json",
-      "size": 4648,
-      "sha256": "6d3f414f4106f433061e243b74641994899ae94b757f13034d7a79f895f1660e"
+      "size": 4867,
+      "sha256": "0281dff86a263866cb868891283c558b96c2d47757a7cdd97a36552954738298"
     },
     {
       "path": "ui/settings.json",
-      "size": 3062,
-      "sha256": "d0ff3c3b82fdcb636d61b8689d81388302708427293eafd79a296692e859df3d"
+      "size": 3203,
+      "sha256": "29ad660acf03e00a8bebaba678b5ecc861000af6c3642c04273543b965597357"
     },
     {
       "path": "README.md",
-      "size": 1619,
-      "sha256": "5f00471827a31a578940bd5dbf854666c594f21dbb6fbd5a26d8dda7abd5871f"
+      "size": 1732,
+      "sha256": "92df21f53f127ba4682d9e8dc89ed5bb496207b65f584f2b8ecc70732fa6f08a"
     }
   ]
 }

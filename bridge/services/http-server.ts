@@ -18,6 +18,7 @@ import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { readCachedClip } from './clip-media-cache.js';
+import type { CommandDirectoryService } from './command-directory.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -66,6 +67,7 @@ export class DiagnosticsServer {
     private readonly overlayHub?: BrowserOverlayHub,
     private readonly wizard?: WizardService,
     private readonly dataRoot = 'data',
+    private readonly commandDirectory?: CommandDirectoryService,
   ) {
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
     // Must be derived from the configured data root, not a bare relative literal: the portable
@@ -125,6 +127,47 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/diagnostics') {
         this.guard.assertLoopback(request);
         return this.reply(response, 200, { ...this.target.diagnostics(), browserOverlay: this.overlayHub?.status() });
+      }
+      if (request.method === 'GET' && (requestPath === '/commands' || requestPath === '/commands/')) {
+        if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
+        return this.commandDirectoryPage(response);
+      }
+      if (request.method === 'GET' && requestPath === '/commands/catalog.json') {
+        if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
+        const catalogue = this.commandDirectory.catalogue();
+        response.setHeader('etag', `"${catalogue.catalogHash}"`);
+        return this.reply(response, 200, catalogue);
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/commands/directory') {
+        if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { ...this.commandDirectory.catalogue(), publishing: this.commandDirectory.publicationStatus() });
+      }
+      if (request.method === 'POST' && requestPath === '/wizard/api/commands/directory/publish') {
+        if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
+        // This is a bodyless control operation. Authentication, origin, loopback,
+        // rate, and concurrency checks still apply; requiring JSON would reject
+        // the wizard's ordinary POST before it reached the publisher.
+        release = this.guard.acquire(request, false);
+        const result = await this.commandDirectory.publish();
+        return this.reply(response, result.state === 'failed' ? 502 : result.state === 'disabled' ? 409 : 200, result);
+      }
+      if (request.method === 'DELETE' && requestPath === '/wizard/api/commands/directory/publish') {
+        if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
+        release = this.guard.acquire(request, false);
+        const result = await this.commandDirectory.removePublished();
+        return this.reply(response, result.state === 'failed' ? 502 : result.state === 'disabled' ? 409 : 200, result);
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/commands/directory/export') {
+        if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
+        release = this.guard.acquire(request, false);
+        const catalogue = this.commandDirectory.catalogue();
+        response.statusCode = 200;
+        response.setHeader('content-type', 'text/html; charset=utf-8');
+        response.setHeader('content-disposition', 'attachment; filename="thsv-stream-commands.html"');
+        response.setHeader('content-security-policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+        response.end(this.commandDirectory.html(catalogue));
+        return;
       }
       if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) {
         this.guard.assertLoopback(request);
@@ -337,6 +380,7 @@ export class DiagnosticsServer {
         if (!this.overlayHub.clientConfig().enabled || addOn === undefined || addOn.health !== 'installed' || !addOn.enabled || !addOn.permissions.includes('overlay.publish')) return this.reply(response, 404, { error: 'Enabled add-on overlay not found' });
         const topic = moduleId === 'thsv.stream-labels' ? `${moduleId}.labels.update`
           : moduleId === 'thsv.prize-wheel' ? `${moduleId}.wheel.spin`
+            : moduleId === 'thsv.viewer-lobby' ? `${moduleId}.queue.update`
             : `${moduleId}.card.show`;
         this.overlayHub.publishAddOn(moduleId, topic, buildAddOnOverlayPreview(addOn));
         return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic });
@@ -483,6 +527,17 @@ export class DiagnosticsServer {
     response.end(`${JSON.stringify(body)}\n`);
   }
 
+  private commandDirectoryPage(response: ServerResponse): void {
+    if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
+    const catalogue = this.commandDirectory.catalogue();
+    response.statusCode = 200;
+    response.setHeader('content-type', 'text/html; charset=utf-8');
+    response.setHeader('cache-control', 'no-cache');
+    response.setHeader('etag', `"${catalogue.catalogHash}"`);
+    response.setHeader('content-security-policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    response.end(this.commandDirectory.html(catalogue));
+  }
+
   private async overlayAsset(response: ServerResponse, url: string): Promise<void> {
     const asset = OVERLAY_ASSETS[url];
     if (asset === undefined) return this.reply(response, 404, { error: 'Not found' });
@@ -557,6 +612,26 @@ async function readLegacyViewerMigration(dataRoot: string): Promise<LegacyViewer
 }
 
 export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource): Readonly<Record<string, unknown>> {
+  if (addOn.moduleId === 'thsv.viewer-lobby') {
+    return {
+      status: 'open', revision: Date.now(), count: 4, selectedEntryId: 'preview-selected', preview: true,
+      entries: [
+        { entryId: 'preview-selected', displayName: 'Selected Villager', platform: 'twitch', position: 1, state: 'selected', gamertag: 'CozySloth' },
+        { entryId: 'preview-youtube', displayName: 'YouTube Viewer', platform: 'youtube', position: 2, state: 'waiting' },
+        { entryId: 'preview-kick', displayName: 'Kick Viewer', platform: 'kick', position: 3, state: 'waiting' },
+        { entryId: 'preview-tiktok', displayName: 'TikTok Viewer', platform: 'tiktok', position: 4, state: 'waiting' },
+      ],
+      style: {
+        backgroundMode: previewEnum(addOn.settings['backgroundMode'], ['glass', 'solid', 'none'], 'glass'),
+        backgroundColor: previewColor(addOn.settings['backgroundColor'], '#101820'),
+        backgroundOpacity: typeof addOn.settings['backgroundOpacity'] === 'number' ? addOn.settings['backgroundOpacity'] : 0.92,
+        accentColor: previewColor(addOn.settings['accentColor'], '#7ff5cc'),
+        textColor: previewColor(addOn.settings['textColor'], '#ffffff'),
+        fontFamily: previewEnum(addOn.settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
+        fontSize: boundedPreviewInteger(addOn.settings['fontSize'], 18, 56, 32),
+      },
+    };
+  }
   if (addOn.moduleId === 'thsv.village-draw') {
     return {
       title: 'WINNER • Example Villager',

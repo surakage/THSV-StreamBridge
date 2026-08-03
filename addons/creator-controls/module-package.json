@@ -39,8 +39,9 @@
     ],
     "installationSteps": [
       "Import the bundled Creator Controls Streamer.bot package.",
+      "Turn on the add-on and edit only the stream profiles you plan to use.",
       "Approve only its triggerless Provider Controller action in the wizard.",
-      "Edit the three profiles, then attach Profile 1/2/3 only to creator-controlled hotkeys, deck buttons, or scene actions."
+      "Connect Apply Profile 1, 2, or 3 to your matching creator-controlled scene trigger, hotkey, or deck button."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its bounded last-result audit remains preserved for a later reinstall."
@@ -60,23 +61,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 6611,
-      "sha256": "0775cca3ecd765e750c3af73c97eed4fa395df880bd4edf550b89a32ad86cab1"
+      "size": 6673,
+      "sha256": "a713016472890bad783c275de54c15772143e98e13bfc8df37e4d8102e7b9768"
     },
     {
       "path": "schemas/config.json",
-      "size": 3986,
-      "sha256": "52ca6590ebe885c5d8c404ecc1d056e744626c8319b83cb75545e1dc844ca26e"
+      "size": 5772,
+      "sha256": "3d6f72711655f4d79a0b60294532c14fac6200b1bfaf8b1070585be5ba360cd3"
     },
     {
       "path": "ui/settings.json",
-      "size": 2320,
-      "sha256": "72a939614557978b08706792564ec75218b36d24205d1b05ac8d07bae17c217a"
+      "size": 4915,
+      "sha256": "8cc7010f974a9312534b2c9b5033c513e39216f0c82c8c674e04703e30e6cdbb"
     },
     {
       "path": "README.md",
-      "size": 815,
-      "sha256": "889f5aea5f13b12bb6034aaf879de5f6df80b964099c04f9b472ed693c3ec80b"
+      "size": 1158,
+      "sha256": "1ab1f540186c27cb3cd87dec72ac6b3c1de09d8149f109203f32086e75d15c0a"
     }
   ]
 }

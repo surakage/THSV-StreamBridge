@@ -103,7 +103,7 @@ Across the current-package tables below, thirty-four add-ons are synchronized fo
 | Chat Play Pack | Packaged and automated-accepted `3.0.0` | Bounded Number Guess, creator-authored Trivia, Prediction rounds, and idempotent Viewer Foundation awards remain separate from stateless templates. |
 | Streamlabs Donations | Implemented in core; live acceptance pending | Reuses Streamer.bot's authenticated `Streamlabs.Donation` WebSocket event, stores no provider credential, and fails closed unless the raw live event contains `event_id`, `donation_id`, `_id`, or `id`. |
 | Free Game Check | Packaged and automated-accepted `3.0.0` | Conservative fixed-provider discovery, silent first scan, bounded deduplication, attribution, and selected-platform output. |
-| Creator Utility Pack | Packaged and automated-accepted `3.0.0` | Bounded counters and polls share one optional package with platform-limited source routing. Its older in-memory giveaway was removed in favor of Village Draw. |
+| Village Polls | Packaged and automated-accepted `3.0.0` | One shared cross-platform poll uses private hashed voting, platform-limited source replies, and a result overlay. Custom Counter owns counters and Village Draw owns giveaways. |
 | Accessibility Captions | Packaged and automated-accepted `3.0.0` | Ephemeral high-contrast public chat/event captions with no text retention; Voice Relay remains the independent TTS boundary. |
 | Clip Library Cache | Packaged and automated-accepted `3.0.0` | One bounded Twitch metadata snapshot serves clip consumers; video bytes and signed playback URLs remain uncached. |
 | Custom Counter | Packaged and automated-accepted `3.0.0`; local import accepted | Independent persistent values, creator controls, optional event deltas, and a hosted counter overlay; it does not compete for the general visual-event lock. |
@@ -899,7 +899,7 @@ Forum delivery requires either a known `thread_id` to append or a `thread_name` 
 ## Later utility candidates
 
 - Free Game Check is packaged with scheduled/manual checks, offer caching, duplicate suppression, selected-platform chat output, and provider attribution; Discord delivery remains a possible later expansion;
-- Quote Vault and Creator Utility Pack are packaged separately; the latter owns counters and polls with independent settings and source-platform routing, while Village Draw exclusively owns giveaways;
+- Quote Vault and Village Polls are packaged separately; Village Polls owns one shared cross-platform poll, Custom Counter exclusively owns persistent counters, and Village Draw exclusively owns giveaways;
 - live provider acceptance for Chat Guard warnings and separately approved destructive enforcement modes;
 - Clip Library Cache now shares bounded Twitch clip metadata between consumers; caching video bytes or expiring signed playback URLs remains intentionally out of scope until storage, expiry, and provider-policy requirements are settled;
 - Accessibility Captions now provides ephemeral high-contrast browser captions; Voice Relay remains the separate TTS boundary;
@@ -959,7 +959,7 @@ Completed packaging work remains listed in the portfolio table. This sequence de
 21. Live-accept Clip Courier's shared Discord forum controller and Clip Library Cache consumption contract.
 22. Live-accept Discord Chat Archive's channel/forum contract without changing its one-thread-per-session privacy boundary.
 23. Follower Pulse is packaged with bounded follower snapshots and private two-scan reconciliation; complete live Twitch authorization and refollow acceptance.
-24. Free Game Check and Creator Utility Pack are packaged and automated-accepted; complete their offline and genuine-provider rows in the acceptance ledger.
+24. Free Game Check and Village Polls are packaged and automated-accepted; complete their offline and genuine-provider rows in the acceptance ledger.
 
 ### Track F â€” Optional entertainment and accessibility
 

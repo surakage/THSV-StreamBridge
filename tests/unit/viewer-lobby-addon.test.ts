@@ -13,6 +13,7 @@ describe('Viewer Lobby', () => {
     expect((state.entries as unknown[])).toHaveLength(1);
     await viewerLobby.onEvent({ eventId: 'leave-1', eventType: 'chat.message', platform: 'twitch', receivedAt: '2026-08-01T00:00:02.000Z', metadata: { simulated: false }, user: { id: '42', name: 'alex', displayName: 'Alex', actorType: 'human', roles: [] }, payload: { message: '!leave' } }, context);
     expect((state.entries as unknown[])).toHaveLength(0);
+    expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.viewer-lobby.queue.update', expect.objectContaining({ count: 0, entries: [] }));
     await viewerLobby.stop();
   });
 
@@ -29,6 +30,32 @@ describe('Viewer Lobby', () => {
     expect(state.status).toBe('open');
     await viewerLobby.onEvent({ eventType: 'stream.offline', platform: 'youtube', receivedAt: '2026-08-01T00:00:02.000Z', metadata: { simulated: false } }, context);
     expect(state.status).toBe('closed');
+    await viewerLobby.stop();
+  });
+
+  it('ignores an offline event for a platform that was never observed online', async () => {
+    let state: Record<string, unknown> = { status: 'open', revision: 1, entries: [] };
+    const context = { settings: { enabled: true, platforms: ['twitch'] }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) }, overlay: { publish: vi.fn(async () => {}) }, chat: { send: vi.fn(async () => []) } };
+    await viewerLobby.start(context);
+    await viewerLobby.onEvent({ eventType: 'stream.offline', platform: 'twitch', receivedAt: '2026-08-01T00:00:02.000Z', metadata: { simulated: false } }, context);
+    expect(state.status).toBe('open');
+    expect(context.state.write).not.toHaveBeenCalled();
+    await viewerLobby.stop();
+  });
+
+  it('completes the selected viewer and advances without recycling them', async () => {
+    let state: Record<string, unknown> = { status: 'open', revision: 1, selectedEntryId: 'e1', entries: [
+      { entryId: 'e1', identity: 'twitch:id:1', platform: 'twitch', displayName: 'First', gamertag: '', joinedAt: 'now', state: 'selected' },
+      { entryId: 'e2', identity: 'youtube:id:2', platform: 'youtube', displayName: 'Second', gamertag: '', joinedAt: 'now', state: 'waiting' },
+    ] };
+    const context = { settings: { enabled: true, platforms: ['twitch', 'youtube'] }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) }, overlay: { publish: vi.fn(async () => {}) }, chat: { send: vi.fn(async () => []) } };
+    await viewerLobby.start(context);
+    await viewerLobby.onEvent({ eventType: 'addon.thsv.viewer-lobby.control', receivedAt: '2026-08-01T00:00:01.000Z', metadata: { simulated: false }, payload: { action: 'next' } }, context);
+    expect((state.entries as Array<{ entryId: string }>).map((entry) => entry.entryId)).toEqual(['e2']);
+    expect(state.selectedEntryId).toBe('e2');
+    await viewerLobby.onEvent({ eventType: 'addon.thsv.viewer-lobby.control', receivedAt: '2026-08-01T00:00:02.000Z', metadata: { simulated: false }, payload: { action: 'complete' } }, context);
+    expect(state.entries).toEqual([]);
+    expect(state.selectedEntryId).toBe('');
     await viewerLobby.stop();
   });
 

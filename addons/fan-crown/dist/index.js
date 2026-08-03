@@ -616,20 +616,26 @@ function cancelResetCheck(context) {
   resetCheckTaskId = undefined;
 }
 
-function scheduleResetCheck(context) {
+function scheduleResetCheck(context, retryDelayMs) {
   cancelResetCheck(context);
   if (stopped) return;
   const now = new Date();
   const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
-  const delay = Math.max(1_000, Math.min(MAXIMUM_DAY_MS, nextMidnight - now.getTime() + 1_000));
+  const delay = Number.isInteger(retryDelayMs)
+    ? Math.max(1_000, Math.min(300_000, retryDelayMs))
+    : Math.max(1_000, Math.min(MAXIMUM_DAY_MS, nextMidnight - now.getTime() + 1_000));
   resetCheckTaskId = context.schedule.after(delay, () => enqueue(async () => {
     resetCheckTaskId = undefined;
     const settings = settingsFor(context);
+    let retrySoon = false;
     if (settings.enabled && settings.configured) {
       const state = sanitizeState(await context.state.read(), settings.baseCost);
-      if (state.seasonMonth !== monthKey()) await requestReset(context, settings, state, 'reset-month', true);
+      if (state.seasonMonth !== monthKey()) {
+        const requested = await requestReset(context, settings, state, 'reset-month', true);
+        retrySoon = requested.seasonMonth !== monthKey();
+      }
     }
-    scheduleResetCheck(context);
+    scheduleResetCheck(context, retrySoon ? 60_000 : undefined);
   }));
 }
 
@@ -641,9 +647,13 @@ const module = {
     const settings = settingsFor(context);
     if (settings.enabled && settings.configured) {
       const state = sanitizeState(await context.state.read(), settings.baseCost);
-      if (state.seasonMonth !== monthKey()) await requestReset(context, settings, state, 'reset-month', true);
+      let retrySoon = false;
+      if (state.seasonMonth !== monthKey()) {
+        const requested = await requestReset(context, settings, state, 'reset-month', true);
+        retrySoon = requested.seasonMonth !== monthKey();
+      }
       else await publishCrown(context, settings, state);
-      scheduleResetCheck(context);
+      scheduleResetCheck(context, retrySoon ? 60_000 : undefined);
     }
   },
   async stop(context) {

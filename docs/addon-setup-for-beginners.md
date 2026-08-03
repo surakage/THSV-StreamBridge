@@ -26,7 +26,7 @@ The wizard's **Connect Streamer.bot** step is authoritative. “No direct trigge
 | Clip Library Cache | Yes | Triggerless shared refresh action approved in the wizard |
 | Community Analytics | No | Existing normalized events |
 | Creator Controls | Yes | Imported approved controller actions |
-| Creator Utility Pack | No | Command Sync counter, poll, and vote templates |
+| Village Polls | No | Command Sync poll-management and vote templates |
 | Discord Chat Archive | Yes | Existing chat intake plus approved Discord delivery action |
 | Fan Crown | Yes | Twitch reward intake plus imported controller |
 | First Five | Yes | Twitch reward intake plus imported controller |
@@ -46,7 +46,7 @@ The wizard's **Connect Streamer.bot** step is authoritative. “No direct trigge
 | Viewer Foundation | No | Existing events plus optional Command Sync `!points` and `!lurk` |
 | Viewer Lobby | Yes | Imported queue controller actions and browser manager |
 | Viewer Spotlight | Yes | Imported request/snapshot actions and browser source |
-| Village Draw | No | Viewer Foundation plus four Command Sync templates |
+| Village Draw | No | Viewer Foundation plus the existing main platform chat intakes; no Command Sync package |
 | Village Jukebox | Yes | Command Sync requests through the main intakes plus one private YouTube resolver |
 | Village Roll Call | No | Twitch/Kick rewards or YouTube/TikTok Viewer Foundation point commands through the main intakes |
 | Village Voice | Yes | Imported Speaker.bot relay action; optional native rewards or Viewer Foundation point commands |

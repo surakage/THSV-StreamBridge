@@ -17,7 +17,7 @@ Provides a bounded multi-platform play-with-viewers queue with source-routed com
 
 1. Install Viewer Lobby and import its creator controls.
 2. Configure commands, limits, privacy, and overlay fields.
-3. Attach Open/Close/Pause/Resume/Next/Random/Clear only to creator-controlled triggers.
+3. Attach Open/Close/Pause/Resume/Next/Random/Complete/Clear only to creator-controlled triggers.
 
 ## Streamer.bot
 
@@ -31,6 +31,7 @@ Imported group: `THSV Addon - Viewer Lobby`
 - `THSV Addon - Viewer Lobby - Resume` in `THSV Addon - Viewer Lobby`
 - `THSV Addon - Viewer Lobby - Next` in `THSV Addon - Viewer Lobby`
 - `THSV Addon - Viewer Lobby - Random` in `THSV Addon - Viewer Lobby`
+- `THSV Addon - Viewer Lobby - Complete` in `THSV Addon - Viewer Lobby`
 - `THSV Addon - Viewer Lobby - Clear` in `THSV Addon - Viewer Lobby`
 
 Controls use an exact action-name/payload allowlist in StreamBridge. Clear is destructive and should be attached only to a deliberate creator control.

@@ -30,7 +30,7 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | Stream Labels | Passed | Passed | The retained latest-value projection and cropped OBS rendering are locally accepted. Genuine platform events remain covered by their shared intake/provider rows. |
 | Village Roll Call | Passed | Pending | One genuine Twitch reward redemption, daily replay rejection, month rollover, winner announcement, and cropped OBS card. |
 | Prize Wheel | Passed | Pending | Cropped hosted-wheel rendering is automated-test accepted. One live moderator command and source-routed result on each selected platform remain pending. |
-| Village Draw | Passed | Pending | Verified-package tests cover Viewer Foundation identity, free entry, weighted points tickets, draw receipts, and restart-safe batched refunds. Live command, overlay, points spend/refund, and winner confirmation remain pending. |
+| Village Draw | Passed | Pending | Verified-package tests cover direct normalized-chat commands, chat/derived-command deduplication, Viewer Foundation identity, free entry, weighted points tickets, pending-purchase lifecycle barriers, multi-platform stream-end handling, delivery warnings, draw receipts, and restart-safe batched refunds. Live chat, overlay, points spend/refund, and winner confirmation remain pending. |
 | Village Jukebox | Passed | Pending | The two reviewed triggerless helpers are imported, grouped separately, stable-ID verified, and creator-approved. Private YouTube API resolution, source-routed commands, complete hosted playback, Viewer Foundation spending/refunds, native reward intake, Twitch settlement, queue controls, and music-rights acceptance remain pending. |
 | Viewer Foundation | Passed | Pending | Identity link, progression, achievements, digest-locked legacy migration, privacy export/correction/deletion, and consumer isolation. |
 | Community Analytics | Passed | Pending | Stream rollover, ignored identities, bounded reports, and deletion propagation. |
@@ -44,7 +44,7 @@ This ledger prevents **packaged**, **offline accepted**, and **provider accepted
 | Voice Relay | Passed | Passed | Not required — aliases, audible delivery, aggregation, creator controls, and native emergency clearing are locally accepted. |
 | Follower Pulse | Passed | Pending | Twitch authorization, first baseline, pagination, two-scan confirmation, and refollow behavior. |
 | Clip Library Cache | Passed | Passed | Real Twitch lookup and bounded persistence are locally accepted. A longer observation must still prove Random Clip Player and Clip Courier share steady-state refreshes without duplicate polling. |
-| Creator Utility Pack | Passed | Pending | Cross-platform counters, poll voting, platform-limited source replies, and restart/stream-end behavior. The older giveaway path is removed; Village Draw owns giveaways. |
+| Village Polls | Passed | Pending | One shared cross-platform poll, private hashed voting, platform-limited source replies, result overlay, and restart/stream-end behavior. Custom Counter owns counters; Village Draw owns giveaways. |
 | Chat Play Pack | Passed | Pending | Number Guess, creator-authored Trivia, Prediction rounds, anti-replay awards, and source-routed replies. |
 | Free Game Check | Passed | Pending | Fixed-provider lookup, silent baseline, deduplication, attribution, and selected-platform announcements. |
 | Accessibility Captions | Passed | Pending | Browser-host readability, public-chat consent, bot suppression, bounds, cropping, transparency, and reconnect behavior. |

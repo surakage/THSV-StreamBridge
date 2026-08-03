@@ -1,15 +1,36 @@
 {
-  "intro": "Create three safe channel profiles, approve the one shared Provider Controller, then attach the matching profile actions only to creator-controlled triggers. TikTok is omitted because TikFinity does not expose an equivalent verified channel-metadata method.",
+  "intro": "Save up to three stream setups. Running Apply Profile 1, 2, or 3 in Streamer.bot changes the selected platforms' title and category in one step.",
   "order": ["enabled", "allowSimulatedControls", "profile1Enabled", "profile1Name", "profile1Platforms", "profile1Title", "profile1TwitchCategoryId", "profile1YoutubeCategoryName", "profile1YoutubeBroadcastId", "profile1KickCategoryName", "profile2Enabled", "profile2Name", "profile2Platforms", "profile2Title", "profile2TwitchCategoryId", "profile2YoutubeCategoryName", "profile2YoutubeBroadcastId", "profile2KickCategoryName", "profile3Enabled", "profile3Name", "profile3Platforms", "profile3Title", "profile3TwitchCategoryId", "profile3YoutubeCategoryName", "profile3YoutubeBroadcastId", "profile3KickCategoryName"],
   "sections": [
-    { "id": "quick-start", "title": "1. Quick start & safety", "open": true, "fields": ["enabled", "allowSimulatedControls"], "notice": "The Provider Controller must remain triggerless. Profile actions only request a saved profile; StreamBridge validates it before dispatch." },
-    { "id": "profile-1", "title": "2. Profile 1 - Starting Soon", "fields": ["profile1Enabled", "profile1Name", "profile1Platforms", "profile1Title", "profile1TwitchCategoryId", "profile1YoutubeCategoryName", "profile1YoutubeBroadcastId", "profile1KickCategoryName"] },
-    { "id": "profile-2", "title": "3. Profile 2 - Gameplay", "fields": ["profile2Enabled", "profile2Name", "profile2Platforms", "profile2Title", "profile2TwitchCategoryId", "profile2YoutubeCategoryName", "profile2YoutubeBroadcastId", "profile2KickCategoryName"] },
-    { "id": "profile-3", "title": "4. Profile 3 - Just Chatting", "fields": ["profile3Enabled", "profile3Name", "profile3Platforms", "profile3Title", "profile3TwitchCategoryId", "profile3YoutubeCategoryName", "profile3YoutubeBroadcastId", "profile3KickCategoryName"] }
+    { "id": "quick-start", "title": "1. Turn it on", "open": true, "fields": ["enabled", "allowSimulatedControls"], "notice": "For setup: enable Test buttons, save, run one harmless test, then turn Test buttons back off before going live." },
+    { "id": "profile-1", "title": "2. Starting Soon", "fields": ["profile1Enabled", "profile1Name", "profile1Platforms", "profile1Title"], "notice": "Profile 1. Connect Apply Profile 1 to your Starting Soon scene, hotkey, or deck button." },
+    { "id": "profile-1-categories", "title": "Starting Soon categories (optional)", "fields": ["profile1TwitchCategoryId", "profile1YoutubeCategoryName", "profile1YoutubeBroadcastId", "profile1KickCategoryName"], "notice": "Blank category fields are skipped, so the platform keeps its current category." },
+    { "id": "profile-2", "title": "3. Gameplay", "fields": ["profile2Enabled", "profile2Name", "profile2Platforms", "profile2Title"], "notice": "Profile 2. Connect Apply Profile 2 to your Gameplay scene, hotkey, or deck button." },
+    { "id": "profile-2-categories", "title": "Gameplay categories (optional)", "fields": ["profile2TwitchCategoryId", "profile2YoutubeCategoryName", "profile2YoutubeBroadcastId", "profile2KickCategoryName"], "notice": "Blank category fields are skipped, so the platform keeps its current category." },
+    { "id": "profile-3", "title": "4. Just Chatting", "fields": ["profile3Enabled", "profile3Name", "profile3Platforms", "profile3Title"], "notice": "Profile 3. Connect Apply Profile 3 to your Just Chatting scene, hotkey, or deck button." },
+    { "id": "profile-3-categories", "title": "Just Chatting categories (optional)", "fields": ["profile3TwitchCategoryId", "profile3YoutubeCategoryName", "profile3YoutubeBroadcastId", "profile3KickCategoryName"], "notice": "Blank category fields are skipped, so the platform keeps its current category." }
   ],
   "fields": {
-    "profile1Platforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick" } },
-    "profile2Platforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick" } },
-    "profile3Platforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick" } }
+    "profile1Name": { "visibleWhen": { "field": "profile1Enabled", "equals": true } },
+    "profile1Platforms": { "visibleWhen": { "field": "profile1Enabled", "equals": true }, "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick" } },
+    "profile1Title": { "visibleWhen": { "field": "profile1Enabled", "equals": true } },
+    "profile1TwitchCategoryId": { "visibleWhen": { "field": "profile1Enabled", "equals": true } },
+    "profile1YoutubeCategoryName": { "visibleWhen": { "field": "profile1Enabled", "equals": true } },
+    "profile1YoutubeBroadcastId": { "visibleWhen": { "field": "profile1Enabled", "equals": true } },
+    "profile1KickCategoryName": { "visibleWhen": { "field": "profile1Enabled", "equals": true } },
+    "profile2Name": { "visibleWhen": { "field": "profile2Enabled", "equals": true } },
+    "profile2Platforms": { "visibleWhen": { "field": "profile2Enabled", "equals": true }, "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick" } },
+    "profile2Title": { "visibleWhen": { "field": "profile2Enabled", "equals": true } },
+    "profile2TwitchCategoryId": { "visibleWhen": { "field": "profile2Enabled", "equals": true } },
+    "profile2YoutubeCategoryName": { "visibleWhen": { "field": "profile2Enabled", "equals": true } },
+    "profile2YoutubeBroadcastId": { "visibleWhen": { "field": "profile2Enabled", "equals": true } },
+    "profile2KickCategoryName": { "visibleWhen": { "field": "profile2Enabled", "equals": true } },
+    "profile3Name": { "visibleWhen": { "field": "profile3Enabled", "equals": true } },
+    "profile3Platforms": { "visibleWhen": { "field": "profile3Enabled", "equals": true }, "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick" } },
+    "profile3Title": { "visibleWhen": { "field": "profile3Enabled", "equals": true } },
+    "profile3TwitchCategoryId": { "visibleWhen": { "field": "profile3Enabled", "equals": true } },
+    "profile3YoutubeCategoryName": { "visibleWhen": { "field": "profile3Enabled", "equals": true } },
+    "profile3YoutubeBroadcastId": { "visibleWhen": { "field": "profile3Enabled", "equals": true } },
+    "profile3KickCategoryName": { "visibleWhen": { "field": "profile3Enabled", "equals": true } }
   }
 }

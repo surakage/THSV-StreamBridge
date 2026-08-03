@@ -52,6 +52,16 @@ async function publishViewerSpotlightCard(page: Page, payload: Record<string, un
   }), payload);
 }
 
+async function publishAddOnEvent(page: Page, moduleId: string, topic: string, payload: Record<string, unknown>): Promise<void> {
+  await page.evaluate(({ moduleId: eventModuleId, topic: eventTopic, payload: eventPayload }) => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1',
+    kind: 'addon.publish',
+    moduleId: eventModuleId,
+    topic: eventTopic,
+    payload: eventPayload,
+  }), { moduleId, topic, payload });
+}
+
 test('wizard stays readable at a narrow width and remembers its selected theme', async ({ page }) => {
   await page.setViewportSize({ width: 420, height: 850 });
   await page.goto('/wizard/');
@@ -86,7 +96,10 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[data-guided-section="command-response"]')).toHaveAttribute('open', '');
   await expect(commandForm.locator('[data-guided-section="command-safety"]')).not.toHaveAttribute('open', '');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
-  await expect(commandForm.locator('[name="template"] option')).toHaveCount(38);
+  await expect(commandForm.locator('[name="template"] option')).toHaveCount(31);
+  for (const bundled of ['chat-play-control','chat-play-guess','chat-play-answer','chat-play-predict','coin-flip','chat-play-slots','chat-play-roulette','chat-play-rps','chat-play-duel','chat-play-accept','chat-play-decline']) {
+    await expect(commandForm.locator(`[name="template"] option[value="${bundled}"]`)).toHaveCount(0);
+  }
   await expect(commandForm.locator('[name="template"] option[value="free-games"]')).toHaveText('Free Games Discord guide — YouTube + TikTok');
   await expect(commandForm.locator('[name="template"] option[value="village-jukebox-request"]')).toHaveText('Village Jukebox request — Multi-platform');
   await expect(commandForm.locator('[name="template"] option[value="village-jukebox-skip"]')).toHaveText('Village Jukebox moderator skip — Multi-platform');
@@ -99,14 +112,17 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="template"] option[value="lurk"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="timezone"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="commands-help"]')).toHaveCount(1);
-  await expect(commandForm.locator('[name="template"] option[value="coin-flip"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="magic-8-ball"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="game-suggestion"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="random-joke"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="prize-wheel"]')).toHaveCount(1);
-  await expect(commandForm.locator('[name="template"] option[value="creator-counter"]')).toHaveCount(1);
-  await expect(commandForm.locator('[name="template"] option[value="creator-poll"]')).toHaveCount(1);
-  await expect(commandForm.locator('[name="template"] option[value="creator-vote"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="creator-counter"]')).toHaveCount(0);
+  await expect(commandForm.locator('[name="template"] option[value="custom-counter"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="creator-poll"]')).toHaveCount(0);
+  await expect(commandForm.locator('[name="template"] option[value="creator-vote"]')).toHaveCount(0);
+  for (const direct of ['village-draw-info','village-draw-enter','village-draw-tickets','village-draw-balance']) {
+    await expect(commandForm.locator(`[name="template"] option[value="${direct}"]`)).toHaveCount(0);
+  }
   await expect(commandForm.locator('[name="template"] option[value="account-age"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="uptime"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="follow-age"]')).toBeEnabled();
@@ -119,10 +135,6 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="messageYoutube"]')).toHaveValue(/replace-link/u);
   await expect(commandForm.locator('[name="messageTiktok"]')).toHaveValue(/replace-link/u);
   await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
-  await commandForm.locator('[name="template"]').selectOption('coin-flip');
-  await expect(commandForm.locator('[name="name"]')).toHaveValue('coinflip');
-  await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('custom-script');
-  await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/Guid\.NewGuid/u);
   await commandForm.locator('[name="template"]').selectOption('magic-8-ball');
   await expect(commandForm.locator('[name="name"]')).toHaveValue('8ball');
   await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/village signs point to yes/u);
@@ -135,11 +147,6 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="minimumRole"]')).toHaveValue('moderator');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('none');
   await expect(commandForm.locator('[name="customScript"]')).not.toHaveValue(/C:\\Users\\/u);
-  await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
-  await commandForm.locator('[name="template"]').selectOption('creator-poll');
-  await expect(commandForm.locator('[name="name"]')).toHaveValue('poll');
-  await expect(commandForm.locator('[name="minimumRole"]')).toHaveValue('moderator');
-  await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('none');
   await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
   await commandForm.locator('[name="template"]').selectOption('account-age');
   await expect(commandForm.locator('[name="name"]')).toHaveValue('accountage');
@@ -754,4 +761,34 @@ test('Village Jukebox mounts only a bounded official YouTube player with creator
     topic: 'thsv.village-jukebox.media.play', payload: { playbackId: 'bad-host', embedUrl: 'https://example.com/embed/dQw4w9WgXcQ' },
   }));
   expect(await page.locator('#embed-media').getAttribute('src')).toBe(source);
+});
+
+test('generic add-on host renders result and viewer-queue contracts', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.chat-play-pack', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.route('**/overlay/addons/thsv.viewer-lobby', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+
+  await page.goto('/overlay/addons/thsv.chat-play-pack');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await publishAddOnEvent(page, 'thsv.chat-play-pack', 'thsv.chat-play-pack.result.show', {
+    title: 'Chat Play winner', text: 'Village Viewer', durationMs: 10_000,
+  });
+  await expect(page.locator('#card')).toBeVisible();
+  await expect(page.locator('#card-title')).toHaveText('Chat Play winner');
+  await expect(page.locator('#card-text')).toHaveText('Village Viewer');
+
+  await page.goto('/overlay/addons/thsv.viewer-lobby');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await publishAddOnEvent(page, 'thsv.viewer-lobby', 'thsv.viewer-lobby.queue.update', {
+    status: 'open', count: 2,
+    entries: [
+      { position: 1, displayName: 'Alex', platform: 'twitch', state: 'selected' },
+      { position: 2, displayName: 'Sam', platform: 'youtube', state: 'waiting' },
+    ],
+  });
+  await expect(page.locator('#card')).toBeVisible();
+  await expect(page.locator('#card-title')).toHaveText('VIEWER LOBBY • OPEN • 2 VIEWERS');
+  await expect(page.locator('#card-text')).toContainText('1. Alex (TWITCH) - selected');
+  await expect(page.locator('#card-text')).toContainText('2. Sam (YOUTUBE)');
 });

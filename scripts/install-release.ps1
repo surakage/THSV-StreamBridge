@@ -131,11 +131,12 @@ if ($manifest.product -ne 'THSV StreamBridge' -or [string]::IsNullOrWhiteSpace($
 $existingRecordPath = Join-Path $destination 'data\runtime\install-manifest.json'
 if (Test-Path -LiteralPath $existingRecordPath -PathType Leaf) {
     $existingRecord = Get-Content -Raw -LiteralPath $existingRecordPath | ConvertFrom-Json
-    if ($existingRecord.product -ne 'THSV StreamBridge' -or [string]::IsNullOrWhiteSpace($existingRecord.version)) {
+    $existingVersion = if (-not [string]::IsNullOrWhiteSpace([string]$existingRecord.activeVersion)) { [string]$existingRecord.activeVersion } else { [string]$existingRecord.version }
+    if ($existingRecord.product -ne 'THSV StreamBridge' -or [string]::IsNullOrWhiteSpace($existingVersion)) {
         throw "The existing installation record is invalid: $existingRecordPath"
     }
-    if ((Compare-SemVer ([string]$manifest.version) ([string]$existingRecord.version)) -lt 0 -and -not $AllowDowngrade) {
-        throw "Refusing to downgrade THSV StreamBridge from $($existingRecord.version) to $($manifest.version). Older code may not understand newer state. Back up the installation and pass -AllowDowngrade only when this is intentional."
+    if ((Compare-SemVer ([string]$manifest.version) $existingVersion) -lt 0 -and -not $AllowDowngrade) {
+        throw "Refusing to downgrade THSV StreamBridge from $existingVersion to $($manifest.version). Older code may not understand newer state. Back up the installation and pass -AllowDowngrade only when this is intentional."
     }
 }
 
@@ -195,6 +196,8 @@ try {
     $installRecord = [ordered]@{
         product = 'THSV StreamBridge'
         version = [string]$manifest.version
+        activeVersion = [string]$manifest.version
+        previousVersion = $existingVersion
         installedAt = (Get-Date).ToUniversalTime().ToString('o')
         installRoot = $destination
         releaseFiles = @($manifest.files | ForEach-Object { [string]$_.path }) + @('release-manifest.json')

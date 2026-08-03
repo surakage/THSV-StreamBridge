@@ -285,6 +285,28 @@
     cardTimer = setTimeout(hideCard, boundedDuration(payload.durationMs, 8_000));
   }
 
+  function showQueue(payload) {
+    const entries = Array.isArray(payload.entries) ? payload.entries.slice(0, 20) : [];
+    const total = Number.isSafeInteger(payload.count) ? Math.max(entries.length, Math.min(200, payload.count)) : entries.length;
+    const statusValue = boundedText(payload.status, 20, 'closed').toUpperCase();
+    const summary = entries.length === 0
+      ? 'No viewers are waiting.'
+      : `${entries.map((entry, index) => {
+        const position = Number.isSafeInteger(entry?.position) ? entry.position : index + 1;
+        const name = boundedText(entry?.displayName, 100, 'Viewer') || 'Viewer';
+        const platform = boundedText(entry?.platform, 20).toUpperCase();
+        const stateValue = boundedText(entry?.state, 20, 'waiting');
+        const gamertag = boundedText(entry?.gamertag, 80);
+        return `${position}. ${name}${platform ? ` (${platform})` : ''}${gamertag ? ` - ${gamertag}` : ''}${stateValue !== 'waiting' ? ` - ${stateValue}` : ''}`;
+      }).join(' • ')}${total > entries.length ? ` • +${total - entries.length} more waiting` : ''}`;
+    showCard({
+      title: `VIEWER LOBBY • ${statusValue} • ${total} ${total === 1 ? 'VIEWER' : 'VIEWERS'}`,
+      text: summary,
+      durationMs: 3_600_000,
+      style: payload.style,
+    });
+  }
+
   function showLabels(payload) {
     hideCard();
     hideTimer();
@@ -585,6 +607,8 @@
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
     if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
+    else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
+    else if (event.topic === `${moduleId}.queue.update`) showQueue(event.payload);
     else if (event.topic === `${moduleId}.media.play`) playMedia(event.payload);
     else if (event.topic === `${moduleId}.media.stop`) stopMedia(event.payload);
     else if (event.topic === `${moduleId}.timer.update`) showTimer(event.payload);
