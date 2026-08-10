@@ -15,26 +15,22 @@ Creates Twitch clips from !clip and optionally publishes other clips made during
 
 ### Add-on-specific steps
 
-1. Import the matching Clip Courier Streamer.bot package. Review its disabled Twitch-only !clip command, then enable it.
-2. Open Create Clip and set clipCourierDurationSeconds to 30 or 60. Leave its imported !clip trigger attached.
-3. Open Deliver, replace clipCourierWebhookUrl with a private webhook created for the selected Discord text channel or forum, then Save and Compile. Leave Deliver triggerless.
-4. Approve only Deliver in the wizard. The command-created clip returns directly to Clip Courier; automatic background discovery uses the shared Clip Library Cache.
-5. Optional: enable other clips from the current stream. Older clips and clips from prior streams are rejected by creation time.
+1. Import the matching Clip Courier Streamer.bot package. Leave both helper actions triggerless.
+2. Open Create Clip and set clipCourierDurationSeconds to 30 or 60. Approve Create Clip in the wizard; StreamBridge calls it only for an authorized Twitch !clip intake command.
+3. Open Deliver, replace clipCourierWebhookUrl with a private webhook created for the selected Discord text channel or forum, then Save and Compile. Leave Deliver triggerless and approve it in the wizard.
+4. The command-created clip returns directly to Clip Courier; automatic background discovery uses the shared Clip Library Cache.
+5. Disable any legacy Streamer.bot !clip Command object before testing so the main Twitch intake is the only command owner.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Clip Courier`
 
 - `THSV Addon - Clip Courier - Create Clip` in `THSV Addon - Clip Courier`
 - `THSV Addon - Clip Courier - Deliver` in `THSV Addon - Clip Courier`
 
-Create Clip is bound only to the imported Twitch !clip command. Deliver remains triggerless and requires a one-use broker token. The webhook stays only in Deliver's Set Argument.
-
-Creator-selected triggers:
-
-- **createClip:** Review and enable the imported Twitch-only !clip command. Change clipCourierDurationSeconds on Create Clip to either 30 or 60.
+Create Clip and Deliver remain triggerless and require one-use broker tokens. The existing Twitch intake owns !clip, and the webhook stays only in Deliver's Set Argument.
 
 ## Browser source
 

@@ -30,9 +30,19 @@
     "showWinnerCard": { "type": "boolean", "title": "Show the winner card", "default": true },
     "cardSeconds": { "type": "integer", "title": "Overlay card duration (seconds)", "minimum": 5, "maximum": 60, "default": 12 },
     "backgroundColor": { "type": "string", "format": "color", "title": "Card background", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#10201b" },
+    "backgroundOpacity": { "type": "number", "title": "Ticket background opacity", "description": "Lower values show more of the stream behind the ticket.", "minimum": 0.2, "maximum": 0.95, "default": 0.72 },
     "accentColor": { "type": "string", "format": "color", "title": "Giveaway accent", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ff5cc" },
     "winnerColor": { "type": "string", "format": "color", "title": "Winner accent", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffd166" },
     "textColor": { "type": "string", "format": "color", "title": "Text color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
-    "fontFamily": { "type": "string", "title": "Font", "enum": ["broadcast", "display", "serif", "mono"], "default": "broadcast" }
+    "fontFamily": { "type": "string", "title": "Font", "enum": ["broadcast", "display", "serif", "mono"], "default": "broadcast" },
+    "ticketLayout": { "type": "string", "title": "Prize ticket size", "enum": ["compact", "wide"], "default": "compact" },
+    "drawAnimationSeconds": { "type": "integer", "title": "Drawing animation time", "description": "How long entrant names cycle before the winning ticket is revealed.", "minimum": 2, "maximum": 10, "default": 4 },
+    "showConfetti": { "type": "boolean", "title": "Show lightweight winner confetti", "default": true },
+    "showPrizeImage": { "type": "boolean", "title": "Show the prize image", "default": true },
+    "showWinnerAvatar": { "type": "boolean", "title": "Show the winner profile picture when available", "default": true },
+    "showPlatformBadge": { "type": "boolean", "title": "Show the winner platform", "default": true },
+    "showEntryCount": { "type": "boolean", "title": "Show entrant and ticket totals", "default": true },
+    "playWinnerTone": { "type": "boolean", "title": "Play a short winner tone", "description": "Browser-source audio must be enabled in OBS, Meld, or Streamlabs Desktop.", "default": false },
+    "winnerOverlayMessage": { "type": "string", "title": "Winner reveal message", "minLength": 1, "maxLength": 160, "default": "The village has chosen!" }
   }
 }

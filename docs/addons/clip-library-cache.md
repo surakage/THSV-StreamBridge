@@ -22,7 +22,7 @@ Shared background service that performs one bounded Twitch clip metadata refresh
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Clip Library Cache`
 

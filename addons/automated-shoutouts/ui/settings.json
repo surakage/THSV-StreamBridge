@@ -2,13 +2,12 @@
   "intro": "Start with Quick start, then open only the behavior you want to customize. Automatic and manual shoutouts remain disabled until you enable them.",
   "order": [
     "enabled", "enabledPlatforms", "triggerOnRaids", "minimumRaidViewers",
-    "triggerOnFirstChat", "firstChatResetHours", "firstChatAllowlist", "triggerOnManualCommand", "manualCommandName",
-    "ignoredUsers", "deliveryMode", "selectedPlatforms", "raidTemplate", "twitchFirstChatTemplate", "twitchViewerWelcomeTemplate",
-    "youtubeWelcomeTemplate", "kickWelcomeTemplate", "tiktokWelcomeTemplate", "manualTwitchTemplate",
+    "triggerOnFirstChat", "firstChatAudience", "firstChatAllowlist", "welcomeTimeZone", "welcomeSafetyMode", "welcomeDelaySeconds", "welcomeRequireStableId", "welcomeRejectLinks", "welcomeBlockedTerms", "welcomeBlockedDomains", "triggerOnManualCommand", "manualCommandName",
+    "ignoreConnectedAccounts", "ignoredUsers", "deliveryMode", "selectedPlatforms", "raidTemplate", "twitchFirstChatTemplate", "twitchViewerWelcomeTemplate", "twitchViewerWelcomeAlternates",
+    "youtubeWelcomeTemplate", "youtubeWelcomeAlternates", "kickWelcomeTemplate", "kickWelcomeAlternates", "tiktokWelcomeTemplate", "tiktokWelcomeAlternates", "manualTwitchTemplate",
     "manualChannelTemplate", "globalCooldownSeconds", "userCooldownMinutes", "onePerStream",
-    "maximumQueueSize", "queueExpiryMinutes", "twitchShoutoutMode", "showOverlayCard", "twitchVisualTriggers", "twitchVisualType",
-    "overlayCardTemplate", "overlayDurationSeconds", "clipCount", "clipMaximumAgeDays", "clipMaximumDurationSeconds",
-    "clipPreferPopular", "clipMuted", "clipVolume", "clipFallbackToCard"
+    "maximumQueueSize", "queueExpiryMinutes", "twitchShoutoutMode", "showOverlayCard", "overlayPlatforms", "twitchVisualTriggers",
+    "overlayCardTemplate", "overlayDurationSeconds", "firstChatResetHours", "twitchVisualType", "clipCount", "clipMaximumAgeDays", "clipMaximumDurationSeconds", "clipPreferPopular", "clipMuted", "clipVolume", "clipFallbackToCard"
   ],
   "sections": [
     {
@@ -21,8 +20,8 @@
     {
       "id": "automatic",
       "title": "2. Automatic shoutouts",
-      "description": "Choose which automatic events are allowed to create a message.",
-      "fields": ["triggerOnRaids", "minimumRaidViewers", "triggerOnFirstChat", "firstChatResetHours", "firstChatAllowlist"]
+      "description": "Choose raids and safe once-per-day viewer welcomes. Daily identity follows the configured timezone, not each stream restart.",
+      "fields": ["triggerOnRaids", "minimumRaidViewers", "triggerOnFirstChat", "firstChatAudience", "firstChatAllowlist", "welcomeTimeZone", "ignoreConnectedAccounts"]
     },
     {
       "id": "manual",
@@ -39,55 +38,74 @@
     {
       "id": "twitch-messages",
       "title": "5. Twitch messages",
-      "description": "Edit raid, creator, viewer-welcome, and manual Twitch wording.",
-      "fields": ["raidTemplate", "twitchFirstChatTemplate", "twitchViewerWelcomeTemplate", "manualTwitchTemplate"]
+      "description": "Edit raid, creator, randomized viewer-welcome, and manual Twitch wording.",
+      "fields": ["raidTemplate", "twitchFirstChatTemplate", "twitchViewerWelcomeTemplate", "twitchViewerWelcomeAlternates", "manualTwitchTemplate"]
     },
     {
       "id": "other-messages",
       "title": "6. YouTube, Kick, and TikTok messages",
       "description": "Edit platform welcomes and the manual channel-link message.",
-      "fields": ["youtubeWelcomeTemplate", "kickWelcomeTemplate", "tiktokWelcomeTemplate", "manualChannelTemplate"]
+      "fields": ["youtubeWelcomeTemplate", "youtubeWelcomeAlternates", "kickWelcomeTemplate", "kickWelcomeAlternates", "tiktokWelcomeTemplate", "tiktokWelcomeAlternates", "manualChannelTemplate"]
     },
     {
       "id": "safety",
-      "title": "7. Spam protection and ignored users",
-      "description": "Control repeats, queue size, cooldowns, and accounts that should never appear.",
-      "fields": ["ignoredUsers", "globalCooldownSeconds", "userCooldownMinutes", "onePerStream", "maximumQueueSize", "queueExpiryMinutes"]
+      "title": "7. Welcome safety and ignored users",
+      "description": "Balanced is preconfigured with connected-account blocking, known service bots, promotion phrases, blocked domains, stable-ID checks, and a short review delay. Every list remains editable.",
+      "fields": ["welcomeSafetyMode", "welcomeDelaySeconds", "welcomeRequireStableId", "welcomeRejectLinks", "welcomeBlockedTerms", "welcomeBlockedDomains", "ignoredUsers", "globalCooldownSeconds", "userCooldownMinutes", "onePerStream", "maximumQueueSize", "queueExpiryMinutes"]
     },
     {
       "id": "overlay",
-      "title": "8. Twitch visual popup",
-      "description": "Choose a verified profile card or a random Twitch clip. Other platforms remain chat-only.",
-      "fields": ["showOverlayCard", "twitchVisualTriggers", "twitchVisualType", "overlayCardTemplate", "overlayDurationSeconds", "clipCount", "clipMaximumAgeDays", "clipMaximumDurationSeconds", "clipPreferPopular", "clipMuted", "clipVolume", "clipFallbackToCard"]
+      "title": "8. Platform-colored visual cards",
+      "description": "Twitch can show a verified Streamer card or a Viewer welcome. YouTube, Kick, and TikTok use color-coded Viewer welcomes because their chatter category cannot be verified. No clips are retrieved or played.",
+      "fields": ["showOverlayCard", "overlayPlatforms", "twitchVisualTriggers", "overlayCardTemplate", "overlayDurationSeconds"]
+    },
+    {
+      "id": "retired-compatibility",
+      "title": "Retired compatibility settings",
+      "description": "Hidden compatibility values preserve older installations and have no runtime effect.",
+      "fields": ["firstChatResetHours", "twitchVisualType", "clipCount", "clipMaximumAgeDays", "clipMaximumDurationSeconds", "clipPreferPopular", "clipMuted", "clipVolume", "clipFallbackToCard"]
     }
   ],
   "fields": {
     "minimumRaidViewers": { "visibleWhen": { "field": "triggerOnRaids", "equals": true } },
-    "firstChatResetHours": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true } },
-    "firstChatAllowlist": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 4 },
+    "firstChatAudience": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "labels": { "safe-all": "Every safety-approved viewer", "allowlist-only": "Only safety-approved viewers on my allowlist" } },
+    "firstChatAllowlist": { "visibleWhen": { "field": "firstChatAudience", "equals": "allowlist-only" }, "rows": 4 },
+    "welcomeTimeZone": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true } },
+    "welcomeSafetyMode": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "labels": { "balanced": "Balanced (recommended)", "strict": "Strict", "open": "Open (explicit blocks still apply)" } },
+    "welcomeDelaySeconds": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true } },
+    "welcomeRequireStableId": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true } },
+    "welcomeRejectLinks": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true } },
+    "welcomeBlockedTerms": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 5 },
+    "welcomeBlockedDomains": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 4 },
     "manualCommandName": { "visibleWhen": { "field": "triggerOnManualCommand", "equals": true } },
     "selectedPlatforms": { "visibleWhen": { "field": "deliveryMode", "equals": "selected" } },
     "deliveryMode": { "labels": { "source": "Reply only on the source platform", "selected": "Post to selected platforms" } },
     "twitchShoutoutMode": { "labels": { "text": "Editable text only", "native": "Native Twitch shoutout only", "both": "Native shoutout and editable text" } },
-    "twitchVisualTriggers": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "labels": { "raid": "Incoming raids", "first-chat": "Approved first-time chatters", "manual": "Manual moderator shoutouts" } },
-    "twitchVisualType": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "labels": { "profile-card": "Profile card with picture", "random-clip": "Random Twitch clip" } },
+    "overlayPlatforms": { "visibleWhen": { "field": "showOverlayCard", "equals": true } },
+    "twitchVisualTriggers": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "labels": { "raid": "Incoming Twitch raids", "first-chat": "Safety-approved daily welcomes", "manual": "Manual moderator shoutouts" } },
     "raidTemplate": { "visibleWhen": { "field": "triggerOnRaids", "equals": true }, "rows": 3 },
     "twitchFirstChatTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
     "twitchViewerWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "twitchViewerWelcomeAlternates": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 5 },
     "youtubeWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "youtubeWelcomeAlternates": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 5 },
     "kickWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "kickWelcomeAlternates": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 5 },
     "tiktokWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
+    "tiktokWelcomeAlternates": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 5 },
     "manualTwitchTemplate": { "visibleWhen": { "field": "triggerOnManualCommand", "equals": true }, "rows": 3 },
     "manualChannelTemplate": { "visibleWhen": { "field": "triggerOnManualCommand", "equals": true }, "rows": 3 },
     "ignoredUsers": { "rows": 4 },
     "overlayCardTemplate": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "rows": 3 },
-    "overlayDurationSeconds": { "visibleWhen": { "field": "showOverlayCard", "equals": true } },
-    "clipCount": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
-    "clipMaximumAgeDays": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
-    "clipMaximumDurationSeconds": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
-    "clipPreferPopular": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
-    "clipMuted": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
-    "clipVolume": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } },
-    "clipFallbackToCard": { "visibleWhen": { "field": "twitchVisualType", "equals": "random-clip" } }
+    "overlayDurationSeconds": { "visibleWhen": { "field": "showOverlayCard", "equals": true } }
+    ,"firstChatResetHours": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
+    ,"twitchVisualType": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
+    ,"clipCount": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
+    ,"clipMaximumAgeDays": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
+    ,"clipMaximumDurationSeconds": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
+    ,"clipPreferPopular": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
+    ,"clipMuted": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
+    ,"clipVolume": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
+    ,"clipFallbackToCard": { "visibleWhen": { "field": "enabled", "equals": "__retired__" } }
   }
 }

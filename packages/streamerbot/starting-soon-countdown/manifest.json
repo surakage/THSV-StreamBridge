@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Provides Start, Stop, Pause, Resume, Reset, Complete Now, and Set & Start controls for the Stream Launch Countdown add-on.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "594f786d-53a1-51cb-a18d-14c666d1e5f1",
@@ -146,8 +146,8 @@
     "countdownSeconds"
   ],
   "manualTriggerSetup": [
-    "Attach Start to the scene-active trigger for your Starting Soon scene. Attach Stop to its scene-inactive trigger, or Reset if the paused clock should remain visible."
+    "No OBS scene triggers are required. StreamBridge follows normalized program-scene changes directly; use these actions only as optional hotkeys or Stream Deck controls for manual overrides."
   ],
   "triggerSafety": "These actions publish only bounded local countdown-control envelopes. They do not send chat, call external APIs, or run other actions.",
-  "verificationStatus": "Package structure and relay validation are automated; creator-selected scene trigger attachment remains manual."
+  "verificationStatus": "Package structure, relay validation, exact program-scene matching, duplicate-event protection, and Studio Mode-safe behavior are automated; genuine streaming-host acceptance remains manual."
 }

@@ -52,7 +52,7 @@
     ],
     "installationSteps": [
       "Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.",
-      "Create the configured no-response check-in command for YouTube and TikTok through Command Sync.",
+      "Choose the check-in command name. It registers automatically for YouTube and TikTok after restart.",
       "Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.",
       "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview."
     ],
@@ -72,8 +72,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 13351,
-      "sha256": "375ddbf0b740d19aa608d755c06a76e46c9e08865d42c85d565a50fc7e634911"
+      "size": 14274,
+      "sha256": "c1d05ae00754efa7c577b202dd0e212313a7787be59f691424c9fd69282adfd3"
     },
     {
       "path": "schemas/config.json",
@@ -87,8 +87,8 @@
     },
     {
       "path": "README.md",
-      "size": 1309,
-      "sha256": "11c1bd357e0e103555200c2335698f08054fcff812a0bc955603b002b741345e"
+      "size": 1342,
+      "sha256": "81da2ad85dc620937d769d6a38963caac079d2a1e5e41b8112746d58bcafdb85"
     }
   ]
 }

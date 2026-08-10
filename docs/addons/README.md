@@ -5,6 +5,7 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | Add-on | Module | Streamer.bot import |
 | --- | --- | --- |
 | [Accessibility Captions](./accessibility-captions.md) | `thsv.accessibility-captions` | Not required |
+| [Ad Break Companion](./ad-break-companion.md) | `thsv.ad-break-companion` | Included in add-on ZIP |
 | [Automated Shoutouts](./automated-shoutouts.md) | `thsv.automated-shoutouts` | Included in add-on ZIP |
 | [Category Pilot](./category-pilot.md) | `thsv.category-pilot` | Included in add-on ZIP |
 | [Chat Guard](./chat-guard.md) | `thsv.chat-guard` | Included in add-on ZIP |
@@ -34,6 +35,8 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [Viewer Lobby](./viewer-lobby.md) | `thsv.viewer-lobby` | Included in add-on ZIP |
 | [Viewer Spotlight](./viewer-spotlight.md) | `thsv.viewer-spotlight` | Included in add-on ZIP |
 | [Village Draw](./village-draw.md) | `thsv.village-draw` | Not required |
+| [Village Fun Commands](./village-fun-commands.md) | `thsv.village-fun-commands` | Included in add-on ZIP |
+| [Village Hydration Station](./village-hydration-station.md) | `thsv.village-hydration-station` | Included in add-on ZIP |
 | [Village Jukebox](./village-jukebox.md) | `thsv.village-jukebox` | Included in add-on ZIP |
 | [Village Polls](./village-polls.md) | `thsv.village-polls` | Not required |
 | [Village Roll Call](./village-roll-call.md) | `thsv.village-roll-call` | Not required |

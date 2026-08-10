@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Village Fun Commands",
+  "version": "3.5.0",
+  "author": "surakage",
+  "description": "Fetches bounded optional facts and family-friendly jokes for the automatic Village Fun Commands add-on without sending viewer data.",
+  "minimumStreamerBotVersion": "1.0.7",
+  "actions": [
+    {
+      "id": "74e6fc7e-39cd-4de3-a9ad-4ed7ef049196",
+      "name": "THSV Addon - Village Fun Commands - Fetch Fun Content",
+      "group": "THSV Addon - Village Fun Commands",
+      "source": "src/FetchFunContent.cs",
+      "importFile": "THSV-StreamBridge-Village-Fun-Commands-3.5.0.sb",
+      "excludeFromHistory": true,
+      "excludeFromPending": true,
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "9df94d73-b90c-4eeb-8992-1a902f99cc98",
+      "sourceSubActionId": "f302d6b7-f8f4-4d54-82ad-4b6e28fa6fb8",
+      "name": "THSV Addon - Village Fun Commands - Twitch Follow Age",
+      "group": "THSV Addon - Village Fun Commands",
+      "source": "src/FetchFollowAge.cs",
+      "importFile": "THSV-StreamBridge-Village-Fun-Commands-3.5.0.sb",
+      "excludeFromHistory": true,
+      "excludeFromPending": true,
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    }
+  ],
+  "commands": [],
+  "runtime": { "queue": "THSV Add-ons", "concurrent": true },
+  "manualTriggerSetup": [],
+  "triggerSafety": "Both helper actions are broker-dispatched and must remain triggerless. Viewer commands register through the existing THSV platform chat intakes.",
+  "verificationStatus": "Source and package structure tested; live third-party provider acceptance remains creator-verified."
+}

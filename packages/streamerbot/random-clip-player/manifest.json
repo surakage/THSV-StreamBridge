@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Fetches the broadcaster's Twitch clips and resolves a direct playable download URL per clip on request, for the Random Clip Player add-on.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "f89e397b-7106-5101-a620-b0f5da4facf9",

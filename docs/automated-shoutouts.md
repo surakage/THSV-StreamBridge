@@ -1,25 +1,25 @@
 # Automated Shoutouts add-on
 
-Automated Shoutouts is an optional `.thsv-addon` that turns already-normalized StreamBridge events into bounded shoutout messages. Twitch can additionally show either a verified profile card or a random eligible clip. It reuses the main bridge's event bus, one Streamer.bot WebSocket connection, outbound platform router, scheduler, private state, and hosted overlay. It does not open another socket or store chat messages.
+Automated Shoutouts is an optional `.thsv-addon` that turns already-normalized StreamBridge events into bounded shoutouts and safety-screened daily welcomes. Twitch, YouTube, Kick, and TikTok use one hosted card contract with platform-specific colors. It reuses the main bridge's event bus, one Streamer.bot WebSocket connection, outbound platform router, scheduler, private state, and hosted overlay. It does not retrieve clips, open another socket, or store chat messages.
 
 ## Supported triggers
 
 | Trigger | Platforms | Source used | Safety rule |
 |---|---|---|---|
 | Incoming raid | Twitch | normalized `channel.raid`, then documented `TwitchGetExtendedUserInfoById/Login` | minimum viewer count; the message is sent only when Twitch returns a non-empty `Game` category |
-| First chat of stream | Twitch | normalized `chat.message`, Streamer.bot's known `firstMessage` flag, then documented Twitch extended-user lookup | disabled by default and requires an explicit allowlist; category-confirmed creators get a promotion, while a verified no-category viewer is welcomed only when `firstMessage=true` (their first message ever in the channel) |
-| First chat of stream | YouTube, Kick, TikTok | normalized `chat.message` | platform-specific welcome only; no unsupported category or streamer claim |
+| First safe chat of the day | Twitch | normalized `chat.message`, safety gate, then documented Twitch extended-user lookup | disabled by default; stable ID, ignored-bot list, explicit spam phrases/domains, link policy, and once-per-day gate apply before lookup; category-confirmed creators get a promotion and no-category viewers get a welcome |
+| First safe chat of the day | YouTube, Kick, TikTok | normalized `chat.message` | same stable-ID and spam gate; platform-specific welcome only, with no unsupported category or streamer claim |
 | Manual command | Twitch, YouTube, Kick, TikTok | normalized `command.received`; first command argument is the target | caller must carry normalized `moderator` or `broadcaster` role even if the creator misconfigures the Streamer.bot command |
 
-Streamer.bot also exposes native First Words triggers for Twitch, YouTube, and Kick. Twitch's documented trigger uses a creator-configured cache reset (12 hours by default) unless a separate Stream Online action runs **Reset First Words**; Kick uses the same default cache model and a manual reset. Those triggers would require separate platform actions and still would not cover TikFinity. Native Platform Intake 1.5.1 instead preserves the documented Twitch `firstMessage` flag already supplied with chat data, so the no-category viewer welcome is limited to their first message ever and fails closed when that fact is missing. The add-on derives the broader per-stream first-chat gate from the shared normalized feed and resets its bounded seen-set on `stream.online`. For a TikTok-only setup without a reliable lifecycle event, the creator-set inactivity window (12 hours by default) is the explicit fallback. TikFinity documents ordinary chat events and user placeholders, but no dedicated first-words event in its Streamer.bot integration, so the add-on does not invent one.
+The add-on intentionally does not require separate native First Words triggers. It derives the first accepted message from the shared normalized feed and records the stable platform account against the creator's configured calendar day. Ending and restarting a stream does not clear that record; the next welcome becomes eligible only after the date changes in the configured timezone. TikFinity does not document a separate first-words event, so TikTok follows the same normalized-message rule and requires a stable relayed user ID by default.
 
 ## Documented platform variables and methods
 
-The intake packagesâ€”not this add-onâ€”translate provider variables into `event.user`, `event.payload`, and `event.source`. These are the source facts reviewed for this implementation:
+The intake packages—not this add-on—translate provider variables into `event.user`, `event.payload`, and `event.source`. These are the source facts reviewed for this implementation:
 
 | Provider | Useful documented inputs | Output used |
 |---|---|---|
-| Twitch / Streamer.bot | Raid `%viewers%`; Twitch user ID, login, display name, profile image; command `%command%`, `%commandName%`, `%commandSource%`, `%input#%`, `%rawInput%`; extended user `Game` and `ProfileImageUrl` | lookup action uses `CPH.TwitchGetExtendedUserInfoById/Login`; optional clip action uses `CPH.GetClipsForUser` and `CPH.TwitchGetClipDownloadUrls`; shared router uses `CPH.SendMessage`; optional native action uses `CPH.TwitchSendShoutoutById/Login` |
+| Twitch / Streamer.bot | Raid `%viewers%`; Twitch user ID, login, display name, profile image; command `%command%`, `%commandName%`, `%commandSource%`, `%input#%`, `%rawInput%`; extended user `Game` and `ProfileImageUrl` | lookup action uses `CPH.TwitchGetExtendedUserInfoById/Login`; shared router uses `CPH.SendMessage`; optional native action uses `CPH.TwitchSendShoutoutById/Login` |
 | YouTube / Streamer.bot | Chat `%message%`, `%messageId%`, `%publishedAt%`; YouTube user and broadcast variables; normalized command arguments | shared router uses `CPH.SendYouTubeMessageToLatestMonitored` because the broadcast ID is not part of every normalized event |
 | Kick / Streamer.bot | Chat `%isInternal%`, Kick chat variables including message ID, and Kick user variables; normalized command arguments | shared router uses `CPH.SendKickMessage`; automatic first chat is a welcome because the documented user API exposes only `KickGetBot` and `KickGetBroadcaster`, not arbitrary chatter categories |
 | TikTok / TikFinity | `%userId%`, `%username%`, `%nickname%`, documented `%profilePicturUrl%` spelling, `%commandParams%`, `%giftId%`, `%giftName%`, `%coins%`, `%repeatCount%`, `%likeCount%`, `%totalLikeCount%`, `%subMonth%`, `%emoteId%`, `%emoteImageUrl%` | TikFinity's documented `CPH.WebsocketBroadcastJson` envelope with `action: "sendChatbotMessage"` and `args.message` |
@@ -44,19 +44,17 @@ Streamer.bot does not currently document an arbitrary-channel native shoutout fo
 ## Setup
 
 1. Download and extract `THSV-StreamBridge-AddOn-Automated-Shoutouts-1.1.0.zip`, then install its `THSV-Automated-Shoutouts-1.1.0.thsv-addon` through the authenticated wizard and enable it.
-2. Review the settings. Keep first-chat automation disabled until its allowlist is populated.
-3. For manual use, open **Command Sync** and create the command named by **Manual command name**. Recommended aliases are `so` and `shoutout`; set the reference role to Moderator and enable the desired message sources.
-4. Import `Streamer.bot/THSV-StreamBridge-Automated-Shoutouts-3.5.0.sb` from the extracted add-on bundle. The native platform intake remains a core import supplied by the main StreamBridge download. Do not attach triggers to the Automated Shoutouts actions. Approve `Lookup Twitch Creator` whenever Twitch triggers are enabled. Approve `Twitch Native Shoutout` only when the Twitch mode is `native` or `both`. Approve `Get Twitch Clip` only when the visual popup uses random clips.
+2. Review the settings. Keep daily welcomes disabled until the timezone, safety mode, editable bot list, spam phrases, and blocked domains match the channel. `Balanced` is the recommended starting point; use Allowlist only when every welcomed account must be preapproved.
+3. For manual use, choose **Manual command name** in the add-on settings. Automated Shoutouts registers that moderator-only command and its recommended `!so` alias through the existing chat intakes after save and restart. Do not create a duplicate Command Sync definition or Streamer.bot Command object.
+4. Import `Streamer.bot/THSV-StreamBridge-Automated-Shoutouts-3.5.0.sb` from the extracted add-on bundle. The native platform intake remains a core import supplied by the main StreamBridge download. Do not attach triggers to the Automated Shoutouts actions. Approve `Lookup Twitch Creator` whenever Twitch triggers are enabled. Approve `Twitch Native Shoutout` only when the Twitch mode is `native` or `both`. Visual cards are rendered by StreamBridge and never retrieve clips.
 5. For TikTok output, enable **Allow Streamer.bot to push messages to TikFinity** in TikFinity's Chatbot settings.
 6. Optionally add the concise **Shoutouts** source, `http://127.0.0.1:8787/overlay/shoutouts`, to OBS, Meld, or Streamlabs and use **Send preview card** in the wizard. The previous module-ID URL remains supported for existing scenes.
 
-## Twitch visual popup
+## Platform-colored visual cards
 
-The visual popup is Twitch-only. Choose **Profile card with picture** for the target's verified profile image, category, channel URL, and editable card message. Choose **Random Twitch clip** to select one eligible clip using creator-set age and duration limits; optional popularity weighting still leaves every eligible clip selectable. Clip playback is muted by default for reliable browser-source autoplay, with an editable volume setting when mute is disabled. If Twitch returns no eligible or playable clip, the add-on can fall back to the profile card.
+The same fixed-size card supports Twitch purple, YouTube red, Kick green, and TikTok cyan/pink. Streamer cards are Twitch-only because that is the only supported arbitrary-chatter lookup that supplies a verified current category. YouTube, Kick, and TikTok always use Viewer welcome cards. Welcome cards use the viewer identity and one randomly selected editable platform message. Automated Shoutouts never retrieves or plays clips.
 
-The **Show the Twitch popup for** control independently selects incoming raids, approved first-time chatters, and manual moderator shoutouts. Manual means the normalized moderator/broadcaster command configured under **Manual command name**; first-time chatter still requires the creator allowlist and the first-chat switch. The selected profile card or clip is shared by all enabled Twitch trigger paths.
-
-Clip playback uses Streamer.bot's supported methods and the same core-owned `/overlay/shoutouts` source. It never creates an OBS-specific scene, invokes an external hash service, stores a signed playback URL, or adds another socket. YouTube, Kick, and TikTok continue to receive only their respective bounded chat messages.
+The **Show the visual card for** and **Platforms allowed to show welcome cards** controls independently select event paths and platforms. Manual means the normalized moderator/broadcaster command configured under **Manual command name**. All visual delivery uses the same core-owned `/overlay/shoutouts` source and existing overlay WebSocket.
 
 ## Template tokens
 
@@ -76,6 +74,9 @@ Twitch category is available because Streamer.bot documents it as `TwitchUserInf
 - state is persisted before external delivery, favoring a missed cosmetic shoutout over a duplicate after a crash;
 - Twitch-native mode additionally reserves Twitch's documented two-minute global and one-hour per-user constraints;
 - ignored-user rules override automatic and manual triggers;
+- first-chat candidates must pass the selected Open, Balanced, or Strict safety gate before any Twitch lookup, chat output, or card is queued;
+- stable platform IDs and the creator timezone enforce one welcome per viewer per calendar day, even across multiple same-day streams and bridge restarts;
+- preinstalled service-bot accounts, promotion phrases, and promotion domains remain creator-editable and are never silently re-added after removal;
 - simulated events may preview the hosted card but never send chat or call Twitch.
 
 Rule formats are `username`, `platform:username`, or `platform:id:stable-user-id`. Stable IDs survive renames and are preferred when known.
@@ -87,13 +88,13 @@ The add-on never persists chat message text. Private state contains only a bound
 ## Live acceptance
 
 1. Start StreamBridge and confirm `/ready` reports ready.
-2. Run `npm run simulate -- tests/fixtures/twitch-raid.json` and confirm only the optional overlay preview appearsâ€”no live chat output.
+2. Run `npm run simulate -- tests/fixtures/twitch-raid.json` and confirm only the optional overlay preview appears—no live chat output.
 3. Trigger a controlled Twitch raid from a channel with a category and confirm the message contains the name, category, and complete channel URL exactly once.
-4. Test an allowlisted Twitch chatter whose relayed `firstMessage` is true and whose lookup returns no category. Confirm the editable viewer welcome appears exactly once, without a channel/category promotion. Confirm a returning chatter (`firstMessage=false` or absent) and an empty-category raid produce no automatic promotion.
-5. Repeat the same source event and confirm no second message is posted.
-6. Confirm allowlisted YouTube, Kick, and TikTok first-chat events use their welcome messages without a category/channel promotion claim.
+4. Enable daily welcomes in Balanced mode. Confirm an ordinary stable-ID Twitch viewer with no category receives one editable welcome, while a category-confirmed Twitch creator receives the creator wording.
+5. Repeat the same viewer, end and restart the stream on the same calendar day, and confirm no second welcome appears. Change only the test clock/date and confirm they become eligible on the next configured day.
+6. Confirm safety-approved YouTube, Kick, and TikTok first-chat events use their platform-colored cards and randomized welcome lists without a category/channel promotion claim. Confirm a missing stable ID fails closed while that setting is enabled.
 7. Run the moderator command once from each enabled platform and confirm the response returns only to its source when delivery mode is `source`.
 8. Confirm a viewer cannot invoke the command and an ignored target never appears.
 9. If native mode is enabled, confirm the approved action returns `automatedShoutoutSucceeded = true`; then confirm an immediate repeat is suppressed/falls back rather than calling Twitch again.
 10. If TikTok delivery is enabled, confirm TikFinity's chatbot push option is enabled and a source-routed test appears once.
-11. Select **Profile card with picture** and confirm the Twitch avatar, channel message, and category fit without clipping. Then select **Random Twitch clip**, approve the clip action, and confirm one eligible clip plays and fades through the hosted overlay. Test a target with no eligible clips and confirm the card fallback appears.
+11. Preview Twitch, YouTube, Kick, and TikTok cards and confirm long names and welcome text remain inside the fixed 16:9 card without clipping.

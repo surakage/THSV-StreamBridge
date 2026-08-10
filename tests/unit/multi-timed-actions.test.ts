@@ -201,6 +201,31 @@ describe('Multi-Timed Actions', () => {
     await adapter.control('stop'); await adapter.stop();
   });
 
+  it('keeps require-live timers offline after an operator start until a real platform is live', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-07-16T16:00:00.000Z');
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-operator-live-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
+      ...defaultTimerPolicy, id: 'operator-live', name: 'Operator live', enabled: true, everyMinutes: 1,
+      missedRunPolicy: 'fire-once', payload: {}, selection: { mode: 'shuffle-container', messages: ['One', 'Two'] },
+      gates: { ...defaultTimerPolicy.gates, requireLive: true },
+    }] };
+    const events: NormalizedEvent[] = [];
+    const adapter = new TimedActionsAdapter('timers', platform, config, () => 0);
+    await adapter.start({ logger: silentLogger, emit: async (event) => { events.push(event as NormalizedEvent); return { accepted: true }; } });
+    const firstStatus = await adapter.control('start');
+    expect(firstStatus).toMatchObject({ active: true, livePlatforms: ['__operator-started-session__'] });
+    const startedAt = firstStatus['startedAt'];
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect((await adapter.control('start'))['startedAt']).toBe(startedAt);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(events).toHaveLength(0);
+    adapter.observe({ ...await fixture(), eventId: 'real-twitch-online', eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } });
+    expect(adapter.controlStatus()).toMatchObject({ livePlatforms: ['twitch'] });
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+    await adapter.control('stop'); await adapter.stop();
+  });
+
   it('preserves a random timer remaining interval across pause and resume', async () => {
     vi.useFakeTimers(); vi.setSystemTime('2026-07-16T16:00:00.000Z');
     const directory = await mkdtemp(join(tmpdir(), 'streambridge-random-pause-'));
@@ -267,6 +292,7 @@ describe('Multi-Timed Actions', () => {
       eventType,
       platform: platformName,
       source: { ...template.source, eventId: `lifecycle-source-${suffix}` },
+      metadata: { ...template.metadata, simulated: false },
       user: undefined,
       payload: {},
     });
@@ -281,7 +307,19 @@ describe('Multi-Timed Actions', () => {
     await bridge.stop();
   });
 
-  it('keeps the persisted session anchor when online state is announced after a bridge restart', async () => {
+  it('does not let simulated lifecycle tests arm or alter the real timer session', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-simulated-lifecycle-'));
+    const config = await testConfig();
+    config.timedActions.stateFile = join(directory, 'state.json');
+    const bridge = createTestBridge(config);
+    await bridge.start();
+    const template = await fixture();
+    await bridge.ingest({ ...template, eventId: 'simulated-online', eventType: 'stream.online', user: undefined, metadata: { ...template.metadata, simulated: true }, source: { ...template.source, eventId: 'simulated-online' }, payload: {} });
+    expect(bridge.diagnostics()['timedActions']).toMatchObject({ active: false, livePlatforms: [], armedTimers: 0 });
+    await bridge.stop();
+  });
+
+  it('starts a fresh session anchor when online state is announced after a bridge restart', async () => {
     vi.useFakeTimers(); vi.setSystemTime('2026-07-16T16:00:00.000Z');
     const directory = await mkdtemp(join(tmpdir(), 'streambridge-restart-session-'));
     const config = await testConfig();
@@ -292,6 +330,7 @@ describe('Multi-Timed Actions', () => {
       eventId: `restart-online-${suffix}`,
       eventType: 'stream.online',
       source: { ...template.source, eventId: `restart-online-source-${suffix}` },
+      metadata: { ...template.metadata, simulated: false },
       user: undefined,
       payload: {},
     });
@@ -306,8 +345,38 @@ describe('Multi-Timed Actions', () => {
     const restartedBridge = createTestBridge(config);
     await restartedBridge.start();
     await restartedBridge.ingest(onlineEvent('restart'));
-    expect((restartedBridge.diagnostics()['timedActions'] as Record<string, unknown>)['startedAt']).toBe(originalStart);
+    expect((restartedBridge.diagnostics()['timedActions'] as Record<string, unknown>)['startedAt']).not.toBe(originalStart);
+    expect((restartedBridge.diagnostics()['timedActions'] as Record<string, unknown>)['startedAt']).toBe('2026-07-16T16:05:00.000Z');
     await restartedBridge.controlTimedActions('stop');
     await restartedBridge.stop();
+  });
+
+  it('fails closed after restart until a fresh real online event arrives', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-07-16T16:00:00.000Z');
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-restart-live-gate-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
+      ...defaultTimerPolicy, id: 'restart-live', name: 'Restart live', enabled: true, everyMinutes: 1,
+      missedRunPolicy: 'fire-once', payload: {}, selection: { mode: 'shuffle-container', messages: ['Still live', 'Still here'] },
+      gates: { ...defaultTimerPolicy.gates, requireLive: true },
+    }] };
+    const online = { ...(await fixture()), eventId: 'restart-live-online', eventType: 'stream.online' as const, platform: 'twitch', user: undefined, metadata: { simulated: false }, payload: {} };
+    const first = new TimedActionsAdapter('timers', platform, config, () => 0);
+    await first.start({ logger: silentLogger, emit: async () => ({ accepted: true }) });
+    first.observe(online);
+    await first.control('start');
+    await first.stop();
+
+    const events: NormalizedEvent[] = [];
+    const restarted = new TimedActionsAdapter('timers', platform, config, () => 0);
+    await restarted.start({ logger: silentLogger, emit: async (event) => { events.push(event as NormalizedEvent); return { accepted: true }; } });
+    expect(restarted.controlStatus()).toMatchObject({ active: false, livePlatforms: [], armedTimers: 0 });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(events).toHaveLength(0);
+    restarted.observe({ ...online, eventId: 'restart-live-online-fresh', source: { ...online.source, eventId: 'restart-live-online-fresh' } });
+    await restarted.control('start');
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+    await restarted.control('stop');
+    await restarted.stop();
   });
 });

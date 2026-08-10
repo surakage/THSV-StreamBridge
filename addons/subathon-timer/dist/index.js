@@ -393,7 +393,7 @@ async function publishState(context, settings, state) {
       lastAwardSeconds: state.lastAwardSeconds,
       style: overlayStyle(settings),
       emittedAt: new Date().toISOString(),
-    });
+    }, { lane: 'timer' });
   } catch {
     // A closed optional overlay must never stop timer processing.
   }

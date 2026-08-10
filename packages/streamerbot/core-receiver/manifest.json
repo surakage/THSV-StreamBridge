@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Validated Streamer.bot trust boundary and event receiver for THSV StreamBridge.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Receive Event",
     "group": "THSV StreamBridge",

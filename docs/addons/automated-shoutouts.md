@@ -4,7 +4,7 @@
 **Version:** `3.5.0`
 **Publisher:** THSV StreamBridge
 
-Sends bounded, cooldown-protected shoutouts and welcomes after creator-selected raids, approved first chats, or moderator commands, using StreamBridge's shared platform router.
+Sends bounded shoutouts and safety-screened once-per-day welcomes with platform-colored cards through StreamBridge's shared router.
 
 ## Install
 
@@ -16,21 +16,19 @@ Sends bounded, cooldown-protected shoutouts and welcomes after creator-selected 
 ### Add-on-specific steps
 
 1. Install and enable the add-on in the StreamBridge wizard, then review its chat.send and overlay.publish permissions.
-2. In Command Sync, apply Automated Shoutouts command. It creates the source, permission, and cooldown shell with no canned response so this add-on remains the only shoutout owner.
+2. Choose the manual shoutout command in the wizard. It registers automatically through the existing chat intakes after save and restart.
 3. Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.
 4. Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.
-5. Optional: approve Get Twitch Clip when Twitch visual popup is set to Random clip.
-6. For TikTok output, enable Allow Streamer.bot to push messages to TikFinity in TikFinity Chatbot settings.
+5. For TikTok output, enable Allow Streamer.bot to push messages to TikFinity in TikFinity Chatbot settings.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.31`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Automated Shoutouts`
 
 - `THSV Addon - Automated Shoutouts - Lookup Twitch Creator` in `THSV Addon - Automated Shoutouts`
 - `THSV Addon - Automated Shoutouts - Twitch Native Shoutout` in `THSV Addon - Automated Shoutouts`
-- `THSV Addon - Automated Shoutouts - Get Twitch Clip` in `THSV Addon - Automated Shoutouts`
 
 All actions are broker-dispatched only. Do not attach Streamer.bot triggers; the bridge capability broker restricts calls to creator-approved action IDs.
 

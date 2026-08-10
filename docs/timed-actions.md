@@ -9,8 +9,10 @@ observed live platforms are offline. Pause/resume preserves the remaining interv
 - **Fixed:** runs every configured number of minutes.
 - **Random:** chooses an inclusive value between the configured minimum and maximum. The chosen
   next interval and due time are persisted before arming, so a restart does not reroll it.
-- **Message rotation:** shuffle-container mode sends every creator-authored message once before
-  starting another cycle. The pending choice is persisted before delivery.
+- **Message rotation:** the wizard can keep messages in one group or several named editing groups.
+  Groups are organizational only: `shuffle-container` flattens them into one shared list, sends every
+  creator-authored message once before starting another cycle, and persists the pending choice before
+  delivery.
 
 ## Gates
 
@@ -26,10 +28,10 @@ No chat text, viewer identity, or long-term activity history is stored for these
 
 `event-only` publishes the normalized timer event without running another action.
 
-`run-existing-action` invokes one creator-selected Streamer.bot action by stable ID through
-Multi-Timed Actions 1.2.0. The wizard requires explicit approval, reports action rename/missing
-drift, and excludes the receiver and timed-action package itself to prevent recursion. Advanced
-sub-action editing remains in Streamer.bot's native action editor.
+`run-existing-action` invokes one creator-selected Streamer.bot action directly by stable ID. The
+wizard requires explicit approval, reports action rename/missing drift, and excludes framework
+actions that could recurse. Delivery does not depend on manually nesting Multi-Timed Actions under
+the Core Receiver. Advanced sub-action editing remains in Streamer.bot's native action editor.
 
 For cross-platform timed chat, import **Timed Message Output 1.0.0**, select
 `THSV StreamBridge - Send Timed Message`, and use the wizard's Twitch, YouTube, Kick, and TikTok
@@ -47,7 +49,7 @@ publicly. Wizard test executions are simulated and cannot send externally.
 
 Use the wizard's Timed Actions page to stage changes. Commit creates a backup and applies the
 validated configuration atomically; restart StreamBridge afterward. `Test saved` sends one
-simulated execution through the normal receiver/package path while bypassing live gates. It does
+simulated execution through the normal approved-action path while bypassing live gates. It does
 not advance the schedule occurrence, consume a shuffle message, or post to platform chat.
 
 PowerShell lifecycle controls remain available through `scripts/timed-actions.ps1`.

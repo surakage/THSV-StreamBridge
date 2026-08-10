@@ -30,6 +30,7 @@ export class AlertPresentationQueue {
   }
 
   take() { return this.items.shift(); }
+  clear() { this.items.length = 0; }
   get length() { return this.items.length; }
   snapshot() { return this.items.map((item) => ({ ...item })); }
 
@@ -66,6 +67,17 @@ export class AlertPresentationController {
   configure(capacity, defaultDurationMs) {
     this.queue.setCapacity(capacity);
     this.defaultDurationMs = defaultDurationMs;
+  }
+
+  reset() {
+    if (this.timer !== undefined) this.cancel(this.timer);
+    for (const pending of this.pendingAggregates.values()) this.cancel(pending.timer);
+    this.pendingAggregates.clear();
+    this.queue.clear();
+    this.activeAlert = undefined;
+    this.timer = undefined;
+    this.recentFollows = [];
+    this.clear();
   }
 
   enqueue(alert, queuedAt = Date.now()) {

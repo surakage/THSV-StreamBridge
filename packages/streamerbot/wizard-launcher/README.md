@@ -1,7 +1,7 @@
 # Setup Wizard Launcher
 
-Import the reviewed `.sb` file, then run **THSV StreamBridge - Open Setup Wizard**. The action opens `http://127.0.0.1:8787/wizard/` in the default browser. It does not pass credentials in the URL and does not create, edit, delete, enable, disable, or run any Streamer.bot object.
+Import the reviewed `.sb` file, then run **THSV StreamBridge - Open Setup Wizard** whenever you need the wizard. The action verifies the local Bridge, requests a short-lived single-use unlock ticket, and opens the wizard already authenticated in the default browser. The permanent control token is never placed in the URL or browser history, and the temporary ticket is removed from the address before it is exchanged.
 
-Unlock the wizard with the token stored at `data/runtime/control-token` in the THSV StreamBridge installation. The token remains only in the open browser tab and is not saved to local storage.
+No token lookup or copy-and-paste is required. Manual token entry remains available in the locked page only as an advanced recovery fallback.
 
-If the bridge uses a non-default port, open the matching `/wizard/` URL manually. Custom launcher-port configuration is deferred until the wizard owns configuration changes in a later stage.
+The launcher reads the configured local port automatically. It does not create, edit, delete, enable, disable, or run any other Streamer.bot object.

@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the current stream to Discord.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "6cd2c22e-631c-4b78-91bd-c67169ce989b",
@@ -28,13 +28,7 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
       ],
-      "triggers": [
-        {
-          "commandId": "acb29e2b-91a0-48f0-b024-a71a44b87568",
-          "id": "a28e843f-8e93-4698-9291-c05eb596abf0",
-          "stableIdentitySeed": "clip-courier:create-command"
-        }
-      ]
+      "triggers": []
     },
     {
       "id": "d4c4d0c6-5466-4a30-b437-7fd582f69038",
@@ -60,31 +54,15 @@
       ]
     }
   ],
-  "commands": [
-    {
-      "id": "acb29e2b-91a0-48f0-b024-a71a44b87568",
-      "name": "clip",
-      "command": "!clip",
-      "enabled": false,
-      "caseSensitive": false,
-      "sources": 1,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 15,
-      "userCooldown": 60,
-      "stableIdentitySeed": "clip-courier:create-command-object"
-    }
-  ],
+  "commands": [],
   "runtime": {
     "queue": "THSV Add-ons",
     "concurrent": false
   },
   "manualTriggerSetup": {
-    "createClip": [
-      "Review and enable the imported Twitch-only !clip command. Change clipCourierDurationSeconds on Create Clip to either 30 or 60."
-    ],
+    "createClip": [],
     "deliver": []
   },
-  "triggerSafety": "Create Clip is bound only to the imported Twitch !clip command. Deliver remains triggerless and requires a one-use broker token. The webhook stays only in Deliver's Set Argument.",
+  "triggerSafety": "Create Clip and Deliver remain triggerless and require one-use broker tokens. The existing Twitch intake owns !clip, and the webhook stays only in Deliver's Set Argument.",
   "verificationStatus": "Source and automated contract verified; creator Twitch and Discord live acceptance remains required."
 }

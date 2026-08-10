@@ -2,13 +2,25 @@
 // events and uses only brokered chat, overlay, action, scheduler, and private-state capabilities.
 const NATIVE_TWITCH_SHOUTOUT_ACTION_ID = 'c84fdb40-d06f-5b0a-9ddf-f6d21c68922e';
 const LOOKUP_TWITCH_CREATOR_ACTION_ID = 'e3d92d7e-193a-5bba-8b8c-4f17e605c9d2';
-const GET_TWITCH_CLIP_ACTION_ID = 'e47c65a2-09d2-5c5b-9c99-c98e3e1d9362';
 const TWITCH_PROFILE_EVENT = 'addon.thsv.automated-shoutouts.twitch-profile-received';
-const TWITCH_CLIP_EVENT = 'addon.thsv.automated-shoutouts.twitch-clip-received';
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const PLATFORM_MESSAGE_LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
+const PLATFORM_LABELS = Object.freeze({ twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok' });
 const NATIVE_GLOBAL_COOLDOWN_MS = 120_000;
 const NATIVE_USER_COOLDOWN_MS = 3_600_000;
+const DEFAULT_IGNORED_USERS = Object.freeze([
+  'twitch:nightbot', 'twitch:streamelements', 'youtube:streamelements', 'kick:streamelements',
+  'twitch:fossabot', 'twitch:moobot', 'twitch:sery_bot', 'twitch:soundalerts', 'twitch:wizebot',
+  'twitch:kofistreambot', 'twitch:streamlabs', 'twitch:botrix', 'youtube:botrix', 'kick:botrix',
+  'tiktok:botrix', 'twitch:commanderroot', 'twitch:deepbot', 'twitch:phantombot',
+  'twitch:stay_hydrated_bot', 'twitch:coebot', 'twitch:pretzelrocks', 'twitch:streamavatars',
+  'twitch:suraruisuh', 'twitch:suraruisuh_bot',
+]);
+const DEFAULT_SPAM_TERMS = Object.freeze([
+  'want to become famous', 'buy followers', 'buy viewers', 'cheap viewers',
+  'get more viewers at', 'promote your channel at', 'grow your channel fast', 'best viewers on',
+]);
+const DEFAULT_SPAM_DOMAINS = Object.freeze(['bigfollows.com', 'streamboo.com', 'bestviewers.com', 'viewers.shop']);
 
 const manifest = {
   contractVersion: '2.0.0-preview.1',
@@ -18,21 +30,19 @@ const manifest = {
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['channel.raid', 'chat.message', 'command.received', 'stream.online', 'stream.offline', TWITCH_PROFILE_EVENT, TWITCH_CLIP_EVENT],
+  eventSubscriptions: ['channel.raid', 'chat.message', 'command.received', 'stream.online', 'stream.offline', TWITCH_PROFILE_EVENT],
   commandsProvided: [{ id: 'automated-shoutouts.shoutout', name: 'shoutout (recommended alias: so)' }],
   actionsProvided: [
     { id: 'automated-shoutouts.twitch-lookup', name: 'Required Twitch creator category lookup' },
     { id: 'automated-shoutouts.twitch-native', name: 'Optional Twitch native shoutout' },
-    { id: 'automated-shoutouts.twitch-clip', name: 'Optional Twitch random clip lookup' },
   ],
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.automated-shoutouts/', 'data/addons/.state/thsv.automated-shoutouts/'],
   installationSteps: [
     'Install and enable the add-on in the StreamBridge wizard, then review its chat.send and overlay.publish permissions.',
-    'In Command Sync, apply Automated Shoutouts command. It creates the source, permission, and cooldown shell with no canned response so this add-on remains the only shoutout owner.',
+    'Choose the manual shoutout command in the wizard. It registers automatically through the existing chat intakes after save and restart.',
     'Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.',
     'Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.',
-    'Optional: approve Get Twitch Clip when Twitch visual popup is set to Random clip.',
     'For TikTok output, enable Allow Streamer.bot to push messages to TikFinity in TikFinity Chatbot settings.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its private cooldown state remains preserved for a later reinstall.'],
@@ -42,22 +52,26 @@ const manifest = {
 
 const FALLBACKS = Object.freeze({
   enabled: true, enabledPlatforms: PLATFORMS, triggerOnRaids: true, minimumRaidViewers: 1,
-  triggerOnFirstChat: false, firstChatResetHours: 12, firstChatAllowlist: [], triggerOnManualCommand: true,
-  manualCommandName: 'shoutout', ignoredUsers: ['twitch:nightbot', 'twitch:streamelements', 'youtube:streamelements', 'kick:streamelements', 'twitch:fossabot', 'twitch:moobot', 'twitch:sery_bot', 'twitch:soundalerts', 'twitch:wizebot', 'twitch:kofistreambot', 'twitch:streamlabs', 'twitch:botrix', 'youtube:botrix', 'kick:botrix', 'tiktok:botrix'], deliveryMode: 'source', selectedPlatforms: ['twitch'],
+  triggerOnFirstChat: false, firstChatResetHours: 12, firstChatAudience: 'safe-all', firstChatAllowlist: [], triggerOnManualCommand: true,
+  welcomeTimeZone: 'UTC', welcomeSafetyMode: 'balanced', welcomeDelaySeconds: 3, welcomeRequireStableId: true,
+  welcomeRejectLinks: true, welcomeBlockedTerms: DEFAULT_SPAM_TERMS, welcomeBlockedDomains: DEFAULT_SPAM_DOMAINS,
+  manualCommandName: 'shoutout', ignoreConnectedAccounts: true, ignoredUsers: DEFAULT_IGNORED_USERS, deliveryMode: 'source', selectedPlatforms: ['twitch'],
   raidTemplate: 'Thank you {displayName} for the raid with {viewers} viewers! They stream {category}. Watch them at {channelUrl}',
   twitchFirstChatTemplate: 'Go watch {displayName} streaming {category}: {channelUrl}',
   twitchViewerWelcomeTemplate: 'Welcome to the stream, {displayName}! Thanks for joining us on Twitch.',
+  twitchViewerWelcomeAlternates: ['Glad you made it, {displayName}! Welcome to the Twitch side of the village.', 'Hey {displayName}! Settle in and enjoy the stream with us.', 'A new Villager has arrived! Welcome in, {displayName}.'],
   youtubeWelcomeTemplate: 'Welcome to the stream, {displayName}! Thanks for joining us on YouTube.',
+  youtubeWelcomeAlternates: ['Glad you found the village, {displayName}! Welcome to the YouTube stream.', 'Hey {displayName}! Thanks for spending some time with us on YouTube.', 'Welcome in, {displayName}! The village is happy to have you here.'],
   kickWelcomeTemplate: 'Welcome to the stream, {displayName}! Thanks for joining us on Kick.',
+  kickWelcomeAlternates: ['Glad you made it, {displayName}! Welcome to the Kick side of the village.', 'Hey {displayName}! Pull up a seat and enjoy the Kick stream.', 'A new Villager has arrived on Kick! Welcome, {displayName}.'],
   tiktokWelcomeTemplate: 'Welcome, {displayName}! Thanks for joining the TikTok live.',
+  tiktokWelcomeAlternates: ['Hey {displayName}! Welcome to the village on TikTok LIVE.', 'Glad you found us, {displayName}! Enjoy the TikTok LIVE.', 'Welcome in, {displayName}! Thanks for joining the village.'],
   manualTwitchTemplate: 'Go watch {displayName} streaming {category}: {channelUrl}',
   manualChannelTemplate: 'Go check out {displayName} at {channelUrl} and show them some love!',
   globalCooldownSeconds: 30, userCooldownMinutes: 60, onePerStream: true,
   maximumQueueSize: 10, queueExpiryMinutes: 10, twitchShoutoutMode: 'text',
-  showOverlayCard: true, twitchVisualTriggers: ['raid', 'first-chat', 'manual'], twitchVisualType: 'profile-card',
+  showOverlayCard: true, overlayPlatforms: PLATFORMS, twitchVisualTriggers: ['raid', 'first-chat', 'manual'], twitchVisualType: 'profile-card',
   overlayCardTemplate: 'Go show {displayName} some love! They stream {category}. {channelUrl}', overlayDurationSeconds: 10,
-  clipCount: 20, clipMaximumAgeDays: 90, clipMaximumDurationSeconds: 30,
-  clipPreferPopular: false, clipMuted: true, clipVolume: 0.7, clipFallbackToCard: true,
 });
 
 function settingsFor(context) {
@@ -73,15 +87,37 @@ function cleanUserName(value) {
   return cleanText(value, 256).replace(/^@+/u, '');
 }
 
+export function displayNameForPresentation(user) {
+  const characters = [...cleanUserName(user?.displayName || user?.name).toLocaleLowerCase('en-US')];
+  if (characters.length === 0) return '';
+  return `${characters[0]?.toLocaleUpperCase('en-US') ?? ''}${characters.slice(1).join('')}`;
+}
+
 function platformOf(value) {
   return PLATFORMS.includes(value) ? value : undefined;
 }
 
 export function viewerKey(platform, user) {
+  return viewerKeys(platform, user)[0];
+}
+
+// Keep both provider ID and normalized login as durable aliases. Some relays can omit or change
+// the ID field between messages; reserving both aliases gives every platform the requested
+// first-message 0/1 gate without letting that transport drift create another welcome.
+export function viewerKeys(platform, user) {
   const id = cleanText(user?.id, 256);
   const name = cleanUserName(user?.name).toLocaleLowerCase('en-US');
-  return `${platform}:${id ? `id:${id}` : `name:${name}`}`;
+  return [...new Set([
+    ...(id ? [`${platform}:id:${id}`] : []),
+    ...(name ? [`${platform}:name:${name}`] : []),
+  ])];
 }
+
+function aliasesOverlap(left, right) { return left.some((key) => right.includes(key)); }
+function candidateAliases(candidate) { return viewerKeys(candidate.platform, candidate.user); }
+function stateHasAlias(values, aliases) { return aliases.some((key) => values.includes(key)); }
+function latestAliasCooldown(entries, aliases) { return Math.max(0, ...entries.filter((entry) => aliases.includes(entry.key)).map((entry) => entry.at)); }
+function queueHasAliases(queue, aliases) { return queue.some((item) => aliasesOverlap(candidateAliases(item), aliases)); }
 
 function normalizedRule(rule) {
   return cleanText(rule, 300).toLocaleLowerCase('en-US');
@@ -110,7 +146,7 @@ export function channelUrl(platform, user) {
 
 export function renderTemplate(template, candidate) {
   const tokens = {
-    '{displayName}': candidate.user.displayName || candidate.user.name,
+    '{displayName}': displayNameForPresentation(candidate.user),
     '{user}': candidate.user.name,
     '{platform}': candidate.platform,
     '{channelUrl}': channelUrl(candidate.platform, candidate.user),
@@ -142,6 +178,8 @@ function sanitizeCandidate(value) {
     ...(cleanText(value.category, 140) ? { category: cleanText(value.category, 140) } : {}),
     ...(value.categoryVerified === true ? { categoryVerified: true } : {}),
     ...(value.firstMessageEver === true ? { firstMessageEver: true } : {}),
+    ...(cleanText(value.welcomeTemplate, 1000) ? { welcomeTemplate: cleanText(value.welcomeTemplate, 1000) } : {}),
+    eligibleAt: sanitizeTimestamp(value.eligibleAt),
     queuedAt: sanitizeTimestamp(value.queuedAt) || Date.now(),
   };
 }
@@ -156,9 +194,12 @@ function sanitizeState(value) {
   return {
     queue: (Array.isArray(source.queue) ? source.queue.map(sanitizeCandidate).filter(Boolean) : []).slice(0, 20),
     pendingLookups: (Array.isArray(source.pendingLookups) ? source.pendingLookups.map(sanitizeCandidate).filter(Boolean) : []).slice(-20),
-    pendingClips: (Array.isArray(source.pendingClips) ? source.pendingClips.map(sanitizeCandidate).filter(Boolean) : []).slice(-20),
     firstChatSeen: Array.isArray(source.firstChatSeen) ? source.firstChatSeen.filter((item) => typeof item === 'string').map((item) => cleanText(item, 600)).slice(-500) : [],
+    welcomeDay: cleanText(source.welcomeDay, 20),
+    welcomedUsers: Array.isArray(source.welcomedUsers) ? source.welcomedUsers.filter((item) => typeof item === 'string').map((item) => cleanText(item, 600)).slice(-2_000) : [],
     sentUsers: Array.isArray(source.sentUsers) ? source.sentUsers.filter((item) => typeof item === 'string').map((item) => cleanText(item, 600)).slice(-500) : [],
+    connectedAccountIds: Array.isArray(source.connectedAccountIds) ? [...new Set(source.connectedAccountIds.filter((item) => typeof item === 'string').map((item) => cleanText(item, 600)).filter(Boolean))].slice(-100) : [],
+    connectedAccountNames: Array.isArray(source.connectedAccountNames) ? [...new Set(source.connectedAccountNames.filter((item) => typeof item === 'string').map((item) => cleanUserName(item).toLocaleLowerCase('en-US')).filter(Boolean))].slice(-100) : [],
     userCooldowns: sanitizeEntries(source.userCooldowns, 500), nativeUserCooldowns: sanitizeEntries(source.nativeUserCooldowns, 500),
     onlinePlatforms: Array.isArray(source.onlinePlatforms) ? [...new Set(source.onlinePlatforms.map(platformOf).filter(Boolean))] : [],
     lastSentAt: sanitizeTimestamp(source.lastSentAt), lastNativeAt: sanitizeTimestamp(source.lastNativeAt), lastChatAt: sanitizeTimestamp(source.lastChatAt), session: cleanText(source.session, 100),
@@ -173,15 +214,124 @@ function eventUser(event) {
 }
 
 function isIgnored(settings, platform, user) { return settings.ignoredUsers.some((rule) => matchesViewerRule(rule, platform, user)); }
-function isAllowedFirstChat(settings, platform, user) { return settings.firstChatAllowlist.some((rule) => matchesViewerRule(rule, platform, user)); }
+
+function connectedIdKey(platform, value) {
+  const id = cleanText(value, 256);
+  return id ? `${platform}:id:${id}` : '';
+}
+
+function connectedNames(user) {
+  return [...new Set([cleanUserName(user?.name), cleanUserName(user?.displayName)].map((item) => item.toLocaleLowerCase('en-US')).filter(Boolean))];
+}
+
+function eventMarksConnectedAccount(event) {
+  const roles = Array.isArray(event?.user?.roles) ? event.user.roles.map((role) => cleanText(String(role), 64).toLocaleLowerCase('en-US')) : [];
+  return event?.payload?.fromConnectedAccount === true || roles.includes('broadcaster');
+}
+
+function learnConnectedAccounts(state, event) {
+  const platform = platformOf(event?.platform);
+  if (!platform) return false;
+  const ids = new Set(state.connectedAccountIds);
+  const names = new Set(state.connectedAccountNames);
+  const addId = (value) => { const key = connectedIdKey(platform, value); if (key) ids.add(key); };
+  const addName = (value) => { const name = cleanUserName(value).toLocaleLowerCase('en-US'); if (name && !PLATFORMS.includes(name) && name !== 'system') names.add(name); };
+  addId(event.channel?.id);
+  addName(event.channel?.name);
+  for (const value of Array.isArray(event.payload?.connectedAccountIds) ? event.payload.connectedAccountIds : []) addId(value);
+  for (const value of Array.isArray(event.payload?.connectedAccountNames) ? event.payload.connectedAccountNames : []) addName(value);
+  if (eventMarksConnectedAccount(event) && event.user) {
+    addId(event.user.id);
+    addName(event.user.name);
+    addName(event.user.displayName);
+  }
+  const nextIds = [...ids].slice(-100);
+  const nextNames = [...names].slice(-100);
+  const changed = nextIds.length !== state.connectedAccountIds.length || nextNames.length !== state.connectedAccountNames.length;
+  state.connectedAccountIds = nextIds;
+  state.connectedAccountNames = nextNames;
+  return changed;
+}
+
+export function isConnectedAutomaticAccount(event, settingsValue = {}, stateValue = {}) {
+  const settings = { ...FALLBACKS, ...settingsValue };
+  if (settings.ignoreConnectedAccounts === false || !event?.user) return false;
+  if (eventMarksConnectedAccount(event)) return true;
+  const state = sanitizeState(stateValue);
+  const platform = platformOf(event.platform);
+  if (!platform) return false;
+  const idKey = connectedIdKey(platform, event.user.id);
+  if (idKey && state.connectedAccountIds.includes(idKey)) return true;
+  return connectedNames(event.user).some((name) => state.connectedAccountNames.includes(name));
+}
+
+function candidateIsConnected(settings, state, candidate) {
+  if (candidate.trigger === 'manual' || settings.ignoreConnectedAccounts === false) return false;
+  const idKey = connectedIdKey(candidate.platform, candidate.user?.id);
+  if (idKey && state.connectedAccountIds.includes(idKey)) return true;
+  return connectedNames(candidate.user).some((name) => state.connectedAccountNames.includes(name));
+}
+function isAllowedFirstChat(settings, platform, user) {
+  return settings.firstChatAudience !== 'allowlist-only' || settings.firstChatAllowlist.some((rule) => matchesViewerRule(rule, platform, user));
+}
+
+export function localDayKey(timeZone, now = Date.now()) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: cleanText(timeZone, 80) || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(now));
+    const part = (type) => parts.find((item) => item.type === type)?.value ?? '';
+    return `${part('year')}-${part('month')}-${part('day')}`;
+  } catch { return new Date(now).toISOString().slice(0, 10); }
+}
+
+function normalizeHost(value) {
+  try { return new URL(/^https?:\/\//iu.test(value) ? value : `https://${value}`).hostname.toLocaleLowerCase('en-US').replace(/^www\./u, ''); }
+  catch { return ''; }
+}
+
+function domainMatches(host, blocked) { return host === blocked || host.endsWith(`.${blocked}`); }
+
+export function welcomeSafetyVerdict(event, settingsValue = {}, stateValue = {}) {
+  const settings = { ...FALLBACKS, ...settingsValue };
+  const user = eventUser(event);
+  if (!user) return { accepted: false, reason: 'non-human-actor' };
+  if (isIgnored(settings, event.platform, user)) return { accepted: false, reason: 'ignored-account' };
+  if (isConnectedAutomaticAccount(event, settings, stateValue)) return { accepted: false, reason: 'connected-account' };
+  const mode = ['open', 'balanced', 'strict'].includes(settings.welcomeSafetyMode) ? settings.welcomeSafetyMode : 'balanced';
+  if (settings.welcomeRequireStableId !== false && !cleanText(user.id, 256)) return { accepted: false, reason: 'missing-stable-id' };
+  const message = cleanText(event.payload?.message, 1_000);
+  if (!message) return { accepted: false, reason: 'empty-message' };
+  const lowered = message.toLocaleLowerCase('en-US');
+  const blockedTerm = (Array.isArray(settings.welcomeBlockedTerms) ? settings.welcomeBlockedTerms : []).some((term) => lowered.includes(cleanText(term, 120).toLocaleLowerCase('en-US')));
+  if (blockedTerm) return { accepted: false, reason: 'blocked-term' };
+  const urls = message.match(/(?:https?:\/\/|www\.)[^\s]+/giu) ?? [];
+  const hosts = urls.map(normalizeHost).filter(Boolean);
+  const blockedDomain = (Array.isArray(settings.welcomeBlockedDomains) ? settings.welcomeBlockedDomains : []).map(normalizeHost).filter(Boolean).some((domain) => hosts.some((host) => domainMatches(host, domain)));
+  if (blockedDomain) return { accepted: false, reason: 'blocked-domain' };
+  if (mode !== 'open' && settings.welcomeRejectLinks !== false && urls.length > 0) return { accepted: false, reason: 'link-in-first-message' };
+  if (mode !== 'open' && /(.)\1{7,}/iu.test(message)) return { accepted: false, reason: 'repeated-characters' };
+  if (mode === 'strict' && ([...message].length > 280 || !/[\p{L}\p{N}]/u.test(message))) return { accepted: false, reason: 'strict-message-shape' };
+  return { accepted: true, reason: 'accepted' };
+}
+
+function welcomeTemplates(settings, platform) {
+  const primary = platform === 'twitch' ? settings.twitchViewerWelcomeTemplate : platform === 'youtube' ? settings.youtubeWelcomeTemplate : platform === 'kick' ? settings.kickWelcomeTemplate : settings.tiktokWelcomeTemplate;
+  const alternates = platform === 'twitch' ? settings.twitchViewerWelcomeAlternates : platform === 'youtube' ? settings.youtubeWelcomeAlternates : platform === 'kick' ? settings.kickWelcomeAlternates : settings.tiktokWelcomeAlternates;
+  return [...new Set([primary, ...(Array.isArray(alternates) ? alternates : [])].map((item) => cleanText(item, 1000)).filter(Boolean))];
+}
+
+function chooseWelcomeTemplate(settings, candidate) {
+  const templates = welcomeTemplates(settings, candidate.platform);
+  if (templates.length === 0) return '';
+  let hash = 2166136261;
+  for (const character of `${candidate.id}|${viewerKey(candidate.platform, candidate.user)}`) { hash ^= character.codePointAt(0) ?? 0; hash = Math.imul(hash, 16777619); }
+  return templates[(hash >>> 0) % templates.length];
+}
 
 function templateFor(settings, candidate) {
   if (candidate.trigger === 'raid') return settings.raidTemplate;
   if (candidate.trigger === 'manual') return candidate.platform === 'twitch' ? settings.manualTwitchTemplate : settings.manualChannelTemplate;
-  if (candidate.platform === 'twitch') return candidate.category ? settings.twitchFirstChatTemplate : settings.twitchViewerWelcomeTemplate;
-  if (candidate.platform === 'youtube') return settings.youtubeWelcomeTemplate;
-  if (candidate.platform === 'kick') return settings.kickWelcomeTemplate;
-  return settings.tiktokWelcomeTemplate;
+  if (candidate.platform === 'twitch' && candidate.category) return settings.twitchFirstChatTemplate;
+  return candidate.welcomeTemplate || chooseWelcomeTemplate(settings, candidate);
 }
 
 function codePoints(value) { return [...value]; }
@@ -215,78 +365,23 @@ function serialize(task) {
 }
 
 async function preview(candidate, message, context, settings) {
-  if (candidate.platform !== 'twitch' || !settings.showOverlayCard) return;
-  const cardText = renderTemplate(settings.overlayCardTemplate, candidate) || message;
+  if (!settings.showOverlayCard || !settings.overlayPlatforms.includes(candidate.platform)) return;
+  const isWelcome = candidate.trigger === 'first-chat' && !candidate.category;
+  const cardText = isWelcome ? message : renderTemplate(settings.overlayCardTemplate, candidate) || message;
   try {
     await context.overlay.publish(`${context.moduleId}.card.show`, {
-      title: `Meet ${candidate.user.displayName || candidate.user.name} on Twitch`,
+      cardKind: 'shoutout-spotlight', trigger: candidate.trigger, presentation: isWelcome ? 'welcome' : 'creator', platform: candidate.platform,
+      creator: {
+        displayName: displayNameForPresentation(candidate.user), userName: candidate.user.name,
+        category: candidate.category || '', channelUrl: channelUrl(candidate.platform, candidate.user),
+        avatarUrl: candidate.user.avatarUrl || '', viewers: candidate.viewers ?? 0,
+      },
+      title: isWelcome ? `Welcome ${displayNameForPresentation(candidate.user)}` : `Meet ${displayNameForPresentation(candidate.user)} on ${PLATFORM_LABELS[candidate.platform]}`,
       text: cardText,
       ...(candidate.user.avatarUrl ? { imageUrl: candidate.user.avatarUrl } : {}),
       durationMs: settings.overlayDurationSeconds * 1000,
-    });
+    }, { lane: 'foreground' });
   } catch { /* A closed optional overlay must never stop chat processing. */ }
-}
-
-async function requestTwitchClip(candidate, message, context, settings) {
-  if (!context.approvedActionIds.includes(GET_TWITCH_CLIP_ACTION_ID)) {
-    if (settings.clipFallbackToCard) await preview(candidate, message, context, settings);
-    return;
-  }
-  const state = sanitizeState(await context.state.read());
-  const cutoff = Date.now() - settings.queueExpiryMinutes * 60_000;
-  state.pendingClips = state.pendingClips.filter((item) => item.queuedAt >= cutoff && item.id !== candidate.id);
-  state.pendingClips.push(candidate);
-  await context.state.write(state);
-  try {
-    await context.streamerbot.runApprovedAction(GET_TWITCH_CLIP_ACTION_ID, {
-      lookupId: candidate.id,
-      targetUserName: candidate.user.name,
-      ...(candidate.user.id ? { targetUserId: candidate.user.id } : {}),
-      clipCount: settings.clipCount,
-      maximumAgeDays: settings.clipMaximumAgeDays,
-      maximumDurationSeconds: settings.clipMaximumDurationSeconds,
-      preferPopular: settings.clipPreferPopular,
-    });
-  } catch {
-    const latest = sanitizeState(await context.state.read());
-    latest.pendingClips = latest.pendingClips.filter((item) => item.id !== candidate.id);
-    await context.state.write(latest);
-    if (settings.clipFallbackToCard) await preview(candidate, message, context, settings);
-  }
-}
-
-async function handleTwitchClip(event, context) {
-  const lookupId = cleanText(event.payload?.lookupId, 100);
-  if (!lookupId) return;
-  const settings = settingsFor(context);
-  const state = sanitizeState(await context.state.read());
-  const candidate = state.pendingClips.find((item) => item.id === lookupId);
-  state.pendingClips = state.pendingClips.filter((item) => item.id !== lookupId);
-  await context.state.write(state);
-  if (!candidate) return;
-  const message = fitMessageToPlatforms(renderTemplate(templateFor(settings, candidate), candidate), candidate, ['twitch']);
-  const url = cleanText(event.payload?.landscapeUrl, 4096);
-  const clipId = cleanText(event.payload?.clipId, 100);
-  if (event.payload?.found !== true || !url.startsWith('https://') || !clipId) {
-    if (settings.clipFallbackToCard) await preview(candidate, message, context, settings);
-    return;
-  }
-  const thumbnailUrl = cleanText(event.payload?.thumbnailUrl, 4096);
-  const clipTitle = cleanText(event.payload?.title, 300);
-  const durationSeconds = Number(event.payload?.durationSeconds);
-  try {
-    await context.overlay.publish(`${context.moduleId}.media.play`, {
-      url,
-      playbackId: `${clipId}-${Date.now()}`,
-      muted: settings.clipMuted,
-      volume: settings.clipVolume,
-      ...(thumbnailUrl.startsWith('https://') ? { posterUrl: thumbnailUrl } : {}),
-      title: clipTitle || `Shoutout: ${candidate.user.displayName || candidate.user.name}`,
-      ...(Number.isFinite(durationSeconds) && durationSeconds > 0 ? { durationMs: Math.round(durationSeconds * 1_000) } : {}),
-    });
-  } catch {
-    if (settings.clipFallbackToCard) await preview(candidate, message, context, settings);
-  }
 }
 
 function scheduleDrain(context, delayMs) {
@@ -305,15 +400,22 @@ async function enqueueReady(candidate, event, context) {
   if (!message) return;
   if (event.metadata?.simulated === true) { await preview(candidate, message, context, settings); return; }
   const state = sanitizeState(await context.state.read());
-  const key = viewerKey(candidate.platform, candidate.user);
+  const aliases = viewerKeys(candidate.platform, candidate.user);
   const now = Date.now();
   if (isIgnored(settings, candidate.platform, candidate.user)) return;
-  if (settings.onePerStream && state.sentUsers.includes(key)) return;
-  const lastUser = state.userCooldowns.find((entry) => entry.key === key)?.at ?? 0;
+  if (candidateIsConnected(settings, state, candidate)) return;
+  if (candidate.trigger === 'first-chat') {
+    const day = localDayKey(settings.welcomeTimeZone, now);
+    if (state.welcomeDay !== day) { state.welcomeDay = day; state.welcomedUsers = []; }
+    if (stateHasAlias(state.welcomedUsers, aliases)) { await context.state.write(state); return; }
+  }
+  if (settings.onePerStream && stateHasAlias(state.sentUsers, aliases)) return;
+  const lastUser = latestAliasCooldown(state.userCooldowns, aliases);
   if (now - lastUser < settings.userCooldownMinutes * 60_000) return;
-  if (state.queue.some((item) => viewerKey(item.platform, item.user) === key)) return;
+  if (queueHasAliases(state.queue, aliases)) return;
   if (state.queue.length >= settings.maximumQueueSize) return;
-  state.queue.push(candidate);
+  if (candidate.trigger === 'first-chat') state.welcomedUsers = [...new Set([...state.welcomedUsers, ...aliases])].slice(-2_000);
+  state.queue.push({ ...candidate, eligibleAt: candidate.eligibleAt || (candidate.trigger === 'first-chat' ? now + settings.welcomeDelaySeconds * 1_000 : now) });
   await context.state.write(state);
   await drain(context);
 }
@@ -323,7 +425,7 @@ async function requestTwitchCreator(candidate, event, context) {
   if (event.metadata?.simulated === true) {
     // Offline fixtures may supply a category explicitly for visual testing, but a simulation may
     // never call Twitch or claim an unverified viewer is a creator.
-    if (candidate.category || (candidate.trigger === 'first-chat' && candidate.firstMessageEver === true)) {
+    if (candidate.category || candidate.trigger === 'first-chat') {
       const previewCandidate = { ...candidate, categoryVerified: true };
       await preview(previewCandidate, fitMessageToPlatforms(renderTemplate(templateFor(settings, previewCandidate), previewCandidate), previewCandidate, ['twitch']), context, settings);
     }
@@ -333,16 +435,17 @@ async function requestTwitchCreator(candidate, event, context) {
   const state = sanitizeState(await context.state.read());
   const cutoff = Date.now() - settings.queueExpiryMinutes * 60_000;
   state.pendingLookups = state.pendingLookups.filter((item) => item.queuedAt >= cutoff);
-  const key = viewerKey('twitch', candidate.user);
-  const lastUser = state.userCooldowns.find((entry) => entry.key === key)?.at ?? 0;
+  const aliases = viewerKeys('twitch', candidate.user);
+  const lastUser = latestAliasCooldown(state.userCooldowns, aliases);
   if (isIgnored(settings, 'twitch', candidate.user)
-      || (settings.onePerStream && state.sentUsers.includes(key))
+      || candidateIsConnected(settings, state, candidate)
+      || (settings.onePerStream && stateHasAlias(state.sentUsers, aliases))
       || Date.now() - lastUser < settings.userCooldownMinutes * 60_000
-      || state.queue.some((item) => viewerKey(item.platform, item.user) === key)) {
+      || queueHasAliases(state.queue, aliases)) {
     await context.state.write(state);
     return;
   }
-  if (state.pendingLookups.some((item) => viewerKey('twitch', item.user) === key)) { await context.state.write(state); return; }
+  if (queueHasAliases(state.pendingLookups, aliases)) { await context.state.write(state); return; }
   state.pendingLookups.push(candidate);
   await context.state.write(state);
   try {
@@ -372,9 +475,9 @@ async function handleTwitchProfile(event, context) {
   state.pendingLookups = state.pendingLookups.filter((item) => item.id !== lookupId);
   await context.state.write(state);
   if (!candidate) return;
-  // A category is required for raids and manual promotions. An allowlisted first-time chatter
-  // without one receives the editable viewer welcome instead of being presented as a streamer.
-  if (!category && (candidate.trigger !== 'first-chat' || candidate.firstMessageEver !== true)) return;
+  // A category is required for raids and manual promotions. A safety-approved daily first chatter
+  // without one receives a viewer welcome instead of being presented as a streamer.
+  if (!category && candidate.trigger !== 'first-chat') return;
   const profileImageUrl = cleanText(event.payload?.profileImageUrl, 2048);
   const enriched = {
     ...candidate,
@@ -387,6 +490,7 @@ async function handleTwitchProfile(event, context) {
 
 async function sendCandidate(candidate, context, settings, state) {
   const rendered = renderTemplate(templateFor(settings, candidate), candidate);
+  const aliases = viewerKeys(candidate.platform, candidate.user);
   const key = viewerKey(candidate.platform, candidate.user);
   let nativeSucceeded = false;
   const wantsNative = candidate.platform === 'twitch' && settings.twitchShoutoutMode !== 'text';
@@ -415,10 +519,7 @@ async function sendCandidate(candidate, context, settings, state) {
       ? { message, routing: 'source', sourcePlatform: candidate.platform, overflow: 'reject' }
       : { message, routing: 'selected', selectedPlatforms, overflow: 'reject' });
   }
-  if (candidate.platform === 'twitch' && settings.showOverlayCard && settings.twitchVisualTriggers.includes(candidate.trigger)) {
-    if (settings.twitchVisualType === 'random-clip') await requestTwitchClip(candidate, message, context, settings);
-    else await preview(candidate, message, context, settings);
-  }
+  if (settings.showOverlayCard && settings.overlayPlatforms.includes(candidate.platform) && settings.twitchVisualTriggers.includes(candidate.trigger)) await preview(candidate, message, context, settings);
 }
 
 async function drain(context) {
@@ -429,14 +530,15 @@ async function drain(context) {
   const state = sanitizeState(await context.state.read());
   const now = Date.now();
   state.queue = state.queue.filter((candidate) => now - candidate.queuedAt <= settings.queueExpiryMinutes * 60_000);
+  state.queue = state.queue.filter((candidate) => !candidateIsConnected(settings, state, candidate));
   if (state.queue.length === 0) { await context.state.write(state); return; }
-  const waitMs = settings.globalCooldownSeconds * 1000 - (now - state.lastSentAt);
+  const waitMs = Math.max(settings.globalCooldownSeconds * 1000 - (now - state.lastSentAt), (state.queue[0]?.eligibleAt ?? 0) - now);
   if (waitMs > 0) { await context.state.write(state); scheduleDrain(context, waitMs); return; }
   const candidate = state.queue.shift();
-  const key = viewerKey(candidate.platform, candidate.user);
+  const aliases = viewerKeys(candidate.platform, candidate.user);
   state.lastSentAt = now;
-  state.userCooldowns = [...state.userCooldowns.filter((entry) => entry.key !== key), { key, at: now }].slice(-500);
-  state.sentUsers = [...new Set([...state.sentUsers, key])].slice(-500);
+  state.userCooldowns = [...state.userCooldowns.filter((entry) => !aliases.includes(entry.key)), ...aliases.map((key) => ({ key, at: now }))].slice(-500);
+  state.sentUsers = [...new Set([...state.sentUsers, ...aliases])].slice(-500);
   await context.state.write(state); // At-most-once: reserve and dequeue before any external call.
   try { await sendCandidate(candidate, context, settings, state); } catch { /* Cosmetic failure is consumed rather than replayed into chat. */ }
   const refreshed = sanitizeState(await context.state.read());
@@ -450,7 +552,6 @@ async function handleLifecycle(event, context) {
   if (event.eventType === 'stream.online') {
     if (state.onlinePlatforms.length === 0) {
       state.session = event.receivedAt;
-      state.firstChatSeen = [];
       state.sentUsers = [];
     }
     state.onlinePlatforms = [...new Set([...state.onlinePlatforms, platform])];
@@ -461,8 +562,9 @@ async function handleLifecycle(event, context) {
 async function handleEvent(event, context) {
   const settings = settingsFor(context);
   if (!settings.enabled) return;
+  const identityState = sanitizeState(await context.state.read());
+  if (learnConnectedAccounts(identityState, event)) await context.state.write(identityState);
   if (event.eventType === TWITCH_PROFILE_EVENT) return handleTwitchProfile(event, context);
-  if (event.eventType === TWITCH_CLIP_EVENT) return handleTwitchClip(event, context);
   if (event.eventType === 'stream.online' || event.eventType === 'stream.offline') return handleLifecycle(event, context);
   const platform = platformOf(event.platform);
   if (!platform || !settings.enabledPlatforms.includes(platform)) return;
@@ -479,23 +581,19 @@ async function handleEvent(event, context) {
     if (!user) return;
     const state = sanitizeState(await context.state.read());
     const now = Date.now();
-    // TikFinity's relay does not currently give StreamBridge a reliable live/offline pair. For a
-    // TikTok-only setup, a creator-set inactivity window provides an honest reset fallback.
-    if (state.onlinePlatforms.length === 0 && state.lastChatAt > 0 && now - state.lastChatAt >= settings.firstChatResetHours * 3_600_000) {
-      state.firstChatSeen = [];
-      state.sentUsers = [];
-      state.session = event.receivedAt;
-    }
+    const day = localDayKey(settings.welcomeTimeZone, now);
+    if (state.welcomeDay !== day) { state.welcomeDay = day; state.welcomedUsers = []; state.firstChatSeen = []; }
     state.lastChatAt = now;
-    const key = viewerKey(platform, user);
-    if (state.firstChatSeen.includes(key)) { await context.state.write(state); return; }
-    state.firstChatSeen = [...state.firstChatSeen, key].slice(-500);
+    const aliases = viewerKeys(platform, user);
+    if (stateHasAlias(state.welcomedUsers, aliases) || queueHasAliases(state.pendingLookups, aliases) || queueHasAliases(state.queue, aliases)) { await context.state.write(state); return; }
     await context.state.write(state);
-    if (isAllowedFirstChat(settings, platform, user)) await considerCandidate({
+    if (!isAllowedFirstChat(settings, platform, user) || welcomeSafetyVerdict(event, settings, state).accepted !== true) return;
+    const draft = {
       id: event.eventId, platform, trigger: 'first-chat', user, viewers: 0,
       ...(platform === 'twitch' && event.payload?.firstMessage === true ? { firstMessageEver: true } : {}),
-      queuedAt: Date.now(),
-    }, event, context);
+      queuedAt: now, eligibleAt: now + settings.welcomeDelaySeconds * 1_000,
+    };
+    await considerCandidate({ ...draft, welcomeTemplate: chooseWelcomeTemplate(settings, draft) }, event, context);
     return;
   }
   if (event.eventType === 'command.received' && settings.triggerOnManualCommand) {

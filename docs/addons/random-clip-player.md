@@ -17,12 +17,12 @@ Plays a random clip from the broadcaster's own Twitch clip library on a timer, u
 
 1. Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.5.0.sb into Streamer.bot.
 2. In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.
-3. Bind or manually run the imported Enable and Disable actions. Playback always starts off after StreamBridge launches and cannot begin until Enable is triggered.
-4. Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.
+3. Enter the exact OBS program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.
+4. Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.31`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Random Clip Player`
 

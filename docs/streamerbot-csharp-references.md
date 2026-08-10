@@ -1,6 +1,6 @@
 # Streamer.bot C# compiler references
 
-THSV StreamBridge keeps Streamer.bot `1.0.5-alpha.31` as its backward-compatible minimum and recommends `1.0.5-beta.5` for new installs. Beta.2 remains the latest build with directly recorded THSV grouped-action, bridge-routing, and audible Voice Relay evidence. Beta.5 does not introduce a new C# method or compiler-reference requirement for THSV, so existing package minimums remain valid; complete the [focused beta.5 re-acceptance checklist](streamerbot-1.0.5-beta.5.md) after upgrading. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning.
+THSV StreamBridge uses Streamer.bot `1.0.7` stable as the package baseline. Regenerated imports declare that stable minimum and continue using Streamer.bot's bundled CPH API and Newtonsoft.Json assembly. Version 1.0.7 includes the 1.0.6 Custom Channel Rewards crash fix and restores expected updater authentication behavior. Complete the [stable 1.0.7 acceptance checklist](streamerbot-1.0.7-stable.md) after upgrading. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning.
 
 ## Required references
 

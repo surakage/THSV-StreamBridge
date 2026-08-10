@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Resolves YouTube song requests without exposing the creator's API key and settles accepted Twitch reward requests for Village Jukebox.",
-  "minimumStreamerBotVersion": "1.0.5-beta.5",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "0f16105e-7c92-47ad-a61b-c6d1b934fdf0",

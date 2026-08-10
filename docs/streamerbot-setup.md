@@ -20,7 +20,9 @@ Import these first if you want Streamer.bot to start StreamBridge or open the wi
 
 Each lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave `%LOCALAPPDATA%\THSV StreamBridge` for the default installation, or edit that argument for a custom path. Do not edit the C# just to change the path.
 
-Only **Launch Bridge** may receive **Core > Streamer.bot > Streamer.bot Started**. Keep **Shutdown Bridge** and **Open Setup Wizard** manual. These actions run hidden and report one grouped Windows notification; high-frequency intake actions do not create notifications.
+Only **Launch Bridge** may receive **Core > Streamer.bot > Streamer.bot Started**. Keep **Shutdown Bridge**, **Check Connections**, and **Open Setup Wizard** manual. Launch Bridge now verifies the live `/ready` result before showing its grouped green toast, so it confirms enabled platform adapters, Streamer.bot delivery, and modules rather than merely confirming a running process.
+
+For automatic connection warnings, create a one-minute Streamer.bot Timed Action and attach it to **THSV StreamBridge - Monitor Connections**. The monitor is state-aware: it reports its first result, stays silent while that result remains unchanged, shows one attention toast when a connection becomes unavailable or delivery degrades, and shows one green toast after recovery. Run **THSV StreamBridge - Check Connections** whenever you want an immediate toast even when the status has not changed. High-frequency intake actions do not create notifications.
 
 ## 3. Import the receiver and projection packages
 
@@ -34,12 +36,11 @@ Import:
 
 The Core Receiver installs or upgrades `THSV StreamBridge - Receive Event` in the `THSV StreamBridge` group. Keep `streamerbot.actionAlias` set to that exact name unless you deliberately change both sides.
 
-Open `THSV StreamBridge - Receive Event`. After its enabled receiver C# sub-action, add four **Core > Actions > Run Action** children in this order:
+Open `THSV StreamBridge - Receive Event`. After its enabled receiver C# sub-action, add three **Core > Actions > Run Action** children in this order:
 
 1. `THSV StreamBridge - Multi-Chat`
 2. `THSV StreamBridge - Multi-Commands`
 3. `THSV StreamBridge - Multi-Alerts`
-4. `THSV StreamBridge - Multi-Timed Actions`
 
 Leave **Run Action Immediately** enabled for every child so each one receives the validated argument stack. The child packages safely ignore event types they do not own.
 
@@ -50,10 +51,11 @@ THSV StreamBridge - Receive Event
   -> THSV StreamBridge - Multi-Chat
   -> THSV StreamBridge - Multi-Commands
   -> THSV StreamBridge - Multi-Alerts
-  -> THSV StreamBridge - Multi-Timed Actions
 ```
 
-Keep the receiver and all four child actions triggerless. Their trust boundary depends on running only after receiver validation.
+Keep the receiver and all three child actions triggerless. Creator-approved timed targets are now
+dispatched directly by StreamBridge, so Multi-Timed Actions is not required in this receiver chain.
+If retained for an event-only projection workflow, keep it triggerless.
 
 ## 4. Import optional core outputs and administration
 
@@ -65,7 +67,7 @@ Import:
 packages\streamerbot\timed-message-output\THSV-StreamBridge-Timed-Message-Output-3.5.0.sb
 ```
 
-Keep `THSV StreamBridge - Send Timed Message` triggerless. Select it from the wizard only for shuffled timed-chat definitions. Separate-platform mode applies each platform's saved character limits and rotates its list independently.
+Keep `THSV StreamBridge - Send Timed Message` triggerless. Select it from the wizard only for shuffled timed-chat definitions. In the wizard, messages may be kept in one editing group or split into named groups for tidiness. Those groups are combined into one shared non-repeating list at runtime; each selected message is sent to every checked platform, applying the strictest selected platform character limit.
 
 ### Reward administration
 
@@ -87,7 +89,7 @@ Import:
 packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-3.5.0.sb
 ```
 
-It installs one intake action per platform in separate Twitch, YouTube, and Kick groups. The `2.5.0` package preserves Streamer.bot's known `firstMessage` flag for add-ons that distinguish a first-ever channel message and includes the current Kick Mass Gift Subscription argument contract.
+It installs one intake action per platform in separate Twitch, YouTube, and Kick groups. The `3.5.0` package preserves Streamer.bot's known `firstMessage` flag for add-ons that distinguish a first-ever channel message, includes the current Kick Mass Gift Subscription argument contract, and relays documented native emote metadata.
 
 For each platform you use:
 
@@ -99,6 +101,8 @@ For each platform you use:
 6. Enable the matching `streamerbot-native` platform in the wizard.
 
 Do not copy platform triggers onto the receiver or a `Multi-*` action.
+
+Native Twitch and YouTube emotes render from Streamer.bot's structured ranges. StreamBridge also matches BTTV on Twitch/YouTube, FrankerFaceZ on Twitch, and 7TV on Twitch/YouTube/Kick without sending viewer names or chat text to those providers. Kick native metadata is used only when its trigger supplies an HTTPS image; TikTok keeps Unicode emoji and readable text because TikFinity has no stable documented image-range contract.
 
 ## 6. Connect TikTok through TikFinity
 

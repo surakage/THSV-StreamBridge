@@ -66,7 +66,7 @@
     "installationSteps": [
       "Install and enable Viewer Foundation and Community Analytics first.",
       "Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.",
-      "Create Twitch and Kick Viewer Spotlight rewards, then create the card command through Command Sync for YouTube and TikTok with no generated response.",
+      "Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube and TikTok card command. It registers automatically after restart.",
       "Add /overlay/addons/thsv.viewer-spotlight as a browser source."
     ],
     "uninstallationSteps": [
@@ -85,13 +85,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 23282,
-      "sha256": "a907b91d63e6b472aee93c27a2e5d8b76cba2867fd8432f1b83a50596cad3e5d"
+      "size": 24144,
+      "sha256": "b17650393f9628d1ef8d75631d7f145b773085e029a59fd39a0fb1d8ee82f397"
     },
     {
       "path": "schemas/config.json",
-      "size": 5892,
-      "sha256": "44e179e04e12055b6cffe8d75b725924145ea2dab6ac100573e41c8474203079"
+      "size": 5898,
+      "sha256": "693d874133aff618f2a6120b01fbabdd1dd0dde21dbd2e1f22ad2c5437209b8d"
     },
     {
       "path": "ui/settings.json",

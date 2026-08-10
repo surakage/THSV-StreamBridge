@@ -17,6 +17,7 @@ export interface Logger {
 export class StructuredLogger implements Logger {
   private writeQueue: Promise<void> = Promise.resolve();
   private readonly filePath: string;
+  private readonly activityDirectory: string;
   private readonly sensitiveValues = new Set<string>();
 
   public constructor(
@@ -26,6 +27,7 @@ export class StructuredLogger implements Logger {
     private readonly backups: number,
   ) {
     this.filePath = resolve(directory, 'streambridge.log');
+    this.activityDirectory = resolve(directory, 'daily');
   }
 
   public debug(message: string, fields: LogFields = {}): void { this.log('debug', message, fields); }
@@ -41,24 +43,31 @@ export class StructuredLogger implements Logger {
 
   private log(level: LogLevel, message: string, fields: LogFields): void {
     if (LEVELS[level] < LEVELS[this.minimumLevel]) return;
+    const now = new Date();
+    const sanitizedMessage = sanitizeString(message, this.sensitiveValues);
+    const sanitizedFields = sanitize(fields, '', this.sensitiveValues) as Record<string, unknown>;
     const entry = JSON.stringify({
-      timestamp: new Date().toISOString(),
+      timestamp: now.toISOString(),
       level,
-      message: sanitizeString(message, this.sensitiveValues),
-      ...(sanitize(fields, '', this.sensitiveValues) as Record<string, unknown>),
+      message: sanitizedMessage,
+      ...sanitizedFields,
     });
     const line = `${entry}\n`;
+    const activityLine = `${formatLocalTimestamp(now)} [${level.toUpperCase()}] ${sanitizedMessage}${formatActivityFields(sanitizedFields)}\n`;
+    const activityPath = resolve(this.activityDirectory, `THSV-StreamBridge-${formatLocalDate(now)}.txt`);
     process.stdout.write(line);
-    this.writeQueue = this.writeQueue.then(() => this.writeLine(line)).catch((error: unknown) => {
+    this.writeQueue = this.writeQueue.then(() => this.writeLine(line, activityPath, activityLine)).catch((error: unknown) => {
       process.stderr.write(`${JSON.stringify({ timestamp: new Date().toISOString(), level: 'error', message: 'Log file write failed', error: error instanceof Error ? error.message : String(error) })}\n`);
     });
   }
 
-  private async writeLine(line: string): Promise<void> {
+  private async writeLine(line: string, activityPath: string, activityLine: string): Promise<void> {
     await mkdir(dirname(this.filePath), { recursive: true });
+    await mkdir(dirname(activityPath), { recursive: true });
     const size = await stat(this.filePath).then((value) => value.size).catch(() => 0);
     if (size + Buffer.byteLength(line) > this.maxFileBytes) await this.rotate();
     await writeFile(this.filePath, line, { encoding: 'utf8', flag: 'a', mode: 0o600 });
+    await writeFile(activityPath, activityLine, { encoding: 'utf8', flag: 'a', mode: 0o600 });
   }
 
   private async rotate(): Promise<void> {
@@ -69,6 +78,33 @@ export class StructuredLogger implements Logger {
       await rename(source, destination).catch(() => undefined);
     }
   }
+}
+
+function formatLocalDate(value: Date): string {
+  const year = String(value.getFullYear()).padStart(4, '0');
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatLocalTimestamp(value: Date): string {
+  const hours = String(value.getHours()).padStart(2, '0');
+  const minutes = String(value.getMinutes()).padStart(2, '0');
+  const seconds = String(value.getSeconds()).padStart(2, '0');
+  const milliseconds = String(value.getMilliseconds()).padStart(3, '0');
+  return `${formatLocalDate(value)} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+function formatActivityFields(fields: Readonly<Record<string, unknown>>): string {
+  const entries = Object.entries(fields);
+  if (entries.length === 0) return '';
+  return ` | ${entries.map(([key, value]) => `${key}=${formatActivityValue(value)}`).join(' ')}`;
+}
+
+function formatActivityValue(value: unknown): string {
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (value === undefined) return 'undefined';
+  return JSON.stringify(value);
 }
 
 function sanitize(value: unknown, key = '', sensitiveValues: ReadonlySet<string> = new Set()): unknown {

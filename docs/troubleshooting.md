@@ -79,7 +79,7 @@ Update core first, then install the latest matching add-on ZIP from the same off
 
 ## Service exits during startup
 
-Inspect `data/logs/service.stderr.log` and `data/logs/streambridge.log`. Run configuration validation and build directly for detailed errors.
+Start with the current local-day file under `data/logs/daily/THSV-StreamBridge-YYYY-MM-DD.txt`; it is the readable timeline of accepted events, add-on controller results, approved Streamer.bot action dispatches, outbound delivery destinations/results, warnings, and failures. Outbound message text is not retained; compare its UTF-8 byte count and diagnostic digest to distinguish repeated or unexpected sends without storing chat. For deeper detail, inspect `data/logs/service.stderr.log` and `data/logs/streambridge.log`. Run configuration validation and build directly for detailed errors. Tokens, passwords, authorization values, cookies, and registered installation secrets are redacted from both Bridge logs.
 
 ## Stale PID file
 

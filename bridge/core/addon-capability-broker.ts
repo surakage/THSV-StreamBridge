@@ -4,7 +4,7 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
 import type { ClipMediaCacheRequest, ClipMediaCacheResult } from '../services/clip-media-cache.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
@@ -58,7 +58,10 @@ const coordinationRequestSchema = z.object({
   cooldownMs: z.number().int().min(0).max(MAXIMUM_COORDINATION_COOLDOWN_MS).default(0),
   skippable: z.boolean().default(false),
 }).strict();
+const overlayPublishOptionsSchema = z.object({ lane: z.enum(['foreground', 'media', 'timer', 'persistent', 'preview', 'independent']) }).strict();
 const mediaCacheRequestSchema = z.object({ sourceUrl: z.url(), cacheKey: z.string().trim().min(1).max(200), ttlSeconds: z.number().int().min(60).max(86_400), maximumBytes: z.number().int().min(1_048_576).max(52_428_800) }).strict();
+const TRUSTED_TWITCH_CLIP_ASSET = /^clips-media-assets\d*\.twitch\.tv$/u;
+const TRUSTED_TWITCH_CLIP_CLOUDFRONT = /^d1ndex63qxojbr\.cloudfront\.net$/u;
 const PROVIDER_MODULES: Readonly<Record<string, string>> = Object.freeze({ 'thsv.kofi-donations': 'kofi' });
 const viewerIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u);
 const viewerProjectionQuerySchema = z.object({
@@ -116,7 +119,7 @@ interface ActiveModuleCapabilityGrant extends ModuleCapabilityGrant { readonly g
 
 export interface AddOnCapabilityBrokerDependencies {
   readonly runStreamerBotAction?: (actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>;
-  readonly publishOverlay?: (moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>) => Promise<void>;
+  readonly publishOverlay?: (moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>, options?: AddOnOverlayPublishOptionsV2) => Promise<void>;
   readonly subscribeOverlayLifecycle?: (moduleId: string, listener: (event: AddOnOverlayLifecycleV2) => void) => () => void;
   readonly routeOutboundMessage?: (request: AddOnOutboundMessageRequestV2, signal: AbortSignal) => Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
   readonly publishProviderEvent?: (event: NormalizedEvent) => Promise<void>;
@@ -208,7 +211,7 @@ export class AddOnCapabilityBroker {
         cancel: (taskId: string) => this.cancel(grant, taskId),
       }),
       overlay: Object.freeze({
-        publish: (topic: string, payload: Readonly<Record<string, z.infer<typeof jsonValueV2Schema>>>) => this.publishOverlay(grant, topic, payload),
+        publish: (topic: string, payload: Readonly<Record<string, z.infer<typeof jsonValueV2Schema>>>, options?: AddOnOverlayPublishOptionsV2) => this.publishOverlay(grant, topic, payload, options),
         onLifecycle: (listener: (event: AddOnOverlayLifecycleV2) => void) => this.subscribeOverlayLifecycle(grant, listener),
       }),
       mediaSlot: Object.freeze({
@@ -337,7 +340,7 @@ export class AddOnCapabilityBroker {
     this.require(grant, 'media.cache', 'media.cache.fetch');
     const parsed = mediaCacheRequestSchema.parse(request);
     const host = new URL(parsed.sourceUrl).hostname.toLowerCase();
-    if (!(host === 'twitchcdn.net' || host.endsWith('.twitchcdn.net') || host === 'ttvnw.net' || host.endsWith('.ttvnw.net'))) { this.record(grant.moduleId, 'media.cache.fetch', 'denied'); throw new CapabilityDeniedError(grant.moduleId, 'media.cache', 'Media cache accepts only Twitch CDN URLs.'); }
+    if (!(host === 'twitchcdn.net' || host.endsWith('.twitchcdn.net') || host === 'ttvnw.net' || host.endsWith('.ttvnw.net') || TRUSTED_TWITCH_CLIP_ASSET.test(host) || TRUSTED_TWITCH_CLIP_CLOUDFRONT.test(host))) { this.record(grant.moduleId, 'media.cache.fetch', 'denied'); throw new CapabilityDeniedError(grant.moduleId, 'media.cache', 'Media cache accepts only Twitch CDN URLs.'); }
     if (this.dependencies.cacheClipMedia === undefined) { this.record(grant.moduleId, 'media.cache.fetch', 'failed'); throw new Error('Clip media caching is not available yet.'); }
     const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(new Error('Clip media cache request timed out.')), 35_000);
     try { const result = await this.dependencies.cacheClipMedia(grant.moduleId, parsed, controller.signal); this.record(grant.moduleId, 'media.cache.fetch', 'granted'); return Object.freeze(result); }
@@ -368,8 +371,17 @@ export class AddOnCapabilityBroker {
     if (activity.startedAt.length >= MAXIMUM_ACTIONS_PER_MINUTE) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', `The add-on exceeded ${String(MAXIMUM_ACTIONS_PER_MINUTE)} Streamer.bot actions per minute.`);
     const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.actionActivity.set(grant.moduleId, activity);
     const relayToken = addOnRelayAuthorizer.issue(grant.moduleId);
-    try { await this.dependencies.runStreamerBotAction(actionId, { ...parsed, thsvAddonRelayToken: relayToken }, controller.signal); this.record(grant.moduleId, 'streamerbot.run-approved-action', 'granted'); }
-    catch (error) { this.record(grant.moduleId, 'streamerbot.run-approved-action', 'failed'); throw error; }
+    this.logger.info('Add-on Streamer.bot action dispatch started', { moduleId: grant.moduleId, actionId });
+    try {
+      await this.dependencies.runStreamerBotAction(actionId, { ...parsed, thsvAddonRelayToken: relayToken }, controller.signal);
+      this.record(grant.moduleId, 'streamerbot.run-approved-action', 'granted');
+      this.logger.info('Add-on Streamer.bot action dispatch accepted', { moduleId: grant.moduleId, actionId });
+    }
+    catch (error) {
+      this.record(grant.moduleId, 'streamerbot.run-approved-action', 'failed');
+      this.logger.error('Add-on Streamer.bot action dispatch failed', { moduleId: grant.moduleId, actionId, error });
+      throw error;
+    }
     finally { activity.pending -= 1; activity.controllers.delete(controller); }
   }
 
@@ -413,13 +425,18 @@ export class AddOnCapabilityBroker {
     } finally { if (timer !== undefined) clearTimeout(timer); }
   }
 
-  private async publishOverlay(grant: ActiveModuleCapabilityGrant, topic: string, payload: Readonly<Record<string, unknown>>): Promise<void> {
+  private async publishOverlay(grant: ActiveModuleCapabilityGrant, topic: string, payload: Readonly<Record<string, unknown>>, options?: AddOnOverlayPublishOptionsV2): Promise<void> {
     this.require(grant, 'overlay.publish', 'overlay.publish');
     const suffix = topic.startsWith(`${grant.moduleId}.`) ? topic.slice(grant.moduleId.length + 1) : '';
     if (!OVERLAY_TOPIC_SUFFIX.test(suffix)) throw new Error(`Overlay topic must begin with ${grant.moduleId}. and use dotted identifiers.`);
     const parsed = parseRecord(payload, 'Overlay payload'); assertBoundedJson(parsed, 'Overlay payload');
+    const parsedOptions = options === undefined ? undefined : overlayPublishOptionsSchema.parse(options);
     if (this.dependencies.publishOverlay === undefined) return this.deny(grant.moduleId, 'overlay.publish', 'overlay.publish', 'The hosted add-on overlay contract is not available yet.');
-    try { await this.dependencies.publishOverlay(grant.moduleId, topic, parsed); this.record(grant.moduleId, 'overlay.publish', 'granted'); }
+    try {
+      if (parsedOptions === undefined) await this.dependencies.publishOverlay(grant.moduleId, topic, parsed);
+      else await this.dependencies.publishOverlay(grant.moduleId, topic, parsed, parsedOptions);
+      this.record(grant.moduleId, 'overlay.publish', 'granted');
+    }
     catch (error) { this.record(grant.moduleId, 'overlay.publish', 'failed'); throw error; }
   }
 
@@ -681,8 +698,20 @@ export class AddOnCapabilityBroker {
     if (activity.pending >= MAXIMUM_PENDING_ACTIONS_PER_MODULE) return this.deny(grant.moduleId, 'chat.send', 'chat.send', `The add-on already has ${String(MAXIMUM_PENDING_ACTIONS_PER_MODULE)} pending outbound message requests.`);
     if (activity.startedAt.length >= MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE) return this.deny(grant.moduleId, 'chat.send', 'chat.send', `The add-on exceeded ${String(MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE)} outbound message requests per minute.`);
     const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.outboundActivity.set(grant.moduleId, activity);
-    try { const result = await this.dependencies.routeOutboundMessage(request, controller.signal); this.record(grant.moduleId, 'chat.send', 'granted'); return result; }
-    catch (error) { this.record(grant.moduleId, 'chat.send', 'failed'); throw error; }
+    const messageDigest = createHash('sha256').update(request.message).digest('hex').slice(0, 16);
+    const routing = { moduleId: grant.moduleId, routing: request.routing, sourcePlatform: request.sourcePlatform, selectedPlatforms: request.selectedPlatforms, messageBytes: Buffer.byteLength(request.message, 'utf8'), messageDigest };
+    this.logger.info('Add-on outbound chat dispatch started', routing);
+    try {
+      const result = await this.dependencies.routeOutboundMessage(request, controller.signal);
+      this.record(grant.moduleId, 'chat.send', 'granted');
+      this.logger.info('Add-on outbound chat dispatch completed', { ...routing, deliveries: result });
+      return result;
+    }
+    catch (error) {
+      this.record(grant.moduleId, 'chat.send', 'failed');
+      this.logger.error('Add-on outbound chat dispatch failed', { ...routing, error });
+      throw error;
+    }
     finally { activity.pending -= 1; activity.controllers.delete(controller); }
   }
 

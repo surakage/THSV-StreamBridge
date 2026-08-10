@@ -14,6 +14,7 @@ export interface CommandDefinition {
   readonly aliases?: readonly string[];
   readonly minimumRole?: CommandRole;
   readonly allowBots?: boolean;
+  readonly targetModuleId?: string | undefined;
 }
 
 export interface ParsedCommand {
@@ -24,6 +25,7 @@ export interface ParsedCommand {
   readonly prefix: string;
   readonly minimumRole: CommandRole;
   readonly allowBots: boolean;
+  readonly targetModuleId?: string;
 }
 
 export interface MultiCommandInvocation extends ParsedCommand {
@@ -77,6 +79,7 @@ export function parseCommandInput(
     prefix,
     minimumRole: definition.minimumRole ?? 'viewer',
     allowBots: definition.allowBots ?? false,
+    ...(definition.targetModuleId === undefined ? {} : { targetModuleId: definition.targetModuleId }),
   };
 }
 
@@ -156,6 +159,7 @@ export function deriveCommandEvent(event: NormalizedEvent, config: CommandsConfi
       prefix: parsed.prefix,
       minimumRole: parsed.minimumRole,
       allowBots: parsed.allowBots,
+      ...(parsed.targetModuleId === undefined ? {} : { targetModuleId: parsed.targetModuleId }),
       ...(event.payload['isReply'] === true && typeof event.payload['replyMessage'] === 'string' && typeof event.payload['replyUserName'] === 'string' ? {
         isReply: true,
         replyMessage: event.payload['replyMessage'],
@@ -229,7 +233,7 @@ function normalizeCommandInput(input: string): string {
 
 function normalizeCommandName(value: string): string {
   const normalized = value.toLowerCase();
-  if (!/^[a-z][a-z0-9-]{0,63}$/u.test(normalized)) throw new InvalidMultiCommandError(`Invalid command name: ${value || '(empty)'}.`);
+  if (!/^[a-z0-9][a-z0-9-]{0,63}$/u.test(normalized)) throw new InvalidMultiCommandError(`Invalid command name: ${value || '(empty)'}.`);
   return normalized;
 }
 

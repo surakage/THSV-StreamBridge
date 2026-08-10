@@ -2,12 +2,14 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Discovers bounded public game giveaways and routes reward or command requests to a Discord list.",
+  "description": "Checks bounded public game giveaways only after a viewer redemption, routes available games to Discord, and refunds supported empty checks.",
   "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
   "permissions": [
     "events.subscribe",
     "state.private",
     "schedule.bounded",
+    "viewer.foundation.read",
+    "viewer.foundation.mutate",
     "streamerbot.run-approved-action",
     "chat.send"
   ],
@@ -27,7 +29,9 @@
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "minimumBridgeVersion": "3.5.0",
     "maximumTestedBridgeVersion": "3.5.0",
-    "dependencies": [],
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
@@ -35,7 +39,9 @@
       "addon.thsv.free-game-check.discord-result",
       "reward.redemption",
       "command.received",
-      "chat.message"
+      "chat.message",
+      "stream.online",
+      "stream.offline"
     ],
     "commandsProvided": [
       {
@@ -51,6 +57,10 @@
       {
         "id": "free-game-check.discord",
         "name": "THSV Addon - Free Game Check - Discord Deliver"
+      },
+      {
+        "id": "free-game-check.settle-reward",
+        "name": "THSV Addon - Free Game Check - Settle Twitch Reward"
       }
     ],
     "browserSourcesProvided": [],
@@ -59,20 +69,20 @@
       "data/addons/.state/thsv.free-game-check/"
     ],
     "installationSteps": [
-      "Import the Free Game Check Streamer.bot package and leave both actions triggerless.",
-      "Approve Refresh and, only when Discord is enabled, Discord Deliver. Keep the private webhook only in its Set Argument.",
+      "Install and enable Viewer Foundation before using YouTube or TikTok points.",
+      "Import the Free Game Check Streamer.bot package and leave all three actions triggerless.",
+      "Approve Refresh, approve Settle Twitch Reward for Twitch refunds, and approve Discord Deliver only when Discord posting is enabled.",
       "Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.",
-      "Create the configured no-response command for YouTube and TikTok through Command Sync.",
-      "Add the Discord invite and guide wording, then enable the add-on."
+      "Choose the YouTube and TikTok command and points cost. It registers automatically after restart."
     ],
     "uninstallationSteps": [
-      "Uninstalling preserves only bounded giveaway IDs, cooldowns, and refresh/delivery status."
+      "Uninstalling preserves only bounded request, giveaway, cooldown, and delivery status."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.free-game-check.runtime",
-        "description": "Confirms bounded public giveaway discovery and source-routed viewer guidance are available."
+        "description": "Confirms redemption-only giveaway lookup, source-chat guidance, and supported refund paths are available."
       }
     ]
   },
@@ -81,23 +91,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 12151,
-      "sha256": "2fa7299804eb7fff1ad1e98dcc690a75393fc0c1a6e3c4abe0f5976adf7094f0"
+      "size": 17992,
+      "sha256": "37aaab1fb4b5f4a5a1cc2b7fb4f6d11b4c74b0d4bac2bbc98c73c0f3e0f75998"
     },
     {
       "path": "schemas/config.json",
-      "size": 2375,
-      "sha256": "9c9459e86804ea19a392b7b69081dc4b2466ee772646b80a7150daa0835da908"
+      "size": 3126,
+      "sha256": "bbcadf0b12719495a60e715bb49be3232e9f367532ee8a5ee8482f7a3d89087d"
     },
     {
       "path": "ui/settings.json",
-      "size": 1777,
-      "sha256": "1a16d640d11dcee6a5c7c35e7e2b97638e178677b20886ccf80bd93e92e936ae"
+      "size": 1738,
+      "sha256": "2c2cf169b9190524066bf79231a1768f904649be49e8f58dab9ec2330e075186"
     },
     {
       "path": "README.md",
-      "size": 1690,
-      "sha256": "5428d25ed345f5dc10e945ef6651bac7c0e57bda88b8be105e6f61e0086b8d21"
+      "size": 1530,
+      "sha256": "cb3b0f3f99ec5608785042012bbc79f3d2dd63953b9d2ab9be61282667d25c9e"
     }
   ]
 }

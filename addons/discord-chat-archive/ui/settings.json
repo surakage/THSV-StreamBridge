@@ -2,7 +2,7 @@
   "intro": "Discord Chat Archive copies selected public chat to one creator-owned Discord channel. Set up the private webhook in Streamer.bot first, then review platforms, filters, appearance, delivery limits, and privacy before enabling.",
   "order": [
     "enabled", "enabledPlatforms", "ignoreBots", "ignoredUsers", "ignoreCommands", "commandPrefix", "includeSimulatedMessages",
-    "destinationMode", "forumThreadName", "forumTagIds", "messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage",
+    "destinationMode", "forumThreadName", "forumTagIds", "layoutStyle", "showSessionHeader", "sessionHeaderTitle", "showMessageTimes", "twitchColor", "youtubeColor", "kickColor", "tiktokColor", "messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage",
     "batchWindowSeconds", "maximumMessagesPerBatch", "maximumQueueMessages", "maximumMessageCharacters",
     "retryCount", "retryDelaySeconds", "showDroppedMessageNotice"
   ],
@@ -28,18 +28,24 @@
     {
       "id": "appearance",
       "title": "3. Discord message appearance",
-      "description": "Customize the archived line without exposing the private webhook URL.",
-      "fields": ["forumThreadName", "forumTagIds", "messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage"]
+      "description": "Use a dated header and compact platform-colored groups, or switch back to the editable plain-text format.",
+      "fields": ["forumThreadName", "forumTagIds", "layoutStyle", "showSessionHeader", "sessionHeaderTitle", "showMessageTimes", "messageTemplate", "webhookDisplayName", "useViewerIdentityForSingleMessage", "useViewerAvatarForSingleMessage"]
+    },
+    {
+      "id": "platform-colors",
+      "title": "4. Platform colors",
+      "description": "Choose the colored Discord embed edge used for each platform in Clean embeds mode.",
+      "fields": ["twitchColor", "youtubeColor", "kickColor", "tiktokColor"]
     },
     {
       "id": "delivery",
-      "title": "4. Batching and reliability",
+      "title": "5. Batching and reliability",
       "description": "Bound Discord calls, waiting messages, individual message length, and retry work.",
       "fields": ["batchWindowSeconds", "maximumMessagesPerBatch", "maximumQueueMessages", "maximumMessageCharacters", "retryCount", "retryDelaySeconds", "showDroppedMessageNotice"]
     },
     {
       "id": "privacy",
-      "title": "5. Privacy review",
+      "title": "6. Privacy review",
       "description": "Understand where selected messages go before turning the add-on on.",
       "notice": "Every accepted public message is sent to the Discord webhook channel and retained according to that Discord server's policies. Private, operator, and system chat are never subscribed. StreamBridge keeps waiting and retry content only in bounded memory and writes no chat transcript or webhook URL to disk. Tell viewers when public chat is being archived.",
       "fields": []
@@ -48,9 +54,15 @@
   "fields": {
     "ignoredUsers": { "rows": 6 },
     "commandPrefix": { "visibleWhen": { "field": "ignoreCommands", "equals": true } },
-    "messageTemplate": { "rows": 3 },
     "forumThreadName": { "visibleWhen": { "field": "destinationMode", "equals": "forum" } },
     "forumTagIds": { "rows": 4, "visibleWhen": { "field": "destinationMode", "equals": "forum" } },
+    "sessionHeaderTitle": { "visibleWhen": { "field": "showSessionHeader", "equals": true } },
+    "showMessageTimes": { "visibleWhen": { "field": "layoutStyle", "equals": "clean-embeds" } },
+    "twitchColor": { "visibleWhen": { "field": "layoutStyle", "equals": "clean-embeds" } },
+    "youtubeColor": { "visibleWhen": { "field": "layoutStyle", "equals": "clean-embeds" } },
+    "kickColor": { "visibleWhen": { "field": "layoutStyle", "equals": "clean-embeds" } },
+    "tiktokColor": { "visibleWhen": { "field": "layoutStyle", "equals": "clean-embeds" } },
+    "messageTemplate": { "rows": 3, "visibleWhen": { "field": "layoutStyle", "equals": "plain-text" } },
     "useViewerAvatarForSingleMessage": { "visibleWhen": { "field": "useViewerIdentityForSingleMessage", "equals": true } }
   }
 }

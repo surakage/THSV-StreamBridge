@@ -29,7 +29,7 @@ interface StreamerBotManifest {
   minimumStreamerBotVersion?: string;
   action?: StreamerBotAction;
   actions?: StreamerBotAction[];
-  manualTriggerSetup?: Record<string, unknown>;
+  manualTriggerSetup?: unknown;
   triggerSafety?: string;
 }
 
@@ -109,7 +109,7 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
     ...numbered(descriptor.manifest.uninstallationSteps),
     '',
     actions.length === 0
-      ? 'If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.'
+      ? 'If setup drifts, inspect the main THSV intake actions in the wizard, verify the saved add-on command settings, restart StreamBridge, then rerun the offline test.'
       : 'If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.',
   ];
   await writeFile(join(outputRoot, `${folder.name}.md`), `${lines.join('\n')}\n`, 'utf8');
@@ -127,8 +127,12 @@ process.stdout.write(`Generated ${String(index.length)} add-on setup guides in d
 
 function numbered(values: string[]): string[] { return values.length === 0 ? ['1. No extra step is declared.'] : values.map((value, index) => `${String(index + 1)}. ${value}`); }
 function safeName(value: string): string { return value.replace(/[^A-Za-z0-9]+/gu, '-').replace(/^-|-$/gu, ''); }
-function triggerInstructions(value: Record<string, unknown> | undefined): string[] {
-  if (value === undefined) return [];
+function triggerInstructions(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    const entries = value.filter((step): step is string => typeof step === 'string').map((step) => `- ${step}`);
+    return entries.length === 0 ? [] : ['', 'Creator-selected triggers:', '', ...entries];
+  }
+  if (typeof value !== 'object' || value === null) return [];
   const entries = Object.entries(value).flatMap(([key, raw]) => {
     const steps = Array.isArray(raw) ? raw.filter((step): step is string => typeof step === 'string') : (typeof raw === 'string' ? [raw] : []);
     return steps.map((step) => `- **${key}:** ${step}`);

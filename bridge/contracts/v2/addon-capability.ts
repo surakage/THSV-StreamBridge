@@ -46,8 +46,14 @@ export interface AddOnScheduleCapabilityV2 {
 }
 
 export interface AddOnOverlayCapabilityV2 {
-  publish(topic: string, payload: Readonly<Record<string, JsonValueV2>>): Promise<void>;
+  publish(topic: string, payload: Readonly<Record<string, JsonValueV2>>, options?: AddOnOverlayPublishOptionsV2): Promise<void>;
   onLifecycle(listener: (event: AddOnOverlayLifecycleV2) => void): () => void;
+}
+
+export type AddOnOverlayPresentationLaneV2 = 'foreground' | 'media' | 'timer' | 'persistent' | 'preview' | 'independent';
+
+export interface AddOnOverlayPublishOptionsV2 {
+  readonly lane: AddOnOverlayPresentationLaneV2;
 }
 
 export interface AddOnOverlayLifecycleV2 {
@@ -273,6 +279,12 @@ export type VillageDrawAdminRequestV1 =
   | { readonly operation: 'reset'; readonly approvedByCreator: true };
 
 export type VillageDrawAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
+
+export type FollowerPulseAdminRequestV1 =
+  | { readonly operation: 'status' }
+  | { readonly operation: 'reconcile'; readonly approvedByCreator: true };
+
+export type FollowerPulseAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
 export interface ViewerFoundationProviderV1 {
   getProjection(query: ViewerFoundationProjectionQueryV1): Promise<ViewerFoundationProjectionV1 | undefined>;

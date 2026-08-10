@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Provides one triggerless reward controller and one optional manual reset action for the First Five Twitch channel-points add-on.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.33",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "5807e453-1cdb-49bf-bad8-d50f785cbc77",

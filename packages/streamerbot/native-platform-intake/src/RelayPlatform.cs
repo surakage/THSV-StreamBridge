@@ -1,4 +1,6 @@
 // Purpose: Relays bounded Twitch, YouTube, or Kick trigger arguments to the local bridge WebSocket.
+// Streamer.bot 1.0.5 stable moved Twitch chat fully to EventSub and removed the legacy WebSocket
+// message object. This relay intentionally reads only documented flat action arguments.
 // Trust boundary: limits key count and value size; the Core Receiver still validates the normalized event.
 // References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
@@ -16,8 +18,9 @@ public class CPHInline
         "actionName", "userName", "userLogin", "fromUserName", "messageId", "msgId", "eventId", "isTest", "isSimulated", "firstMessage",
         "isReply", "reply.msgId", "reply.userId", "reply.userLogin", "reply.userName", "reply.msgBody", "reply.threadMsgId", "reply.threadUserLogin",
         "userId", "fromUserId", "user", "displayName", "fromUser", "userProfileUrl", "userProfilePicture", "profilePicture",
-        "profileImageUrl", "targetUserProfileImageUrl", "color", "badges", "badge", "role", "isModerator", "isBroadcaster",
-        "isSubscribed", "subscribed", "isVip", "message", "messageStripped", "rawInput", "amount", "donationAmount", "currency",
+        "profileImageUrl", "targetUserProfileImageUrl", "color", "badges", "badge", "role", "isModerator", "isBroadcaster", "isMe", "isInternal", "isBot",
+        "botUserId", "botId", "botUserName", "botUsername", "botUser",
+        "isSubscribed", "subscribed", "isVip", "message", "messageStripped", "rawInput", "emotes", "parts", "amount", "donationAmount", "currency",
         "currencyCode", "count", "bits", "viewers", "monthsSubscribed", "months", "cumulative", "gifts", "giftCount", "monthStreak",
         "streakMonths", "tier", "subTier", "subscriptionTier", "giftName", "itemName", "rewardName", "rewardId", "reward.id",
         "reward.title", "rewardCost", "reward.cost", "requiresUserInput", "reward.requiresUserInput", "skipsQueue", "redemptionId", "broadcastId",
@@ -80,9 +83,15 @@ public class CPHInline
             ["role"] = Read("role"),
             ["isModerator"] = ReadBoolean("isModerator"),
             ["isBroadcaster"] = ReadBoolean("isBroadcaster"),
+            ["isMe"] = ReadBoolean("isMe"),
+            ["isInternal"] = ReadBoolean("isInternal"),
+            ["isBot"] = ReadBoolean("isBot"),
+            ["botUserId"] = First(Read("botUserId"), Read("botId")),
+            ["botUserName"] = First(Read("botUserName"), Read("botUsername"), Read("botUser")),
             ["isSubscribed"] = ReadBoolean("isSubscribed") || ReadBoolean("subscribed"),
             ["isVip"] = ReadBoolean("isVip"),
             ["message"] = Bounded(First(Read("message"), Read("messageStripped"), Read("rawInput")), MaximumTextLength),
+            ["emotes"] = ReadEmotes(platform),
             // Streamer.bot's firstMessage flag means the user's first message ever in this
             // channel. Keep a separate presence bit so missing data never becomes a false claim.
             ["firstMessage"] = ReadBoolean("firstMessage"),
@@ -314,6 +323,36 @@ public class CPHInline
             }
         }
         return badges;
+    }
+
+    private JArray ReadEmotes(string platform)
+    {
+        var emotes = new JArray();
+        object raw = ReadObject("emotes");
+        if (raw == null) return emotes;
+        try
+        {
+            JToken token = raw as JToken;
+            if (token == null && raw is string) token = JToken.Parse((string)raw);
+            if (token == null) token = JToken.FromObject(raw);
+            JArray entries = token as JArray;
+            if (entries == null) return emotes;
+            foreach (JToken entry in entries)
+            {
+                if (emotes.Count >= 100) break;
+                JObject source = entry as JObject;
+                if (source == null) continue;
+                int start; int end;
+                if (!Int32.TryParse(First(ReadToken(source, "StartIndex"), ReadToken(source, "startIndex")), out start)) continue;
+                if (!Int32.TryParse(First(ReadToken(source, "EndIndex"), ReadToken(source, "endIndex")), out end)) continue;
+                string imageUrl = First(ReadToken(source, "ImageUrl"), ReadToken(source, "imageUrl"));
+                string name = First(ReadToken(source, "Name"), ReadToken(source, "name"));
+                if (start < 0 || end < start || end >= MaximumTextLength || String.IsNullOrWhiteSpace(imageUrl)) continue;
+                emotes.Add(new JObject { ["name"] = name, ["startIndex"] = start, ["endIndex"] = end, ["imageUrl"] = imageUrl, ["provider"] = platform });
+            }
+        }
+        catch (Exception error) { CPH.LogWarn("THSV StreamBridge skipped unreadable emote metadata (" + error.GetType().Name + ")."); }
+        return emotes;
     }
 
     private string ReadToken(JObject source, string name)

@@ -17,7 +17,7 @@ describe('background Streamer.bot action visibility', () => {
     const hidden = new Map<string, readonly string[]>([
       ['random-clip-player', ['THSV Addon - Random Clip Player - Get Clips', 'THSV Addon - Random Clip Player - Get Clip Download']],
       ['clip-library-cache', ['THSV Addon - Clip Library Cache - Refresh']],
-      ['automated-shoutouts', ['THSV Addon - Automated Shoutouts - Lookup Twitch Creator', 'THSV Addon - Automated Shoutouts - Get Twitch Clip']],
+      ['automated-shoutouts', ['THSV Addon - Automated Shoutouts - Lookup Twitch Creator']],
       ['user-translate', ['THSV Addon - Translate - Translate Text']],
       ['category-pilot', ['THSV Addon - Category Pilot - Process Probe']],
       ['follower-pulse', ['THSV Addon - Follower Pulse - Snapshot Page']],

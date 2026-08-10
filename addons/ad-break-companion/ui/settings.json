@@ -1,0 +1,18 @@
+{
+  "intro": "Give viewers a small, automatic Twitch ad countdown. The add-on only displays timing supplied by Streamer.bot; it never starts or snoozes ads.",
+  "order": ["enabled", "leadSeconds", "startGraceSeconds", "allowTriggerTests", "upcomingLabel", "upcomingMessage", "activeLabel", "activeMessage", "overlayBackgroundMode", "overlayBackgroundOpacity", "overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayCriticalColor", "overlayBorderColor"],
+  "sections": [
+    { "id": "start", "title": "1. Turn it on", "description": "Enable the Twitch-only display and choose when its small warning appears.", "open": true, "notice": "YouTube does not expose ad timing triggers through Streamer.bot, so YouTube is intentionally not offered here.", "fields": ["enabled", "leadSeconds", "startGraceSeconds", "allowTriggerTests"] },
+    { "id": "wording", "title": "2. Viewer wording", "description": "Use short headings and reassuring messages that fit the compact card.", "fields": ["upcomingLabel", "upcomingMessage", "activeLabel", "activeMessage"] },
+    { "id": "appearance", "title": "3. Overlay appearance", "description": "Adjust the compact card without changing its safe size or countdown spacing.", "fields": ["overlayBackgroundMode", "overlayBackgroundOpacity", "overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayCriticalColor", "overlayBorderColor"] },
+    { "id": "streamerbot", "title": "4. Connect Streamer.bot", "description": "Import the included package, then attach exactly two Twitch ad triggers.", "notice": "Upcoming Ad Intake: Twitch > Ads > Upcoming Ad. Ad Run Intake: Twitch > Ads > Ad Run. Leave Preview Upcoming, Preview Active, and Clear Display triggerless so you can run them manually while offline.", "fields": [] },
+    { "id": "overlay", "title": "5. Add the browser source", "description": "Copy the overlay URL shown below into OBS, Meld, or Streamlabs Desktop. Use a compact 480 x 180 source and crop or position it rather than stretching it.", "fields": [] }
+  ],
+  "fields": {
+    "startGraceSeconds": { "advanced": true },
+    "allowTriggerTests": { "advanced": true },
+    "overlayBackgroundMode": { "labels": { "glass": "Translucent glass", "solid": "Solid", "none": "No background" } },
+    "overlayBackgroundColor": { "visibleWhen": { "field": "overlayBackgroundMode", "notEquals": "none" } },
+    "overlayBackgroundOpacity": { "visibleWhen": { "field": "overlayBackgroundMode", "notEquals": "none" } }
+  }
+}

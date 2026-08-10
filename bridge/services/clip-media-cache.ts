@@ -6,6 +6,8 @@ const MAXIMUM_TTL_SECONDS = 86_400;
 const MAXIMUM_FILE_BYTES = 52_428_800;
 const MAXIMUM_CACHE_BYTES = 262_144_000;
 const MAXIMUM_REDIRECTS = 3;
+const TRUSTED_TWITCH_CLIP_ASSET = /^clips-media-assets\d*\.twitch\.tv$/u;
+const TRUSTED_TWITCH_CLIP_CLOUDFRONT = /^d1ndex63qxojbr\.cloudfront\.net$/u;
 
 export interface ClipMediaCacheRequest { readonly sourceUrl: string; readonly cacheKey: string; readonly ttlSeconds: number; readonly maximumBytes: number }
 export interface ClipMediaCacheResult { readonly url: string; readonly cacheHit: boolean; readonly bytes: number; readonly expiresAt: string }
@@ -50,7 +52,7 @@ export class ClipMediaCache {
 
 function trustedTwitchMediaUrl(value: string): URL {
   const url = new URL(value); const host = url.hostname.toLowerCase();
-  if (url.protocol !== 'https:' || url.username !== '' || url.password !== '' || url.hash !== '' || !(host === 'twitchcdn.net' || host.endsWith('.twitchcdn.net') || host === 'ttvnw.net' || host.endsWith('.ttvnw.net'))) throw new Error('Clip caching accepts only Twitch CDN HTTPS URLs.');
+  if (url.protocol !== 'https:' || url.username !== '' || url.password !== '' || url.hash !== '' || !(host === 'twitchcdn.net' || host.endsWith('.twitchcdn.net') || host === 'ttvnw.net' || host.endsWith('.ttvnw.net') || TRUSTED_TWITCH_CLIP_ASSET.test(host) || TRUSTED_TWITCH_CLIP_CLOUDFRONT.test(host))) throw new Error('Clip caching accepts only Twitch CDN HTTPS URLs.');
   return url;
 }
 

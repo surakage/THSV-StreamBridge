@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Provides optional creator-triggered random-quote and library-statistics controls for the cross-platform Quote Vault add-on.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.33",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "4f4b1d42-8b8c-4a47-9c98-2a10d194ba31",

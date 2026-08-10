@@ -1,24 +1,30 @@
 # THSV StreamBridge Timed Message Output
 
-This triggerless Streamer.bot action receives either one shared shuffled message or independently
-shuffled platform messages from Multi-Timed Actions. It dispatches the matching message once to
-each creator-selected platform. Twitch, YouTube,
+This triggerless Streamer.bot action receives either one shared shuffled message, independently
+shuffled platform messages from Multi-Timed Actions, or a creator-authored reply from the local
+multichat dock. It dispatches the matching message once to each selected platform. Twitch, YouTube,
 and Kick use their native Streamer.bot C# chat methods. TikTok uses TikFinity's documented
 `sendChatbotMessage` WebSocket broadcast.
 
 **This is the only THSV StreamBridge package that automatically posts messages to your live
 channel.** Select only platforms where you intend the configured messages to appear publicly.
 
-Import `THSV-StreamBridge-Timed-Message-Output-2.5.0.sb`, inspect Streamer.bot from the wizard,
+Import `THSV-StreamBridge-Timed-Message-Output-3.5.0.sb`, inspect Streamer.bot from the wizard,
 then choose **THSV StreamBridge - Send Timed Message** as the timer's execution action. Select
 one or more delivery-platform switches. The wizard's **Test saved** operation validates the full
 chain but never sends externally because simulated executions are suppressed by this action.
 
-The recommended wizard mode uses explicit message cards and a separate shuffle bag for each
-platform. Visual wrapping inside a card does not create another message. Limits are enforced before
-save and again before sending: Twitch 500, YouTube 200, Kick 500, and TikTok/TikFinity 150 characters.
+The recommended wizard mode uses one shared message list. One physical line is one complete
+message. Each run sends one unused message to every selected platform, and the list is reshuffled
+only after every entry has appeared once. The wizard enforces the strictest selected destination
+limit before save: Twitch 500, YouTube 200, Kick 500, and TikTok/TikFinity 150 characters.
 
 For TikTok output, enable **Allow Streamer.bot to push messages to TikFinity** in TikFinity's
 chatbot settings. Streamer.bot's platform send APIs do not return end-to-end chat acknowledgement,
 so `timedMessageDispatchedPlatforms` means the API call completed without throwing; it does not
 prove that a platform displayed the message.
+
+Timed messages preserve the historical bot-preferred behavior. The interactive dock explicitly
+passes `multiTimedUseBotAccount=false` and `multiTimedAllowAccountFallback=false`, so Twitch,
+YouTube, and Kick replies use the connected creator account and never silently fall back to the bot.
+TikTok uses the sender selected in TikFinity because its relay contract has no equivalent account flag.

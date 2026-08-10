@@ -41,7 +41,7 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `schedule.bounded`.
 
 Private storage: `data/addons/thsv.village-polls/`, `data/addons/.state/thsv.village-polls/`.
 
@@ -51,4 +51,4 @@ Dependencies: none.
 
 1. Uninstalling preserves the current poll definition and private vote state.
 
-If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.
+If setup drifts, inspect the main THSV intake actions in the wizard, verify the saved add-on command settings, restart StreamBridge, then rerun the offline test.

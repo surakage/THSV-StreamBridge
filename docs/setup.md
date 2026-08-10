@@ -25,6 +25,7 @@ The bridge installs as one service and unused features remain inert through conf
 - Active configuration pointer and private control token: `data/runtime`
 - Atomic status: `data/state/bridge-status.json`
 - Bounded structured log: `data/logs/streambridge.log`
+- Daily readable activity log: `data/logs/daily/THSV-StreamBridge-YYYY-MM-DD.txt`. It uses the computer's local date, mirrors accepted events, system decisions, action dispatches, outbound delivery destinations/results, warnings, and failures, and applies the same secret redaction as the structured log. Outbound message text is represented by its UTF-8 byte count and short diagnostic digest so private chat content is not retained.
 - Process output: `data/logs/service.stdout.log` and `service.stderr.log`
 
 These files are ignored by Git.

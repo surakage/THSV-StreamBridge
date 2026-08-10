@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { BrowserOverlayConfig } from '../../schemas/config.js';
@@ -91,6 +91,112 @@ describe('Browser Overlay Hub contract', () => {
     hub.stop();
   });
 
+  it('clears every retained surface and presentation after the final real platform goes offline', async () => {
+    vi.useFakeTimers();
+    try {
+      const config = await testConfig();
+      const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+      const source = await fixture();
+      const lifecycle = (eventType: 'stream.online' | 'stream.offline', platform: string, suffix: string): NormalizedEvent => ({
+        ...source,
+        eventId: `${eventType}-${suffix}`,
+        eventType,
+        platform,
+        user: undefined,
+        source: { ...source.source, eventId: `${eventType}-source-${suffix}` },
+        payload: {},
+        metadata: { ...source.metadata, simulated: false },
+      });
+      const broadcast = vi.spyOn(hub as unknown as { broadcast(message: string): void }, 'broadcast');
+
+      hub.publish(lifecycle('stream.online', 'twitch', 'twitch'));
+      hub.publish(lifecycle('stream.online', 'youtube', 'youtube'));
+      await hub.publishAddOn('sample.labels', 'sample.labels.labels.update', { labels: { follower: { value: 'Old Viewer' } } });
+      await hub.publishAddOn('sample.clip', 'sample.clip.media.play', { playbackId: 'offline-reset-clip', url: 'https://clips.example/video.mp4', durationMs: 30_000 });
+      await hub.publishAddOn('sample.card', 'sample.card.card.show', { title: 'Active card', durationMs: 30_000 });
+      await hub.publishAddOn('sample.queued', 'sample.queued.card.show', { title: 'Queued card', durationMs: 30_000 });
+      broadcast.mockClear();
+
+      hub.publish(lifecycle('stream.offline', 'twitch', 'twitch'));
+      expect(broadcast.mock.calls.map(([message]) => JSON.parse(message) as { kind?: string }).filter((message) => message.kind === 'overlay.reset')).toHaveLength(0);
+      expect(hub.status()).toMatchObject({ livePlatforms: ['youtube'], retainedLabelSnapshots: 1 });
+
+      hub.publish(lifecycle('stream.offline', 'youtube', 'youtube'));
+      expect(broadcast.mock.calls.map(([message]) => JSON.parse(message) as { kind?: string; reason?: string })).toContainEqual(expect.objectContaining({ kind: 'overlay.reset', reason: 'stream-offline' }));
+      expect(hub.status()).toMatchObject({ livePlatforms: [], retainedLabelSnapshots: 0, presentationQueue: { active: null, queued: [] } });
+      expect((hub as unknown as { activeMediaMessages: Map<string, unknown> }).activeMediaMessages.size).toBe(0);
+      hub.stop();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('accepts queued add-on presentations immediately while serializing their dispatch with a configured gap', async () => {
+    vi.useFakeTimers();
+    try {
+      const config = await testConfig(); config.browserOverlay.overlayGapMs = 1_000;
+      const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+      await hub.publishAddOn('sample.spotlight', 'sample.spotlight.card.show', { title: 'First', durationMs: 1_000 }, { lane: 'foreground' });
+      let secondAccepted = false;
+      const second = hub.publishAddOn('sample.shoutout', 'sample.shoutout.card.show', { title: 'Second', durationMs: 1_000 }, { lane: 'foreground' }).then(() => { secondAccepted = true; });
+      let hydrationAccepted = false;
+      const hydration = hub.publishAddOn('sample.hydration', 'sample.hydration.hydration.update', { totalOunces: 8, durationMs: 1_000 }, { lane: 'foreground' }).then(() => { hydrationAccepted = true; });
+      await Promise.all([second, hydration]);
+      expect(secondAccepted).toBe(true);
+      expect(hydrationAccepted).toBe(true);
+      expect(hub.status()).toMatchObject({ addOnPublished: 1, presentationQueue: { active: { owner: 'sample.spotlight' }, queued: [{ owner: 'sample.shoutout' }, { owner: 'sample.hydration' }], gapMs: 1_000 } });
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(hub.status()).toMatchObject({ addOnPublished: 1, presentationQueue: { active: null, queued: [{ owner: 'sample.shoutout' }, { owner: 'sample.hydration' }] } });
+      await vi.advanceTimersByTimeAsync(1);
+      expect(hub.status()).toMatchObject({ addOnPublished: 2, presentationQueue: { active: { owner: 'sample.shoutout' }, queued: [{ owner: 'sample.hydration' }] } });
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(hub.status()).toMatchObject({ addOnPublished: 3, presentationQueue: { active: { owner: 'sample.hydration' }, queued: [] } });
+      hub.stop();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('uses explicit presentation lanes instead of topic-name guesses', async () => {
+    vi.useFakeTimers();
+    try {
+      const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+      await hub.publishAddOn('sample.persistent', 'sample.persistent.card.show', { title: 'Persistent state', durationMs: 30_000 }, { lane: 'persistent' });
+      expect(hub.status()).toMatchObject({ addOnPublished: 1, presentationQueue: { active: null, queued: [] } });
+
+      await hub.publishAddOn('sample.foreground', 'sample.foreground.status.update', { title: 'Foreground notice', durationMs: 30_000 }, { lane: 'foreground' });
+      expect(hub.status()).toMatchObject({ addOnPublished: 2, presentationQueue: { active: { owner: 'sample.foreground', topic: 'sample.foreground.status.update', lane: 'foreground', durationMs: 30_000 }, queued: [] } });
+      hub.stop();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('keeps accessibility captions and template previews outside the shared presentation queue', async () => {
+    const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    await hub.publishAddOn('thsv.accessibility-captions', 'thsv.accessibility-captions.card.show', { title: 'Live caption', durationMs: 5_000 });
+    await hub.publishAddOn('sample.preview', 'sample.preview.card.show', { title: 'Exact template', durationMs: 60_000, templatePreview: true });
+    expect(hub.status()).toMatchObject({ addOnPublished: 2, presentationQueue: { active: null, queued: [] } });
+    hub.stop();
+  });
+
+  it('starts clip playback independently while a card presentation is active', async () => {
+    vi.useFakeTimers();
+    try {
+      const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+      await hub.publishAddOn('sample.spotlight', 'sample.spotlight.card.show', { title: 'Viewer', durationMs: 10_000 });
+      await hub.publishAddOn('sample.clips', 'sample.clips.media.play', { playbackId: 'clip-independent', url: 'https://clips.example/video.mp4', durationMs: 30_000 });
+      expect(hub.status()).toMatchObject({ addOnPublished: 2, presentationQueue: { active: { owner: 'sample.spotlight' }, queued: [] } });
+      hub.stop();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('keeps ad and launch countdown timers independent from transient presentations', async () => {
+    vi.useFakeTimers();
+    try {
+      const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+      await hub.publishAddOn('sample.spotlight', 'sample.spotlight.card.show', { title: 'Viewer', durationMs: 10_000 });
+      await hub.publishAddOn('thsv.ad-break-companion', 'thsv.ad-break-companion.timer.update', { state: 'active', remainingSeconds: 90 });
+      await hub.publishAddOn('thsv.starting-soon-countdown', 'thsv.starting-soon-countdown.timer.update', { state: 'running', remainingSeconds: 240 });
+      expect(hub.status()).toMatchObject({ addOnPublished: 3, presentationQueue: { active: { owner: 'sample.spotlight' }, queued: [] } });
+      hub.stop();
+    } finally { vi.useRealTimers(); }
+  });
+
   it('accepts lifecycle reports only for playback IDs published by the owning add-on', async () => {
     const config = await testConfig();
     const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
@@ -99,7 +205,7 @@ describe('Browser Overlay Hub contract', () => {
     const receive = (hub as unknown as { receiveClientMessage(raw: string): void }).receiveClientMessage.bind(hub);
     receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', playbackId: 'unknown', phase: 'ended' }));
     expect(observed).toEqual([]);
-    hub.publishAddOn('sample.clips', 'sample.clips.media.play', { playbackId: 'clip-17', url: 'https://clips.example/video.mp4' });
+    await hub.publishAddOn('sample.clips', 'sample.clips.media.play', { playbackId: 'clip-17', url: 'https://clips.example/video.mp4' });
     receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'hidden-source', playbackId: 'clip-17', phase: 'failed' }));
     receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'visible-source', playbackId: 'clip-17', phase: 'started', currentTime: 0 }));
     receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'hidden-source', playbackId: 'clip-17', phase: 'timeout' }));
@@ -107,6 +213,20 @@ describe('Browser Overlay Hub contract', () => {
     receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.lifecycle', moduleId: 'sample.clips', rendererId: 'visible-source', playbackId: 'clip-17', phase: 'ended' }));
     expect(observed).toMatchObject([{ playbackId: 'clip-17', phase: 'started' }, { playbackId: 'clip-17', phase: 'ended' }]);
     expect(hub.status()).toMatchObject({ addOnLifecycleReports: 2, lifecycleSubscribers: 1 });
+    hub.stop();
+  });
+
+  it('tracks the exact add-on browser sources registered on a shared overlay socket', async () => {
+    const config = await testConfig();
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const socket = {} as WebSocket;
+    const receive = (hub as unknown as { receiveClientMessage(raw: string, socket?: WebSocket): void }).receiveClientMessage.bind(hub);
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.subscribe', moduleId: 'sample.clips', rendererId: 'obs-clips' }), socket);
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.subscribe', moduleId: 'sample.labels', rendererId: 'obs-labels' }), socket);
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.subscribe', moduleId: 'sample.clips', rendererId: 'obs-clips' }), socket);
+    expect(hub.status()).toMatchObject({ addOnClients: { 'sample.clips': 1, 'sample.labels': 1 } });
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.unsubscribe', moduleId: 'sample.clips', rendererId: 'obs-clips' }), socket);
+    expect(hub.status()).toMatchObject({ addOnClients: { 'sample.labels': 1 } });
     hub.stop();
   });
 
@@ -118,7 +238,7 @@ describe('Browser Overlay Hub contract', () => {
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     const address = server.address();
     if (address === null || typeof address === 'string') throw new Error('Expected a TCP test server address');
-    hub.publishAddOn('sample.clips', 'sample.clips.media.play', { playbackId: 'clip-late-obs', url: 'https://clips.example/video.mp4', durationMs: 30_000 });
+    await hub.publishAddOn('sample.clips', 'sample.clips.media.play', { playbackId: 'clip-late-obs', url: 'https://clips.example/video.mp4', durationMs: 30_000 });
 
     const received: Array<Record<string, unknown>> = [];
     const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`, { origin: `http://127.0.0.1:${String(address.port)}` });
@@ -168,8 +288,8 @@ describe('Browser Overlay Hub contract', () => {
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     const address = server.address();
     if (address === null || typeof address === 'string') throw new Error('Expected a TCP test server address');
-    hub.publishAddOn('sample.labels', 'sample.labels.labels.update', { labels: { follower: { value: 'Late Viewer' } } });
-    hub.publishAddOn('sample.labels', 'sample.labels.labels.update', { labels: { follower: { value: 'Latest Viewer' } } });
+    await hub.publishAddOn('sample.labels', 'sample.labels.labels.update', { labels: { follower: { value: 'Late Viewer' } } });
+    await hub.publishAddOn('sample.labels', 'sample.labels.labels.update', { labels: { follower: { value: 'Latest Viewer' } } });
 
     const received: Array<Record<string, unknown>> = [];
     const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`, { origin: `http://127.0.0.1:${String(address.port)}` });
@@ -286,13 +406,21 @@ describe('Browser Overlay Hub contract', () => {
       metadata: { ...source.metadata, bridgeSequence: 23 },
     };
     expect(projectBrowserOverlayEvents(event, config.browserOverlay)).toMatchObject([{ kind: 'chat.event', payload: { category: 'reward-redemption', message: 'Example Viewer redeemed Hydrate · Please drink some water' } }]);
+    expect(projectBrowserOverlayEvents({ ...event, eventId: 'reward-no-input', payload: { ...event.payload, input: '' } }, config.browserOverlay)).toMatchObject([{ kind: 'chat.event', payload: { category: 'reward-redemption', message: 'Example Viewer redeemed Hydrate' } }]);
   });
 
   it('uses text-only DOM sinks in the reviewed browser source', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
+    const addOnHost = await readFile('overlays/browser/addon-host.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
-    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.2.js', 'thsv-browser-overlay-1.3.2'");
+    expect(addOnHost).toContain("kind: 'addon.subscribe', moduleId, rendererId");
+    expect(addOnHost).toContain("kind: 'addon.unsubscribe', moduleId, rendererId");
+    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");
+    expect(addOnHost).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");
+    expect(worker).toContain('const candidate = new WebSocket');
+    expect(worker).toContain('if (socket !== candidate) return;');
+    expect(worker).toContain("setTransportState('reconnecting');");
     expect(source).toContain("from '/overlay/alert-queue-1.2.3.js'");
     expect(source).toContain("card.dataset.transition = cardStyle.transition || 'slide-vertical'");
     expect(source).toContain("card.classList.add('alert-exit')");
@@ -307,7 +435,13 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("avatar.addEventListener('error', () => avatar.remove()");
     expect(source).toContain("buildAvatar(message.user, message.presentation, message.platform, 'chat-avatar')");
     expect(source).toContain("buildAvatar(alert.actor, alert.presentation || {}, alert.platform, 'alert-avatar')");
+    expect(source).toContain("element('span', 'alert-event'");
+    expect(source).toContain("activity.category === 'reward-redemption'");
     expect(source).toContain("event.kind === 'chat.event'");
+    expect(source).toContain("event.kind === 'overlay.reset'");
+    expect(source).toContain("if (state !== 'live') resetOverlaySurface()");
+    expect(addOnHost).toContain("event?.kind === 'overlay.reset'");
+    expect(addOnHost).toContain("else resetOverlaySurface()");
     expect(source).toContain('function addEventMessage(activity)');
     expect(source).toContain("element('img', 'badge-icon')");
     expect(source).toContain('if (message.user.isModerator && isModeratorBadge(badge)) continue;');
@@ -317,7 +451,7 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain('connectDirectly');
     expect(worker.match(/new WebSocket/gu)).toHaveLength(1);
     expect(worker).toContain('for (const port of ports)');
-    for (const reviewedSource of [source, worker]) {
+    for (const reviewedSource of [source, addOnHost, worker]) {
       expect(reviewedSource).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write/u);
       expect(reviewedSource).not.toContain('eval(');
     }
@@ -330,7 +464,7 @@ describe('Browser Overlay Hub contract', () => {
       alerts: { profiles: { youtube: { 'super-chat': { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
-      kind: 'alert.show', payload: { priority: 'critical', display: { title: 'example_member supported with 5.00 USD', thankYou: 'Thank you for supporting the village, example_member!', viewerMessage: 'Simulated support', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
+      kind: 'alert.show', payload: { priority: 'critical', display: { title: 'Example_member supported with 5.00 USD', thankYou: 'Thank you for supporting the village, Example_member!', viewerMessage: 'Simulated support', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
     });
     const profile = config.alerts.profiles.youtube?.['super-chat'];
     if (profile === undefined) throw new Error('Test profile is required');
@@ -353,7 +487,7 @@ describe('Browser Overlay Hub contract', () => {
     };
     const config: BrowserOverlayConfig = { ...base, alerts: { profiles: { youtube: { 'super-chat': profile } } } };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 131 } }, config)).toMatchObject({
-      kind: 'alert.show', payload: { display: { thankYou: 'Welcome to the village, example_member!' } },
+      kind: 'alert.show', payload: { display: { thankYou: 'Welcome to the village, Example_member!' } },
     });
     const display = (projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 132 } }, config) as { payload: { display: { viewerMessage?: string; detail?: string } } }).payload.display;
     expect(display.viewerMessage).toBeUndefined();
@@ -387,9 +521,9 @@ describe('Browser Overlay Hub contract', () => {
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const styles = await readFile('overlays/browser/styles.css', 'utf8');
-    expect(source).toContain("['regular', 'compact', 'minimal'].includes(requestedLayout)");
-    expect(source).toContain("document.body.dataset.orientation = chatConfig.orientation");
-    expect(source).toContain("document.body.dataset.newMessagePosition = chatConfig.newMessagePosition");
+    expect(source).toContain("['regular', 'compact', 'minimal', 'classic'].includes(requestedLayout)");
+    expect(source).toContain("document.body.dataset.orientation = dockMode ? 'vertical' : chatConfig.orientation");
+    expect(source).toContain("document.body.dataset.newMessagePosition = dockMode ? 'end' : chatConfig.newMessagePosition");
     expect(source).toContain("clientConfig.chat.showProfilePictures");
     expect(source).toContain("clientConfig.chat.showPlatformLabels");
     expect(source).toContain("clientConfig.chat.showBadges");
@@ -398,7 +532,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('width: min(680px, calc(100vw - 32px))');
     expect(styles).toContain('background: var(--message-platform-bg, var(--chat-message-bg));');
     expect(source).toContain("chatConfig.messageColorMode === 'platform'");
-    expect(styles).toContain('.display-name { min-width: 0; max-width: 100%; color: #fff;');
+    expect(styles).toContain('.display-name { min-width: 0; max-width: 100%; overflow: hidden; color: #fff;');
+    expect(source).toContain('while (visible.length > retainedChatHistory)');
     expect(styles).toContain('.message { flex: 0 0 auto; width: 100%; min-width: 0;');
     expect(styles).toContain('justify-content: flex-end;');
     expect(styles).toContain('.chat.chat-overflowing { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 34px');
@@ -406,18 +541,34 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('font-size: var(--chat-font-size)');
     expect(styles).toContain('font-family: var(--chat-font-family)');
     expect(styles).toContain('text-rendering: geometricPrecision');
-    expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .overlay { display: flex; flex-direction: column; justify-content: flex-end; }');
-    expect(styles).toContain('body[data-mode="chat"][data-layout="compact"] .chat-shell { position: relative; inset: auto;');
+    expect(styles).toContain('body[data-layout="compact"] .message { position: relative; align-self: flex-start;');
+    expect(styles).toContain('body[data-layout="compact"] .message.platform-youtube, body[data-layout="compact"] .message.platform-tiktok { align-self: flex-end;');
     expect(styles).toContain('background: transparent;');
     expect(styles).toContain('body[data-mode="chat"] .chat-shell header { display: none; }');
     expect(styles).toContain('body[data-mode="chat"] .message.message-expiring');
     expect(styles).toContain('body[data-dock="true"] .chat-shell');
+    expect(styles).toContain('grid-template-columns: minmax(0, 1fr); justify-content: stretch;');
     expect(styles).toContain('@media (max-aspect-ratio: 4 / 3)');
     expect(styles).toContain('body[data-mode="chat"] .connection-status[data-state="reconnecting"]');
     expect(styles).toContain('@keyframes chat-expire');
     expect(styles).toContain('@keyframes chat-expire-horizontal');
     expect(styles).toContain('body[data-orientation="horizontal"] .chat');
+    expect(styles).toContain('body[data-orientation="horizontal"] .message { flex: 0 0 auto; width: fit-content;');
     expect(styles).toContain('body[data-layout="minimal"] .message');
+    expect(styles).toContain('body[data-layout="minimal"] .message .identity { display: inline-flex;');
+    expect(styles).toContain('body[data-layout="minimal"] .message .body { display: inline;');
+    expect(styles).toContain('body[data-mode="chat"][data-dock="false"][data-layout="compact"] .message { position: absolute;');
+    expect(source).toContain('function positionCompactBubble(item)');
+    expect(source).toContain('function nextBubbleRandom(seed)');
+    expect(source).toContain('function bubbleIntersects(');
+    expect(styles).toContain('body[data-layout="compact"] .message .display-name { max-width: 100%');
+    expect(styles).toContain('body[data-layout="compact"] .message { position: relative;');
+    expect(styles).toContain('body[data-layout="regular"] .message .identity');
+    expect(styles).toContain('body[data-layout="classic"] .message { display: block;');
+    expect(styles).toContain('body[data-layout="classic"] .message .body { display: inline;');
+    expect(source).toContain("fetch('/overlay/chat/dock/send'");
+    expect(source).toContain("new Option('All live chats', 'all')");
+    expect(styles).toContain('.dock-composer');
   });
 
   it('keeps standalone alerts crisp and responsive without scaling', async () => {
@@ -428,9 +579,11 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('@keyframes alert-slide-up');
     expect(styles).toContain('.alert h2.title-clamped');
     expect(styles).toContain('background-color: var(--alert-card-bg, #171120);');
-    expect(styles).toContain('.alert-identity { display: grid; grid-template-columns: 76px minmax(0, 1fr)');
+    expect(styles).toContain('.alert-identity { display: grid; grid-template-columns: 84px minmax(0, 1fr)');
     expect(styles).toContain('.alert-copy { min-width: 0; text-align: left; }');
-    expect(styles).toContain('font-size: clamp(22px, 2.1vw, 38px)');
+    expect(styles).toContain('font-size: clamp(22px, 2vw, 36px)');
+    expect(styles).toContain('.alert.platform-youtube { --alert-accent: #ff4e45;');
+    expect(styles).toContain('.alert.platform-tiktok { --alert-accent: #25f4ee;');
     expect(styles).toContain('overflow-wrap: anywhere');
     expect(styles).toContain('body[data-mode="alerts"] .connection-status[data-state="reconnecting"]');
   });

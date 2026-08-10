@@ -22,7 +22,7 @@ Applies creator-authored Twitch, YouTube, and Kick channel profiles through one 
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Creator Controls`
 

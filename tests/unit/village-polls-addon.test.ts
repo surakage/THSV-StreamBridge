@@ -25,8 +25,8 @@ describe('Village Polls', () => {
     expect(state).toMatchObject({ poll: { open: false } });
     expect(state).not.toHaveProperty('counters');
     expect(state).not.toHaveProperty('giveawayOpen');
-    expect(context.overlay.publish).toHaveBeenCalledTimes(1);
-    expect(context.overlay.publish).toHaveBeenCalledWith('thsv.village-polls.result.show', expect.objectContaining({ title: 'Best?' }));
+    expect(context.overlay.publish).toHaveBeenCalledTimes(2);
+    expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-polls.poll.update', expect.objectContaining({ cardKind: 'village-polls', question: 'Best?', state: 'closed' }), { lane: 'persistent' });
     expect(JSON.stringify(state)).not.toContain('viewer-id');
     await villagePolls.stop();
   });
@@ -55,7 +55,7 @@ describe('Village Polls', () => {
     expect((state.poll as { open: boolean }).open).toBe(true);
     await villagePolls.onEvent({ eventType: 'stream.offline', platform: 'youtube', metadata: { simulated: false } }, context);
     expect((state.poll as { open: boolean }).open).toBe(false);
-    expect(context.overlay.publish).toHaveBeenCalledWith('thsv.village-polls.result.show', expect.objectContaining({ title: 'Still live?' }));
+    expect(context.overlay.publish).toHaveBeenCalledWith('thsv.village-polls.poll.update', expect.objectContaining({ question: 'Still live?', state: 'closed' }), { lane: 'persistent' });
     context.settings = { enabled: true, pollCommand: 'same', voteCommand: 'same' };
     await villagePolls.onEvent(event('same', ['1']), context);
     expect((state.poll as { votes: Record<string, number> }).votes).toEqual({});
@@ -108,7 +108,7 @@ describe('Village Polls', () => {
     expect(Object.keys((state.poll as { votes: Record<string, number> }).votes)).toHaveLength(1);
     expect(send.mock.calls.filter((call) => call[0].routing === 'source')).toHaveLength(1);
     await villagePolls.onEvent(chat('?poll close', true, 'twitch', 'mod-id', '2026-08-02T20:00:01.000Z'), context);
-    expect(context.overlay.publish).toHaveBeenCalledWith('thsv.village-polls.result.show', expect.objectContaining({ title: 'Best color?' }));
+    expect(context.overlay.publish).toHaveBeenCalledWith('thsv.village-polls.poll.update', expect.objectContaining({ question: 'Best color?', state: 'closed' }), { lane: 'persistent' });
     await villagePolls.stop();
   });
 
@@ -118,5 +118,24 @@ describe('Village Polls', () => {
     await villagePolls.start(context);
     await expect(villagePolls.onEvent(chat('!vote 1'), context)).rejects.toThrow('Streamer.bot action unavailable');
     await villagePolls.stop();
+  });
+
+  it('arms one bounded automatic close and publishes the final decision board', async () => {
+    let state: Record<string, unknown> = {}; let nextTask = 0;
+    const scheduled = new Map<string, { delay: number; task: () => void }>();
+    const context = {
+      settings: { enabled: true, pollDurationSeconds: 30 },
+      state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) },
+      chat: { send: vi.fn(async () => []) }, overlay: { publish: vi.fn(async () => {}) },
+      schedule: { after: vi.fn((delay: number, task: () => void) => { const taskId = `task-${String(++nextTask)}`; scheduled.set(taskId, { delay, task }); return taskId; }), cancel: vi.fn((taskId: string) => scheduled.delete(taskId)) },
+    };
+    await villagePolls.start(context);
+    await villagePolls.onEvent(event('poll', ['open', 'Pick?', '|', 'One', '|', 'Two'], true), context);
+    const close = [...scheduled.values()].find((item) => item.delay >= 29_000);
+    expect(close).toBeDefined(); close?.task();
+    await villagePolls.onEvent({ eventType: 'noop', platform: 'mock', metadata: { simulated: false } }, context);
+    expect(state).toMatchObject({ poll: { open: false } });
+    expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-polls.poll.update', expect.objectContaining({ state: 'closed' }), { lane: 'persistent' });
+    await villagePolls.stop(context);
   });
 });

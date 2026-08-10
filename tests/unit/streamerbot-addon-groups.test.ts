@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 const EXPECTED_GROUPS: Readonly<Record<string, string>> = Object.freeze({
+  'ad-break-companion': 'THSV Addon - Ad Break Companion',
   'random-clip-player': 'THSV Addon - Random Clip Player',
   'automated-shoutouts': 'THSV Addon - Automated Shoutouts',
   'user-translate': 'THSV Addon - Translate',

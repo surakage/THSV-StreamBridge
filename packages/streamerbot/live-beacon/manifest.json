@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Delivers one broker-authorized Discord embed per live platform to a creator-owned channel or forum webhook.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "49a8d56e-2045-4e8d-b62c-399787f56e56",

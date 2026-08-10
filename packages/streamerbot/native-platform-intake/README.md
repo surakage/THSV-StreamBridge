@@ -8,6 +8,8 @@ This package installs one intake action for each native Streamer.bot platform co
 
 Each action reads an allowlisted subset of Streamer.bot trigger arguments and broadcasts one bounded `thsv.platform` event over the existing loopback WebSocket. StreamBridge remains responsible for schema validation, normalization, deduplication, viewer identity, structured logging, delivery, and overlays.
 
+The current relay also carries Streamer.bot's documented native `emotes` ranges for Twitch and YouTube chat. StreamBridge validates the HTTPS image host, preserves the original plain message, and falls back to the emote code if an image cannot load. Kick's documented chat parts currently contain text/type data without an image URL; its 7TV images are resolved by StreamBridge's cached catalog instead.
+
 Version 1.5.2 also relays Streamer.bot's documented Twitch reply fields (`isReply`, `reply.userName`, `reply.msgBody`, and stable IDs) so an explicit translation command can preserve the original message author. Reply text remains bounded plain text and is never inferred on platforms that do not expose the same contract.
 
 Version 1.5.1 preserves Streamer.bot's `firstMessage` boolean together with an explicit presence marker. A known `true` means the viewer's first message ever in that channel; missing data stays absent rather than being misrepresented as `false`. Add-ons can therefore welcome a genuine first-time chatter once without adding separate First Words triggers or relying on Streamer.bot's configurable per-stream First Words reset cache.

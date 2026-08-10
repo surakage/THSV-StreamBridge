@@ -6,15 +6,16 @@ A creator-controlled launch countdown for a Starting Soon scene. Choose any dura
 
 1. Install and enable this add-on in the StreamBridge wizard.
 2. Configure the duration, completion message, optional tone, and overlay appearance.
-3. Import `Streamer.bot/THSV-StreamBridge-Stream-Launch-Countdown-2.4.3.sb` from the packaged add-on.
-4. Add the wizard's `/overlay/countdown` URL as a 1920x1080 browser source in OBS, Meld, or Streamlabs Desktop, then crop and position it as needed.
-5. Attach **THSV Addon - Stream Launch Countdown - Start** to the scene-active trigger for your Starting Soon scene.
-6. Attach **Stop** to the scene-inactive trigger for that scene, or use **Reset** if the paused clock should remain visible.
-7. Optional: create a triggerless Streamer.bot action that switches to your next scene, approve exactly that action in the add-on's wizard card, then enable **Run an approved Streamer.bot action at zero**.
+3. Enter the exact program-scene name that should run the timer, including any emoji or folder icon.
+4. Import `Streamer.bot/THSV-StreamBridge-Stream-Launch-Countdown-3.5.0.sb` only when you want manual controls or an approved completion action.
+5. Add the wizard's `/overlay/countdown` URL as a 1920x1080 browser source in OBS, Meld, or Streamlabs Desktop, then crop and position it as needed.
+6. Optional: create a triggerless Streamer.bot action that switches to your next scene, approve exactly that action in the add-on's wizard card, then enable **Run an approved Streamer.bot action at zero**.
+
+StreamBridge consumes the normalized program-scene event directly. Entering a configured scene starts or resumes the countdown; leaving it pauses and hides the overlay. OBS Studio Mode preview changes therefore do not reset the running program timer. The imported Start and Stop actions are manual fallbacks and need no OBS triggers.
 
 ## Controls
 
-- **Start** resets to the configured duration, shows the overlay, and starts counting.
+- **Start** begins a fresh configured countdown only when no countdown is in progress. Duplicate scene-active events are ignored, and a Stop/Pause followed by Start resumes the saved remaining time. Use Reset then Start for a deliberate restart.
 - **Pause** freezes the current countdown.
 - **Resume** continues a paused countdown.
 - **Reset** restores the configured duration and leaves the timer paused and visible.

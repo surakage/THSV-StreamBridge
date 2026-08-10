@@ -1,6 +1,8 @@
 # Viewer command directory
 
-StreamBridge builds one command directory from the creator's committed Command Sync definitions and the first-party add-ons loaded by the bridge. It is regenerated on request, so installing, removing, enabling, or updating an add-on is reflected after the required StreamBridge restart.
+StreamBridge builds one effective command directory from enabled, healthy first-party add-ons and any compatible legacy creator definitions already present in configuration. Add-on commands register automatically through the existing platform chat intakes after the required StreamBridge restart.
+
+Creator-authored definitions take precedence. If an add-on requests the same command name or alias, that conflicting add-on command is skipped and reported in bridge diagnostics instead of silently overriding the creator's command.
 
 ## What viewers can see
 
@@ -9,14 +11,14 @@ The directory includes only:
 - the command and any public aliases;
 - a short usage example and description;
 - its category and supported platforms;
-- viewer or subscriber access where Command Sync declares it.
+- viewer or subscriber access declared by the owning add-on.
 
 Moderator, broadcaster, reset, approval, deletion, and other creator-control commands are hidden. The directory never serializes add-on settings, viewer identities, chat history, points, webhooks, API credentials, control tokens, connection URLs, or runtime state.
 
 ## Preview and publish
 
-1. Open the authenticated wizard and select **Command Sync**.
-2. Expand **Viewer command directory**.
+1. Open the authenticated wizard and select **Commands**.
+2. Expand **Available viewer commands**.
 3. Select **Open local preview** to inspect the current page at `http://127.0.0.1:8787/commands`.
 4. If hosted publishing is configured, select **Publish now**, then copy the public viewer URL.
 5. Otherwise, use **Manual local export** to download a standalone HTML file for a host you control.

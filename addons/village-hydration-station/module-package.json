@@ -1,0 +1,104 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Provides live-only hydration reminders, creator-authorized ounce tracking, viewer reminder cooldowns, optional Speaker.bot confirmations, and an animated fill overlay.",
+  "changelog": "3.5.0: initial Village Hydration Station release for Streamer.bot 1.0.7 and THSV StreamBridge 3.5.0.",
+  "permissions": [
+    "events.subscribe",
+    "overlay.publish",
+    "state.private",
+    "chat.send",
+    "streamerbot.run-approved-action",
+    "schedule.bounded"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.village-hydration-station",
+    "name": "Village Hydration Station",
+    "version": "3.5.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "addon.thsv.village-hydration-station.control",
+      "reward.redemption",
+      "command.received",
+      "stream.online",
+      "stream.offline"
+    ],
+    "commandsProvided": [
+      {
+        "id": "hydration-station.remind",
+        "name": "hydrate"
+      },
+      {
+        "id": "hydration-station.creator",
+        "name": "water"
+      }
+    ],
+    "actionsProvided": [
+      {
+        "id": "hydration-station.speak",
+        "name": "THSV Addon - Village Hydration Station - Speak"
+      }
+    ],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.village-hydration-station/",
+      "data/addons/.state/thsv.village-hydration-station/"
+    ],
+    "installationSteps": [
+      "Install Village Hydration Station and choose a personal stream goal and reminder interval.",
+      "Import its Streamer.bot package. Approve only Speak when Speaker.bot announcements are enabled.",
+      "Attach Log Water to Stream Deck, a creator hotkey, or another creator-only Streamer.bot trigger. The broadcaster-only !water command provides the same controls from chat.",
+      "Create Twitch and Kick Hydrate rewards and paste their stable IDs. YouTube and TikTok use the automatically registered !hydrate command.",
+      "Add /overlay/addons/thsv.village-hydration-station as a compact 520 x 620 or full-canvas 1920 x 1080 browser source, then send the exact template preview from the wizard."
+    ],
+    "uninstallationSteps": [
+      "Uninstalling preserves bounded hydration totals and recent entries for recovery."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.village-hydration-station.runtime",
+        "description": "Confirms live-only scheduling, command or Stream Deck ounce logging, viewer cooldowns, optional Speaker.bot output, and fill-overlay projection."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 26378,
+      "sha256": "89bdddeee79ee0bfe926e39ec020875f7ba1f816c56fe5d346f7b894057521e3"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 5462,
+      "sha256": "43bdccd9b5d3b7ed522fd66315430be0036d340a6c53343d81c7ad5c11d9fcba"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 4546,
+      "sha256": "dd78eff9603d2e7e29c2788e2e0dabff30c5d0e67c8d45f9bb5481d236e4f739"
+    },
+    {
+      "path": "README.md",
+      "size": 1465,
+      "sha256": "6978237033eaa5757dcf1b84c265659b445099f6edec0f0939c359cfd4644726"
+    }
+  ]
+}

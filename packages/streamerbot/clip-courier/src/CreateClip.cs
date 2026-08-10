@@ -1,4 +1,5 @@
-// Purpose: Creates a 30- or 60-second Twitch clip when the imported !clip command runs,
+// Purpose: Creates a 30- or 60-second Twitch clip when Clip Courier dispatches the
+// intake-owned !clip command through StreamBridge's approved-action broker,
 // then returns only bounded public clip metadata to Clip Courier for Discord delivery.
 // References: mscorlib.dll, System.dll, System.Core.dll, netstandard.dll, Twitch.Common, and Newtonsoft.Json.dll.
 using System;
@@ -10,6 +11,8 @@ public class CPHInline
 {
     public bool Execute()
     {
+        string relayToken = Read("thsvAddonRelayToken", 256);
+        if (relayToken.Length < 16) return Fail("The one-use StreamBridge relay token is missing.");
         string source = Read("commandSource", 20).ToLowerInvariant();
         if (!source.Contains("twitch")) return Fail("The !clip command is available only from Twitch chat.");
 
@@ -37,7 +40,7 @@ public class CPHInline
             ["type"] = "thsv.addon", ["version"] = "1.0.0", ["moduleId"] = "thsv.clip-courier",
             ["eventType"] = "addon.thsv.clip-courier.clip-created",
             ["sourceEventType"] = "THSV Addon - Clip Courier - Create Clip",
-            ["relayId"] = "created-" + Bounded(clip.Id, 100), ["relayToken"] = "",
+            ["relayId"] = "created-" + Bounded(clip.Id, 100), ["relayToken"] = relayToken,
             ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = false, ["payload"] = payload
         };
         try { CPH.WebsocketBroadcastJson(envelope.ToString(Formatting.None)); }

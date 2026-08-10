@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Village Hydration Station",
+  "version": "3.5.0",
+  "author": "surakage",
+  "description": "Creator hydration controls and optional broker-authorized Speaker.bot delivery.",
+  "minimumStreamerBotVersion": "1.0.7",
+  "actions": [
+    {
+      "id": "aacbbd6b-16f2-4742-844a-43007bafea71",
+      "name": "THSV Addon - Village Hydration Station - Log Water",
+      "group": "THSV Addon - Village Hydration Station",
+      "arguments": [{ "name": "hydrationControlAction", "value": "log" }, { "name": "hydrationAmount", "value": "" }],
+      "source": "src/HydrationControl.cs",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-3.5.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "id": "bdf4118b-f36b-424c-a7d4-8d48f28f04ff",
+      "name": "THSV Addon - Village Hydration Station - Undo",
+      "group": "THSV Addon - Village Hydration Station",
+      "arguments": [{ "name": "hydrationControlAction", "value": "undo" }],
+      "source": "src/HydrationControl.cs",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-3.5.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "id": "bdc922e8-3343-4442-8fb1-fe2f5cd75bcf",
+      "name": "THSV Addon - Village Hydration Station - Snooze",
+      "group": "THSV Addon - Village Hydration Station",
+      "arguments": [{ "name": "hydrationControlAction", "value": "snooze" }],
+      "source": "src/HydrationControl.cs",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-3.5.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "id": "ed790e43-db77-4dfa-a419-865a50ccbe97",
+      "name": "THSV Addon - Village Hydration Station - Reset",
+      "group": "THSV Addon - Village Hydration Station",
+      "arguments": [{ "name": "hydrationControlAction", "value": "reset" }],
+      "source": "src/HydrationControl.cs",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-3.5.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "id": "473fff65-6495-4638-b928-e4684758a7ea",
+      "name": "THSV Addon - Village Hydration Station - Preview Reminder",
+      "group": "THSV Addon - Village Hydration Station",
+      "arguments": [{ "name": "hydrationControlAction", "value": "preview" }],
+      "source": "src/HydrationControl.cs",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-3.5.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+    },
+    {
+      "id": "26c6f03c-b616-4db5-8c56-e0abe2dc3b6c",
+      "name": "THSV Addon - Village Hydration Station - Speak",
+      "group": "THSV Addon - Village Hydration Station",
+      "source": "src/Speak.cs",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-3.5.0.sb",
+      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll"]
+    }
+  ],
+  "runtime": { "queue": "THSV Add-ons", "concurrent": false },
+  "editableArguments": ["hydrationAmount"],
+  "manualTriggerSetup": {
+    "logWater": ["Attach to a creator-controlled Stream Deck button or hotkey. Blank hydrationAmount uses the wizard's default serving; set a whole number for a dedicated amount."],
+    "undoSnoozeReset": ["Attach only to creator-controlled hotkeys or Stream Deck buttons."],
+    "previewReminder": ["Keep triggerless and run manually while offline to test reminder presentation without speech or state changes to ounces."],
+    "speak": ["Keep triggerless. Approve it in the wizard only when Speaker.bot announcements are enabled."]
+  },
+  "triggerSafety": "All controls are creator-owned local relays. Speak is triggerless and requires a one-use broker token. Viewer rewards and commands stay on the main THSV intakes.",
+  "verificationStatus": "Package relay and TtsSpeak contracts are source-verified; each creator must test their optional Speaker.bot voice alias and command, hotkey, or Stream Deck mappings."
+}

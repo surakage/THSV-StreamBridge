@@ -57,6 +57,7 @@ describe('wizard HTTP surface', () => {
     expect((await fetch(`${baseUrl}/wizard/api/community-analytics/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-spotlight/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/chat-guard/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/follower-pulse/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/coordination/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ approvedByCreator: true }) })).status).toBe(401);
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
     const inventory = await fetch(`${baseUrl}/wizard/api/addons`, { headers });
@@ -162,11 +163,13 @@ describe('wizard HTTP surface', () => {
     const overlayPage = await fetch(`${baseUrl}/overlay/alerts`);
     expect(overlayPage.status).toBe(200);
     expect(overlayPage.headers.get('content-security-policy')).toContain("media-src 'self'");
+    expect(overlayPage.headers.get('content-security-policy')).toContain("style-src 'self' 'unsafe-inline'");
     // The wizard's own live alert preview plays the same uploaded video in-page, so its shell
     // needs the same allowance — this was missed on the first pass and only caught live.
     const wizardShell = await fetch(`${baseUrl}/wizard/`);
     expect(wizardShell.status).toBe(200);
     expect(wizardShell.headers.get('content-security-policy')).toContain("media-src 'self'");
+    expect(wizardShell.headers.get('content-security-policy')).toContain("style-src 'self' 'unsafe-inline'");
   });
 
   it('serves a locked shell and authenticates every wizard API request', async () => {
@@ -202,6 +205,18 @@ describe('wizard HTTP surface', () => {
     expect(theme).toContain(':root[data-theme="light"]');
     expect((await fetch(`${baseUrl}/wizard/api/overview`)).status).toBe(401);
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, origin: baseUrl };
+    expect((await fetch(`${baseUrl}/wizard/api/unlock-tickets`, { method: 'POST' })).status).toBe(401);
+    const ticketResponse = await fetch(`${baseUrl}/wizard/api/unlock-tickets`, { method: 'POST', headers });
+    expect(ticketResponse.status).toBe(201);
+    const ticket = (await ticketResponse.json() as { ticket: string }).ticket;
+    expect(ticket).toMatch(/^[A-Za-z0-9_-]{43}$/u);
+    const rejectedOrigin = await fetch(`${baseUrl}/wizard/api/unlock`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://example.invalid' }, body: JSON.stringify({ ticket }) });
+    expect(rejectedOrigin.status).toBe(403);
+    const unlocked = await fetch(`${baseUrl}/wizard/api/unlock`, { method: 'POST', headers: { 'content-type': 'application/json', origin: baseUrl }, body: JSON.stringify({ ticket }) });
+    expect(unlocked.status).toBe(200);
+    expect(await unlocked.json()).toEqual({ controlToken: TEST_CONTROL_TOKEN });
+    const replay = await fetch(`${baseUrl}/wizard/api/unlock`, { method: 'POST', headers: { 'content-type': 'application/json', origin: baseUrl }, body: JSON.stringify({ ticket }) });
+    expect(replay.status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/overview`, { headers })).status).toBe(200);
     const inspection = await fetch(`${baseUrl}/wizard/api/inspect`, { method: 'POST', headers });
     expect(inspection.status).toBe(200);

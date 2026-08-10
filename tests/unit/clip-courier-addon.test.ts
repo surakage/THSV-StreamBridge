@@ -9,6 +9,18 @@ import clipCourier, { validClip, withinObservedStream } from '../../addons/clip-
 import { migrate } from '../../addons/clip-courier/migrations/001-current-stream-only.mjs';
 
 describe('Clip Courier', () => {
+  it('routes the intake-owned Twitch clip command to the approved create helper once', async () => {
+    let stored: Record<string, unknown> = { published: [], queue: [] };
+    const calls: Array<{ id: string; arguments: Record<string, unknown> }> = [];
+    const context = {
+      settings: { enabled: true },
+      state: { read: async () => stored, write: async (value: Record<string, unknown>) => { stored = value; } },
+      streamerbot: { runApprovedAction: async (id: string, arguments_: Record<string, unknown>) => { calls.push({ id, arguments: arguments_ }); } },
+    };
+    await clipCourier.onEvent({ eventType: 'command.received', platform: 'twitch', metadata: { simulated: false }, user: { id: 'viewer-1', name: 'viewer', displayName: 'Viewer', actorType: 'human' }, payload: { command: 'clip' } }, context);
+    expect(calls).toEqual([{ id: '6cd2c22e-631c-4b78-91bd-c67169ce989b', arguments: { commandSource: 'twitch', userId: 'viewer-1', userName: 'Viewer' } }]);
+  });
+
   it('migrates 2.5.0 scan settings to the current-stream-only model', async () => {
     const storageRoot = await mkdtemp(join(tmpdir(), 'clip-courier-migration-'));
     await writeFile(join(storageRoot, 'settings.json'), JSON.stringify({ enabled: true, scanMinutes: 15, clipCount: 20, publishExistingOnFirstScan: false, messageTemplate: 'A â€” B' }));

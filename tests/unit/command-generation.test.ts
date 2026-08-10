@@ -34,7 +34,7 @@ describe('command design validation', () => {
   it('rejects a malformed name', () => {
     expect(() => createCommandDesign({ name: 'So!', approvedByCreator: true })).toThrow('letters, numbers, and hyphens');
     expect(() => createCommandDesign({ name: '', approvedByCreator: true })).toThrow('letters, numbers, and hyphens');
-    expect(() => createCommandDesign({ name: '1so', approvedByCreator: true })).toThrow('letters, numbers, and hyphens');
+    expect(() => createCommandDesign({ name: '-so', approvedByCreator: true })).toThrow('letters, numbers, and hyphens');
   });
 
   it('rejects overlong and Unicode command names at the boundary', () => {

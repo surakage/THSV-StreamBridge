@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Provides Chat Guard's triggerless moderation controller and a disabled-by-default moderator command for adding trusted stable viewer IDs.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9",

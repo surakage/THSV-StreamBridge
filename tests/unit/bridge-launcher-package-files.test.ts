@@ -7,6 +7,7 @@ interface ManifestAction {
   readonly group: string;
   readonly source: string;
   readonly importFile: string;
+  readonly arguments?: readonly { readonly name: string; readonly value: string }[];
 }
 
 interface Manifest {
@@ -20,10 +21,10 @@ interface Manifest {
 }
 
 describe('Bridge Launcher Streamer.bot package', () => {
-  it('both actions expose an editable install-path argument above their reviewed C#', async () => {
+  it('all actions expose their editable argument above reviewed C#', async () => {
     const root = 'packages/streamerbot/bridge-launcher';
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as Manifest;
-    expect(manifest.actions).toHaveLength(2);
+    expect(manifest.actions).toHaveLength(4);
     const importFile = manifest.actions[0]?.importFile;
     if (importFile === undefined) throw new Error('Manifest has no actions.');
     const decoded = Buffer.from((await readFile(`${root}/${importFile}`, 'utf8')).trim(), 'base64');
@@ -33,7 +34,7 @@ describe('Bridge Launcher Streamer.bot package', () => {
       data: { actions: Array<{ name: string; group: string; concurrent: boolean; triggers: unknown[]; subActions: Array<{ type: number; enabled: boolean; index: number; variableName?: string; value?: string; byteCode?: string; references?: string[] }> }> };
     };
     expect(exported.meta).toMatchObject({ name: manifest.name, version: manifest.version, author: manifest.author, description: manifest.description });
-    expect(exported.data.actions).toHaveLength(2);
+    expect(exported.data.actions).toHaveLength(4);
 
     for (const [index, manifestAction] of manifest.actions.entries()) {
       const action = exported.data.actions[index];
@@ -43,7 +44,7 @@ describe('Bridge Launcher Streamer.bot package', () => {
       expect(action).toMatchObject({ name: manifestAction.name, group: manifestAction.group, concurrent: true, triggers: [] });
 
       const setting = action?.subActions.find((item) => item.type === 123 && item.enabled);
-      expect(setting).toMatchObject({ index: 0, variableName: 'thsvBridgeInstallPath', value: '%LOCALAPPDATA%\\THSV StreamBridge' });
+      expect(setting).toMatchObject({ index: 0, variableName: manifestAction.arguments?.[0]?.name, value: manifestAction.arguments?.[0]?.value });
 
       const code = action?.subActions.find((item) => item.type === 99_999 && item.enabled);
       expect(code?.index).toBe(1);
@@ -52,20 +53,19 @@ describe('Bridge Launcher Streamer.bot package', () => {
       const reviewedSource = (await readFile(`${root}/${manifestAction.source}`, 'utf8')).replaceAll('\r\n', '\n').trimEnd();
       expect(exportedSource).toBe(reviewedSource);
 
-      for (const variable of manifest.editableArguments) {
+      for (const variable of manifestAction.arguments?.map((argument) => argument.name) ?? []) {
         expect(reviewedSource).toContain(`"${variable}"`);
         expect(reviewedSource).toContain('CPH.TryGetArg');
       }
       expect(reviewedSource).not.toContain('Default Windows install');
-      expect(reviewedSource).toContain('Environment.ExpandEnvironmentVariables');
+      if (manifestAction.arguments?.some((argument) => argument.name === 'thsvBridgeInstallPath'))
+        expect(reviewedSource).toContain('Environment.ExpandEnvironmentVariables');
       // The whole point of this package: the install path must never be a literal path baked
       // into source, or every creator would need to edit and recompile the C# themselves.
       expect(reviewedSource).not.toMatch(/[A-Za-z]:\\[^"]*StreamBridge/);
     }
 
-    // Live Streamer.bot Alpha compilation of this exact source has not been confirmed yet; this
-    // must stay explicit so the package is never mistaken for verified.
-    expect(manifest.verificationStatus).toBe('implementation complete; live Streamer.bot Alpha compilation pending');
+    expect(manifest.verificationStatus).toContain('live Streamer.bot 1.0.7 compilation and action execution verified');
   });
 
   it('the launch action never mentions tokens or credentials and invokes only the official startup script', async () => {
@@ -84,5 +84,14 @@ describe('Bridge Launcher Streamer.bot package', () => {
     // and "token" — what must never appear is an actual literal secret value baked into source.
     expect(source).not.toMatch(/CPH\.SetGlobalVar\(\s*"[^"]*(token|password)/i);
     expect(source).not.toMatch(/control-token|authorization|Bearer|File\.ReadAllText/i);
+  });
+
+  it('offers manual and state-change-only connection health toasts', async () => {
+    const source = await readFile('packages/streamerbot/bridge-launcher/src/CheckBridgeHealth.cs', 'utf8');
+    expect(source).toContain('http://127.0.0.1:8787/ready');
+    expect(source).toContain('CPH.ShowToastNotification');
+    expect(source).toContain('private static string lastState');
+    expect(source).toContain('Status: GREEN');
+    expect(source).toContain('Status: ATTENTION');
   });
 });

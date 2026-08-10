@@ -1,12 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error plain-JS add-on entrypoint has no type declarations
-import { filterClipsByDuration, selectNextClip } from '../../addons/random-clip-player/dist/index.js';
+import { filterClipsByDuration, normalizedSceneName, sceneShouldPlay, selectNextClip } from '../../addons/random-clip-player/dist/index.js';
 
 interface Clip { readonly id: string; readonly durationSeconds: number }
 
 const filterByDuration = filterClipsByDuration as (clips: readonly Clip[], minDurationSeconds: number, maxDurationSeconds: number) => readonly Clip[];
 const pickNext = selectNextClip as (clips: readonly Clip[], seenClipIds: readonly string[], random?: () => number) => Clip | undefined;
+const normalizeScene = normalizedSceneName as (sceneName: string) => string;
+const shouldPlayScene = sceneShouldPlay as (sceneName: string, configuredSceneNames: readonly string[]) => boolean;
 
 function clip(id: string, durationSeconds: number): Clip {
   return { id, durationSeconds };
@@ -21,6 +23,16 @@ describe('Random Clip Player - filterClipsByDuration', () => {
   it('drops a clip whose durationSeconds is missing or not a number', () => {
     const clips = [clip('a', 30), { id: 'b' } as unknown as Clip, { id: 'c', durationSeconds: 'thirty' } as unknown as Clip];
     expect(filterByDuration(clips, 5, 60).map((entry) => entry.id)).toEqual(['a']);
+  });
+});
+
+describe('Random Clip Player - automatic OBS scenes', () => {
+  it('matches only creator-configured scene names while ignoring capitalization', () => {
+    expect(normalizeScene('  My Custom Break Scene  ')).toBe('my custom break scene');
+    expect(shouldPlayScene('My Custom Break Scene', ['My Custom Break Scene', 'Credits'])).toBe(true);
+    expect(shouldPlayScene('MY CUSTOM BREAK SCENE', ['My Custom Break Scene', 'Credits'])).toBe(true);
+    expect(shouldPlayScene('📂 BRB [Nested]', ['BRB', 'Stream Ending'])).toBe(false);
+    expect(shouldPlayScene('📂 BRB [Nested]', ['📂 BRB [Nested]'])).toBe(true);
   });
 });
 

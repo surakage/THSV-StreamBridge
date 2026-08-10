@@ -4,7 +4,7 @@
 **Version:** `3.5.0`
 **Publisher:** THSV StreamBridge
 
-Provides bounded persistent creator counters with role-gated controls and a customizable core-hosted overlay.
+Provides multiple bounded persistent creator counters, collision-safe moderator commands, reusable controls, and a customizable core-hosted overlay.
 
 ## Install
 
@@ -15,34 +15,26 @@ Provides bounded persistent creator counters with role-gated controls and a cust
 
 ### Add-on-specific steps
 
-1. Install Custom Counter and import its separate Streamer.bot controls.
-2. Create the optional no-response counter command through Command Sync.
-3. Attach creator controls only to trusted hotkeys, Stream Deck buttons, or manual triggers.
+1. Install Custom Counter; its separate Streamer.bot controls are optional.
+2. Create distinct counter commands in the wizard. They register automatically through the existing chat intakes after restart and need no Streamer.bot actions.
+3. Import the optional controls only for manual hotkeys, Stream Deck buttons, or trusted non-chat triggers.
 4. Add /overlay/addons/thsv.custom-counter as a browser source.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Custom Counter`
 
-- `THSV Addon - Custom Counter - Increment` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Decrement` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Add` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Subtract` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Set` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Reset` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Show` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Hide` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Rename` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Save` in `THSV Addon - Custom Counter`
-- `THSV Addon - Custom Counter - Load` in `THSV Addon - Custom Counter`
+- `THSV Addon - Custom Counter - Controller` in `THSV Addon - Custom Counter`
 
-Controls publish a bounded local relay only. They do not write files, send chat, or call external APIs.
+The Controller publishes one bounded local relay. It does not write files, send chat, or call external APIs.
 
 Creator-selected triggers:
 
-- **0:** Attach only to creator-controlled hotkeys, Stream Deck buttons, or trusted triggers. No direct trigger is required.
+- **0:** No direct trigger is required. Wizard-created counter commands need no Streamer.bot action or Command object.
+- **1:** Use this optional Controller only for a creator-controlled hotkey, Stream Deck button, or trusted non-chat trigger.
+- **2:** Set counterOperation, counterId, counterName, counterAmount, and counterPreset as needed. Bridge-managed commands never require duplicated actions.
 
 ## Browser source
 

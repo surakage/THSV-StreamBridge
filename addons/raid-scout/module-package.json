@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Finds a safe live Twitch raid destination with visible private search phases, then can play one optional public clip before a creator-confirmed raid.",
+  "description": "Finds a safe live Twitch raid destination, retries bounded public clip previews, can request an ending Twitch ad, and safely ends only after Twitch reports that ad has finished.",
   "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added a bounded stream-scoped viewer suggestion queue backed by a specific Twitch Channel Points reward, transactional fulfill/refund handling, one-suggestion-per-viewer protection, and automatic offline/next-stream clearing; also aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable discovery order, bounded Twitch searches, preferred-channel batching, viewer/language/category/tag filters, similar-size preference, stream-based recent-raid protection, shuffle-without-repeats, expiring suggestions, creator Confirm/Cancel actions, optional advanced automatic mode, editable chat output, and a styled Next Stop overlay card.",
   "permissions": [
     "events.subscribe",
@@ -11,6 +11,7 @@
     "chat.send",
     "overlay.publish",
     "media.exclusive",
+    "media.cache",
     "schedule.bounded",
     "viewer.foundation.read",
     "viewer.foundation.mutate"
@@ -37,6 +38,7 @@
     "eventSubscriptions": [
       "addon.thsv.raid-scout.controller-result",
       "addon.thsv.raid-scout.control",
+      "addon.thsv.ad-break-companion.started",
       "reward.redemption",
       "command.received",
       "stream.online",
@@ -56,11 +58,13 @@
     ],
     "installationSteps": [
       "Import the separate Raid Scout Streamer.bot package.",
-      "Keep its Controller action triggerless and approve only that stable action ID for this add-on.",
+      "Keep its Controller action triggerless and approve that stable action ID as Raid Scout's fixed controller grant.",
       "Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.",
+      "For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld/Streamlabs users select their provider-native stop action. Attach Broadcast Stopped only to that provider's Streaming Stopped trigger.",
       "Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.",
       "For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.",
-      "Configure preferred channels and filters, then test Suggest before enabling automatic mode."
+      "Configure preferred channels and filters, then test Suggest before enabling automatic mode.",
+      "In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible for the Raid Scout source so its cached clip renderer is already warm when the raid preview begins."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its bounded private suggestion and raid history remains preserved for a later reinstall."
@@ -80,23 +84,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 51616,
-      "sha256": "d66bf05df10fa3a3fc52f323f8ac20760a3e90a9b9dda5868a2c2f67b10c4a5a"
+      "size": 75499,
+      "sha256": "45811569a2b94443388e38ab644174889685443e42757e8e00ca5696af89d3cf"
     },
     {
       "path": "schemas/config.json",
-      "size": 10014,
-      "sha256": "747fb407ede40aefb6b4c02fc346cb6c7e5f8d3e158b55445dab4e70fb3d9a90"
+      "size": 12444,
+      "sha256": "c9a0907edc66751b87848394229b1a2b28c794e8aa684312a1581892aeb3e3b3"
     },
     {
       "path": "ui/settings.json",
-      "size": 10717,
-      "sha256": "ea2fee78007e052cb0a35f797c563717398c5d5ed5d17ccbe9f3f0e5069bf8f6"
+      "size": 13885,
+      "sha256": "d8998aa6ec5205271a23a4edf3c20cafb70f481f034440fbbf76f6bf747a46f5"
     },
     {
       "path": "README.md",
-      "size": 4019,
-      "sha256": "32994c5a0d12ffcc1e7b3f8e15bfb70fdc5fb6bf88c77e8ad00a910d112cb8ce"
+      "size": 6304,
+      "sha256": "111749794502b4bf37b6c6b7a1225da69c7ae51f0e2e34f08b7c20469cf5578a"
     }
   ]
 }

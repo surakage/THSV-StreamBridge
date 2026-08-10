@@ -3,269 +3,19 @@
   "name": "THSV StreamBridge - Custom Counter",
   "version": "3.5.0",
   "author": "surakage",
-  "description": "Creator controls for persistent Custom Counter values, presets, visibility, and names.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "description": "One optional generic creator control for wizard-managed independent counters.",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "6cd73792-419f-4481-b924-e9975984fb47",
-      "name": "THSV Addon - Custom Counter - Increment",
+      "name": "THSV Addon - Custom Counter - Controller",
       "group": "THSV Addon - Custom Counter",
       "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "increment"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "3f85605a-73cd-4c48-ae96-456411bf753b",
-      "name": "THSV Addon - Custom Counter - Decrement",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "decrement"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "855e2f45-93c0-4f7a-84d6-8ea48f5db21d",
-      "name": "THSV Addon - Custom Counter - Add",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "add"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        },
-        {
-          "name": "counterAmount",
-          "value": "5",
-          "autoType": true
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "d49ddc11-006d-462c-a3d1-f61913dcfa21",
-      "name": "THSV Addon - Custom Counter - Subtract",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "subtract"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        },
-        {
-          "name": "counterAmount",
-          "value": "5",
-          "autoType": true
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "6b547bc2-debd-4dd4-80c4-c1ed68ca33a1",
-      "name": "THSV Addon - Custom Counter - Set",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "set"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        },
-        {
-          "name": "counterAmount",
-          "value": "0",
-          "autoType": true
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "900dc75f-e7a4-4118-bead-8a39eac74ec3",
-      "name": "THSV Addon - Custom Counter - Reset",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "reset"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "40fa2557-833c-4a1d-b2dd-d3d4bbb14aab",
-      "name": "THSV Addon - Custom Counter - Show",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "show"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "afec4f47-e508-48f4-9f24-e9f99549748d",
-      "name": "THSV Addon - Custom Counter - Hide",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "hide"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "af0ee7de-8ef9-4f33-ae6a-4adb748cf516",
-      "name": "THSV Addon - Custom Counter - Rename",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "rename"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        },
-        {
-          "name": "counterName",
-          "value": "Stream Counter"
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "66363bf0-0055-4589-9ea9-2a3f3d151a15",
-      "name": "THSV Addon - Custom Counter - Save",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "save"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        },
-        {
-          "name": "counterPreset",
-          "value": "default"
-        }
-      ],
-      "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "5b809df2-d152-4cf0-9e37-350f66efa6fe",
-      "name": "THSV Addon - Custom Counter - Load",
-      "group": "THSV Addon - Custom Counter",
-      "arguments": [
-        {
-          "name": "counterOperation",
-          "value": "load"
-        },
-        {
-          "name": "counterId",
-          "value": "main"
-        },
-        {
-          "name": "counterPreset",
-          "value": "default"
-        }
+        { "name": "counterOperation", "value": "increment" },
+        { "name": "counterId", "value": "main" },
+        { "name": "counterName", "value": "" },
+        { "name": "counterAmount", "value": "0", "autoType": true },
+        { "name": "counterPreset", "value": "default" }
       ],
       "source": "src/ControlCounter.cs",
       "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
@@ -276,19 +26,13 @@
       ]
     }
   ],
-  "runtime": {
-    "queue": "THSV Add-ons",
-    "concurrent": true
-  },
-  "editableArguments": [
-    "counterId",
-    "counterAmount",
-    "counterName",
-    "counterPreset"
-  ],
+  "runtime": { "queue": "THSV Add-ons", "concurrent": true },
+  "editableArguments": ["counterOperation", "counterId", "counterName", "counterAmount", "counterPreset"],
   "manualTriggerSetup": [
-    "Attach only to creator-controlled hotkeys, Stream Deck buttons, or trusted triggers. No direct trigger is required."
+    "No direct trigger is required. Wizard-created counter commands need no Streamer.bot action or Command object.",
+    "Use this optional Controller only for a creator-controlled hotkey, Stream Deck button, or trusted non-chat trigger.",
+    "Set counterOperation, counterId, counterName, counterAmount, and counterPreset as needed. Bridge-managed commands never require duplicated actions."
   ],
-  "triggerSafety": "Controls publish a bounded local relay only. They do not write files, send chat, or call external APIs.",
-  "verificationStatus": "Package and relay validation are automated; creator-selected hotkey and Stream Deck attachment remains manual."
+  "triggerSafety": "The Controller publishes one bounded local relay. It does not write files, send chat, or call external APIs.",
+  "verificationStatus": "Package and relay validation are automated; optional creator-selected trigger attachment remains manual."
 }

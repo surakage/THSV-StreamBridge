@@ -1,0 +1,27 @@
+{
+  "intro": "Set your goal, choose who can remind you, and style one compact water overlay. Viewer reminders never change your total.",
+  "order": ["enabled", "automaticReminders", "reminderIntervalMinutes", "snoozeMinutes", "resetMode", "goalOunces", "defaultServingOunces", "maximumEntryOunces", "viewerRemindersEnabled", "twitchRewardId", "kickRewardId", "viewerCommand", "viewerCommandPlatforms", "viewerGlobalCooldownMinutes", "viewerCooldownMinutes", "creatorCommandEnabled", "creatorCommand", "speakerEnabled", "voiceAlias", "automaticReminderMessage", "viewerReminderMessage", "loggedMessage", "goalMessage", "showOverlay", "containerStyle", "showNumbers", "showNextReminder", "backgroundMode", "backgroundColor", "backgroundOpacity", "waterColor", "waterHighlightColor", "accentColor", "textColor", "mutedColor"],
+  "sections": [
+    { "id": "basics", "title": "1. Goal and reminders", "open": true, "description": "Choose your daily water goal, serving size, and live-only reminder interval.", "notice": "Water resets automatically at local midnight by default. The reminder timer pauses offline and restarts when water is logged.", "fields": ["enabled", "goalOunces", "defaultServingOunces", "resetMode", "automaticReminders", "reminderIntervalMinutes", "snoozeMinutes", "maximumEntryOunces"] },
+    { "id": "viewers", "title": "2. Viewer reminders", "description": "Twitch and Kick use rewards; YouTube and TikTok use !hydrate.", "notice": "Viewer reminders never add water. Shared and per-viewer cooldowns keep requests from becoming spam.", "fields": ["viewerRemindersEnabled", "twitchRewardId", "kickRewardId", "viewerCommand", "viewerCommandPlatforms", "viewerGlobalCooldownMinutes", "viewerCooldownMinutes"] },
+    { "id": "controls", "title": "3. Creator controls and announcements", "description": "Log water with the broadcaster-only chat command, Stream Deck, or a creator hotkey.", "notice": "Use !water 8, undo, snooze, reset, or status. Attach Log Water to a Stream Deck button or hotkey for one-tap logging. Speaker.bot is optional and is used only to speak reminders and confirmations.", "fields": ["creatorCommandEnabled", "creatorCommand", "speakerEnabled", "voiceAlias"] },
+    { "id": "wording", "title": "4. Messages", "description": "Customize reminder and confirmation text. Available tokens appear below each field.", "fields": ["automaticReminderMessage", "viewerReminderMessage", "loggedMessage", "goalMessage"] },
+    { "id": "overlay", "title": "5. Overlay appearance", "description": "Choose the vessel, information, and colors shown on stream.", "notice": "Use a 520 x 620 browser source for the compact card. Show the exact template before positioning or cropping it; do not stretch the source.", "fields": ["showOverlay", "containerStyle", "showNumbers", "showNextReminder", "backgroundMode", "backgroundColor", "backgroundOpacity", "waterColor", "waterHighlightColor", "accentColor", "textColor", "mutedColor"] }
+  ],
+  "fields": {
+    "reminderIntervalMinutes": { "visibleWhen": { "field": "automaticReminders", "equals": true } },
+    "snoozeMinutes": { "visibleWhen": { "field": "automaticReminders", "equals": true } },
+    "twitchRewardId": { "visibleWhen": { "field": "viewerRemindersEnabled", "equals": true }, "placeholder": "Stable Twitch reward ID" },
+    "kickRewardId": { "visibleWhen": { "field": "viewerRemindersEnabled", "equals": true }, "placeholder": "Stable Kick reward ID" },
+    "viewerCommand": { "visibleWhen": { "field": "viewerRemindersEnabled", "equals": true } },
+    "viewerCommandPlatforms": { "visibleWhen": { "field": "viewerRemindersEnabled", "equals": true } },
+    "viewerGlobalCooldownMinutes": { "visibleWhen": { "field": "viewerRemindersEnabled", "equals": true } },
+    "viewerCooldownMinutes": { "visibleWhen": { "field": "viewerRemindersEnabled", "equals": true } },
+    "creatorCommand": { "visibleWhen": { "field": "creatorCommandEnabled", "equals": true }, "placeholder": "water" },
+    "voiceAlias": { "visibleWhen": { "field": "speakerEnabled", "equals": true }, "placeholder": "Reuses Village Voice when available" },
+    "containerStyle": { "labels": { "bottle": "Village bottle", "glass": "Water glass", "water-tower": "Village water tower" } },
+    "backgroundMode": { "labels": { "glass": "Translucent glass", "solid": "Solid", "none": "No background" } },
+    "backgroundColor": { "visibleWhen": { "field": "backgroundMode", "notEquals": "none" } },
+    "backgroundOpacity": { "visibleWhen": { "field": "backgroundMode", "notEquals": "none" } }
+  }
+}

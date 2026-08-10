@@ -8,6 +8,16 @@
     "durationHours": { "type": "integer", "title": "Hours", "minimum": 0, "maximum": 24, "default": 0 },
     "durationMinutes": { "type": "integer", "title": "Minutes", "minimum": 0, "maximum": 59, "default": 10 },
     "durationSeconds": { "type": "integer", "title": "Seconds", "minimum": 0, "maximum": 59, "default": 0 },
+    "automaticSceneNames": {
+      "type": "array",
+      "title": "Exact program-scene names that run the countdown",
+      "description": "Enter one exact OBS, Streamlabs, or Meld program-scene name per line, including any emoji or folder icon. Matching ignores capitalization only.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+      "maxItems": 10,
+      "uniqueItems": true,
+      "default": ["Starting Soon"]
+    },
+    "stopOutsideAutomaticScenes": { "type": "boolean", "title": "Hide and pause after leaving those scenes", "default": true },
     "completionMessage": { "type": "string", "title": "Message shown when the countdown ends", "minLength": 1, "maxLength": 200, "default": "The stream is starting now!" },
     "completionTone": { "type": "string", "title": "Optional completion tone", "enum": ["none", "soft-chime", "digital-pop", "celebration"], "default": "soft-chime" },
     "toneVolume": { "type": "number", "title": "Tone volume", "minimum": 0, "maximum": 1, "default": 0.6 },

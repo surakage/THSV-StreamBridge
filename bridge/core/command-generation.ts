@@ -7,7 +7,7 @@ import {
 
 export const COMMAND_GENERATION_PACKAGE_VERSION = '1.0.0';
 
-const NAME_PATTERN = /^[a-z][a-z0-9-]*$/u;
+const NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/u;
 const MAX_NAME_LENGTH = 64;
 const MAX_ALIASES = 20;
 const MAX_NOTE_LENGTH = 500;
@@ -358,7 +358,7 @@ export function generateCommandsPackage(designs: readonly CommandDesign[], prefi
       author: 'THSV StreamBridge wizard',
       version: COMMAND_GENERATION_PACKAGE_VERSION,
       description,
-      minimumStreamerBotVersion: '1.0.0',
+      minimumStreamerBotVersion: '1.0.6',
       concurrent: true,
     },
     actionInputs,

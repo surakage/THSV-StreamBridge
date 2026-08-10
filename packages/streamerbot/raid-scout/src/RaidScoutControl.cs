@@ -1,5 +1,6 @@
-// Purpose: Sends one exact creator control (Suggest, Confirm, or Cancel) to the Raid Scout add-on.
-// Attach this imported action only to a creator-controlled hotkey, deck button, or operator command.
+// Purpose: Sends one exact creator control or provider stop confirmation to the Raid Scout add-on.
+// Suggest, Confirm, and Cancel are creator controls. Broadcast Stopped belongs only on the
+// active OBS, Meld, or Streamlabs Streaming Stopped trigger.
 // References: mscorlib.dll, System.dll, System.Core.dll, netstandard.dll, and Newtonsoft.Json.dll.
 using System;
 using Newtonsoft.Json;
@@ -17,6 +18,7 @@ public class CPHInline
         if (action == "suggest") label = "Suggest";
         else if (action == "confirm") label = "Confirm";
         else if (action == "cancel") label = "Cancel";
+        else if (action == "broadcast-stopped") label = "Broadcast Stopped";
         else
         {
             CPH.LogWarn("THSV Raid Scout rejected an unsupported creator control.");

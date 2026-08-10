@@ -6,7 +6,7 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Version 3:** the bridge, all 34 first-party add-ons, and all 38 generated Streamer.bot imports are synchronized at `3.5.0`. The complete automated, browser, Windows package, archive, dependency-audit, and local-upgrade gates pass. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [production-readiness gate](docs/production-readiness.md).
+> **Version 3:** the bridge, all 35 first-party add-ons, and all 39 generated Streamer.bot imports are synchronized at `3.5.0`. The complete automated, browser, Windows package, archive, dependency-audit, and local-upgrade gates pass. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [production-readiness gate](docs/production-readiness.md).
 
 ## Start here
 
@@ -26,10 +26,10 @@ Instead of building a separate bot, socket, and overlay for every platform, Stre
 | --- | --- |
 | Platforms | Twitch, YouTube, Kick, and TikTok through TikFinity, with provider-specific capability reporting and switches |
 | Unified chat | Normalized messages, avatars, badges, ignored names, regular/compact/minimal cards, vertical or horizontal flow, selectable movement and alignment, platform colors, transparent backgrounds, event messages, and browser docks |
-| Commands | Wizard-designed commands, editable action names and templates, source-platform gates, platform-specific replies, cooldown metadata, editable C#, Streamer.bot package export, and an automatic viewer-safe command directory |
+| Commands | Intake-owned add-on commands, creator-wins collision handling, source-platform gates, platform-specific replies, and an automatic viewer-safe command directory |
 | Alerts | Follows, subscriptions/memberships, gifts, Bits/Cheers, Super Chats, raids, TikTok like milestones, profiles, sounds, images, priority, aggregation, and previews |
-| Timed actions | Fixed or random stream-relative intervals, separate per-platform message lists, shuffle without repeats, quiet-chat/live/scene gates, and missed-run policies |
-| Rewards | Twitch and Kick redemption intake plus explicitly approved Twitch reward administration; undocumented Kick mutations remain disabled |
+| Timed actions | Fixed or random stream-relative intervals, wizard editing groups that combine into one shared cross-platform list, shuffle without repeats, quiet-chat/live/scene gates, and missed-run policies |
+| Rewards | Twitch and Kick redemption intake for reward-driven add-ons; reward creation and editing stay in Streamer.bot or the owning add-on's setup page |
 | Browser overlays | Separate or combined Chat and Alerts sources for Meld Studio, OBS Studio, Streamlabs Desktop, and compatible Chromium browser sources |
 | Reliability | Durable Streamer.bot delivery outbox, restart replay, bounded retries, dead letters, deduplication, ordered lanes, health/readiness endpoints, and structured redacted logs |
 | Add-ons | Version-bounded `.thsv-addon` packages, approval-gated inbox discovery, schema-rendered settings, private state, bounded scheduling, shared outbound chat, and hosted card/media overlays |
@@ -67,7 +67,7 @@ Default installation location: `%LOCALAPPDATA%\THSV StreamBridge`. Windows 10 or
 
 The complete click-by-click sequence, exact launcher paths, receiver wiring, overlay URLs, verification checks, upgrade steps, and uninstall behavior are in [Getting started](docs/getting-started.md).
 
-The Command Sync page also provides an automatic [viewer command directory](docs/command-directory.md). Its local preview is generated from committed Command Sync definitions and installed add-on manifests. Creators can either download a standalone HTML page for a host they control or opt into an authenticated creator-specific page on SlothBloom. The hosted option sends only public command metadata through one bounded HTTPS request; it never exposes localhost or opens an inbound internet port.
+The **Commands** page provides an automatic [viewer command directory](docs/command-directory.md). Enabled add-ons register their commands through the existing platform Chat Message intakes, so creators do not generate or import duplicate Streamer.bot Command objects. Creator-made Streamer.bot commands remain separate and are never modified. Creators can either download a standalone HTML page for a host they control or opt into an authenticated creator-specific page on SlothBloom. The hosted option sends only public command metadata through one bounded HTTPS request; it never exposes localhost or opens an inbound internet port.
 
 ## Updating safely
 
@@ -91,7 +91,7 @@ Optional add-ons are separate downloads on the same GitHub Release as core. Each
 
 Published packages are not automatically provider-accepted. Version 3 contains `34` independently installable first-party add-ons. Use the [Add-on acceptance ledger](docs/add-on-acceptance-ledger.md), [offline/private testing guide](docs/offline-acceptance.md), and [first-live checklist](docs/live-test-checklist.md) before enabling financial, reward, moderation, raid, outbound-chat, Discord, translation, voice, scene, or media side effects.
 
-Current add-ons are [Random Clip Player](docs/future-projects-and-addons.md#1-random-clip-player), [Automated Shoutouts](docs/automated-shoutouts.md), [Translate](docs/user-translate.md), [Discord Chat Archive](docs/discord-chat-archive.md), [Quote Vault](docs/quote-vault.md), [Ko-fi Donations](docs/kofi-donations.md), [Subathon Timer](docs/subathon-timer.md), [Scene Actions](docs/scene-actions.md), [First Five](addons/first-five/README.md), [Fan Crown](addons/fan-crown/README.md), [Raid Scout](addons/raid-scout/README.md), [Stream Labels](addons/stream-labels/README.md), [Village Roll Call](addons/village-roll-call/README.md), [Prize Wheel](addons/prize-wheel/README.md), [Village Draw](addons/village-draw/README.md), [Viewer Foundation](addons/viewer-foundation/README.md), [Community Analytics](addons/community-analytics/README.md), [Viewer Spotlight](addons/viewer-spotlight/README.md), [Chat Guard](addons/chat-guard/README.md), [Creator Controls](addons/creator-controls/README.md), [Category Pilot](addons/category-pilot/README.md), [Live Beacon](addons/live-beacon/README.md), [Clip Courier](addons/clip-courier/README.md), [Clip Library Cache](addons/clip-library-cache/README.md), [Viewer Lobby](addons/viewer-lobby/README.md), [Voice Relay](addons/voice-relay/README.md), [Follower Pulse](addons/follower-pulse/README.md), [Village Polls](addons/village-polls/README.md), [Chat Play Pack](addons/chat-play-pack/README.md), [Free Game Check](addons/free-game-check/README.md), [Accessibility Captions](addons/accessibility-captions/README.md), and [Custom Counter](addons/custom-counter/README.md). Native Streamlabs donation intake reuses Streamer.bot's existing authenticated WebSocket subscription, stores no provider credential, and requires a stable provider event or donation ID for every live financial event. Bloom Companion remains on the back burner.
+Current add-ons are [Random Clip Player](docs/future-projects-and-addons.md#1-random-clip-player), [Automated Shoutouts](docs/automated-shoutouts.md), [Translate](docs/user-translate.md), [Discord Chat Archive](docs/discord-chat-archive.md), [Quote Vault](docs/quote-vault.md), [Ko-fi Donations](docs/kofi-donations.md), [Subathon Timer](docs/subathon-timer.md), [Scene Actions](docs/scene-actions.md), [First Five](addons/first-five/README.md), [Fan Crown](addons/fan-crown/README.md), [Raid Scout](addons/raid-scout/README.md), [Stream Labels](addons/stream-labels/README.md), [Village Roll Call](addons/village-roll-call/README.md), [Prize Wheel](addons/prize-wheel/README.md), [Village Draw](addons/village-draw/README.md), [Viewer Foundation](addons/viewer-foundation/README.md), [Community Analytics](addons/community-analytics/README.md), [Viewer Spotlight](addons/viewer-spotlight/README.md), [Chat Guard](addons/chat-guard/README.md), [Creator Controls](addons/creator-controls/README.md), [Category Pilot](addons/category-pilot/README.md), [Live Beacon](addons/live-beacon/README.md), [Clip Courier](addons/clip-courier/README.md), [Clip Library Cache](addons/clip-library-cache/README.md), [Viewer Lobby](addons/viewer-lobby/README.md), [Voice Relay](addons/voice-relay/README.md), [Follower Pulse](addons/follower-pulse/README.md), [Village Polls](addons/village-polls/README.md), [Chat Play Pack](addons/chat-play-pack/README.md), [Village Fun Commands](addons/village-fun-commands/README.md), [Free Game Check](addons/free-game-check/README.md), [Accessibility Captions](addons/accessibility-captions/README.md), and [Custom Counter](addons/custom-counter/README.md). Native Streamlabs donation intake reuses Streamer.bot's existing authenticated WebSocket subscription, stores no provider credential, and requires a stable provider event or donation ID for every live financial event. Bloom Companion remains on the back burner.
 
 [Village Jukebox](docs/addons/village-jukebox.md) is the current YouTube-first request-queue add-on. It remains disabled until its private resolver, commands, points/reward choices, browser source, and music-rights acknowledgement are configured.
 
@@ -139,7 +139,7 @@ Streamer.bot Package Foundation adds:
 - Reviewed C# receiver source with normalized-event validation
 - A stable platform-neutral action-argument contract for future packages
 - Automated checks that the exported package contains the reviewed source
-- Live compatibility floor at Streamer.bot `1.0.5-alpha.31`; `1.0.5-beta.5` is recommended for new installations. Beta.2 remains the latest build with directly recorded grouped-action, bridge-routing, and audible Voice Relay evidence; repeat the [focused beta.5 checks](docs/streamerbot-1.0.5-beta.5.md) after upgrading
+- Streamer.bot `1.0.7` stable is the supported baseline for new installations and regenerated THSV imports. It includes the 1.0.6 Custom Channel Rewards crash fix and restores website-authentication and anonymous update-check behavior. Complete the [stable 1.0.7 acceptance checks](docs/streamerbot-1.0.7-stable.md) after upgrading the host
 
 Import the package and follow the instructions in the [Streamer.bot receiver package](packages/streamerbot/core-receiver/README.md).
 
@@ -199,11 +199,12 @@ Browser Overlay Hub adds one local transparent browser source for Meld Studio, O
 - Unified public chat with bounded in-memory retention and message-deletion correlation
 - Context-safe text rendering with no HTML injection sinks
 - Platform, role, bot, badge, avatar, and validated name-color presentation
+- Native Twitch/YouTube emotes plus locally matched BTTV, FrankerFaceZ, and 7TV catalogs with readable text fallback
 - Priority-aware public alerts with subscription lifecycle and gift provenance fields
 - Loopback-only live WebSocket delivery and creator controls for duration, retention, bots, and simulated events
 - Independently movable Chat and Alerts browser sources that share one WebSocket when the host supports `SharedWorker`
 
-Use `http://127.0.0.1:8787/overlay/` for the combined canvas, add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources, or add `http://127.0.0.1:8787/overlay/chat/dock` to a compatible custom browser dock. Chat appearance and ignored names are saved from the authenticated wizard. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). Combined and separate-source rendering are live-verified in Meld Studio and OBS Studio; OBS is the accepted Streamlabs Browser Source compatibility gate.
+Use `http://127.0.0.1:8787/overlay/` for the combined canvas, add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources, or add `http://127.0.0.1:8787/overlay/chat/dock` as an interactive multichat dock. The dock can reply to one enabled platform or all enabled platforms through the existing Streamer.bot connection, using the connected creator account where Streamer.bot supports account selection. Chat appearance and ignored names are saved from the authenticated wizard. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). Combined and separate-source rendering are live-verified in Meld Studio and OBS Studio; OBS is the accepted Streamlabs Browser Source compatibility gate.
 
 ## Archived future add-ons
 
@@ -211,7 +212,7 @@ The former Viewer Identity and Progression, Bloom Companion, and Speaker.bot Orc
 
 ## Setup wizard
 
-Stages 3 through 9 provide an authenticated loopback wizard at `http://127.0.0.1:8787/wizard/`. A portable installation keeps its unique token under `data/secrets/control-token`; a source checkout uses the path configured by `security.controlTokenFile`. The token stays local and is never included in configuration exports.
+Stages 3 through 9 provide an authenticated loopback wizard at `http://127.0.0.1:8787/wizard/`. Normal users should run **THSV StreamBridge - Open Setup Wizard** in Streamer.bot or the installed **Open THSV Setup Wizard** launcher. The launcher creates a 60-second, single-use local ticket and opens the wizard already unlocked; it never places the permanent token in the URL or browser history, and it does not restart a healthy Bridge. Manual token entry remains an advanced recovery fallback. A portable installation keeps its unique token privately under `data/secrets/control-token`; a source checkout uses the path configured by `security.controlTokenFile`. The token stays local and is never included in configuration exports.
 
 Streamer.bot inspection sends only documented `GetActions` and `GetCommands` requests. Creator-approved command administration is limited to commands already tracked by THSV StreamBridge; unrelated commands remain read-only. Configuration drafts cover platform switches, scoped blockers, command settings, and timed actions. One tab holds the mutation lease; commit rechecks the source file hash, validates the complete candidate, creates a backup, writes atomically, verifies the result, and restores the backup on failure. Safe exports omit secrets. Restart StreamBridge after committing configuration.
 
@@ -224,6 +225,8 @@ TikFinity does not currently document a stable source-event ID or reliable simul
 ## Native Streamer.bot platform intake
 
 Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-3.5.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
+
+The native intake also relays documented Twitch and YouTube emote ranges. StreamBridge locally matches BTTV for Twitch/YouTube, FrankerFaceZ for Twitch, and 7TV for Twitch/YouTube/Kick; unavailable catalogs and image failures preserve the original emote code as text.
 
 Stage 8 adds Twitch and Kick reward-redemption intake to those native actions. The separate triggerless `THSV StreamBridge - Reward Administration` package exposes only documented, creator-approved Twitch operations; Kick mutations are hidden and rejected until Streamer.bot documents them. See [Channel rewards](docs/rewards.md).
 

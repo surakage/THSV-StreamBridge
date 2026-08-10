@@ -114,6 +114,18 @@ describe('Chat Guard add-on', () => {
     await expect(administerChatGuard({ operation: 'trust-remove', accountKey: status.trustedAccounts[0].accountKey, approvedByCreator: true }, testRuntime.context, 4000)).resolves.toMatchObject({ removed: 1, trustedAccountCount: 0 });
   });
 
+  it('trusts a replied-to stable viewer through the intake-owned moderator command', async () => {
+    const testRuntime = runtime({ blockedTerms: ['flag'] });
+    await chatGuard.onEvent({
+      eventType: 'command.received', platform: 'twitch', metadata: { simulated: false },
+      user: { id: 'moderator-id', name: 'mod', displayName: 'Mod', actorType: 'human', roles: ['moderator'] },
+      payload: { command: 'guardtrust', replyUserId: 'trusted-stable-id', replyUserName: 'Helpful Viewer' },
+    }, testRuntime.context);
+    const status = await administerChatGuard({ operation: 'status' }, testRuntime.context, 3000);
+    expect(status.trustedAccounts).toEqual([expect.objectContaining({ platform: 'twitch', label: 'Helpful Viewer', idSuffix: 'ble-id' })]);
+    expect(JSON.stringify(status)).not.toContain('trusted-stable-id');
+  });
+
   it('requires both approval gates, caps actions, and never enforces simulations', async () => {
     const testRuntime = runtime({ blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'timeout', maximumEnforcementsPerMinute: 1 });
     await expect(processChatGuardEvent(event('flag once'), testRuntime.context, 1000)).resolves.toMatchObject({ enforcement: 'dispatched' });

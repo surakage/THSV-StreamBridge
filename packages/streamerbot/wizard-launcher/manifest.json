@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Opens the authenticated local THSV StreamBridge setup and management wizard.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Open Setup Wizard",
     "group": "THSV StreamBridge",

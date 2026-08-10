@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
-    private const string PackageVersion = "1.1.0";
+    private const string PackageVersion = "1.2.0";
     private const int MaximumPlatformMessageJsonLength = 4096;
 
     public bool Execute()
@@ -44,6 +44,10 @@ public class CPHInline
         string requestedJson = JsonConvert.SerializeObject(platforms);
         CPH.SetArgument("timedMessageRequestedPlatforms", requestedJson);
         bool simulated = CPH.TryGetArg("multiTimedSimulated", out bool simulatedValue) && simulatedValue;
+        bool useBotAccount = !CPH.TryGetArg("multiTimedUseBotAccount", out bool requestedUseBot) || requestedUseBot;
+        bool allowAccountFallback = !CPH.TryGetArg("multiTimedAllowAccountFallback", out bool requestedFallback) || requestedFallback;
+        CPH.SetArgument("timedMessageUseBotAccount", useBotAccount);
+        CPH.SetArgument("timedMessageAllowAccountFallback", allowAccountFallback);
         CPH.SetArgument("timedMessageSimulated", simulated);
         CPH.SetArgument("timedMessageValid", true);
         if (simulated)
@@ -63,7 +67,7 @@ public class CPHInline
                 string platformMessage = platformMessages.ContainsKey(platform) ? platformMessages[platform] : message;
                 int maximum = platform == "youtube" ? 200 : platform == "tiktok" ? 150 : 500;
                 if (platformMessage.Length == 0 || CharacterCount(platformMessage) > maximum) throw new ArgumentException(platform + " message must contain 1-" + maximum + " characters.");
-                Send(platform, platformMessage);
+                Send(platform, platformMessage, useBotAccount, allowAccountFallback);
                 dispatched.Add(platform);
             }
             catch (Exception error)
@@ -78,11 +82,11 @@ public class CPHInline
         return failed.Count == 0;
     }
 
-    private void Send(string platform, string message)
+    private void Send(string platform, string message, bool useBotAccount, bool allowAccountFallback)
     {
-        if (platform == "twitch") { CPH.SendMessage(message, true, true); return; }
-        if (platform == "youtube") { CPH.SendYouTubeMessageToLatestMonitored(message, true, true); return; }
-        if (platform == "kick") { CPH.SendKickMessage(message, true, true); return; }
+        if (platform == "twitch") { CPH.SendMessage(message, useBotAccount, allowAccountFallback); return; }
+        if (platform == "youtube") { CPH.SendYouTubeMessageToLatestMonitored(message, useBotAccount, allowAccountFallback); return; }
+        if (platform == "kick") { CPH.SendKickMessage(message, useBotAccount, allowAccountFallback); return; }
         if (platform == "tiktok")
         {
             JObject payload = new JObject();
@@ -133,6 +137,7 @@ public class CPHInline
         CPH.SetArgument("timedMessagePackageVersion", PackageVersion); CPH.SetArgument("timedMessageRequestedPlatforms", "[]");
         CPH.SetArgument("timedMessageDispatchedPlatforms", "[]"); CPH.SetArgument("timedMessageFailedPlatforms", "[]");
         CPH.SetArgument("timedMessageSimulated", false); CPH.SetArgument("timedMessageDispatchSuppressed", false); CPH.SetArgument("timedMessageDispatchComplete", false);
+        CPH.SetArgument("timedMessageUseBotAccount", true); CPH.SetArgument("timedMessageAllowAccountFallback", true);
     }
 
     private bool Fail(string message) { CPH.SetArgument("timedMessageValidationError", message); CPH.LogError("THSV Timed Message Output rejected an execution: " + message); return false; }

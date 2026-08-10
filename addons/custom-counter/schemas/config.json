@@ -11,6 +11,15 @@
     "maximumCounters": { "type": "integer", "title": "Maximum saved counters", "minimum": 1, "maximum": 20, "default": 10 },
     "commandEnabled": { "type": "boolean", "title": "Enable moderator chat command", "default": false },
     "commandName": { "type": "string", "title": "Command name", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "streamcounter" },
+    "commandShortcuts": {
+      "type": "array",
+      "title": "Counter commands",
+      "description": "One per line: command=counter-id|Display name. Each command increments with no arguments and also accepts reset, set, add, subtract, show, hide, or rename. Example: death=deaths|Deaths",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "default": [],
+      "items": { "type": "string", "minLength": 3, "maxLength": 164, "pattern": "^!?[a-zA-Z][a-zA-Z0-9-]{0,39}\\s*=\\s*[a-zA-Z][a-zA-Z0-9-]{0,39}(?:\\s*\\|\\s*[^|\\r\\n]{1,80})?$" }
+    },
     "allowBroadcaster": { "type": "boolean", "title": "Allow broadcaster controls", "default": true },
     "allowModerators": { "type": "boolean", "title": "Allow moderator controls", "default": true },
     "followDelta": { "type": "integer", "title": "Add for each follow", "minimum": 0, "maximum": 1000, "default": 0 },

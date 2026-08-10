@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Provides bounded persistent creator counters with role-gated controls and a customizable core-hosted overlay.",
+  "description": "Provides multiple bounded persistent creator counters, collision-safe moderator commands, reusable controls, and a customizable core-hosted overlay.",
   "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: initial Custom Counter implementation.",
   "permissions": [
     "events.subscribe",
@@ -60,9 +60,9 @@
       "data/addons/.state/thsv.custom-counter/"
     ],
     "installationSteps": [
-      "Install Custom Counter and import its separate Streamer.bot controls.",
-      "Create the optional no-response counter command through Command Sync.",
-      "Attach creator controls only to trusted hotkeys, Stream Deck buttons, or manual triggers.",
+      "Install Custom Counter; its separate Streamer.bot controls are optional.",
+      "Create distinct counter commands in the wizard. They register automatically through the existing chat intakes after restart and need no Streamer.bot actions.",
+      "Import the optional controls only for manual hotkeys, Stream Deck buttons, or trusted non-chat triggers.",
       "Add /overlay/addons/thsv.custom-counter as a browser source."
     ],
     "uninstallationSteps": [
@@ -81,23 +81,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 12243,
-      "sha256": "d68dc74d6d0079b4c4fe12b24cd4b272103abfdf32320a3b444a6108eef0945f"
+      "size": 14034,
+      "sha256": "a144b61ae1caeadf7451a3ba41ac9f16e4d8fbac06f7073dc2d8150224c77f79"
     },
     {
       "path": "schemas/config.json",
-      "size": 3551,
-      "sha256": "ad7303188d2d2c4f1517396309912b581a99dab010ae1a917a9a6859a863ba02"
+      "size": 4103,
+      "sha256": "a76bd2c97907bc69c69d39a9e1ea65b4124ce9c1ebdb37ffa9fba2726d9d44bc"
     },
     {
       "path": "ui/settings.json",
-      "size": 3360,
-      "sha256": "b13ab899192a25376b0d7db3a87d87ed48bb2cedbd47427e84844a4ca63395a5"
+      "size": 3877,
+      "sha256": "b57d1de1bb8dca2f7601a857010dfcb4fff1a7f907574c11d6fa6fcc73cce008"
     },
     {
       "path": "README.md",
-      "size": 1136,
-      "sha256": "3c0ea9a4704e57e59e2f3f35c270e45c5379f49147e5e5f68827244c84a262aa"
+      "size": 1779,
+      "sha256": "9d2235ee4b48bee73bdf36612cedbe8ad58af84fb94192f2459abe0093384c24"
     }
   ]
 }

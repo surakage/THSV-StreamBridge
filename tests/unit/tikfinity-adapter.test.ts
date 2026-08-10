@@ -20,11 +20,20 @@ describe('TikFinity Streamer.bot relay adapter', () => {
     expect(JSON.stringify(event)).not.toContain('rawPayload');
   });
 
+  it('preserves optional TikFinity host and bot identity hints for automatic self-blocking', () => {
+    expect(normalizeTikfinityRelay(relay('chat', {
+      commandParams: 'testing', fromConnectedAccount: true, hostUsername: 'CreatorName', botUserName: 'Creator_Bot',
+    })).payload).toEqual({
+      message: 'testing', connectedAccountNames: ['CreatorName', 'Creator_Bot'], fromConnectedAccount: true,
+    });
+  });
+
   it('normalizes gifts with bounded quantity and visible verification limits', () => {
     const event = normalizeTikfinityRelay(relay('gift', { giftId: 'rose-1', giftName: 'Rose', repeatCount: '5', coins: '25' }));
     expect(event).toMatchObject({ eventType: 'engagement.gift', payload: { itemName: 'Rose', quantity: 5, coins: 25 }, metadata: { simulated: true } });
     expect(event.metadata.unverifiedFields).toContain('source.eventId');
     expect(event.metadata.unverifiedFields).toContain('metadata.simulated');
+    expect(event.source.eventId).toBe('relay-gift');
   });
 
   it('keeps TikTok subscriptions distinct and translates subMonth', () => {
@@ -53,6 +62,20 @@ describe('TikFinity Streamer.bot relay adapter', () => {
     for (const total of [1, 99, 100, 150, 200]) eventRelay.publish(relay('like', { relayId: `like-${String(total)}`, totalLikeCount: String(total) }));
     await expect.poll(() => received.length).toBe(2);
     expect(received.map((event) => event.payload['value'])).toEqual([100, 200]);
+    await adapter.stop();
+  });
+
+  it('catches up every crossed 100-like milestone when the first total is already above 100', async () => {
+    const eventRelay = new StreamerBotEventRelay();
+    const config = { ...platformConfig(true), capabilities: ['chatInput', 'follows', 'gifts', 'engagement'] as Capability[] };
+    const adapter = new TikfinityAdapter('tiktok', config, eventRelay);
+    const received: NormalizedEvent[] = [];
+    await adapter.start({ logger: silentLogger, emit: (event) => { received.push(event as NormalizedEvent); return Promise.resolve(); } });
+    eventRelay.publish(relay('like', { relayId: 'like-657', totalLikeCount: '657', simulated: false }));
+    await expect.poll(() => received.length).toBe(6);
+    expect(received.map((event) => event.payload['value'])).toEqual([100, 200, 300, 400, 500, 600]);
+    expect(new Set(received.map((event) => event.source.eventId)).size).toBe(6);
+    expect(received.every((event) => !event.metadata.simulated)).toBe(true);
     await adapter.stop();
   });
 });

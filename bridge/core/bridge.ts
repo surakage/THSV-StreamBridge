@@ -13,8 +13,9 @@ import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
 import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/timed-actions-adapter.js';
 import { ModuleRegistry } from './module-registry.js';
+import { buildEffectiveCommands, type EffectiveCommandsResult } from './effective-commands.js';
 import { EventFilterEngine, type FilterDecision } from './event-filters.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -52,6 +53,7 @@ export class StreamBridge {
   private readonly timedActions: TimedActionsAdapter | undefined;
   private readonly modules: ModuleRegistry;
   private readonly filters: EventFilterEngine;
+  private effectiveCommands: EffectiveCommandsResult;
   private readonly livePlatforms = new Set<string>();
   private running = false;
   private startedAt: string | undefined;
@@ -90,6 +92,7 @@ export class StreamBridge {
     this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
     this.modules = dependencies.modules ?? new ModuleRegistry([], logger);
     this.filters = new EventFilterEngine(config.filters);
+    this.effectiveCommands = buildEffectiveCommands(config.commands, []);
   }
 
   public subscribe(handler: Parameters<InternalEventBus['subscribe']>[0]): () => void { return this.bus.subscribe(handler); }
@@ -98,6 +101,13 @@ export class StreamBridge {
     if (this.running) return;
     this.deduplicator.restore(await this.dependencies.deduplicationStore.load());
     await this.modules.start();
+    this.effectiveCommands = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources());
+    for (const collision of this.effectiveCommands.collisions) this.logger.warn('Add-on command registration skipped because the name is already owned', { ...collision });
+    this.logger.info('Effective command registry ready', {
+      creatorCommands: this.config.commands.definitions.length,
+      addOnCommands: this.effectiveCommands.addOnCommands.length,
+      collisions: this.effectiveCommands.collisions.length,
+    });
     this.startedAt = new Date().toISOString();
     this.running = true;
     await this.delivery.start();
@@ -105,6 +115,11 @@ export class StreamBridge {
       if (!adapter.config.enabled) continue;
       try { await adapter.start({ logger: this.logger, emit: (event, byteLength) => this.ingest(event, byteLength) }); }
       catch (error) { this.logger.error('Input adapter startup failed; bridge remains active', { adapter: adapter.name, error }); }
+    }
+    const restoredLivePlatforms = this.timedActions?.controlStatus()['livePlatforms'];
+    if (Array.isArray(restoredLivePlatforms)) {
+      this.livePlatforms.clear();
+      for (const platform of restoredLivePlatforms) if (typeof platform === 'string') this.livePlatforms.add(platform);
     }
     this.logger.info('Bridge core started', { service: this.config.service.name });
   }
@@ -165,12 +180,11 @@ export class StreamBridge {
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
       await this.dependencies.deduplicationStore.flush();
       this.timedActions?.observe(validatedEvent);
-      if (validatedEvent.eventType === 'stream.online') {
-        const wasOffline = this.livePlatforms.size === 0;
-        this.livePlatforms.add(validatedEvent.platform);
-        if (wasOffline && this.timedActions?.controlStatus()['active'] !== true) await this.timedActions?.control('start');
-      } else if (validatedEvent.eventType === 'stream.offline') {
-        this.livePlatforms.delete(validatedEvent.platform);
+      if (!validatedEvent.metadata.simulated && validatedEvent.eventType === 'stream.online') {
+        this.syncLivePlatformsFromTimedActions();
+        if (!this.timedActions?.controlStatus()['active']) await this.timedActions?.control('start');
+      } else if (!validatedEvent.metadata.simulated && validatedEvent.eventType === 'stream.offline') {
+        this.syncLivePlatformsFromTimedActions();
         if (this.livePlatforms.size === 0) await this.timedActions?.control('stop');
       }
     } catch (error) {
@@ -189,7 +203,7 @@ export class StreamBridge {
       blockedModuleIds: [...initialFilterDecision.blockedModuleIds],
     });
     let derivedCommand: NormalizedEvent | undefined;
-    try { derivedCommand = initialFilterDecision.commandBlocked ? undefined : deriveCommandEvent(validatedEvent, this.config.commands); }
+    try { derivedCommand = initialFilterDecision.commandBlocked ? undefined : deriveCommandEvent(validatedEvent, this.effectiveCommands.config); }
     catch (error) {
       this.deduplicator.forget(validatedEvent);
       if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
@@ -211,7 +225,15 @@ export class StreamBridge {
         this.lastAcceptedEventAt = acceptedAt;
       }
       await this.persistAcceptedState(lastEvent, acceptedAt);
-      for (const event of events) this.logger.info('Event accepted for delivery', { eventId: event.eventId, eventType: event.eventType, platform: event.platform, outputs });
+      for (const event of events) {
+        this.logger.info('Event accepted for delivery', {
+          eventId: event.eventId,
+          eventType: event.eventType,
+          platform: event.platform,
+          outputs,
+          ...controllerResultSummary(event),
+        });
+      }
       return {
         accepted: true,
         duplicate: false,
@@ -227,6 +249,13 @@ export class StreamBridge {
       await this.dependencies.deduplicationStore.flush().catch(() => undefined);
       throw error;
     }
+  }
+
+  private syncLivePlatformsFromTimedActions(): void {
+    const platforms = this.timedActions?.controlStatus()['livePlatforms'];
+    if (!Array.isArray(platforms)) return;
+    this.livePlatforms.clear();
+    for (const platform of platforms) if (typeof platform === 'string') this.livePlatforms.add(platform);
   }
 
   public health(): Readonly<Record<string, unknown>> {
@@ -256,6 +285,11 @@ export class StreamBridge {
       timedActions: this.timedActions?.controlStatus(),
       modules: this.modules.statuses(),
       addOnCapabilities: this.modules.capabilityDiagnostics(),
+      commands: {
+        creatorDefinitions: this.config.commands.definitions.length,
+        registeredAddOnCommands: this.effectiveCommands.addOnCommands.length,
+        collisions: this.effectiveCommands.collisions,
+      },
     };
   }
 
@@ -277,6 +311,10 @@ export class StreamBridge {
 
   public administerChatGuard(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1> {
     return this.modules.administerChatGuard(request);
+  }
+
+  public administerFollowerPulse(request: FollowerPulseAdminRequestV1): Promise<FollowerPulseAdminResultV1> {
+    return this.modules.administerFollowerPulse(request);
   }
 
   public resetAddOnCoordination(resource?: string): Readonly<Record<string, unknown>> {
@@ -317,6 +355,18 @@ export class StreamBridge {
       this.logger.warn('Event was accepted but bridge status persistence failed', { eventId: event.eventId, error });
     }
   }
+}
+
+function controllerResultSummary(event: NormalizedEvent): Readonly<Record<string, unknown>> {
+  if (event.platform !== 'system' || !event.eventType.startsWith('addon.') || !event.eventType.endsWith('.controller-result')) return {};
+  const operation = event.payload['operation'];
+  const success = event.payload['success'];
+  const error = event.payload['error'];
+  return {
+    ...(typeof operation === 'string' ? { operation: operation.slice(0, 100) } : {}),
+    ...(typeof success === 'boolean' ? { success } : {}),
+    ...(typeof error === 'string' ? { controllerError: error.slice(0, 500) } : {}),
+  };
 }
 
 function isIngestResult(value: unknown): value is IngestResult {

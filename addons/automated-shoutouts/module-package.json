@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Sends bounded, cooldown-protected shoutouts and welcomes after creator-selected raids, approved first chats, or moderator commands, using StreamBridge's shared platform router.",
+  "description": "Sends bounded shoutouts and safety-screened once-per-day welcomes with platform-colored cards through StreamBridge's shared router.",
   "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
   "permissions": [
     "events.subscribe",
@@ -35,8 +35,7 @@
       "command.received",
       "stream.online",
       "stream.offline",
-      "addon.thsv.automated-shoutouts.twitch-profile-received",
-      "addon.thsv.automated-shoutouts.twitch-clip-received"
+      "addon.thsv.automated-shoutouts.twitch-profile-received"
     ],
     "commandsProvided": [
       {
@@ -52,10 +51,6 @@
       {
         "id": "automated-shoutouts.twitch-native",
         "name": "Optional Twitch native shoutout"
-      },
-      {
-        "id": "automated-shoutouts.twitch-clip",
-        "name": "Optional Twitch random clip lookup"
       }
     ],
     "browserSourcesProvided": [],
@@ -65,10 +60,9 @@
     ],
     "installationSteps": [
       "Install and enable the add-on in the StreamBridge wizard, then review its chat.send and overlay.publish permissions.",
-      "In Command Sync, apply Automated Shoutouts command. It creates the source, permission, and cooldown shell with no canned response so this add-on remains the only shoutout owner.",
+      "Choose the manual shoutout command in the wizard. It registers automatically through the existing chat intakes after save and restart.",
       "Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.",
       "Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.",
-      "Optional: approve Get Twitch Clip when Twitch visual popup is set to Random clip.",
       "For TikTok output, enable Allow Streamer.bot to push messages to TikFinity in TikFinity Chatbot settings."
     ],
     "uninstallationSteps": [
@@ -89,18 +83,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 29410,
-      "sha256": "87b2ae916dc6739ed6443d2e4663f70a1c7d0bace00457e67c4d3c58b7c46ad4"
+      "size": 37901,
+      "sha256": "1df2a18fef468b01b34bd129deae931ef11217054383beb8b33e5492f6d709f6"
     },
     {
       "path": "schemas/config.json",
-      "size": 9137,
-      "sha256": "719b6a15862f595f5366a11e2a541a2ef1a67b7cc27f1385e0cdfc9d825492b2"
+      "size": 14191,
+      "sha256": "a6b35cce999b4df2609da0fc6054e6556994a236802d833827ba9dcb809e6139"
     },
     {
       "path": "ui/settings.json",
-      "size": 6449,
-      "sha256": "bd4ee9a8dbc667bf4f339cbec76ea57eb060eb482880982f2a2065b53bbb8fed"
+      "size": 9096,
+      "sha256": "620c51d357d307b092cd5ba73edf4d8c9a2498d991aa35529cb853e353c054b9"
     }
   ]
 }

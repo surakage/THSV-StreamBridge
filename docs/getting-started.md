@@ -7,7 +7,7 @@ This is the recommended path for a first installation of THSV StreamBridge on Wi
 You need:
 
 - Windows 10 or later on a 64-bit computer
-- Streamer.bot `1.0.5-alpha.31` or later; `1.0.5-beta.5` is recommended for new installations (beta builds are optional pre-release software, so back up the Streamer.bot folder before upgrading and complete the [focused beta.5 checks](streamerbot-1.0.5-beta.5.md))
+- Streamer.bot `1.0.7` stable or later. It includes the Custom Channel Rewards crash fix and the corrected website-authentication/update-check handling. Back up the complete Streamer.bot folder before upgrading and complete the [stable 1.0.7 checks](streamerbot-1.0.7-stable.md) before relying on it live
 - Twitch, YouTube, and/or Kick connected inside Streamer.bot
 - TikFinity connected to Streamer.bot if you want TikTok support
 - Meld Studio, OBS Studio, Streamlabs Desktop, or another Chromium-compatible browser-source host if you want overlays
@@ -38,7 +38,7 @@ The installer window stays open and reports success or failure. It installs to:
 %LOCALAPPDATA%\THSV StreamBridge
 ```
 
-It then creates a private local control token, starts the service, waits for the health check, and opens the authenticated setup wizard.
+It then creates a private local control token, starts the service, waits for the health check, and opens the authenticated setup wizard. Afterward, run **THSV StreamBridge - Open Setup Wizard** in Streamer.bot or use **Open THSV Setup Wizard** from the installation folder. Both create a short-lived, single-use local unlock link, so normal users never need to browse into `data/secrets` or copy the permanent token. Opening the wizard does not restart a healthy Bridge; if it is offline, the installed launcher starts it first. Manual token entry remains available only as an advanced recovery fallback.
 
 If Windows blocks the `.cmd` file, open PowerShell in the extracted folder and run the same installer directly through its bundled signed runtime:
 
@@ -98,7 +98,7 @@ Add these local URLs as Browser Sources:
 | Combined Chat and Alerts | `http://127.0.0.1:8787/overlay/` |
 | Chat only | `http://127.0.0.1:8787/overlay/chat` |
 | Alerts only | `http://127.0.0.1:8787/overlay/alerts` |
-| Chat operator dock | `http://127.0.0.1:8787/overlay/chat/dock` |
+| Interactive multichat dock | `http://127.0.0.1:8787/overlay/chat/dock` |
 
 Use a 1920 x 1080 browser source first, then crop it in your broadcast application. Customize appearance and use the preview controls from the wizard before going live.
 

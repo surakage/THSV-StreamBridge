@@ -95,7 +95,7 @@ export function projectMultiAlert(event: NormalizedEvent): MultiAlert | undefine
     ...(event.user === undefined ? {} : { actor: {
       ...(event.user.id === undefined ? {} : { id: event.user.id }),
       name: event.user.name,
-      displayName: event.user.displayName ?? event.user.name,
+      displayName: formatAlertDisplayName(event.user.displayName ?? event.user.name),
       actorType: event.user.actorType,
       roles: event.user.roles,
     } }),
@@ -115,6 +115,14 @@ export function projectMultiAlert(event: NormalizedEvent): MultiAlert | undefine
 
 export function normalizeAlertPlainText(input: string): string {
   return input.replace(/[\p{Cc}\s]+/gu, ' ').trim();
+}
+
+// Alert presentation uses one predictable, readable shape across providers. The account login
+// remains untouched in actor.name so identity matching, API calls, and profile links stay exact.
+export function formatAlertDisplayName(input: string): string {
+  const characters = Array.from(normalizeAlertPlainText(input).toLocaleLowerCase('en-US'));
+  if (characters.length === 0) return '';
+  return `${characters[0]?.toLocaleUpperCase('en-US') ?? ''}${characters.slice(1).join('')}`;
 }
 
 function readOptionalAmount(payload: Readonly<Record<string, JsonValue>>): string | undefined {

@@ -14,7 +14,7 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.prize-wheel/', 'data/addons/.state/thsv.prize-wheel/'],
   installationSteps: [
     'Add the hosted Prize Wheel browser source to OBS, Meld, or Streamlabs.',
-    'Create a no-response spinwheel command in Command Sync and restrict it to moderators or the broadcaster.',
+    'Choose the spin command in the wizard. It registers automatically for moderators and the broadcaster after restart.',
     'Enter two through ten unique wheel choices, choose chat destinations, save, enable, and send a preview.',
   ],
   uninstallationSteps: ['Uninstalling preserves only the last bounded spin timestamp and winning choice.'],
@@ -125,7 +125,7 @@ async function spinPrizeWheel(event, context, now = Date.now(), random = Math.ra
       textColor: settings.textColor, accentColor: settings.accentColor, winnerColor: settings.winnerColor,
     },
   };
-  await context.overlay.publish(`${MODULE_ID}.wheel.spin`, payload);
+  await context.overlay.publish(`${MODULE_ID}.wheel.spin`, payload, { lane: 'foreground' });
   if (simulated) return { accepted: true, simulated: true, winner, winnerIndex, deliveries: [] };
   if (stopped) return { accepted: false, reason: 'stopped' };
   state.lastSpinAt = now; state.lastWinner = winner; state.spinSequence = sequence;

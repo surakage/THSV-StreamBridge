@@ -26,7 +26,7 @@ The exported action uses Streamer.bot's non-blocking **Default** queue with **Co
 
 Contract `1.2.0` retains receive time, bridge sequence, and actor type while adding the optional unified viewer identity. The bridge overwrites caller-supplied sequence and viewer identity values after validation; sequence numbers are process-local and may contain gaps after rejected delivery attempts.
 
-For each adopted Streamer.bot pre-release build, recompile the receiver and rerun the manual QA matrix below. Update `minimumStreamerBotVersion` only if compatibility actually changes.
+For each adopted stable Streamer.bot release, recompile the receiver and rerun the manual QA matrix below. Current THSV 3.5.0 imports require Streamer.bot 1.0.6 stable or later because 1.0.6 fixes the critical Twitch Custom Channel Rewards crash in 1.0.5.
 
 ## Manual QA matrix
 

@@ -21,7 +21,7 @@ Suggests or applies saved Creator Controls profiles from privacy-bounded allowli
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Category Pilot`
 

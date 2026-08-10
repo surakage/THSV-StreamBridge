@@ -2,7 +2,7 @@
 
 Import the generated `.sb` file into Streamer.bot and accept its reviewed custom C# warning.
 
-The package creates seven actions in **THSV Addon - Stream Launch Countdown**. Attach **Start** to the scene-active trigger for your Starting Soon scene. Attach **Stop** to its scene-inactive trigger, or use **Reset** if the paused clock should remain visible. **Set & Start** exposes `countdownSeconds` above the C# block for a one-off duration without source edits.
+The package creates seven optional manual controls in **THSV Addon - Stream Launch Countdown**. Do not attach OBS scene triggers to **Start** or **Stop**: StreamBridge follows normalized program-scene changes directly, ignores preview-only Studio Mode changes, and preserves an in-progress timer when duplicate events arrive. Use the actions only as optional hotkeys or Stream Deck controls. **Set & Start** exposes `countdownSeconds` above the C# block for a deliberate one-off duration without source edits.
 
 Required C# references:
 

@@ -27,7 +27,7 @@ const manifest = {
     'Import the separate First Five Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
     'Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.',
-    'Choose five Twitch IDs and five Kick IDs in placement order, then create the configured no-response command for YouTube and TikTok.',
+    'Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube and TikTok command registers automatically after restart.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall.'],
   migrations: [],
@@ -49,6 +49,7 @@ const FALLBACKS = Object.freeze({
   monthlyWinnerMessageTemplate: 'Last month’s First Five winner was {name} with {points} points!',
   showLeaderboardCard: true,
   leaderboardCardSeconds: 30,
+  crossPlatformGapSeconds: 2,
 });
 
 function clean(value, maximum = 256) {
@@ -79,6 +80,7 @@ function settingsFor(context) {
     availableTitles,
     configured: (rewardIds.every(Boolean) && new Set(rewardIds).size === 5) || (kickRewardIds.every(Boolean) && new Set(kickRewardIds).size === 5) || clean(raw.commandName, 64).length > 0,
     leaderboardCardSeconds: integer(raw.leaderboardCardSeconds, 5, 3600, 30),
+    crossPlatformGapSeconds: integer(raw.crossPlatformGapSeconds, 1, 10, 2),
   };
 }
 
@@ -124,7 +126,8 @@ export function rankLeaderboard(entries) {
 
 export function sanitizeState(value, now = Date.now()) {
   const source = value && typeof value === 'object' ? value : {};
-  const placements = Array.isArray(source.placements) ? source.placements.map(placement).filter(Boolean).slice(0, 5) : [];
+  // Persist one flat, backward-compatible list containing up to five claims per platform.
+  const placements = Array.isArray(source.placements) ? source.placements.map(placement).filter(Boolean).slice(0, 20) : [];
   const leaderboard = Array.isArray(source.leaderboard) ? source.leaderboard.map(leaderboardEntry).filter(Boolean).slice(0, 100) : [];
   const previous = source.previousMonth && typeof source.previousMonth === 'object' ? {
     month: clean(source.previousMonth.month, 7),
@@ -207,19 +210,42 @@ async function sendChat(context, message, platform = 'twitch') {
   catch { /* Chat delivery is cosmetic and never rolls back a valid placement. */ }
 }
 
-async function publishLeaderboard(context, settings, state) {
+function platformForUserId(userId) {
+  const separator = typeof userId === 'string' ? userId.indexOf(':') : -1;
+  return separator > 0 ? userId.slice(0, separator) : 'twitch';
+}
+
+function platformPlacements(state, platform) {
+  return state.placements.filter((item) => platformForUserId(item.userId) === platform).sort((left, right) => left.position - right.position).slice(0, 5);
+}
+
+async function publishLeaderboard(context, settings, state, requestedPlatform = 'twitch') {
   if (!settings.showLeaderboardCard) return;
+  const platform = ['twitch', 'youtube', 'kick', 'tiktok'].includes(requestedPlatform) ? requestedPlatform : 'twitch';
+  const currentPlacements = platformPlacements(state, platform);
   const placements = state.placements.length
     ? state.placements.map((item) => `${ORDINALS[item.position - 1]}: ${item.displayName}`).join(' • ')
     : 'Waiting for the first claim';
-  const leaders = rankLeaderboard(state.leaderboard).slice(0, 5);
+  const leaders = rankLeaderboard(state.leaderboard.filter((entry) => platformForUserId(entry.userId) === platform)).slice(0, 5);
   const monthly = leaders.length ? leaders.map((entry, index) => `${String(index + 1)}. ${entry.displayName} (${String(entry.points)})`).join(' • ') : 'No monthly claims yet';
   try {
     await context.overlay.publish('thsv.first-five.card.show', {
+      cardKind: 'first-five',
+      headline: `${platform[0].toUpperCase()}${platform.slice(1)} First Five`,
+      subtitle: currentPlacements.length >= 5 ? 'The arrival board is complete' : 'The first villagers have arrived',
+      monthLabel: state.leaderboardMonth,
+      platform,
+      placements: currentPlacements.map((item) => ({
+        position: item.position,
+        displayName: item.displayName,
+        platform: item.userId.includes(':') ? item.userId.split(':', 1)[0] : '',
+      })),
+      leaders: leaders.map((entry, index) => ({ rank: index + 1, displayName: entry.displayName, points: entry.points })),
       title: `FIRST FIVE • ${state.leaderboardMonth}`,
       text: `${placements} — Monthly: ${monthly}`,
       durationMs: settings.leaderboardCardSeconds * 1000,
-    });
+      queueGapMs: settings.crossPlatformGapSeconds * 1000,
+    }, { lane: 'foreground' });
   } catch { /* Overlay presentation is optional. */ }
 }
 
@@ -297,10 +323,10 @@ async function deactivateStream(context, settings) {
 }
 
 async function completeDirectClaim(context, settings, state, claim, platform) {
-  const completed = { ...state, placements: [...state.placements, claim].sort((left, right) => left.position - right.position).slice(0, 5), leaderboard: addLeaderboardClaim(state.leaderboard, claim) };
+  const completed = { ...state, placements: [...state.placements, claim].sort((left, right) => left.userId.localeCompare(right.userId) || left.position - right.position).slice(0, 20), leaderboard: addLeaderboardClaim(state.leaderboard, claim) };
   await context.state.write(completed);
   if (settings.announceClaims) await sendChat(context, formatTemplate(settings.claimMessageTemplate, { name: claim.displayName, ordinal: ORDINALS[claim.position - 1], position: claim.position }, 500), platform);
-  await publishLeaderboard(context, settings, completed);
+  await publishLeaderboard(context, settings, completed, platform);
   return completed;
 }
 
@@ -316,7 +342,7 @@ async function handleRedemption(event, context, settings, state) {
   const userId = providerUserId ? `${event.platform}:${providerUserId}` : '';
   const displayName = clean(event.user?.displayName || event.user?.name, 100);
   if (!redemptionId || !userId || !displayName) return state;
-  const expectedPosition = state.placements.length + 1;
+  const expectedPosition = platformPlacements(state, event.platform).length + 1;
   const alreadyClaimed = state.placements.some((item) => item.userId === userId);
   if (state.pending || position !== expectedPosition || alreadyClaimed) {
     try { await dispatchCancel(event, context); } catch { /* Leave the redemption pending if cancellation dispatch is unavailable. */ }
@@ -352,7 +378,7 @@ async function handleRedemption(event, context, settings, state) {
 async function handlePointsCommand(event, context, settings, state) {
   if (event.eventType !== 'command.received' || !['youtube', 'tiktok'].includes(event.platform) || event.metadata?.simulated === true || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return state;
   const providerUserId = clean(event.user?.id, 240); const displayName = clean(event.user?.displayName || event.user?.name, 100); const eventId = clean(event.eventId || event.source?.eventId, 200);
-  const userId = providerUserId ? `${event.platform}:${providerUserId}` : ''; const position = state.placements.length + 1;
+  const userId = providerUserId ? `${event.platform}:${providerUserId}` : ''; const position = platformPlacements(state, event.platform).length + 1;
   if (!userId || !displayName || !eventId || position > 5) return state;
   if (state.placements.some((item) => item.userId === userId)) { if (settings.notifyRejectedClaims) await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName }, 500), event.platform); return state; }
   const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: providerUserId }); if (!projection) return state;
@@ -380,21 +406,20 @@ async function handleControllerResult(event, context, settings, state) {
       placements: [],
     };
     await context.state.write(completed);
-    await publishLeaderboard(context, settings, completed);
     return completed;
   }
   if (state.pending.operation !== 'claim' || !state.pending.placement) return state;
   const claim = state.pending.placement;
   const completed = {
     ...withoutPending(state),
-    placements: [...state.placements, claim].sort((left, right) => left.position - right.position).slice(0, 5),
+    placements: [...state.placements, claim].sort((left, right) => left.userId.localeCompare(right.userId) || left.position - right.position).slice(0, 20),
     leaderboard: addLeaderboardClaim(state.leaderboard, claim),
   };
   await context.state.write(completed);
   if (settings.announceClaims) {
     await sendChat(context, formatTemplate(settings.claimMessageTemplate, { name: claim.displayName, ordinal: ORDINALS[claim.position - 1], position: claim.position }, 500));
   }
-  await publishLeaderboard(context, settings, completed);
+  await publishLeaderboard(context, settings, completed, platformForUserId(claim.userId));
   return completed;
 }
 
@@ -411,7 +436,7 @@ async function handleEvent(event, context) {
     const firstLivePlatform = livePlatforms.size === 0; livePlatforms.add(event.platform);
     if (!firstLivePlatform) return;
     if (settings.rewardIds.every(Boolean) && context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) await resetStream(event, context, settings, state);
-    else { const reset = { ...state, streamCycleId: clean(event.source?.eventId || event.eventId, 256), placements: [] }; await context.state.write(reset); await publishLeaderboard(context, settings, reset); }
+    else { const reset = { ...state, streamCycleId: clean(event.source?.eventId || event.eventId, 256), placements: [] }; await context.state.write(reset); }
     return;
   }
   if (event.eventType === 'stream.offline' && event.metadata?.simulated !== true) {
@@ -437,7 +462,9 @@ const module = {
     livePlatforms.clear();
     const settings = settingsFor(context);
     if (!settings.enabled || !settings.configured) return;
-    await publishLeaderboard(context, settings, sanitizeState(await context.state.read()));
+    // Startup only normalizes persisted state. Visible cards are claim-driven so
+    // restarting StreamBridge or beginning a stream never displays First Five.
+    await context.state.write(sanitizeState(await context.state.read()));
   },
   async stop() {
     livePlatforms.clear();

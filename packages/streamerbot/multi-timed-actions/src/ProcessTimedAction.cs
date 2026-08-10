@@ -110,6 +110,9 @@ public class CPHInline
         CPH.SetArgument("multiTimedTargetActionId", targetActionId);
         CPH.SetArgument("multiTimedTargetActionName", targetActionName);
         CPH.SetArgument("multiTimedDeliveryPlatforms", deliveryPlatforms.ToString(Formatting.None));
+        // Mark the contract valid before invoking the child action so it receives the validated
+        // value on the inherited argument stack.
+        CPH.SetArgument("multiTimedValid", true);
         if (targetProvider == "run-existing-action")
         {
             try
@@ -124,7 +127,6 @@ public class CPHInline
                 return Fail("The selected Streamer.bot action could not be dispatched.");
             }
         }
-        CPH.SetArgument("multiTimedValid", true);
         return true;
     }
 

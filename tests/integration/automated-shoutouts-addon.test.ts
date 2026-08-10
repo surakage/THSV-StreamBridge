@@ -65,10 +65,10 @@ describe('Automated Shoutouts installed add-on', () => {
     }));
     await registry.publish(event({ eventId: 'raid-replay' }));
     expect(actions).toHaveLength(2);
-    expect(sends).toEqual([{ message: 'Thank you Friendly Raider for the raid with 42 viewers! They stream Just Chatting. Watch them at https://twitch.tv/friendly_raider', routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }]);
+    expect(sends).toEqual([{ message: 'Thank you Friendly raider for the raid with 42 viewers! They stream Just Chatting. Watch them at https://twitch.tv/friendly_raider', routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }]);
     expect(overlays).toHaveLength(1);
     expect(overlays[0]?.topic).toBe('thsv.automated-shoutouts.card.show');
-    expect(overlays[0]?.payload).toMatchObject({ title: 'Meet Friendly Raider on Twitch', imageUrl: 'https://example.com/verified-avatar.png' });
+    expect(overlays[0]?.payload).toMatchObject({ title: 'Meet Friendly raider on Twitch', imageUrl: 'https://example.com/verified-avatar.png' });
     await registry.stop();
   });
 
@@ -80,7 +80,7 @@ describe('Automated Shoutouts installed add-on', () => {
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.automated-shoutouts');
     if (module === undefined) throw new Error('Automated Shoutouts must load.');
     const sends: unknown[] = [];
-    const overlays: unknown[] = [];
+    const overlays: Array<{ topic: string; payload: unknown }> = [];
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
       routeOutboundMessage: async (request) => { sends.push(request); return []; },
       publishOverlay: async (_moduleId, topic, payload) => { overlays.push({ topic, payload }); },
@@ -97,58 +97,17 @@ describe('Automated Shoutouts installed add-on', () => {
     }));
     await registry.publish(event({
       eventId: 'tiktok-first', eventType: 'chat.message', platform: 'tiktok', source: { adapter: 'tikfinity-fixture', eventId: 'tiktok-message-1', eventName: 'Chat' },
-      user: { name: 'tiktok_creator', displayName: 'TikTok Creator', actorType: 'human', roles: ['viewer'] }, payload: { message: 'hello' }, metadata: { simulated: true },
+      user: { id: 'tiktok-creator-1', name: 'tiktok_creator', displayName: 'TikTok Creator', actorType: 'human', roles: ['viewer'] }, payload: { message: 'hello' }, metadata: { simulated: true },
     }));
     expect(sends).toHaveLength(0);
-    expect(overlays).toHaveLength(0); // Non-Twitch welcomes remain chat-only, including previews.
-    await registry.stop();
-  });
-
-  it('requests and plays a bounded Twitch target clip through the shared hosted overlay', async () => {
-    const installed = await installAddOnPackage('addons/automated-shoutouts', addOnsRoot, true);
-    await mkdir(join(stateRoot, 'thsv.automated-shoutouts'), { recursive: true });
-    await writeFile(join(stateRoot, 'thsv.automated-shoutouts', 'settings.json'), JSON.stringify({
-      twitchVisualType: 'random-clip', clipCount: 30, clipMaximumAgeDays: 60,
-      clipMaximumDurationSeconds: 25, clipPreferPopular: true, clipMuted: false, clipVolume: 0.5,
-    }));
-    const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
-    const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.automated-shoutouts');
-    if (module === undefined) throw new Error('Automated Shoutouts must load.');
-    const actions: Array<{ actionId: string; argumentsValue: unknown }> = [];
-    const overlays: Array<{ topic: string; payload: unknown }> = [];
-    const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
-      routeOutboundMessage: async () => [{ platform: 'twitch', accepted: true, parts: 1 }],
-      publishOverlay: async (_moduleId, topic, payload) => { overlays.push({ topic, payload }); },
-      runStreamerBotAction: async (actionId, argumentsValue) => { actions.push({ actionId, argumentsValue }); },
+    expect(overlays).toHaveLength(3);
+    const welcomePlatforms = overlays.map((entry) => {
+      const payload = entry.payload as { platform?: unknown; presentation?: unknown };
+      expect(entry.topic).toBe('thsv.automated-shoutouts.card.show');
+      expect(payload.presentation).toBe('welcome');
+      return payload.platform;
     });
-    const registry = new ModuleRegistry([{ ...module, capabilityGrant: {
-      moduleId: module.manifest.moduleId,
-      permissions: installed.descriptor.permissions,
-      approvedActionIds: ['e3d92d7e-193a-5bba-8b8c-4f17e605c9d2', 'e47c65a2-09d2-5c5b-9c99-c98e3e1d9362'],
-    } }], silentLogger, 5_000, broker);
-    await registry.start();
-    await registry.publish(event({ eventId: 'clip-raid' }));
-    await registry.publish(event({
-      eventId: 'clip-profile', eventType: 'addon.thsv.automated-shoutouts.twitch-profile-received', platform: 'system',
-      source: { adapter: 'streamerbot-addon-relay', eventId: 'clip-profile-relay', eventName: 'Lookup Twitch Creator' },
-      user: undefined, payload: { lookupId: 'clip-raid', category: 'Art', profileImageUrl: 'https://example.com/avatar.png' },
-    }));
-    expect(actions).toHaveLength(2);
-    expect(actions[1]).toMatchObject({
-      actionId: 'e47c65a2-09d2-5c5b-9c99-c98e3e1d9362',
-      argumentsValue: { lookupId: 'clip-raid', targetUserName: 'friendly_raider', clipCount: 30, maximumAgeDays: 60, maximumDurationSeconds: 25, preferPopular: true },
-    });
-    await registry.publish(event({
-      eventId: 'clip-result', eventType: 'addon.thsv.automated-shoutouts.twitch-clip-received', platform: 'system',
-      source: { adapter: 'streamerbot-addon-relay', eventId: 'clip-result-relay', eventName: 'Get Twitch Clip' },
-      user: undefined,
-      payload: { lookupId: 'clip-raid', found: true, clipId: 'FriendlyClip123', title: 'A lovely clip', thumbnailUrl: 'https://example.com/clip.jpg', durationSeconds: 20, landscapeUrl: 'https://example.com/clip.mp4' },
-    }));
-    expect(overlays).toHaveLength(1);
-    expect(overlays[0]).toMatchObject({
-      topic: 'thsv.automated-shoutouts.media.play',
-      payload: { url: 'https://example.com/clip.mp4', muted: false, volume: 0.5, posterUrl: 'https://example.com/clip.jpg', title: 'A lovely clip', durationMs: 20_000 },
-    });
+    expect(welcomePlatforms).toEqual(['youtube', 'kick', 'tiktok']);
     await registry.stop();
   });
 
@@ -158,7 +117,9 @@ describe('Automated Shoutouts installed add-on', () => {
     await writeFile(join(stateRoot, 'thsv.automated-shoutouts', 'settings.json'), JSON.stringify({
       triggerOnFirstChat: true,
       firstChatAllowlist: ['twitch:id:viewer-2'],
+      firstChatAudience: 'allowlist-only', welcomeDelaySeconds: 0,
       twitchViewerWelcomeTemplate: 'Hello {displayName}, welcome to the stream!',
+      twitchViewerWelcomeAlternates: [],
     }));
     const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.automated-shoutouts');
@@ -190,10 +151,15 @@ describe('Automated Shoutouts installed add-on', () => {
       source: { adapter: 'streamerbot-addon-relay', eventId: 'profile-relay-viewer', eventName: 'Lookup Twitch Creator' },
       user: undefined, payload: { lookupId: 'twitch-first-viewer', category: '', profileImageUrl: '' },
     }));
-    expect(sends).toEqual([{ message: 'Hello Friendly Viewer, welcome to the stream!', routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }]);
+    expect(sends).toEqual([{ message: 'Hello Friendly viewer, welcome to the stream!', routing: 'source', sourcePlatform: 'twitch', overflow: 'reject' }]);
     expect(overlays).toHaveLength(1);
-    expect(overlays[0]).toMatchObject({ topic: 'thsv.automated-shoutouts.card.show', payload: { title: 'Meet Friendly Viewer on Twitch' } });
+    expect(overlays[0]).toMatchObject({ topic: 'thsv.automated-shoutouts.card.show', payload: { title: 'Welcome Friendly viewer', platform: 'twitch', presentation: 'welcome' } });
     await registry.publish({ ...firstChat, eventId: 'twitch-second-viewer', source: { ...firstChat.source, eventId: 'twitch-message-2' } });
+    expect(actions).toHaveLength(1);
+    expect(sends).toHaveLength(1);
+    await registry.publish(event({ eventId: 'offline-same-day', eventType: 'stream.offline', user: undefined, payload: {} }));
+    await registry.publish(event({ eventId: 'online-same-day', eventType: 'stream.online', user: undefined, payload: {} }));
+    await registry.publish({ ...firstChat, eventId: 'twitch-third-viewer-same-day', source: { ...firstChat.source, eventId: 'twitch-message-3' } });
     expect(actions).toHaveLength(1);
     expect(sends).toHaveLength(1);
     await registry.stop();
@@ -233,7 +199,7 @@ describe('Automated Shoutouts installed add-on', () => {
     }));
     expect(sends).toHaveLength(1);
     expect(overlays).toHaveLength(1);
-    expect(overlays[0]).toMatchObject({ topic: 'thsv.automated-shoutouts.card.show', payload: { title: 'Meet TargetCreator on Twitch', imageUrl: 'https://example.com/target.png' } });
+    expect(overlays[0]).toMatchObject({ topic: 'thsv.automated-shoutouts.card.show', payload: { title: 'Meet Targetcreator on Twitch', imageUrl: 'https://example.com/target.png' } });
     await registry.stop();
   });
 
@@ -250,7 +216,7 @@ describe('Automated Shoutouts installed add-on', () => {
     if (commandUser === undefined) throw new Error('The command fixture requires a user.');
     await registry.publish({ ...command, eventId: 'viewer-command', user: { ...commandUser, roles: ['viewer'] } });
     await registry.publish(command);
-    expect(sends).toEqual([{ message: 'Go check out TargetCreator at https://kick.com/targetcreator and show them some love!', routing: 'source', sourcePlatform: 'kick', overflow: 'reject' }]);
+    expect(sends).toEqual([{ message: 'Go check out Targetcreator at https://kick.com/targetcreator and show them some love!', routing: 'source', sourcePlatform: 'kick', overflow: 'reject' }]);
     await registry.stop();
   });
 });

@@ -6,7 +6,7 @@
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable Viewer Spotlight", "default": false },
     "disclosureAccepted": { "type": "boolean", "title": "I understand selected viewer statistics will appear publicly on the overlay", "default": false },
-    "commandName": { "type": "string", "title": "Self-request command", "description": "Create this command in Command Sync with no generated response. A viewer may request only their own card.", "pattern": "^[a-z][a-z0-9-]{0,63}$", "maxLength": 64, "default": "card" },
+    "commandName": { "type": "string", "title": "Self-request command", "description": "Registered automatically through the main chat intakes after restart. A viewer may request only their own card.", "pattern": "^[a-z][a-z0-9-]{0,63}$", "maxLength": 64, "default": "card" },
     "enabledPlatforms": { "type": "array", "title": "Allowed request platforms", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
     "rewardRequestsEnabled": { "type": "boolean", "title": "Allow Twitch and Kick reward requests", "default": false },
     "rewardId": { "type": "string", "title": "Owned Twitch reward ID", "description": "Exact Streamer.bot-owned reward ID. Other redemptions are ignored.", "maxLength": 256, "default": "" },

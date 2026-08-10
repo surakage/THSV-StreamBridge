@@ -141,6 +141,14 @@
       "minimum": 5,
       "maximum": 3600,
       "default": 30
+    },
+    "crossPlatformGapSeconds": {
+      "type": "integer",
+      "title": "Delay between different platform boards (seconds)",
+      "description": "Adds a short breathing gap when claims arrive from different platforms. Same-platform claims update the board in place.",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 2
     }
   }
 }

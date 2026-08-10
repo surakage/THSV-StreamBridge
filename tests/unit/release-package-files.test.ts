@@ -79,6 +79,7 @@ describe('public release scripts', () => {
     expect(source).toContain("join(destination, 'addons', 'packages')");
     expect(source).toContain("join(root, 'secrets', 'control-token')");
     expect(source).toContain('randomBytes(32).toString');
+    expect(source).toContain('no token lookup is required');
     expect(source).toContain('previousVersion');
     expect(source).toContain('failed its health check and was rolled back');
     expect(source).toContain('compareVersions');
@@ -120,6 +121,11 @@ describe('public release scripts', () => {
       expect(source).toContain('pause >nul');
       expect(source).toContain('exit /b %THSV_LAUNCH_EXIT%');
     }
+    const openWizard = await readFile('launcher/Open THSV Setup Wizard.cmd', 'utf8');
+    expect(openWizard).toContain('launcher\\open-wizard.mjs');
+    expect(openWizard).toContain('launcher\\start.mjs" --open-wizard');
+    expect(openWizard.indexOf('launcher\\open-wizard.mjs')).toBeLessThan(openWizard.indexOf('launcher\\start.mjs" --open-wizard'));
+    expect(openWizard).toContain('Opening the setup wizard without interrupting a healthy Bridge.');
   });
 
   it('requires an explicit switch before deleting creator data', async () => {
@@ -157,7 +163,9 @@ describe('public release scripts', () => {
     expect(source).toContain("readFile(configPath, 'utf8')");
     expect(source).toContain('http://127.0.0.1:');
     expect(source).toContain("health?.service !== 'THSV StreamBridge'");
-    expect(source).toContain("`${baseUrl}/wizard/`");
+    expect(source).toContain("`${baseUrl}/wizard/api/unlock-tickets`");
+    expect(source).toContain("`${baseUrl}/wizard/#unlock=${ticketResult.ticket}`");
+    expect(source).not.toContain("`${baseUrl}/wizard/#unlock=${token}`");
   });
 
   it('does not discard development ownership markers before a spawned child is confirmed stopped', async () => {

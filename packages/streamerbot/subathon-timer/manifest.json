@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Provides creator-triggered Start, Pause, Resume, Reset, and Add Time controls for the Subathon Timer add-on.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.32",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "a4f643c3-006d-52c8-82c5-5aca635a5a3b",

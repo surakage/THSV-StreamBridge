@@ -105,7 +105,7 @@
     ],
     "installationSteps": [
       "Install Viewer Foundation first.",
-      "Import Chat Play Pack once; it includes all eleven command entries and the two optional provider actions.",
+      "Import Chat Play Pack only when using one of its two optional provider actions; viewer commands already use the main chat intakes.",
       "Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.",
       "Configure creator fallback questions and words before enabling provider-backed games."
     ],
@@ -125,8 +125,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 43660,
-      "sha256": "39dfd9b0a078c55d93a59728e6d73433c610d2e4a50f24edb43d9ed994c98e48"
+      "size": 45580,
+      "sha256": "c58232549bc697855dac23fbf3e21e34f2b4f6b1e1cc338cf619618252e7475f"
     },
     {
       "path": "schemas/config.json",
@@ -140,8 +140,8 @@
     },
     {
       "path": "README.md",
-      "size": 2797,
-      "sha256": "b3485e6517b04b69adf22c53f9087e1281ed18d92bf8ea5fc7feae75ed67eb24"
+      "size": 2746,
+      "sha256": "69aec73c5af0e08ea9db65f6785d4f3cd35718289a1287ab619395ce95098369"
     }
   ]
 }

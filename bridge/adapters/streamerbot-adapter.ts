@@ -8,6 +8,7 @@ import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 import type { CommandAdministrationRequest } from '../core/command-administration.js';
 import type { RewardAdministrationRequest } from '../core/reward-administration.js';
 import type { AddOnActionArgumentsV2 } from '../contracts/v2/addon-capability.js';
+import { projectMultiTimedAction, type MultiTimedAction } from '../core/multi-timed-actions.js';
 
 interface PendingRequest {
   readonly resolve: (data: unknown) => void;
@@ -193,7 +194,18 @@ export class StreamerBotAdapter {
 
   public inspectionRequests(): readonly StreamerBotInspectionAuditEntry[] { return [...this.inspectionAudit]; }
 
-  public async deliver(event: NormalizedEvent): Promise<void> { await this.sendEvent(event); }
+  public async deliver(event: NormalizedEvent): Promise<void> {
+    const timedAction = projectMultiTimedAction(event);
+    if (timedAction?.targetProvider === 'run-existing-action' && timedAction.targetActionId !== undefined) {
+      // Timed targets are selected by exact UUID in the local configuration and the event can
+      // only be produced by TimedActionsAdapter. Invoke the target directly so delivery does not
+      // depend on a creator manually nesting Multi-Timed Actions under the Core Receiver.
+      await this.runApprovedAction(timedAction.targetActionId, buildMultiTimedActionArguments(timedAction));
+      this.lastEventAt = new Date().toISOString();
+      return;
+    }
+    await this.sendEvent(event);
+  }
 
   public status(): Readonly<Record<string, unknown>> {
     return {
@@ -298,7 +310,7 @@ export class StreamerBotAdapter {
       const id = randomUUID();
       // Reuse Streamer.bot's authenticated Streamlabs integration. This adds no provider
       // credential to StreamBridge and no second WebSocket connection.
-      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Streamlabs: ['Donation'] } });
+      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Streamlabs: ['Donation'], speechToText: ['Dictation'] } });
     }
     this.markReady();
   }
@@ -366,6 +378,41 @@ export class StreamerBotAdapter {
   }
 }
 
+export function buildMultiTimedActionArguments(action: MultiTimedAction): AddOnActionArgumentsV2 {
+  return {
+    multiTimedHandled: true,
+    multiTimedValid: true,
+    multiTimedValidationError: '',
+    multiTimedContractVersion: action.contractVersion,
+    multiTimedEventId: action.eventId,
+    multiTimedCorrelationId: action.correlationId ?? '',
+    multiTimedPlatform: action.platform,
+    multiTimedReceivedAt: action.receivedAt,
+    multiTimedSequence: action.bridgeSequence,
+    multiTimedTimerId: action.timerId,
+    multiTimedTimerName: action.timerName,
+    multiTimedScheduleType: action.scheduleType,
+    multiTimedScheduledAt: action.scheduledAt,
+    multiTimedFiredAt: action.firedAt,
+    multiTimedOccurrence: action.occurrence,
+    multiTimedMissedRuns: action.missedRuns,
+    multiTimedLateByMs: action.lateByMs,
+    multiTimedSelectionMode: action.selectionMode,
+    multiTimedSelectedMessage: action.selectedMessage,
+    multiTimedSelectedMessages: JSON.stringify(action.selectedMessages),
+    multiTimedContainerCycle: action.containerCycle,
+    multiTimedContainerPosition: action.containerPosition,
+    multiTimedContainerSize: action.containerSize,
+    multiTimedSimulated: action.simulated,
+    multiTimedCreatorPayload: JSON.stringify(action.creatorPayload),
+    multiTimedTargetProvider: action.targetProvider,
+    multiTimedTargetActionId: action.targetActionId ?? '',
+    multiTimedTargetActionName: action.targetActionName ?? '',
+    multiTimedDeliveryPlatforms: JSON.stringify(action.deliveryPlatforms),
+    multiTimedActionDispatched: true,
+  };
+}
+
 function decodeMessage(data: WebSocket.RawData): string {
   if (Buffer.isBuffer(data)) return data.toString('utf8');
   if (data instanceof ArrayBuffer) return Buffer.from(data).toString('utf8');
@@ -375,6 +422,7 @@ function decodeMessage(data: WebSocket.RawData): string {
 
 function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
   if (isSupportedRelay(message)) return message;
+  if (message.event?.source === 'SpeechToText' && message.event.type === 'Dictation' && isRecord(message.data)) return message;
   if (message.event?.source === 'Streamlabs' && message.event.type === 'Donation' && isRecord(message.data)) return message;
   if (message.event?.source !== 'General' || message.event.type !== 'Custom' || !isRecord(message.data)) return undefined;
   return isSupportedRelay(message.data) ? message.data : undefined;

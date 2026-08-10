@@ -36,6 +36,12 @@ describe('Multi-Commands contract', () => {
     expect(parseCommandInput('!unknown value', definitions)).toBeUndefined();
   });
 
+  it('accepts conventional commands that begin with a digit', () => {
+    expect(parseCommandInput('!8ball will this work?', [{ name: '8ball', minimumRole: 'viewer' }])).toMatchObject({
+      command: '8ball', invokedAs: '8ball', arguments: ['will', 'this', 'work?'],
+    });
+  });
+
   it('preserves Unicode arguments and prevents control characters from merging tokens', () => {
     expect(parseCommandInput('!ping "hello 🦥 世界"', definitions)?.arguments).toEqual(['hello 🦥 世界']);
     expect(parseCommandInput('!ping first\nsecond', definitions)?.arguments).toEqual(['first', 'second']);

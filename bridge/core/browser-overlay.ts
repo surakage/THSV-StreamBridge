@@ -156,7 +156,10 @@ function renderChatActivityTemplate(template: string, event: NormalizedEvent, al
     months: typeof event.payload['months'] === 'number' ? String(event.payload['months']) : typeof event.payload['subMonth'] === 'number' ? String(event.payload['subMonth']) : '',
     streakMonths: typeof event.payload['streakMonths'] === 'number' ? String(event.payload['streakMonths']) : '',
   };
-  const rendered = normalizeAlertPlainText(template.replace(/\{([a-z][a-zA-Z]*)\}/gu, (_match, token: string) => values[token] ?? ''));
+  // A trailing optional token should not leave its decorative separator behind. This is most
+  // visible for reward templates such as "{rewardTitle} · {input}" when no viewer input exists.
+  const withoutEmptyTrailingToken = template.replace(/\s*(?:[·|—:;-]\s*)?\{([a-z][a-zA-Z]*)\}\s*$/u, (match, token: string) => (values[token] ?? '').length > 0 ? match : '');
+  const rendered = normalizeAlertPlainText(withoutEmptyTrailingToken.replace(/\{([a-z][a-zA-Z]*)\}/gu, (_match, token: string) => values[token] ?? ''));
   return rendered.length > 0 ? rendered : alert === undefined ? rewardActivityMessage(event) : [display?.title, display?.viewerMessage].filter((value): value is string => typeof value === 'string' && value.length > 0).join(' · ');
 }
 

@@ -2,10 +2,10 @@
 
 Clip Courier is a Twitch clip-to-Discord add-on with two deliberately separate inputs:
 
-- **`!clip` — recommended:** a viewer runs the imported Twitch command, Streamer.bot creates the previous 30 or 60 seconds, and Clip Courier immediately sends that exact clip to Discord.
+- **`!clip` — recommended:** a viewer uses the command through the existing Twitch intake, Streamer.bot creates the previous 30 or 60 seconds, and Clip Courier immediately sends that exact clip to Discord.
 - **Other current-stream clips — optional:** Clip Library Cache checks public Twitch metadata, but Clip Courier accepts only clips created between the observed Twitch online and offline timestamps. Older library clips and clips from prior streams do not qualify.
 
-Import Clip Courier's Streamer.bot package. Review and enable its disabled `!clip` command. In **Create Clip**, change `clipCourierDurationSeconds` to `30` or `60`; leave the command trigger attached. In **Deliver**, put the private Discord webhook only in `clipCourierWebhookUrl`, then Save and Compile. Deliver remains triggerless and is the only action approved in the wizard.
+Import Clip Courier's Streamer.bot package. It contains only the triggerless **Create Clip** and **Deliver** helpers. In **Create Clip**, change `clipCourierDurationSeconds` to `30` or `60`. In **Deliver**, put the private Discord webhook only in `clipCourierWebhookUrl`, then Save and Compile. Approve both helpers in the wizard; do not create or enable a separate Streamer.bot `!clip` Command object.
 
 Install and enable Clip Library Cache only if **Also send other clips made during this stream** is enabled or another clip add-on needs it. StreamBridge must observe the Twitch Stream Online event before background discovery can identify the current session; if that boundary is unknown, automatic publication fails closed instead of posting an older clip.
 

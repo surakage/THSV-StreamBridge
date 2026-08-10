@@ -121,4 +121,23 @@ describe('browser alert presentation queue', () => {
     controller.enqueue({ ...alert(1), alertType: 'subscription', display: { durationMs: 1000 } });
     expect(delays).toEqual([4000]);
   });
+
+  it('clears active, queued, and aggregating alerts when a browser source reconnects', () => {
+    vi.useFakeTimers();
+    const rendered: number[] = [];
+    let clears = 0;
+    const controller = new AlertPresentationController({
+      capacity: 20, defaultDurationMs: 7000,
+      render: (item) => rendered.push(item.sequence ?? -1),
+      clear: () => { clears += 1; }, playSound: () => undefined,
+      onError: (error) => { throw error; },
+    });
+    controller.enqueue(alert(1));
+    controller.enqueue(alert(2));
+    controller.enqueue({ ...alert(3), display: { durationMs: 7000, aggregation: { mode: 'sum-quantity', key: 'gift', windowMs: 5000 } } });
+    controller.reset();
+    vi.runAllTimers();
+    expect(rendered).toEqual([1]);
+    expect(clears).toBe(1);
+  });
 });

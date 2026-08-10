@@ -1,6 +1,18 @@
 # Changelog
 
+- Repaired legacy mojibake in saved reward activity and alert templates, including middle dots, sparkle/fire emoji, apostrophes, bullets, ellipses, and dash punctuation.
+- Made Stream Launch Countdown Start idempotent so OBS Studio Mode scene-active duplicates and transient Stop/Start cycles preserve the running timer; Reset plus Start or Set & Start remain the explicit restart paths.
+- Fixed Hydration Station so only accepted viewer redemption/command reminders display temporarily through the shared overlay queue; startup, stream lifecycle, scheduled reminders, and creator controls remain visually silent, and hydration cards no longer interrupt independent clip playback.
+- Fixed First Five startup so module loading and automatic stream-start reward resets stay silent; its overlay now appears only after a valid completed claim, avoiding startup timeouts and unsolicited cards.
+
 ## [3.5.0] - 2026-08-02
+
+- Added one bridge-wide presentation queue for transient alerts, reward cards, shoutouts, game results, giveaway cards, and prize wheels, with a wizard-configurable delay between items. Clip/media playback, persistent widgets, captions, and exact previews remain independent.
+- Re-verified Viewer Spotlight against normalized, verified Twitch and Kick channel-redemption events with exact saved reward-ID matching and bounded reward settlement/refund behavior.
+- Added the optional Village Fun Commands package with automatically registered multi-platform Sloth Fact, Cat Fact, Joke, Fun Fact, Number Fact, 8-Ball, Hug leaderboard, Dice, Pick, Rate, and Random Color commands; Chuck Norris and Aesthetic Text remain opt-in.
+- Moved Random Joke, Magic 8-Ball, and Hug out of Command Sync so one add-on owns their settings, cooldowns, source-only replies, repeat protection, and bounded state. Existing creator-authored commands still win collisions.
+- Added a triggerless, fixed-domain Streamer.bot content helper with short timeouts, bounded reads, correlated one-use relays, circuit breakers, and 20 local fallbacks per provider-backed command. No viewer identity or chat text is sent to fact or joke providers.
+- Fixed the shared command contract to accept digit-leading command names such as the conventional `!8ball`, which the old wizard exposed but the central validator previously rejected.
 
 - Promoted the complete post-3.0 wizard, add-on, command-directory, Village Polls, Chat Play, Viewer Lobby, Village Draw, and reliability work into one synchronized 3.5.0 release.
 - Regenerated all 38 Streamer.bot imports and all 34 independently installable add-on bundles at 3.5.0 while preserving the one-intake-per-platform trigger contract and Twitch/Kick reward-redemption routing.
@@ -38,6 +50,11 @@ All notable changes to this project will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+- Added a loopback-only interactive multichat dock with a normalized chat feed, one-platform or all-platform reply targeting, per-platform character limits, and creator-account sending through the existing Streamer.bot connection. Regular, Compact, and Minimal now have distinct visual structures, and the new Classic Chat option provides a familiar card-free name-and-message flow.
+- Added one collision-safe effective command registry shared by chat intake and the public command directory. Enabled add-ons now register their saved viewer commands automatically after restart, creator-authored Command Sync definitions remain authoritative, and conflicts are reported without disabling unrelated commands.
+- Moved Clip Courier `!clip` creation and Chat Guard `!guardtrust` into the existing normalized chat-intake path. Their Streamer.bot helpers remain triggerless, while legacy native Command objects can stay disabled until live acceptance is complete.
+- Updated add-on setup guides and wizard readiness cards to remove obsolete Command Sync/package-generation steps for automatically registered commands.
 
 ## [2.6.0] - 2026-07-31
 

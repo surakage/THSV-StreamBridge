@@ -65,6 +65,37 @@ describe('CommandDirectoryService', () => {
     expect(html).not.toContain('<script');
   });
 
+  it('shows typed-command platforms instead of native reward platforms', async () => {
+    const config = await testConfig();
+    config.commands = { enabled: false, prefix: '!', definitions: [] };
+    const registry = new ModuleRegistry([
+      { ...addOn('thsv.first-five', 'First Five', [{ id: 'first-five.claim', name: 'firstfive' }]), settings: { enabled: true, commandName: 'firstfive' } },
+      { ...addOn('thsv.viewer-spotlight', 'Viewer Spotlight', [{ id: 'viewer-spotlight.card', name: 'card' }]), settings: { enabled: true, commandName: 'card', enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } },
+      { ...addOn('thsv.village-fun-commands', 'Village Fun Commands', [{ id: 'village-fun.follow-age', name: 'followage' }]), settings: { enabled: true, followAgeEnabled: true } },
+      { ...addOn('thsv.custom-counter', 'Custom Counter', [{ id: 'custom-counter.command', name: 'streamcounter' }]), settings: { enabled: true, commandEnabled: true } },
+    ], silentLogger);
+    const catalogue = new CommandDirectoryService(config, registry).catalogue();
+    const commands = catalogue.categories.flatMap((category) => category.commands);
+
+    expect(commands.find((entry) => entry.command === 'firstfive')?.platforms).toEqual(['youtube', 'tiktok']);
+    expect(commands.find((entry) => entry.command === 'card')?.platforms).toEqual(['youtube', 'tiktok']);
+    expect(commands.find((entry) => entry.command === 'followage')?.platforms).toEqual(['twitch']);
+    expect(commands.some((entry) => entry.command === 'streamcounter')).toBe(false);
+  });
+
+  it('uses each add-on configured platform selection for directory pills', async () => {
+    const config = await testConfig();
+    config.commands = { enabled: false, prefix: '!', definitions: [] };
+    const registry = new ModuleRegistry([
+      { ...addOn('thsv.quote-vault', 'Quote Vault', [{ id: 'quote-vault.quote', name: 'quote' }]), settings: { enabled: true, enabledPlatforms: ['youtube', 'kick'] } },
+      { ...addOn('thsv.viewer-lobby', 'Viewer Lobby', [{ id: 'viewer-lobby.join', name: 'join' }]), settings: { enabled: true, platforms: ['tiktok'] } },
+    ], silentLogger);
+    const commands = new CommandDirectoryService(config, registry).catalogue().categories.flatMap((category) => category.commands);
+
+    expect(commands.find((entry) => entry.command === 'quote')?.platforms).toEqual(['youtube', 'kick']);
+    expect(commands.find((entry) => entry.command === 'join')?.platforms).toEqual(['tiktok']);
+  });
+
   it('publishes through the configured HTTPS endpoint without exposing its token', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-command-directory-'));
     const tokenFile = join(root, 'publish-token.txt');

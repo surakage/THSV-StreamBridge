@@ -4,7 +4,7 @@
 **Version:** `3.5.0`
 **Publisher:** THSV StreamBridge
 
-Finds a safe live Twitch raid destination with visible private search phases, then can play one optional public clip before a creator-confirmed raid.
+Finds a safe live Twitch raid destination, retries bounded public clip previews, and can safely end the broadcast after Twitch reports that an ending ad has finished.
 
 ## Install
 
@@ -16,15 +16,17 @@ Finds a safe live Twitch raid destination with visible private search phases, th
 ### Add-on-specific steps
 
 1. Import the separate Raid Scout Streamer.bot package.
-2. Keep its Controller action triggerless and approve only that stable action ID for this add-on.
+2. Keep its Controller action triggerless and approve that stable action ID as Raid Scout's fixed controller grant.
 3. Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.
-4. Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.
-5. For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.
-6. Configure preferred channels and filters, then test Suggest before enabling automatic mode.
+4. For optional automatic broadcast ending, attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld/Streamlabs users select their provider-native action. Attach Broadcast Stopped only to the provider's Streaming Stopped trigger.
+5. Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.
+6. For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.
+7. Configure preferred channels and filters, then test Suggest before enabling automatic mode.
+8. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible for the Raid Scout source so its cached clip renderer is already warm when the raid preview begins.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.33`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Raid Scout`
 
@@ -32,14 +34,16 @@ Imported group: `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Suggest` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Confirm` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Cancel` in `THSV Addon - Raid Scout`
+- `THSV Addon - Raid Scout - Broadcast Stopped` in `THSV Addon - Raid Scout`
 
-Controller must remain triggerless and is dispatched only through Raid Scout's approved stable action ID. Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Viewer suggestions arrive through the existing THSV Twitch Intake reward trigger, not a new Raid Scout trigger.
+Controller must remain triggerless and is dispatched only through Raid Scout's approved stable action ID. Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Broadcast Stopped only confirms a provider stop signal and cannot stop a broadcast. Viewer suggestions arrive through the existing THSV Twitch Intake reward trigger, not a new Raid Scout trigger.
 
 Creator-selected triggers:
 
 - **suggest:** Attach only to a creator-controlled hotkey, deck button, or operator command.
 - **confirm:** Attach only to a creator-controlled hotkey, deck button, or operator command.
 - **cancel:** Attach only to a creator-controlled hotkey, deck button, or operator command.
+- **broadcastStopped:** Attach only to the Streaming Stopped trigger for the same OBS, Meld, or Streamlabs provider used by the selected Stop Streaming action.
 
 ## Browser source
 
@@ -58,7 +62,7 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `media.exclusive`, `schedule.bounded`, `viewer.foundation.read`, `viewer.foundation.mutate`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `media.exclusive`, `media.cache`, `schedule.bounded`, `viewer.foundation.read`, `viewer.foundation.mutate`.
 
 Private storage: `data/addons/thsv.raid-scout/`, `data/addons/.state/thsv.raid-scout/`.
 

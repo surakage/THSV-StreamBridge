@@ -11,6 +11,7 @@ export class AlertPresentationQueue {
   public setCapacity(capacity: number): void;
   public enqueue(alert: QueuedAlert, queuedAt: number, activeAlert: QueuedAlert | undefined): { readonly aggregated: boolean; readonly preempt: boolean };
   public take(): QueuedAlert | undefined;
+  public clear(): void;
   public readonly length: number;
   public snapshot(): readonly QueuedAlert[];
 }
@@ -28,6 +29,7 @@ export class AlertPresentationController {
     readonly cancel?: (timer: ReturnType<typeof setTimeout> | undefined) => void;
   });
   public configure(capacity: number, defaultDurationMs: number): void;
+  public reset(): void;
   public enqueue(alert: QueuedAlert, queuedAt?: number): void;
   private enqueueReady;
   public showNext(): void;

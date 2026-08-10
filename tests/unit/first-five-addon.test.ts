@@ -52,6 +52,13 @@ function context() {
 afterEach(async () => { await firstFive.stop(); });
 
 describe('First Five add-on', () => {
+  it('starts silently without displaying a leaderboard card', async () => {
+    const runtime = context();
+    await firstFive.start(runtime.context);
+    expect(runtime.context.overlay.publish).not.toHaveBeenCalled();
+    expect(runtime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+  });
+
   it('scores placements 5 through 1 and ranks ties by first-place wins', () => {
     const claims = [
       { position: 2, userId: 'a', displayName: 'Alpha', claimedAt: '2026-07-01T00:00:00.000Z' },
@@ -125,6 +132,7 @@ describe('First Five add-on', () => {
     await firstFive.onEvent({ eventType: 'addon.thsv.first-five.controller-result', payload: { operation: 'reset', requestId: pending.requestId, success: true }, metadata: { simulated: false } }, runtime.context);
     expect(runtime.value()).toMatchObject({ streamCycleId: 'online-source-1', placements: [] });
     expect(runtime.value().pending).toBeUndefined();
+    expect(runtime.context.overlay.publish).not.toHaveBeenCalled();
 
     runtime.context.streamerbot.runApprovedAction.mockClear();
     await firstFive.onEvent({
@@ -188,5 +196,22 @@ describe('First Five add-on', () => {
     await firstFive.onEvent({ eventId: 'tiktok-first-five-1', eventType: 'command.received', platform: 'tiktok', source: { eventId: 'tiktok-first-five-1' }, user: { id: 'tiktok-viewer', name: 'viewer', displayName: 'TikTok Viewer', actorType: 'human', roles: [] }, payload: { command: 'firstfive', arguments: [] }, metadata: { simulated: false } }, tiktokRuntime.context);
     expect(tiktokRuntime.value()).toMatchObject({ placements: [{ position: 1, userId: 'tiktok:tiktok-viewer' }] });
     expect(tiktokRuntime.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'spend', amount: 25, viewerId: 'viewer-points' }));
+  });
+
+  it('maintains an independent five-place board for each platform', async () => {
+    const runtime = context();
+    await firstFive.onEvent(rewardEvent(1, 'same-person', 'Same Viewer'), runtime.context);
+    const pending = runtime.value().pending as { requestId: string };
+    await firstFive.onEvent({ eventType: 'addon.thsv.first-five.controller-result', payload: { operation: 'claim', requestId: pending.requestId, success: true }, metadata: { simulated: false } }, runtime.context);
+
+    const kickBase = rewardEvent(1, 'same-person', 'Same Viewer');
+    await firstFive.onEvent({ ...kickBase, platform: 'kick', eventId: 'kick-independent-first', payload: { ...kickBase.payload, rewardId: 'kick-reward-1', redemptionId: 'kick-independent-first', supportedOperations: [] } }, runtime.context);
+    expect(runtime.value().placements).toEqual(expect.arrayContaining([
+      expect.objectContaining({ position: 1, userId: 'twitch:same-person' }),
+      expect.objectContaining({ position: 1, userId: 'kick:same-person' }),
+    ]));
+    expect(runtime.context.overlay.publish).toHaveBeenLastCalledWith('thsv.first-five.card.show', expect.objectContaining({
+      platform: 'kick', headline: 'Kick First Five', placements: [expect.objectContaining({ position: 1, platform: 'kick' })],
+    }), { lane: 'foreground' });
   });
 });

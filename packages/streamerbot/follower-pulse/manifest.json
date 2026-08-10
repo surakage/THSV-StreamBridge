@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Provides a triggerless bounded Twitch follower-page controller and one creator-only reconciliation control.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.33",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "0f41b0d1-7c7a-4a1c-9f11-5ab9cc86b301",

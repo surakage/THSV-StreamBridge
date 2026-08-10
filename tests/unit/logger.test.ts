@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -18,11 +18,20 @@ describe('StructuredLogger', () => {
     await logger.flush();
     stdout.mockRestore();
     const content = await readFile(join(directory, 'streambridge.log'), 'utf8');
+    const dailyFiles = await readdir(join(directory, 'daily'));
+    expect(dailyFiles).toHaveLength(1);
+    const dailyFile = dailyFiles[0];
+    if (dailyFile === undefined) throw new Error('Daily activity log was not created.');
+    const activity = await readFile(join(directory, 'daily', dailyFile), 'utf8');
     expect(content).not.toContain('inline-value');
     expect(content).not.toContain('installation-secret-value');
     expect(content).not.toContain('field-secret');
     expect(content).not.toContain('secret-bearer-value');
     expect(content).toContain('[REDACTED]');
+    expect(activity).toContain('[INFO]');
+    expect(activity).toContain('[REDACTED]');
+    expect(activity).not.toContain('installation-secret-value');
+    expect(activity).not.toContain('field-secret');
   });
 
   it('rotates bounded log files', async () => {

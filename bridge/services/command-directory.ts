@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import type { BridgeConfig } from '../../schemas/config.js';
-import type { ModuleRegistry, CommandDirectoryModuleSource } from '../core/module-registry.js';
+import type { ModuleRegistry } from '../core/module-registry.js';
+import { buildEffectiveCommands, type EffectiveAddOnCommand } from '../core/effective-commands.js';
 
 const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
 type CommandPlatform = (typeof PLATFORMS)[number];
@@ -52,7 +53,7 @@ interface CommandMetadata {
 }
 
 const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
-  'automated-shoutouts.shoutout': { category: 'Community', description: 'Share another creator with chat.', usage: 'so <channel>', platforms: ['twitch'] },
+  'automated-shoutouts.shoutout': { category: 'Community', description: 'Share another creator with chat.', usage: 'so <channel>' },
   'chat-guard.trust-viewer': { hidden: true },
   'clip-courier.create': { category: 'Clips', description: 'Create and deliver a clip from the current Twitch stream.', usage: 'clip', platforms: ['twitch'] },
   'fan-crown.claim': { category: 'Rewards', description: 'Claim the current Fan Crown when the configured entry method allows it.', usage: 'fancrown' },
@@ -65,6 +66,23 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'viewer-foundation.balance': { category: 'Points', description: 'Show your current viewer-points balance.', usage: 'points' },
   'viewer-spotlight.card': { category: 'Community', description: 'Request your Viewer Spotlight card.', usage: 'card' },
   'village-roll-call.checkin': { category: 'Community', description: 'Check in for the current Village Roll Call season.', usage: 'checkin' },
+  'village-fun.sloth-fact': { category: 'Fun', description: 'Share a sloth fact from the built-in safe fact library.', usage: 'slothfact' },
+  'village-fun.cat-fact': { category: 'Fun', description: 'Share a cat fact with an offline fallback.', usage: 'catfact' },
+  'village-fun.joke': { category: 'Fun', description: 'Share a safe joke with an offline fallback.', usage: 'joke' },
+  'village-fun.fun-fact': { category: 'Fun', description: 'Share a general fun fact with an offline fallback.', usage: 'funfact' },
+  'village-fun.number-fact': { category: 'Fun', description: 'Share a number fact, optionally for a supplied number.', usage: 'numberfact [number]' },
+  'village-fun.eight-ball': { category: 'Fun', description: 'Ask the Village 8-Ball a question.', usage: '8ball <question>' },
+  'village-fun.hug': { category: 'Community', description: 'Give another viewer a hug and add to their hug total.', usage: 'hug <viewer>' },
+  'village-fun.hugs': { category: 'Community', description: 'Show the current hug leaderboard.', usage: 'hugs' },
+  'village-fun.timezone': { category: 'Stream Info', description: 'Show the streamer\'s current local time and timezone.', usage: 'timezone' },
+  'village-fun.dice': { category: 'Fun', description: 'Roll a die with an optional side count from 2 to 100.', usage: 'dice [sides]' },
+  'village-fun.pick': { category: 'Fun', description: 'Pick one item from a comma-separated list.', usage: 'pick <one, two, three>' },
+  'village-fun.rate': { category: 'Fun', description: 'Give a stable daily rating to a topic.', usage: 'rate <topic>' },
+  'village-fun.random-color': { category: 'Fun', description: 'Choose a random named color and hex value.', usage: 'randomcolor' },
+  'village-fun.chuck-norris': { category: 'Fun', description: 'Share a safe Chuck Norris joke when the optional command is enabled.', usage: 'chucknorris' },
+  'village-fun.aesthetic': { category: 'Fun', description: 'Convert short safe text to full-width aesthetic characters.', usage: 'aesthetic <text>' },
+  'hydration-station.remind': { category: 'Wellness', description: 'Remind the creator to take a drink of water.', usage: 'hydrate', platforms: ['youtube', 'tiktok'] },
+  'hydration-station.creator': { hidden: true },
   'village-voice.speak': { category: 'Accessibility', description: 'Spend the configured reward or points to speak a message.', usage: 'speak <message>' },
   'village-draw.manage': { hidden: true },
   'quote-vault.add': { hidden: true },
@@ -86,6 +104,7 @@ const MODULE_CATEGORIES: Readonly<Record<string, string>> = Object.freeze({
   'thsv.chat-play-pack': 'Games', 'thsv.village-jukebox': 'Music', 'thsv.quote-vault': 'Quotes',
   'thsv.viewer-lobby': 'Viewer Queue', 'thsv.village-draw': 'Giveaway', 'thsv.village-polls': 'Community',
   'thsv.custom-counter': 'Community', 'thsv.free-game-check': 'Community',
+  'thsv.village-fun-commands': 'Fun', 'thsv.village-hydration-station': 'Wellness',
 });
 
 export class CommandDirectoryService {
@@ -107,7 +126,8 @@ export class CommandDirectoryService {
   }
 
   public catalogue(now = new Date()): PublicCommandCatalogue {
-    const entries = [...this.coreCommands(), ...this.addOnCommands(this.modules.commandDirectorySources())]
+    const effective = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources(), { includeStopped: true });
+    const entries = [...this.coreCommands(), ...this.addOnCommands(effective.addOnCommands)]
       .sort((left, right) => left.category.localeCompare(right.category) || left.command.localeCompare(right.command));
     const grouped = new Map<string, PublicCommandEntry[]>();
     for (const entry of entries) {
@@ -189,28 +209,22 @@ export class CommandDirectoryService {
     });
   }
 
-  private addOnCommands(sources: readonly CommandDirectoryModuleSource[]): PublicCommandEntry[] {
-    return sources.flatMap((source) => {
-      if (source.status === 'failed') return [];
-      return source.commandsProvided.flatMap((provided) => {
-        const metadata = METADATA[provided.id] ?? {};
-        if (metadata.hidden === true || isCreatorControl(provided.id, provided.name)) return [];
-        const command = commandFromName(provided.name);
-        if (command.length === 0) return [];
-        const category = metadata.category ?? MODULE_CATEGORIES[source.moduleId] ?? source.moduleName;
-        return [Object.freeze({
-          id: `${source.moduleId}.${provided.id}`, command, aliases: Object.freeze([]),
-          description: metadata.description ?? `Use the ${source.moduleName} ${humanize(command)} command.`,
-          category, source: source.moduleName, platforms: metadata.platforms ?? PLATFORMS,
-          minimumRole: 'viewer' as const, usage: metadata.usage ?? command,
-        })];
-      });
+  private addOnCommands(commands: readonly EffectiveAddOnCommand[]): PublicCommandEntry[] {
+    return commands.flatMap((registered) => {
+      const metadata = METADATA[registered.commandId] ?? {};
+      if (metadata.hidden === true || isCreatorControl(registered.commandId, registered.definition.name)) return [];
+      if (registered.definition.minimumRole === 'moderator' || registered.definition.minimumRole === 'broadcaster') return [];
+      if (registered.platforms.length === 0) return [];
+      const command = registered.definition.name;
+      const category = metadata.category ?? MODULE_CATEGORIES[registered.moduleId] ?? registered.moduleName;
+      return [Object.freeze({
+        id: `${registered.moduleId}.${registered.commandId}`, command, aliases: Object.freeze([...registered.definition.aliases]),
+        description: metadata.description ?? `Use the ${registered.moduleName} ${humanize(command)} command.`,
+        category, source: registered.moduleName, platforms: metadata.platforms ?? registered.platforms,
+        minimumRole: registered.definition.minimumRole, usage: metadata.usage ?? command,
+      })];
     });
   }
-}
-
-function commandFromName(name: string): string {
-  return (name.trim().match(/^!?([a-z][a-z0-9-]{0,63})/iu)?.[1] ?? '').toLowerCase();
 }
 
 function isCreatorControl(id: string, name: string): boolean {

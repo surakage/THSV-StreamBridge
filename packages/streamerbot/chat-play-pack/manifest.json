@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Adds the organized Chat Play command set and optionally fetches bounded OpenTDB trivia and dictionary-backed Unscramble batches without sending viewer data.",
-  "minimumStreamerBotVersion": "1.0.5-beta.5",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "d72d0873-8cbd-4dd5-a171-6b7122cd125e",

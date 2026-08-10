@@ -25,7 +25,7 @@ function runtime(settings: Record<string, unknown> = {}) {
       : { contractVersion: '1.0.0', viewerId: query.viewerId, linked: false, points: 245, level: 3, nextLevelAt: 300, latestAchievement: { id: 'first-steps', label: 'First Steps', points: 100 } }) },
     communityAnalytics: {
       getViewerProjection: vi.fn(async (viewerId: string): Promise<Record<string, unknown>> => ({ contractVersion: '1.0.0', viewerId, observed: true, firstSeenAt: 1, lastSeenAt: 2, sessions: 4, counters: { messages: 12, commands: 3, follows: 0, subscriptions: 0, memberships: 0, giftSubscriptions: 0, gifts: 0, cheers: 0, superChats: 0, raids: 0, rewardRedemptions: 0 }, activeSession: true, activeLastSeenAt: 2 })),
-      getSessionProjection: vi.fn(async () => ({ contractVersion: '1.0.0', active: true, approximate: false, livePlatforms: ['twitch'], uniqueViewers: 12, counters: { messages: 40, commands: 4, follows: 2, subscriptions: 1, memberships: 0, giftSubscriptions: 0, gifts: 0, cheers: 0, superChats: 0, raids: 0, rewardRedemptions: 3 }, retainedSessionCount: 0 })),
+      getSessionProjection: vi.fn(async () => ({ contractVersion: '1.0.0', active: true, approximate: false, livePlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], uniqueViewers: 12, counters: { messages: 40, commands: 4, follows: 2, subscriptions: 1, memberships: 0, giftSubscriptions: 0, gifts: 0, cheers: 0, superChats: 0, raids: 0, rewardRedemptions: 3 }, retainedSessionCount: 0 })),
     },
   };
   return { context, published, value: () => state };
@@ -117,6 +117,18 @@ describe('Viewer Spotlight add-on', () => {
     await expect(processViewerSpotlightEvent(reward, testRuntime.context, 1_000)).resolves.toBeUndefined();
     expect(testRuntime.published).toHaveLength(0);
     expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+  });
+
+  it('rejects offline requests before spending points and refunds a matching Twitch reward', async () => {
+    const testRuntime = runtime({ rewardRequestsEnabled: true, rewardId: 'reward-123' });
+    testRuntime.context.communityAnalytics.getSessionProjection.mockResolvedValue({ contractVersion: '1.0.0', active: true, approximate: false, livePlatforms: ['youtube'], uniqueViewers: 1, counters: { messages: 0, commands: 0, follows: 0, subscriptions: 0, memberships: 0, giftSubscriptions: 0, gifts: 0, cheers: 0, superChats: 0, raids: 0, rewardRedemptions: 0 }, retainedSessionCount: 0 });
+    await viewerSpotlight.start(testRuntime.context);
+    await expect(processViewerSpotlightEvent(event({ platform: 'tiktok' }), testRuntime.context, 1_000)).resolves.toEqual({ accepted: false, reason: 'platform-offline' });
+    expect(testRuntime.context.viewerFoundation.mutate).not.toHaveBeenCalled();
+    const reward = event({ eventType: 'reward.redemption', platform: 'twitch', payload: { rewardId: 'reward-123', redemptionId: 'redeem-offline', verifiedTransport: true } });
+    await expect(processViewerSpotlightEvent(reward, testRuntime.context, 2_000)).resolves.toEqual({ accepted: false, reason: 'platform-offline' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith('764a4658-e7fc-4b25-a792-e262759c76b7', { viewerSpotlightRewardOperation: 'refund', viewerSpotlightRewardId: 'reward-123', viewerSpotlightRedemptionId: 'redeem-offline' });
+    expect(testRuntime.published).toHaveLength(0);
   });
 
   it('restores only pseudonymous cooldown state after restart and never replays the prior card', async () => {

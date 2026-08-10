@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Relays allowlisted TikFinity event fields through Streamer.bot to the validated THSV StreamBridge pipeline.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "name": "THSV TikTok - Chat",
@@ -61,7 +61,7 @@
       "subscription"
     ],
     "transport": "Streamer.bot WebsocketBroadcastJson",
-    "simulationPolicy": "Events default to simulated unless TikFinity supplies an explicit simulation marker.",
+    "simulationPolicy": "Events default to live unless TikFinity supplies an explicit simulation or test marker.",
     "executionSafety": {
       "runsCreatorActions": false,
       "writesGlobalVariables": false,

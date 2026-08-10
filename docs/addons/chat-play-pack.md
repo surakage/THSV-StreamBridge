@@ -16,13 +16,13 @@ Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, id
 ### Add-on-specific steps
 
 1. Install Viewer Foundation first.
-2. Import Chat Play Pack once; it includes all eleven command entries and the two optional provider actions.
+2. Import Chat Play Pack only when using one of its two optional provider actions; viewer commands already use the main chat intakes.
 3. Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.
 4. Configure creator fallback questions and words before enabling provider-backed games.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.5`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Chat Play Pack`
 

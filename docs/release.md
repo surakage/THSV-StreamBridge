@@ -37,7 +37,7 @@ THSV StreamBridge/
   addons/state/         private add-on settings and state
 ```
 
-The installer generates a random 256-bit control token for a new installation, restricts the installation to the current Windows user where supported, starts the bridge, waits for its loopback health endpoint, and opens the authenticated setup wizard. A different installation receives a different token. Upgrading preserves the existing installation's token so saved local setup continues working.
+The installer generates a random 256-bit control token for a new installation, restricts the installation to the current Windows user where supported, starts the bridge, waits for its loopback health endpoint, and opens the authenticated setup wizard through a 60-second single-use unlock ticket. A different installation receives a different token. Upgrading preserves the existing installation's token so saved local setup continues working.
 
 If automatic launch is not wanted, run the extracted installer from a terminal with `--no-start`. `--install-root <path>` selects a safe alternative destination. These switches are primarily for managed or test installations; the normal public flow is the root install command.
 
@@ -45,7 +45,7 @@ After installation, complete the [Streamer.bot setup](streamerbot-setup.md) befo
 
 ## Start, stop, and open setup
 
-Use the shortcuts in the installed `launcher` directory:
+Use these launchers in the installation root (`%LOCALAPPDATA%\THSV StreamBridge`), or run **THSV StreamBridge - Open Setup Wizard** directly in Streamer.bot:
 
 - `Start THSV StreamBridge.cmd`
 - `Stop THSV StreamBridge.cmd`
@@ -53,6 +53,8 @@ Use the shortcuts in the installed `launcher` directory:
 - `Uninstall THSV StreamBridge.cmd`
 
 Starting a second managed instance first requests authenticated shutdown of the recorded instance, waits for it to exit, and then starts the active version. The launcher passes explicit data, add-on package, and add-on-state roots so release upgrades cannot overwrite creator files.
+
+**Open THSV Setup Wizard** first opens the healthy Bridge without restarting it. If the Bridge is offline, it falls back to the normal start launcher. Both that launcher and the Streamer.bot action open an already-authenticated wizard without requiring users to locate or paste the permanent token.
 
 Each `.cmd` launcher stays open long enough to show the final result. If a launcher is blocked, run its matching `.mjs` file with the installed runtime from PowerShell. For example:
 

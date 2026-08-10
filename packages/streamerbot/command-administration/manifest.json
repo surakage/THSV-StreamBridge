@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Creator-approved, documented-API-only enable/disable boundary for Streamer.bot commands, invoked live from the Stage 5 wizard.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Command Administration",
     "group": "THSV StreamBridge",

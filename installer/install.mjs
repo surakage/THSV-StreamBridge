@@ -91,7 +91,7 @@ try {
   for (const path of [appBackup, runtimeBackup, launcherBackup]) await rm(path, { recursive: true, force: true });
   await pruneOldVersions(join(installRoot, 'app'), new Set([manifest.version, previousRecord?.activeVersion].filter(Boolean)));
   process.stdout.write(`${PRODUCT} ${manifest.version} installed at ${installRoot}\n`);
-  process.stdout.write(`A unique control token is stored privately for this Windows user in ${join(dataRoot, 'secrets')}.\n`);
+  process.stdout.write('A unique control token is stored privately for this Windows user. Use Open THSV Setup Wizard or the Streamer.bot launcher action; no token lookup is required.\n');
   if (!startAfterInstall) process.stdout.write('Installation validation completed without starting the bridge.\n');
 } catch (error) {
   await rollbackDirectories(moved);

@@ -32,7 +32,7 @@ function settingsFor(context) {
   return { enabled: raw.enabled === true, mode: raw.mode === 'automatic' ? 'automatic' : 'suggest', requireLive: raw.requireLive !== false, intervalSeconds: integer(raw.intervalSeconds, 10, 300, 20), confirmationCount: integer(raw.confirmationCount, 1, 6, 2), mappings };
 }
 function stateFor(value) { const source = value && typeof value === 'object' ? value : {}; return { pendingProfileId: PROFILE_IDS.includes(source.pendingProfileId) ? source.pendingProfileId : '', pendingProcessName: processName(source.pendingProcessName), lastAppliedProfileId: PROFILE_IDS.includes(source.lastAppliedProfileId) ? source.lastAppliedProfileId : '', lastAppliedAt: clean(source.lastAppliedAt, 40) }; }
-async function publish(context, topic, payload) { try { await context.overlay.publish(topic, payload); } catch { /* Suggestions remain actionable through creator controls without an overlay. */ } }
+async function publish(context, topic, payload) { try { await context.overlay.publish(topic, payload, { lane: topic.endsWith('.card.show') ? 'foreground' : 'independent' }); } catch { /* Suggestions remain actionable through creator controls without an overlay. */ } }
 function cancel(context) { if (taskId) context.schedule.cancel(taskId); taskId = undefined; }
 function cancelProbeTimeout(context) { if (probeTimeoutId) context.schedule.cancel(probeTimeoutId); probeTimeoutId = undefined; }
 function cancelApplyTimeout(context) { if (applyTimeoutId) context.schedule.cancel(applyTimeoutId); applyTimeoutId = undefined; }

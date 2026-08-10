@@ -43,7 +43,8 @@ const reconnectSchema = z
     message: 'maxDelayMs must be greater than or equal to initialDelayMs',
   });
 
-const commandNameSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
+// Chat commands may begin with a digit (for example, the conventional !8ball).
+const commandNameSchema = z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9-]*$/);
 
 const commandsSchema = z
   .object({
@@ -74,6 +75,7 @@ const commandsSchema = z
   });
 
 const timedActionIdSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
+const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 export const TIMED_CHAT_PLATFORM_VALUES = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
 export const TIMED_MESSAGE_CHARACTER_LIMITS = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } as const;
 const platformMessageListsSchema = z.object({
@@ -82,11 +84,17 @@ const platformMessageListsSchema = z.object({
   kick: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.kick)).min(2).max(200).optional(),
   tiktok: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.tiktok)).min(2).max(200).optional(),
 }).strict().refine((lists) => Object.values(lists).some((messages) => messages !== undefined && messages.length >= 2), 'Platform message rotation requires at least one platform with two messages.');
+const timedMessageGroupSchema = z.object({
+  id: timedActionIdSchema,
+  name: z.string().trim().min(1).max(80),
+  messages: z.array(z.string().trim().min(1).max(500)).min(1).max(200),
+}).strict();
 const timedActionSelectionSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('fixed') }).strict(),
   z.object({
     mode: z.literal('shuffle-container'),
     messages: z.array(z.string().min(1).max(500)).min(2).max(200),
+    groups: z.array(timedMessageGroupSchema).min(1).max(50).optional(),
   }).strict(),
   z.object({ mode: z.literal('platform-shuffle'), messagesByPlatform: platformMessageListsSchema }).strict(),
 ]);
@@ -148,13 +156,46 @@ export const timedActionsSchema = z.object({
         context.addIssue({ code: 'custom', path: ['definitions', index, 'maximumMinutes'], message: 'maximumMinutes must be greater than or equal to minimumMinutes.' });
       }
     }
+    if (definition.target.provider === 'run-existing-action' && definition.target.actionId.toLowerCase() === TIMED_MESSAGE_OUTPUT_ACTION_ID) {
+      if (!definition.gates.requireLive) context.addIssue({ code: 'custom', path: ['definitions', index, 'gates', 'requireLive'], message: 'Timed chat messages must require a verified live stream.' });
+      if (definition.target.deliveryPlatforms.length === 0) context.addIssue({ code: 'custom', path: ['definitions', index, 'target', 'deliveryPlatforms'], message: 'Timed chat messages require at least one delivery platform.' });
+      const limit = definition.target.deliveryPlatforms.includes('tiktok') ? 150 : definition.target.deliveryPlatforms.includes('youtube') ? 200 : 500;
+      if (definition.selection.mode === 'shuffle-container') for (const [messageIndex, message] of definition.selection.messages.entries()) {
+        if (Array.from(message).length > limit) context.addIssue({ code: 'custom', path: ['definitions', index, 'selection', 'messages', messageIndex], message: `Timed message exceeds the strictest selected platform limit of ${String(limit)} characters.` });
+      }
+    }
+    if (definition.selection.mode === 'shuffle-container') {
+      const canonicalKeys = definition.selection.messages.map((message) => message.trim().toLocaleLowerCase());
+      if (new Set(canonicalKeys).size !== canonicalKeys.length) context.addIssue({ code: 'custom', path: ['definitions', index, 'selection', 'messages'], message: 'Timed-message rotations cannot contain duplicate messages.' });
+      if (definition.selection.groups) {
+        const groupIds = definition.selection.groups.map((group) => group.id);
+        if (new Set(groupIds).size !== groupIds.length) context.addIssue({ code: 'custom', path: ['definitions', index, 'selection', 'groups'], message: 'Timed-message group IDs must be unique.' });
+        const groupedMessages = definition.selection.groups.flatMap((group) => group.messages);
+        const groupedKeys = groupedMessages.map((message) => message.trim().toLocaleLowerCase());
+        if (new Set(groupedKeys).size !== groupedKeys.length) context.addIssue({ code: 'custom', path: ['definitions', index, 'selection', 'groups'], message: 'Timed-message groups cannot contain duplicate messages.' });
+        if (groupedKeys.length !== canonicalKeys.length || groupedKeys.some((key, messageIndex) => key !== canonicalKeys[messageIndex])) context.addIssue({ code: 'custom', path: ['definitions', index, 'selection', 'groups'], message: 'Timed-message groups must flatten to the shared shuffle list in the same order.' });
+      }
+    }
   }
 });
 
 export const ALERT_PRESENTATION_TYPE_VALUES = ['follow', 'subscription', 'membership', 'gift-subscription', 'gift', 'donation', 'cheer', 'super-chat', 'raid', 'milestone'] as const;
 const ALERT_TEMPLATE_TOKEN_VALUES = ['actor', 'alertType', 'platform', 'amount', 'currency', 'quantity', 'itemName', 'tier', 'message', 'metric', 'value'] as const;
 const alertTemplateTokens = new Set<string>(ALERT_TEMPLATE_TOKEN_VALUES);
-const alertTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.test(value), 'Alert templates cannot contain control characters.').superRefine((value, context) => {
+export function repairCommonMojibake(value: string): string {
+  // Repair only well-known UTF-8-as-Windows-1252 sequences found in older saved
+  // wizard profiles. Ordinary Unicode and creator wording remain untouched.
+  return value
+    .replaceAll('\u00c2\u00b7', '\u00b7')
+    .replaceAll('\u00e2\u0153\u00a8', '\u2728')
+    .replaceAll('\u00e2\u20ac\u201d', '\u2014')
+    .replaceAll('\u00e2\u20ac\u201c', '\u2013')
+    .replaceAll('\u00e2\u20ac\u2122', '\u2019')
+    .replaceAll('\u00e2\u20ac\u00a6', '\u2026')
+    .replaceAll('\u00e2\u20ac\u00a2', '\u2022')
+    .replaceAll('\u00f0\u0178\u201d\u00a5', '\ud83d\udd25');
+}
+const alertTemplateSchema = z.string().max(500).overwrite(repairCommonMojibake).refine((value) => !/[\p{Cc}]/u.test(value), 'Alert templates cannot contain control characters.').superRefine((value, context) => {
   for (const match of value.matchAll(/\{([a-z][a-zA-Z]*)\}/gu)) {
     if (!alertTemplateTokens.has(match[1] ?? '')) context.addIssue({ code: 'custom', message: `Unknown alert template token ${match[0]}.` });
   }
@@ -220,7 +261,7 @@ export const alertPresentationSchema = z.object({
 
 const CHAT_EVENT_TEMPLATE_TOKEN_VALUES = ['actor', 'rewardTitle', 'input', 'amount', 'currency', 'quantity', 'itemName', 'jewelsAmount', 'tier', 'message', 'metric', 'value', 'months', 'streakMonths'] as const;
 const chatEventTemplateTokens = new Set<string>(CHAT_EVENT_TEMPLATE_TOKEN_VALUES);
-const platformChatEventTemplateSchema = z.string().max(500).refine((value) => !/[\p{Cc}]/u.test(value), 'Chat event templates cannot contain control characters.').superRefine((value, context) => {
+const platformChatEventTemplateSchema = z.string().max(500).overwrite(repairCommonMojibake).refine((value) => !/[\p{Cc}]/u.test(value), 'Chat event templates cannot contain control characters.').superRefine((value, context) => {
   for (const match of value.matchAll(/\{([a-z][a-zA-Z]*)\}/gu)) if (!chatEventTemplateTokens.has(match[1] ?? '')) context.addIssue({ code: 'custom', message: `Unknown chat event template token ${match[0]}.` });
 });
 const chatEventSettingSchema = z.object({ enabled: z.boolean(), template: platformChatEventTemplateSchema }).strict();
@@ -266,13 +307,15 @@ const LEGACY_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kic
 export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' } as const;
 
 export const chatOverlaySchema = z.object({
-  layout: z.enum(['regular', 'compact', 'minimal']).default('regular'),
+  layout: z.enum(['regular', 'compact', 'minimal', 'classic']).default('regular'),
   orientation: z.enum(['vertical', 'horizontal']).default('vertical'),
   newMessagePosition: z.enum(['end', 'start']).default('end'),
   animation: z.enum(['slide', 'fade', 'pop', 'none']).default('slide'),
   textAlign: z.enum(['left', 'center', 'right']).default('left'),
   fontFamily: z.enum(['system', 'rounded', 'monospace']).default('system'),
-  fontSizePx: z.number().int().min(12).max(36).default(18),
+  // Accept the former persisted range so upgrades remain recoverable, then normalize it to the
+  // OBS-safe range exposed by the wizard. This prevents old extreme values from warping chat.
+  fontSizePx: z.number().int().min(12).max(36).transform((value) => Math.max(14, Math.min(28, value))).default(18),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#ffffff'),
   backgroundMode: z.enum(['transparent', 'solid']).default('transparent'),
   backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#171120'),
@@ -318,6 +361,7 @@ const browserOverlaySchema = z.object({
   maxChatMessages: z.number().int().min(1).max(200).default(8),
   maxAlertQueue: z.number().int().min(1).max(200).default(20),
   alertDurationMs: z.number().int().min(1_000).max(60_000).default(7_000),
+  overlayGapMs: z.number().int().min(250).max(10_000).default(1_000),
   showBots: z.boolean().default(true),
   showSimulated: z.boolean().default(true),
   chat: chatOverlaySchema.default({
@@ -427,7 +471,7 @@ const bridgeConfigObjectSchema = z
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({
-      enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, showBots: true, showSimulated: true,
+      enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, overlayGapMs: 1_000, showBots: true, showSimulated: true,
       chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [...DEFAULT_IGNORED_BOT_NAMES], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
       alerts: { profiles: {} },
     }),

@@ -1,0 +1,87 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Shows a compact Twitch upcoming-ad and active-ad countdown without controlling ad playback.",
+  "changelog": "3.5.0: Twitch-only Upcoming Ad and Ad Run intake, fail-closed persisted timing, separate upcoming/active offline previews, and a compact browser overlay.",
+  "permissions": [
+    "events.subscribe",
+    "overlay.publish",
+    "schedule.bounded",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.ad-break-companion",
+    "name": "Ad Break Companion",
+    "version": "3.5.0",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "addon.thsv.ad-break-companion.upcoming",
+      "addon.thsv.ad-break-companion.started",
+      "addon.thsv.ad-break-companion.control"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.ad-break-companion/",
+      "data/addons/.state/thsv.ad-break-companion/"
+    ],
+    "installationSteps": [
+      "Install and enable the add-on, then review the countdown wording and colors.",
+      "Import the bundled Streamer.bot package into its own THSV Addon - Ad Break Companion group.",
+      "Attach Twitch > Ads > Upcoming Ad to the Upcoming Ad Intake action.",
+      "Attach Twitch > Ads > Ad Run to the Ad Run Intake action.",
+      "Add the Ad Break Companion overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop.",
+      "Run Preview Upcoming and Preview Active while offline to size both states, then run Clear Display."
+    ],
+    "uninstallationSteps": [
+      "Uninstall the add-on. Its small timing state remains unless add-on data is explicitly deleted."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.ad-break-companion.runtime",
+        "description": "Confirms Twitch ad timing events, bounded scheduling, persistence, and overlay publishing."
+      }
+    ],
+    "minimumBridgeVersion": "3.5.0",
+    "maximumTestedBridgeVersion": "3.5.0"
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 12172,
+      "sha256": "7b189cea443aeb8e9ebc5b30e4f20044e7dafd1d61a79306d41472100f8df068"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2301,
+      "sha256": "636d60238e7ae42261e015628cd9c045f7b4cfa105b6a34c39b217d9253473f3"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 2538,
+      "sha256": "0c2d91ebd88ec358edce42c31953e66062633ff4db030f468cebbe15eb6c0028"
+    },
+    {
+      "path": "README.md",
+      "size": 1571,
+      "sha256": "6e7f4400f9e1c108efdba4e7186941767e2141353301078b4a836e8c981ee602"
+    }
+  ]
+}

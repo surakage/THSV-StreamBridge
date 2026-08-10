@@ -87,7 +87,7 @@
     "installationSteps": [
       "Install and enable Viewer Foundation.",
       "Import the Village Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.",
-      "Approve the resolver and Twitch reward helper, generate the six no-response command templates, and add the hosted browser source.",
+      "Approve the resolver and Twitch reward helper, choose the command names in the wizard, and add the hosted browser source. Commands register automatically after restart.",
       "Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback."
     ],
     "uninstallationSteps": [
@@ -106,8 +106,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 31849,
-      "sha256": "06a61f6c2f6b90deab01feccc8970b5750b871470231ee287e5f598e76aeb374"
+      "size": 31907,
+      "sha256": "858a4b2682920b0955985eca98bb0ce53a25aed387c755c85bff235236dc5007"
     },
     {
       "path": "schemas/config.json",
@@ -121,8 +121,8 @@
     },
     {
       "path": "README.md",
-      "size": 2819,
-      "sha256": "85f0ea281b515a63fe60fa8ce7cd90b23aaa5e60cabd50312ee20a062c5d6ef9"
+      "size": 2848,
+      "sha256": "91a7ed78feefe1d78138abc0e6a689d024c1078dacd7a80434b2f9d138472cb9"
     }
   ]
 }

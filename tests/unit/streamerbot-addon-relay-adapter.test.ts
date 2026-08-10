@@ -119,6 +119,38 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...provider, payload: { ...provider.payload, unexpected: 'no' } }))).toThrow('relay token');
   });
 
+  it('permits only the documented bounded Twitch ad timing envelopes and offline preview controls', () => {
+    const upcoming = {
+      moduleId: 'thsv.ad-break-companion', eventType: 'addon.thsv.ad-break-companion.upcoming', sourceEventType: 'TwitchUpcomingAd',
+      relayId: 'twitch-upcoming-ad-1', relayToken: '', payload: { minutes: 1, adLength: 90, snoozesLeft: 3, nextAdAt: '2026-08-04T12:01:00.000Z' },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(upcoming))).toMatchObject({ eventType: upcoming.eventType, payload: upcoming.payload });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...upcoming, payload: { ...upcoming.payload, minutes: 0 } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...upcoming, sourceEventType: 'TwitchAdRun' }))).toThrow('relay token');
+
+    const started = {
+      moduleId: 'thsv.ad-break-companion', eventType: 'addon.thsv.ad-break-companion.started', sourceEventType: 'TwitchAdRun',
+      relayId: 'twitch-ad-run-1', relayToken: '', payload: { adLength: 90, adLengthMs: 90_000, adScheduled: true },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(started))).toMatchObject({ eventType: started.eventType, payload: started.payload });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...started, payload: { ...started.payload, adLengthMs: 0 } }))).toThrow('relay token');
+
+    const preview = {
+      moduleId: 'thsv.ad-break-companion', eventType: 'addon.thsv.ad-break-companion.control', sourceEventType: 'THSV Addon - Ad Break Companion - Preview Upcoming',
+      relayId: 'ad-preview-1', relayToken: '', simulated: true, payload: { action: 'preview-upcoming', seconds: 60 },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(preview))).toMatchObject({ payload: preview.payload });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...preview, simulated: false }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...preview, payload: { action: 'preview-upcoming', seconds: 30 } }))).toThrow('relay token');
+
+    const activePreview = {
+      ...preview, sourceEventType: 'THSV Addon - Ad Break Companion - Preview Active', relayId: 'ad-preview-active-1',
+      payload: { action: 'preview-active', seconds: 90 },
+    };
+    expect(normalizeStreamerBotAddOnRelay(relay(activePreview))).toMatchObject({ payload: activePreview.payload });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...activePreview, sourceEventType: preview.sourceEventType }))).toThrow('relay token');
+  });
+
   it('permits only exact Creator Controls profile request actions', () => {
     const control = {
       moduleId: 'thsv.creator-controls', eventType: 'addon.thsv.creator-controls.control', relayToken: '',
@@ -194,9 +226,11 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...resetCrown, payload: { action: 'reset-crown', force: true } }))).toThrow('relay token');
   });
 
-  it('permits only exact action-matched Raid Scout creator controls', () => {
-    for (const action of ['suggest', 'confirm', 'cancel']) {
-      const sourceEventType = `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
+  it('permits only exact action-matched Raid Scout creator controls and provider stop confirmation', () => {
+    for (const action of ['suggest', 'confirm', 'cancel', 'broadcast-stopped']) {
+      const sourceEventType = action === 'broadcast-stopped'
+        ? 'THSV Addon - Raid Scout - Broadcast Stopped'
+        : `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
       expect(normalizeStreamerBotAddOnRelay(relay({
         moduleId: 'thsv.raid-scout',
         eventType: 'addon.thsv.raid-scout.control',

@@ -19,8 +19,10 @@ self.onconnect = (connection) => {
     port.close();
     if (ports.size === 0) {
       clearTimeout(reconnectTimer);
-      socket?.close(1000, 'No overlay sections remain');
+      const closingSocket = socket;
       socket = undefined;
+      setTransportState('reconnecting');
+      closingSocket?.close(1000, 'No overlay sections remain');
     }
   });
   connect();
@@ -29,14 +31,19 @@ self.onconnect = (connection) => {
 function connect() {
   if (ports.size === 0 || socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return;
   const protocol = self.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  socket = new WebSocket(`${protocol}//${self.location.host}/overlay/events`);
-  socket.addEventListener('open', () => setTransportState('live'));
-  socket.addEventListener('message', (message) => {
+  const candidate = new WebSocket(`${protocol}//${self.location.host}/overlay/events`);
+  socket = candidate;
+  candidate.addEventListener('open', () => {
+    if (socket === candidate) setTransportState('live');
+  });
+  candidate.addEventListener('message', (message) => {
+    if (socket !== candidate) return;
     let event;
     try { event = JSON.parse(message.data); } catch { return; }
     for (const port of ports) port.postMessage(event);
   });
-  socket.addEventListener('close', () => {
+  candidate.addEventListener('close', () => {
+    if (socket !== candidate) return;
     socket = undefined;
     setTransportState('reconnecting');
     clearTimeout(reconnectTimer);

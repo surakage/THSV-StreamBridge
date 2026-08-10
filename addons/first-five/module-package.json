@@ -56,7 +56,7 @@
       "Import the separate First Five Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that action for this add-on.",
       "Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.",
-      "Choose five Twitch IDs and five Kick IDs in placement order, then create the configured no-response command for YouTube and TikTok."
+      "Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube and TikTok command registers automatically after restart."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall."
@@ -76,18 +76,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 23552,
-      "sha256": "5ce7cfe70961cfb5730c69fe1cf1f1871f1a950b860a0eedb538d81d7f401286"
+      "size": 25339,
+      "sha256": "8cffba9b296cc2d985f8ffa5c0843286defe0b4fd9b4e2d78874ba3a1e2365b9"
     },
     {
       "path": "schemas/config.json",
-      "size": 5106,
-      "sha256": "64c73ab17a8ca6af1be8b6b341a6ede0d21630a44015c2a561380b7cddc024bf"
+      "size": 5443,
+      "sha256": "7f692f31b000fbef74f88a3f353310acda7618534b5e25371e2d483f6fc65c14"
     },
     {
       "path": "ui/settings.json",
-      "size": 3917,
-      "sha256": "bb142b161401a6fb9b01cdc36a3a25547813200a586aebf2cac61e7b203d2027"
+      "size": 4176,
+      "sha256": "52bcf78d74f9e6db58a5c0d2e9e85a918cbdb9746cf7279fe675f548af5d833d"
     },
     {
       "path": "README.md",

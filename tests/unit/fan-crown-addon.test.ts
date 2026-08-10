@@ -157,7 +157,7 @@ describe('Fan Crown add-on', () => {
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.fan-crown.card.show', expect.objectContaining({
       imageUrl: 'https://example.com/avatar.png',
       style: expect.objectContaining({ backgroundColor: '#201335', fontFamily: 'display' }),
-    }));
+    }), { lane: 'foreground' });
   });
 
   it('tells the controller not to fulfill a Twitch redemption that already skipped the queue', async () => {

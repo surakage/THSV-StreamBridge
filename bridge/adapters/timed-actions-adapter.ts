@@ -18,7 +18,7 @@ interface TimerState {
   platformBags?: Record<string, { remaining: number[]; lastSelected?: number; cycle: number; pending?: { scheduledAt: string; index: number } }>;
 }
 interface TimedActionState {
-  session: { active: boolean; paused: boolean; startedAt: string; pausedAt?: string };
+  session: { active: boolean; paused: boolean; startedAt: string; livePlatforms: string[]; pausedAt?: string };
   timers: Record<string, TimerState>;
 }
 interface Selection {
@@ -27,6 +27,8 @@ interface Selection {
 }
 const MAX_TIMEOUT_MS = 2_147_000_000;
 const MAX_CHAT_ACTIVITY_ENTRIES = 10_000;
+const LEGACY_ACTIVE_SESSION_PLATFORM = '__restored-active-session__';
+const OPERATOR_ACTIVE_SESSION_PLATFORM = '__operator-started-session__';
 
 // Raised when a wizard test targets a timer the RUNNING bridge does not know about —
 // typically a staged-but-uncommitted timer, or a committed one awaiting a restart.
@@ -35,7 +37,7 @@ export class UnknownTimedActionError extends Error {}
 export class TimedActionsAdapter extends ManagedAdapter {
   private context: AdapterContext | undefined;
   private readonly timers = new Map<string, NodeJS.Timeout>();
-  private stateData: TimedActionState = { session: { active: false, paused: false, startedAt: '' }, timers: {} };
+  private stateData: TimedActionState = { session: { active: false, paused: false, startedAt: '', livePlatforms: [] }, timers: {} };
   private writeChain: Promise<void> = Promise.resolve();
   private stopping = false;
   private readonly livePlatforms = new Set<string>();
@@ -57,8 +59,21 @@ export class TimedActionsAdapter extends ManagedAdapter {
     if (!this.config.enabled || !this.config.inputEnabled) { this.state = 'disabled'; return; }
     this.context = context; this.stopping = false;
     this.stateData = await loadState(this.timedActions.stateFile);
+    this.livePlatforms.clear();
+    if (this.stateData.session.active || this.stateData.session.livePlatforms.length > 0) {
+      // Platform offline events are not guaranteed to arrive when Streamer.bot, the bridge, or
+      // the broadcast application closes first. Persisted live markers therefore cannot be
+      // treated as proof that a later bridge process is still live. Keep timer/shuffle progress,
+      // but require a fresh real stream.online event before arming a new process.
+      context.logger.info('Timed action session cleared on startup pending a fresh live signal', {
+        adapter: this.name,
+        previousSessionStartedAt: this.stateData.session.startedAt,
+        previousLivePlatforms: this.stateData.session.livePlatforms,
+      });
+      this.stateData.session = { active: false, paused: false, startedAt: '', livePlatforms: [] };
+      await this.persist();
+    }
     this.state = 'connected'; this.lastError = undefined;
-    if (this.stateData.session.active && !this.stateData.session.paused) for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
     context.logger.info('Timed actions adapter started', { adapter: this.name, sessionStartedAt: this.stateData.session.startedAt, enabledDefinitions: this.timedActions.definitions.filter((item) => item.enabled).length });
   }
 
@@ -72,15 +87,22 @@ export class TimedActionsAdapter extends ManagedAdapter {
 
   public async control(operation: 'start' | 'stop' | 'pause' | 'resume'): Promise<Readonly<Record<string, unknown>>> {
     if (operation === 'start') {
+      if (this.stateData.session.active && !this.stateData.session.paused) {
+        if (this.livePlatforms.size === 0) this.livePlatforms.add(OPERATOR_ACTIVE_SESSION_PLATFORM);
+        this.stateData.session.livePlatforms = [...this.livePlatforms];
+        await this.persist();
+        return this.controlStatus();
+      }
       this.clearTimers();
-      this.stateData.session = { active: true, paused: false, startedAt: new Date().toISOString() };
+      if (this.livePlatforms.size === 0) this.livePlatforms.add(OPERATOR_ACTIVE_SESSION_PLATFORM);
+      this.stateData.session = { active: true, paused: false, startedAt: new Date().toISOString(), livePlatforms: [...this.livePlatforms] };
       for (const timer of Object.values(this.stateData.timers)) {
         delete timer.lastScheduledAt; delete timer.nextScheduledAt; delete timer.nextIntervalMinutes; delete timer.occurrence; delete timer.pending;
       }
       await this.persist();
       for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
     } else if (operation === 'stop') {
-      this.clearTimers(); this.stateData.session = { active: false, paused: false, startedAt: '' }; await this.persist();
+      this.clearTimers(); this.livePlatforms.clear(); this.stateData.session = { active: false, paused: false, startedAt: '', livePlatforms: [] }; await this.persist();
     } else if (operation === 'pause' && this.stateData.session.active && !this.stateData.session.paused) {
       this.clearTimers(); this.stateData.session.paused = true; this.stateData.session.pausedAt = new Date().toISOString(); await this.persist();
     } else if (operation === 'resume' && this.stateData.session.active && this.stateData.session.paused) {
@@ -96,10 +118,16 @@ export class TimedActionsAdapter extends ManagedAdapter {
     return this.controlStatus();
   }
 
-  public controlStatus(): Readonly<Record<string, unknown>> { return { ...this.stateData.session, armedTimers: this.timers.size, activityEntries: this.chatActivity.length - this.chatActivityHead }; }
+  public controlStatus(): Readonly<Record<string, unknown>> { return { ...this.stateData.session, livePlatforms: [...this.livePlatforms], armedTimers: this.timers.size, activityEntries: this.chatActivity.length - this.chatActivityHead }; }
   public observe(event: NormalizedEvent): void {
-    if (event.eventType === 'stream.online') this.livePlatforms.add(event.platform);
-    if (event.eventType === 'stream.offline') this.livePlatforms.delete(event.platform);
+    if ((event.eventType === 'stream.online' || event.eventType === 'stream.offline') && !event.metadata.simulated) {
+      this.livePlatforms.delete(LEGACY_ACTIVE_SESSION_PLATFORM);
+      this.livePlatforms.delete(OPERATOR_ACTIVE_SESSION_PLATFORM);
+      if (event.eventType === 'stream.online') this.livePlatforms.add(event.platform);
+      else this.livePlatforms.delete(event.platform);
+      this.stateData.session.livePlatforms = [...this.livePlatforms];
+      void this.persist().catch((error: unknown) => this.context?.logger.warn('Timed action live-platform state could not be persisted', { error }));
+    }
     if (event.eventType === 'chat.message' && this.activityRetentionMinutes > 0) {
       const now = Date.now();
       this.chatActivity.push({ at: now, platform: event.platform });
@@ -232,7 +260,8 @@ export class TimedActionsAdapter extends ManagedAdapter {
   }
 
   private gateReason(definition: TimedActionDefinition): string | undefined {
-    if (definition.gates.requireLive && this.livePlatforms.size === 0) return 'stream-offline';
+    const actualLivePlatforms = [...this.livePlatforms].filter((platform) => platform !== OPERATOR_ACTIVE_SESSION_PLATFORM && platform !== LEGACY_ACTIVE_SESSION_PLATFORM);
+    if (definition.gates.requireLive && actualLivePlatforms.length === 0) return 'stream-offline';
     if (definition.gates.platforms.length > 0 && !definition.gates.platforms.some((platform) => this.livePlatforms.has(platform))) return 'target-platform-offline';
     if (definition.gates.scenes.length > 0 && (this.currentScene === undefined || !definition.gates.scenes.includes(this.currentScene))) return this.currentScene === undefined ? 'scene-unavailable' : 'scene-mismatch';
     const { minimumMessages, windowMinutes } = definition.gates.activity;
@@ -305,9 +334,14 @@ async function loadState(path: string): Promise<TimedActionState> {
   try {
     const value = JSON.parse(await readFile(path, 'utf8')) as Omit<Partial<TimedActionState>, 'session'> & { session?: Partial<TimedActionState['session']> };
     if (value.session !== undefined && value.session.paused === undefined) value.session.paused = false;
+    if (value.session !== undefined && !Array.isArray(value.session.livePlatforms)) {
+      // Older state files persisted the active session but not its platform set. Preserve the
+      // generic live gate until the next real lifecycle event replaces this migration marker.
+      value.session.livePlatforms = value.session.active === true ? [LEGACY_ACTIVE_SESSION_PLATFORM] : [];
+    }
     if (value.session !== undefined && value.timers !== undefined) return value as TimedActionState;
-    return { session: { active: false, paused: false, startedAt: '' }, timers: {} };
-  } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { session: { active: false, paused: false, startedAt: '' }, timers: {} }; throw error; }
+    return { session: { active: false, paused: false, startedAt: '', livePlatforms: [] }, timers: {} };
+  } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { session: { active: false, paused: false, startedAt: '', livePlatforms: [] }, timers: {} }; throw error; }
 }
 
 export function isTimedActionsController(value: unknown): value is TimedActionsAdapter { return value instanceof TimedActionsAdapter; }

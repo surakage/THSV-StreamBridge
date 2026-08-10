@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Provides a privacy-bounded allowlisted Windows process probe and creator-controlled Apply/Dismiss actions for Category Pilot.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "9422099b-df85-4d50-99c0-87fcbc120814",

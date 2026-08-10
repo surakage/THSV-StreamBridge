@@ -31,7 +31,10 @@ describe('AddOnCapabilityBroker', () => {
     const allowed = broker.contextFor({ moduleId: 'sample.allowed-cache', permissions: ['media.cache'], approvedActionIds: [] });
     await expect(allowed.mediaCache.fetch({ sourceUrl: 'https://evil.example/a.mp4', cacheKey: 'a', ttlSeconds: 3600, maximumBytes: 5_000_000 })).rejects.toThrow('only Twitch CDN');
     await expect(allowed.mediaCache.fetch({ sourceUrl: 'https://production.assets.clips.twitchcdn.net/a.mp4', cacheKey: 'a', ttlSeconds: 3600, maximumBytes: 5_000_000 })).resolves.toMatchObject({ url: '/overlay/cache/a.mp4', bytes: 100 });
-    expect(cache).toHaveBeenCalledOnce();
+    await expect(allowed.mediaCache.fetch({ sourceUrl: 'https://clips-media-assets2.twitch.tv/b.mp4', cacheKey: 'b', ttlSeconds: 3600, maximumBytes: 5_000_000 })).resolves.toMatchObject({ url: '/overlay/cache/a.mp4', bytes: 100 });
+    await expect(allowed.mediaCache.fetch({ sourceUrl: 'https://d1ndex63qxojbr.cloudfront.net/nauth/example/landscape/avc/720/index.mp4', cacheKey: 'c', ttlSeconds: 3600, maximumBytes: 5_000_000 })).resolves.toMatchObject({ url: '/overlay/cache/a.mp4', bytes: 100 });
+    await expect(allowed.mediaCache.fetch({ sourceUrl: 'https://attacker.cloudfront.net/a.mp4', cacheKey: 'd', ttlSeconds: 3600, maximumBytes: 5_000_000 })).rejects.toThrow('only Twitch CDN');
+    expect(cache).toHaveBeenCalledTimes(3);
   });
 
   it('denies every unsupported operation without exposing payloads in diagnostics', async () => {
@@ -174,6 +177,15 @@ describe('AddOnCapabilityBroker', () => {
     const context = broker.contextFor({ moduleId: 'sample.overlay-live', permissions: ['overlay.publish'], approvedActionIds: [] });
     await context.overlay.publish('sample.overlay-live.card.show', { title: 'Safe title', durationMs: 5_000 });
     expect(publish).toHaveBeenCalledWith('sample.overlay-live', 'sample.overlay-live.card.show', { title: 'Safe title', durationMs: 5_000 });
+  });
+
+  it('validates and forwards an explicit overlay presentation lane', async () => {
+    const publish = vi.fn(async () => undefined);
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { publishOverlay: publish });
+    const context = broker.contextFor({ moduleId: 'sample.overlay-lanes', permissions: ['overlay.publish'], approvedActionIds: [] }, {});
+    await context.overlay.publish('sample.overlay-lanes.status.update', { title: 'Queued safely' }, { lane: 'foreground' });
+    expect(publish).toHaveBeenCalledWith('sample.overlay-lanes', 'sample.overlay-lanes.status.update', { title: 'Queued safely' }, { lane: 'foreground' });
+    await expect(context.overlay.publish('sample.overlay-lanes.status.update', {}, { lane: 'unknown' as 'foreground' })).rejects.toThrow();
   });
 
   it('subscribes to scoped overlay lifecycle reports and removes listeners during cleanup', async () => {

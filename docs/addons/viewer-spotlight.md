@@ -17,12 +17,12 @@ Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Sc
 
 1. Install and enable Viewer Foundation and Community Analytics first.
 2. Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.
-3. Create Twitch and Kick Viewer Spotlight rewards, then create the card command through Command Sync for YouTube and TikTok with no generated response.
+3. Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube and TikTok card command. It registers automatically after restart.
 4. Add /overlay/addons/thsv.viewer-spotlight as a browser source.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Viewer Spotlight`
 

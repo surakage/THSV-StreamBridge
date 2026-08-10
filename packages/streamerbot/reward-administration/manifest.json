@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Creator-approved Twitch reward controls that compile in Streamer.bot v1.0.5-alpha.31; live state-changing behavior remains intentionally untested, and Kick mutations are unavailable.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Reward Administration",
     "group": "THSV StreamBridge",

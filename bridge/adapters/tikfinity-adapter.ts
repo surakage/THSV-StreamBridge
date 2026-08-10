@@ -15,6 +15,9 @@ const relaySchema = z.object({
   userId: z.string().max(256).default(''),
   username: z.string().max(256).default(''),
   nickname: z.string().max(256).default(''),
+  fromConnectedAccount: z.boolean().default(false),
+  hostUsername: z.string().max(256).default(''),
+  botUserName: z.string().max(256).default(''),
   profilePictureUrl: z.string().max(2_048).default(''),
   commandParams: z.string().max(2_000).default(''),
   giftId: z.string().max(256).default(''),
@@ -57,9 +60,10 @@ export class TikfinityAdapter extends ManagedAdapter {
     if (message['type'] !== 'thsv.tikfinity' || this.context === undefined) return;
     try {
       const normalized = normalizeTikfinityRelay(message, this.name);
-      const event = normalized.eventType === 'engagement.milestone' && normalized.payload['metric'] === 'likes' ? this.likeMilestone(normalized, message) : normalized;
-      if (event === undefined) return;
-      await this.context.emit(event, Buffer.byteLength(JSON.stringify(message)));
+      const events = normalized.eventType === 'engagement.milestone' && normalized.payload['metric'] === 'likes' ? this.likeMilestones(normalized, message) : [normalized];
+      if (events.length === 0) return;
+      const byteLength = Buffer.byteLength(JSON.stringify(message));
+      for (const event of events) await this.context.emit(event, byteLength);
       this.lastEventAt = new Date().toISOString();
       this.lastError = undefined;
     } catch (error) {
@@ -68,7 +72,7 @@ export class TikfinityAdapter extends ManagedAdapter {
     }
   }
 
-  private likeMilestone(event: NormalizedEvent, message: Readonly<Record<string, unknown>>): NormalizedEvent | undefined {
+  private likeMilestones(event: NormalizedEvent, message: Readonly<Record<string, unknown>>): NormalizedEvent[] {
     const absolute = boundedNonNegative(message['totalLikeCount']);
     if (absolute !== undefined) {
       if (absolute < this.likeTotal) this.lastLikeMilestone = 0;
@@ -76,10 +80,19 @@ export class TikfinityAdapter extends ManagedAdapter {
     } else {
       this.likeTotal += boundedPositive(message['likeCount']) ?? 1;
     }
-    const milestone = Math.floor(this.likeTotal / 100) * 100;
-    if (milestone < 100 || milestone <= this.lastLikeMilestone) return undefined;
-    this.lastLikeMilestone = milestone;
-    return { ...event, payload: { ...event.payload, value: milestone } };
+    const latestMilestone = Math.floor(this.likeTotal / 100) * 100;
+    if (latestMilestone < 100 || latestMilestone <= this.lastLikeMilestone) return [];
+    const milestones: NormalizedEvent[] = [];
+    for (let milestone = Math.max(100, this.lastLikeMilestone + 100); milestone <= latestMilestone; milestone += 100) {
+      milestones.push({
+        ...event,
+        eventId: `${event.eventId}-milestone-${String(milestone)}`,
+        source: { ...event.source, eventId: `${event.source.eventId ?? event.eventId}-milestone-${String(milestone)}` },
+        payload: { ...event.payload, value: milestone },
+      });
+    }
+    this.lastLikeMilestone = latestMilestone;
+    return milestones;
   }
 }
 
@@ -100,7 +113,7 @@ export function normalizeTikfinityRelay(input: unknown, channelName = 'tiktok'):
     schemaVersion: '1.0.0' as const,
     eventId: `tikfinity-${relay.kind}-${relay.relayId}`,
     platform: 'tiktok',
-    source: { adapter: 'tikfinity-streamerbot', ...(clean(relay.providerEventId) === '' ? {} : { eventId: clean(relay.providerEventId) }), eventName: `TikFinity.${relay.kind}` },
+    source: { adapter: 'tikfinity-streamerbot', eventId: clean(relay.providerEventId) || relay.relayId, eventName: `TikFinity.${relay.kind}` },
     receivedAt: relay.receivedAt,
     channel: { name: channelName },
     user,
@@ -112,7 +125,12 @@ export function normalizeTikfinityRelay(input: unknown, channelName = 'tiktok'):
   if (relay.kind === 'chat') {
     const message = clean(relay.commandParams);
     if (message === '') throw new Error('TikFinity chat relay requires commandParams.');
-    return { ...common, eventType: 'chat.message', payload: { message } };
+    const connectedAccountNames = [...new Set([clean(relay.hostUsername), clean(relay.botUserName)].filter(Boolean))];
+    return { ...common, eventType: 'chat.message', payload: {
+      message,
+      ...(connectedAccountNames.length === 0 ? {} : { connectedAccountNames }),
+      ...(relay.fromConnectedAccount ? { fromConnectedAccount: true } : {}),
+    } };
   }
   if (relay.kind === 'follow') return { ...common, eventType: 'channel.follow', payload: {} };
   if (relay.kind === 'gift') {

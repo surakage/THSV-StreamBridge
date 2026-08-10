@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Settles Twitch Viewer Spotlight rewards and optionally sends creator-approved Discord snapshots.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "764a4658-e7fc-4b25-a792-e262759c76b7",

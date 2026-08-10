@@ -25,7 +25,7 @@ Maintains one bounded multi-platform subathon countdown that decreases over time
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.32`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Subathon Timer`
 

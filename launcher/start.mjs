@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, mkdirSync, openSync, rmSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,7 @@ const pidPath = join(runtimeRoot, 'streambridge.pid');
 const launchLockPath = join(runtimeRoot, 'streambridge.launch.lock');
 const configPath = join(dataRoot, 'configuration', 'bridge.local.json');
 const tokenPath = join(dataRoot, 'secrets', 'control-token');
+const commandDirectoryTokenPath = join(dataRoot, 'secrets', 'command-directory-publish-token.txt');
 const openWizard = process.argv.includes('--open-wizard');
 const waitOnly = process.argv.includes('--wait');
 
@@ -31,18 +32,21 @@ mkdirSync(join(dataRoot, 'logs'), { recursive: true });
 mkdirSync(runtimeRoot, { recursive: true });
 const stdout = openSync(join(dataRoot, 'logs', 'service.stdout.log'), 'a');
 const stderr = openSync(join(dataRoot, 'logs', 'service.stderr.log'), 'a');
+const childEnvironment = {
+  ...process.env,
+  THSV_STREAMBRIDGE_CONFIG: configPath,
+  THSV_STREAMBRIDGE_DATA_ROOT: dataRoot,
+  THSV_STREAMBRIDGE_ADDONS_ROOT: join(installRoot, 'addons', 'packages'),
+  THSV_STREAMBRIDGE_ADDON_STATE_ROOT: join(installRoot, 'addons', 'state'),
+};
+if (existsSync(commandDirectoryTokenPath)) childEnvironment['THSV_COMMAND_DIRECTORY_PUBLISH_TOKEN_FILE'] = commandDirectoryTokenPath;
+else delete childEnvironment['THSV_COMMAND_DIRECTORY_PUBLISH_TOKEN_FILE'];
 const child = spawn(process.execPath, [entrypoint], {
   cwd: appRoot,
   detached: true,
   windowsHide: true,
   stdio: ['ignore', stdout, stderr],
-  env: {
-    ...process.env,
-    THSV_STREAMBRIDGE_CONFIG: configPath,
-    THSV_STREAMBRIDGE_DATA_ROOT: dataRoot,
-    THSV_STREAMBRIDGE_ADDONS_ROOT: join(installRoot, 'addons', 'packages'),
-    THSV_STREAMBRIDGE_ADDON_STATE_ROOT: join(installRoot, 'addons', 'state'),
-  },
+  env: childEnvironment,
 });
 closeSync(stdout); closeSync(stderr);
 child.unref();
@@ -53,7 +57,12 @@ try { await waitForHealth(baseUrl, child.pid, 15_000); }
 catch (error) { await rm(pidPath, { force: true }); throw error; }
 
 if (openWizard) {
-  const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', `${baseUrl}/wizard/`], { detached: true, windowsHide: true, stdio: 'ignore' });
+  const token = (await readFile(tokenPath, 'utf8')).trim();
+  const ticketResponse = await fetch(`${baseUrl}/wizard/api/unlock-tickets`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(3_000) });
+  if (!ticketResponse.ok) throw new Error(`The local wizard could not create a secure unlock link (${String(ticketResponse.status)}).`);
+  const ticketResult = await ticketResponse.json();
+  if (typeof ticketResult?.ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/u.test(ticketResult.ticket)) throw new Error('The local wizard returned an invalid unlock link.');
+  const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', `${baseUrl}/wizard/#unlock=${ticketResult.ticket}`], { detached: true, windowsHide: true, stdio: 'ignore' });
   opener.unref();
 }
 if (!waitOnly) process.stdout.write(`THSV StreamBridge ${record.activeVersion} started at ${baseUrl}\n`);

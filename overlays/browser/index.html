@@ -4,17 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>THSV Browser Overlay Hub</title>
-  <link rel="stylesheet" href="/overlay/styles-1.3.6.css">
+  <link rel="stylesheet" href="/overlay/styles-1.4.3.css?v=1.4.4">
 </head>
 <body>
   <main class="overlay" aria-live="polite">
     <section id="alerts" class="alerts" aria-label="Stream alerts"></section>
     <section class="chat-shell" aria-label="Public multistream chat">
-      <header><span id="brand-label"></span></header>
-      <ol id="chat" class="chat"></ol>
+      <header class="chat-header">
+        <span class="chat-heading"><strong id="dock-title">Village Multichat</strong><small id="brand-label"></small></span>
+        <span id="dock-account" class="dock-account">Creator replies</span>
+      </header>
+      <div class="chat-feed"><ol id="chat" class="chat"></ol></div>
+      <form id="dock-composer" class="dock-composer" hidden>
+        <div class="dock-compose-row">
+          <label class="dock-target-label" for="dock-target">Reply to</label>
+          <select id="dock-target" aria-label="Reply destination"></select>
+          <span id="dock-character-count" class="dock-character-count">0 / 500</span>
+        </div>
+        <div class="dock-message-row">
+          <textarea id="dock-message" rows="2" maxlength="500" placeholder="Write a message as your creator account…" aria-label="Chat reply"></textarea>
+          <button id="dock-send" type="submit">Send</button>
+        </div>
+        <p id="dock-send-status" class="dock-send-status" role="status" aria-live="polite">Choose a destination, then send from your connected creator account.</p>
+      </form>
     </section>
     <strong id="status" class="connection-status" data-state="reconnecting">OFFLINE</strong>
   </main>
-  <script src="/overlay/app-1.4.7.js" type="module"></script>
+  <script src="/overlay/app-1.5.2.js?v=1.5.3-reset2" type="module"></script>
 </body>
 </html>

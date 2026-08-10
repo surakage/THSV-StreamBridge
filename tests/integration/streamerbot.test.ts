@@ -159,6 +159,50 @@ describe('Streamer.bot adapter', () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
+  it('dispatches an approved timed target directly with the validated Multi-Timed argument contract', async () => {
+    const config = await testConfig(); const port = await unusedPort();
+    const requests: Array<{ action?: { id?: string; name?: string }; args?: Record<string, unknown> }> = [];
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => {
+        const request = JSON.parse(Buffer.from(data as Buffer).toString('utf8')) as { id: string; request: string; action?: { id?: string; name?: string }; args?: Record<string, unknown> };
+        if (request.request !== 'DoAction') return;
+        requests.push(request);
+        socket.send(JSON.stringify({ id: request.id, status: 'ok' }));
+      });
+    });
+    const adapter = new StreamerBotAdapter({ ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, acknowledgementTimeoutMs: 500, reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 } }, silentLogger);
+    await adapter.start();
+    await expect.poll(() => adapter.status()['state'], { timeout: 2_000 }).toBe('connected');
+    const base = await fixture('system-timed.json');
+    const actionId = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
+    const timedEvent: NormalizedEvent = {
+      ...base,
+      payload: {
+        ...base.payload,
+        targetProvider: 'run-existing-action', targetActionId: actionId, targetActionName: 'THSV StreamBridge - Send Timed Message', targetActionApproved: true,
+        deliveryPlatforms: ['twitch', 'tiktok'],
+      },
+      metadata: { ...base.metadata, bridgeSequence: 12 },
+    };
+    await adapter.deliver(timedEvent);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      action: { id: actionId },
+      args: {
+        multiTimedValid: true,
+        multiTimedTimerId: 'hydration-reminder',
+        multiTimedSelectedMessage: 'Remember to drink some water!',
+        multiTimedDeliveryPlatforms: '["twitch","tiktok"]',
+        multiTimedSimulated: true,
+      },
+    });
+    expect(requests[0]?.action?.name).toBeUndefined();
+    await adapter.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
   it('cancels a pending approved action request without closing the shared WebSocket', async () => {
     const config = await testConfig(); const port = await unusedPort();
     const server = new WebSocketServer({ host: '127.0.0.1', port });
@@ -210,7 +254,7 @@ describe('Streamer.bot adapter', () => {
       reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
     }, silentLogger, 'streamerbot', relay);
     const server = new WebSocketServer({ host: '127.0.0.1', port });
-    let subscription: { readonly events?: { readonly General?: readonly string[]; readonly Streamlabs?: readonly string[] } } | undefined;
+    let subscription: { readonly events?: { readonly General?: readonly string[]; readonly Streamlabs?: readonly string[]; readonly speechToText?: readonly string[] } } | undefined;
     server.on('connection', (socket) => {
       socket.send(JSON.stringify({ request: 'Hello', info: {} }));
       socket.on('message', (data) => {
@@ -231,6 +275,7 @@ describe('Streamer.bot adapter', () => {
     await expect.poll(() => received.length).toBe(5);
     expect(subscription?.events?.General).toEqual(['Custom']);
     expect(subscription?.events?.Streamlabs).toEqual(['Donation']);
+    expect(subscription?.events?.speechToText).toEqual(['Dictation']);
     expect(received[0]).toMatchObject({ type: 'thsv.tikfinity', kind: 'follow' });
     expect(received[1]).toMatchObject({ type: 'thsv.platform', platform: 'twitch' });
     expect(received[2]).toMatchObject({ type: 'thsv.addon', moduleId: 'sample.random-clip-player' });

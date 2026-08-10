@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 declare global {
@@ -9,15 +10,35 @@ declare global {
 
 const token = 'playwright-control-token-with-32-characters';
 
+function oneSecondWaveFile(): Buffer {
+  const sampleRate = 44_100;
+  const samples = Buffer.alloc(sampleRate * 2);
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + samples.length, 4);
+  header.write('WAVEfmt ', 8);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(samples.length, 40);
+  return Buffer.concat([header, samples]);
+}
+
 async function fixture(name: string): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(`tests/fixtures/${name}`, 'utf8')) as Record<string, unknown>;
 }
 
 async function simulate(request: APIRequestContext, input: Record<string, unknown>, suffix: string): Promise<void> {
   const source = input['source'] as Record<string, unknown>;
+  const eventId = `${String(input['eventId'])}-${randomUUID()}-${suffix}`;
   const response = await request.post('/simulate', {
     headers: { authorization: `Bearer ${token}` },
-    data: { ...input, eventId: `${String(input['eventId'])}-${suffix}`, source: { ...source, eventId: `${String(source['eventId'])}-${suffix}` } },
+    data: { ...input, eventId, source: { ...source, eventId } },
   });
   expect(response.status()).toBe(202);
 }
@@ -62,6 +83,52 @@ async function publishAddOnEvent(page: Page, moduleId: string, topic: string, pa
   }), { moduleId, topic, payload });
 }
 
+test('Ad Break Companion uses a compact bounded browser source and fades away cleanly', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/ad-break', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 480, height: 180 });
+  await page.goto('/overlay/ad-break');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await publishAddOnEvent(page, 'thsv.ad-break-companion', 'thsv.ad-break-companion.timer.update', {
+    variant: 'ad-break', phase: 'scheduled', label: 'AD BREAK IN', remainingSeconds: 60, maximumSeconds: 60,
+    remainingText: '01:00', running: true, live: true, badgeText: 'UPCOMING', lastReason: 'A quick break is coming up',
+    contextText: 'Twitch - 3 snoozes available', warning: false, critical: false,
+    preview: true,
+    style: { fontFamily: 'broadcast', backgroundMode: 'glass', backgroundColor: '#101722', backgroundOpacity: 0.9, accentColor: '#f4c95d', textColor: '#ffffff', mutedColor: '#d9e2ef', warningColor: '#f4c95d', criticalColor: '#ff6b7d', liveColor: '#f4c95d', borderColor: '#f4c95d', showProgressBar: true },
+  });
+  const shell = page.locator('#timer-shell');
+  await expect(shell).toBeVisible();
+  await expect(shell).toHaveAttribute('data-variant', 'ad-break');
+  await expect(page.locator('#timer-time')).toHaveText('01:00');
+  const layout = await shell.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return { width: bounds.width, height: bounds.height, inside: bounds.left >= 0 && bounds.top >= 0 && bounds.right <= innerWidth && bounds.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 };
+  });
+  expect(layout).toMatchObject({ inside: true, bounded: true });
+  expect(layout.width).toBeLessThanOrEqual(440);
+  expect(layout.height).toBeLessThanOrEqual(160);
+  await publishAddOnEvent(page, 'thsv.ad-break-companion', 'thsv.ad-break-companion.timer.hide', {});
+  await expect(shell).toBeVisible();
+  await publishAddOnEvent(page, 'thsv.ad-break-companion', 'thsv.ad-break-companion.timer.update', {
+    variant: 'ad-break', phase: 'active', label: 'AD BREAK', remainingSeconds: 90, maximumSeconds: 90,
+    remainingText: '01:30', running: true, live: true, badgeText: 'IN PROGRESS', lastReason: 'The stream will be right back',
+    contextText: 'Twitch - scheduled break', warning: false, critical: false,
+    style: { fontFamily: 'broadcast', backgroundMode: 'glass', backgroundColor: '#101722', backgroundOpacity: 0.9, accentColor: '#f4c95d', textColor: '#ffffff', mutedColor: '#d9e2ef', warningColor: '#f4c95d', criticalColor: '#ff6b7d', liveColor: '#f4c95d', borderColor: '#f4c95d', showProgressBar: true },
+  });
+  await expect(page.locator('#timer-time')).toHaveText('01:30');
+  const activeLayout = await shell.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return { width: bounds.width, height: bounds.height, inside: bounds.left >= 0 && bounds.top >= 0 && bounds.right <= innerWidth && bounds.bottom <= innerHeight };
+  });
+  expect(activeLayout).toMatchObject({ inside: true });
+  expect(activeLayout.width).toBeLessThanOrEqual(440);
+  expect(activeLayout.height).toBeLessThanOrEqual(160);
+  await publishAddOnEvent(page, 'thsv.ad-break-companion', 'thsv.ad-break-companion.timer.hide', {});
+  await expect(shell).toHaveClass(/timer-fading/u);
+  await expect(shell).toBeHidden({ timeout: 2_000 });
+});
+
 test('wizard stays readable at a narrow width and remembers its selected theme', async ({ page }) => {
   await page.setViewportSize({ width: 420, height: 850 });
   await page.goto('/wizard/');
@@ -78,9 +145,23 @@ test('wizard stays readable at a narrow width and remembers its selected theme',
   await expect(page.locator('#workspace')).toBeVisible();
   await expect(page.locator('[data-panel="overview"] > .page-header')).toBeVisible();
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await page.locator('[data-view="chat-overlay"]').click();
+  const narrowSaveLayout = await page.locator('#chat-overlay-form').evaluate((form) => {
+    const preview = form.querySelector('#chat-preview-card');
+    const saveRow = form.querySelector('.guided-save-row');
+    if (!(preview instanceof HTMLElement) || !(saveRow instanceof HTMLElement)) throw new Error('Chat preview or save row is missing.');
+    const previewBounds = preview.getBoundingClientRect();
+    const saveBounds = saveRow.getBoundingClientRect();
+    return {
+      position: getComputedStyle(saveRow).position,
+      followsPreview: saveBounds.top >= previewBounds.bottom,
+      noHorizontalOverflow: form.scrollWidth <= form.clientWidth + 1,
+    };
+  });
+  expect(narrowSaveLayout).toEqual({ position: 'static', followsPreview: true, noHorizontalOverflow: true });
 });
 
-test('wizard exposes source-gated command templates and explicit per-platform timed-message cards', async ({ page }) => {
+test('wizard exposes automatic commands and one shared non-repeating timed-message list', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/wizard/');
   await page.locator('#token').fill(token);
@@ -88,6 +169,46 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(page.locator('#workspace')).toBeVisible();
 
   await page.locator('[data-view="command-sync"]').click();
+  await expect(page.locator('[data-panel="command-sync"] h2')).toHaveText('Commands');
+  await expect(page.locator('#command-directory-catalog')).toBeVisible();
+  await expect(page.locator('#command-directory-search')).toBeVisible();
+  await page.locator('#expand-command-directory').click();
+  const commandRows = page.locator('.command-center-list article');
+  expect(await commandRows.count()).toBeGreaterThan(0);
+  const commandLayout = await page.locator('.command-directory-card').evaluate((card) => {
+    const catalog = card.querySelector('#command-directory-catalog')?.getBoundingClientRect();
+    const sharing = card.querySelector('.command-directory-sharing')?.getBoundingClientRect();
+    const codes = [...card.querySelectorAll('.command-center-list code')];
+    return {
+      sharingBelowCatalog: Boolean(catalog && sharing && sharing.top >= catalog.bottom),
+      commandsStayOnOneLine: codes.every((code) => getComputedStyle(code).whiteSpace === 'nowrap'),
+      descriptionsAreNotClipped: [...card.querySelectorAll('.command-center-description')].every((description) => {
+        const style = getComputedStyle(description);
+        return style.whiteSpace === 'normal' && style.overflow !== 'hidden' && style.textOverflow !== 'ellipsis';
+      }),
+      noHorizontalOverflow: card.scrollWidth <= card.clientWidth + 1,
+    };
+  });
+  expect(commandLayout).toEqual({ sharingBelowCatalog: true, commandsStayOnOneLine: true, descriptionsAreNotClipped: true, noHorizontalOverflow: true });
+  const firstCommand = await commandRows.first().locator('code').innerText();
+  await page.locator('#command-directory-search').fill(firstCommand);
+  expect(await page.locator('.command-center-list article:not([hidden])').count()).toBeGreaterThan(0);
+  await page.locator('#command-directory-search').fill('');
+  await page.setViewportSize({ width: 620, height: 900 });
+  const narrowCommandLayout = await page.locator('.command-directory-card').evaluate((card) => {
+    const urlGrid = card.querySelector('.command-directory-url-grid');
+    const commandRow = card.querySelector('.command-center-list article');
+    if (!(urlGrid instanceof HTMLElement) || !(commandRow instanceof HTMLElement)) throw new Error('Command directory layout is incomplete.');
+    return {
+      noHorizontalOverflow: card.scrollWidth <= card.clientWidth + 1,
+      urlColumns: getComputedStyle(urlGrid).gridTemplateColumns.split(' ').length,
+      rowColumns: getComputedStyle(commandRow).gridTemplateColumns.split(' ').length,
+    };
+  });
+  expect(narrowCommandLayout).toEqual({ noHorizontalOverflow: true, urlColumns: 1, rowColumns: 1 });
+  await expect(page.locator('[data-panel="command-sync"] .transaction[aria-hidden="true"]')).toBeHidden();
+  await expect(page.locator('#command-sync-state')).toContainText('automatically');
+  if (await page.locator('#new-command-batch-entry').isVisible()) {
   await page.locator('#new-command-batch-entry').click();
   const commandForm = page.locator('#design-command');
   await expect(commandForm.locator('[name="actionName"]')).toBeVisible();
@@ -96,7 +217,7 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[data-guided-section="command-response"]')).toHaveAttribute('open', '');
   await expect(commandForm.locator('[data-guided-section="command-safety"]')).not.toHaveAttribute('open', '');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('platform-message');
-  await expect(commandForm.locator('[name="template"] option')).toHaveCount(31);
+  await expect(commandForm.locator('[name="template"] option')).toHaveCount(28);
   for (const bundled of ['chat-play-control','chat-play-guess','chat-play-answer','chat-play-predict','coin-flip','chat-play-slots','chat-play-roulette','chat-play-rps','chat-play-duel','chat-play-accept','chat-play-decline']) {
     await expect(commandForm.locator(`[name="template"] option[value="${bundled}"]`)).toHaveCount(0);
   }
@@ -112,9 +233,10 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="template"] option[value="lurk"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="timezone"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="commands-help"]')).toHaveCount(1);
-  await expect(commandForm.locator('[name="template"] option[value="magic-8-ball"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="magic-8-ball"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="game-suggestion"]')).toHaveCount(1);
-  await expect(commandForm.locator('[name="template"] option[value="random-joke"]')).toHaveCount(1);
+  await expect(commandForm.locator('[name="template"] option[value="random-joke"]')).toHaveCount(0);
+  await expect(commandForm.locator('[name="template"] option[value="hug"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="prize-wheel"]')).toHaveCount(1);
   await expect(commandForm.locator('[name="template"] option[value="creator-counter"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="custom-counter"]')).toHaveCount(1);
@@ -134,10 +256,6 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await expect(commandForm.locator('[name="actionName"]')).toHaveValue('THSV Command - Socials');
   await expect(commandForm.locator('[name="messageYoutube"]')).toHaveValue(/replace-link/u);
   await expect(commandForm.locator('[name="messageTiktok"]')).toHaveValue(/replace-link/u);
-  await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
-  await commandForm.locator('[name="template"]').selectOption('magic-8-ball');
-  await expect(commandForm.locator('[name="name"]')).toHaveValue('8ball');
-  await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/village signs point to yes/u);
   await expect(commandForm.locator('[name="commandSource"]:checked')).toHaveCount(4);
   await commandForm.locator('[name="template"]').selectOption('game-suggestion');
   await expect(commandForm.locator('[name="name"]')).toHaveValue('suggest');
@@ -170,9 +288,6 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   await commandForm.locator('[name="template"]').selectOption('lurk');
   await expect(commandForm.locator('[name="responseMode"]')).toHaveValue('custom-script');
   await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/thsv\.command\.lurk\.v1/u);
-  await commandForm.locator('[name="template"]').selectOption('hug');
-  await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/Hug leaders/u);
-  await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/counts\.Count >= 2000/u);
   await commandForm.locator('[name="template"]').selectOption('timezone');
   await expect(commandForm.locator('[name="actionName"]')).toHaveValue('THSV Command - Streamer Time');
   await expect(commandForm.locator('[name="customScript"]')).toHaveValue(/TimeZoneInfo\.Local/u);
@@ -184,38 +299,51 @@ test('wizard exposes source-gated command templates and explicit per-platform ti
   const generatedSuggestion = page.locator('#command-generation-result pre');
   await expect(generatedSuggestion).toContainText('CPH.SetGlobalVar(suggestionsKey');
   await expect(generatedSuggestion).toContainText('return userName + " suggested \\"" + suggestion + "\\". It is now on the game list!";');
+  }
 
   await page.locator('[data-view="timed-actions"]').click();
   await page.locator('#new-timed-action-entry').click();
   const timedForm = page.locator('#timed-action-form');
   await expect(timedForm.locator('[name="id"]')).toHaveValue('social-rotation');
-  await expect(timedForm.locator('[name="selectionMode"]')).toHaveValue('platform-shuffle');
+  await expect(timedForm.locator('[name="selectionMode"]')).toHaveValue('shuffle-container');
   await expect(timedForm.locator('[name="actionId"]')).toHaveValue('7d107c29-1127-5bb1-ae8b-6f04d89a71d4');
   await expect(timedForm.locator('[name="deliveryPlatform"]:checked')).toHaveCount(4);
-  await expect(timedForm.locator('details.form-section[open]')).toHaveCount(3);
-  await expect(timedForm.locator('summary').filter({ hasText: 'Optional controls' })).toBeVisible();
-  await expect(page.locator('#timed-platform-message-editor')).toBeVisible();
-  await expect(page.locator('#timed-shared-messages')).toBeHidden();
+  await expect(timedForm.locator('details.form-section[open]')).toHaveCount(1);
+  await expect(timedForm.locator('summary').filter({ hasText: 'Optional safety rules' })).toBeVisible();
+  await expect(timedForm.locator('summary').filter({ hasText: 'Advanced settings' })).toBeVisible();
+  await expect(page.locator('#timed-action-readiness')).toContainText('as one non-repeating rotation');
+  await timedForm.locator('[data-open-timed-section="timing"]').click();
+  await expect(timedForm.locator('[data-disclosure-key="panel:timed-actions:timing"]')).toHaveAttribute('open', '');
+  await timedForm.locator('[data-disclosure-key="panel:timed-actions:timing"] [data-open-timed-section="messages"]').click();
+  await expect(timedForm.locator('[data-disclosure-key="panel:timed-actions:messages"]')).toHaveAttribute('open', '');
+  await expect(page.locator('#timed-platform-message-editor')).toBeHidden();
+  await expect(page.locator('#timed-shared-messages')).toBeVisible();
   await expect(timedForm.locator('[name="template"] option[value="community-links"]')).toHaveCount(1);
   await expect(timedForm.locator('[name="template"] option[value="rules-help"]')).toHaveCount(1);
   await expect(timedForm.locator('[name="template"] option[value="support"]')).toHaveCount(1);
   await expect(timedForm.locator('[name="template"] option[value="schedule"]')).toHaveCount(1);
-  const youtubeMessages = page.locator('[data-timed-platform="youtube"]');
-  await expect(youtubeMessages).toHaveCount(2);
-  await youtubeMessages.nth(0).fill('One message that may visually wrap but remains one card.');
-  await youtubeMessages.nth(1).fill('A second independent YouTube message.');
-  await expect(page.locator('[data-timed-count="youtube-0"]')).toHaveText('56/200');
+  const sharedMessages = timedForm.locator('[name="messages"]');
+  const firstGroupMessages = timedForm.locator('[data-timed-group-messages="0"]');
+  await expect(firstGroupMessages).toHaveValue(/Enjoying the stream/u);
+  await firstGroupMessages.fill('One complete shared message.\nA second shared message.');
+  await timedForm.locator('#add-timed-message-group').click();
+  await timedForm.locator('[data-timed-group-name="1"]').fill('Community links');
+  await timedForm.locator('[data-timed-group-messages="1"]').fill('Join the Discord community.');
+  await expect(sharedMessages).toHaveValue('One complete shared message.\nA second shared message.\nJoin the Discord community.');
+  await expect(page.locator('#timed-action-summary')).toContainText('2 editing group(s) combine into one shuffle list');
   await timedForm.locator('[name="deliveryPlatform"][value="kick"]').uncheck();
-  await expect(page.locator('[data-timed-message-platform="kick"]')).toBeHidden();
+  await expect(page.locator('#timed-platform-message-editor')).toBeHidden();
+  await timedForm.locator('summary').filter({ hasText: 'Choose when it runs' }).click();
   await timedForm.locator('[name="intervalMode"]').selectOption('random');
   await expect(timedForm.locator('[data-timed-fixed]')).toBeHidden();
   await expect(timedForm.locator('[data-timed-random]')).toHaveCount(2);
   await expect(page.locator('#timed-action-summary')).toContainText('random minutes');
 
+  await timedForm.locator('summary').filter({ hasText: 'Start with a template' }).click();
   await timedForm.locator('[name="template"]').selectOption('community-links');
   await page.locator('#apply-timer-template').click();
   await expect(timedForm.locator('[name="enabled"]')).not.toBeChecked();
-  await expect(page.locator('[data-timed-platform="twitch"]').first()).toHaveValue(/replace-with-your-discord-link/u);
+  await expect(timedForm.locator('[data-timed-group-messages="0"]')).toHaveValue(/replace-with-your-discord-link/u);
 });
 
 test('wizard applies editable chat and alert wording presets without changing other platforms', async ({ page }) => {
@@ -233,6 +361,9 @@ test('wizard applies editable chat and alert wording presets without changing ot
   await expect(page.locator('[data-event-template="follow"]')).toHaveValue('{actor} followed');
 
   await page.locator('[data-view="alerts"]').click();
+  await expect(page.locator('[data-select-alert="youtube:gift"]')).toHaveText('Jewels gift');
+  await expect(page.locator('[data-select-alert="kick:gift"]')).toHaveText('Gift');
+  await expect(page.locator('[data-select-alert="tiktok:gift"]')).toHaveText('Gift');
   await page.locator('[data-select-alert="youtube:super-chat"]').click();
   await page.locator('#alert-profile-form [name="alertStyle"]').selectOption('warm');
   await page.locator('#apply-alert-style').click();
@@ -240,6 +371,8 @@ test('wizard applies editable chat and alert wording presets without changing ot
   await expect(page.locator('#alert-profile-form [name="showThankYou"]')).toBeChecked();
   await expect(page.locator('#alert-profile-form [name="thankYouTemplate"]')).toHaveValue('Thank you for supporting the village, {actor}!');
   await expect(page.locator('#preview-alert-thank-you')).toContainText('Thank you for supporting the village');
+  await expect(page.locator('#alert-preview-card')).toHaveAttribute('data-platform', 'youtube');
+  await expect(page.locator('.preview-alert-event')).toContainText('SUPER CHAT');
   await expect(page.locator('#alert-profile-form [name="detailTemplate"]')).toHaveValue('{message}');
 });
 
@@ -261,7 +394,7 @@ test('wizard remembers collapsed sections after a page reload', async ({ page })
   await expect(page.locator('#chat-overlay-form details.form-section').filter({ hasText: '1. Layout and text' })).not.toHaveAttribute('open', '');
 });
 
-test('wizard progressively reveals advanced blocker, alert, reward, and add-on controls', async ({ page }) => {
+test('wizard progressively reveals advanced blocker, alert, and add-on controls', async ({ page }) => {
   await page.goto('/wizard/');
   await page.locator('#token').fill(token);
   await page.locator('#login-form button').click();
@@ -283,16 +416,23 @@ test('wizard progressively reveals advanced blocker, alert, reward, and add-on c
   await expect(alertForm.locator('[name="cardTransition"]')).toHaveValue('slide-vertical');
   await alertForm.locator('[name="cardTransition"]').selectOption('fade');
   await expect(page.locator('#alert-preview-card')).toHaveAttribute('data-transition', 'fade');
+  await alertForm.locator('[data-guided-section="alert-sound"] summary').click();
+  await alertForm.locator('[name="customSoundFile"]').setInputFiles({ name: 'one-second.wav', mimeType: 'audio/wav', buffer: oneSecondWaveFile() });
+  await expect(alertForm.locator('[name="soundMode"]')).toHaveValue('custom');
+  await expect(alertForm.locator('[name="durationMs"]')).toHaveValue('2000');
+  await expect(page.locator('#alert-state')).toContainText('track plus 1 second');
+  await expect(alertForm.locator('[name="customSoundFile"]')).toHaveValue(/one-second\.wav$/u);
+  await page.locator('[data-select-alert="youtube:super-chat"]').click();
+  await expect(alertForm.locator('[name="customSoundFile"]')).toHaveValue('');
+  await expect(alertForm.locator('[name="soundMode"]')).toHaveValue('none');
+  await expect(alertForm.locator('[name="durationMs"]')).toHaveValue('');
   await expect(alertForm.locator('[name="aggregationWindowMs"]')).toBeHidden();
   await alertForm.locator('[data-guided-section="alert-aggregation"] summary').click();
   await alertForm.locator('[name="aggregationMode"]').selectOption('sum-quantity');
   await expect(alertForm.locator('[name="aggregationWindowMs"]')).toBeVisible();
 
-  await page.locator('[data-view="rewards"]').click();
-  const rewardForm = page.locator('#reward-admin-form');
-  await expect(rewardForm.locator('[name="redemptionId"]')).toBeHidden();
-  await rewardForm.locator('[name="operation"]').selectOption('fulfill');
-  await expect(rewardForm.locator('[name="redemptionId"]')).toBeVisible();
+  await expect(page.locator('[data-view="rewards"]')).toHaveCount(0);
+  await expect(page.locator('[data-panel="rewards"]')).toHaveCount(0);
 
   await page.locator('[data-view="addons"]').click();
   await expect(page.locator('[data-disclosure-key="panel:addons:install"]')).not.toHaveAttribute('open', '');
@@ -315,9 +455,47 @@ test('wizard shows only the selected platform events and exposes platform color 
   // Live chat preview reflects settings without staging or connecting to an overlay.
   // "Layout & text" is open by default; other settings sections start collapsed.
   await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(5);
+  await expect(page.locator('#chat-preview-list img.preview-chat-emote')).toHaveCount(1);
+  await expect(page.locator('#chat-preview-list img.preview-chat-emote')).toHaveAttribute('alt','SampleSloth');
+  await expect(page.locator('#chat-preview-list .preview-chat-event .preview-chat-name')).toHaveText('New follower');
+  await expect(page.locator('#chat-preview-list .preview-chat-event .preview-chat-body')).toHaveText('ExampleFollower followed the Village. 🎉');
   await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'regular');
+  const regularPreview = await page.locator('#chat-preview-list .preview-chat-message').first().evaluate((message) => {
+    const identity = message.querySelector('.preview-chat-identity');
+    return {
+      width: message.getBoundingClientRect().width,
+      listWidth: message.parentElement?.getBoundingClientRect().width ?? 0,
+      identityDivider: identity ? getComputedStyle(identity).borderBottomWidth : '0px',
+    };
+  });
+  expect(regularPreview.width).toBeGreaterThan(regularPreview.listWidth * .95);
+  expect(regularPreview.identityDivider).not.toBe('0px');
   await form.locator('.chat-layout-options label').filter({ hasText: 'Compact' }).click();
   await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'compact');
+  const compactPreview = await page.locator('#chat-preview-list').evaluate((list) => {
+    const twitch = list.querySelector<HTMLElement>('.platform-twitch');
+    const youtube = list.querySelector<HTMLElement>('.platform-youtube');
+    if (!twitch || !youtube) throw new Error('Expected Twitch and YouTube preview bubbles');
+    return {
+      twitchLeft: twitch.getBoundingClientRect().left,
+      youtubeLeft: youtube.getBoundingClientRect().left,
+      twitchWidth: twitch.getBoundingClientRect().width,
+      listWidth: list.getBoundingClientRect().width,
+      radius: getComputedStyle(twitch).borderTopLeftRadius,
+    };
+  });
+  expect(compactPreview.twitchWidth).toBeLessThan(compactPreview.listWidth * .9);
+  expect(compactPreview.youtubeLeft).toBeGreaterThan(compactPreview.twitchLeft);
+  expect(compactPreview.radius).toBe('15px');
+  await form.locator('.chat-layout-options label').filter({ hasText: 'Minimal' }).click();
+  await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'minimal');
+  await expect(page.locator('#chat-preview-list .preview-chat-message').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('#chat-preview-list .preview-chat-avatar').first()).toHaveCSS('display', 'none');
+  await expect(page.locator('#chat-preview-list .preview-chat-body').first()).toHaveCSS('display', 'inline');
+  await form.locator('.chat-layout-options label').filter({ hasText: 'Classic Chat' }).click();
+  await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'classic');
+  await expect(form.locator('[name="messageColorMode"]')).not.toBeVisible();
+  await expect(page.locator('#classic-chat-note')).not.toHaveClass(/hidden/u);
   await form.locator('[name="orientation"]').selectOption('horizontal');
   await form.locator('[name="newMessagePosition"]').selectOption('start');
   await form.locator('[name="animation"]').selectOption('fade');
@@ -410,7 +588,8 @@ test('chat remains bottom-aligned, bounded, crisp, and unclipped at 1920x1080', 
       payload: { message: `Message ${String(index)} — Unicode 🦥 and a long uninterrupted token abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz` },
     }, `chat-${String(index)}`);
   }
-  await expect(page.locator('#chat .message')).toHaveCount(8);
+  await expect(page.locator('#chat .message')).toHaveCount(12);
+  await expect(page.locator('#chat .message').last().locator('.display-name')).toHaveCSS('white-space', 'nowrap');
   await expect(page.locator('#chat .message').last().locator('.role', { hasText: 'MOD' })).toHaveCount(1);
   await expect(page.locator('#chat .message').last().getByText('Moderator', { exact: true })).toHaveCount(0);
   await expect(page.locator('#chat .message').last().locator('.display-name')).toHaveCSS('color', 'rgb(255, 209, 102)');
@@ -427,6 +606,93 @@ test('chat remains bottom-aligned, bounded, crisp, and unclipped at 1920x1080', 
   await page.screenshot({ path: testInfo.outputPath('chat-1920x1080.png') });
 });
 
+test('chat renders emote fragments inline and falls back to their text code when an image fails', async ({ page, request }) => {
+  await page.route('https://static-cdn.jtvnw.net/**', async (route) => await route.fulfill({ status: 404 }));
+  await page.goto('/overlay/chat');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  const input = await fixture('twitch-chat.json');
+  await simulate(request, { ...input, payload: { message: 'Hello Kappa', fragments: [
+    { type: 'text', text: 'Hello ' },
+    { type: 'emote', name: 'Kappa', imageUrl: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0', provider: 'twitch' },
+  ] } }, 'emote-fallback');
+  const body = page.locator('#chat .message').last().locator('.body');
+  await expect(body).toHaveText('Hello Kappa');
+  await expect(body.locator('img.chat-emote')).toHaveCount(0);
+});
+
+test('wide compact chat scatters bubbles safely and minimal chat wraps complete display names', async ({ page, request }, testInfo) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const input = await fixture('twitch-chat.json');
+  const baseUser = input['user'] as Record<string, unknown>;
+
+  await page.goto('/overlay/chat?layout=compact');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  for (let index = 0; index < 6; index += 1) {
+    await simulate(request, { ...input, user: { ...baseUser, displayName: `Scattered Viewer ${String(index)}` }, payload: { message: `Bubble ${String(index)} appears in a safe screen region.` } }, `scatter-${String(index)}`);
+  }
+  const bubbles = page.locator('#chat .message');
+  await expect(bubbles).toHaveCount(6);
+  await expect(bubbles.last()).toHaveCSS('opacity', '1');
+  const bubbleLayout = await bubbles.evaluateAll((elements) => elements.map((element) => {
+    const bounds = element.getBoundingClientRect();
+    const overlaps = elements.some((candidate) => {
+      if (candidate === element) return false;
+      const candidateBounds = candidate.getBoundingClientRect();
+      return bounds.left < candidateBounds.right && bounds.right > candidateBounds.left && bounds.top < candidateBounds.bottom && bounds.bottom > candidateBounds.top;
+    });
+    return { slot: (element as HTMLElement).dataset.bubbleSlot, left: Math.round(bounds.left), top: Math.round(bounds.top), inside: bounds.left >= 0 && bounds.top >= 0 && bounds.right <= innerWidth && bounds.bottom <= innerHeight, overlaps };
+  }));
+  expect(new Set(bubbleLayout.map((entry) => entry.slot)).size).toBe(6);
+  expect(new Set(bubbleLayout.map((entry) => `${String(entry.left)}:${String(entry.top)}`)).size).toBe(6);
+  expect(bubbleLayout.every((entry) => entry.inside), JSON.stringify(bubbleLayout)).toBe(true);
+  expect(bubbleLayout.every((entry) => !entry.overlaps), JSON.stringify(bubbleLayout)).toBe(true);
+  await expect(bubbles.first().locator('.display-name')).toHaveCSS('text-overflow', 'ellipsis');
+  await expect(bubbles.first().locator('.display-name')).toHaveCSS('white-space', 'nowrap');
+  await page.screenshot({ path: testInfo.outputPath('chat-compact-scattered-1920x1080.png') });
+
+  await page.goto('/overlay/chat?layout=minimal');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await simulate(request, { ...input, user: { ...baseUser, displayName: 'An Extraordinarily Long Village Display Name That Must Remain Fully Visible' }, payload: { message: 'Minimal chat keeps the complete name readable at large font sizes.' } }, 'minimal-long-name');
+  const name = page.locator('#chat .display-name');
+  await expect(name).toHaveText('An Extraordinarily Long Village Display Name That Must Remain Fully Visible');
+  await expect(name).toHaveCSS('text-overflow', 'ellipsis');
+  await expect(name).toHaveCSS('white-space', 'nowrap');
+  expect(await name.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('chat-minimal-full-name-1920x1080.png') });
+
+  await page.setViewportSize({ width: 480, height: 480 });
+  await page.goto('/overlay/chat?layout=minimal');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await page.evaluate("document.documentElement.style.setProperty('--chat-font-size', '24px')");
+  await simulate(request, { ...input, user: { ...baseUser, displayName: 'Pencui' }, payload: { message: 'emote only chat' } }, 'minimal-square-chat');
+  await simulate(request, {
+    ...input,
+    eventType: 'reward.redemption',
+    user: { ...baseUser, displayName: 'VoodooLilo' },
+    payload: { rewardId: 'fan-crown', rewardTitle: 'Pencui holds the Fan Crown', rewardCost: 100, requiresUserInput: false, input: '', redemptionId: 'minimal-square-reward' },
+  }, 'minimal-square-reward');
+  const minimalRows = page.locator('#chat .message');
+  await expect(minimalRows).toHaveCount(2);
+  const minimalLayout = await minimalRows.evaluateAll((rows) => rows.map((row) => {
+    const identity = row.querySelector('.identity') as HTMLElement;
+    const displayName = row.querySelector('.display-name') as HTMLElement;
+    const body = row.querySelector('.body') as HTMLElement;
+    const identityBounds = identity.getBoundingClientRect();
+    const nameBounds = displayName.getBoundingClientRect();
+    const bodyBounds = body.getBoundingClientRect();
+    const nameStyle = getComputedStyle(displayName);
+    return {
+      bounded: row.scrollWidth <= row.clientWidth + 1,
+      bodyDisplay: getComputedStyle(body).display,
+      identityExtraWidth: Math.round(identityBounds.width - nameBounds.width),
+      firstLineGap: Math.round(bodyBounds.left - identityBounds.right),
+      nameLines: Math.round(nameBounds.height / Number.parseFloat(nameStyle.lineHeight)),
+    };
+  }));
+  expect(minimalLayout.every((row) => row.bounded && row.bodyDisplay === 'inline' && row.identityExtraWidth <= 2 && row.firstLineGap <= 7 && row.nameLines === 1), JSON.stringify(minimalLayout)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('chat-minimal-square-inline.png') });
+});
+
 test('compact cropped chat and alert storms stay within their containers after reconnect', async ({ page, request }, testInfo) => {
   await page.setViewportSize({ width: 500, height: 800 });
   await page.goto('/overlay/chat/dock');
@@ -434,8 +700,18 @@ test('compact cropped chat and alert storms stay within their containers after r
   await page.evaluate("document.body.dataset.layout = 'compact'");
   const chat = await fixture('kick-chat.json');
   for (let index = 0; index < 10; index += 1) await simulate(request, { ...chat, payload: { message: `Compact message ${String(index)} with enough text to wrap but never overflow the dock.` } }, `compact-${String(index)}`);
-  await expect(page.locator('#chat .message')).toHaveCount(8);
+  await expect(page.locator('#chat .message')).toHaveCount(10);
   expect(await page.locator('.overlay').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  const dockLayout = await page.locator('.chat-shell').evaluate((shell) => {
+    const shellBounds = shell.getBoundingClientRect();
+    const childBounds = [...shell.children].map((child) => child.getBoundingClientRect());
+    return {
+      fillsViewport: Math.abs(shellBounds.width - innerWidth) <= 1,
+      childrenFillShell: childBounds.every((bounds) => Math.abs(bounds.left - shellBounds.left) <= 1 && Math.abs(bounds.right - shellBounds.right) <= 1),
+      bounded: shell.scrollWidth <= shell.clientWidth + 1 && shell.scrollHeight <= shell.clientHeight + 1,
+    };
+  });
+  expect(dockLayout).toEqual({ fillsViewport: true, childrenFillShell: true, bounded: true });
 
   await page.reload();
   await expect(page.locator('#status')).toHaveText('LIVE');
@@ -445,6 +721,7 @@ test('compact cropped chat and alert storms stay within their containers after r
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/overlay/alerts');
+  await expect(page.locator('#status')).toHaveText('LIVE');
   const alert = await fixture('youtube-super-chat.json');
   for (let index = 0; index < 25; index += 1) {
     const user = alert['user'] as Record<string, unknown>;
@@ -471,6 +748,81 @@ test('compact cropped chat and alert storms stay within their containers after r
   expect(fittedTitle.fontSize).toBeGreaterThanOrEqual(16);
   expect(fittedTitle.separated).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('alert-storm.png') });
+});
+
+test('Classic Chat renders a bounded card-free four-platform conversation', async ({ page, request }, testInfo) => {
+  await page.setViewportSize({ width: 520, height: 760 });
+  await page.goto('/overlay/chat/dock?layout=classic');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+
+  for (const [index, fixtureName] of ['twitch-chat.json', 'youtube-chat.json', 'kick-chat.json', 'tiktok-tikfinity-chat.json'].entries()) {
+    const input = await fixture(fixtureName);
+    const payload = input['payload'] as Record<string, unknown>;
+    await simulate(request, { ...input, payload: { ...payload, message: `Classic chat message ${String(index + 1)} stays readable without a card background.` } }, `classic-${String(index)}`);
+  }
+
+  const messages = page.locator('#chat .message');
+  await expect(messages).toHaveCount(4);
+  for (const message of await messages.all()) {
+    await expect(message).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(message).toHaveCSS('border-top-width', '0px');
+    await expect(message.locator('.body')).toHaveCSS('display', 'inline');
+  }
+  expect(await page.locator('.chat-feed').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('chat-classic-four-platforms.png') });
+});
+
+test('chat dock keeps stable typography and one-line names at its minimum and maximum widths', async ({ page, request }) => {
+  const input = await fixture('twitch-chat.json');
+  const user = input['user'] as Record<string, unknown>;
+  await page.setViewportSize({ width: 280, height: 640 });
+  await page.goto('/overlay/chat/dock?layout=classic');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await simulate(request, { ...input, user: { ...user, displayName: 'An Extremely Long Village Creator Display Name' }, payload: { message: 'This message body is allowed to wrap while the username always stays on one line.' } }, 'dock-minimum-name');
+  await expect(page.locator('#chat .message')).toHaveCount(1);
+  const minimum = await page.locator('.overlay').evaluate((overlay) => {
+    const name = overlay.querySelector('.display-name') as HTMLElement;
+    const body = overlay.querySelector('.body') as HTMLElement;
+    const nameStyle = getComputedStyle(name);
+    return { width: overlay.getBoundingClientRect().width, fontSize: Number.parseFloat(nameStyle.fontSize), nameLines: Math.round(name.getBoundingClientRect().height / Number.parseFloat(nameStyle.lineHeight)), nameWhiteSpace: nameStyle.whiteSpace, bodyWhiteSpace: getComputedStyle(body).whiteSpace };
+  });
+  expect(minimum.width).toBe(320);
+  expect(minimum.fontSize).toBeCloseTo(16 * .94, 1);
+  expect(minimum).toMatchObject({ nameLines: 1, nameWhiteSpace: 'nowrap', bodyWhiteSpace: 'normal' });
+
+  await page.setViewportSize({ width: 1_100, height: 700 });
+  expect(await page.locator('.overlay').evaluate((overlay) => overlay.getBoundingClientRect().width)).toBe(760);
+  await expect(page.locator('.display-name')).toHaveCSS('white-space', 'nowrap');
+});
+
+test('runtime chat layouts are distinct cards, speech bubbles, nameplates, and chat rows', async ({ page, request }) => {
+  await page.setViewportSize({ width: 680, height: 800 });
+  await page.goto('/overlay/chat/dock');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await simulate(request, await fixture('twitch-chat.json'), 'layout-twitch');
+  await simulate(request, await fixture('youtube-chat.json'), 'layout-youtube');
+  const first = page.locator('#chat .message').first();
+  const youtube = page.locator('#chat .message.platform-youtube');
+
+  await page.evaluate("document.body.dataset.layout = 'regular'");
+  await expect(first.locator('.identity')).toHaveCSS('border-bottom-width', '1px');
+  expect(await first.evaluate((message) => message.getBoundingClientRect().width / (message.parentElement?.getBoundingClientRect().width ?? 1))).toBeGreaterThan(.95);
+
+  await page.evaluate("document.body.dataset.layout = 'compact'");
+  await expect(first).toHaveCSS('align-self', 'flex-start');
+  await expect(youtube).toHaveCSS('align-self', 'flex-end');
+  expect(await first.evaluate((message) => message.getBoundingClientRect().width / (message.parentElement?.getBoundingClientRect().width ?? 1))).toBeLessThan(.9);
+
+  await page.evaluate("document.body.dataset.layout = 'minimal'");
+  await expect(first).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(first.locator('.avatar-frame')).toHaveCSS('display', 'none');
+  await expect(first.locator('.platform')).toHaveCSS('display', 'none');
+  await expect(first.locator('.body')).toHaveCSS('display', 'inline');
+
+  await page.evaluate("document.body.dataset.layout = 'classic'");
+  await expect(first).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(first.locator('.avatar-frame')).not.toHaveCSS('display', 'none');
+  await expect(first.locator('.body')).toHaveCSS('display', 'inline');
 });
 
 test('all chat platforms use accessible contrasting names, one moderator badge, and full-width bounded cards', async ({ page, request }, testInfo) => {
@@ -506,7 +858,7 @@ test('all chat platforms use accessible contrasting names, one moderator badge, 
   }));
   expect(layout.every((card) => card.left >= 7 && card.right <= 673 && card.bottom <= 792), JSON.stringify(layout)).toBe(true);
   expect(new Set(layout.map((card) => Math.round(card.width))).size).toBe(1);
-  expect(layout[0]?.width).toBeGreaterThanOrEqual(660);
+  expect(layout[0]?.width, JSON.stringify(layout)).toBeGreaterThanOrEqual(660);
 
   for (const [platform, fixtureName] of cases) {
     const input = await fixture(fixtureName);
@@ -650,13 +1002,22 @@ test('Village Roll Call leaderboard card remains readable in a cropped OBS sourc
     moduleId: 'thsv.village-roll-call',
     topic: 'thsv.village-roll-call.card.show',
     payload: {
-      title: 'VILLAGE ROLL CALL • JULY 2026',
-      text: '1. A Very Long Villager Display Name (31) • 2. Example Viewer (30) • 3. CozySloth (29) • 4. Night Owl (28) • 5. Early Bird (27)',
+      cardKind: 'village-roll-call', mode: 'preview', headline: 'Village Roll Call', monthLabel: 'July 2026',
+      subtitle: 'Monthly check-in leaderboard',
+      leaders: [
+        { rank: 1, displayName: 'A Very Long Villager Display Name', count: 31 },
+        { rank: 2, displayName: 'Example Viewer', count: 30 },
+        { rank: 3, displayName: 'CozySloth', count: 29 },
+        { rank: 4, displayName: 'Night Owl', count: 28 },
+        { rank: 5, displayName: 'Early Bird', count: 27 },
+      ],
       durationMs: 60_000,
     },
   }));
-  await expect(page.locator('#card')).toBeVisible();
-  const bounds = await page.locator('#card').evaluate((element) => {
+  await expect(page.locator('#roll-call-shell')).toBeVisible();
+  await expect(page.locator('.roll-call-place')).toHaveCount(3);
+  await expect(page.locator('.roll-call-runner')).toHaveCount(2);
+  const bounds = await page.locator('#roll-call-shell').evaluate((element) => {
     const box = element.getBoundingClientRect();
     return {
       inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight,
@@ -664,6 +1025,119 @@ test('Village Roll Call leaderboard card remains readable in a cropped OBS sourc
     };
   });
   expect(bounds).toEqual({ inside: true, bounded: true });
+});
+
+test('Village Hydration Station uses the exact bounded fill template', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.village-hydration-station', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 520, height: 620 });
+  await page.goto('/overlay/addons/thsv.village-hydration-station');
+  await publishAddOnEvent(page, 'thsv.village-hydration-station', 'thsv.village-hydration-station.hydration.update', {
+    cardKind: 'hydration-station', visible: true, title: 'Water Goal', totalOunces: 32, goalOunces: 64, percentage: 50,
+    nextReminderAt: Date.now() + 45 * 60_000, showNumbers: true, showNextReminder: true, live: true, templatePreview: true,
+    notice: { kind: 'preview', text: 'Hydration check. Time for a sip of water.' },
+    style: { containerStyle: 'bottle', backgroundMode: 'glass', backgroundColor: '#0b1720', backgroundOpacity: .9, waterColor: '#55d6ff', waterHighlightColor: '#b8f3ff', accentColor: '#7ff5cc', textColor: '#ffffff', mutedColor: '#c9e7ef' },
+  });
+  const shell = page.locator('#hydration-shell');
+  await expect(shell).toBeVisible();
+  await expect(page.locator('#hydration-title')).toHaveText('Water Goal');
+  await expect(page.locator('#hydration-total')).toHaveText('32');
+  await expect(page.locator('#hydration-percent')).toHaveText('50%');
+  await expect(page.locator('#hydration-progress')).toHaveAttribute('style', /width:\s*50%/u);
+  await expect(page.locator('#hydration-notice-text')).toContainText('Hydration check');
+  const titleBounds = await page.locator('#hydration-title').evaluate((element) => ({
+    clipped: element.scrollWidth > element.clientWidth + 1 || element.scrollHeight > element.clientHeight + 1,
+    lineHeight: getComputedStyle(element).lineHeight,
+  }));
+  expect(titleBounds.clipped).toBe(false);
+  expect(Number.parseFloat(titleBounds.lineHeight)).toBeGreaterThan(25);
+  const bounds = await shell.evaluate((element) => { const box = element.getBoundingClientRect(); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
+  expect(bounds).toEqual({ inside: true, bounded: true });
+  const fill = await page.locator('#hydration-liquid').evaluate((element) => { const liquid = element.getBoundingClientRect(); const vessel = element.parentElement?.getBoundingClientRect(); return vessel ? liquid.height / vessel.height : 0; });
+  expect(fill).toBeGreaterThan(.45); expect(fill).toBeLessThan(.55);
+  await page.screenshot({ path: testInfo.outputPath('hydration-station-clean.png') });
+  await page.setViewportSize({ width: 300, height: 360 });
+  const compactBounds = await shell.evaluate((element) => { const box = element.getBoundingClientRect(); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
+  expect(compactBounds).toEqual({ inside: true, bounded: true });
+});
+
+test('Fan Crown keeps a long holder name and season details inside a cropped OBS source', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.fan-crown', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 760, height: 500 }); await page.goto('/overlay/addons/thsv.fan-crown');
+  await publishAddOnEvent(page, 'thsv.fan-crown', 'thsv.fan-crown.card.show', {
+    cardKind: 'fan-crown', state: 'held', eventTitle: 'CROWN CAPTURED', seasonMonth: '2026-08', currentCost: 1_250, durationMs: 60_000,
+    holder: { displayName: 'Example Villager With A Very Long Display Name', platform: 'twitch', avatarUrl: '', claimedAt: new Date(Date.now() - 18 * 60_000).toISOString(), captures: 4, totalSpent: 2_750 },
+    leaders: [{ rank: 1, displayName: 'Example Villager', totalSpent: 2_750 }, { rank: 2, displayName: 'CozySloth', totalSpent: 2_100 }, { rank: 3, displayName: 'Night Owl', totalSpent: 1_600 }],
+    style: { backgroundMode: 'glass', backgroundColor: '#201335', backgroundOpacity: .82, accentColor: '#f4cc63', textColor: '#ffffff', fontFamily: 'broadcast' },
+  });
+  await expect(page.locator('#fan-crown-shell')).toBeVisible(); await expect(page.locator('#fan-crown-name')).toHaveText('Example Villager With A Very Long Display Name'); await expect(page.locator('#fan-crown-name')).toHaveAttribute('data-length', 'very-long');
+  const bounds = await page.locator('#fan-crown-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
+  expect(bounds).toEqual({ inside: true, bounded: true }); await expect(page.locator('.fan-crown-leader')).toHaveCount(3); await page.screenshot({ path: testInfo.outputPath('fan-crown-crest.png') });
+});
+
+test('Village Polls stays compact, translucent, and bounded while results update', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.village-polls', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 720, height: 520 });
+  await page.goto('/overlay/addons/thsv.village-polls');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.village-polls', topic: 'thsv.village-polls.poll.update',
+    payload: {
+      cardKind: 'village-polls', state: 'open', question: 'Which cozy community activity should we choose for the next village night?', totalVotes: 42,
+      closesAt: new Date(Date.now() + 90_000).toISOString(), winnerIndexes: [], durationMs: 60_000,
+      options: [
+        { index: 1, label: 'Community game night', votes: 16, percentage: 38, platforms: { twitch: 7, youtube: 4, kick: 3, tiktok: 2 } },
+        { index: 2, label: 'Movie watch-along', votes: 11, percentage: 26, platforms: { twitch: 4, youtube: 3, kick: 2, tiktok: 2 } },
+        { index: 3, label: 'Creative build challenge', votes: 8, percentage: 19, platforms: { twitch: 3, youtube: 2, kick: 2, tiktok: 1 } },
+        { index: 4, label: 'Chill story night', votes: 7, percentage: 17, platforms: { twitch: 2, youtube: 2, kick: 1, tiktok: 2 } },
+      ],
+      style: { layout: 'compact', backgroundColor: '#111923', backgroundOpacity: 0.55, accentColor: '#7ff5cc', textColor: '#ffffff', showPercentages: true, showVoteCounts: true, showTimer: true, showPlatformBreakdown: true, transition: 'slide' },
+    },
+  }));
+  await expect(page.locator('#poll-shell')).toBeVisible();
+  await expect(page.locator('.poll-option')).toHaveCount(4);
+  const bounds = await page.locator('#poll-shell').evaluate((element) => {
+    const box = element.getBoundingClientRect(); const board = element.querySelector('.poll-board'); const background = board ? getComputedStyle(board).backgroundColor : '';
+    return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1, width: box.width, background };
+  });
+  expect(bounds.inside).toBe(true); expect(bounds.bounded).toBe(true); expect(bounds.width).toBeLessThanOrEqual(590); expect(bounds.background).toContain('0.55');
+  await page.screenshot({ path: testInfo.outputPath('village-polls-compact.png') });
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.village-polls', topic: 'thsv.village-polls.poll.update',
+    payload: {
+      cardKind: 'village-polls', state: 'closed', question: 'Which cozy community activity should we choose?', totalVotes: 10, winnerIndexes: [0], durationMs: 1_000,
+      options: [{ index: 1, label: 'Community game night', votes: 7, percentage: 70 }, { index: 2, label: 'Movie watch-along', votes: 3, percentage: 30 }],
+      style: { layout: 'compact', backgroundColor: '#111923', backgroundOpacity: 0.55, accentColor: '#7ff5cc', textColor: '#ffffff', transition: 'slide' },
+    },
+  }));
+  await expect(page.locator('#poll-shell')).toHaveClass(/poll-leaving/u);
+  await expect(page.locator('#poll-status')).toHaveText('WINNER', { timeout: 1_200 });
+  await expect(page.locator('.poll-option[data-winner="true"]')).toHaveCount(1);
+  await expect(page.locator('#poll-shell')).toBeHidden({ timeout: 2_500 });
+});
+
+test('Village Draw cycles locally and reveals a bounded translucent prize ticket', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.village-draw', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 720, height: 420 }); await page.goto('/overlay/addons/thsv.village-draw');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.village-draw', topic: 'thsv.village-draw.card.show',
+    payload: { cardKind: 'village-draw', phase: 'winner', giveawayName: 'Village Summer Draw', prizeName: 'A Cozy Game Bundle and Limited Village Keepsake', winnerMessage: 'The village has chosen!',
+      winner: { displayName: 'Example Villager With A Long Display Name', platform: 'twitch', avatarUrl: '' }, entrants: ['CozySloth', 'Early Bird', 'Night Owl'], entrantCount: 42, ticketCount: 84,
+      durationMs: 60_000, drawAnimationMs: 2_000, style: { layout: 'compact', backgroundColor: '#10201b', backgroundOpacity: .62, accentColor: '#ffd166', textColor: '#ffffff', fontFamily: 'broadcast', showConfetti: true, showPrizeImage: true, showWinnerAvatar: true, showPlatformBadge: true, showEntryCount: true, playWinnerTone: false } },
+  }));
+  await expect(page.locator('#draw-shell')).toBeVisible(); await expect(page.locator('#draw-status')).toHaveText('DRAWING…');
+  await expect(page.locator('#draw-status')).toHaveText('WINNING TICKET', { timeout: 3_000 });
+  await expect(page.locator('#draw-name')).toHaveText('Example Villager With A Long Display Name'); await expect(page.locator('#draw-confetti i')).toHaveCount(18);
+  const bounds = await page.locator('#draw-shell').evaluate((element) => { const box = element.getBoundingClientRect(); const ticket = element.querySelector('.draw-ticket'); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1, width: box.width, background: ticket ? getComputedStyle(ticket).backgroundColor : '' }; });
+  expect(bounds.inside).toBe(true); expect(bounds.bounded).toBe(true); expect(bounds.width).toBeLessThanOrEqual(620); expect(bounds.background).toContain('0.62');
+  await expect(page.locator('#draw-name')).toHaveAttribute('data-length', 'long');
+  await page.screenshot({ path: testInfo.outputPath('village-draw-prize-ticket.png') });
 });
 
 test('Prize Wheel spins equal slices, reveals the fixed winner, and remains bounded when cropped in OBS', async ({ page }, testInfo) => {
@@ -703,25 +1177,33 @@ test('Prize Wheel spins equal slices, reveals the fixed winner, and remains boun
   await page.screenshot({ path: testInfo.outputPath('prize-wheel-cropped.png') });
 });
 
-test('Raid Scout mounts only the bounded official Twitch clip embed', async ({ page }) => {
+test('Raid Scout mounts a locally cached native clip URL without an iframe handshake or blob conversion', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.raid-scout', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
-  await page.route('https://clips.twitch.tv/embed**', async (route) => await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>clip</title>' }));
+  await page.route('**/overlay/cache/raid-preview.mp4', async (route) => await route.fulfill({ contentType: 'video/mp4', body: Buffer.from([0, 0, 0, 0]) }));
   await page.goto('/overlay/addons/thsv.raid-scout');
+  await page.locator('#media').evaluate((element) => {
+    const media = element as HTMLVideoElement;
+    let source = '';
+    Object.defineProperty(media, 'src', { configurable: true, get: () => source, set: (value) => { source = String(value); } });
+    Object.defineProperty(media, 'readyState', { configurable: true, get: () => HTMLMediaElement.HAVE_ENOUGH_DATA });
+    media.load = () => undefined;
+    media.play = async () => { media.dispatchEvent(new Event('playing')); };
+  });
   await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
     contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.raid-scout',
     topic: 'thsv.raid-scout.media.play',
-    payload: { playbackId: 'raid-clip-1', embedUrl: 'https://clips.twitch.tv/embed?clip=SafeClipId', durationMs: 60_000, muted: true, title: 'One raid preview' },
+    payload: { playbackId: 'raid-clip-1', url: '/overlay/cache/raid-preview.mp4', durationMs: 60_000, muted: true, title: 'One raid preview' },
   }));
-  await expect(page.locator('#embed-media')).toBeVisible();
-  const source = await page.locator('#embed-media').getAttribute('src');
-  expect(source).toContain('clip=SafeClipId');
-  expect(source).toContain('parent=127.0.0.1');
-  expect(source).toContain('autoplay=true');
-  expect(source).toContain('muted=true');
-  await expect(page.locator('#media')).toBeHidden();
+  await expect(page.locator('#embed-media')).toBeHidden();
+  await expect(page.locator('#media')).toBeVisible();
+  expect(await page.locator('#media').evaluate((element) => new URL((element as HTMLVideoElement).src).pathname)).toBe('/overlay/cache/raid-preview.mp4');
+  await expect(page.locator('#media-shell')).toHaveClass(/media-playing/u);
+  await expect(page.locator('#media-shell')).not.toHaveClass(/media-canvas-active/u);
+  await expect(page.locator('#media-canvas')).toBeHidden();
   await expect(page.locator('#media-title')).toHaveText('One raid preview');
+  await expect(page.locator('#media-title')).toHaveClass(/media-title-live/u);
 
   await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
     contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.raid-scout',
@@ -729,6 +1211,64 @@ test('Raid Scout mounts only the bounded official Twitch clip embed', async ({ p
   }));
   await expect(page.locator('#media-shell')).toHaveClass(/fading/u);
   await expect(page.locator('#media-shell')).toBeHidden({ timeout: 2_000 });
+});
+
+test('native clip playback tolerates a transient buffer stall without skipping', async ({ page }) => {
+  await page.clock.install();
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.random-clip-player', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.route('**/overlay/cache/random-preview.mp4', async (route) => await route.fulfill({ contentType: 'video/mp4', body: Buffer.from([0, 0, 0, 0]) }));
+  await page.goto('/overlay/addons/thsv.random-clip-player');
+  await page.locator('#media').evaluate((element) => {
+    const media = element as HTMLVideoElement;
+    let source = '';
+    let readyState: number = HTMLMediaElement.HAVE_ENOUGH_DATA;
+    Object.defineProperty(media, 'src', { configurable: true, get: () => source, set: (value) => { source = String(value); } });
+    Object.defineProperty(media, 'readyState', { configurable: true, get: () => readyState, set: (value) => { readyState = Number(value); } });
+    Object.defineProperty(media, 'duration', { configurable: true, get: () => 60 });
+    Object.defineProperty(media, 'currentTime', { configurable: true, get: () => 5 });
+    media.load = () => undefined;
+    media.play = async () => { media.dispatchEvent(new Event('playing')); };
+  });
+  await publishAddOnEvent(page, 'thsv.random-clip-player', 'thsv.random-clip-player.media.play', {
+    playbackId: 'random-clip-stall-1', url: '/overlay/cache/random-preview.mp4', durationMs: 60_000, muted: true, title: 'A compact transient title',
+  });
+  await expect(page.locator('#media-shell')).toHaveClass(/media-playing/u);
+  await expect(page.locator('#media-title')).toBeVisible();
+
+  await page.locator('#media').evaluate((element) => {
+    const media = element as HTMLVideoElement;
+    Object.defineProperty(media, 'readyState', { configurable: true, get: () => HTMLMediaElement.HAVE_CURRENT_DATA });
+    media.dispatchEvent(new Event('waiting'));
+  });
+  await page.clock.fastForward(6_000);
+  await expect(page.locator('#media-shell')).toBeVisible();
+  await expect(page.locator('#media-shell')).toHaveClass(/media-playing/u);
+  await expect(page.locator('#media-title')).toBeHidden();
+});
+
+test('media template previews use the production frame and remain visible until explicitly hidden', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.random-clip-player', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.goto('/overlay/addons/thsv.random-clip-player');
+  await publishAddOnEvent(page, 'thsv.random-clip-player', 'thsv.random-clip-player.media.play', {
+    templatePreview: true,
+    playbackId: 'template-thsv.random-clip-player',
+    title: 'Random Clip Player - exact media template',
+    style: { backgroundColor: '#102030', accentColor: '#abcdef', textColor: '#fedcba', fontFamily: 'broadcast' },
+  });
+
+  await expect(page.locator('#media-shell')).toBeVisible();
+  await expect(page.locator('#media-shell')).toHaveClass(/media-template-preview/u);
+  await expect(page.locator('#media-title')).toHaveText('Random Clip Player - exact media template');
+  await expect(page.locator('#media-shell')).toHaveCSS('--media-accent', '#abcdef');
+  await page.waitForTimeout(1_100);
+  await expect(page.locator('#media-shell')).toBeVisible();
+
+  await publishAddOnEvent(page, 'thsv.random-clip-player', 'thsv.random-clip-player.preview.hide', { force: true });
+  await expect(page.locator('#media-shell')).toBeHidden();
 });
 
 test('Village Jukebox mounts only a bounded official YouTube player with creator styling', async ({ page }) => {
@@ -763,20 +1303,80 @@ test('Village Jukebox mounts only a bounded official YouTube player with creator
   expect(await page.locator('#embed-media').getAttribute('src')).toBe(source);
 });
 
-test('generic add-on host renders result and viewer-queue contracts', async ({ page }) => {
+test('Automated Shoutouts renders a fixed creator signal-boost card', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/shoutouts', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 760, height: 460 });
+  await page.goto('/overlay/shoutouts');
+  await publishAddOnEvent(page, 'thsv.automated-shoutouts', 'thsv.automated-shoutouts.card.show', {
+    cardKind: 'shoutout-spotlight', trigger: 'raid', presentation: 'creator', platform: 'twitch', text: 'Go show this creator some love!', creator: { displayName: 'Example Creator With A Long Name', userName: 'example_creator', category: 'Just Chatting', channelUrl: 'https://twitch.tv/example_creator', avatarUrl: '', viewers: 42 }, durationMs: 10_000,
+  });
+  await expect(page.locator('#shoutout-shell')).toBeVisible();
+  await expect(page.locator('#shoutout-name')).toHaveText('Example Creator With A Long Name');
+  await expect(page.locator('#shoutout-category')).toHaveText('Just Chatting');
+  await expect(page.locator('#shoutout-viewers')).toHaveText('42 RAIDERS');
+  const bounds = await page.locator('#shoutout-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { ratio: Math.round(box.width / box.height * 100) / 100, inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
+  expect(bounds).toEqual({ ratio: 1.78, inside: true, bounded: true });
+
+  await page.setViewportSize({ width: 600, height: 327 });
+  await publishAddOnEvent(page, 'thsv.automated-shoutouts', 'thsv.automated-shoutouts.card.show', {
+    cardKind: 'shoutout-spotlight', trigger: 'first-chat', presentation: 'creator', platform: 'twitch',
+    text: 'Go show chompchompletsplay some love! They stream Just Chatting. https://twitch.tv/chompchompletsplay',
+    creator: { displayName: 'chompchompletsplay', userName: 'chompchompletsplay', category: 'Just Chatting', channelUrl: 'https://twitch.tv/chompchompletsplay', avatarUrl: '', viewers: 0 }, durationMs: 10_000,
+  });
+  await expect(page.locator('#shoutout-name')).toHaveAttribute('data-length', 'long');
+  await expect(page.locator('#shoutout-message')).toBeHidden();
+  const compactBounds = await page.locator('#shoutout-shell').evaluate((element) => {
+    const card = element.querySelector('.shoutout-card')?.getBoundingClientRect();
+    const footer = element.querySelector('footer')?.getBoundingClientRect();
+    const body = element.querySelector('.shoutout-body')?.getBoundingClientRect();
+    return { bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1, separated: Boolean(card && footer && body && body.bottom <= footer.top && footer.bottom <= card.bottom) };
+  });
+  expect(compactBounds).toEqual({ bounded: true, separated: true });
+
+  for (const platform of ['youtube', 'kick', 'tiktok']) {
+    await publishAddOnEvent(page, 'thsv.automated-shoutouts', 'thsv.automated-shoutouts.card.show', {
+      cardKind: 'shoutout-spotlight', trigger: 'first-chat', presentation: 'welcome', platform,
+      text: `Welcome Example Viewer from ${platform}!`, creator: { displayName: 'Example Viewer', userName: 'example_viewer', category: '', channelUrl: '', avatarUrl: '', viewers: 0 }, durationMs: 10_000,
+    });
+    await expect(page.locator('#shoutout-shell')).toHaveAttribute('data-platform', platform);
+    await expect(page.locator('#shoutout-shell')).toHaveAttribute('data-presentation', 'welcome');
+    await expect(page.locator('#shoutout-message')).toContainText(`Welcome Example Viewer from ${platform}!`);
+    await expect(page.locator('#shoutout-reason')).toHaveText('NEW VILLAGER');
+  }
+});
+
+test('Chat Play renders game rounds and a compact universal winner card', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.chat-play-pack', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
-  await page.route('**/overlay/addons/thsv.viewer-lobby', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
-
+  await page.setViewportSize({ width: 660, height: 380 });
   await page.goto('/overlay/addons/thsv.chat-play-pack');
   await expect(page.locator('#status')).toHaveText('LIVE');
   await publishAddOnEvent(page, 'thsv.chat-play-pack', 'thsv.chat-play-pack.result.show', {
-    title: 'Chat Play winner', text: 'Village Viewer', durationMs: 10_000,
+    cardKind: 'chat-play-game', gameKind: 'trivia', gameName: 'Trivia', prompt: 'Which planet is known as the Red Planet?', choices: ['Venus', 'Mars', 'Jupiter', 'Mercury'], instruction: 'Answer with !answer', durationMs: 300_000,
   });
-  await expect(page.locator('#card')).toBeVisible();
-  await expect(page.locator('#card-title')).toHaveText('Chat Play winner');
-  await expect(page.locator('#card-text')).toHaveText('Village Viewer');
+  await expect(page.locator('#chat-play-game-shell')).toBeVisible();
+  await expect(page.locator('#chat-play-game-name')).toHaveText('Trivia');
+  await expect(page.locator('#chat-play-choices')).toContainText('2. Mars');
+  const gameBounds = await page.locator('#chat-play-game-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { width: Math.round(box.width), height: Math.round(box.height), inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
+  await publishAddOnEvent(page, 'thsv.chat-play-pack', 'thsv.chat-play-pack.result.show', {
+    cardKind: 'chat-play-winner', gameName: 'Trivia', points: 50, winner: { displayName: 'Example Villager With A Long Display Name', platform: 'youtube', avatarUrl: '' }, durationMs: 10_000,
+  });
+  await expect(page.locator('#chat-play-game-shell')).toBeHidden();
+  await expect(page.locator('#chat-play-winner-shell')).toBeVisible();
+  await expect(page.locator('#chat-play-winner-name')).toHaveText('Example Villager With A Long Display Name');
+  await expect(page.locator('#chat-play-winner-points')).toHaveText('+50');
+  const winnerBounds = await page.locator('#chat-play-winner-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { width: Math.round(box.width), height: Math.round(box.height), inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
+  expect(gameBounds).toEqual(winnerBounds);
+  expect(winnerBounds).toMatchObject({ inside: true, bounded: true });
+});
+
+test('generic add-on host renders viewer-queue contracts', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.viewer-lobby', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
 
   await page.goto('/overlay/addons/thsv.viewer-lobby');
   await expect(page.locator('#status')).toHaveText('LIVE');

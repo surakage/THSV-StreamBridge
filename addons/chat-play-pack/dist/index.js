@@ -42,7 +42,7 @@ const manifest = {
   ],
   actionsProvided: [{ id: 'chat-play.fetch-trivia', name: 'Optional bounded OpenTDB question fetch' }, { id: 'chat-play.fetch-unscramble', name: 'Optional bounded dictionary word fetch' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.chat-play-pack/', 'data/addons/.state/thsv.chat-play-pack/'],
-  installationSteps: ['Install Viewer Foundation first.', 'Import Chat Play Pack once; it includes all eleven command entries and the two optional provider actions.', 'Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.', 'Configure creator fallback questions and words before enabling provider-backed games.'],
+  installationSteps: ['Install Viewer Foundation first.', 'Import Chat Play Pack only when using one of its two optional provider actions; viewer commands already use the main chat intakes.', 'Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.', 'Configure creator fallback questions and words before enabling provider-backed games.'],
   uninstallationSteps: ['Uninstalling preserves only bounded round statistics and pseudonymous Viewer Foundation IDs.'], migrations: [],
   healthChecks: [{ id: 'thsv.chat-play-pack.runtime', description: 'Confirms serialized rounds, bounded cooldowns, stable duel identities, trivia fallback, and idempotent Viewer Foundation awards.' }],
 };
@@ -56,6 +56,8 @@ const randomChoice = (items) => items[randomInt(items.length)];
 const shuffled = (items) => { const result = [...items]; for (let index = result.length - 1; index > 0; index -= 1) { const other = randomInt(index + 1); [result[index], result[other]] = [result[other], result[index]]; } return result; };
 const moderator = (event) => event.user?.roles?.some((role) => ['moderator', 'broadcaster'].includes(String(role).toLowerCase())) === true;
 const digest = (value) => createHash('sha256').update(value).digest('hex').slice(0, 32);
+const safeAvatarUrl = (value) => { const candidate = clean(value, 2_048); if (!candidate) return ''; try { const url = new URL(candidate); return url.protocol === 'https:' ? url.href : ''; } catch { return ''; } };
+const eventAvatarUrl = (event) => safeAvatarUrl(event.user?.avatarUrl || event.user?.profileImageUrl);
 
 function parseTrivia(lines) {
   if (!Array.isArray(lines)) return [];
@@ -127,7 +129,7 @@ function cleanRound(raw) {
 
 function stateFor(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
-  const duels = Array.isArray(source.duels) ? source.duels.filter((item) => item && typeof item === 'object' && VIEWER_ID.test(item.challengerId) && VIEWER_ID.test(item.targetId) && item.challengerId !== item.targetId && PLATFORMS.includes(item.platform) && Number.isSafeInteger(item.createdAt)).slice(-50).map((item) => ({ id: clean(item.id, 80), challengerId: item.challengerId, challengerName: clean(item.challengerName, 80), targetId: item.targetId, targetName: clean(item.targetName, 80), platform: item.platform, createdAt: item.createdAt })) : [];
+  const duels = Array.isArray(source.duels) ? source.duels.filter((item) => item && typeof item === 'object' && VIEWER_ID.test(item.challengerId) && VIEWER_ID.test(item.targetId) && item.challengerId !== item.targetId && PLATFORMS.includes(item.platform) && Number.isSafeInteger(item.createdAt)).slice(-50).map((item) => ({ id: clean(item.id, 80), challengerId: item.challengerId, challengerName: clean(item.challengerName, 80), challengerAvatarUrl: safeAvatarUrl(item.challengerAvatarUrl), targetId: item.targetId, targetName: clean(item.targetName, 80), targetAvatarUrl: safeAvatarUrl(item.targetAvatarUrl), platform: item.platform, createdAt: item.createdAt })) : [];
   const awardLog = Array.isArray(source.awardLog) ? source.awardLog.filter((item) => item && VIEWER_ID.test(item.viewerId) && Number.isSafeInteger(item.at) && Number.isSafeInteger(item.amount) && item.amount >= 0).slice(-1000).map((item) => ({ viewerId: item.viewerId, at: item.at, amount: item.amount })) : [];
   const apiTrivia = Array.isArray(source.apiTrivia) ? source.apiTrivia.map(cleanTrivia).filter(Boolean).slice(0, 50) : [];
   const apiUnscramble = Array.isArray(source.apiUnscramble) ? source.apiUnscramble.map(cleanUnscramble).filter(Boolean).slice(0, 30) : [];
@@ -142,9 +144,22 @@ async function say(context, eventOrPlatform, message, everywhere = false) {
   for (const target of uniqueTargets) await context.chat.send({ platform: target, message: clean(message, PLATFORM_LIMITS[target] ?? 200), simulated: false }).catch(() => undefined);
 }
 
-async function overlay(context, settings, title, textValue) {
+async function gameOverlay(context, settings, gameKind, payload) {
   if (!settings.showOverlayResults) return;
-  try { await context.overlay.publish(`${MODULE_ID}.result.show`, { title: clean(title, 120), text: clean(textValue, 500), durationMs: 10_000, presentationMode: 'single' }); } catch { /* Chat remains authoritative when no browser source is open. */ }
+  const durationMs = gameKind === 'duel' ? 300_000 : settings.roundTimeoutSeconds * 1_000;
+  try { await context.overlay.publish(`${MODULE_ID}.result.show`, { cardKind: 'chat-play-game', gameKind, ...payload, durationMs, presentationMode: 'single' }, { lane: 'foreground' }); } catch { /* Chat remains authoritative when no browser source is open. */ }
+}
+
+async function winnerOverlay(context, settings, event, gameName, winnerName, points, avatarUrl = '') {
+  if (!settings.showOverlayResults) return;
+  const platform = PLATFORMS.includes(event.platform) ? event.platform : 'twitch';
+  try {
+    await context.overlay.publish(`${MODULE_ID}.result.show`, {
+      cardKind: 'chat-play-winner', gameName: clean(gameName, 80), points: integer(points, 0, 100_000, 0),
+      winner: { displayName: clean(winnerName, 100) || 'Viewer', platform, avatarUrl: safeAvatarUrl(avatarUrl) || eventAvatarUrl(event) },
+      durationMs: 10_000, presentationMode: 'single',
+    }, { lane: 'foreground' });
+  } catch { /* Chat remains authoritative when no browser source is open. */ }
 }
 
 async function viewer(context, event) {
@@ -171,7 +186,7 @@ async function award(context, state, projection, amount, reason, idempotencyKey,
 function observeViewer(event, now, settings) {
   if (!PLATFORMS.includes(event.platform) || event.user?.actorType !== 'human' || !event.user?.id) return;
   const name = clean(event.user.displayName || event.user.name, 80); const normalized = normalizedAnswer(name).replace(/\s+/gu, ''); if (!name || !normalized) return;
-  recentViewers.set(`${event.platform}:${normalized}`, { userId: clean(event.user.id, 256), displayName: name, at: now });
+  recentViewers.set(`${event.platform}:${normalized}`, { userId: clean(event.user.id, 256), displayName: name, avatarUrl: eventAvatarUrl(event), at: now });
   const cutoff = now - settings.duelRecentViewerMinutes * 60_000;
   for (const [key, value] of recentViewers) if (value.at < cutoff) recentViewers.delete(key);
   while (recentViewers.size > 500) recentViewers.delete(recentViewers.keys().next().value);
@@ -217,7 +232,8 @@ async function startTriviaRound(context, state, settings, platform) {
   const question = selectTrivia(settings, state); if (!question) return false;
   state.roundSequence += 1; state.round = { kind: 'trivia', question: question.question, answers: question.answers, choices: shuffled(question.choices ?? []), startedAt: Date.now() }; await context.state.write(state);
   const choices = state.round.choices.length ? ` Choices: ${state.round.choices.map((choice, index) => `${index + 1}) ${choice}`).join(' ')}` : '';
-  await say(context, platform, `TRIVIA: ${question.question}${choices} Answer with !${settings.commands.answer}.`, settings.announceSharedRoundsEverywhere); await overlay(context, settings, 'Trivia', `${question.question}${choices}`); return true;
+  await say(context, platform, `TRIVIA: ${question.question}${choices} Answer with !${settings.commands.answer}.`, settings.announceSharedRoundsEverywhere);
+  await gameOverlay(context, settings, 'trivia', { gameName: 'Trivia', prompt: question.question, choices: state.round.choices, instruction: `Answer with !${settings.commands.answer}` }); return true;
 }
 
 async function requestTrivia(context, state, settings, platform, eventId) {
@@ -229,7 +245,8 @@ async function requestTrivia(context, state, settings, platform, eventId) {
 async function startUnscrambleRound(context, state, settings, platform) {
   const selected = selectUnscramble(settings, state); if (!selected) return false;
   state.roundSequence += 1; state.round = { kind: 'unscramble', scrambled: scramble(selected.word), answer: normalizedAnswer(selected.word), hint: selected.hint, startedAt: Date.now() }; await context.state.write(state);
-  const hint = selected.hint ? ` Hint: ${selected.hint}.` : ''; await say(context, platform, `UNSCRAMBLE: ${state.round.scrambled}.${hint} Answer with !${settings.commands.answer}.`, settings.announceSharedRoundsEverywhere); await overlay(context, settings, 'Unscramble', `${state.round.scrambled}${hint}`); return true;
+  const hint = selected.hint ? ` Hint: ${selected.hint}.` : ''; await say(context, platform, `UNSCRAMBLE: ${state.round.scrambled}.${hint} Answer with !${settings.commands.answer}.`, settings.announceSharedRoundsEverywhere);
+  await gameOverlay(context, settings, 'unscramble', { gameName: 'Unscramble', prompt: state.round.scrambled, hint: selected.hint, instruction: `Answer with !${settings.commands.answer}` }); return true;
 }
 
 async function requestUnscramble(context, state, settings, platform, eventId) {
@@ -243,7 +260,7 @@ async function finishRound(context, event, state, settings, projection, name, re
   const result = await award(context, state, projection, reward, `Chat Play ${label} winner`, `${event.eventId}-${state.roundSequence}-${label}`, settings, Date.now());
   state.round = null; state.completedRounds += 1; await context.state.write(state);
   const suffix = result.awarded > 0 ? ` +${result.awarded} points.` : result.capped ? ' Hourly reward cap reached.' : '';
-  await say(context, event, `${name} wins ${label}!${suffix}`); await overlay(context, settings, `${label} winner`, `${name}${suffix}`);
+  await say(context, event, `${name} wins ${label}!${suffix}`); await winnerOverlay(context, settings, event, label, name, result.awarded);
 }
 
 async function processTriviaResult(event, context, settings) {
@@ -269,13 +286,15 @@ async function processUnscrambleResult(event, context, settings) {
 async function instantGame(event, context, state, settings, game, args, now) {
   if (!settings.games[game] || coolingDown(event, game, settings.instantCooldownSeconds, now)) return;
   const projection = await viewer(context, event); if (!projection) return;
-  const name = clean(event.user?.displayName || event.user?.name, 80) || 'Viewer'; let message = ''; let points = 0;
-  if (game === 'coinflip') { const choice = normalizedAnswer(args[0]); if (!['heads', 'tails'].includes(choice)) return say(context, event, `Use !${settings.commands.coinflip} heads or tails.`); const result = randomInt(2) === 0 ? 'heads' : 'tails'; if (choice === result) points = settings.rewards.coinflip; message = `${name} called ${choice}. The coin landed ${result}.`; }
+  const name = clean(event.user?.displayName || event.user?.name, 80) || 'Viewer'; let message = ''; let points = 0; let won = false;
+  if (game === 'coinflip') { const choice = normalizedAnswer(args[0]); if (!['heads', 'tails'].includes(choice)) return say(context, event, `Use !${settings.commands.coinflip} heads or tails.`); const result = randomInt(2) === 0 ? 'heads' : 'tails'; won = choice === result; if (won) points = settings.rewards.coinflip; message = `${name} called ${choice}. The coin landed ${result}.`; }
   if (game === 'slots') { const symbols = ['🍒', '🍋', '🌿', '🔔', '⭐']; const reels = [randomChoice(symbols), randomChoice(symbols), randomChoice(symbols)]; const counts = new Map(); for (const symbol of reels) counts.set(symbol, (counts.get(symbol) ?? 0) + 1); const maximum = Math.max(...counts.values()); if (maximum === 3) points = settings.rewards.slotsJackpot; else if (maximum === 2) points = settings.rewards.slotsMatch; message = `${name} spun ${reels.join(' | ')}.`; }
-  if (game === 'roulette') { const choice = normalizedAnswer(args[0]); if (!['red', 'black', 'green'].includes(choice)) return say(context, event, `Use !${settings.commands.roulette} red, black, or green.`); const number = randomInt(37); const result = number === 0 ? 'green' : number % 2 === 0 ? 'black' : 'red'; if (choice === result) points = result === 'green' ? settings.rewards.rouletteGreen : settings.rewards.roulette; message = `${name} chose ${choice}. The wheel landed ${number} ${result}.`; }
-  if (game === 'rps') { const choice = normalizedAnswer(args[0]); const choices = ['rock', 'paper', 'scissors']; if (!choices.includes(choice)) return say(context, event, `Use !${settings.commands.rps} rock, paper, or scissors.`); const computer = randomChoice(choices); const won = (choice === 'rock' && computer === 'scissors') || (choice === 'paper' && computer === 'rock') || (choice === 'scissors' && computer === 'paper'); if (won) points = settings.rewards.rps; message = `${name}: ${choice}. Computer: ${computer}. ${choice === computer ? 'Draw!' : won ? `${name} wins!` : 'Computer wins.'}`; }
+  if (game === 'roulette') { const choice = normalizedAnswer(args[0]); if (!['red', 'black', 'green'].includes(choice)) return say(context, event, `Use !${settings.commands.roulette} red, black, or green.`); const number = randomInt(37); const result = number === 0 ? 'green' : number % 2 === 0 ? 'black' : 'red'; won = choice === result; if (won) points = result === 'green' ? settings.rewards.rouletteGreen : settings.rewards.roulette; message = `${name} chose ${choice}. The wheel landed ${number} ${result}.`; }
+  if (game === 'rps') { const choice = normalizedAnswer(args[0]); const choices = ['rock', 'paper', 'scissors']; if (!choices.includes(choice)) return say(context, event, `Use !${settings.commands.rps} rock, paper, or scissors.`); const computer = randomChoice(choices); won = (choice === 'rock' && computer === 'scissors') || (choice === 'paper' && computer === 'rock') || (choice === 'scissors' && computer === 'paper'); if (won) points = settings.rewards.rps; message = `${name}: ${choice}. Computer: ${computer}. ${choice === computer ? 'Draw!' : won ? `${name} wins!` : 'Computer wins.'}`; }
+  if (game === 'slots' && points > 0) won = true;
   const result = await award(context, state, projection, points, `Chat Play ${game} win`, `${event.eventId}-${game}`, settings, now); await context.state.write(state);
-  const suffix = result.awarded ? ` +${result.awarded} points.` : result.capped && points ? ' Hourly reward cap reached.' : ''; await say(context, event, `${message}${suffix}`); await overlay(context, settings, game === 'rps' ? 'Rock Paper Scissors' : game[0].toUpperCase() + game.slice(1), `${message}${suffix}`);
+  const suffix = result.awarded ? ` +${result.awarded} points.` : result.capped && points ? ' Hourly reward cap reached.' : ''; await say(context, event, `${message}${suffix}`);
+  if (won) await winnerOverlay(context, settings, event, game === 'rps' ? 'Rock Paper Scissors' : game[0].toUpperCase() + game.slice(1), name, result.awarded);
 }
 
 async function processDuel(event, context, state, settings, command, args, now) {
@@ -287,14 +306,14 @@ async function processDuel(event, context, state, settings, command, args, now) 
     const targetProjection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: recent.userId }); if (!targetProjection || targetProjection.viewerId === projection.viewerId) return say(context, event, 'Choose another recently active viewer.');
     if (state.duels.some((duel) => [duel.challengerId, duel.targetId].includes(projection.viewerId) || [duel.challengerId, duel.targetId].includes(targetProjection.viewerId))) return say(context, event, 'One of those viewers already has a pending duel.');
     if (coolingDown(event, 'duel', settings.duelCooldownSeconds, now)) return;
-    const duel = { id: digest(`${event.eventId}\0${targetProjection.viewerId}`), challengerId: projection.viewerId, challengerName: name, targetId: targetProjection.viewerId, targetName: recent.displayName, platform: event.platform, createdAt: now }; state.duels.push(duel); await context.state.write(state); await say(context, event, `${recent.displayName}, ${name} challenged you! Use !${settings.commands.accept} or !${settings.commands.decline} within 5 minutes.`); await overlay(context, settings, 'Duel challenge', `${name} vs ${recent.displayName}`); return;
+    const duel = { id: digest(`${event.eventId}\0${targetProjection.viewerId}`), challengerId: projection.viewerId, challengerName: name, challengerAvatarUrl: eventAvatarUrl(event), targetId: targetProjection.viewerId, targetName: recent.displayName, targetAvatarUrl: recent.avatarUrl, platform: event.platform, createdAt: now }; state.duels.push(duel); await context.state.write(state); await say(context, event, `${recent.displayName}, ${name} challenged you! Use !${settings.commands.accept} or !${settings.commands.decline} within 5 minutes.`); await gameOverlay(context, settings, 'duel', { gameName: 'Viewer Duel', challenger: name, opponent: recent.displayName, instruction: `Use !${settings.commands.accept} or !${settings.commands.decline}` }); return;
   }
   const duel = state.duels.find((item) => item.targetId === projection.viewerId); if (!duel) return say(context, event, 'You do not have a pending duel.');
   state.duels = state.duels.filter((item) => item.id !== duel.id);
   if (command === settings.commands.decline) { await context.state.write(state); return say(context, event, `${name} declined the duel.`); }
   const challengerWins = randomInt(2) === 0; const winnerId = challengerWins ? duel.challengerId : duel.targetId; const winnerName = challengerWins ? duel.challengerName : duel.targetName;
   const result = await award(context, state, { viewerId: winnerId }, settings.rewards.duel, 'Chat Play duel winner', `duel-${duel.id}-${winnerId}`, settings, now); await context.state.write(state);
-  const suffix = result.awarded ? ` +${result.awarded} points.` : result.capped ? ' Hourly reward cap reached.' : ''; await say(context, event, `DUEL: ${duel.challengerName} vs ${duel.targetName}. ${winnerName} wins!${suffix}`); await overlay(context, settings, 'Duel winner', `${winnerName}${suffix}`);
+  const suffix = result.awarded ? ` +${result.awarded} points.` : result.capped ? ' Hourly reward cap reached.' : ''; await say(context, event, `DUEL: ${duel.challengerName} vs ${duel.targetName}. ${winnerName} wins!${suffix}`); await winnerOverlay(context, settings, event, 'Viewer Duel', winnerName, result.awarded, challengerWins ? duel.challengerAvatarUrl : duel.targetAvatarUrl);
 }
 
 function incomingCommand(event, settings) {

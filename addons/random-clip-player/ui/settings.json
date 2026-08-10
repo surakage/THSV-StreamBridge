@@ -1,6 +1,8 @@
 {
-  "intro": "Set up clip rotation in three short sections. Playback always starts off when StreamBridge launches, begins only when the imported Enable action runs, and stops when Disable runs.",
+  "intro": "Choose the exact OBS scenes where clip rotation should run. Scene changes can start and stop playback automatically, while the imported Enable and Disable actions remain available for manual control.",
   "order": [
+    "automaticSceneNames",
+    "stopOutsideAutomaticScenes",
     "secondsBetweenClips",
     "clipCount",
     "minDurationSeconds",
@@ -13,36 +15,42 @@
   ],
   "sections": [
     {
-      "id": "playback",
-      "title": "1. Playback timing",
-      "description": "Choose the full pause between clips and the number of clips in one shuffle cycle. The short fade is included in the pause.",
+      "id": "scenes",
+      "title": "1. Automatic scenes",
+      "description": "Paste each complete OBS program-scene name exactly as OBS shows it. Include emoji, icons, brackets, spaces, and punctuation.",
       "open": true,
+      "fields": ["automaticSceneNames", "stopOutsideAutomaticScenes"]
+    },
+    {
+      "id": "playback",
+      "title": "2. Playback timing",
+      "description": "Choose the full pause between clips and the number of clips in one shuffle cycle. The short fade is included in the pause.",
       "fields": ["secondsBetweenClips", "clipCount"]
     },
     {
       "id": "filtering",
-      "title": "2. Clip length",
+      "title": "3. Clip length",
       "description": "Keep clips within a useful duration range for BRB, starting, or ending scenes.",
       "fields": ["minDurationSeconds", "maxDurationSeconds"]
     },
     {
       "id": "audio",
-      "title": "3. Audio",
+      "title": "4. Audio",
       "description": "Choose whether clips are muted and set their playback volume.",
       "fields": ["muted", "volume"]
     },
     {
       "id": "cache",
-      "title": "4. Optional smoother playback",
+      "title": "5. Optional smoother playback",
       "description": "Prefetch the selected clip to a private, bounded loopback cache before playback.",
       "notice": "Disabled by default. Only Twitch CDN HTTPS video is accepted. Files are capped at 50 MB each, 250 MB total, expire within 24 hours, and are removed automatically.",
       "fields": ["cacheVideo", "cacheTtlHours", "cacheMaximumFileMb"]
     },
     {
       "id": "review",
-      "title": "5. Review before enabling",
+      "title": "6. Review before enabling",
       "description": "Confirm the required Streamer.bot actions and browser source.",
-      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Run or trigger Enable to begin playback and Disable to end it. Restarting StreamBridge always returns the player to off.",
+      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. OBS program-scene changes start and stop configured scenes automatically; Enable and Disable remain optional manual controls.",
       "fields": []
     }
   ],

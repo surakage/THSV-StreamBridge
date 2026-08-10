@@ -69,8 +69,32 @@ public class CPHInline
         catch (Exception exception)
         {
             CPH.LogError("THSV Follower Pulse snapshot failed (" + exception.GetType().Name + ").");
-            return Fail("Twitch follower retrieval failed. Confirm moderator:read:followers and reconnect the broadcaster account if needed.");
+            return RelayFailure(scanId, page, relayToken, "Twitch follower retrieval failed. Confirm moderator:read:followers and reconnect the broadcaster account if needed.");
         }
+    }
+
+    private bool RelayFailure(string scanId, int page, string relayToken, string reason)
+    {
+        try
+        {
+            var payload = new JObject {
+                ["scanId"] = scanId, ["page"] = page, ["total"] = 0, ["nextCursor"] = "",
+                ["followers"] = new JArray(), ["error"] = Bounded(reason, 300)
+            };
+            var envelope = new JObject {
+                ["type"] = "thsv.addon", ["version"] = "1.0.0", ["moduleId"] = ModuleId,
+                ["eventType"] = PageEvent, ["sourceEventType"] = SourceName,
+                ["relayId"] = Guid.NewGuid().ToString("N"), ["relayToken"] = relayToken,
+                ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = ReadBool("isTest"),
+                ["payload"] = payload
+            };
+            CPH.WebsocketBroadcastJson(envelope.ToString(Formatting.None));
+        }
+        catch (Exception relayError)
+        {
+            CPH.LogWarn("THSV Follower Pulse could not relay its failure (" + relayError.GetType().Name + ").");
+        }
+        return Fail(reason);
     }
 
     private JObject GetJson(string url, string token, string clientId)

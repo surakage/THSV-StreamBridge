@@ -38,9 +38,9 @@ System messages are always excluded. Detected bots are excluded by default. Comm
 
 ## Delivery behavior
 
-- Messages wait for a 5â€“30 second batching window.
-- Each Discord post contains at most 1â€“20 messages and no more than 1,900 characters.
-- The waiting queue is bounded to 10â€“500 messages. When full, the oldest entry is omitted instead of allowing unbounded memory growth.
+- Messages wait for a 5–30 second batching window.
+- Each Discord post contains at most 1–20 messages and no more than 1,900 characters.
+- The waiting queue is bounded to 10–500 messages. When full, the oldest entry is omitted instead of allowing unbounded memory growth.
 - StreamBridge can retry a failed approved action at most twice. The Streamer.bot controller also honors Discord HTTP 429 responses with at most two bounded retries.
 - Discord mentions are disabled through an explicit `allowed_mentions` payload. Untrusted message Markdown is neutralized before delivery.
 - Confirmed responses return only bounded message and thread IDs to StreamBridge. Response bodies, message content, and the webhook are never logged.

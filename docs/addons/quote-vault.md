@@ -22,7 +22,7 @@ Provides one bounded, moderated, local quote library shared by Twitch, YouTube, 
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.33`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Quote Vault`
 

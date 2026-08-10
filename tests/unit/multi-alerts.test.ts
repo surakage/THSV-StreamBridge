@@ -3,6 +3,7 @@ import { normalizedEventSchema, type NormalizedEvent } from '../../schemas/event
 import {
   InvalidMultiAlertError,
   MULTI_ALERTS_MAX_TEXT_LENGTH,
+  formatAlertDisplayName,
   normalizeAlertPlainText,
   projectMultiAlert,
 } from '../../bridge/core/multi-alerts.js';
@@ -42,6 +43,14 @@ describe('Multi-Alerts contract', () => {
     expect(projectMultiAlert(withPayload('engagement.super-chat', {
       amount: '1.00', currency: 'USD', message: '<script>alert(1)</script> 🦥',
     }))?.message).toBe('<script>alert(1)</script> 🦥');
+  });
+
+  it('sentence-cases alert display names without changing the provider login', () => {
+    expect(formatAlertDisplayName('  TEST User 123  ')).toBe('Test user 123');
+    const event = withPayload('channel.follow', {});
+    if (event.user === undefined) throw new Error('Test event must contain a user.');
+    const alert = projectMultiAlert({ ...event, user: { ...event.user, name: 'TikTokLOGIN', displayName: 'TIKTOK CREATOR' } });
+    expect(alert?.actor).toMatchObject({ name: 'TikTokLOGIN', displayName: 'Tiktok creator' });
   });
 
   it('requires event-specific fields with readable bounded errors', () => {

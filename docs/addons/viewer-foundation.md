@@ -18,7 +18,7 @@ Provides named, configurable, privacy-conscious cross-platform points for chat c
 1. Install Viewer Foundation in the wizard and review its private-state permission.
 2. Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.
 3. Name the currency and choose chat, consistency, observed time, lurk, and event awards; then save and restart StreamBridge.
-4. Create the Viewer Foundation balance command in Command Sync so viewers can use !points.
+4. Choose the balance and lurk command names. They register automatically through the existing chat intakes after restart.
 
 ## Streamer.bot
 
@@ -51,4 +51,4 @@ Dependencies: none.
 
 1. Uninstall the add-on. Its pseudonymous progression state remains preserved for a later reinstall or privacy export.
 
-If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.
+If setup drifts, inspect the main THSV intake actions in the wizard, verify the saved add-on command settings, restart StreamBridge, then rerun the offline test.

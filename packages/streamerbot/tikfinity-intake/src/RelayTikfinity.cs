@@ -11,7 +11,8 @@ public class CPHInline
     private const int MaximumTextLength = 2000;
     private static readonly string[] KnownArguments = {
         "actionName", "isSimulated", "simulated", "isTest", "userId", "username", "nickname", "profilePictureUrl",
-        "profilePicturUrl", "commandParams", "eventId", "messageId", "msgId", "giftId", "giftName", "coins", "repeatCount", "likeCount", "totalLikeCount", "subMonth"
+        "profilePicturUrl", "commandParams", "eventId", "messageId", "msgId", "giftId", "giftName", "coins", "repeatCount", "likeCount", "totalLikeCount", "subMonth",
+        "isMe", "isOwner", "isBroadcaster", "isBot", "streamerUsername", "hostUsername", "roomUsername", "botUserName", "botUsername"
     };
 
     public bool Execute()
@@ -35,7 +36,7 @@ public class CPHInline
             object ignored;
             if (CPH.TryGetArg(key, out ignored)) argumentKeys.Add(key);
         }
-        bool simulated = ReadBooleanOrDefault("isSimulated", ReadBooleanOrDefault("simulated", ReadBooleanOrDefault("isTest", true)));
+        bool simulated = ReadBooleanOrDefault("isSimulated", ReadBooleanOrDefault("simulated", ReadBooleanOrDefault("isTest", false)));
         var message = new JObject
         {
             ["type"] = "thsv.tikfinity",
@@ -48,6 +49,9 @@ public class CPHInline
             ["userId"] = Read("userId"),
             ["username"] = Read("username"),
             ["nickname"] = Read("nickname"),
+            ["fromConnectedAccount"] = ReadBooleanOrDefault("isMe", false) || ReadBooleanOrDefault("isOwner", false) || ReadBooleanOrDefault("isBroadcaster", false) || ReadBooleanOrDefault("isBot", false),
+            ["hostUsername"] = First(Read("streamerUsername"), First(Read("hostUsername"), Read("roomUsername"))),
+            ["botUserName"] = First(Read("botUserName"), Read("botUsername")),
             ["profilePictureUrl"] = First(Read("profilePictureUrl"), Read("profilePicturUrl")),
             ["commandParams"] = Read("commandParams"),
             ["giftId"] = Read("giftId"),

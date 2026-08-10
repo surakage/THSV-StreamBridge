@@ -29,7 +29,7 @@ const manifest = {
   installationSteps: [
     'Install and enable Viewer Foundation.',
     'Import the Village Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.',
-    'Approve the resolver and Twitch reward helper, generate the six no-response command templates, and add the hosted browser source.',
+    'Approve the resolver and Twitch reward helper, choose the command names in the wizard, and add the hosted browser source. Commands register automatically after restart.',
     'Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback.',
   ],
   uninstallationSteps: ['Uninstalling preserves the bounded queue, cooldowns, and recently played IDs for a later reinstall.'], migrations: [],
@@ -215,7 +215,7 @@ async function playNext(context) {
       embedUrl: `https://www.youtube.com/embed/${track.id}`, playbackId, durationMs: track.durationSeconds * 1000, muted: false, volume: settings.volume,
       title: `${track.title} — ${track.channel} • requested by ${track.requesterName}`,
       style: { backgroundColor: settings.backgroundColor, accentColor: settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily },
-    });
+    }, { lane: 'media' });
     if (settings.announceNowPlaying) await say(context, track.platform, `Now playing: ${track.title} by ${track.channel}, requested by ${track.requesterName}.`);
   } catch (error) {
     state.current = undefined; state.queue.unshift(track); await context.state.write(state); await context.mediaSlot.release(currentLeaseId).catch(() => undefined); currentLeaseId = undefined;

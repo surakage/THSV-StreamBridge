@@ -36,18 +36,21 @@ describe('Random Clip Player add-on package', () => {
     const cacheModule = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.clip-library-cache');
     if (module === undefined) throw new Error('The add-on must load through the exact same path a real install uses.');
     if (cacheModule === undefined) throw new Error('The shared clip cache dependency must load.');
-    expect(module.manifest.eventSubscriptions).toEqual(['addon.thsv.random-clip-player.clips-received', 'addon.thsv.clip-library-cache.snapshot', 'addon.thsv.random-clip-player.clip-download-received', 'addon.thsv.random-clip-player.control']);
-    expect(module.settings).toEqual({ secondsBetweenClips: 5, clipCount: 20, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: false, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
+    expect(module.manifest.eventSubscriptions).toEqual(['addon.thsv.random-clip-player.clips-received', 'addon.thsv.clip-library-cache.snapshot', 'addon.thsv.random-clip-player.clip-download-received', 'addon.thsv.random-clip-player.control', 'stream.scene-changed']);
+    expect(module.settings).toEqual({ automaticSceneNames: ['BRB', 'Stream Ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 5, clipCount: 20, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
     // A bridge restart must not resume a playback session that was enabled in the prior process.
     await mkdir(join(stateRoot, 'thsv.random-clip-player'), { recursive: true });
     await writeFile(join(stateRoot, 'thsv.random-clip-player', 'runtime-state.json'), JSON.stringify({ clips: [], seenClipIds: [], playbackEnabled: true }));
 
     const publishedTopics: Array<{ topic: string; payload: unknown }> = [];
     const dispatchedActions: Array<{ actionId: string; args: unknown }> = [];
+    let releaseCache: ((value: { url: string; cacheHit: boolean; bytes: number; expiresAt: string }) => void) | undefined;
+    const preparedCache = new Promise<{ url: string; cacheHit: boolean; bytes: number; expiresAt: string }>((resolve) => { releaseCache = resolve; });
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
       runStreamerBotAction: async (actionId, args) => { dispatchedActions.push({ actionId, args }); },
       publishOverlay: async (_moduleId, topic, payload) => { publishedTopics.push({ topic, payload }); },
       subscribeOverlayLifecycle: () => () => undefined,
+      cacheClipMedia: async () => preparedCache,
     });
     const grantedModule = { ...module, capabilityGrant: { moduleId: 'thsv.random-clip-player', permissions: installed.descriptor.permissions, approvedActionIds: ['f89e397b-7106-5101-a620-b0f5da4facf9', 'ad3cf90f-b320-5ae2-a493-485a5485e0ce'] } };
     const cacheGrant = { ...cacheModule, settings: { enabled: false }, capabilityGrant: { moduleId: 'thsv.clip-library-cache', permissions: cacheInstalled.descriptor.permissions, approvedActionIds: [] } };
@@ -55,7 +58,7 @@ describe('Random Clip Player add-on package', () => {
     await registry.start();
     expect(registry.statuses()).toEqual(expect.arrayContaining([expect.objectContaining({ moduleId: 'thsv.random-clip-player', status: 'healthy' })]));
 
-    // Startup is inert until the creator-controlled Enable relay arrives.
+    // Startup is inert until a configured OBS scene or creator-controlled Enable relay arrives.
     expect(dispatchedActions).toHaveLength(0);
     expect(broker.diagnostics()['scheduledTasks']).toBe(0);
     expect(publishedTopics[0]).toMatchObject({ topic: 'thsv.random-clip-player.media.stop' });
@@ -67,7 +70,7 @@ describe('Random Clip Player add-on package', () => {
       payload: { clips: [{ id: 'ClipOne', title: 'A great play', durationSeconds: 12, thumbnailUrl: 'https://example.com/thumb.jpg' }] },
       metadata: { simulated: true },
     };
-    await registry.publish({ ...clipsEvent, eventId: 'test-control-initial-enable', eventType: 'addon.thsv.random-clip-player.control', payload: { enabled: true } });
+    await registry.publish({ ...clipsEvent, eventId: 'test-scene-initial-enable', eventType: 'stream.scene-changed', payload: { provider: 'obs', sceneName: 'Stream Ending' }, metadata: { simulated: false } });
     expect(broker.diagnostics()['scheduledTasks']).toBe(1);
     await registry.publish(clipsEvent);
     expect(dispatchedActions).toHaveLength(1);
@@ -83,12 +86,16 @@ describe('Random Clip Player add-on package', () => {
       schemaVersion: '1.0.0', eventId: 'test-download-1', eventType: 'addon.thsv.random-clip-player.clip-download-received', platform: 'system',
       source: { adapter: 'streamerbot-addon-relay', eventId: 'relay-2', eventName: 'THSV Addon - Random Clip Player - Get Clip Download' },
       receivedAt: new Date().toISOString(), channel: { name: 'system' },
-      payload: { clipId: 'ClipOne', landscapeUrl: 'https://example.com/clip.mp4', portraitUrl: '' },
+      payload: { clipId: 'ClipOne', landscapeUrl: 'https://clips-media-assets2.twitch.tv/clip.mp4', portraitUrl: '' },
       metadata: { simulated: true },
     };
     await registry.publish(downloadEvent);
-    expect(publishedTopics).toHaveLength(2);
-    expect(publishedTopics[1]).toMatchObject({ topic: 'thsv.random-clip-player.media.play', payload: { url: 'https://example.com/clip.mp4', title: 'A great play', posterUrl: 'https://example.com/thumb.jpg', durationMs: 12_000, muted: false, volume: 1 } });
+    // A slow full-file cache must not hold the framework event handler open and stop the module.
+    expect(registry.statuses()).toEqual(expect.arrayContaining([expect.objectContaining({ moduleId: 'thsv.random-clip-player', status: 'healthy' })]));
+    expect(publishedTopics).toHaveLength(1);
+    releaseCache?.({ url: '/overlay/cache/clip.mp4', cacheHit: false, bytes: 1_024, expiresAt: new Date(Date.now() + 3_600_000).toISOString() });
+    await expect.poll(() => publishedTopics.length).toBe(2);
+    expect(publishedTopics[1]).toMatchObject({ topic: 'thsv.random-clip-player.media.play', payload: { url: '/overlay/cache/clip.mp4', title: 'A great play', posterUrl: 'https://example.com/thumb.jpg', durationMs: 12_000, muted: false, volume: 1 } });
 
     // A higher-priority add-on can temporarily take the one shared video surface without
     // disabling the creator's Random Clip Player session or opening another WebSocket.
@@ -102,7 +109,7 @@ describe('Random Clip Player add-on package', () => {
     expect(broker.diagnostics()['scheduledTasks']).toBe(1);
 
     await registry.publish({
-      ...clipsEvent, eventId: 'test-control-disable', eventType: 'addon.thsv.random-clip-player.control', payload: { enabled: false },
+      ...clipsEvent, eventId: 'test-scene-disable', eventType: 'stream.scene-changed', payload: { provider: 'obs', sceneName: '📁 Gaming' }, metadata: { simulated: false },
     });
     expect(publishedTopics[3]).toMatchObject({ topic: 'thsv.random-clip-player.media.stop', payload: { fade: true } });
     const actionsWhileDisabled = dispatchedActions.length;
@@ -138,6 +145,7 @@ describe('Random Clip Player add-on package', () => {
       runStreamerBotAction: async (actionId, args) => { dispatchedActions.push({ actionId, args }); },
       publishOverlay: async (_moduleId, topic, payload) => { publishedTopics.push({ topic, payload }); },
       subscribeOverlayLifecycle: (_moduleId, listener) => { lifecycleListener = listener; return () => undefined; },
+      cacheClipMedia: async () => ({ url: '/overlay/cache/clip.mp4', cacheHit: false, bytes: 1_024, expiresAt: new Date(Date.now() + 3_600_000).toISOString() }),
     });
     const grantedModule = { ...module, capabilityGrant: { moduleId: 'thsv.random-clip-player', permissions: installed.descriptor.permissions, approvedActionIds: ['f89e397b-7106-5101-a620-b0f5da4facf9', 'ad3cf90f-b320-5ae2-a493-485a5485e0ce'] } };
     const cacheGrant = { ...cacheModule, settings: { enabled: false }, capabilityGrant: { moduleId: 'thsv.clip-library-cache', permissions: cacheInstalled.descriptor.permissions, approvedActionIds: [] } };
@@ -162,8 +170,9 @@ describe('Random Clip Player add-on package', () => {
 
     await registry.publish({
       ...twoClips, eventId: 'test-download-first', eventType: 'addon.thsv.random-clip-player.clip-download-received',
-      payload: { clipId: firstClipId, landscapeUrl: 'https://example.com/first.mp4' },
+      payload: { clipId: firstClipId, landscapeUrl: 'https://clips-media-assets2.twitch.tv/first.mp4' },
     });
+    await expect.poll(() => publishedTopics.length).toBe(2);
     const firstPlaybackId = publishedTopics[1]?.payload['playbackId'];
     expect(firstPlaybackId).toEqual(expect.any(String));
     expect(broker.diagnostics()['scheduledTasks']).toBe(1); // Overlay-start safety net remains armed after publish.
@@ -187,8 +196,9 @@ describe('Random Clip Player add-on package', () => {
 
     await registry.publish({
       ...twoClips, eventId: 'test-download-second', eventType: 'addon.thsv.random-clip-player.clip-download-received',
-      payload: { clipId: secondClipId, landscapeUrl: 'https://example.com/second.mp4' },
+      payload: { clipId: secondClipId, landscapeUrl: 'https://clips-media-assets2.twitch.tv/second.mp4' },
     });
+    await expect.poll(() => publishedTopics.length).toBe(3);
     const secondPlaybackId = publishedTopics[2]?.payload['playbackId'];
     expect(secondPlaybackId).toEqual(expect.any(String));
     // Both playable clips have now been played once. Ask the cache for one refreshed batch while
@@ -254,7 +264,7 @@ describe('Random Clip Player add-on package', () => {
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.random-clip-player');
     if (module === undefined) throw new Error('The add-on must load through the exact same path a real install uses.');
     // Unset properties still fall back to the schema's own defaults, exactly like the wizard's settings form does.
-    expect(module.settings).toEqual({ secondsBetweenClips: 3, clipCount: 5, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: false, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
+    expect(module.settings).toEqual({ automaticSceneNames: ['BRB', 'Stream Ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 3, clipCount: 5, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
   });
 
   it('preserves the old minute interval as seconds when upgrading saved settings', async () => {
@@ -267,6 +277,6 @@ describe('Random Clip Player add-on package', () => {
     const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.random-clip-player');
     if (module === undefined) throw new Error('Migrated settings must not prevent the add-on from loading.');
-    expect(module.settings).toEqual({ secondsBetweenClips: 600, clipCount: 7, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: false, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
+    expect(module.settings).toEqual({ automaticSceneNames: ['BRB', 'Stream Ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 600, clipCount: 7, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
   });
 });

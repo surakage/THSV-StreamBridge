@@ -1,9 +1,34 @@
+async function fetchAddOnRuntimeDiagnostics() {
+  try {
+    const response = await fetch('/diagnostics');
+    if (!response.ok) throw new Error(`Runtime diagnostics failed (${response.status})`);
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function waitForAddOnOverlayClient(moduleId, timeoutMs = 1_500) {
+  const deadline = Date.now() + timeoutMs;
+  do {
+    const runtime = await fetchAddOnRuntimeDiagnostics();
+    if (runtime) state.addOnRuntime = runtime;
+    const clients = state.addOnRuntime?.browserOverlay?.addOnClients?.[moduleId] || 0;
+    if (clients > 0 || Date.now() >= deadline) return clients;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  } while (Date.now() < deadline);
+  return 0;
+}
+
 async function loadAddOns() {
   const status = byId('addon-state');
   status.setAttribute('aria-busy', 'true');
   status.textContent = 'Verifying installed add-ons...';
   try {
-    const result = await api('/wizard/api/addons');
+    const [result, runtime] = await Promise.all([
+      api('/wizard/api/addons'),
+      fetchAddOnRuntimeDiagnostics(),
+    ]);
     let acceptanceResult = { acceptance: {} };
     try { acceptanceResult = await api('/wizard/api/addons/acceptance'); }
     catch (error) {
@@ -12,6 +37,8 @@ async function loadAddOns() {
       if (!/not found/iu.test(String(error?.message || error))) throw error;
     }
     state.addOns = result.addOns;
+    state.addOnRuntime = runtime;
+    syncAddOnRestartState(runtime?.startedAt);
     state.discoveredAddOns = result.discovered || [];
     state.trustedAddOnPublishers = result.trustedPublishers || [];
     state.addOnAcceptance = acceptanceResult.acceptance || {};
@@ -26,12 +53,94 @@ async function loadAddOns() {
     renderAddOns();
     renderDiscoveredAddOns();
     renderTrustedPublishers();
-    status.textContent = `${state.addOns.length} installed and ${state.discoveredAddOns.length} discovered add-on package(s) inspected. Changes take effect after StreamBridge restarts.`;
+    const pending = state.addOnRestartRequiredIds.size;
+    const runtimeSummary = runtime ? `${runtime.ready ? 'Runtime ready' : 'Runtime needs attention'}; ${runtime.browserOverlay?.clients || 0} shared overlay client(s) connected.` : 'Runtime diagnostics are unavailable; saved settings remain usable.';
+    status.textContent = `${state.addOns.length} installed and ${state.discoveredAddOns.length} discovered add-on package(s) inspected. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${pending} pending add-on change${pending === 1 ? '' : 's'}.` : ''}`;
   } catch (error) {
     status.textContent = error.message;
   } finally {
     status.removeAttribute('aria-busy');
   }
+}
+
+const ADD_ON_RESTART_STORAGE_KEY = 'thsv-addon-restart-required-v1';
+
+function readAddOnRestartState() {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(ADD_ON_RESTART_STORAGE_KEY) || 'null');
+    return value && Array.isArray(value.moduleIds) ? value : { startedAt: '', moduleIds: [] };
+  } catch {
+    return { startedAt: '', moduleIds: [] };
+  }
+}
+
+function syncAddOnRestartState(startedAt) {
+  const pending = readAddOnRestartState();
+  if (pending.startedAt && startedAt && pending.startedAt !== startedAt) {
+    sessionStorage.removeItem(ADD_ON_RESTART_STORAGE_KEY);
+    state.addOnRestartRequiredIds = new Set();
+    return;
+  }
+  state.addOnRestartRequiredIds = new Set(pending.moduleIds);
+}
+
+function markAddOnRestartRequired(moduleId) {
+  state.addOnRestartRequiredIds.add(moduleId);
+  sessionStorage.setItem(ADD_ON_RESTART_STORAGE_KEY, JSON.stringify({
+    startedAt: state.addOnRuntime?.startedAt || readAddOnRestartState().startedAt || '',
+    moduleIds: [...state.addOnRestartRequiredIds],
+  }));
+}
+
+function reportAddOnFeedback(message, kind = 'success', button) {
+  const status = byId('addon-state');
+  if (status) status.textContent = message;
+  showWizardFeedback(message, kind, button);
+}
+
+function addOnRuntimeModule(moduleId) {
+  return state.addOnRuntime?.modules?.find((module) => module.moduleId === moduleId);
+}
+
+function renderAddOnRuntimeStatus(addOn) {
+  if (addOn.health === 'rejected') return '<span class="status-chip status-warning">Package rejected</span>';
+  if (state.addOnRestartRequiredIds.has(addOn.moduleId)) return '<span class="status-chip status-neutral">Restart required</span>';
+  if (!addOn.enabled) return '<span class="status-chip status-neutral">Disabled</span>';
+  const runtime = addOnRuntimeModule(addOn.moduleId);
+  if (!state.addOnRuntime) return '<span class="status-chip status-neutral">Runtime unknown</span>';
+  if (!runtime) return '<span class="status-chip status-warning">Not loaded</span>';
+  if (runtime.status === 'healthy') return '<span class="status-chip status-ready">Runtime healthy</span>';
+  return `<span class="status-chip status-warning">${safe(addOnOptionLabel(runtime.status || 'Needs attention'))}</span>`;
+}
+
+function renderAddOnRuntimeSummary(addOn) {
+  if (addOn.health === 'rejected') return '';
+  const pending = state.addOnRestartRequiredIds.has(addOn.moduleId);
+  const runtime = addOnRuntimeModule(addOn.moduleId);
+  const moduleMessage = pending
+    ? '<strong>Saved change pending:</strong> restart StreamBridge, then refresh this page to verify the active module.'
+    : !addOn.enabled
+      ? '<strong>Module disabled:</strong> enable it and restart StreamBridge before testing.'
+      : runtime?.status === 'healthy'
+        ? '<strong>Module:</strong> healthy in the running StreamBridge process.'
+        : runtime
+          ? `<strong>Module needs attention:</strong> ${safe(runtime.message || addOnOptionLabel(runtime.status || 'unknown status'))}.`
+          : '<strong>Module not loaded:</strong> restart StreamBridge. If it remains missing, inspect the package status and daily log.';
+  const addOnOverlayClients = state.addOnRuntime?.browserOverlay?.addOnClients?.[addOn.moduleId] || 0;
+  const overlayMessage = addOn.permissions.includes('overlay.publish')
+    ? addOnOverlayClients > 0
+      ? `<span><strong>Overlay connected:</strong> ${safe(addOnOverlayClients)} browser-source instance${addOnOverlayClients === 1 ? '' : 's'} registered for this add-on. Send a preview below for a final visual check.</span>`
+      : state.addOnRuntime?.browserOverlay?.clients > 0
+        ? '<span><strong>This overlay is not connected:</strong> the shared transport is running for another source, but this add-on did not register an OBS browser source. Add or refresh its URL below.</span>'
+        : '<span><strong>Overlay not connected:</strong> add or open the browser-source URL below, then send a preview. Saving settings alone cannot make OBS display it.</span>'
+    : '';
+  const serviceMessage = !state.addOnRuntime
+    ? '<span><strong>Runtime diagnostics unavailable:</strong> refresh the page after confirming StreamBridge is running.</span>'
+    : state.addOnRuntime.ready
+      ? ''
+      : '<span><strong>Bridge not ready:</strong> review Connections and Diagnostics before testing this add-on.</span>';
+  const tone = pending || !addOn.enabled || !runtime || runtime.status !== 'healthy' || (addOn.permissions.includes('overlay.publish') && addOnOverlayClients === 0) ? 'warning' : 'ready';
+  return `<div class="addon-runtime-summary status-${tone}" role="status"><span>${moduleMessage}</span>${overlayMessage}${serviceMessage}</div>`;
 }
 
 function renderTrustedPublishers() {
@@ -128,6 +237,7 @@ function renderAddOnField(name, schema, value, ui = {}) {
   const fullRow = type === 'array' || schema.format === 'multiline' || ui.fullRow === true;
   const wrapper = (content) => `<div class="addon-setting ${fullRow ? 'full-row' : ''}"${addOnVisibilityAttributes(ui)}>${content}</div>`;
   if (ui.control === 'scene-mappings') return wrapper(renderSceneMappingEditor(name, value, help));
+  if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this add-on's action-grants section.</small></label>`);
   if (type === 'array' && Array.isArray(schema.items?.enum)) {
     const selected = new Set(Array.isArray(value) ? value : []);
     return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid">${schema.items.enum.map((entry) => `<label class="addon-choice"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
@@ -161,6 +271,21 @@ function sceneActionOptions(selectedId = '') {
   const hasSelected = actions.some((action) => action.id === selectedId); const remembered = state.addOnActionNameCache?.[selectedId];
   const unavailable = selectedId && !hasSelected ? `<option value="${safe(selectedId)}" selected>${safe(remembered?.name || 'Saved action')} — ${safe(selectedId)}</option>` : '';
   return `<option value="">Choose a Streamer.bot action…</option>${unavailable}${actions.map((action) => `<option value="${safe(action.id)}" ${action.id === selectedId ? 'selected' : ''}>${safe(actionGroupName(action))} — ${safe(action.name)}</option>`).join('')}`;
+}
+
+function inspectedActionOptions(selectedId = '') {
+  const prohibited = new Set([
+    '143fce1d-c5b0-4108-b766-ee2d0249e2d4', '18bdc91c-64eb-4787-8be9-6a921b272943',
+    '6a78d950-17b5-4a98-9de7-1a5b4275f31c', 'e924f0ad-36c1-4687-8c05-c39466d06963',
+    'b2a5681e-329a-40ac-9ce3-57d249ba80fe', 'c3a739c4-dfdc-455b-a377-bf9d72f4cd30',
+    '74d1914e-8b75-4cb6-90f6-977a77803082',
+  ]);
+  const actions = state.liveActions.filter((action) => !prohibited.has(action.id.toLowerCase()))
+    .sort((left, right) => actionGroupName(left).localeCompare(actionGroupName(right)) || left.name.localeCompare(right.name));
+  const hasSelected = actions.some((action) => action.id === selectedId); const remembered = state.addOnActionNameCache?.[selectedId];
+  const unavailable = selectedId && !hasSelected ? `<option value="${safe(selectedId)}" selected>${safe(remembered?.name || 'Saved action')} - ${safe(selectedId)}</option>` : '';
+  const prompt = actions.length ? 'Choose an inspected Streamer.bot action...' : 'Refresh Streamer.bot actions to choose...';
+  return `<option value="">${prompt}</option>${unavailable}${actions.map((action) => `<option value="${safe(action.id)}" ${action.id === selectedId ? 'selected' : ''}>${safe(actionGroupName(action))} - ${safe(action.name)}</option>`).join('')}`;
 }
 
 function renderSceneMappingRow(mapping = {}) {
@@ -204,9 +329,14 @@ function renderAddOnSettings(addOn) {
   const byName = new Map(entries);
   const rendered = new Set();
   const fieldUi = addOn.settingsUi?.fields && typeof addOn.settingsUi.fields === 'object' ? addOn.settingsUi.fields : {};
+  const savedSettings = addOn.settings && typeof addOn.settings === 'object' ? addOn.settings : {};
+  const sharedVoiceAlias = addOn.moduleId === 'thsv.village-hydration-station' && !String(savedSettings.voiceAlias || '').trim()
+    ? String(state.addOns.find((candidate) => candidate.moduleId === 'thsv.voice-relay')?.settings?.voiceAlias || '').trim()
+    : '';
   const renderNames = (names) => names.filter((name) => byName.has(name)).map((name) => {
     rendered.add(name);
-    return renderAddOnField(name, byName.get(name), addOn.settings[name], fieldUi[name]);
+    const value = name === 'voiceAlias' && sharedVoiceAlias ? sharedVoiceAlias : savedSettings[name];
+    return renderAddOnField(name, byName.get(name), value, fieldUi[name]);
   }).join('');
   const requestedSections = Array.isArray(addOn.settingsUi?.sections) ? addOn.settingsUi.sections : [];
   let openedEssentialSection = false;
@@ -291,6 +421,7 @@ const BROKER_ROUTED_ADDONS = new Set([
   'thsv.viewer-lobby',
   'thsv.voice-relay',
   'thsv.follower-pulse',
+  'thsv.village-hydration-station',
   'thsv.village-jukebox',
 ]);
 
@@ -298,25 +429,27 @@ const BROKER_ROUTED_ADDONS = new Set([
 // Direct commands and creator controls such as Enable, Reset, Pause, !clip, and !guardtrust are
 // intentionally omitted: Streamer.bot invokes those itself and they need no action grant.
 const RECOMMENDED_ADDON_ACTION_NAMES = {
-  'thsv.automated-shoutouts': ['THSV Addon - Automated Shoutouts - Lookup Twitch Creator', 'THSV Addon - Automated Shoutouts - Twitch Native Shoutout', 'THSV Addon - Automated Shoutouts - Get Twitch Clip'],
+  'thsv.automated-shoutouts': ['THSV Addon - Automated Shoutouts - Lookup Twitch Creator', 'THSV Addon - Automated Shoutouts - Twitch Native Shoutout'],
   'thsv.category-pilot': ['THSV Addon - Category Pilot - Process Probe'],
   'thsv.chat-guard': ['THSV Addon - Chat Guard - Moderate'],
-  'thsv.clip-courier': ['THSV Addon - Clip Courier - Deliver'],
+  'thsv.clip-courier': ['THSV Addon - Clip Courier - Create Clip', 'THSV Addon - Clip Courier - Deliver'],
   'thsv.clip-library-cache': ['THSV Addon - Clip Library Cache - Refresh'],
   'thsv.creator-controls': ['THSV Addon - Creator Controls - Provider Controller'],
   'thsv.discord-chat-archive': ['THSV Addon - Discord Chat Archive - Deliver'],
   'thsv.fan-crown': ['THSV Addon - Fan Crown - Controller'],
   'thsv.first-five': ['THSV Addon - First Five - Controller'],
   'thsv.follower-pulse': ['THSV Addon - Follower Pulse - Snapshot Page'],
-  'thsv.free-game-check': ['THSV Addon - Free Game Check - Refresh'],
+  'thsv.free-game-check': ['THSV Addon - Free Game Check - Refresh', 'THSV Addon - Free Game Check - Settle Twitch Reward'],
   'thsv.live-beacon': ['THSV Addon - Live Beacon - Deliver'],
-  'thsv.raid-scout': ['THSV Addon - Raid Scout - Controller'],
+  'thsv.raid-scout': ['THSV Addon - Raid Scout - Controller', 'THSV Addon - Raid Scout - Run Ending Ad'],
   'thsv.random-clip-player': ['THSV Addon - Random Clip Player - Get Clips', 'THSV Addon - Random Clip Player - Get Clip Download'],
   'thsv.user-translate': ['THSV Addon - Translate - Translate Text'],
   'thsv.viewer-spotlight': ['THSV Addon - Viewer Spotlight - Settle Reward', 'THSV Addon - Viewer Spotlight - Discord Snapshot'],
   'thsv.voice-relay': ['THSV Addon - Voice Relay - Speak'],
   'thsv.village-jukebox': ['THSV Addon - Village Jukebox - Resolve YouTube Track', 'THSV Addon - Village Jukebox - Settle Twitch Reward'],
 };
+const RAID_SCOUT_CONTROLLER_ACTION_ID = '6a78d950-17b5-4a98-9de7-1a5b4275f31c';
+const RAID_SCOUT_RUN_ENDING_AD_ACTION_ID = '18a8de7c-1c5f-4a1e-8d58-7944c74060d5';
 
 function renderAddOnQuickSummary(addOn, hasSettings) {
   const steps = Array.isArray(addOn.installationSteps) ? addOn.installationSteps : [];
@@ -334,26 +467,31 @@ function renderAddOnQuickSummary(addOn, hasSettings) {
 }
 
 function renderAddOnTriggerReadiness(addOn) {
+  if (addOn.moduleId === 'thsv.village-hydration-station') {
+    return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-hydration-station:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect hydration once</strong><small>Choose the broadcaster command, Stream Deck, or creator hotkeys.</small></span><span class="status-chip status-ready">No voice setup</span></summary><div class="addon-step-body"><p class="notice"><strong>Hydration does not use Voice Control.</strong> Microphone listening and spoken-command triggers are not required.</p><ol><li>Use the saved broadcaster-only <strong>!water</strong> command for chat control, or attach <strong>Log Water</strong> to a Stream Deck button or creator hotkey.</li><li>Keep Twitch and Kick hydration rewards on their existing main platform intake actions. YouTube and TikTok use the saved automatic viewer command.</li><li>Keep <strong>Speak</strong> triggerless and approve it only when optional Speaker.bot reminders are enabled.</li><li>Attach Undo, Snooze, and Reset only to creator-controlled buttons or hotkeys.</li></ol></div></details>`;
+  }
   if (addOn.moduleId === 'thsv.viewer-lobby') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.viewer-lobby:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the lobby controls</strong><small>Viewer commands use the main chat intakes; only creator controls need your own triggers.</small></span><span class="status-chip status-neutral">Control import required</span></summary><div class="addon-step-body"><div class="notice"><strong>Normal stream flow</strong><p>Open the lobby &rarr; viewers use <code>!join</code> &rarr; choose Next or Random &rarr; Complete the current viewer &rarr; Close or Clear when finished.</p></div><ol><li>Import <strong>THSV StreamBridge - Viewer Lobby</strong> in Streamer.bot.</li><li>Leave the imported actions without public chat or platform-event triggers.</li><li>Attach <strong>Open, Close, Pause, Resume, Next, Random, Complete,</strong> and <strong>Clear</strong> only to creator-controlled hotkeys, Stream Deck buttons, or optional Scene Actions.</li><li>Keep Twitch, YouTube, Kick, and TikTok chat triggers on the existing main THSV intake actions. Do not create duplicate <code>!join</code> commands in Command Sync.</li><li>Add the browser source below to OBS, Meld, or Streamlabs Desktop, then send a queue preview.</li></ol><p class="notice"><strong>What the controls mean:</strong> Pause and Close keep the saved queue but stop new joins. Complete removes the selected viewer. Next and Random finish the current selection before choosing another. Clear permanently empties the queue.</p></div></details>`;
   if (addOn.moduleId === 'thsv.creator-controls') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.creator-controls:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect your profile buttons</strong><small>Each Apply Profile action runs one saved setup.</small></span><span class="status-chip status-neutral">One approval needed</span></summary><div class="addon-step-body"><div class="notice"><strong>Easy mapping</strong><ul><li><strong>Apply Profile 1</strong> &rarr; Starting Soon</li><li><strong>Apply Profile 2</strong> &rarr; Gameplay</li><li><strong>Apply Profile 3</strong> &rarr; Just Chatting</li></ul></div><ol><li>Import <strong>THSV StreamBridge - Creator Controls</strong> in Streamer.bot.</li><li>Leave <strong>Provider Controller</strong> enabled with no trigger. Approve only that controller in the next wizard step.</li><li>Add your scene-change trigger, hotkey, or deck button to the matching <strong>Apply Profile</strong> action. Do not attach those triggers to Provider Controller.</li><li>Save the wizard, restart StreamBridge, temporarily allow Test buttons, and run one Apply Profile action.</li><li>Confirm the title/category changed, then turn Test buttons back off before going live.</li></ol><p class="notice"><strong>TikTok is intentionally not listed:</strong> TikFinity does not provide a verified equivalent for changing live title/category. Blank category fields are safely skipped.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.free-game-check') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.free-game-check:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect viewer requests once</strong><small>Rewards and commands reuse the existing platform intake actions.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Free Game Check</strong>. Leave Refresh and Discord Deliver triggerless.</li><li>Approve <strong>Refresh</strong> below. Approve <strong>Discord Deliver</strong> only when the Discord posting option is enabled.</li><li>Create a <strong>Free Games</strong> reward on Twitch and Kick, then paste each stable reward ID in the settings. Keep one Reward Redemption trigger on the existing Twitch and Kick intake actions.</li><li>In Command Sync, apply <strong>Free Games Discord guide</strong>, generate and import the command package, then enable <code>!freegames</code> for YouTube and TikTok.</li><li>Add a Discord invite link, save, restart StreamBridge, and test each enabled platform once.</li></ol><p class="notice"><strong>Source-routed and spam bounded:</strong> a request replies only in the platform where it originated. Per-viewer cooldowns prevent repeated command spam, and scheduled full-list announcements remain separately optional.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.village-jukebox') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-jukebox:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the jukebox safely</strong><small>One private resolver validates YouTube tracks; the main intakes receive viewer commands.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first if YouTube or TikTok viewers will spend bridge points.</li><li>Import <strong>THSV StreamBridge - Village Jukebox</strong> in Streamer.bot.</li><li>Open <strong>Resolve YouTube Track</strong>, replace the private <code>villageJukeboxYouTubeApiKey</code> Set Argument value, then Save and Compile. Leave both imported actions triggerless.</li><li>Approve <strong>Resolve YouTube Track</strong> below. Approve <strong>Settle Twitch Reward</strong> only when the Twitch reward path is enabled.</li><li>In Command Sync, add the Village Jukebox commands you want, generate one package, import it, and enable those commands. Keep all platform message/command triggers on the existing main THSV intake actions.</li><li>Add the browser-source URL below at <strong>640 x 460</strong>, save, restart StreamBridge, and request a track with <code>!sr song or YouTube link</code>.</li></ol><p class="notice"><strong>Keep the API key private:</strong> it stays in Streamer.bot and must never be pasted into the wizard, logs, or support messages. Spotify playback is intentionally excluded; only use music you are permitted to broadcast.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.first-five') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.first-five:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect each platform once</strong><small>Rewards use the main intakes; one controller changes Twitch rewards safely.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before using YouTube or TikTok points.</li><li>Import the First Five Streamer.bot package. Leave <strong>Controller</strong> triggerless and approve only that action below.</li><li>Keep one Twitch and one Kick Reward Redemption trigger on their existing main THSV intake actions. Paste the five stable reward IDs for each platform in placement order.</li><li>Create the configured no-response command through Command Sync for YouTube and TikTok.</li><li>Save, restart StreamBridge, then test each path separately. Never attach reward triggers to the controller.</li></ol><p class="notice"><strong>One claim path per platform:</strong> duplicate intake triggers can process the same claim twice. Twitch can settle pending rewards; Kick claims are accepted directly because equivalent refund methods are unavailable.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.fan-crown') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.fan-crown:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the crown safely</strong><small>Twitch uses its controller; Kick rewards and point commands stay on the main intakes.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before enabling YouTube or TikTok crown claims.</li><li>Import the Fan Crown package. Leave <strong>Controller</strong> triggerless and approve only that action below.</li><li>Create the Twitch reward inside Streamer.bot and paste its stable ID. Paste the Kick reward ID only if Kick claims are enabled.</li><li>Create the configured no-response command through Command Sync for YouTube and TikTok.</li><li>Save, restart StreamBridge, test one claim, and use the imported Reset action only as a creator control.</li></ol><p class="notice"><strong>Do not duplicate reward triggers:</strong> both native rewards arrive through the existing platform intakes. Twitch supports fulfillment and rollback; Kick does not expose the same settlement controls.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.free-game-check') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.free-game-check:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect redemption-only checks</strong><small>One matching reward or points command starts one GamerPower lookup.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before using YouTube or TikTok points.</li><li>Import <strong>THSV StreamBridge - Free Game Check</strong>. Leave Refresh, Discord Deliver, and Settle Twitch Reward triggerless.</li><li>Approve <strong>Refresh</strong> and <strong>Settle Twitch Reward</strong> below. Approve <strong>Discord Deliver</strong> only when Discord posting is enabled.</li><li>Create a pending <strong>Free Games</strong> Twitch reward and a Kick reward, then paste their stable IDs. Keep one Reward Redemption trigger on each existing intake.</li><li>Choose the YouTube and TikTok command and points cost. Save and restart; no separate Streamer.bot Command object is needed.</li></ol><p class="notice"><strong>No timer:</strong> the add-on checks only after a valid live redemption. Available games produce one source-chat Discord guide; no games or lookup failures refund Twitch and Viewer Foundation points. Kick remains accepted because Streamer.bot does not currently expose an equivalent refund method.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.village-jukebox') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-jukebox:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the jukebox safely</strong><small>One private resolver validates YouTube tracks; the main intakes receive viewer commands.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first if YouTube or TikTok viewers will spend bridge points.</li><li>Import <strong>THSV StreamBridge - Village Jukebox</strong> in Streamer.bot.</li><li>Open <strong>Resolve YouTube Track</strong>, replace the private <code>villageJukeboxYouTubeApiKey</code> Set Argument value, then Save and Compile. Leave both imported actions triggerless.</li><li>Approve <strong>Resolve YouTube Track</strong> below. Approve <strong>Settle Twitch Reward</strong> only when the Twitch reward path is enabled.</li><li>Choose which jukebox commands are enabled in this wizard. Save and restart; the existing main chat intakes register them automatically without Command Sync packages.</li><li>Add the browser-source URL below at <strong>640 x 460</strong>, save, restart StreamBridge, and request a track with <code>!sr song or YouTube link</code>.</li></ol><p class="notice"><strong>Keep the API key private:</strong> it stays in Streamer.bot and must never be pasted into the wizard, logs, or support messages. Spotify playback is intentionally excluded; only use music you are permitted to broadcast.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.first-five') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.first-five:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect each platform once</strong><small>Rewards use the main intakes; one controller changes Twitch rewards safely.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before using YouTube or TikTok points.</li><li>Import the First Five Streamer.bot package. Leave <strong>Controller</strong> triggerless and approve only that action below.</li><li>Keep one Twitch and one Kick Reward Redemption trigger on their existing main THSV intake actions. Paste the five stable reward IDs for each platform in placement order.</li><li>Choose the no-response command name in this wizard. It registers automatically for YouTube and TikTok after save and restart.</li><li>Save, restart StreamBridge, then test each path separately. Never attach reward triggers to the controller.</li></ol><p class="notice"><strong>One claim path per platform:</strong> duplicate intake triggers can process the same claim twice. Twitch can settle pending rewards; Kick claims are accepted directly because equivalent refund methods are unavailable.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.fan-crown') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.fan-crown:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the crown safely</strong><small>Twitch uses its controller; Kick rewards and point commands stay on the main intakes.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before enabling YouTube or TikTok crown claims.</li><li>Import the Fan Crown package. Leave <strong>Controller</strong> triggerless and approve only that action below.</li><li>Create the Twitch reward inside Streamer.bot and paste its stable ID. Paste the Kick reward ID only if Kick claims are enabled.</li><li>Choose the no-response command name in this wizard. It registers automatically for YouTube and TikTok after save and restart.</li><li>Save, restart StreamBridge, test one claim, and use the imported Reset action only as a creator control.</li></ol><p class="notice"><strong>Do not duplicate reward triggers:</strong> both native rewards arrive through the existing platform intakes. Twitch supports fulfillment and rollback; Kick does not expose the same settlement controls.</p></div></details>`;
   if (addOn.moduleId === 'thsv.stream-labels') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.stream-labels:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing platform intakes</strong><small>Stream Labels listens to events the main bridge already receives.</small></span><span class="status-chip status-ready">No import or extra trigger</span></summary><div class="addon-step-body"><ol><li>Keep the main THSV Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi intake triggers in Streamer.bot.</li><li>Do not attach duplicate triggers to this add-on. It receives normalized follows, subscriptions, gifts, cheers, donations, and other configured events internally.</li><li>Save the label layout, restart StreamBridge, then copy the browser-source URL below into OBS, Meld, or Streamlabs Desktop.</li><li>Send a simulated preview and confirm the source updates before relying on it live.</li></ol><p class="notice"><strong>One connection:</strong> the labels share StreamBridge's existing overlay connection and never open another Streamer.bot WebSocket.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.village-roll-call') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-roll-call:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Choose rewards or points</strong><small>Twitch and Kick use native rewards; YouTube and TikTok use Viewer Foundation points.</small></span><span class="status-chip status-ready">No add-on import needed</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before enabling YouTube or TikTok check-ins.</li><li>Create the Twitch check-in reward inside Streamer.bot, enable Skip Reward Queue, and paste its stable ID. Paste a stable Kick reward ID if Kick is enabled.</li><li>Keep one Reward Redemption trigger on each existing main platform intake. Do not attach a trigger directly to Village Roll Call.</li><li>In Command Sync, create the configured no-response check-in command for YouTube and TikTok.</li><li>Save the time zone and points cost, restart StreamBridge, then test each enabled platform once.</li></ol><p class="notice"><strong>One daily check-in per stable platform account:</strong> duplicates do not score twice. Twitch/Kick rewards and YouTube/TikTok point commands share the same bounded monthly leaderboard.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.viewer-spotlight') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.viewer-spotlight:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect card requests</strong><small>Viewer Foundation and Community Analytics supply the card; the overlay stores no identity history.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> and <strong>Community Analytics</strong> first.</li><li>Import Viewer Spotlight. Approve <strong>Settle Reward</strong> only for Twitch reward requests and <strong>Discord Snapshot</strong> only when Discord delivery is enabled.</li><li>Keep Twitch/Kick reward triggers on their existing main intakes. Create the configured no-response command for YouTube/TikTok through Command Sync.</li><li>Add the browser-source URL below, accept the public-field disclosure, save, and restart StreamBridge.</li><li>Use Manual cards and Stream Score below for a safe offline check before enabling viewer requests.</li></ol><p class="notice"><strong>Fail closed:</strong> missing viewer projections, queue limits, cooldowns, stream-end cleanup, or overlay failures reject the card and refund supported pending payment paths.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.voice-relay') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.voice-relay:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect Village Voice</strong><small>One bounded queue serves alert speech and optional viewer TTS.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Create and test the exact voice alias in Speaker.bot, then connect Speaker.bot inside Streamer.bot.</li><li>Import Village Voice. Leave <strong>Speak</strong> triggerless, approve only Speak below, and attach Pause/Resume/Stop only to creator controls.</li><li>For Twitch/Kick viewer TTS, keep native reward triggers on the existing main platform intakes and paste their stable reward IDs.</li><li>For YouTube/TikTok, create the configured no-response command in Command Sync and enable Viewer Foundation points.</li><li>Add the browser-source URL below if the speaking card is enabled. Save, restart, and test a harmless short phrase.</li></ol><p class="notice"><strong>Safety first:</strong> links and control characters are removed, text and queue sizes are bounded, cooldown memory is capped, and failures refund supported Viewer Foundation point requests.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.prize-wheel') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.prize-wheel:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Create the wheel command</strong><small>Command Sync connects the existing platform intakes to the wheel.</small></span><span class="status-chip status-ready">No add-on import needed</span></summary><div class="addon-step-body"><ol><li>Enter 2–10 unique choices and save the wheel settings.</li><li>In Command Sync, apply <strong>Prize Wheel control</strong>, generate the package, import it, review it, and enable the command.</li><li>Keep chat/command triggers on the existing main THSV platform intake actions. Do not add duplicate triggers to the wheel.</li><li>Add the browser-source URL below, restart StreamBridge, and send a preview before running <code>!spinwheel</code>.</li></ol><p class="notice"><strong>Server-selected result:</strong> StreamBridge chooses and records the winner before the animation starts. A second spin is rejected until the first finishes.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.chat-play-pack') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.chat-play-pack:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Import the included game commands once</strong><small>The bundled commands reuse the existing platform intakes and one Viewer Foundation balance.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first.</li><li>Import <strong>THSV StreamBridge - Chat Play Pack</strong>. It includes all 11 command entries plus the two optional provider actions.</li><li>Leave the imported provider actions triggerless. The Twitch, YouTube, and Kick intakes—and the TikFinity intake for TikTok—already deliver public chat to Chat Play. Do not attach command triggers or sub-actions.</li><li>Enable or disable each game in this wizard. The imported command entries are labels for Streamer.bot organization; the wizard game toggles decide which commands respond.</li><li>Approve only the OpenTDB or Dictionary fetch action(s) you enabled. Creator-only Trivia and Unscramble require no approved provider action.</li><li>If an older Command Sync package created <strong>THSV Command - Chat Play</strong> actions, disable or remove those old entries to avoid confusing duplicate setup.</li><li>Keep creator fallback questions and words filled in when using Mixed mode. Add the browser-source URL only when you want result cards.</li></ol><p class="notice"><strong>One intake path:</strong> Chat Play reads normalized public chat directly, ignores the bridge's derived command copy, and opens no additional WebSocket connection. Losing never removes points; persistent caps, cooldowns, serialized rounds, and idempotent awards prevent farming and replay problems.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.village-roll-call') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-roll-call:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Choose rewards or points</strong><small>Twitch and Kick use native rewards; YouTube and TikTok use Viewer Foundation points.</small></span><span class="status-chip status-ready">Command automatic</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> before enabling YouTube or TikTok check-ins.</li><li>Create the Twitch check-in reward inside Streamer.bot, enable Skip Reward Queue, and paste its stable ID. Paste a stable Kick reward ID if Kick is enabled.</li><li>Keep one Reward Redemption trigger on each existing main platform intake. Do not attach a trigger directly to Village Roll Call.</li><li>Choose the check-in command name in this wizard. It registers automatically for YouTube and TikTok after save and restart.</li><li>Save the time zone and points cost, restart StreamBridge, then test each enabled platform once.</li></ol><p class="notice"><strong>One daily check-in per stable platform account:</strong> duplicates do not score twice. Twitch/Kick rewards and YouTube/TikTok point commands share the same bounded monthly leaderboard.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.viewer-spotlight') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.viewer-spotlight:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect card requests</strong><small>Viewer Foundation and Community Analytics supply the card; the overlay stores no identity history.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> and <strong>Community Analytics</strong> first.</li><li>Import Viewer Spotlight. Approve <strong>Settle Reward</strong> only for Twitch reward requests and <strong>Discord Snapshot</strong> only when Discord delivery is enabled.</li><li>Keep Twitch/Kick reward triggers on their existing main intakes. The saved YouTube/TikTok request command registers automatically after restart.</li><li>Add the browser-source URL below, accept the public-field disclosure, save, and restart StreamBridge.</li><li>Use Manual cards and Stream Score below for a safe offline check before enabling viewer requests.</li></ol><p class="notice"><strong>Fail closed:</strong> missing viewer projections, queue limits, cooldowns, stream-end cleanup, or overlay failures reject the card and refund supported pending payment paths.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.voice-relay') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.voice-relay:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect Village Voice</strong><small>One bounded queue serves alert speech and optional viewer TTS.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Create and test the exact voice alias in Speaker.bot, then connect Speaker.bot inside Streamer.bot.</li><li>Import Village Voice. Leave <strong>Speak</strong> triggerless, approve only Speak below, and attach Pause/Resume/Stop only to creator controls.</li><li>For Twitch/Kick viewer TTS, keep native reward triggers on the existing main platform intakes and paste their stable reward IDs.</li><li>For YouTube/TikTok, choose the request command in this wizard and enable Viewer Foundation points. The command registers automatically after restart.</li><li>Add the browser-source URL below if the speaking card is enabled. Save, restart, and test a harmless short phrase.</li></ol><p class="notice"><strong>Safety first:</strong> links and control characters are removed, text and queue sizes are bounded, cooldown memory is capped, and failures refund supported Viewer Foundation point requests.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.prize-wheel') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.prize-wheel:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Enable the wheel command</strong><small>The saved command uses the existing platform chat intakes automatically.</small></span><span class="status-chip status-ready">Command automatic</span></summary><div class="addon-step-body"><ol><li>Enter 2–10 unique choices and choose the command name.</li><li>Save and restart StreamBridge. No Command Sync package or separate Streamer.bot Command object is needed.</li><li>Keep chat-message triggers on the existing main THSV platform intake actions. Do not add duplicate triggers to the wheel.</li><li>Add the browser-source URL below and send a preview before running <code>!spinwheel</code>.</li></ol><p class="notice"><strong>Server-selected result:</strong> StreamBridge chooses and records the winner before the animation starts. A second spin is rejected until the first finishes.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.chat-play-pack') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.chat-play-pack:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect optional game providers</strong><small>Game commands already use the main chat intakes and one Viewer Foundation balance.</small></span><span class="status-chip status-neutral">Provider import optional</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first.</li><li>Import <strong>THSV StreamBridge - Chat Play Pack</strong> only when using the OpenTDB or Dictionary provider actions.</li><li>Leave those provider actions triggerless. The existing platform chat intakes deliver every game command automatically.</li><li>Enable or disable each game in this wizard. No separate Streamer.bot Command objects or Command Sync package is needed.</li><li>Approve only the OpenTDB or Dictionary fetch action(s) you enabled. Creator-only Trivia and Unscramble require no approved provider action.</li><li>After the automatic intake path passes, disable legacy game Command objects to keep Streamer.bot tidy.</li><li>Keep creator fallback questions and words filled in when using Mixed mode. Add the browser-source URL only when you want result cards.</li></ol><p class="notice"><strong>One intake path:</strong> Chat Play reads normalized public chat directly, ignores the bridge's derived command copy, and opens no additional WebSocket connection. Losing never removes points; persistent caps, cooldowns, serialized rounds, and idempotent awards prevent farming and replay problems.</p></div></details>`;
   if (addOn.moduleId === 'thsv.village-polls') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-polls:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>No separate Streamer.bot commands or poll triggers are needed.</small></span><span class="status-chip status-ready">Direct chat commands</span></summary><div class="addon-step-body"><ol><li>Keep chat-message triggers on the existing main THSV Twitch, YouTube, Kick, and TikTok intake actions.</li><li>Do not generate Village Polls commands in Command Sync and do not attach separate poll triggers in Streamer.bot.</li><li>Restart StreamBridge after saving the enabled setting.</li><li>Open a poll with <code>!poll open Question | First choice | Second choice</code>, vote with <code>!vote 1</code>, and close it with <code>!poll close</code>.</li></ol><p class="notice"><strong>One universal total:</strong> Village Polls reads normalized chat directly and combines Twitch, YouTube, Kick, and TikTok votes. Native Twitch and YouTube polls are not mixed in because Kick and TikTok votes cannot be inserted into those provider totals. Opening and closing are announced to all four chats; the result also appears for 12 seconds on the Village Polls overlay.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.viewer-foundation') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.viewer-foundation:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Create the viewer points command</strong><small>Existing platform intakes award activity; one optional command shows the balance.</small></span><span class="status-chip status-ready">No add-on import needed</span></summary><div class="addon-step-body"><ol><li>Keep chat, follow, subscription, membership, gift, cheer, Super Chat, raid, and reward triggers on the existing main THSV platform intake actions.</li><li>In Command Sync, apply <strong>Viewer points balance</strong>, generate the package, import it, review it, and enable <code>!points</code>.</li><li>Keep the existing <code>!lurk</code> command if lurk-time awards are enabled. Viewer Foundation observes that normalized command; do not attach a second trigger.</li><li>Save the currency name and award amounts, restart StreamBridge, then use local test events before going live.</li></ol><p class="notice"><strong>Time tracking is observation-based:</strong> platforms do not expose a dependable cross-platform silent-viewer list. Active time is settled when a viewer continues chatting; lurk time settles on their next message or when the final observed platform goes offline.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.viewer-foundation') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.viewer-foundation:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>Points and lurk commands register automatically from the saved names.</small></span><span class="status-chip status-ready">Commands automatic</span></summary><div class="addon-step-body"><ol><li>Keep chat, follow, subscription, membership, gift, cheer, Super Chat, raid, and reward triggers on the existing main THSV platform intake actions.</li><li>Choose the balance and lurk command names in this wizard, save, and restart StreamBridge.</li><li>Viewers can then use <code>!points</code> and <code>!lurk</code> without separate Streamer.bot Command objects or Command Sync packages.</li><li>Use local test events before going live. Disable legacy duplicate Command objects only after this intake-owned path passes.</li></ol><p class="notice"><strong>Time tracking is observation-based:</strong> platforms do not expose a dependable cross-platform silent-viewer list. Active time is settled when a viewer continues chatting; lurk time settles on their next message or when the final observed platform goes offline.</p></div></details>`;
   if (addOn.moduleId === 'thsv.village-draw') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-draw:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>No separate Streamer.bot commands or giveaway triggers are needed.</small></span><span class="status-chip status-ready">Direct chat commands</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first.</li><li>Keep chat-message triggers on the existing main THSV Twitch, YouTube, Kick, and TikTok intake actions.</li><li>Do not generate Village Draw commands in Command Sync and do not attach duplicate triggers in Streamer.bot.</li><li>Save the prize and entry settings, restart StreamBridge, then use the authenticated controls below to open entries.</li><li>Viewers use <code>!enter</code>, <code>!tickets 3</code>, and <code>!mytickets</code> directly in chat.</li></ol><p class="notice"><strong>Management stays protected:</strong> <code>!giveaway</code> shows public status, while management arguments still require Moderator or Broadcaster. Pending point purchases must settle before entries can close or a winner can be drawn.</p></div></details>`;
   if (addOn.moduleId === 'thsv.clip-library-cache') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.clip-library-cache:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the shared Twitch lookup</strong><small>One internal action supplies every installed clip add-on.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Clip Library Cache</strong> in Streamer.bot.</li><li>Leave <strong>Refresh</strong> enabled and triggerless. Do not attach a timer or platform trigger.</li><li>Approve only Refresh in the next wizard step, enable the shared clip list, save, and restart StreamBridge.</li><li>Return to Random Clip Player or Clip Courier to configure what happens with the shared results.</li></ol><p class="notice"><strong>Why this is separate:</strong> it is optional shared infrastructure. Keeping it outside Bridge Core means creators without clip features perform no clip lookup, while multiple clip add-ons avoid duplicate Twitch requests.</p><p>This helper has no overlay and never plays, posts, or downloads a clip by itself.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.clip-courier') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.clip-courier:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect !clip and Discord</strong><small>One viewer command creates the clip; one private helper delivers it.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Clip Courier</strong> in Streamer.bot. It creates Create Clip, Deliver, and a disabled Twitch-only <code>!clip</code> command.</li><li>Open <strong>Create Clip</strong>. Set <code>clipCourierDurationSeconds</code> to <strong>30</strong> or <strong>60</strong>, Save and Compile, then review and enable the imported command. Keep its command trigger attached.</li><li>Open <strong>Deliver</strong>, replace <code>clipCourierWebhookUrl</code> with a private webhook for the Discord channel or forum selected above, then Save and Compile. Leave Deliver triggerless.</li><li>Approve only Deliver below, enable Clip Courier, save, and restart StreamBridge.</li><li>Optional: install Clip Library Cache and enable current-stream discovery if clips made without <code>!clip</code> should also be sent.</li></ol><p class="notice"><strong>No old-library posting:</strong> automatic discovery accepts only Twitch clip timestamps inside the stream session observed by StreamBridge. If the session boundary is unknown, it sends nothing. Never paste the webhook into the wizard or a support message.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.clip-courier') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.clip-courier:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect !clip and Discord</strong><small>The main Twitch intake owns the command; two private helpers create and deliver the clip.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Clip Courier</strong> in Streamer.bot. Leave Create Clip and Deliver triggerless.</li><li>Open <strong>Create Clip</strong>. Set <code>clipCourierDurationSeconds</code> to <strong>30</strong> or <strong>60</strong>, then Save and Compile.</li><li>Open <strong>Deliver</strong>, replace <code>clipCourierWebhookUrl</code> with a private webhook for the Discord channel or forum selected above, then Save and Compile.</li><li>Approve <strong>Create Clip</strong> and <strong>Deliver</strong> below, enable Clip Courier, save, and restart StreamBridge.</li><li>Test <code>!clip</code> from Twitch through the main intake. Disable any older Streamer.bot <code>!clip</code> Command object so only the intake-owned route responds.</li><li>Optional: install Clip Library Cache and enable current-stream discovery if clips made without <code>!clip</code> should also be sent.</li></ol><p class="notice"><strong>No old-library posting:</strong> automatic discovery accepts only Twitch clip timestamps inside the stream session observed by StreamBridge. If the session boundary is unknown, it sends nothing. Never paste the webhook into the wizard or a support message.</p></div></details>`;
   if (addOn.moduleId === 'thsv.community-analytics') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.community-analytics:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Confirm the data path</strong><small>Community Analytics listens to the existing Bridge intakes.</small></span><span class="status-chip status-ready">No add-on import needed</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first.</li><li>Keep Twitch, YouTube, Kick, and TikTok triggers attached to their main <strong>THSV &lt;Platform&gt; - Intake</strong> actions.</li><li>Do not create a Community Analytics action or attach duplicate chat triggers.</li><li>Save the selected platforms and restart StreamBridge. Local counters update when normalized events arrive.</li><li>Use the Reports section below to refresh the session summary or export bounded reports.</li></ol><p class="notice">This is a private local observation tool, not official platform analytics. It stores no chat text, display names, avatars, raw events, or financial amounts.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.chat-guard') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.chat-guard:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Import the two Streamer.bot helpers</strong><small>One helper performs approved moderation; one adds trusted viewers.</small></span><span class="status-chip status-neutral">Import needed</span></summary><div class="addon-step-body"><p class="notice"><strong>Import the single version-matched Chat Guard .sb file.</strong> It creates both helpers below.</p><ol><li><strong>Moderate:</strong> leave enabled and triggerless. StreamBridge calls it only when you later approve automatic actions.</li><li><strong>Trust Viewer:</strong> attached to an imported <code>!guardtrust</code> command that starts disabled. Review the command, then enable it if you want easy trusted-viewer enrollment.</li><li>Do not attach platform chat triggers to either helper. Public chat already enters through the main THSV platform intake actions.</li></ol><p><strong>To trust someone:</strong> as broadcaster or moderator, reply to that viewer's chat message with <code>!guardtrust</code>. Then open Manage trusted viewers below and press Refresh.</p><p class="notice">Twitch, YouTube, and Kick support the reply workflow. For TikTok, use the clearly labeled manual fallback.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.chat-guard') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.chat-guard:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>Moderation uses one helper; trusted-viewer replies are registered automatically.</small></span><span class="status-chip status-neutral">Moderation import optional</span></summary><div class="addon-step-body"><ol><li>Import the version-matched Chat Guard package only when automatic moderation is needed. Leave both helper actions triggerless.</li><li>Approve <strong>Moderate</strong> only after observation testing. The Trust Viewer helper is retained for backward compatibility but is no longer required by the intake-owned command.</li><li>Keep platform chat triggers only on the main THSV intake actions.</li></ol><p><strong>To trust someone:</strong> as broadcaster or moderator, reply to that viewer's chat message with <code>!guardtrust</code>. StreamBridge reads the stable reply identity and adds it locally after restart.</p><p class="notice">Twitch, YouTube, and Kick support the reply workflow. For TikTok, use the clearly labeled manual fallback.</p></div></details>`;
   const requirement = DIRECT_ADDON_TRIGGER_REQUIREMENTS[addOn.moduleId];
+  const automaticCommands = Array.isArray(addOn.commandsProvided) ? addOn.commandsProvided.map((command) => command.name).filter(Boolean) : [];
+  if (!requirement && automaticCommands.length > 0) return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>Enabled add-on commands are registered automatically after restart.</small></span><span class="status-chip status-ready">${safe(`${automaticCommands.length} auto command${automaticCommands.length === 1 ? '' : 's'}`)}</span></summary><div class="addon-step-body"><p><strong>No Streamer.bot Command object or extra trigger is required.</strong></p><p>Keep each platform's Chat Message trigger on its main THSV intake. StreamBridge reads the saved names below, checks command collisions, and routes a matching message to this enabled add-on.</p><p class="notice"><strong>Legacy commands:</strong> existing Streamer.bot Command objects may stay in place during testing, but they are no longer required for these add-on commands. Disable duplicates only after the intake-owned path passes your live acceptance check.</p><ul>${automaticCommands.map((command) => `<li><code>${safe(command)}</code></li>`).join('')}</ul></div></details>`;
   if (!requirement) return BROKER_ROUTED_ADDONS.has(addOn.moduleId)
     ? `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:trigger-readiness`)}"><summary><span><span class="step-number">3</span><strong>Connect Streamer.bot</strong><small>Confirm whether this add-on needs its own trigger.</small></span><span class="status-chip status-ready">No direct trigger needed</span></summary><div class="addon-step-body"><p><strong>Nothing needs to be attached manually.</strong></p><p>This add-on receives normalized events or approved action dispatches through StreamBridge. Leave platform triggers on the main StreamBridge intake actions unless this add-on's setup guide explicitly says otherwise.</p></div></details>`
     : '';
@@ -411,6 +549,11 @@ function renderCommunityAnalyticsAdmin(addOn) {
 function renderViewerSpotlightAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.viewer-spotlight' || !addOn.enabled) return '';
   return `<details class="form-section" data-disclosure-key="addon:thsv.viewer-spotlight:manual-display"><summary>Manual cards and Stream Score</summary><p class="notice">These creator-only tools use bounded Viewer Foundation and Community Analytics projections. Display names and optional HTTPS avatars exist only in the in-memory request and overlay message.</p><div class="button-row"><button type="button" class="ghost" data-spotlight-admin-status>Refresh queue status</button><button type="button" class="ghost" data-spotlight-stream-score>Show current Stream Score</button></div><pre class="diagnostic" data-spotlight-admin-output>Enter the stable platform account ID, not the display name or channel URL.</pre><form class="addon-settings-grid" data-spotlight-display-form><label>Platform<select name="platform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok / TikFinity</option></select></label><label>Stable platform user ID<input name="userId" required maxlength="256" autocomplete="off" placeholder="Provider account ID"></label><label>Display name<input name="displayName" required maxlength="80" autocomplete="off" placeholder="Name shown on the card"></label><label>Profile picture URL (optional)<input name="avatarUrl" type="url" maxlength="2048" pattern="https://.*" placeholder="https://..."></label><label class="check full-row"><input name="sendDiscord" type="checkbox"> Also send this card as a Discord snapshot (requires configured approved action).</label><label class="check full-row"><input name="approved" type="checkbox" required> Display this viewer's selected public fields on the live Viewer Spotlight overlay.</label><div class="button-row full-row"><button type="submit">Queue manual card</button></div></form></details>`;
+}
+
+function renderFollowerPulseAdmin(addOn) {
+  if (addOn.moduleId !== 'thsv.follower-pulse' || !addOn.enabled) return '';
+  return `<details class="form-section addon-step" data-disclosure-key="addon:thsv.follower-pulse:private-history" open><summary><span><strong>Private follower history</strong><small>Review baseline health and confirmed Twitch follower changes locally.</small></span></summary><div class="addon-step-body"><p class="notice"><strong>Private by design:</strong> names shown here are available only through this authenticated local wizard. They are never sent to chat, Discord, overlays, or ordinary logs. Twitch has no immediate unfollow event, so removals require complete comparison scans.</p><div class="button-row"><button type="button" class="ghost" data-follower-pulse-status>Refresh history</button><button type="button" data-follower-pulse-reconcile>Check Twitch now</button></div><div data-follower-pulse-output aria-live="polite"><p class="notice">Loading the private follower snapshot status…</p></div></div></details>`;
 }
 
 function renderChatGuardAdmin(addOn) {
@@ -471,11 +614,11 @@ function renderAddOns() {
     const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:configure`)}" open><summary><span><span class="step-number">2</span><strong>Configure the add-on</strong><small>Change only the sections you need; saved collapsed sections stay collapsed.</small></span></summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><div class="addon-settings-heading"><p class="addon-settings-intro">${safe(settingsIntro)}</p><div class="button-row"><button type="button" class="ghost compact" data-addon-sections="expand">Expand all</button><button type="button" class="ghost compact" data-addon-sections="collapse">Collapse all</button></div></div>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Settings are preserved now and become active after StreamBridge restarts.</small></div></form></details>`;
     let nextWorkflowStep = 4;
     const chatGuardGrantHelp = addOn.moduleId === 'thsv.chat-guard'
-      ? '<p class="notice"><strong>Observation-only users can leave this empty.</strong> For automatic moderation, approve only <strong>THSV Addon - Chat Guard - Moderate</strong>. Do not approve Trust Viewer here; its disabled <code>!guardtrust</code> command calls it directly after you review and enable that command.</p>'
+      ? '<p class="notice"><strong>Observation-only users can leave this empty.</strong> For automatic moderation, approve only <strong>THSV Addon - Chat Guard - Moderate</strong>. The main chat intake now handles <code>!guardtrust</code> locally; the older Trust Viewer helper does not need approval.</p>'
       : '';
     const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:approved-actions`)}"><summary><span><span class="step-number">${nextWorkflowStep++}</span><strong>Approve Streamer.bot actions</strong><small>${addOn.moduleId === 'thsv.chat-guard' ? 'Optional: required only for automatic moderation.' : 'Grant only the actions this add-on is allowed to run.'}</small></span></summary><div class="addon-step-body">${chatGuardGrantHelp}${renderAddOnActionGrant(addOn)}</div></details>`;
     const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:overlay-tools`)}"><summary><span><span class="step-number">${nextWorkflowStep++}</span><strong>Open overlay &amp; test</strong><small>Open the hosted overlay and send a safe preview before going live.</small></span></summary><div class="addon-step-body">${renderAddOnOverlayTools(addOn)}</div></details>`;
-    const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderChatGuardAdmin(addOn)}${renderVillageDrawAdmin(addOn)}`;
+    const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderFollowerPulseAdmin(addOn)}${renderChatGuardAdmin(addOn)}${renderVillageDrawAdmin(addOn)}`;
     const setupGuide = renderAddOnSetupGuide(addOn);
     if (addOn.moduleId === 'thsv.chat-guard' && addOn.enabled) nextWorkflowStep = Math.max(nextWorkflowStep, 7);
     if (addOn.moduleId === 'thsv.village-draw' && addOn.enabled) nextWorkflowStep = Math.max(nextWorkflowStep, 6);
@@ -483,7 +626,7 @@ function renderAddOns() {
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
     const packageDetails = rejected ? '' : `<details class="form-section addon-package-details" data-disclosure-key="${safe(`addon:${addOn.moduleId}:package-details`)}"><summary><span><strong>Package and publisher details</strong><small>Permissions, source, updates, release notes, and security information.</small></span></summary><div class="addon-step-body"><p><strong>Publisher:</strong> ${safe(addOn.author)}</p><p><strong>Package type:</strong> ${safe(addOn.packageKind)}</p><p><strong>Permissions:</strong> ${safe(permissions)}</p>${trustLinks}${liveChatWarning}${providerWarning}${viewerWarning}${addOn.packageKind === 'executable' ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}</div></details>`;
     const maintenance = rejected ? '' : `<details class="form-section addon-maintenance" data-disclosure-key="${safe(`addon:${addOn.moduleId}:maintenance`)}"><summary><span><strong>Enable, disable, or uninstall</strong><small>Routine maintenance and removal controls.</small></span></summary><div class="addon-step-body"><div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Enable and disable changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></div></details>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">Installed add-on</p><h3>${safe(addOn.name)} ${safe(addOn.version)}</h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span></div><p class="addon-description">${safe(addOn.description)}</p>${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}<div class="addon-flow">${setupGuide}${!rejected && !fields ? '<p class="notice">This add-on has no creator-editable settings. Continue to its connection and testing steps.</p>' : ''}${settings}${triggerReadiness}${actionGrant}${overlayTools}${viewerAdministration}${acceptance}</div>${packageDetails}${maintenance}</article>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">Installed add-on</p><h3>${safe(addOn.name)} ${safe(addOn.version)}</h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status"><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}<div class="addon-flow">${setupGuide}${!rejected && !fields ? '<p class="notice">This add-on has no creator-editable settings. Continue to its connection and testing steps.</p>' : ''}${settings}${triggerReadiness}${actionGrant}${overlayTools}${viewerAdministration}${acceptance}</div>${packageDetails}${maintenance}</article>`;
   }).join('');
   // Saving settings and other add-on operations rebuild this subtree. Restore both open and
   // closed choices immediately so sections never flash or return to their package defaults.
@@ -510,6 +653,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-save-addon-action-grants]').forEach((button) => button.addEventListener('click', saveAddOnActionGrants));
   document.querySelectorAll('[data-copy-addon-overlay]').forEach((button) => button.addEventListener('click', copyAddOnOverlayUrl));
   document.querySelectorAll('[data-preview-addon-overlay]').forEach((button) => button.addEventListener('click', previewAddOnOverlay));
+  document.querySelectorAll('[data-hide-addon-overlay]').forEach((button) => button.addEventListener('click', hideAddOnOverlayPreview));
   document.querySelector('[data-addon-acceptance-form]')?.addEventListener('submit', saveAddOnAcceptance);
   document.querySelector('[data-viewer-admin-status]')?.addEventListener('click', refreshViewerFoundationStatus);
   document.querySelector('[data-viewer-admin-audit]')?.addEventListener('click', refreshViewerFoundationAudit);
@@ -531,6 +675,9 @@ function renderAddOns() {
   document.querySelector('[data-spotlight-admin-status]')?.addEventListener('click', refreshViewerSpotlightStatus);
   document.querySelector('[data-spotlight-stream-score]')?.addEventListener('click', showViewerSpotlightStreamScore);
   document.querySelector('[data-spotlight-display-form]')?.addEventListener('submit', displayViewerSpotlightCard);
+  document.querySelector('[data-follower-pulse-status]')?.addEventListener('click', refreshFollowerPulseStatus);
+  document.querySelector('[data-follower-pulse-reconcile]')?.addEventListener('click', reconcileFollowerPulse);
+  if (document.querySelector('[data-follower-pulse-output]')) void refreshFollowerPulseStatus();
   document.querySelectorAll('[data-chat-guard-status]').forEach((button) => button.addEventListener('click', refreshChatGuardStatus));
   document.querySelector('[data-chat-guard-incident-filters]')?.addEventListener('submit', loadChatGuardIncidents);
   document.querySelector('[data-chat-guard-incidents-prev]')?.addEventListener('click', previousChatGuardIncidents);
@@ -829,6 +976,46 @@ async function displayViewerSpotlightCard(event) {
   try { await viewerSpotlightAdmin(request); } catch (error) { spotlightAdminOutput(error.message); }
 }
 
+function followerPulseOutput(value) {
+  const output = document.querySelector('[data-follower-pulse-output]');
+  if (!output) return;
+  if (!value || typeof value !== 'object') { output.innerHTML = `<p class="notice">${safe(String(value || 'Follower Pulse status is unavailable.'))}</p>`; return; }
+  const lastScan = value.lastCompleteScanAt ? new Date(value.lastCompleteScanAt).toLocaleString() : 'No complete scan yet';
+  const lastAttempt = value.lastAttemptAt ? new Date(value.lastAttemptAt).toLocaleString() : 'No attempt yet';
+  const nextScan = value.nextScanAt ? new Date(value.nextScanAt).toLocaleString() : (value.scanActive ? 'Waiting for Twitch' : 'Not scheduled');
+  const changes = Array.isArray(value.recentChanges) ? value.recentChanges : [];
+  const history = changes.length === 0
+    ? '<p class="notice">No confirmed follower changes have been retained yet. The first complete scan creates a silent baseline.</p>'
+    : `<div class="item-list">${changes.map((change) => { const display = change.displayName || change.login || 'Unknown Twitch account'; const login = change.login && change.login.toLowerCase() !== String(display).toLowerCase() ? ` @${change.login}` : ''; return `<article class="item"><strong>${change.type === 'unfollow' ? 'Unfollowed' : 'Followed'} · ${safe(display)}</strong><small>${safe(login)}${login ? ' · ' : ''}${safe(new Date(change.occurredAt).toLocaleString())}</small></article>`; }).join('')}</div>`;
+  const error = value.lastError ? `<p class="notice"><strong>Last scan issue:</strong> ${safe(value.lastError)}</p>` : '';
+  output.innerHTML = `<div class="grid"><article class="stat"><span>Baseline</span><strong>${value.baselineComplete ? 'Ready' : 'Not ready'}</strong><small>${value.baselineComplete ? 'Complete comparisons enabled' : 'Waiting for one complete scan'}</small></article><article class="stat"><span>Tracked followers</span><strong>${safe(Number(value.trackedFollowerCount || 0).toLocaleString())}</strong><small>Last Twitch total: ${safe(Number(value.lastApiTotal || 0).toLocaleString())}</small></article><article class="stat"><span>Pending confirmation</span><strong>${safe(Number(value.pendingConfirmationCount || 0).toLocaleString())}</strong><small>${safe(Number(value.confirmMissingScans || 2))} complete missing scans required</small></article><article class="stat"><span>Snapshot</span><strong>${value.scanActive ? 'Checking now' : 'Idle'}</strong><small>Last attempt: ${safe(lastAttempt)}<br>Last complete: ${safe(lastScan)}<br>Next check: ${safe(nextScan)}${Number(value.consecutiveFailures || 0) > 0 ? `<br>Retry level: ${safe(Number(value.consecutiveFailures))}` : ''}</small></article></div>${error}<h4>Recent confirmed changes</h4>${history}`;
+}
+
+async function followerPulseAdmin(request) {
+  const result = await api('/wizard/api/follower-pulse/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+  followerPulseOutput(result); return result;
+}
+
+async function refreshFollowerPulseStatus() {
+  try { await followerPulseAdmin({ operation: 'status' }); } catch (error) { followerPulseOutput(error.message); }
+}
+
+let followerPulsePollToken = 0;
+async function pollFollowerPulseUntilIdle(token, attempts = 0) {
+  if (token !== followerPulsePollToken || attempts >= 24) return;
+  try {
+    const status = await followerPulseAdmin({ operation: 'status' });
+    if (!status.scanActive) return;
+  } catch (error) { followerPulseOutput(error.message); return; }
+  window.setTimeout(() => void pollFollowerPulseUntilIdle(token, attempts + 1), 1500);
+}
+
+async function reconcileFollowerPulse() {
+  if (!confirm('Start a private Twitch follower snapshot now? It will not post names anywhere.')) return;
+  try { await followerPulseAdmin({ operation: 'reconcile', approvedByCreator: true }); followerPulsePollToken += 1; window.setTimeout(() => void pollFollowerPulseUntilIdle(followerPulsePollToken), 750); }
+  catch (error) { followerPulseOutput(error.message); }
+}
+
 function chatGuardOutput(value) {
   const output = document.querySelector('[data-chat-guard-output]');
   if (output) output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
@@ -1003,17 +1190,19 @@ function renderDiscoveredAddOns() {
 }
 
 async function installDiscoveredAddOn(event) {
-  const filename = event.currentTarget.dataset.installDiscovered;
+  const button = event.currentTarget;
+  const filename = button.dataset.installDiscovered;
   const approval = [...document.querySelectorAll('[data-approve-discovered]')].find((input) => input.dataset.approveDiscovered === filename);
-  if (!approval?.checked) { byId('addon-state').textContent = 'Review the discovered package and approve it before installation.'; return; }
+  if (!approval?.checked) { reportAddOnFeedback('Review the discovered package and approve it before installation.', 'error', button); return; }
   try {
     const discovered = state.discoveredAddOns.find((addOn) => addOn.filename === filename);
-    if (!discovered?.sha256) { byId('addon-state').textContent = 'Inspect this package again before installing it.'; return; }
+    if (!discovered?.sha256) { reportAddOnFeedback('Inspect this package again before installing it.', 'error', button); return; }
     const result = await api('/wizard/api/addons/install-discovered', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename, sha256: discovered.sha256, approvedByCreator: true }) });
     state.selectedAddOnId = result.moduleId;
+    markAddOnRestartRequired(result.moduleId);
     await loadAddOns();
-    byId('addon-state').textContent = `Installed ${result.moduleId} ${result.version} from the inbox. Restart StreamBridge to activate it.`;
-  } catch (error) { byId('addon-state').textContent = error.message; }
+    reportAddOnFeedback(`Installed ${result.moduleId} ${result.version} from the inbox. Restart StreamBridge to activate it.`, 'success', button);
+  } catch (error) { reportAddOnFeedback(`The discovered add-on was not installed: ${error.message}`, 'error', button); }
 }
 
 function renderAddOnOverlayTools(addOn) {
@@ -1034,10 +1223,10 @@ function renderAddOnOverlayTools(addOn) {
       const labelUrl = `${url}?label=${key}`;
       return `<label>${safe(name)}<span class="inline-copy-field"><input readonly data-addon-overlay-url="${safe(`${addOn.moduleId}:${key}`)}" value="${safe(labelUrl)}"><button type="button" data-copy-addon-overlay="${safe(`${addOn.moduleId}:${key}`)}">Copy</button></span></label>`;
     }).join('');
-    return `<p>Each URL is a persistent transparent browser source fed by the bridge's existing event stream. Individual labels are best for normal OBS layouts; the combined panel is useful for testing or a compact supporter panel.</p><div class="form-grid">${urls}</div><div class="button-row"><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Send all-label preview</button></div>${addOn.enabled ? '<small>Simulator previews appear but do not replace saved live values.</small>' : '<small>Enable this add-on to send a preview.</small>'}`;
+    return `<p>Each URL is a persistent transparent browser source fed by the bridge's existing event stream. Individual labels are best for normal OBS layouts; the combined panel is useful for testing or a compact supporter panel.</p><div class="form-grid">${urls}</div><div class="button-row"><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact all-label template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>${addOn.enabled ? '<small>The simulated preview uses the live label renderer and saved appearance.</small>' : '<small>Enable this add-on to send a preview.</small>'}`;
   }
-  if (addOn.moduleId === 'thsv.viewer-lobby') return `<p>This is a persistent, read-only queue panel. Add it once as a browser source at <strong>900 x 700</strong> or <strong>1920 x 1080</strong>, then crop and position it without stretching the source.</p><label>Viewer Lobby browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Send queue preview</button></div><small>The overlay shares StreamBridge's one browser connection; it does not open another Streamer.bot WebSocket.</small>`;
-  return `<p>This core-rendered source accepts scoped cards and media without loading package HTML or JavaScript. Add it to Meld, OBS, or Streamlabs, then send a preview card to confirm the connection before relying on it live.</p><label>Browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Send preview card</button></div>${addOn.enabled ? '' : '<small>Enable this add-on to send a live preview.</small>'}`;
+  if (addOn.moduleId === 'thsv.viewer-lobby') return `<p>This is a persistent, read-only queue panel. Add it once as a browser source at <strong>900 x 700</strong> or <strong>1920 x 1080</strong>, then crop and position it without stretching the source.</p><label>Viewer Lobby browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact queue template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div><small>The overlay shares StreamBridge's one browser connection and the preview uses its live queue renderer.</small>`;
+  return `<p>This core-rendered source accepts scoped cards and media without loading package HTML or JavaScript. Add it to Meld, OBS, or Streamlabs, then show the real production template with bounded example data so you can size and crop the source accurately.</p><label>Browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>${addOn.enabled ? '<small>The preview uses the saved layout, colors, typography, and live renderer. Example names and values are simulated.</small>' : '<small>Enable this add-on to send a live preview.</small>'}`;
 }
 
 function renderAddOnActionGrant(addOn) {
@@ -1143,29 +1332,36 @@ async function toggleAddOn(event) {
   if (!confirm(`${enabled ? 'Enable' : 'Disable'} add-on ${id}? The change takes effect after StreamBridge restarts.`)) return;
   try {
     await api(`/wizard/api/addons/${encodeURIComponent(id)}/enabled`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ enabled, approvedByCreator: true }) });
+    markAddOnRestartRequired(id);
     await loadAddOns();
-  } catch (error) { byId('addon-state').textContent = error.message; }
+    reportAddOnFeedback(`${id} was ${enabled ? 'enabled' : 'disabled'} in saved settings. Restart StreamBridge to apply the change.`, 'success', button);
+  } catch (error) { reportAddOnFeedback(`${id} was not ${enabled ? 'enabled' : 'disabled'}: ${error.message}`, 'error', button); }
 }
 
 async function removeAddOn(event) {
-  const id = event.currentTarget.dataset.removeAddon;
+  const button = event.currentTarget;
+  const id = button.dataset.removeAddon;
   if (!confirm(`Uninstall ${id}? Its private settings will be preserved, and the change takes effect after StreamBridge restarts.`)) return;
   try {
     await api(`/wizard/api/addons/${encodeURIComponent(id)}/remove`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ approvedByCreator: true }) });
+    markAddOnRestartRequired(id);
     await loadAddOns();
-  } catch (error) { byId('addon-state').textContent = error.message; }
+    reportAddOnFeedback(`${id} was uninstalled from saved settings. Restart StreamBridge to unload its running module.`, 'success', button);
+  } catch (error) { reportAddOnFeedback(`${id} was not uninstalled: ${error.message}`, 'error', button); }
 }
 
 async function saveAddOnSettings(event) {
   event.preventDefault();
   const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const originalLabel = button?.textContent || 'Save all settings';
   const id = form.dataset.addonSettings;
   const addOn = state.addOns.find((candidate) => candidate.moduleId === id);
   const sceneEditor = form.querySelector('[data-scene-mapping-editor]');
   if (sceneEditor) {
     const mappings = syncSceneMappingEditor(sceneEditor);
-    if (mappings.some((mapping) => !mapping.sceneName || !mapping.actionId)) { byId('addon-state').textContent = 'Every scene mapping needs an exact scene name and a target action.'; return; }
-    if (new Set(mappings.map((mapping) => mapping.id)).size !== mappings.length) { byId('addon-state').textContent = 'Every scene mapping needs a unique ID.'; return; }
+    if (mappings.some((mapping) => !mapping.sceneName || !mapping.actionId)) { const message = 'Every scene mapping needs an exact scene name and a target action.'; byId('addon-state').textContent = message; showWizardFeedback(message, 'error', button); return; }
+    if (new Set(mappings.map((mapping) => mapping.id)).size !== mappings.length) { const message = 'Every scene mapping needs a unique ID.'; byId('addon-state').textContent = message; showWizardFeedback(message, 'error', button); return; }
   }
   const settings = {};
   for (const [name, schema] of Object.entries(addOn.configurationSchema.properties || {})) {
@@ -1176,64 +1372,101 @@ async function saveAddOnSettings(event) {
     else if (schema.type === 'number' || schema.type === 'integer') settings[name] = Number(field.value);
     else settings[name] = field.value;
   }
+  if (button) { button.disabled = true; button.textContent = 'Saving…'; }
   try {
     await api(`/wizard/api/addons/${encodeURIComponent(id)}/settings`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(settings) });
+    let raidStopGrantSaved = false;
+    if (id === 'thsv.raid-scout' && settings.endBroadcastAfterRaid === true && settings.endBroadcastAcknowledged === true && settings.endBroadcastActionId) {
+      const actionIds = [...new Set([...(addOn.approvedActionIds || []), RAID_SCOUT_CONTROLLER_ACTION_ID, RAID_SCOUT_RUN_ENDING_AD_ACTION_ID, settings.endBroadcastActionId])];
+      await api(`/wizard/api/addons/${encodeURIComponent(id)}/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds, approvedByCreator: true }) });
+      raidStopGrantSaved = true;
+    }
+    markAddOnRestartRequired(id);
     await loadAddOns();
-    byId('addon-state').textContent = `Settings saved for ${id}. Restart StreamBridge to apply them.`;
-  } catch (error) { byId('addon-state').textContent = error.message; }
+    const message = raidStopGrantSaved
+      ? `Settings and the selected Stop Streaming action grant were saved for ${id}. Restart StreamBridge to apply them.`
+      : `Settings saved for ${id}. Restart StreamBridge to apply them.`;
+    reportAddOnFeedback(message, 'success', button);
+  } catch (error) { const message = `Settings were not saved for ${id}: ${error.message}`; reportAddOnFeedback(message, 'error', button); }
+  finally { if (button?.isConnected) { button.disabled = false; button.textContent = originalLabel; button.classList.remove('is-working'); button.removeAttribute('aria-busy'); } }
 }
 
 function addAddOnActionDraft(event) {
-  const id = event.currentTarget.dataset.addAddonAction;
+  const button = event.currentTarget;
+  const id = button.dataset.addAddonAction;
   const select = document.querySelector(`[data-addon-action-picker="${CSS.escape(id)}"]`);
   const actionId = select?.value;
   if (!actionId) return;
   state.addOnActionDrafts[id] = [...(state.addOnActionDrafts[id] || []), actionId];
   renderAddOns();
+  reportAddOnFeedback('Action selected. Save action grants to apply this draft.', 'success', button);
 }
 
 function addRecommendedAddOnActions(event) {
-  const id = event.currentTarget.dataset.addRecommendedAddonActions;
+  const button = event.currentTarget;
+  const id = button.dataset.addRecommendedAddonActions;
   const names = RECOMMENDED_ADDON_ACTION_NAMES[id] || [];
   const actionIds = state.liveActions.filter((action) => names.includes(action.name)).map((action) => action.id);
   state.addOnActionDrafts[id] = [...new Set([...(state.addOnActionDrafts[id] || []), ...actionIds])];
   renderAddOns();
-  byId('addon-state').textContent = `${actionIds.length} recommended action${actionIds.length === 1 ? '' : 's'} selected for ${id}. Save action grants to finish.`;
+  const message = actionIds.length
+    ? `${actionIds.length} recommended action${actionIds.length === 1 ? '' : 's'} selected for ${id}. Save action grants to finish.`
+    : `No matching recommended Streamer.bot actions were found for ${id}. Import its current package, refresh Streamer.bot status, and try again.`;
+  reportAddOnFeedback(message, actionIds.length ? 'success' : 'error', button);
 }
 
 function removeAddOnActionDraft(event) {
-  const id = event.currentTarget.dataset.removeAddonActionModule;
-  const actionId = event.currentTarget.dataset.removeAddonAction;
+  const button = event.currentTarget;
+  const id = button.dataset.removeAddonActionModule;
+  const actionId = button.dataset.removeAddonAction;
   state.addOnActionDrafts[id] = (state.addOnActionDrafts[id] || []).filter((candidate) => candidate !== actionId);
   renderAddOns();
+  reportAddOnFeedback('Action removed from the draft. Save action grants to apply this change.', 'success', button);
 }
 
 async function saveAddOnActionGrants(event) {
-  const id = event.currentTarget.dataset.saveAddonActionGrants;
+  const button = event.currentTarget;
+  const id = button.dataset.saveAddonActionGrants;
   const actionIds = state.addOnActionDrafts[id] || [];
   if (!confirm(`Allow ${id} to dispatch exactly ${actionIds.length} approved Streamer.bot action(s)? This takes effect after StreamBridge restarts.`)) return;
     try {
       await api(`/wizard/api/addons/${encodeURIComponent(id)}/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds, approvedByCreator: true }) });
+      markAddOnRestartRequired(id);
       delete state.addOnActionDrafts[id];
       await loadAddOns();
-    byId('addon-state').textContent = `Action grants saved for ${id}. Restart StreamBridge to apply them.`;
-  } catch (error) { byId('addon-state').textContent = error.message; }
+    reportAddOnFeedback(`Action grants saved for ${id}. Restart StreamBridge to apply them.`, 'success', button);
+  } catch (error) { reportAddOnFeedback(`Action grants were not saved for ${id}: ${error.message}`, 'error', button); }
 }
 
 async function copyAddOnOverlayUrl(event) {
-  const id = event.currentTarget.dataset.copyAddonOverlay;
+  const button = event.currentTarget;
+  const id = button.dataset.copyAddonOverlay;
   const input = [...document.querySelectorAll('[data-addon-overlay-url]')].find((candidate) => candidate.dataset.addonOverlayUrl === id);
   if (!input) return;
-  try { await navigator.clipboard.writeText(input.value); byId('addon-state').textContent = `Overlay URL copied for ${id}.`; }
-  catch { input.select(); byId('addon-state').textContent = 'Clipboard access was unavailable. The overlay URL is selected for manual copy.'; }
+  try { await navigator.clipboard.writeText(input.value); reportAddOnFeedback(`Overlay URL copied for ${id}.`, 'success', button); }
+  catch { input.select(); reportAddOnFeedback('Clipboard access was unavailable. The overlay URL is selected for manual copy.', 'error', button); }
 }
 
 async function previewAddOnOverlay(event) {
-  const id = event.currentTarget.dataset.previewAddonOverlay;
+  const button = event.currentTarget;
+  const id = button.dataset.previewAddonOverlay;
   try {
+    const clients = await waitForAddOnOverlayClient(id);
     await api(`/wizard/api/addons/${encodeURIComponent(id)}/overlay-preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
-    byId('addon-state').textContent = `Preview sent to the ${id} hosted overlay.`;
-  } catch (error) { byId('addon-state').textContent = error.message; }
+    const message = clients > 0
+      ? `Exact-template preview sent for ${id}. Confirm it is visible in the intended OBS source before going live.`
+      : `Preview was accepted for ${id}, but its browser source was not connected. Open or refresh that exact OBS browser-source URL and try again.`;
+    reportAddOnFeedback(message, clients > 0 ? 'success' : 'error', button);
+  } catch (error) { reportAddOnFeedback(`Preview failed for ${id}: ${error.message}`, 'error', button); }
+}
+
+async function hideAddOnOverlayPreview(event) {
+  const button = event.currentTarget;
+  const id = button.dataset.hideAddonOverlay;
+  try {
+    await api(`/wizard/api/addons/${encodeURIComponent(id)}/overlay-preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'hide' }) });
+    reportAddOnFeedback(`Preview hidden for ${id}.`, 'success', button);
+  } catch (error) { reportAddOnFeedback(`Preview could not be hidden for ${id}: ${error.message}`, 'error', button); }
 }
 
 function fileAsBase64(file) {
@@ -1258,10 +1491,11 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
     const contentBase64 = await fileAsBase64(file);
     const result = await api('/wizard/api/addons/install', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename: file.name, contentBase64, approvedByCreator: form.elements.approvedByCreator.checked }) });
     state.selectedAddOnId = result.moduleId;
-    status.textContent = `Installed ${result.moduleId} ${result.version}. Restart StreamBridge to activate it.`;
+    markAddOnRestartRequired(result.moduleId);
     form.reset();
     await loadAddOns();
-  } catch (error) { status.textContent = error.message; }
+    reportAddOnFeedback(`Installed ${result.moduleId} ${result.version}. Restart StreamBridge to activate it.`, 'success', form.querySelector('button[type="submit"]'));
+  } catch (error) { reportAddOnFeedback(`The add-on was not installed: ${error.message}`, 'error', form.querySelector('button[type="submit"]')); }
   finally { status.removeAttribute('aria-busy'); }
 });
 byId('refresh-addons').addEventListener('click', loadAddOns);
@@ -1306,4 +1540,5 @@ const ADD_ON_OVERLAY_PATHS = Object.freeze({
   'thsv.random-clip-player': '/overlay/clips',
   'thsv.subathon-timer': '/overlay/subathon',
   'thsv.starting-soon-countdown': '/overlay/countdown',
+  'thsv.ad-break-companion': '/overlay/ad-break',
 });

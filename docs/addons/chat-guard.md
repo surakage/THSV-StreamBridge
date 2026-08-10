@@ -16,14 +16,14 @@ Classifies normalized public chat, manages creator-approved trusted stable IDs, 
 ### Add-on-specific steps
 
 1. Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.
-2. Import the matching Chat Guard Streamer.bot package. Leave Moderate enabled and triggerless. Review the disabled !guardtrust command before enabling it.
+2. Import the matching Chat Guard Streamer.bot package. Leave both helpers triggerless; the legacy !guardtrust Command object may remain disabled.
 3. Use the rule tester and privacy-safe moderation dashboard. Filter incidents and label false positives before changing enforcement rules.
-4. To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator, then refresh Trusted viewers in the wizard.
+4. To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator. The main chat intake registers it automatically after restart.
 5. Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Chat Guard`
 

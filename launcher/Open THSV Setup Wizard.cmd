@@ -7,11 +7,17 @@ echo ============================================================
 echo                 Open THSV Setup Wizard
 echo ============================================================
 echo.
-echo Ensuring the local bridge is running, then opening the setup
-echo wizard in your default browser.
+echo Opening the setup wizard without interrupting a healthy Bridge.
+echo If the Bridge is offline, this launcher will start it first.
 echo.
-"%~dp0runtime\node.exe" "%~dp0launcher\start.mjs" --open-wizard
+"%~dp0runtime\node.exe" "%~dp0launcher\open-wizard.mjs"
 set "THSV_LAUNCH_EXIT=%ERRORLEVEL%"
+if not "%THSV_LAUNCH_EXIT%"=="0" (
+  echo.
+  echo The local Bridge is not ready. Starting it now...
+  "%~dp0runtime\node.exe" "%~dp0launcher\start.mjs" --open-wizard
+  set "THSV_LAUNCH_EXIT=%ERRORLEVEL%"
+)
 if "%THSV_LAUNCH_EXIT%"=="0" (
   color 0A
   echo.

@@ -32,8 +32,7 @@
     "enabled": true,
     "prefix": "!",
     "definitions": [
-      { "name": "ping", "aliases": ["p"], "minimumRole": "viewer", "allowBots": false },
-      { "name": "shoutout", "aliases": ["so"], "minimumRole": "moderator", "allowBots": false }
+      { "name": "ping", "aliases": ["p"], "minimumRole": "viewer", "allowBots": false }
     ]
   },
   "timedActions": {
@@ -46,6 +45,7 @@
     "maxChatMessages": 8,
     "maxAlertQueue": 20,
     "alertDurationMs": 7000,
+    "overlayGapMs": 1000,
     "showBots": true,
     "showSimulated": true,
     "chat": {

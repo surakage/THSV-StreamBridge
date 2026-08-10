@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return -- executable add-on helpers are verified plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import discordChatArchive, { matchesIgnoredViewer, renderArchiveLine, resetDiscordChatArchiveRuntime, selectArchiveBatch, selectChatMessage } from '../../addons/discord-chat-archive/dist/index.js';
+import discordChatArchive, { buildArchiveEmbeds, matchesIgnoredViewer, renderArchiveLine, resetDiscordChatArchiveRuntime, selectArchiveBatch, selectChatMessage } from '../../addons/discord-chat-archive/dist/index.js';
 
 const DELIVERY_ACTION_ID = 'df40969d-5923-4432-bdca-ecdee451f150';
 const settings = {
@@ -17,6 +17,14 @@ const settings = {
   destinationMode: 'channel',
   forumThreadName: 'Stream chat archive · {date}',
   forumTagIds: [],
+  layoutStyle: 'clean-embeds',
+  showSessionHeader: true,
+  sessionHeaderTitle: 'Village Stream Chat Archive',
+  showMessageTimes: true,
+  twitchColor: '#9146ff',
+  youtubeColor: '#ff0033',
+  kickColor: '#53fc18',
+  tiktokColor: '#25f4ee',
   useViewerIdentityForSingleMessage: false,
   useViewerAvatarForSingleMessage: false,
   batchWindowSeconds: 5,
@@ -86,6 +94,21 @@ describe('Discord Chat Archive add-on', () => {
     expect(batch?.count).toBeLessThanOrEqual(10);
     expect([...(batch?.content ?? '')].length).toBeLessThanOrEqual(1900);
     expect(batch?.content).toContain('3 earlier messages omitted');
+    expect(batch?.embeds[0]).toMatchObject({ title: 'Twitch chat', color: 0x9146ff, description: expect.stringContaining('Message 0') });
+  });
+
+  it('preserves conversation order in consecutive platform-colored groups', () => {
+    const items = [
+      selectChatMessage(event, settings),
+      selectChatMessage({ ...event, eventId: 'chat-2', payload: { message: 'Second Twitch message' } }, settings),
+      selectChatMessage({ ...event, eventId: 'chat-3', platform: 'youtube', payload: { message: 'YouTube message' } }, settings),
+      selectChatMessage({ ...event, eventId: 'chat-4', platform: 'twitch', payload: { message: 'Back on Twitch' } }, settings),
+    ].filter(Boolean);
+    expect(buildArchiveEmbeds(items, settings)).toEqual([
+      expect.objectContaining({ title: 'Twitch chat', color: 0x9146ff, description: expect.stringContaining('Second Twitch message') }),
+      expect.objectContaining({ title: 'YouTube chat', color: 0xff0033, description: expect.stringContaining('YouTube message') }),
+      expect.objectContaining({ title: 'Twitch chat', color: 0x9146ff, description: expect.stringContaining('Back on Twitch') }),
+    ]);
   });
 
   it('waits for its batch window and dispatches only the approved delivery action', async () => {
@@ -115,7 +138,8 @@ describe('Discord Chat Archive add-on', () => {
     await callbacks[0]?.();
     expect(runApprovedAction).toHaveBeenCalledTimes(1);
     expect(runApprovedAction).toHaveBeenCalledWith(DELIVERY_ACTION_ID, expect.objectContaining({
-      discordArchiveContent: expect.stringContaining('Hello chat'),
+      discordArchiveContent: expect.stringContaining('Village Stream Chat Archive'),
+      discordArchiveEmbedsJson: expect.stringContaining('Hello chat'),
       discordArchiveDestinationMode: 'channel',
       discordArchiveThreadId: '',
       discordArchiveSimulated: false,
@@ -156,11 +180,35 @@ describe('Discord Chat Archive add-on', () => {
     const flushes = callbacks.filter((entry) => entry.delay === 5_000);
     await flushes.at(-1)?.callback();
     expect(runApprovedAction.mock.calls[1]?.[1]).toMatchObject({ discordArchiveThreadId: '987654321' });
+    const secondArguments = runApprovedAction.mock.calls[1]?.[1];
+    await discordChatArchive.onEvent({ eventType: 'addon.thsv.discord-chat-archive.delivery-received', payload: { requestId: secondArguments?.discordArchiveRequestId, succeeded: true, threadId: '987654321' } }, context);
 
     await discordChatArchive.onEvent({ eventType: 'stream.offline', platform: 'twitch' }, context);
     await discordChatArchive.onEvent({ ...event, eventId: 'chat-3' }, context);
     await callbacks.filter((entry) => entry.delay === 5_000).at(-1)?.callback();
     expect(runApprovedAction.mock.calls[2]?.[1]).toMatchObject({ discordArchiveThreadId: '' });
+    await discordChatArchive.stop(context);
+  });
+
+  it('waits for Discord to confirm the forum thread before sending the next batch', async () => {
+    const callbacks: Array<{ delay: number; callback: () => unknown }> = [];
+    const runApprovedAction = vi.fn(async (actionId: string, actionArguments: Record<string, unknown>) => { void actionId; void actionArguments; });
+    const context = {
+      settings: { ...settings, destinationMode: 'forum', maximumMessagesPerBatch: 1 },
+      approvedActionIds: [DELIVERY_ACTION_ID], streamerbot: { runApprovedAction },
+      schedule: { after: vi.fn((delay: number, callback: () => unknown) => { callbacks.push({ delay, callback }); return `task-${String(callbacks.length)}`; }), cancel: vi.fn(() => true) },
+    };
+    await discordChatArchive.start(context);
+    await discordChatArchive.onEvent({ eventType: 'stream.online', platform: 'twitch', receivedAt: event.receivedAt }, context);
+    await discordChatArchive.onEvent(event, context);
+    await callbacks.find((entry) => entry.delay === 5_000)?.callback();
+    await discordChatArchive.onEvent({ ...event, eventId: 'chat-waiting', payload: { message: 'Wait for the thread' } }, context);
+    expect(runApprovedAction).toHaveBeenCalledTimes(1);
+    const first = runApprovedAction.mock.calls[0]?.[1];
+    await discordChatArchive.onEvent({ eventType: 'addon.thsv.discord-chat-archive.delivery-received', payload: { requestId: first?.discordArchiveRequestId, succeeded: true, threadId: '987654321' } }, context);
+    await callbacks.filter((entry) => entry.delay === 5_000).at(-1)?.callback();
+    expect(runApprovedAction).toHaveBeenCalledTimes(2);
+    expect(runApprovedAction.mock.calls[1]?.[1]).toMatchObject({ discordArchiveThreadId: '987654321', discordArchiveContent: '', discordArchiveEmbedsJson: expect.stringContaining('Wait for the thread') });
     await discordChatArchive.stop(context);
   });
 });

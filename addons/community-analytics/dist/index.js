@@ -61,7 +61,7 @@ function sanitizeState(value, settings = FALLBACKS) {
   }
   const processed = Array.isArray(source.processed) ? source.processed.filter((item) => item && typeof item === 'object' && /^[a-f0-9]{32}$/u.test(item.id) && Number.isSafeInteger(item.at)).slice(-settings.processedEventLimit) : [];
   const season = sanitizeSeason(source.season, settings.maximumViewers); const state = { version: 1, viewers, sessions, ...(current ? { current } : {}), processed, season };
-  while (JSON.stringify(state).length > MAXIMUM_STATE_BYTES) {
+  while (new TextEncoder().encode(`${JSON.stringify(state, null, 2)}\n`).byteLength > MAXIMUM_STATE_BYTES) {
     if (state.processed.length > 50) { state.processed.shift(); continue; }
     if (state.sessions.length > 1) { state.sessions.shift(); continue; }
     const ids = Object.keys(state.viewers); if (ids.length > 25) { const removed = ids.at(-1); delete state.viewers[removed]; delete state.season.viewers[removed]; continue; }

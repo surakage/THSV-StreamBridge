@@ -14,7 +14,7 @@ const FALLBACKS = Object.freeze({ enabled: false, disclosureAccepted: false, com
 const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Viewer Spotlight', version: '3.5.0', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
   dependencies: ['thsv.viewer-foundation', 'thsv.community-analytics'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'viewer-spotlight.card', name: 'card' }], actionsProvided: [{ id: 'viewer-spotlight.settle-reward', name: 'THSV Addon - Viewer Spotlight - Settle Reward' }, { id: 'viewer-spotlight.discord-snapshot', name: 'THSV Addon - Viewer Spotlight - Discord Snapshot' }], browserSourcesProvided: [],
-  dataStorageOwned: ['data/addons/thsv.viewer-spotlight/', 'data/addons/.state/thsv.viewer-spotlight/'], installationSteps: ['Install and enable Viewer Foundation and Community Analytics first.', 'Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.', 'Create Twitch and Kick Viewer Spotlight rewards, then create the card command through Command Sync for YouTube and TikTok with no generated response.', 'Add /overlay/addons/thsv.viewer-spotlight as a browser source.'],
+  dataStorageOwned: ['data/addons/thsv.viewer-spotlight/', 'data/addons/.state/thsv.viewer-spotlight/'], installationSteps: ['Install and enable Viewer Foundation and Community Analytics first.', 'Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.', 'Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube and TikTok card command. It registers automatically after restart.', 'Add /overlay/addons/thsv.viewer-spotlight as a browser source.'],
   uninstallationSteps: ['Uninstall the add-on. Its pseudonymous cooldown state remains preserved for a later reinstall.'], migrations: [], healthChecks: [{ id: 'thsv.viewer-spotlight.runtime', description: 'Confirms bounded self-request handling and projection-only overlay publication.' }] };
 
 let operation = Promise.resolve(); let queue = []; let active = false; let activeViewerId; let scheduledDrain; let unregisterDeletion; let stopped = true; const livePlatforms = new Set();
@@ -25,6 +25,16 @@ function settingsFor(context) { const raw = { ...FALLBACKS, ...(context.settings
 function sanitizeState(value) { const source = value && typeof value === 'object' ? value : {}; const cooldowns = {}; if (source.cooldowns && typeof source.cooldowns === 'object') for (const [id, at] of Object.entries(source.cooldowns).filter(([id, at]) => VIEWER_ID.test(id) && Number.isSafeInteger(at)).sort((a, b) => b[1] - a[1]).slice(0, 500)) cooldowns[id] = at;
   return { cooldowns, lastShownAt: integer(source.lastShownAt, 0, Number.MAX_SAFE_INTEGER, 0), cardsThisSession: integer(source.cardsThisSession, 0, 500, 0) }; }
 function safeAvatar(value) { const url = clean(value, 2048); if (!url.startsWith('https://')) return undefined; try { const parsed = new URL(url); return parsed.protocol === 'https:' && !parsed.username && !parsed.password ? parsed.href : undefined; } catch { return undefined; } }
+async function platformIsLive(platform, context) {
+  try {
+    const session = await context.communityAnalytics.getSessionProjection();
+    if (session && typeof session === 'object') {
+      const platforms = Array.isArray(session.livePlatforms) ? session.livePlatforms : [];
+      return session.active === true && platforms.includes(platform);
+    }
+  } catch { /* Fall back to lifecycle events when the optional projection is temporarily unavailable. */ }
+  return livePlatforms.has(platform);
+}
 function requestFromEvent(event, viewerId, now) { const avatarUrl = safeAvatar(event.user?.avatarUrl); return { viewerId, platform: event.platform, displayName: clean(event.user?.displayName || event.user?.name, 80) || 'Viewer', ...(avatarUrl ? { avatarUrl } : {}), queuedAt: now }; }
 async function enqueueRequest(request, context, settings, state, now) {
   if (settings.ignoredViewerIds.has(request.viewerId)) return { accepted: false, reason: 'ignored-or-unavailable' };
@@ -57,7 +67,7 @@ async function drain(context, now = Date.now()) { if (stopped || active) return;
   const request = queue.shift(); if (!request) return; const foundation = await context.viewerFoundation.getProjection({ viewerId: request.viewerId }); const analytics = await context.communityAnalytics.getViewerProjection(request.viewerId);
   if (!foundation || !analytics.observed || settings.ignoredViewerIds.has(request.viewerId)) { if (request.points || settings.refundRejectedRewards) await refundRequest(request, context, 'projection-rejected'); return drain(context, now); }
   const card = buildViewerSpotlightCard(request, foundation, analytics, settings);
-  try { await context.overlay.publish(`${MODULE_ID}.card.show`, card); } catch (error) { if (request.points || settings.refundRejectedRewards) await refundRequest(request, context, 'overlay-failed'); throw error; }
+  try { await context.overlay.publish(`${MODULE_ID}.card.show`, card, { lane: 'foreground' }); } catch (error) { if (request.points || settings.refundRejectedRewards) await refundRequest(request, context, 'overlay-failed'); throw error; }
   if (request.reward) { try { await settleReward(request, 'fulfill', context); } catch { if (settings.refundRejectedRewards) await settleReward(request, 'refund', context).catch(() => undefined); } }
   if (request.discord === true) await sendDiscordSnapshot(card, request.displayName, context, settings).catch(() => undefined);
   state.lastShownAt = now; state.cardsThisSession += 1; await context.state.write(state); active = true; activeViewerId = request.viewerId; await armDrain(context, settings.durationSeconds * 1000 + 1000); }
@@ -71,6 +81,7 @@ export async function processViewerSpotlightEvent(event, context, now = Date.now
       || event.payload?.verifiedTransport !== true || clean(event.payload?.rewardId, 256) !== configuredRewardId) return undefined;
     const redemptionId = clean(event.payload?.redemptionId, 256); const userId = clean(event.user?.id, 256); if (!redemptionId || !userId) return { accepted: false, reason: 'stable-reward-identifiers-required' };
     const reward = { platform: event.platform, rewardId: configuredRewardId, redemptionId };
+    if (!await platformIsLive(event.platform, context)) { if (settings.refundRejectedRewards) await refundRequest({ reward }, context, 'platform-offline'); return { accepted: false, reason: 'platform-offline' }; }
     const foundation = await context.viewerFoundation.getProjection({ platform: event.platform, userId });
     if (!foundation) { if (settings.refundRejectedRewards) await refundRequest({ reward }, context, 'viewer-unavailable'); return { accepted: false, reason: 'viewer-unavailable' }; }
     const request = { ...requestFromEvent(event, foundation.viewerId, now), reward, discord: settings.discordSnapshotOnReward === true };
@@ -80,6 +91,7 @@ export async function processViewerSpotlightEvent(event, context, now = Date.now
   if (event.eventType !== 'command.received' || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return undefined;
   if (Array.isArray(event.payload?.arguments) && event.payload.arguments.length > 0) return { accepted: false, reason: 'self-only' }; const userId = clean(event.user?.id, 256); if (!userId) return { accepted: false, reason: 'stable-user-id-required' };
   if (!['youtube', 'tiktok'].includes(event.platform)) return { accepted: false, reason: 'native-reward-required' };
+  if (!await platformIsLive(event.platform, context)) return { accepted: false, reason: 'platform-offline' };
   const foundation = await context.viewerFoundation.getProjection({ platform: event.platform, userId }); if (!foundation) return { accepted: false, reason: 'ignored-or-unavailable' };
   const stableEventId = clean(event.eventId || event.source?.eventId, 100); if (!stableEventId) return { accepted: false, reason: 'stable-event-id-required' };
   const idempotencyKey = `viewer-spotlight:${stableEventId}`;
@@ -97,7 +109,7 @@ export async function administerViewerSpotlight(request, context, now = Date.now
     if (request.approvedByCreator !== true) return { operation: 'stream-score', accepted: false, reason: 'creator-approval-required' };
     const session = await context.communityAnalytics.getSessionProjection(); const counters = session.counters || {};
     const interactions = ['messages', 'commands', 'follows', 'subscriptions', 'memberships', 'giftSubscriptions', 'gifts', 'cheers', 'superChats', 'raids', 'rewardRedemptions'].reduce((total, key) => total + (Number.isSafeInteger(counters[key]) ? counters[key] : 0), 0);
-    await context.overlay.publish(`${MODULE_ID}.card.show`, { title: 'Stream Score', text: `${session.uniqueViewers.toLocaleString('en-US')} observed viewers • ${interactions.toLocaleString('en-US')} observed interactions`, durationMs: settings.durationSeconds * 1000, presentationMode: settings.displayMode, style: { backgroundMode: settings.backgroundMode, backgroundColor: settings.backgroundColor, backgroundOpacity: settings.backgroundOpacity, accentColor: settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily } });
+    await context.overlay.publish(`${MODULE_ID}.card.show`, { title: 'Stream Score', text: `${session.uniqueViewers.toLocaleString('en-US')} observed viewers • ${interactions.toLocaleString('en-US')} observed interactions`, durationMs: settings.durationSeconds * 1000, presentationMode: settings.displayMode, style: { backgroundMode: settings.backgroundMode, backgroundColor: settings.backgroundColor, backgroundOpacity: settings.backgroundOpacity, accentColor: settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily } }, { lane: 'foreground' });
     return { operation: 'stream-score', accepted: true, uniqueViewers: session.uniqueViewers, interactions, approximate: session.approximate };
   }
   const platform = clean(request.platform, 64); const userId = clean(request.userId, 256); const displayName = clean(request.displayName, 80); if (!PLATFORMS.includes(platform) || !userId || !displayName || request.approvedByCreator !== true) return { operation: 'display', accepted: false, reason: 'invalid-request' };

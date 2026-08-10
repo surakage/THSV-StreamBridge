@@ -17,12 +17,12 @@ Runs a bounded, fair, YouTube-first multi-platform song-request queue through on
 
 1. Install and enable Viewer Foundation.
 2. Import the Village Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.
-3. Approve the resolver and Twitch reward helper, generate the six no-response command templates, and add the hosted browser source.
+3. Approve the resolver and Twitch reward helper, choose the command names in the wizard, and add the hosted browser source. Commands register automatically after restart.
 4. Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.5`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Village Jukebox`
 

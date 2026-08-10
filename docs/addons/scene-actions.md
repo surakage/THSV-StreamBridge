@@ -21,7 +21,7 @@ Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, 
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.33`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Scene Actions`
 

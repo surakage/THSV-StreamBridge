@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 describe('Stream Launch Countdown Streamer.bot package', () => {
   it('creates seven scene-friendly controls in the add-on group', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/starting-soon-countdown/manifest.json', 'utf8')) as {
-      version: string; actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string; autoType?: boolean }> }>;
+      version: string;
+      actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string; autoType?: boolean }> }>;
+      manualTriggerSetup: string[];
+      verificationStatus: string;
     };
     expect(manifest.actions.map((action) => action.name)).toEqual([
       'THSV Addon - Stream Launch Countdown - Start', 'THSV Addon - Stream Launch Countdown - Pause',
@@ -15,6 +18,10 @@ describe('Stream Launch Countdown Streamer.bot package', () => {
     expect(manifest.actions.every((action) => action.group === 'THSV Addon - Stream Launch Countdown')).toBe(true);
     expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Stream-Launch-Countdown-${manifest.version}.sb`]));
     expect(manifest.actions.at(-1)?.arguments).toContainEqual({ name: 'countdownSeconds', value: '600', autoType: true });
+    expect(manifest.manualTriggerSetup.join(' ')).toContain('No OBS scene triggers are required');
+    expect(manifest.manualTriggerSetup.join(' ')).toContain('normalized program-scene changes directly');
+    expect(manifest.manualTriggerSetup.join(' ')).not.toMatch(/attach Start|scene-active trigger|scene-inactive trigger/iu);
+    expect(manifest.verificationStatus).toContain('Studio Mode-safe behavior');
   });
 
   it('relays only bounded countdown controls without external I/O or action execution', async () => {

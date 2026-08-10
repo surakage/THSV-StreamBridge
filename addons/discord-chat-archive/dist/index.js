@@ -31,8 +31,16 @@ const FALLBACKS = Object.freeze({
   commandPrefix: '!',
   includeSimulatedMessages: false,
   destinationMode: 'channel',
-  forumThreadName: 'Stream chat archive · {date}',
+  forumThreadName: 'Village chat · {date} · {time}',
   forumTagIds: [],
+  layoutStyle: 'clean-embeds',
+  showSessionHeader: true,
+  sessionHeaderTitle: 'Village Stream Chat Archive',
+  showMessageTimes: true,
+  twitchColor: '#9146ff',
+  youtubeColor: '#ff0033',
+  kickColor: '#53fc18',
+  tiktokColor: '#25f4ee',
   messageTemplate: '[{time}] [{platform}] {displayName}: {message}',
   webhookDisplayName: 'THSV Chat Archive',
   useViewerIdentityForSingleMessage: false,
@@ -52,6 +60,9 @@ let flushTaskId;
 let stopped = true;
 let requestSequence = 0;
 let forumThreadId = '';
+let sessionHeaderSent = false;
+let sessionStartedAt = '';
+let archiveSessionKey = '';
 const livePlatforms = new Set();
 let operation = Promise.resolve();
 const pendingDeliveries = new Map();
@@ -77,6 +88,12 @@ function settingsFor(context) {
     destinationMode: raw.destinationMode === 'forum' ? 'forum' : 'channel',
     forumThreadName: cleanText(raw.forumThreadName, 100) || FALLBACKS.forumThreadName,
     forumTagIds: Array.isArray(raw.forumTagIds) ? raw.forumTagIds.filter((id) => /^\d{5,30}$/u.test(id)).slice(0, 5) : [],
+    layoutStyle: raw.layoutStyle === 'plain-text' ? 'plain-text' : 'clean-embeds',
+    sessionHeaderTitle: cleanText(raw.sessionHeaderTitle, 80) || FALLBACKS.sessionHeaderTitle,
+    twitchColor: /^#[0-9a-f]{6}$/iu.test(raw.twitchColor) ? raw.twitchColor : FALLBACKS.twitchColor,
+    youtubeColor: /^#[0-9a-f]{6}$/iu.test(raw.youtubeColor) ? raw.youtubeColor : FALLBACKS.youtubeColor,
+    kickColor: /^#[0-9a-f]{6}$/iu.test(raw.kickColor) ? raw.kickColor : FALLBACKS.kickColor,
+    tiktokColor: /^#[0-9a-f]{6}$/iu.test(raw.tiktokColor) ? raw.tiktokColor : FALLBACKS.tiktokColor,
     batchWindowSeconds: clampInteger(raw.batchWindowSeconds, 5, 5, 30),
     maximumMessagesPerBatch: clampInteger(raw.maximumMessagesPerBatch, 10, 1, 20),
     maximumQueueMessages: clampInteger(raw.maximumQueueMessages, 100, 10, 500),
@@ -146,7 +163,42 @@ function formatDate(receivedAt) {
 }
 
 function platformLabel(platform) {
-  return platform === 'tiktok' ? 'TikTok' : `${platform.slice(0, 1).toLocaleUpperCase('en-US')}${platform.slice(1)}`;
+  if (platform === 'tiktok') return 'TikTok';
+  if (platform === 'youtube') return 'YouTube';
+  return `${platform.slice(0, 1).toLocaleUpperCase('en-US')}${platform.slice(1)}`;
+}
+
+function localDateKey(receivedAt) {
+  const date = new Date(receivedAt);
+  if (!Number.isFinite(date.valueOf())) return new Date().toLocaleDateString('en-CA');
+  return date.toLocaleDateString('en-CA');
+}
+
+function platformColor(platform, settings) {
+  return Number.parseInt(settings[`${platform}Color`].slice(1), 16);
+}
+
+function renderEmbedLine(item, settings) {
+  const name = escapeDiscordValue(item.user.displayName || item.user.name, 256);
+  const message = defangMentions(escapeDiscordValue(item.message, 1000));
+  const time = settings.showMessageTimes ? `${escapeDiscordValue(formatTime(item.receivedAt), 32)} · ` : '';
+  return `**${time}${name}** — ${message}`;
+}
+
+export function buildArchiveEmbeds(items, settings) {
+  if (settings.layoutStyle !== 'clean-embeds') return [];
+  const embeds = [];
+  for (const item of items) {
+    const line = renderEmbedLine(item, settings);
+    const current = embeds.at(-1);
+    if (current?.platform === item.platform && [...`${current.description}\n${line}`].length <= 3800) current.description += `\n${line}`;
+    else if (embeds.length < 10) embeds.push({ platform: item.platform, title: `${platformLabel(item.platform)} chat`, description: line, color: platformColor(item.platform, settings) });
+  }
+  return embeds.map(({ platform: _platform, ...embed }) => embed);
+}
+
+function sessionHeader(settings, receivedAt) {
+  return `## ${escapeDiscordValue(settings.sessionHeaderTitle, 80)}\n**${escapeDiscordValue(formatDate(receivedAt), 64)} · ${escapeDiscordValue(formatTime(receivedAt), 32)}**\nTwitch, YouTube, Kick, and TikTok messages are color-coded below.`;
 }
 
 export function renderArchiveLine(template, item) {
@@ -188,7 +240,9 @@ export function selectArchiveBatch(queue, settings, dropped = 0) {
   if (selected.length === 0) return undefined;
   const single = selected.length === 1 ? selected[0] : undefined;
   return {
-    content: lines.join('\n'),
+    content: settings.layoutStyle === 'plain-text' ? lines.join('\n') : (dropped > 0 && settings.showDroppedMessageNotice ? lines[0] : ''),
+    embeds: buildArchiveEmbeds(selected, settings),
+    firstReceivedAt: selected[0]?.receivedAt,
     count: selected.length,
     username: single && settings.useViewerIdentityForSingleMessage ? takeCodePoints(`${platformLabel(single.platform)} · ${single.user.displayName || single.user.name}`, 80) : settings.webhookDisplayName,
     avatarUrl: single && settings.useViewerAvatarForSingleMessage ? single.user.avatarUrl : '',
@@ -240,7 +294,7 @@ function cancelTask(context, taskId) {
 }
 
 function scheduleFlush(context, settings) {
-  if (stopped || flushTaskId !== undefined || queuedMessages.length === 0) return;
+  if (stopped || flushTaskId !== undefined || queuedMessages.length === 0 || pendingDeliveries.size > 0) return;
   flushTaskId = context.schedule.after(settings.batchWindowSeconds * 1000, () => serialize(async () => {
     flushTaskId = undefined;
     flush(context, settings);
@@ -248,15 +302,17 @@ function scheduleFlush(context, settings) {
 }
 
 function flush(context, settings) {
-  if (stopped || queuedMessages.length === 0) return;
+  if (stopped || queuedMessages.length === 0 || pendingDeliveries.size > 0) return;
   const batch = selectArchiveBatch(queuedMessages, settings, droppedMessages);
   if (!batch) return;
   droppedMessages = 0;
+  const sessionKey = sessionStartedAt ? `live:${sessionStartedAt}` : `date:${localDateKey(batch.firstReceivedAt)}`;
+  if (archiveSessionKey !== sessionKey) { archiveSessionKey = sessionKey; forumThreadId = ''; sessionHeaderSent = false; }
+  const includesHeader = settings.showSessionHeader !== false && !sessionHeaderSent;
   const requestId = `discord-archive-${Date.now().toString(36)}-${String(++requestSequence)}`;
-  const delivery = { requestId, ...batch, mode: settings.destinationMode, attempts: 0 };
+  const delivery = { requestId, ...batch, content: [includesHeader ? sessionHeader(settings, batch.firstReceivedAt) : '', batch.content].filter(Boolean).join('\n'), embedsJson: JSON.stringify(batch.embeds), includesHeader, mode: settings.destinationMode, attempts: 0 };
   pendingDeliveries.set(requestId, delivery);
   void sendAttempt(delivery, context, settings);
-  scheduleFlush(context, settings);
 }
 
 async function sendAttempt(delivery, context, settings) {
@@ -266,11 +322,12 @@ async function sendAttempt(delivery, context, settings) {
     await context.streamerbot.runApprovedAction(DELIVERY_ACTION_ID, {
       discordArchiveRequestId: delivery.requestId,
       discordArchiveContent: delivery.content,
+      discordArchiveEmbedsJson: delivery.embedsJson,
       discordArchiveUsername: delivery.username,
       discordArchiveAvatarUrl: delivery.avatarUrl,
       discordArchiveDestinationMode: delivery.mode,
       discordArchiveThreadId: delivery.mode === 'forum' ? forumThreadId : '',
-      discordArchiveThreadName: settings.forumThreadName.replaceAll('{date}', new Date().toISOString().slice(0, 10)),
+      discordArchiveThreadName: settings.forumThreadName.replaceAll('{date}', formatDate(delivery.firstReceivedAt)).replaceAll('{time}', formatTime(delivery.firstReceivedAt)),
       discordArchiveForumTagIds: settings.forumTagIds.join(','),
       discordArchiveSimulated: false,
     });
@@ -292,6 +349,7 @@ function handleDeliveryFailure(delivery, context, settings) {
   if (retryTasks.has(delivery.requestId)) return;
   if (delivery.attempts > settings.retryCount || stopped) {
     pendingDeliveries.delete(delivery.requestId);
+    scheduleFlush(context, settings);
     return;
   }
   const taskId = context.schedule.after(settings.retryDelaySeconds * 1000, () => serialize(async () => {
@@ -309,7 +367,9 @@ function receiveDeliveryResult(event, context, settings) {
   resultTimeouts.delete(requestId);
   if (event.payload?.succeeded === true) {
     if (delivery.mode === 'forum' && /^\d{5,30}$/u.test(cleanText(event.payload?.threadId, 30))) forumThreadId = cleanText(event.payload.threadId, 30);
+    if (delivery.includesHeader) sessionHeaderSent = true;
     pendingDeliveries.delete(requestId);
+    scheduleFlush(context, settings);
     return;
   }
   handleDeliveryFailure(delivery, context, settings);
@@ -334,6 +394,9 @@ export function resetDiscordChatArchiveRuntime() {
   stopped = true;
   requestSequence = 0;
   forumThreadId = '';
+  sessionHeaderSent = false;
+  sessionStartedAt = '';
+  archiveSessionKey = '';
   livePlatforms.clear();
   operation = Promise.resolve();
   pendingDeliveries.clear();
@@ -361,13 +424,16 @@ const module = {
     retryTasks.clear();
     recentEventIds.clear();
     forumThreadId = '';
+    sessionHeaderSent = false;
+    sessionStartedAt = '';
+    archiveSessionKey = '';
     livePlatforms.clear();
   },
   async onEvent(event, context) {
     const settings = settingsFor(context);
     if (event?.eventType === DELIVERY_EVENT) return serialize(async () => receiveDeliveryResult(event, context, settings));
-    if (event?.eventType === 'stream.online') { livePlatforms.add(event.platform); return; }
-    if (event?.eventType === 'stream.offline') { livePlatforms.delete(event.platform); if (livePlatforms.size === 0) forumThreadId = ''; return; }
+    if (event?.eventType === 'stream.online') { if (livePlatforms.size === 0) { sessionStartedAt = cleanText(event.receivedAt, 64) || new Date().toISOString(); archiveSessionKey = ''; forumThreadId = ''; sessionHeaderSent = false; } livePlatforms.add(event.platform); return; }
+    if (event?.eventType === 'stream.offline') { livePlatforms.delete(event.platform); if (livePlatforms.size === 0) { sessionStartedAt = ''; archiveSessionKey = ''; forumThreadId = ''; sessionHeaderSent = false; } return; }
     return serialize(async () => enqueueMessage(event, context, settings));
   },
 };

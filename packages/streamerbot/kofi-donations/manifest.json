@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Relays verified Ko-fi Donation triggers into the stable-ID, durable StreamBridge alert pipeline.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.32",
+  "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "id": "e61c4b43-6cf0-5d56-a1c9-2176ae09c312",
     "name": "THSV Addon - Ko-fi Donations - Intake",

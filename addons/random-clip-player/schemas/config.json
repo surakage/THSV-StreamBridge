@@ -5,6 +5,21 @@
   "additionalProperties": false,
   "required": [],
   "properties": {
+    "automaticSceneNames": {
+      "type": "array",
+      "title": "Exact OBS scene names that play clips",
+      "description": "Enter one exact OBS program-scene name per line, including any emoji, icon, bracketed text, or punctuation in that scene name. Matching ignores capitalization only.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+      "maxItems": 20,
+      "uniqueItems": true,
+      "default": ["BRB", "Stream Ending"]
+    },
+    "stopOutsideAutomaticScenes": {
+      "type": "boolean",
+      "title": "Stop after leaving those scenes",
+      "description": "Recommended. Scene changes outside the automatic list stop clip rotation cleanly.",
+      "default": true
+    },
     "secondsBetweenClips": {
       "type": "integer",
       "title": "Pause between clips (seconds)",
@@ -52,8 +67,8 @@
     "cacheVideo": {
       "type": "boolean",
       "title": "Prefetch clip video locally",
-      "description": "Optional. Downloads the selected Twitch clip before playback to reduce CDN stalls. Cached video expires automatically and is never shared outside the loopback overlay server.",
-      "default": false
+      "description": "Recommended. Fully downloads the selected Twitch clip before playback so OBS can play it smoothly from the private loopback cache. Cached video expires automatically and is never shared outside the overlay server.",
+      "default": true
     },
     "cacheTtlHours": {
       "type": "integer",

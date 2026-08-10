@@ -8,12 +8,12 @@ New installations include 20 editable general-knowledge trivia questions with an
 
 1. Install and enable Viewer Foundation.
 2. Enable only the games you want in the wizard and keep the default anti-farming limits initially.
-3. Import `THSV-StreamBridge-Chat-Play-Pack-3.5.0.sb` once. It includes all 11 Streamer.bot command entries and both optional provider actions.
+3. Import `THSV-StreamBridge-Chat-Play-Pack-3.5.0.sb` only when using the optional OpenTDB or Dictionary provider actions. Viewer commands already use the main chat intakes.
 4. Add creator trivia as `Question | Correct answer | Alternate 1; Alternate 2` and fallback Unscramble entries as `Word | Optional hint`.
 5. Leave the imported provider actions triggerless and approve only the fetch action(s) you enabled. Do not add command triggers or sub-actions: the existing Twitch, YouTube, Kick, and TikFinity platform intakes deliver public chat to Chat Play directly.
 6. Add the add-on browser source only if you want result cards. Games continue through chat when the source is closed.
 
-The imported commands are organized Streamer.bot command entries, not separate execution paths. Enable or disable games with the wizard toggles. If an older Command Sync export created `THSV Command - Chat Play` actions, disable or remove those legacy entries after importing this package.
+Enable or disable games with the wizard toggles. Commands register automatically after restart. Once that path is verified, disable older native or Command Sync game-command entries to keep Streamer.bot tidy.
 
 Moderators start shared rounds with `!play number`, `!play trivia`, or `!play unscramble`; `!play stop` closes the current room. Solo results return only to their source platform. Shared questions can be announced to every currently live platform.
 

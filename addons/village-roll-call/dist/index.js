@@ -35,7 +35,7 @@ const manifest = {
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.',
-    'Create the configured no-response check-in command for YouTube and TikTok through Command Sync.',
+    'Choose the check-in command name. It registers automatically for YouTube and TikTok after restart.',
     'Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.',
     'Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.',
   ],
@@ -149,10 +149,16 @@ async function sendChat(context, message, platform = 'twitch') {
 async function publishCard(context, settings, state, title = 'VILLAGE ROLL CALL') {
   if (!settings.showLeaderboardCard) return;
   const leaders = rank(state.entries).slice(0, settings.leaderboardSize);
+  const leaderboard = leaders.map((entry, index) => ({ rank: index + 1, displayName: entry.displayName, count: entry.count }));
   const text = leaders.length
     ? leaders.map((entry, index) => `${String(index + 1)}. ${entry.displayName} (${String(entry.count)})`).join(' • ')
     : 'No check-ins yet this month.';
-  try { await context.overlay.publish(`${MODULE_ID}.card.show`, { title, text, durationMs: settings.cardSeconds * 1000 }); }
+  try { await context.overlay.publish(`${MODULE_ID}.card.show`, {
+    cardKind: 'village-roll-call', mode: 'leaderboard', headline: title,
+    subtitle: leaders.length ? 'Monthly check-in leaderboard' : 'The noticeboard is ready for its first villager',
+    monthLabel: monthName(state.month), leaders: leaderboard, title, text,
+    durationMs: settings.cardSeconds * 1000,
+  }, { lane: 'foreground' }); }
   catch { /* OBS presentation is optional. */ }
 }
 async function announceWinner(context, settings, state, winner, platform) {
@@ -173,10 +179,17 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
     if (!matchingReward && !matchingCommand) return { accepted: false, reason: 'simulated-unrelated' };
     const displayName = clean(event.user?.displayName || event.user?.name, 100) || 'Sample Villager';
     await context.overlay.publish(`${MODULE_ID}.card.show`, {
+      cardKind: 'village-roll-call', mode: 'preview', headline: 'Village Roll Call',
+      subtitle: 'Monthly check-in leaderboard', monthLabel: monthName(calendarParts(now, settings.timeZone).month),
+      leaders: [
+        { rank: 1, displayName, count: 7 }, { rank: 2, displayName: 'Sample Villager', count: 5 },
+        { rank: 3, displayName: 'CozySloth', count: 4 }, { rank: 4, displayName: 'Night Owl', count: 3 },
+        { rank: 5, displayName: 'Early Bird', count: 2 },
+      ],
       title: 'VILLAGE ROLL CALL • PREVIEW',
       text: `1. ${displayName} (7) • 2. Sample Villager (5) • 3. CozySloth (4)`,
       durationMs: settings.cardSeconds * 1000,
-    });
+    }, { lane: 'preview' });
     return { accepted: true, simulated: true };
   }
   let state = sanitizeState(await context.state.read(), now, settings.timeZone);

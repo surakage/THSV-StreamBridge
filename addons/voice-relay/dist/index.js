@@ -36,7 +36,7 @@ const pendingAggregates = new Map();
 const viewerCooldowns = new Map();
 const MAXIMUM_VIEWER_COOLDOWNS = 5000;
 
-const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Voice', version: '3.5.0', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: [...ALL_TYPES, CONTROL_EVENT], commandsProvided: [{ id: 'village-voice.speak', name: 'speak' }], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.voice-relay/', 'data/addons/.state/thsv.voice-relay/'], installationSteps: ['Connect Speaker.bot in Streamer.bot.', 'Import Village Voice, approve only Speak, and test a harmless phrase.', 'For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.', 'For YouTube and TikTok, create the configured no-response command in Command Sync and enable Viewer Foundation points.', 'Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card.'], uninstallationSteps: ['Uninstall Village Voice. It retains no spoken text history.'], migrations: [], healthChecks: [{ id: 'thsv.voice-relay.runtime', description: 'Confirms bounded filtered Speaker.bot dispatch and viewer-request routing are available.' }] };
+const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Voice', version: '3.5.0', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: [...ALL_TYPES, CONTROL_EVENT], commandsProvided: [{ id: 'village-voice.speak', name: 'speak' }], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.voice-relay/', 'data/addons/.state/thsv.voice-relay/'], installationSteps: ['Connect Speaker.bot in Streamer.bot.', 'Import Village Voice, approve only Speak, and test a harmless phrase.', 'For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.', 'For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.', 'Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card.'], uninstallationSteps: ['Uninstall Village Voice. It retains no spoken text history.'], migrations: [], healthChecks: [{ id: 'thsv.voice-relay.runtime', description: 'Confirms bounded filtered Speaker.bot dispatch and viewer-request routing are available.' }] };
 
 function clean(value, maximum = 400) {
   return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/https?:\/\/\S+/giu, ' link ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join('');
@@ -65,6 +65,7 @@ function settingsFor(context) {
     gapSeconds: Math.trunc(boundedNumber(raw.gapSeconds, 1, 30, 2)),
     minimumDonationAmount: boundedNumber(raw.minimumDonationAmount, 0, 1000000, 0),
     minimumCheerQuantity: Math.trunc(boundedNumber(raw.minimumCheerQuantity, 0, 10000000, 0)),
+    likeMilestoneInterval: Math.trunc(boundedNumber(raw.likeMilestoneInterval, 100, 100000, 1000)),
     allowChatRoles: new Set(Array.isArray(raw.allowChatRoles) ? raw.allowChatRoles : ['broadcaster', 'moderator']),
     blockedTerms: Array.isArray(raw.blockedTerms) ? raw.blockedTerms.map((value) => clean(value, 80).toLowerCase()).filter(Boolean).slice(0, 200) : [],
     viewerRequestsEnabled: raw.viewerRequestsEnabled === true,
@@ -106,6 +107,10 @@ function textFor(event, settings) {
   const quantityNumber = Number(event.payload?.quantity);
   if (['engagement.donation', 'engagement.super-chat'].includes(event.eventType) && Number.isFinite(amountNumber) && amountNumber < settings.minimumDonationAmount) return '';
   if (event.eventType === 'engagement.cheer' && Number.isFinite(quantityNumber) && quantityNumber < settings.minimumCheerQuantity) return '';
+  if (event.eventType === 'engagement.milestone' && clean(event.payload?.metric, 40).toLowerCase().includes('like')) {
+    const milestoneValue = Number(event.payload?.value);
+    if (!Number.isSafeInteger(milestoneValue) || milestoneValue <= 0 || milestoneValue % settings.likeMilestoneInterval !== 0) return '';
+  }
   const values = {
     actor: clean(event.user?.displayName || event.user?.name, 80) || 'The community',
     amount: clean(event.payload?.amount, 30), currency: clean(event.payload?.currency, 10),

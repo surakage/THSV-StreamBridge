@@ -3,8 +3,8 @@
   "name": "THSV StreamBridge - Timed Message Output",
   "version": "3.5.0",
   "author": "surakage",
-  "description": "Creator-controlled Twitch, YouTube, Kick, and TikFinity chat delivery for shuffled THSV timed messages.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "description": "Creator-controlled Twitch, YouTube, Kick, and TikFinity chat delivery for shuffled timed messages and the local multichat dock.",
+  "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Send Timed Message",
     "group": "THSV StreamBridge",
@@ -31,6 +31,10 @@
       "multiTimedDeliveryPlatforms",
       "multiTimedSimulated"
     ],
+    "optionalInputArguments": [
+      "multiTimedUseBotAccount",
+      "multiTimedAllowAccountFallback"
+    ],
     "outputArguments": [
       "timedMessageHandled",
       "timedMessageValid",
@@ -41,7 +45,9 @@
       "timedMessageFailedPlatforms",
       "timedMessageSimulated",
       "timedMessageDispatchSuppressed",
-      "timedMessageDispatchComplete"
+      "timedMessageDispatchComplete",
+      "timedMessageUseBotAccount",
+      "timedMessageAllowAccountFallback"
     ],
     "executionSafety": {
       "directTriggers": false,

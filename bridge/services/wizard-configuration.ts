@@ -19,6 +19,7 @@ const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('alerts'), alertSettings: z.object({
     maxAlertQueue: z.number().int().min(1).max(200),
     alertDurationMs: z.number().int().min(1_000).max(60_000),
+    overlayGapMs: z.number().int().min(250).max(10_000).default(1_000),
     showSimulated: z.boolean(),
     alerts: alertPresentationSchema,
   }).strict() }).strict(),
@@ -32,7 +33,7 @@ const wizardConfigurationImportSchema = z.object({
   filters: filtersSchema,
   timedActions: timedActionsSchema.optional(),
   chatSettings: z.object({ brandLabel: z.string().trim().max(60), maxChatMessages: z.number().int().min(1).max(200), showBots: z.boolean(), chat: chatOverlaySchema }).strict().optional(),
-  alertSettings: z.object({ maxAlertQueue: z.number().int().min(1).max(200), alertDurationMs: z.number().int().min(1_000).max(60_000), showSimulated: z.boolean(), alerts: alertPresentationSchema }).strict().optional(),
+  alertSettings: z.object({ maxAlertQueue: z.number().int().min(1).max(200), alertDurationMs: z.number().int().min(1_000).max(60_000), overlayGapMs: z.number().int().min(250).max(10_000).default(1_000), showSimulated: z.boolean(), alerts: alertPresentationSchema }).strict().optional(),
 }).strict();
 
 export type WizardConfigurationChange = z.infer<typeof wizardConfigurationChangeSchema>;
@@ -62,7 +63,7 @@ export interface WizardConfigurationExport {
   readonly filters: BridgeConfig['filters'];
   readonly timedActions: BridgeConfig['timedActions'];
   readonly chatSettings: Pick<BridgeConfig['browserOverlay'], 'brandLabel' | 'maxChatMessages' | 'showBots' | 'chat'>;
-  readonly alertSettings: Pick<BridgeConfig['browserOverlay'], 'maxAlertQueue' | 'alertDurationMs' | 'showSimulated' | 'alerts'>;
+  readonly alertSettings: Pick<BridgeConfig['browserOverlay'], 'maxAlertQueue' | 'alertDurationMs' | 'overlayGapMs' | 'showSimulated' | 'alerts'>;
 }
 
 export class WizardConfigurationGateway {
@@ -223,6 +224,7 @@ function pickAlertSettings(config: BridgeConfig): WizardConfigurationExport['ale
   return {
     maxAlertQueue: config.browserOverlay.maxAlertQueue,
     alertDurationMs: config.browserOverlay.alertDurationMs,
+    overlayGapMs: config.browserOverlay.overlayGapMs,
     showSimulated: config.browserOverlay.showSimulated,
     alerts: config.browserOverlay.alerts,
   };

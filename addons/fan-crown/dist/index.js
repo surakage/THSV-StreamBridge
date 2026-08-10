@@ -29,7 +29,7 @@ const manifest = {
     'Import the separate Fan Crown Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
     'Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.',
-    'Create Twitch and Kick rewards, then create the configured no-response command for YouTube and TikTok.',
+    'Create Twitch and Kick rewards. The saved YouTube and TikTok command registers automatically after restart.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact private season state remains preserved for a later reinstall.'],
   migrations: [],
@@ -366,6 +366,20 @@ async function publishCrown(context, settings, state, title = 'FAN CROWN') {
     : 'No captures this season';
   try {
     await context.overlay.publish('thsv.fan-crown.card.show', {
+      cardKind: 'fan-crown',
+      state: state.crown ? 'held' : 'open',
+      eventTitle: title,
+      seasonMonth: state.seasonMonth,
+      currentCost: state.currentCost,
+      holder: state.crown ? {
+        displayName: state.crown.displayName,
+        platform: state.crown.userId.includes(':') ? state.crown.userId.split(':', 1)[0] : 'twitch',
+        avatarUrl: state.crown.avatarUrl,
+        claimedAt: state.crown.claimedAt,
+        captures: state.leaderboard.find((entry) => entry.userId === state.crown.userId)?.captures || 0,
+        totalSpent: state.leaderboard.find((entry) => entry.userId === state.crown.userId)?.totalSpent || 0,
+      } : undefined,
+      leaders: leaders.slice(0, 3).map((entry, index) => ({ rank: index + 1, displayName: entry.displayName, totalSpent: entry.totalSpent, captures: entry.captures })),
       title,
       text: `${holder} - Next cost: ${String(state.currentCost)} - ${ranking}`,
       ...(state.crown?.avatarUrl ? { imageUrl: state.crown.avatarUrl } : {}),
@@ -378,7 +392,7 @@ async function publishCrown(context, settings, state, title = 'FAN CROWN') {
         textColor: settings.overlayTextColor,
         fontFamily: settings.overlayFontFamily,
       },
-    });
+    }, { lane: 'foreground' });
   } catch { /* Overlay presentation is optional. */ }
 }
 

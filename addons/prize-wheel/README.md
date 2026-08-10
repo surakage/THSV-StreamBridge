@@ -8,7 +8,7 @@ Install and enable `thsv.prize-wheel` in the StreamBridge wizard. Add `http://12
 
 ## Streamer.bot
 
-Create a no-response command matching the configured command, default `!spinwheel`, through Command Sync. Restrict it to moderators or the broadcaster. No separate Streamer.bot add-on import or trigger is required because it reuses the platform intakes and the bridge's single Streamer.bot connection.
+Choose the command name in the wizard, default `!spinwheel`. StreamBridge registers it automatically for moderators and the broadcaster through the existing platform intakes after restart; no separate Streamer.bot Command object, add-on import, or trigger is required.
 
 ## Offline test
 

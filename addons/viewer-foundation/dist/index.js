@@ -36,7 +36,7 @@ const manifest = {
     'Install Viewer Foundation in the wizard and review its private-state permission.',
     'Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.',
     'Name the currency and choose chat, consistency, observed time, lurk, and event awards; then save and restart StreamBridge.',
-    'Create the Viewer Foundation balance command in Command Sync so viewers can use !points.',
+    'Choose the balance and lurk command names. They register automatically through the existing chat intakes after restart.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its pseudonymous progression state remains preserved for a later reinstall or privacy export.'],
   migrations: [],

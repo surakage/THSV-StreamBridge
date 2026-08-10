@@ -2,6 +2,17 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('Live Beacon Streamer.bot package', () => {
+  it('ships intact UTF-8 forum welcome templates', async () => {
+    const schema = JSON.parse(await readFile('addons/live-beacon/schemas/config.json', 'utf8')) as { properties: Record<string, { default?: string }> };
+    for (const platform of ['twitch', 'youtube', 'kick', 'tiktok']) {
+      const template = schema.properties[`${platform}ForumWelcome`]?.default ?? '';
+      expect(template).toContain('🎮');
+      expect(template).toContain('🔗');
+      expect(template).not.toContain('??');
+      expect(template).not.toMatch(/[ÃÂ�]|â(?:€|€™|€“|€”)/u);
+    }
+  });
+
   it('keeps webhook secrets in Streamer.bot and supports confirmed channel/forum delivery', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/live-beacon/manifest.json', 'utf8')) as { actions: Array<{ name: string; group: string; arguments?: Array<{ name: string; value: string }> }> };
     expect(manifest.actions.every((action) => action.group === 'THSV Addon - Live Beacon')).toBe(true);

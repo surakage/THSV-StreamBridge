@@ -1,16 +1,24 @@
 {
   "intro": "Run one shared command-based poll across Twitch, YouTube, Kick, and TikTok directly from the existing THSV chat intakes. No separate Streamer.bot commands or triggers are required.",
-  "order": ["enabled", "commandPrefix", "pollCommand", "voteCommand", "maximumPollOptions", "closePollOnStreamEnd"],
+  "order": ["enabled", "pollDurationSeconds", "maximumPollOptions", "closePollOnStreamEnd", "layout", "showPercentages", "showVoteCounts", "showTimer", "showPlatformBreakdown", "transition", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "resultSeconds", "commandPrefix", "pollCommand", "voteCommand"],
   "sections": [
     { "id": "setup", "title": "1. Turn on universal polls", "open": true, "fields": ["enabled", "commandPrefix"], "notice": "Keep the default ! prefix for the easiest setup. Opening and closing are announced to all four supported chats; vote confirmations remain in the viewer's source chat." },
-    { "id": "poll-behavior", "title": "2. Poll behavior", "fields": ["maximumPollOptions", "closePollOnStreamEnd"], "notice": "Moderator: !poll open Best snack? | Cookies | Chips. Viewers: !vote 1. Moderator: !poll close. Closing sends results to chat and shows the result card for 12 seconds." },
-    { "id": "advanced-commands", "title": "Advanced: change command names", "fields": ["pollCommand", "voteCommand"], "notice": "Change these only when another command already uses the same name. The names must remain different. Village Polls reads them directly from normalized chat." }
+    { "id": "poll-behavior", "title": "2. Choose how polls run", "fields": ["pollDurationSeconds", "maximumPollOptions", "closePollOnStreamEnd"], "notice": "Moderator: !poll open Best snack? | Cookies | Chips. Viewers vote with !vote 1. Set the timer to 0 when you prefer closing with !poll close." },
+    { "id": "overlay-layout", "title": "3. Keep the poll small and readable", "fields": ["layout", "showPercentages", "showVoteCounts", "showTimer", "showPlatformBreakdown", "resultSeconds"], "notice": "Compact is recommended. The poll stays in one translucent card and updates its bars without repeatedly disappearing or covering the stream." },
+    { "id": "overlay-style", "title": "4. Match your stream", "fields": ["transition", "backgroundColor", "backgroundOpacity", "accentColor", "textColor"], "notice": "The default glass background is 72% opaque, allowing gameplay and overlays behind it to remain visible." },
+    { "id": "advanced-commands", "title": "Advanced: change command names", "fields": ["pollCommand", "voteCommand"], "notice": "Change these only when another command already uses the same name. The names must remain different." }
   ],
   "fields": {
     "maximumPollOptions": { "visibleWhen": { "field": "enabled", "equals": true } },
     "closePollOnStreamEnd": { "visibleWhen": { "field": "enabled", "equals": true } },
     "commandPrefix": { "visibleWhen": { "field": "enabled", "equals": true } },
     "pollCommand": { "visibleWhen": { "field": "enabled", "equals": true } },
-    "voteCommand": { "visibleWhen": { "field": "enabled", "equals": true } }
+    "voteCommand": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "pollDurationSeconds": { "visibleWhen": { "field": "enabled", "equals": true } }, "resultSeconds": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "layout": { "visibleWhen": { "field": "enabled", "equals": true } }, "showPercentages": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "showVoteCounts": { "visibleWhen": { "field": "enabled", "equals": true } }, "showTimer": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "showPlatformBreakdown": { "visibleWhen": { "field": "enabled", "equals": true } }, "transition": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "backgroundColor": { "visibleWhen": { "field": "enabled", "equals": true } }, "backgroundOpacity": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "accentColor": { "visibleWhen": { "field": "enabled", "equals": true } }, "textColor": { "visibleWhen": { "field": "enabled", "equals": true } }
   }
 }

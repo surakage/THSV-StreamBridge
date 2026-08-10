@@ -19,9 +19,13 @@ Copies creator-selected normalized public chat to one private Discord webhook th
 2. Import the Discord Chat Archive Streamer.bot package, edit its webhook Set Argument, compile it, and run it manually once for a safe test.
 3. Install this add-on, approve only the imported Deliver action, review the privacy notice and ignore list, then enable it.
 
+### Recommended archive layout
+
+Use **Forum** with **Clean embeds**. Follower chat is kept in one dated forum post per live session, or one post per calendar day when chat arrives without a live lifecycle signal. The first post contains the session date and time; later confirmed batches append beneath it. Twitch, YouTube, Kick, and TikTok use separate configurable embed colors while consecutive platform groups preserve the conversation order. A forum tag applies to the whole session post, so do not create one forum thread per individual chat message.
+
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.33`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Discord Chat Archive`
 

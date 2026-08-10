@@ -18,11 +18,11 @@ Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer F
 1. Import the separate First Five Streamer.bot package.
 2. Keep its Controller action triggerless and approve only that action for this add-on.
 3. Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.
-4. Choose five Twitch IDs and five Kick IDs in placement order, then create the configured no-response command for YouTube and TikTok.
+4. Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube and TikTok command registers automatically after restart.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.33`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - First Five`
 
@@ -30,6 +30,8 @@ Imported group: `THSV Addon - First Five`
 - `THSV Addon - First Five - Reset` in `THSV Addon - First Five`
 
 Controller must remain triggerless and is dispatched only by the creator-approved First Five add-on. Reset emits one tightly scoped local control event.
+
+Starting StreamBridge and receiving `stream.online` only prepare the placement state and Twitch reward chain. They do not display the First Five card. The card is shown only after a valid Twitch/Kick redemption or YouTube/TikTok points-command claim completes.
 
 Creator-selected triggers:
 

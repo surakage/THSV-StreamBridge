@@ -18,11 +18,11 @@ Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation 
 1. Import the separate Fan Crown Streamer.bot package.
 2. Keep its Controller action triggerless and approve only that action for this add-on.
 3. Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.
-4. Create Twitch and Kick rewards, then create the configured no-response command for YouTube and TikTok.
+4. Create Twitch and Kick rewards. The saved YouTube and TikTok command registers automatically after restart.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-alpha.33`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Fan Crown`
 

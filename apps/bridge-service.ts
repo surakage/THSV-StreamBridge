@@ -21,9 +21,10 @@ import { ReleaseUpdateService } from '../bridge/services/release-update-service.
 import { AddOnUpdateService } from '../bridge/services/addon-update-service.js';
 import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
 import { STREAMBRIDGE_VERSION } from '../bridge/version.js';
-import { OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
+import { OUTBOUND_PLATFORM_VALUES, OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
 import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
 import { CommandDirectoryService } from '../bridge/services/command-directory.js';
+import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -49,6 +50,7 @@ const enabledPlatformIds = new Set(Object.entries(config.platforms).filter(([, p
 const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
+const chatEmotes = new ChatEmoteService(logger);
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
   if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is not configured.');
@@ -60,9 +62,22 @@ const outboundRouter = new OutboundMessageRouter({ send: async (platform, messag
     multiTimedSimulated: config.streamerbot.testMode,
   }, signal);
 } });
+const dockChatPlatforms = OUTBOUND_PLATFORM_VALUES.filter((platform) => enabledPlatformIds.has(platform));
+const dockOutboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
+  if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is not configured.');
+  await streamerBotInspector.runApprovedAction(TIMED_MESSAGE_OUTPUT_ACTION_ID, {
+    multiTimedValid: true,
+    multiTimedSelectedMessage: message,
+    multiTimedSelectedMessages: '{}',
+    multiTimedDeliveryPlatforms: JSON.stringify([platform]),
+    multiTimedSimulated: config.streamerbot.testMode,
+    multiTimedUseBotAccount: false,
+    multiTimedAllowAccountFallback: false,
+  }, signal);
+} });
 const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   ...(streamerBotInspector === undefined ? {} : { runStreamerBotAction: (actionId, argumentsValue, signal) => streamerBotInspector.runApprovedAction(actionId, argumentsValue, signal) }),
-  publishOverlay: async (moduleId, topic, payload) => overlayHub.publishAddOn(moduleId, topic, payload),
+  publishOverlay: async (moduleId, topic, payload, options) => overlayHub.publishAddOn(moduleId, topic, payload, options),
   subscribeOverlayLifecycle: (moduleId, listener) => overlayHub.subscribeAddOnLifecycle(moduleId, listener),
   routeOutboundMessage: (request, signal) => outboundRouter.route(request, signal),
   publishProviderEvent: async (event) => {
@@ -82,7 +97,19 @@ const wizard = new WizardService(
   new ReleaseUpdateService(STREAMBRIDGE_VERSION, undefined, undefined, join(dataRoot, 'updates')),
   new AddOnUpdateService(CORE_CONTRACT_VERSION, undefined, undefined, undefined, join(dataRoot, 'updates')),
 );
-activeBridge.subscribe((event) => overlayHub.publish(event));
+activeBridge.subscribe((event) => {
+  if (event.eventType !== 'chat.message') {
+    overlayHub.publish(event);
+    void chatEmotes.warm(event);
+    return;
+  }
+  void chatEmotes.enrichAfterWarm(event)
+    .then((enriched) => overlayHub.publish(enriched))
+    .catch((error: unknown) => {
+      logger.warn('Chat emote enrichment failed; publishing the original event', { eventId: event.eventId, error });
+      overlayHub.publish(event);
+    });
+});
 let stopping = false;
 
 async function shutdown(signal: string): Promise<void> {
@@ -100,7 +127,13 @@ async function shutdown(signal: string): Promise<void> {
   }
 }
 
-const server = new DiagnosticsServer({ ...config.service, ...config.security }, activeBridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub, wizard, dataRoot, commandDirectory);
+const server = new DiagnosticsServer(
+  { ...config.service, ...config.security }, activeBridge, logger, controlToken, () => void shutdown('HTTP'), overlayHub, wizard, dataRoot, commandDirectory,
+  {
+    enabledPlatforms: dockChatPlatforms,
+    send: (request) => dockOutboundRouter.route(request),
+  },
+);
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
 process.once('SIGTERM', () => void shutdown('SIGTERM'));

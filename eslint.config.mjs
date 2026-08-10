@@ -8,7 +8,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'tools/dev.mjs'] },
+        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'tools/dev.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -19,7 +19,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'tools/dev.mjs'],
+    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'tools/dev.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       ...tseslint.configs.disableTypeChecked.languageOptions,

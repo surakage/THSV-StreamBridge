@@ -146,18 +146,48 @@ describe('bridge HTTP integration', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
     }
-    const source = await fetch(`${baseUrl}/overlay/app-1.4.7.js`).then((response) => response.text());
+    const source = await fetch(`${baseUrl}/overlay/app-1.4.8.js`).then((response) => response.text());
     expect(source).not.toContain('companion');
     expect((await fetch(`${baseUrl}/overlay/alert-queue-1.2.2.js`)).status).toBe(200);
     expect((await fetch(`${baseUrl}/overlay/alert-queue-1.2.3.js`)).status).toBe(200);
     expect((await fetch(`${baseUrl}/overlay/worker-1.3.1.js`)).status).toBe(200);
-    expect((await fetch(`${baseUrl}/overlay/worker-1.3.2.js`)).status).toBe(200);
-    expect((await fetch(`${baseUrl}/overlay/styles-1.3.6.css`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/worker-1.3.3.js`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/overlay/styles-1.3.7.css`)).status).toBe(200);
     expect(await fetch(`${baseUrl}/overlay/config`).then((response) => response.json())).toEqual(config.browserOverlay);
     expect((await fetch(`${baseUrl}/overlay/addons/unknown.module`)).status).toBe(404);
     const addOnHost = await fetch(`${baseUrl}/overlay/addons/host.js`);
     expect(addOnHost.status).toBe(200);
     expect(addOnHost.headers.get('content-security-policy')).toContain('frame-src https://clips.twitch.tv https://www.youtube.com https://www.youtube-nocookie.com');
+    expect(addOnHost.headers.get('content-security-policy')).toContain("style-src 'self' 'unsafe-inline'");
+    expect(addOnHost.headers.get('content-security-policy')).toContain("media-src 'self' blob:");
     expect((await fetch(`${baseUrl}/overlay/addons/host.css`)).status).toBe(200);
+  });
+
+  it('keeps dock sending local, session-bound, platform-scoped, and character-limited', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const send = vi.fn(async () => [{ platform: 'twitch' as const, accepted: true, parts: 1 }]);
+    const server = new DiagnosticsServer(
+      { ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN,
+      undefined, undefined, undefined, 'data', undefined,
+      { enabledPlatforms: ['twitch'], send },
+    );
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    expect((await fetch(`${baseUrl}/overlay/chat/dock/config`)).status).toBe(401);
+    const dock = await fetch(`${baseUrl}/overlay/chat/dock`);
+    const cookie = dock.headers.get('set-cookie')?.split(';', 1)[0] ?? '';
+    expect(cookie).toMatch(/^thsv_dock=/u);
+    expect(await fetch(`${baseUrl}/overlay/chat/dock/config`, { headers: { cookie } }).then((response) => response.json())).toMatchObject({ enabled: true, platforms: ['twitch'] });
+    const headers = { cookie, origin: baseUrl, 'content-type': 'application/json' };
+    expect((await fetch(`${baseUrl}/overlay/chat/dock/send`, { method: 'POST', headers, body: JSON.stringify({ target: 'youtube', message: 'hi' }) })).status).toBe(400);
+    expect((await fetch(`${baseUrl}/overlay/chat/dock/send`, { method: 'POST', headers: { ...headers, origin: 'https://attacker.example' }, body: JSON.stringify({ target: 'twitch', message: 'hi' }) })).status).toBe(403);
+    const response = await fetch(`${baseUrl}/overlay/chat/dock/send`, { method: 'POST', headers, body: JSON.stringify({ target: 'all', message: 'Hello village' }) });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({ accepted: true, deliveries: [{ platform: 'twitch', accepted: true }] });
+    expect(send).toHaveBeenCalledWith({ message: 'Hello village', routing: 'selected', selectedPlatforms: ['twitch'], overflow: 'reject' });
   });
 });

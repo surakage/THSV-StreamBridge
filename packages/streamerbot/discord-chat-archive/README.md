@@ -5,7 +5,7 @@ This package contains one action: `THSV Addon - Discord Chat Archive - Deliver`.
 ## Setup
 
 1. In Discord, create a dedicated private webhook for the channel that should receive the archive.
-2. Import `THSV-StreamBridge-Discord-Chat-Archive-2.4.2.sb`.
+2. Import `THSV-StreamBridge-Discord-Chat-Archive-3.5.0.sb`.
 3. Accept the custom C# warning only after confirming this package came from the official THSV StreamBridge release.
 4. Open the imported action.
 5. Edit the **Set Argument** named `discordArchiveWebhookUrl` and replace `REPLACE_WITH_DISCORD_WEBHOOK_URL` with the new private webhook URL.
@@ -20,7 +20,8 @@ Do not attach Twitch, YouTube, Kick, TikFinity, or other triggers to this action
 - Treat the webhook URL like a password. Anyone holding it can post to that Discord channel.
 - The URL remains inside Streamer.bot's Set Argument and is never returned to StreamBridge or included in wizard exports.
 - The action accepts live archive content only when StreamBridge supplies a short-lived one-use relay token.
-- Normal-channel and forum delivery use confirmed Discord responses. Forum mode creates one session thread and appends later batches using the returned thread ID.
+- Normal-channel and forum delivery use confirmed Discord responses. Forum mode creates one dated post per live session or offline calendar day, adds a date/time header first, and appends later batches using the returned thread ID.
+- Clean layout mode uses bounded Discord embeds with distinct Twitch, YouTube, Kick, and TikTok colors. Consecutive platform groups preserve conversation order without repeating the webhook name on every line.
 - Discord mentions are disabled by an explicit allowlist, and the controller performs only bounded HTTP 429 retries.
 - Public chat waiting for delivery exists only in a bounded in-memory queue. It is not written to local transcript files.
 - Discord retains delivered messages under the selected server and channel's policies.

@@ -29,6 +29,42 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(event).toMatchObject({ platform, eventType: 'chat.message', payload: { message: 'Hello 🦥' }, metadata: { simulated: true } });
   });
 
+  it('turns documented native emote ranges into safe display fragments', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', {
+      message: 'Hi Kappa!', emotes: [{ name: 'Kappa', startIndex: 3, endIndex: 7, imageUrl: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0', provider: 'twitch' }],
+    }));
+    expect(event.payload['fragments']).toEqual([
+      { type: 'text', text: 'Hi ' },
+      { type: 'emote', name: 'Kappa', imageUrl: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0', provider: 'twitch' },
+      { type: 'text', text: '!' },
+    ]);
+  });
+
+  it('keeps UTF-16 emote ranges aligned after emoji and accepts documented YouTube image hosts', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('youtube', 'YouTubeMessage', {
+      message: '🦥 :chillwdog:', emotes: [{ name: ':chillwdog:', startIndex: 3, endIndex: 13, imageUrl: 'https://yt3.ggpht.com/native-youtube-emote=w24-h24-c-k-nd', provider: 'youtube' }],
+    }));
+    expect(event.payload['fragments']).toEqual([
+      { type: 'text', text: '🦥 ' },
+      { type: 'emote', name: ':chillwdog:', imageUrl: 'https://yt3.ggpht.com/native-youtube-emote=w24-h24-c-k-nd', provider: 'youtube' },
+    ]);
+  });
+
+  it('rejects untrusted emote images and skips overlapping or out-of-range fragments', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', {
+      message: 'Kappa Keepo', emotes: [
+        { name: 'Kappa', startIndex: 0, endIndex: 4, imageUrl: 'https://static-cdn.jtvnw.net/kappa.png', provider: 'twitch' },
+        { name: 'overlap', startIndex: 2, endIndex: 6, imageUrl: 'https://static-cdn.jtvnw.net/overlap.png', provider: 'twitch' },
+        { name: 'bad', startIndex: 6, endIndex: 10, imageUrl: 'https://example.com/tracker.png', provider: 'unknown' },
+        { name: 'outside', startIndex: 40, endIndex: 45, imageUrl: 'https://static-cdn.jtvnw.net/outside.png', provider: 'twitch' },
+      ],
+    }));
+    expect(event.payload['fragments']).toEqual([
+      { type: 'emote', name: 'Kappa', imageUrl: 'https://static-cdn.jtvnw.net/kappa.png', provider: 'twitch' },
+      { type: 'text', text: ' Keepo' },
+    ]);
+  });
+
   it('preserves a known first-ever-message flag without inventing it when absent', () => {
     expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', {
       message: 'My first message', firstMessage: true, firstMessageKnown: true,
@@ -36,6 +72,15 @@ describe('native Streamer.bot platform relay adapter', () => {
     expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', {
       message: 'Unknown history', firstMessage: false, firstMessageKnown: false,
     })).payload).toEqual({ message: 'Unknown history' });
+  });
+
+  it('relays connected creator and bot markers without changing ordinary chat payloads', () => {
+    expect(normalizeStreamerBotPlatformRelay(relay('youtube', 'YouTubeMessage', {
+      message: 'Creator reply', isMe: true, botUserId: 'bot-1', botUserName: 'Creator_Bot',
+    })).payload).toMatchObject({
+      message: 'Creator reply', fromConnectedAccount: true,
+      connectedAccountIds: ['bot-1'], connectedAccountNames: ['Creator_Bot'],
+    });
   });
 
   it('preserves a complete documented Twitch reply and fails closed on partial or non-Twitch reply data', () => {

@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Performs creator-approved, timeout-bounded manual or automatic translation requests for the combined Translate add-on.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "a6c9d452-7627-4bc2-b0b3-46735d8aa120",

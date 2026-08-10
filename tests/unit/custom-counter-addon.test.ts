@@ -23,7 +23,7 @@ describe('Custom Counter add-on', () => {
     await applyControl({ operation: 'load', id: 'main', amount: 0, name: '', preset: 'before-reset', reply: false }, undefined, test.context);
     await applyControl({ operation: 'hide', id: 'main', amount: 0, name: '', preset: 'default', reply: false }, undefined, test.context);
     expect(test.value()).toMatchObject({ activeCounterId: 'main', counters: [{ id: 'main', name: 'Boss Wins', value: 5, visible: false }], presets: { 'before-reset': { value: 5 } } });
-    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.custom-counter.counter.update', expect.objectContaining({ name: 'Boss Wins', value: 5, visible: false }));
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.custom-counter.counter.update', expect.objectContaining({ name: 'Boss Wins', value: 5, visible: false }), { lane: 'persistent' });
   });
 
   it('rejects public chat mutations but accepts normalized moderator controls', async () => {
@@ -31,6 +31,23 @@ describe('Custom Counter add-on', () => {
     const event = { schemaVersion: '1.0.0', eventId: 'event-1', eventType: 'command.received', platform: 'twitch', source: { adapter: 'test', eventId: 'event-1' }, channel: { name: 'channel' }, user: { id: 'viewer-1', name: 'viewer', actorType: 'human', roles: [] }, payload: { command: 'counter', arguments: ['main', '+1'] }, metadata: { simulated: false } };
     await customCounter.onEvent(event, test.context); expect(test.value()).toMatchObject({ counters: [{ value: 0 }] });
     await customCounter.onEvent({ ...event, eventId: 'event-2', user: { ...event.user, roles: ['MOD'] } }, test.context); expect(test.value()).toMatchObject({ counters: [{ value: 1 }] });
+  });
+
+  it('keeps Bridge-managed shortcut counters independent and ignores duplicate command mappings', async () => {
+    const test = runtime({ commandEnabled: true, commandName: 'streamcounter', commandShortcuts: ['death=deaths|Deaths', 'win=wins|Wins', 'death=other|Wrong', 'streamcounter=overlap|Wrong'] });
+    await customCounter.start(test.context);
+    const event = { schemaVersion: '1.0.0', eventId: 'event-1', eventType: 'command.received', platform: 'twitch', source: { adapter: 'test', eventId: 'event-1' }, channel: { name: 'channel' }, user: { id: 'creator-1', name: 'creator', actorType: 'human', roles: ['broadcaster'] }, payload: { command: 'death', arguments: [] }, metadata: { simulated: false } };
+    await customCounter.onEvent(event, test.context);
+    await customCounter.onEvent({ ...event, eventId: 'event-2', payload: { command: 'win', arguments: [] } }, test.context);
+    await customCounter.onEvent({ ...event, eventId: 'event-3' }, test.context);
+    await customCounter.onEvent({ ...event, eventId: 'event-4', payload: { command: 'death', arguments: ['subtract', '1'] } }, test.context);
+    await customCounter.onEvent({ ...event, eventId: 'event-5', payload: { command: 'win', arguments: ['set', '5'] } }, test.context);
+    await customCounter.onEvent({ ...event, eventId: 'event-6', payload: { command: 'win', arguments: ['rename', 'Match', 'Wins'] } }, test.context);
+    expect(test.value()).toMatchObject({ activeCounterId: 'wins', counters: [
+      { id: 'main', value: 0 },
+      { id: 'deaths', name: 'Deaths', value: 1 },
+      { id: 'wins', name: 'Match Wins', value: 5 },
+    ] });
   });
 
   it('ignores simulated automatic events and applies configured genuine event deltas', async () => {

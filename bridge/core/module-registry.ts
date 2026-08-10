@@ -4,7 +4,7 @@ import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
 import { moduleManifestV2Schema, type ModuleManifestV2 } from '../contracts/v2/module-manifest.js';
 import type { ModuleHealthStatusV2 } from '../contracts/v2/health.js';
 import type { Logger } from '../services/logger.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, ModuleRuntimeContextV2, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { AddOnCapabilityBroker, type ModuleCapabilityGrant } from './addon-capability-broker.js';
 
 export interface FrameworkModule {
@@ -22,6 +22,7 @@ export interface FrameworkModule {
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ChatGuardAdminResultV1>;
   administerVillageDraw?(request: VillageDrawAdminRequestV1, context: ModuleRuntimeContextV2): Promise<VillageDrawAdminResultV1>;
+  administerFollowerPulse?(request: FollowerPulseAdminRequestV1, context: ModuleRuntimeContextV2): Promise<FollowerPulseAdminResultV1>;
 }
 
 interface ModuleRuntimeState {
@@ -97,11 +98,15 @@ export class ModuleRegistry {
   }
 
   public async publish(event: NormalizedEvent, blockedModuleIds: ReadonlySet<string> = new Set()): Promise<void> {
+    const commandTarget = event.eventType === 'command.received' && typeof event.payload['targetModuleId'] === 'string'
+      ? event.payload['targetModuleId']
+      : undefined;
     for (const moduleId of this.order) {
       if (blockedModuleIds.has(moduleId)) continue;
       const state = this.states.get(moduleId);
       if (state?.status !== 'healthy' || state.module.onEvent === undefined) continue;
       if (!state.module.manifest.eventSubscriptions.includes(event.eventType)) continue;
+      if (commandTarget !== undefined && state.module.manifest.commandsProvided.length > 0 && moduleId !== commandTarget) continue;
       try { await this.runWithIsolation(state.module, 'event handler', () => state.module.onEvent?.(event, state.context)); }
       catch (error) {
         state.status = 'failed';
@@ -135,9 +140,9 @@ export class ModuleRegistry {
   }
 
   /**
-   * Returns the narrow host-owned input used to build the public command directory.
-   * The directory service never serializes settings; it may only consult explicitly
-   * allowlisted command-name and enable-toggle keys.
+   * Returns host-owned module metadata for the effective command registry.
+   * Settings remain in-process and are never serialized by the public directory;
+   * the registry reads only its explicit command-name and enable-toggle keys.
    */
   public commandDirectorySources(): readonly CommandDirectoryModuleSource[] {
     return this.order.map((moduleId) => {
@@ -193,6 +198,14 @@ export class ModuleRegistry {
     return Object.freeze(villageDrawAdminResultSchema.parse(result));
   }
 
+  public async administerFollowerPulse(request: FollowerPulseAdminRequestV1): Promise<FollowerPulseAdminResultV1> {
+    const parsed = followerPulseAdminSchema.parse(request) as FollowerPulseAdminRequestV1;
+    const state = this.states.get('thsv.follower-pulse');
+    if (state?.status !== 'healthy' || state.module.administerFollowerPulse === undefined) throw new Error('Follower Pulse is unavailable. Enable it and restart StreamBridge.');
+    const result = await withTimeout(state.module.administerFollowerPulse(parsed, state.context), this.optionalModuleTimeoutMs, 'Follower Pulse administration');
+    return Object.freeze(followerPulseAdminResultSchema.parse(result));
+  }
+
   private async runWithIsolation(module: FrameworkModule, operation: string, callback: (() => Promise<void> | undefined) | undefined): Promise<void> {
     if (callback === undefined) return;
     const pending = callback();
@@ -213,6 +226,11 @@ const villageDrawAdminSchema = z.discriminatedUnion('operation', [
   ...(['open', 'pause', 'resume', 'close', 'draw', 'confirm', 'redraw', 'cancel', 'reset'] as const).map((operation) => z.object({ operation: z.literal(operation), approvedByCreator: z.literal(true) }).strict()),
 ]);
 const villageDrawAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Village Draw administration result exceeded the safe response size.');
+const followerPulseAdminSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('status') }).strict(),
+  z.object({ operation: z.literal('reconcile'), approvedByCreator: z.literal(true) }).strict(),
+]);
+const followerPulseAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Follower Pulse administration result exceeded the safe response size.');
 const communityAnalyticsAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   z.object({ operation: z.literal('export'), viewerId: viewerIdSchema }).strict(),

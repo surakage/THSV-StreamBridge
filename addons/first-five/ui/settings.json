@@ -6,7 +6,7 @@
     "reward1Title", "reward2Title", "reward3Title", "reward4Title", "reward5Title", "claimedTitleTemplate",
     "announceClaims", "claimMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate",
     "announceMonthlyWinner", "monthlyWinnerMessageTemplate",
-    "showLeaderboardCard", "leaderboardCardSeconds"
+    "showLeaderboardCard", "leaderboardCardSeconds", "crossPlatformGapSeconds"
   ],
   "sections": [
     {
@@ -46,7 +46,8 @@
       "id": "monthly",
       "title": "6. Monthly leaderboard",
       "description": "The stream placements reset each stream. Weighted scores reset on the first event of a new local-calendar month.",
-      "fields": ["announceMonthlyWinner", "monthlyWinnerMessageTemplate", "showLeaderboardCard", "leaderboardCardSeconds"]
+      "fields": ["announceMonthlyWinner", "monthlyWinnerMessageTemplate", "showLeaderboardCard", "leaderboardCardSeconds", "crossPlatformGapSeconds"],
+      "notice": "Each platform has its own five-place board. Different platforms wait in a bounded display queue; repeated claims from the visible platform update that board without adding another card."
     },
     {
       "id": "privacy",

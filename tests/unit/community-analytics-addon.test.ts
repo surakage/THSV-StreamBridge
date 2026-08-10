@@ -41,7 +41,16 @@ describe('Community Analytics add-on', () => {
 
   it('bounds persisted viewers, sessions, and replay identities below the private-state ceiling', () => {
     const state = sanitizeCommunityAnalyticsState({ viewers: Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`viewer-${String(index)}`, { firstSeenAt: index, lastSeenAt: index, sessions: 1, counters: { messages: index } }])), sessions: Array.from({ length: 50 }, (_, index) => ({ id: `session-${String(index)}`, startedAt: index, endedAt: index + 1, counters: {} })), processed: Array.from({ length: 100 }, (_, index) => ({ id: index.toString(16).padStart(32, '0'), at: index })) }, { maximumViewers: 25, retainedSessions: 5, processedEventLimit: 50 });
-    expect(Object.keys(state.viewers)).toHaveLength(25); expect(state.sessions).toHaveLength(5); expect(state.processed).toHaveLength(50); expect(JSON.stringify(state).length).toBeLessThanOrEqual(60_000);
+    expect(Object.keys(state.viewers)).toHaveLength(25); expect(state.sessions).toHaveLength(5); expect(state.processed).toHaveLength(50); expect(new TextEncoder().encode(`${JSON.stringify(state, null, 2)}\n`).byteLength).toBeLessThanOrEqual(60_000);
+  });
+
+  it('measures the persisted state ceiling in UTF-8 bytes', () => {
+    const unicodeId = `session-${'é'.repeat(24)}`;
+    const state = sanitizeCommunityAnalyticsState({
+      sessions: Array.from({ length: 100 }, (_, index) => ({ id: unicodeId, startedAt: index, endedAt: index + 1, counters: {} })),
+      processed: Array.from({ length: 2_000 }, (_, index) => ({ id: index.toString(16).padStart(32, '0'), at: index })),
+    }, { maximumViewers: 25, retainedSessions: 100, processedEventLimit: 2_000 });
+    expect(new TextEncoder().encode(`${JSON.stringify(state, null, 2)}\n`).byteLength).toBeLessThanOrEqual(60_000);
   });
 
   it('reports aggregate status, exports one private record, and deletes active viewer identity without rewriting completed aggregates', async () => {

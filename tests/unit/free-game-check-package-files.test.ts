@@ -15,9 +15,9 @@ describe('Free Game Check Streamer.bot package', () => {
   it('keeps optional Discord delivery triggerless, broker-authorized, and secret-safe', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/free-game-check/manifest.json', 'utf8')) as { actions: Array<{ source: string; arguments?: Array<{ name: string }> }>; manualTriggerSetup: Record<string, unknown> };
     const source = await readFile('packages/streamerbot/free-game-check/src/DeliverDiscord.cs', 'utf8');
-    expect(manifest.actions).toHaveLength(2);
+    expect(manifest.actions).toHaveLength(3);
     expect(manifest.actions[1]?.arguments).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'freeGameDiscordWebhookUrl' })]));
-    expect(manifest.manualTriggerSetup).toEqual({ refresh: [], discord: [] });
+    expect(manifest.manualTriggerSetup).toEqual({ refresh: [], discord: [], 'settle-twitch-reward': [] });
     expect(source).toContain('thsvAddonRelayToken');
     expect(source).toContain('addon.thsv.free-game-check.discord-result');
     expect(source).toContain('["allowed_mentions"] = new JObject { ["parse"] = new JArray() }');
@@ -28,13 +28,23 @@ describe('Free Game Check Streamer.bot package', () => {
     expect(source).not.toContain('LogWarn(webhook');
   });
 
+  it('keeps Twitch settlement triggerless and broker-authorized', async () => {
+    const source = await readFile('packages/streamerbot/free-game-check/src/SettleReward.cs', 'utf8');
+    expect(source).toContain('thsvAddonRelayToken');
+    expect(source).toContain('CPH.TwitchRedemptionFulfill');
+    expect(source).toContain('CPH.TwitchRedemptionCancel');
+    expect(source).toContain('freeGameRedemptionId');
+  });
+
   it('documents the shared reward and command intake without adding duplicate direct triggers', async () => {
     const descriptor = JSON.parse(await readFile('addons/free-game-check/module-package.json', 'utf8')) as { manifest: { eventSubscriptions: string[]; commandsProvided: Array<{ name: string }> } };
-    const settings = JSON.parse(await readFile('addons/free-game-check/schemas/config.json', 'utf8')) as { properties: Record<string, unknown> };
-    expect(descriptor.manifest.eventSubscriptions).toEqual(expect.arrayContaining(['reward.redemption', 'command.received', 'chat.message']));
+    const settings = JSON.parse(await readFile('addons/free-game-check/schemas/config.json', 'utf8')) as { properties: Record<string, { default?: unknown }> };
+    expect(descriptor.manifest.eventSubscriptions).toEqual(expect.arrayContaining(['reward.redemption', 'command.received', 'chat.message', 'stream.online', 'stream.offline']));
     expect(descriptor.manifest.commandsProvided).toContainEqual(expect.objectContaining({ name: 'freegames' }));
     expect(settings.properties).toHaveProperty('rewardId');
     expect(settings.properties).toHaveProperty('kickRewardId');
+    expect(settings.properties.pointsCost?.default).toBe(100);
     expect(settings.properties).toHaveProperty('discordInviteUrl');
+    expect(settings.properties.discordInviteUrl?.default).toBe('https://discord.gg/PKHzdhppMu');
   });
 });

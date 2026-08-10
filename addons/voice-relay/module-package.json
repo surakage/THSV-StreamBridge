@@ -64,7 +64,7 @@
       "Connect Speaker.bot in Streamer.bot.",
       "Import Village Voice, approve only Speak, and test a harmless phrase.",
       "For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.",
-      "For YouTube and TikTok, create the configured no-response command in Command Sync and enable Viewer Foundation points.",
+      "For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.",
       "Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card."
     ],
     "uninstallationSteps": [
@@ -85,18 +85,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20126,
-      "sha256": "8947debbac41e6657ad14fc689d286a7fcdd0f3308c2e93b3e8fc606575c52a5"
+      "size": 20564,
+      "sha256": "0bb0b45b5bc6513228dd03c42b060182943dee8fc42f9aa1caf92e38176ae258"
     },
     {
       "path": "schemas/config.json",
-      "size": 7930,
-      "sha256": "860374f8b1809be517e963370b12d8f8800c5b3e3b528f4c275dbb5bb7b3c24e"
+      "size": 8269,
+      "sha256": "63f181776c6e6c68823efefe19fcc287aae09eeaaee4bf96ae2f71b1a5732947"
     },
     {
       "path": "ui/settings.json",
-      "size": 4818,
-      "sha256": "43ac9324d621b3509236890aaa2f3c45b586e6dbb84d1ec3df4f70715a279ffb"
+      "size": 4926,
+      "sha256": "7727676cd8a213aeb4fa01986b32a63920e5e30772ba588953cec48503564a5a"
     },
     {
       "path": "README.md",

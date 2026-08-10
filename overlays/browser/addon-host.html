@@ -4,16 +4,123 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>THSV Add-on Overlay</title>
-  <link rel="stylesheet" href="/overlay/addons/host.css">
+  <link rel="stylesheet" href="/overlay/addons/host.css?v=3.5.0-media3">
 </head>
 <body>
   <main id="stage" class="stage" aria-live="polite">
     <section id="card" class="card hidden">
-      <img id="card-image" class="card-image hidden" alt="">
-      <div class="card-copy"><strong id="card-title"></strong><p id="card-text"></p></div>
+      <div id="generic-card" class="generic-card">
+        <img id="card-image" class="card-image hidden" alt="">
+        <div class="card-copy"><strong id="card-title"></strong><p id="card-text"></p></div>
+      </div>
+      <div id="spotlight-card" class="spotlight-card hidden" aria-label="Viewer Spotlight collectible card">
+        <div class="spotlight-card-inner">
+          <article class="spotlight-face spotlight-front">
+            <div class="spotlight-foil" aria-hidden="true"></div><div class="spotlight-rarity">VILLAGE SPOTLIGHT</div>
+            <img id="spotlight-avatar" class="spotlight-avatar hidden" alt=""><div id="spotlight-avatar-fallback" class="spotlight-avatar spotlight-avatar-fallback" aria-hidden="true">V</div>
+            <strong id="spotlight-name" class="spotlight-name"></strong>
+            <div class="spotlight-identity"><span id="spotlight-platform" class="spotlight-platform"></span><span id="spotlight-viewer-type" class="spotlight-viewer-type"></span></div>
+            <p id="spotlight-category" class="spotlight-category hidden"></p><span id="spotlight-follow" class="spotlight-follow"></span>
+          </article>
+          <article class="spotlight-face spotlight-back">
+            <div class="spotlight-foil" aria-hidden="true"></div>
+            <div class="spotlight-back-heading"><small>VILLAGE RECORD</small><strong id="spotlight-back-name"></strong></div>
+            <div id="spotlight-stats" class="spotlight-stats"></div><span id="spotlight-back-platform" class="spotlight-back-platform"></span>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section id="roll-call-shell" class="roll-call-shell hidden" aria-label="Village Roll Call leaderboard">
+      <article class="roll-call-board">
+        <header class="roll-call-header">
+          <span class="roll-call-eyebrow">THE VILLAGE NOTICEBOARD</span>
+          <h1 id="roll-call-title">Village Roll Call</h1>
+          <p id="roll-call-subtitle">Monthly check-in leaderboard</p>
+        </header>
+        <div id="roll-call-podium" class="roll-call-podium"></div>
+        <div id="roll-call-runners" class="roll-call-runners"></div>
+        <footer class="roll-call-footer"><span id="roll-call-month"></span><span>Every check-in helps the village grow</span></footer>
+      </article>
+    </section>
+    <section id="first-five-shell" class="first-five-shell hidden" aria-label="First Five arrival board">
+      <article class="first-five-board">
+        <header class="first-five-header"><div><span class="first-five-eyebrow">THE VILLAGE ARRIVAL BOARD</span><h1 id="first-five-title">First Five</h1><p id="first-five-subtitle">The first villagers have arrived</p></div><span id="first-five-progress" class="first-five-progress">5 / 5</span></header>
+        <div id="first-five-places" class="first-five-places"></div>
+        <footer class="first-five-footer"><span id="first-five-month"></span><div id="first-five-leaders" class="first-five-leaders"></div></footer>
+      </article>
+    </section>
+    <section id="fan-crown-shell" class="fan-crown-shell hidden" aria-label="Fan Crown holder card" data-state="held">
+      <article class="fan-crown-card">
+        <header class="fan-crown-header"><span class="fan-crown-eyebrow">THE VILLAGE FAN CROWN</span><span id="fan-crown-event" class="fan-crown-event">CROWN CAPTURED</span></header>
+        <div class="fan-crown-body">
+          <div class="fan-crown-crest"><span class="fan-crown-icon" aria-hidden="true">♛</span><img id="fan-crown-avatar" class="fan-crown-avatar hidden" alt=""><span id="fan-crown-avatar-fallback" class="fan-crown-avatar-fallback">V</span></div>
+          <div class="fan-crown-copy"><span id="fan-crown-status" class="fan-crown-status">CURRENT CROWN HOLDER</span><strong id="fan-crown-name" class="fan-crown-name"></strong><span id="fan-crown-platform" class="fan-crown-platform"></span><div class="fan-crown-metrics"><div><small>NEXT CHALLENGE</small><strong id="fan-crown-cost"></strong></div><div><small>CAPTURES</small><strong id="fan-crown-captures"></strong></div><div><small>CURRENT REIGN</small><strong id="fan-crown-reign"></strong></div></div></div>
+        </div>
+        <footer class="fan-crown-footer"><span id="fan-crown-season"></span><div id="fan-crown-leaders" class="fan-crown-leaders"></div></footer>
+      </article>
+    </section>
+    <section id="chat-play-game-shell" class="chat-play-game-shell hidden" aria-label="Chat Play game" data-game="trivia">
+      <article class="chat-play-game-card">
+        <header><span class="chat-play-eyebrow">THE VILLAGE ARCADE</span><span id="chat-play-game-state" class="chat-play-game-state">ROUND OPEN</span></header>
+        <h1 id="chat-play-game-name">Trivia</h1>
+        <p id="chat-play-prompt" class="chat-play-prompt"></p>
+        <div id="chat-play-choices" class="chat-play-choices"></div>
+        <div id="chat-play-duelists" class="chat-play-duelists hidden"><strong id="chat-play-challenger"></strong><span>VS</span><strong id="chat-play-opponent"></strong></div>
+        <p id="chat-play-hint" class="chat-play-hint hidden"></p>
+        <footer id="chat-play-instruction"></footer>
+      </article>
+    </section>
+    <section id="chat-play-winner-shell" class="chat-play-winner-shell hidden" aria-label="Chat Play winner">
+      <article class="chat-play-winner-card">
+        <div class="chat-play-burst" aria-hidden="true"></div>
+        <header><span class="chat-play-eyebrow">THE VILLAGE ARCADE</span><span id="chat-play-winner-game" class="chat-play-winner-game"></span></header>
+        <div class="chat-play-winner-body">
+          <div class="chat-play-winner-avatar-wrap"><img id="chat-play-winner-avatar" class="chat-play-winner-avatar hidden" alt=""><span id="chat-play-winner-avatar-fallback" class="chat-play-winner-avatar-fallback">V</span></div>
+          <div class="chat-play-winner-copy"><span class="chat-play-victory">WINNER</span><strong id="chat-play-winner-name"></strong><span id="chat-play-winner-platform"></span><div class="chat-play-points"><small>POINTS EARNED</small><strong id="chat-play-winner-points">+0</strong></div></div>
+        </div>
+      </article>
+    </section>
+    <section id="shoutout-shell" class="shoutout-shell hidden" aria-label="Automated shoutout or welcome" data-trigger="manual" data-platform="twitch" data-presentation="creator">
+      <article class="shoutout-card">
+        <div class="shoutout-signal" aria-hidden="true"></div>
+        <header><span class="shoutout-eyebrow">THE VILLAGE SIGNAL BOOST</span><span id="shoutout-reason" class="shoutout-reason">CREATOR SPOTLIGHT</span></header>
+        <div class="shoutout-body">
+          <div class="shoutout-avatar-frame"><img id="shoutout-avatar" class="shoutout-avatar hidden" alt=""><span id="shoutout-avatar-fallback" class="shoutout-avatar-fallback">V</span><span class="shoutout-live-dot" aria-hidden="true"></span></div>
+          <div class="shoutout-copy"><span id="shoutout-kicker" class="shoutout-kicker">GO SHOW THEM SOME LOVE</span><strong id="shoutout-name" class="shoutout-name"></strong><span id="shoutout-handle" class="shoutout-handle"></span><div class="shoutout-category"><small id="shoutout-category-label">STREAMING</small><strong id="shoutout-category"></strong></div><p id="shoutout-message" class="shoutout-message"></p></div>
+        </div>
+        <footer><span id="shoutout-url" class="shoutout-url"></span><span id="shoutout-viewers" class="shoutout-viewers hidden"></span></footer>
+      </article>
+    </section>
+    <section id="poll-shell" class="poll-shell hidden" aria-label="Village poll" data-layout="compact" data-state="open" data-transition="slide">
+      <article class="poll-board">
+        <header class="poll-header"><span class="poll-eyebrow">THE VILLAGE DECIDES</span><span id="poll-status" class="poll-status">VOTING OPEN</span></header>
+        <h1 id="poll-question">What should the village choose?</h1>
+        <div id="poll-options" class="poll-options"></div>
+        <footer class="poll-footer"><span id="poll-total">0 votes</span><span id="poll-timer">Closes manually</span></footer>
+      </article>
+    </section>
+    <section id="draw-shell" class="draw-shell hidden" aria-label="Village Draw prize ticket" data-layout="compact" data-phase="open">
+      <article class="draw-ticket">
+        <div id="draw-confetti" class="draw-confetti" aria-hidden="true"></div>
+        <header class="draw-header"><span class="draw-eyebrow">THE VILLAGE DRAW</span><span id="draw-status" class="draw-status">ENTRIES OPEN</span></header>
+        <div class="draw-body">
+          <div class="draw-art">
+            <img id="draw-image" class="draw-image hidden" alt="">
+            <div id="draw-seal" class="draw-seal">?</div>
+          </div>
+          <div class="draw-copy">
+            <span id="draw-giveaway" class="draw-giveaway"></span>
+            <strong id="draw-name" class="draw-name"></strong>
+            <p id="draw-prize" class="draw-prize"></p>
+            <p id="draw-message" class="draw-message"></p>
+          </div>
+        </div>
+        <footer class="draw-footer"><span id="draw-platform"></span><span id="draw-count"></span></footer>
+      </article>
     </section>
     <section id="media-shell" class="media-shell hidden">
       <video id="media" playsinline></video>
+      <canvas id="media-canvas" class="media-canvas hidden" aria-hidden="true"></canvas>
       <iframe id="embed-media" class="embed-media hidden" title="Add-on media player" allow="autoplay; encrypted-media; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
       <strong id="media-title" class="media-title hidden"></strong>
     </section>
@@ -34,6 +141,16 @@
         <div class="counter-copy"><span id="counter-name" class="counter-name">STREAM COUNTER</span><strong id="counter-value" class="counter-value">0</strong></div>
       </div>
     </section>
+    <section id="hydration-shell" class="hydration-shell hidden" data-container="bottle" data-background="glass" aria-label="Village Hydration Station">
+      <article class="hydration-card">
+        <header class="hydration-header"><div class="hydration-brand"><span class="hydration-drop" aria-hidden="true">&#x1F4A7;</span><div><span class="hydration-eyebrow">Village Hydration</span><strong id="hydration-title">Water Goal</strong></div></div><span id="hydration-status" class="hydration-status">READY</span></header>
+        <div class="hydration-body">
+          <div id="hydration-vessel" class="hydration-vessel" aria-hidden="true"><div id="hydration-liquid" class="hydration-liquid"><span class="hydration-wave"></span><span class="hydration-bubbles"></span></div><span class="hydration-mark hydration-mark-75">75%</span><span class="hydration-mark hydration-mark-50">50%</span><span class="hydration-mark hydration-mark-25">25%</span></div>
+          <div class="hydration-copy"><span class="hydration-total-label">Today's Water</span><div class="hydration-measure"><strong id="hydration-total">32</strong><span>of <b id="hydration-goal">64</b> oz</span></div><div class="hydration-progress-row"><div class="hydration-progress-track" aria-hidden="true"><span id="hydration-progress" class="hydration-progress"></span></div><strong id="hydration-percent" class="hydration-percent">50%</strong></div><span id="hydration-next" class="hydration-next">Next reminder in 45 min</span></div>
+        </div>
+        <div id="hydration-notice" class="hydration-notice hidden"><span aria-hidden="true">&#x1F4A7;</span><strong id="hydration-notice-text"></strong></div>
+      </article>
+    </section>
     <section id="wheel-shell" class="wheel-shell hidden">
       <div class="wheel-panel">
         <strong id="wheel-title" class="wheel-title">SPIN THE WHEEL</strong>
@@ -53,6 +170,6 @@
     </section>
     <strong id="status" class="status" data-state="reconnecting">OFFLINE</strong>
   </main>
-  <script src="/overlay/addons/host.js" type="module"></script>
+  <script src="/overlay/addons/host.js?v=3.5.0-media3" type="module"></script>
 </body>
 </html>

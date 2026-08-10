@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Broker-authorized Speaker.bot delivery and creator queue controls.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "9d7b9f62-8f33-41a0-b7d8-a2d247a02fd3",

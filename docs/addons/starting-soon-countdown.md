@@ -4,7 +4,7 @@
 **Version:** `3.5.0`
 **Publisher:** THSV StreamBridge
 
-Runs one creator-controlled Starting Soon countdown with a custom message, local tone, and optional approved completion action.
+Runs one exact-scene-aware Starting Soon countdown with a custom message, local tone, and optional approved completion action.
 
 ## Install
 
@@ -15,16 +15,16 @@ Runs one creator-controlled Starting Soon countdown with a custom message, local
 
 ### Add-on-specific steps
 
-1. Install and enable the add-on, then configure the duration, completion message, optional tone, and overlay style.
+1. Install and enable the add-on, then configure the duration, exact program-scene name (including any emoji or folder symbol), completion message, optional tone, and overlay style.
 2. Import the bundled Streamer.bot package.
-3. Attach Start to the scene-active trigger for your Starting Soon scene.
-4. Attach Stop to the scene-inactive trigger for that scene, or use Reset if the paused clock should remain visible.
+3. Do not attach OBS scene triggers to Start or Stop; StreamBridge follows normalized program-scene changes directly.
+4. Use the imported controls only as optional hotkeys or Stream Deck buttons for manual overrides.
 5. Optional: approve exactly one triggerless Streamer.bot action and enable the completion action to switch scenes at zero.
 6. Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Stream Launch Countdown`
 
@@ -38,9 +38,11 @@ Imported group: `THSV Addon - Stream Launch Countdown`
 
 These actions publish only bounded local countdown-control envelopes. They do not send chat, call external APIs, or run other actions.
 
+**Automatic start is idempotent:** duplicate program-scene events are ignored, and OBS Studio Mode preview changes do not reset the running timer. Use Reset then Start for a deliberate restart, or Set & Start for an explicit one-off override.
+
 Creator-selected triggers:
 
-- **0:** Attach Start to the scene-active trigger for your Starting Soon scene. Attach Stop to its scene-inactive trigger, or Reset if the paused clock should remain visible.
+- **0 required:** The add-on subscribes to normalized program-scene changes. The imported actions are optional manual controls.
 
 ## Browser source
 

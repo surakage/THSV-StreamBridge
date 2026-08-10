@@ -11,7 +11,7 @@ async function writePortableRelease(root: string, version: string, marker: strin
   for (const directory of ['installer', 'launcher', 'runtime', 'app/config', 'app/dist/apps']) await mkdir(join(root, directory), { recursive: true });
   await copyFile('installer/install.mjs', join(root, 'installer', 'install.mjs'));
   await copyFile('installer/Install THSV StreamBridge.cmd', join(root, 'installer', 'Install THSV StreamBridge.cmd'));
-  for (const name of ['start.mjs', 'stop.mjs', 'uninstall.mjs', 'Start THSV StreamBridge.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Uninstall THSV StreamBridge.cmd']) await copyFile(join('launcher', name), join(root, 'launcher', name));
+  for (const name of ['start.mjs', 'stop.mjs', 'open-wizard.mjs', 'uninstall.mjs', 'Start THSV StreamBridge.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Uninstall THSV StreamBridge.cmd']) await copyFile(join('launcher', name), join(root, 'launcher', name));
   await copyFile(process.execPath, join(root, 'runtime', 'node.exe'));
   await writeFile(join(root, 'runtime', 'NODE-LICENSE.txt'), 'test runtime license\n');
   await writeFile(join(root, 'runtime', 'node-version.txt'), process.version);
@@ -24,7 +24,7 @@ async function writePortableRelease(root: string, version: string, marker: strin
   }));
   const paths = [
     'installer/install.mjs', 'installer/Install THSV StreamBridge.cmd',
-    'launcher/start.mjs', 'launcher/stop.mjs', 'launcher/uninstall.mjs',
+    'launcher/start.mjs', 'launcher/stop.mjs', 'launcher/open-wizard.mjs', 'launcher/uninstall.mjs',
     'launcher/Start THSV StreamBridge.cmd', 'launcher/Stop THSV StreamBridge.cmd', 'launcher/Open THSV Setup Wizard.cmd', 'launcher/Uninstall THSV StreamBridge.cmd',
     'runtime/node.exe', 'runtime/NODE-LICENSE.txt', 'runtime/node-version.txt',
     'app/dist/apps/bridge-service.js', 'app/config/bridge.example.json',
@@ -50,6 +50,13 @@ function processOutput(result: ReturnType<typeof spawnSync>): string {
 }
 
 describe('portable Windows release installer', () => {
+  it('uses only the installation-private command-directory token when launching', async () => {
+    const source = await readFile('launcher/start.mjs', 'utf8');
+    expect(source).toContain("join(dataRoot, 'secrets', 'command-directory-publish-token.txt')");
+    expect(source).toContain("childEnvironment['THSV_COMMAND_DIRECTORY_PUBLISH_TOKEN_FILE'] = commandDirectoryTokenPath");
+    expect(source).toContain("delete childEnvironment['THSV_COMMAND_DIRECTORY_PUBLISH_TOKEN_FILE']");
+  });
+
   it('installs side by side, preserves creator data, rejects downgrades, and generates unique per-install tokens', async () => {
     if (process.platform !== 'win32') return;
     const temporary = await mkdtemp(join(tmpdir(), 'thsv-portable-release-'));
@@ -64,6 +71,12 @@ describe('portable Windows release installer', () => {
     const configuration = JSON.parse(await readFile(join(firstInstall, 'data', 'configuration', 'bridge.local.json'), 'utf8')) as { security: { controlTokenFile: string }; logging: { directory: string } };
     expect(configuration.security.controlTokenFile).toBe(join(firstInstall, 'data', 'secrets', 'control-token'));
     expect(configuration.logging.directory).toBe(join(firstInstall, 'data', 'logs'));
+    const installedWizardLauncher = await readFile(join(firstInstall, 'Open THSV Setup Wizard.cmd'), 'utf8');
+    expect(installedWizardLauncher.indexOf('launcher\\open-wizard.mjs')).toBeLessThan(installedWizardLauncher.indexOf('launcher\\start.mjs" --open-wizard'));
+    const installedSecureOpener = await readFile(join(firstInstall, 'launcher', 'open-wizard.mjs'), 'utf8');
+    expect(installedSecureOpener).toContain('/wizard/api/unlock-tickets');
+    expect(installedSecureOpener).toContain('/wizard/#unlock=${ticketResult.ticket}');
+    expect(processOutput(firstResult)).toContain('no token lookup is required');
     await writeFile(join(firstInstall, 'data', 'state', 'creator-state.json'), '{"preserved":true}\n');
     await writeFile(join(firstInstall, 'addons', 'state', 'creator-addon.json'), '{"preserved":true}\n');
 

@@ -34,7 +34,8 @@
       "addon.thsv.random-clip-player.clips-received",
       "addon.thsv.clip-library-cache.snapshot",
       "addon.thsv.random-clip-player.clip-download-received",
-      "addon.thsv.random-clip-player.control"
+      "addon.thsv.random-clip-player.control",
+      "stream.scene-changed"
     ],
     "commandsProvided": [],
     "actionsProvided": [],
@@ -46,8 +47,8 @@
     "installationSteps": [
       "Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.5.0.sb into Streamer.bot.",
       "In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: \"Get Clips\" and \"Get Clip Download\". Neither fetch action has a chat/event trigger by design.",
-      "Bind or manually run the imported Enable and Disable actions. Playback always starts off after StreamBridge launches and cannot begin until Enable is triggered.",
-      "Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback."
+      "Enter the exact OBS program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.",
+      "Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes."
     ],
     "uninstallationSteps": [
       "Remove the add-on package; its separately owned rotation state remains preserved."
@@ -87,13 +88,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20981,
-      "sha256": "5845e52e56960f754f1b294c5b1ef0ba0478201ddacac3a100ad4ff2657b43e8"
+      "size": 23838,
+      "sha256": "39ab0d0261ec565b5ee4be0404a7e864cce60fb9b7f5f45ffd375acce01b8955"
     },
     {
       "path": "schemas/config.json",
-      "size": 2231,
-      "sha256": "4649a13198ab9583ec61d69b61a5219e94ef0ac2946d84d138e8b61887921e2c"
+      "size": 2981,
+      "sha256": "2a4eeab9a1d7ebbc5b421c77db8ad44a2c4e2925e1ac7e5a8b84ace0502d1932"
     },
     {
       "path": "migrations/001-interval-to-pause.mjs",
@@ -102,8 +103,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 2094,
-      "sha256": "39d6c0cc4f60111995fd3b712b25fd9e3518cd3c90af56f57e12f9e43ac746fa"
+      "size": 2472,
+      "sha256": "1b5493a91a1804830d0b0dd3cd2d7c4c754732e8aca154c441514fa34445857f"
     }
   ],
   "settingsUi": "ui/settings.json"

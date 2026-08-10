@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Relays OBS Studio, Streamlabs Desktop, and Meld Studio scene changes to one guarded StreamBridge add-on that dispatches creator-approved actions by stable ID.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.33",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "18bdc91c-64eb-4787-8be9-6a921b272943",

@@ -3,8 +3,8 @@
   "name": "THSV StreamBridge - Bridge Launcher",
   "version": "3.5.0",
   "author": "surakage",
-  "description": "Launches and stops THSV StreamBridge through its validated PowerShell lifecycle scripts without exposing its control token to Streamer.bot.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "description": "Launches, stops, and monitors THSV StreamBridge with state-aware Streamer.bot toast notifications without exposing its control token.",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "name": "THSV StreamBridge - Launch Bridge",
@@ -45,6 +45,50 @@
       ],
       "source": "src/ShutdownBridge.cs",
       "importFile": "THSV-StreamBridge-Bridge-Launcher-3.5.0.sb"
+    },
+    {
+      "name": "THSV StreamBridge - Check Connections",
+      "group": "THSV StreamBridge",
+      "id": "80937954-ed33-4a0e-bc10-899e54850ab4",
+      "sourceSubActionId": "294c9831-c4d3-4e3f-8978-86baddf116b7",
+      "arguments": [
+        {
+          "name": "thsvBridgeHealthForceToast",
+          "value": "true",
+          "autoType": true,
+          "id": "cb9838cd-b094-4b9e-bdc4-a669606dcd0c"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll"
+      ],
+      "source": "src/CheckBridgeHealth.cs",
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-3.5.0.sb"
+    },
+    {
+      "name": "THSV StreamBridge - Monitor Connections",
+      "group": "THSV StreamBridge",
+      "id": "3c938e13-559f-42eb-bb18-ad1128b84414",
+      "sourceSubActionId": "a1fb2f68-6fb4-42c8-91df-dd85898e628d",
+      "arguments": [
+        {
+          "name": "thsvBridgeHealthForceToast",
+          "value": "false",
+          "autoType": true,
+          "id": "69fa8b17-4de1-420a-adf4-ec809438072b"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll"
+      ],
+      "excludeFromHistory": true,
+      "excludeFromPending": true,
+      "source": "src/CheckBridgeHealth.cs",
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-3.5.0.sb"
     }
   ],
   "runtime": {
@@ -52,14 +96,19 @@
     "concurrent": true
   },
   "editableArguments": [
-    "thsvBridgeInstallPath"
+    "thsvBridgeInstallPath",
+    "thsvBridgeHealthForceToast"
   ],
   "manualTriggerSetup": {
     "launch": [
       "Core > Streamer.bot > Streamer.bot Started"
     ],
-    "shutdown": []
+    "shutdown": [],
+    "check-connections": [],
+    "monitor-connections": [
+      "Core > Timed Actions > THSV StreamBridge Health (every 1 minute); the monitor only toasts when health changes"
+    ]
   },
-  "triggerSafety": "Launch may use Streamer.bot Started. Keep Shutdown manual; attaching it to one platform's offline event would incorrectly stop a multi-platform bridge while another platform remains live.",
-  "verificationStatus": "implementation complete; live Streamer.bot Alpha compilation pending"
+  "triggerSafety": "Launch may use Streamer.bot Started. Monitor Connections may use one one-minute Timed Action and suppresses unchanged states. Keep Shutdown and Check Connections manual; attaching Shutdown to one platform's offline event would incorrectly stop a multi-platform bridge while another platform remains live.",
+  "verificationStatus": "live Streamer.bot 1.0.7 compilation and action execution verified 2026-08-09"
 }

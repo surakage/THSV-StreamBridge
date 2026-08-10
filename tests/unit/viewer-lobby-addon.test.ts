@@ -13,7 +13,7 @@ describe('Viewer Lobby', () => {
     expect((state.entries as unknown[])).toHaveLength(1);
     await viewerLobby.onEvent({ eventId: 'leave-1', eventType: 'chat.message', platform: 'twitch', receivedAt: '2026-08-01T00:00:02.000Z', metadata: { simulated: false }, user: { id: '42', name: 'alex', displayName: 'Alex', actorType: 'human', roles: [] }, payload: { message: '!leave' } }, context);
     expect((state.entries as unknown[])).toHaveLength(0);
-    expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.viewer-lobby.queue.update', expect.objectContaining({ count: 0, entries: [] }));
+    expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.viewer-lobby.queue.update', expect.objectContaining({ count: 0, entries: [] }), { lane: 'persistent' });
     await viewerLobby.stop();
   });
 

@@ -47,7 +47,7 @@
     ],
     "installationSteps": [
       "Add the hosted Prize Wheel browser source to OBS, Meld, or Streamlabs.",
-      "Create a no-response spinwheel command in Command Sync and restrict it to moderators or the broadcaster.",
+      "Choose the spin command in the wizard. It registers automatically for moderators and the broadcaster after restart.",
       "Enter two through ten unique wheel choices, choose chat destinations, save, enable, and send a preview."
     ],
     "uninstallationSteps": [
@@ -66,13 +66,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 8454,
-      "sha256": "76a925618c2aaf741a27bbf0c181e29bbbd7a3dfab44e96661a0580a33a2dbca"
+      "size": 8489,
+      "sha256": "f5bd1ca82391142b1a5afc48a9d0ae1600ffade716269ec72d52d2aa3f040784"
     },
     {
       "path": "schemas/config.json",
-      "size": 3678,
-      "sha256": "da4af9e2b0e65e33813bb5fdb45ca8a42b15acca891906949f9da5b88c640df2"
+      "size": 3694,
+      "sha256": "87e2174d12b3c552a91eff919412ff4f75e075e3b90b0d3e8920a92f924c4d66"
     },
     {
       "path": "ui/settings.json",
@@ -81,8 +81,8 @@
     },
     {
       "path": "README.md",
-      "size": 1517,
-      "sha256": "d7226496b9e71d6ba421dc7296229a94ff97d6f45598e7ec6cb81019c18e1679"
+      "size": 1484,
+      "sha256": "4b7ab0a780ab76e9da8b8e72a51a6cb50ef94f1f4649ff17403df492f8ea8d2f"
     }
   ]
 }

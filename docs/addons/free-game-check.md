@@ -4,7 +4,7 @@
 **Version:** `3.5.0`
 **Publisher:** THSV StreamBridge
 
-Discovers bounded public game giveaways and routes reward or command requests to a Discord list.
+Checks bounded public game giveaways only after a viewer redemption, routes available games to Discord, and refunds supported empty checks.
 
 ## Install
 
@@ -15,22 +15,23 @@ Discovers bounded public game giveaways and routes reward or command requests to
 
 ### Add-on-specific steps
 
-1. Import the Free Game Check Streamer.bot package and leave both actions triggerless.
-2. Approve Refresh and, only when Discord is enabled, Discord Deliver. Keep the private webhook only in its Set Argument.
-3. Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.
-4. Create the configured no-response command for YouTube and TikTok through Command Sync.
-5. Add the Discord invite and guide wording, then enable the add-on.
+1. Install and enable Viewer Foundation before using YouTube or TikTok points.
+2. Import the Free Game Check Streamer.bot package and leave all three actions triggerless.
+3. Approve Refresh, approve Settle Twitch Reward for Twitch refunds, and approve Discord Deliver only when Discord posting is enabled.
+4. Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.
+5. Choose the YouTube and TikTok command and points cost. It registers automatically after restart.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Free Game Check`
 
 - `THSV Addon - Free Game Check - Refresh` in `THSV Addon - Free Game Check`
 - `THSV Addon - Free Game Check - Discord Deliver` in `THSV Addon - Free Game Check`
+- `THSV Addon - Free Game Check - Settle Twitch Reward` in `THSV Addon - Free Game Check`
 
-Both actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh can call only the fixed GamerPower HTTPS endpoint. Discord Deliver requires a one-use broker token and keeps its webhook in a private Set Argument.
+All three actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh runs only for a matching viewer request and can call only the fixed GamerPower HTTPS endpoint. Discord Deliver and Settle Twitch Reward require one-use broker tokens; the webhook stays in its private Set Argument.
 
 ## Browser source
 
@@ -45,18 +46,18 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ### Health checks
 
-- **thsv.free-game-check.runtime:** Confirms bounded public giveaway discovery and source-routed viewer guidance are available.
+- **thsv.free-game-check.runtime:** Confirms redemption-only giveaway lookup, source-chat guidance, and supported refund paths are available.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `schedule.bounded`, `streamerbot.run-approved-action`, `chat.send`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `schedule.bounded`, `viewer.foundation.read`, `viewer.foundation.mutate`, `streamerbot.run-approved-action`, `chat.send`.
 
 Private storage: `data/addons/thsv.free-game-check/`, `data/addons/.state/thsv.free-game-check/`.
 
-Dependencies: none.
+Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-1. Uninstalling preserves only bounded giveaway IDs, cooldowns, and refresh/delivery status.
+1. Uninstalling preserves only bounded request, giveaway, cooldown, and delivery status.
 
 If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.

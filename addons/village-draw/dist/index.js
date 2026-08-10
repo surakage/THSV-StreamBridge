@@ -47,6 +47,7 @@ function safeHttpsUrl(value) {
   const candidate = clean(value, 2048); if (!candidate) return '';
   try { const url = new URL(candidate); return url.protocol === 'https:' ? url.href : ''; } catch { return ''; }
 }
+function safeAvatarUrl(value) { const url = safeHttpsUrl(value); return url.length <= 256 ? url : ''; }
 function uniquePlatforms(value, fallback = PLATFORMS) {
   return Array.isArray(value) ? [...new Set(value.filter((item) => PLATFORMS.includes(item)))].slice(0, 4) : [...fallback];
 }
@@ -77,8 +78,13 @@ function settingsFor(context) {
     confirmationMessage: clean(raw.confirmationMessage, 500) || '{viewer}, you now have {tickets} ticket(s) in {name}. Remaining: {points} {currency}.',
     backgroundColor: color(raw.backgroundColor, '#10201b'), accentColor: color(raw.accentColor, '#7ff5cc'),
     textColor: color(raw.textColor, '#ffffff'), winnerColor: color(raw.winnerColor, '#ffd166'),
+    backgroundOpacity: typeof raw.backgroundOpacity === 'number' && Number.isFinite(raw.backgroundOpacity) ? Math.min(0.95, Math.max(0.2, raw.backgroundOpacity)) : 0.72,
     fontFamily: ['display', 'broadcast', 'serif', 'mono'].includes(raw.fontFamily) ? raw.fontFamily : 'broadcast',
     cardSeconds: integer(raw.cardSeconds, 5, 60, 12), showOpenCard: raw.showOpenCard !== false, showWinnerCard: raw.showWinnerCard !== false,
+    ticketLayout: raw.ticketLayout === 'wide' ? 'wide' : 'compact', drawAnimationSeconds: integer(raw.drawAnimationSeconds, 2, 10, 4),
+    showConfetti: raw.showConfetti !== false, showPrizeImage: raw.showPrizeImage !== false, showWinnerAvatar: raw.showWinnerAvatar !== false,
+    showPlatformBadge: raw.showPlatformBadge !== false, showEntryCount: raw.showEntryCount !== false, playWinnerTone: raw.playWinnerTone === true,
+    winnerOverlayMessage: clean(raw.winnerOverlayMessage, 160) || 'The village has chosen!',
   };
 }
 function safeEntry(value) {
@@ -87,7 +93,7 @@ function safeEntry(value) {
   const tickets = integer(value.tickets, 1, 100, 0); const pointsSpent = integer(value.pointsSpent, 0, 1_000_000, 0);
   const refundedPoints = integer(value.refundedPoints, 0, pointsSpent, 0);
   if (!/^[a-z][a-z0-9-]{0,63}$/u.test(viewerId) || !displayName || !PLATFORMS.includes(platform) || tickets < 1) return undefined;
-  return { viewerId, displayName, platform, tickets, pointsSpent, refundedPoints, firstAt: clean(value.firstAt, 40), lastAt: clean(value.lastAt, 40) };
+  return { viewerId, displayName, platform, avatarUrl: safeAvatarUrl(value.avatarUrl), tickets, pointsSpent, refundedPoints, firstAt: clean(value.firstAt, 40), lastAt: clean(value.lastAt, 40) };
 }
 function safePending(value) {
   if (!value || typeof value !== 'object') return undefined;
@@ -95,7 +101,7 @@ function safePending(value) {
   const displayName = clean(value.displayName, 80); const platform = clean(value.platform, 20);
   const tickets = integer(value.tickets, 1, 100, 0); const amount = integer(value.amount, 1, 1_000_000, 0);
   return /^[a-z][a-z0-9-]{0,63}$/u.test(viewerId) && idempotencyKey && displayName && PLATFORMS.includes(platform) && tickets > 0 && amount > 0
-    ? { viewerId, idempotencyKey, displayName, platform, tickets, amount, createdAt: clean(value.createdAt, 40) } : undefined;
+    ? { viewerId, idempotencyKey, displayName, platform, avatarUrl: safeAvatarUrl(value.avatarUrl), tickets, amount, createdAt: clean(value.createdAt, 40) } : undefined;
 }
 function safeReceipt(value) {
   if (!value || typeof value !== 'object') return undefined;
@@ -172,10 +178,10 @@ async function announce(context, settings, template, values) {
   return deliveries;
 }
 function cardStyle(settings, winner = false) {
-  return { backgroundMode: 'glass', backgroundColor: settings.backgroundColor, backgroundOpacity: 0.94, accentColor: winner ? settings.winnerColor : settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily, fontSize: 34 };
+  return { backgroundMode: 'glass', backgroundColor: settings.backgroundColor, backgroundOpacity: settings.backgroundOpacity, accentColor: winner ? settings.winnerColor : settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily, layout: settings.ticketLayout, showConfetti: settings.showConfetti, showPrizeImage: settings.showPrizeImage, showWinnerAvatar: settings.showWinnerAvatar, showPlatformBadge: settings.showPlatformBadge, showEntryCount: settings.showEntryCount, playWinnerTone: settings.playWinnerTone };
 }
 async function publishCard(context, topic, payload) {
-  try { await context.overlay.publish(topic, payload); return true; }
+  try { await context.overlay.publish(topic, payload, { lane: topic.endsWith('.card.show') ? 'foreground' : 'independent' }); return true; }
   catch (error) { await recordDeliveryWarning(context, 'overlay', error instanceof Error ? error.message : String(error)); return false; }
 }
 async function publishOpenCard(context, settings, active) {
@@ -183,11 +189,12 @@ async function publishOpenCard(context, settings, active) {
   const entryHint = active.entryMode === 'free-single' ? `Use !${settings.enterCommand} for one free entry.`
     : active.entryMode === 'points-single' ? `Use !${settings.enterCommand} for one ${active.ticketCost}-point ticket.`
       : `Use !${settings.ticketsCommand} <1-${active.maxTicketsPerViewer}>. Each ticket costs ${active.ticketCost} points.`;
-  await publishCard(context, `${MODULE_ID}.card.show`, { title: active.name, text: `${active.prize} • ${active.description} • ${entryHint}`, imageUrl: active.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings) });
+  await publishCard(context, `${MODULE_ID}.card.show`, { cardKind: 'village-draw', phase: 'open', giveawayName: active.name, prizeName: active.prize, description: active.description, entryHint, imageUrl: active.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings) });
 }
 async function publishWinnerCard(context, settings, active) {
   if (!settings.showWinnerCard || !active.winner) return;
-  await publishCard(context, `${MODULE_ID}.card.show`, { title: `WINNER • ${active.winner.displayName}`, text: `${active.prize} • ${active.name}`, imageUrl: active.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings, true) });
+  await publishCard(context, `${MODULE_ID}.card.show`, { cardKind: 'village-draw', phase: 'winner', giveawayName: active.name, prizeName: active.prize, imageUrl: active.imageUrl, durationMs: settings.cardSeconds * 1000, drawAnimationMs: settings.drawAnimationSeconds * 1000, winnerMessage: settings.winnerOverlayMessage,
+    winner: { displayName: active.winner.displayName, platform: active.winner.platform, avatarUrl: active.winner.avatarUrl || '' }, entrants: active.entries.map((entry) => entry.displayName).slice(0, 20), entrantCount: active.entries.length, ticketCount: totalTickets(active), style: cardStyle(settings, true) });
 }
 function commandFrom(event, settings) {
   if (event.eventType === 'command.received') {
@@ -271,8 +278,8 @@ async function recoverPendingPurchases(context, state, strict = true) {
       continue;
     }
     let entry = active.entries.find((candidate) => candidate.viewerId === pending.viewerId);
-    if (!entry) { entry = { viewerId: pending.viewerId, displayName: pending.displayName, platform: pending.platform, tickets: 0, pointsSpent: 0, refundedPoints: 0, firstAt: pending.createdAt, lastAt: pending.createdAt }; active.entries.push(entry); }
-    entry.displayName = pending.displayName; entry.platform = pending.platform; entry.tickets += pending.tickets; entry.pointsSpent += pending.amount; entry.lastAt = pending.createdAt;
+    if (!entry) { entry = { viewerId: pending.viewerId, displayName: pending.displayName, platform: pending.platform, avatarUrl: pending.avatarUrl || '', tickets: 0, pointsSpent: 0, refundedPoints: 0, firstAt: pending.createdAt, lastAt: pending.createdAt }; active.entries.push(entry); }
+    entry.displayName = pending.displayName; entry.platform = pending.platform; if (pending.avatarUrl) entry.avatarUrl = pending.avatarUrl; entry.tickets += pending.tickets; entry.pointsSpent += pending.amount; entry.lastAt = pending.createdAt;
     active.pendingPurchases = active.pendingPurchases.filter((candidate) => candidate.idempotencyKey !== pending.idempotencyKey);
     if (result.duplicate && entry.tickets > active.maxTicketsPerViewer) entry.tickets = active.maxTicketsPerViewer;
     await context.state.write(state);
@@ -335,12 +342,12 @@ async function buyTickets(event, context, state, requested) {
   if (totalTickets(active) + ticketCount > active.maximumTotalTickets) { await reply(context, event, 'The giveaway ticket limit has been reached.'); return { accepted: false, reason: 'ticket-limit' }; }
   const displayName = clean(event.user?.displayName || event.user?.name, 80) || 'Viewer'; const timestamp = new Date().toISOString();
   if (active.entryMode === 'free-single') {
-    active.entries.push({ viewerId: projection.viewerId, displayName, platform: event.platform, tickets: 1, pointsSpent: 0, refundedPoints: 0, firstAt: timestamp, lastAt: timestamp });
+    active.entries.push({ viewerId: projection.viewerId, displayName, platform: event.platform, avatarUrl: safeAvatarUrl(event.user?.avatarUrl), tickets: 1, pointsSpent: 0, refundedPoints: 0, firstAt: timestamp, lastAt: timestamp });
     await context.state.write(state); await reply(context, event, format(settings.confirmationMessage, { viewer: displayName, tickets: 1, name: active.name, points: projection.points, currency: projection.currencyName || 'points' }, sourceLimit(event.platform)));
     return { accepted: true, tickets: 1, points: projection.points };
   }
   const amount = ticketCount * active.ticketCost; const idempotencyKey = `purchase-${active.id}-${clean(event.eventId, 80)}-${projection.viewerId}`.slice(0, 128);
-  const pending = { viewerId: projection.viewerId, idempotencyKey, displayName, platform: event.platform, tickets: ticketCount, amount, createdAt: timestamp };
+  const pending = { viewerId: projection.viewerId, idempotencyKey, displayName, platform: event.platform, avatarUrl: safeAvatarUrl(event.user?.avatarUrl), tickets: ticketCount, amount, createdAt: timestamp };
   active.pendingPurchases.push(pending); await context.state.write(state);
   try { state = await recoverPendingPurchases(context, state); }
   catch (error) {
@@ -415,7 +422,8 @@ async function processEvent(event, context) {
   const { command, args } = parsed;
   if (![settings.giveawayCommand, settings.enterCommand, settings.ticketsCommand, settings.myTicketsCommand].includes(command) || coolingDown(event, command)) return;
   if (event.metadata?.simulated === true) {
-    await publishCard(context, `${MODULE_ID}.card.show`, { title: 'VILLAGE DRAW • PREVIEW', text: `${settings.prize} • ${settings.description}`, imageUrl: settings.imageUrl, durationMs: settings.cardSeconds * 1000, style: cardStyle(settings) });
+    await publishCard(context, `${MODULE_ID}.card.show`, { cardKind: 'village-draw', phase: 'winner', giveawayName: settings.name, prizeName: settings.prize, imageUrl: settings.imageUrl, durationMs: settings.cardSeconds * 1000, drawAnimationMs: settings.drawAnimationSeconds * 1000, winnerMessage: settings.winnerOverlayMessage,
+      winner: { displayName: 'Example Villager', platform: event.platform, avatarUrl: safeAvatarUrl(event.user?.avatarUrl) }, entrants: ['CozySloth', 'Early Bird', 'Night Owl', 'Example Villager'], entrantCount: 42, ticketCount: 84, style: cardStyle(settings, true), preview: true });
     return;
   }
   if (command === settings.giveawayCommand) {

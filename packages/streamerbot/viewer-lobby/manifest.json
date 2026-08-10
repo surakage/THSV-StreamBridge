@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Creator-only controls for the local multi-platform Viewer Lobby queue.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "3e45e39d-41be-4fbb-9e2c-5075b507e5ab",

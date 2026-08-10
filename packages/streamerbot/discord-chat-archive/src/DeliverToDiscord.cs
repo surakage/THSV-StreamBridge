@@ -21,6 +21,7 @@ public class CPHInline
     {
         string relayToken = Read("thsvAddonRelayToken", 256), requestId = Read("discordArchiveRequestId", 100);
         string content = NormalizeMultiline(Read("discordArchiveContent", 1900)), username = NormalizeSingleLine(Read("discordArchiveUsername", 80));
+        string embedsJson = Read("discordArchiveEmbedsJson", 8000);
         string avatarUrl = Read("discordArchiveAvatarUrl", 2048), webhookUrl = Read("discordArchiveWebhookUrl", 2048);
         string mode = Read("discordArchiveDestinationMode", 20).ToLowerInvariant(), threadId = ReadSnowflake("discordArchiveThreadId");
         string threadName = NormalizeSingleLine(Read("discordArchiveThreadName", 100)), tagIds = Read("discordArchiveForumTagIds", 200);
@@ -30,12 +31,12 @@ public class CPHInline
         bool succeeded = false; string errorCode = "", messageId = "", returnedThreadId = "";
         if (!manualTest && String.IsNullOrWhiteSpace(relayToken)) errorCode = "missing-relay-token";
         else if (!manualTest && String.IsNullOrWhiteSpace(requestId)) errorCode = "missing-request-id";
-        else if (String.IsNullOrWhiteSpace(content)) errorCode = "empty-content";
+        else if (String.IsNullOrWhiteSpace(content) && String.IsNullOrWhiteSpace(embedsJson)) errorCode = "empty-content";
         else if (simulated) errorCode = "simulated-delivery-blocked";
         else if (!IsAllowedWebhook(webhookUrl)) errorCode = "invalid-webhook";
         else if (mode != "channel" && mode != "forum") errorCode = "invalid-destination-mode";
         else if (mode == "forum" && threadId.Length == 0 && threadName.Length == 0) errorCode = "missing-forum-thread";
-        else succeeded = SendDiscord(webhookUrl, content, username, IsHttpsUrl(avatarUrl) ? avatarUrl : "", mode, threadId, threadName, tagIds, out messageId, out returnedThreadId, out errorCode);
+        else succeeded = SendDiscord(webhookUrl, content, embedsJson, username, IsHttpsUrl(avatarUrl) ? avatarUrl : "", mode, threadId, threadName, tagIds, out messageId, out returnedThreadId, out errorCode);
 
         CPH.SetArgument("discordArchiveDeliveryValid", succeeded); CPH.SetArgument("discordArchiveDeliveryRequestId", requestId);
         CPH.SetArgument("discordArchiveDeliveryMessageId", Bounded(messageId, 100)); CPH.SetArgument("discordArchiveDeliveryThreadId", Bounded(returnedThreadId, 100)); CPH.SetArgument("discordArchiveDeliveryErrorCode", errorCode);
@@ -44,10 +45,13 @@ public class CPHInline
         return succeeded;
     }
 
-    private bool SendDiscord(string webhook, string content, string username, string avatar, string mode, string threadId, string threadName, string tags, out string messageId, out string returnedThreadId, out string error)
+    private bool SendDiscord(string webhook, string content, string embedsJson, string username, string avatar, string mode, string threadId, string threadName, string tags, out string messageId, out string returnedThreadId, out string error)
     {
         messageId = ""; returnedThreadId = ""; error = "discord-delivery-failed";
-        var payload = new JObject { ["content"] = content, ["username"] = username, ["allowed_mentions"] = new JObject { ["parse"] = new JArray() } };
+        var payload = new JObject { ["username"] = username, ["allowed_mentions"] = new JObject { ["parse"] = new JArray() } };
+        if (!String.IsNullOrWhiteSpace(content)) payload["content"] = content;
+        JArray embeds; if (!TryParseEmbeds(embedsJson, out embeds)) { error = "invalid-embeds"; return false; }
+        if (embeds.Count > 0) payload["embeds"] = embeds;
         if (avatar.Length > 0) payload["avatar_url"] = avatar;
         if (mode == "forum" && threadId.Length == 0) { payload["thread_name"] = threadName; var applied = new JArray(); foreach (string tag in tags.Split(',')) { string id = tag.Trim(); if (Regex.IsMatch(id, "^[0-9]{5,30}$")) applied.Add(id); } if (applied.Count > 0) payload["applied_tags"] = applied; }
         string url = webhook + (webhook.Contains("?") ? "&" : "?") + "wait=true" + (threadId.Length > 0 ? "&thread_id=" + threadId : "");
@@ -79,6 +83,31 @@ public class CPHInline
             }
         }
         error = "discord-rate-limit-exhausted"; return false;
+    }
+
+    private bool TryParseEmbeds(string json, out JArray safe)
+    {
+        safe = new JArray();
+        if (String.IsNullOrWhiteSpace(json)) return true;
+        try
+        {
+            JArray source = JArray.Parse(json);
+            if (source.Count > 10) return false;
+            int totalCharacters = 0;
+            foreach (JToken token in source)
+            {
+                JObject item = token as JObject; if (item == null) return false;
+                string title = NormalizeSingleLine(Bounded(Convert.ToString(item["title"], CultureInfo.InvariantCulture) ?? "", 256));
+                string description = NormalizeMultiline(Bounded(Convert.ToString(item["description"], CultureInfo.InvariantCulture) ?? "", 4096));
+                int color; if (!Int32.TryParse(Convert.ToString(item["color"], CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out color) || color < 0 || color > 16777215 || description.Length == 0) return false;
+                totalCharacters += title.Length + description.Length; if (totalCharacters > 6000) return false;
+                var embed = new JObject { ["description"] = description, ["color"] = color };
+                if (title.Length > 0) embed["title"] = title;
+                safe.Add(embed);
+            }
+            return true;
+        }
+        catch { return false; }
     }
 
     private int RetryMilliseconds(string body) { try { double seconds = Convert.ToDouble(JObject.Parse(body)["retry_after"], CultureInfo.InvariantCulture); return (int)Math.Max(250, Math.Min(5000, seconds * 1000)); } catch { return 1000; } }

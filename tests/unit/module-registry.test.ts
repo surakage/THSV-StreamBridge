@@ -6,7 +6,7 @@ import { createBuiltinModuleRegistry } from '../../bridge/core/builtin-modules.j
 import { AddOnCapabilityBroker } from '../../bridge/core/addon-capability-broker.js';
 import { fixture, silentLogger } from '../helpers.js';
 
-function moduleDefinition(moduleId: string, options: Partial<FrameworkModule> & { dependencies?: readonly string[] } = {}): FrameworkModule {
+function moduleDefinition(moduleId: string, options: Partial<FrameworkModule> & { dependencies?: readonly string[]; eventSubscriptions?: readonly string[]; commandsProvided?: ModuleManifestV2['commandsProvided'] } = {}): FrameworkModule {
   const manifest: ModuleManifestV2 = {
     contractVersion: CORE_CONTRACT_VERSION,
     moduleId,
@@ -17,8 +17,8 @@ function moduleDefinition(moduleId: string, options: Partial<FrameworkModule> & 
     dependencies: [...(options.dependencies ?? [])],
     requiredCapabilities: [],
     configurationSchema: `schemas/modules/${moduleId}.json`,
-    eventSubscriptions: ['chat.message'],
-    commandsProvided: [], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: [],
+    eventSubscriptions: [...(options.eventSubscriptions ?? ['chat.message'])],
+    commandsProvided: [...(options.commandsProvided ?? [])], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: [],
     installationSteps: ['Install for test.'], uninstallationSteps: ['Remove after test.'], migrations: [], healthChecks: [],
   };
   return {
@@ -90,6 +90,21 @@ describe('ModuleRegistry', () => {
     expect(contexts).toHaveLength(3);
     expect(contexts[0]).toBe(contexts[1]);
     expect(contexts[1]).toBe(contexts[2]);
+  });
+
+  it('routes owned commands to only the command-providing add-on that won registration', async () => {
+    const owner = vi.fn(); const conflictingOwner = vi.fn(); const observer = vi.fn();
+    const registry = new ModuleRegistry([
+      moduleDefinition('test.owner', { eventSubscriptions: ['command.received'], commandsProvided: [{ id: 'owner.command', name: 'death' }], onEvent: owner }),
+      moduleDefinition('test.conflict', { eventSubscriptions: ['command.received'], commandsProvided: [{ id: 'conflict.command', name: 'death' }], onEvent: conflictingOwner }),
+      moduleDefinition('test.observer', { eventSubscriptions: ['command.received'], onEvent: observer }),
+    ], silentLogger);
+    await registry.start();
+    const event = { ...(await fixture()), eventType: 'command.received', payload: { command: 'death', targetModuleId: 'test.owner' }, metadata: { simulated: true, bridgeSequence: 1 } };
+    await registry.publish(event);
+    expect(owner).toHaveBeenCalledOnce();
+    expect(conflictingOwner).not.toHaveBeenCalled();
+    expect(observer).toHaveBeenCalledOnce();
   });
 
   it('times out a hung optional module without delaying healthy modules indefinitely', async () => {

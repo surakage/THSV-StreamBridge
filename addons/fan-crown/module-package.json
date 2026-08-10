@@ -56,7 +56,7 @@
       "Import the separate Fan Crown Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that action for this add-on.",
       "Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.",
-      "Create Twitch and Kick rewards, then create the configured no-response command for YouTube and TikTok."
+      "Create Twitch and Kick rewards. The saved YouTube and TikTok command registers automatically after restart."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its compact private season state remains preserved for a later reinstall."
@@ -76,8 +76,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 32060,
-      "sha256": "68e60fe3b5b72842c74cf8225603908072b749c99decfd1f1880f61244cce5c0"
+      "size": 32928,
+      "sha256": "fd7cfce743d62fffd2a1888ff26708ae81298dfa4067c334c18b1fd25c24e310"
     },
     {
       "path": "schemas/config.json",

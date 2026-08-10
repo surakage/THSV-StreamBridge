@@ -51,4 +51,4 @@ Dependencies: none.
 
 1. Uninstall the add-on. Its latest label values remain preserved for a later reinstall.
 
-If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.
+If setup drifts, inspect the main THSV intake actions in the wizard, verify the saved add-on command settings, restart StreamBridge, then rerun the offline test.

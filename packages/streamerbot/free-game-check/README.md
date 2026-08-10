@@ -1,7 +1,11 @@
 # THSV StreamBridge - Free Game Check
 
-Import the generated `.sb` and keep both actions triggerless. Approve **Refresh** in the wizard. Approve **Discord Deliver** only when Discord posting is enabled, then replace its private `freeGameDiscordWebhookUrl` Set Argument with the desired channel or forum webhook.
+Import the generated `.sb` and keep all three actions triggerless:
 
-Twitch and Kick reward redemptions stay on the existing THSV platform intake actions. YouTube and TikTok use the `!freegames` no-response command created through Command Sync. Do not attach reward or command triggers directly to either imported Free Game Check action.
+- **Refresh** performs one fixed GamerPower lookup after a matching viewer request.
+- **Discord Deliver** posts a newly discovered game when Discord delivery is enabled. Keep its webhook private.
+- **Settle Twitch Reward** fulfills successful Twitch checks and refunds empty or failed checks.
 
-Refresh calls only GamerPower's bounded public HTTPS endpoint. Discord Deliver accepts only Discord webhook hosts and verified GamerPower links, disables mentions, and never logs its webhook.
+Twitch and Kick reward redemptions stay on the existing THSV platform intake actions. YouTube and TikTok use the automatically registered `!freegames` command and Viewer Foundation points. Do not attach reward or command triggers directly to these imported actions.
+
+Kick starts a lookup but cannot currently be fulfilled or refunded through Streamer.bot's documented action API. YouTube and TikTok point refunds are handled inside StreamBridge.

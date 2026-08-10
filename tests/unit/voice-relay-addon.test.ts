@@ -8,7 +8,7 @@ function settings(overrides: Record<string, unknown> = {}) {
     eventTypes: new Set(['engagement.donation']), viewerMessageEventTypes: new Set<string>(),
     templates: { 'engagement.donation': 'Thank you, {actor}, for {amount} {currency}!' },
     maximumCharacters: 240, allowChatRoles: new Set(['moderator']), blockedTerms: ['blocked'],
-    minimumDonationAmount: 0, minimumCheerQuantity: 0, ...overrides,
+    minimumDonationAmount: 0, minimumCheerQuantity: 0, likeMilestoneInterval: 1000, ...overrides,
   };
 }
 
@@ -79,6 +79,19 @@ describe('Voice Relay', () => {
     const event = { eventType: 'engagement.donation', metadata: {}, user: { actorType: 'human', displayName: 'Alex' }, payload: { amount: '2.00', currency: 'USD' } };
     expect(textFor(event, settings({ minimumDonationAmount: 5 }))).toBe('');
     expect(textFor({ ...event, metadata: { simulated: true } }, settings())).toBe('');
+  });
+
+  it('speaks likes only at the configured total-like interval', () => {
+    const milestoneSettings = settings({
+      eventTypes: new Set(['engagement.milestone']),
+      templates: { 'engagement.milestone': 'Thank you, village! We reached {value} {metric}!' },
+      likeMilestoneInterval: 1000,
+    });
+    const milestone = (value: number) => ({ eventType: 'engagement.milestone', metadata: {}, user: { actorType: 'human', displayName: 'Village' }, payload: { metric: 'likes', value } });
+    expect(textFor(milestone(100), milestoneSettings)).toBe('');
+    expect(textFor(milestone(900), milestoneSettings)).toBe('');
+    expect(textFor(milestone(1000), milestoneSettings)).toBe('Thank you, village! We reached 1000 likes!');
+    expect(textFor(milestone(2000), milestoneSettings)).toBe('Thank you, village! We reached 2000 likes!');
   });
 
   it('pauses, resumes, and stops future dispatch without losing creator safety settings', async () => {

@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Relays allowlisted Twitch, YouTube, and Kick trigger fields into the validated THSV StreamBridge pipeline.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "name": "THSV Twitch - Intake",

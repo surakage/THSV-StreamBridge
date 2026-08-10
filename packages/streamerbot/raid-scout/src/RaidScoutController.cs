@@ -11,6 +11,7 @@ using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Streamer.bot.Plugin.Interface.Model;
+using Twitch.Common.Models.Api;
 
 public class CPHInline
 {
@@ -34,6 +35,7 @@ public class CPHInline
         {
             if (operation == "discover") return Discover(requestId, relayToken);
             if (operation == "clip") return FetchClips(requestId, relayToken);
+            if (operation == "clip-download") return FetchClipDownload(requestId, relayToken);
             if (operation == "raid") return StartRaid(requestId, relayToken);
             if (operation == "redemption-fulfill") return SettleRedemption(operation, requestId, relayToken, true);
             if (operation == "redemption-cancel") return SettleRedemption(operation, requestId, relayToken, false);
@@ -183,6 +185,26 @@ public class CPHInline
         CPH.SetArgument("raidScoutClipLookupValid", true);
         CPH.SetArgument("raidScoutClipCount", clips.Count);
         CPH.LogInfo("THSV Raid Scout returned " + clips.Count.ToString() + " bounded public clip(s).");
+        return true;
+    }
+
+    private bool FetchClipDownload(string requestId, string relayToken)
+    {
+        string clipId = Bounded(Read("raidScoutClipId"), 100);
+        if (clipId.Length == 0) return Fail("clip-download", requestId, relayToken, "A Twitch clip ID is required for download resolution.");
+
+        ClipDownloadData download = CPH.TwitchGetClipDownloadUrls(clipId);
+        if (download == null || String.IsNullOrWhiteSpace(download.LandscapeDownloadUrl))
+            return Fail("clip-download", requestId, relayToken, "Twitch returned no playable download URL for the selected clip.");
+
+        Emit("clip-download", requestId, relayToken, true, "", new JObject
+        {
+            ["clipId"] = clipId,
+            ["landscapeUrl"] = Bounded(download.LandscapeDownloadUrl, 4096),
+            ["portraitUrl"] = Bounded(download.PortraitDownloadUrl, 4096)
+        });
+        CPH.SetArgument("raidScoutClipDownloadValid", true);
+        CPH.LogInfo("THSV Raid Scout resolved one direct Twitch clip download.");
         return true;
     }
 

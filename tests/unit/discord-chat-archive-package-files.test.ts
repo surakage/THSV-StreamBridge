@@ -8,6 +8,9 @@ describe('Discord Chat Archive Streamer.bot package', () => {
     expect(source).toContain('["thread_name"]');
     expect(source).toContain('thread_id=');
     expect(source).toContain('["allowed_mentions"]');
+    expect(source).toContain('["embeds"]');
+    expect(source).toContain('TryParseEmbeds');
+    expect(source).toContain('totalCharacters > 6000');
     expect(source).toContain('retry_after');
     expect(source).toContain('addon.thsv.discord-chat-archive.delivery-received');
     expect(source).toContain('missing-relay-token');
@@ -22,7 +25,7 @@ describe('Discord Chat Archive Streamer.bot package', () => {
       actions: Array<{ id: string; name: string; arguments?: Array<{ name: string; value: string }> }>;
       manualTriggerSetup: unknown[];
     };
-    expect(manifest.minimumStreamerBotVersion).toBe('1.0.5-alpha.33');
+    expect(manifest.minimumStreamerBotVersion).toBe('1.0.7');
     expect(manifest.actions).toHaveLength(1);
     expect(manifest.actions[0]).toMatchObject({
       id: 'df40969d-5923-4432-bdca-ecdee451f150',

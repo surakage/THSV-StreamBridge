@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Fetches bounded public giveaways and optionally delivers verified entries to Discord.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "1f8e660b-3ee9-4a9a-9390-68d7e5257c11",
@@ -47,6 +47,21 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
       ]
+    },
+    {
+      "id": "d12e5b98-4dc5-5f0c-b54d-85cfe3a4f7b2",
+      "name": "THSV Addon - Free Game Check - Settle Twitch Reward",
+      "group": "THSV Addon - Free Game Check",
+      "source": "src/SettleReward.cs",
+      "importFile": "THSV-StreamBridge-Free-Game-Check-3.5.0.sb",
+      "excludeFromHistory": true,
+      "excludeFromPending": true,
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll"
+      ]
     }
   ],
   "runtime": {
@@ -55,8 +70,9 @@
   },
   "manualTriggerSetup": {
     "refresh": [],
-    "discord": []
+    "discord": [],
+    "settle-twitch-reward": []
   },
-  "triggerSafety": "Both actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh can call only the fixed GamerPower HTTPS endpoint. Discord Deliver requires a one-use broker token and keeps its webhook in a private Set Argument.",
+  "triggerSafety": "All three actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh runs only for a matching viewer request and can call only the fixed GamerPower HTTPS endpoint. Discord Deliver and Settle Twitch Reward require one-use broker tokens; the webhook stays in its private Set Argument.",
   "verificationStatus": "Static package and endpoint validation are automated; live provider availability remains creator-accepted."
 }

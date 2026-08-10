@@ -176,8 +176,10 @@ function isCreatorControl(relay: AddOnRelay): boolean {
   }
   if (relay.moduleId === 'thsv.raid-scout' && relay.eventType === 'addon.thsv.raid-scout.control') {
     const action = relay.payload['action'];
-    if (action !== 'suggest' && action !== 'confirm' && action !== 'cancel') return false;
-    const expectedSource = `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
+    if (action !== 'suggest' && action !== 'confirm' && action !== 'cancel' && action !== 'broadcast-stopped') return false;
+    const expectedSource = action === 'broadcast-stopped'
+      ? 'THSV Addon - Raid Scout - Broadcast Stopped'
+      : `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
     return relay.sourceEventType === expectedSource && Object.keys(relay.payload).length === 1;
   }
   if (relay.moduleId === 'thsv.quote-vault' && relay.eventType === 'addon.thsv.quote-vault.control') {
@@ -256,6 +258,39 @@ function isCreatorControl(relay: AddOnRelay): boolean {
 // checked by Streamer.bot. This one exact envelope is the provider intake path; it intentionally
 // cannot mint other add-on events or omit Ko-fi's stable message ID.
 function isTrustedProviderIngress(relay: AddOnRelay): boolean {
+  if (relay.moduleId === 'thsv.ad-break-companion') {
+    if (relay.relayToken !== '') return false;
+    const keys = Object.keys(relay.payload);
+    if (relay.eventType === 'addon.thsv.ad-break-companion.upcoming') {
+      return relay.sourceEventType === 'TwitchUpcomingAd'
+        && keys.length === 4
+        && boundedInteger(relay.payload['minutes'], 1, 60)
+        && boundedInteger(relay.payload['adLength'], 1, 18_000)
+        && boundedInteger(relay.payload['snoozesLeft'], 0, 100)
+        && typeof relay.payload['nextAdAt'] === 'string'
+        && relay.payload['nextAdAt'].length <= 40
+        && Number.isFinite(Date.parse(relay.payload['nextAdAt']));
+    }
+    if (relay.eventType === 'addon.thsv.ad-break-companion.started') {
+      return relay.sourceEventType === 'TwitchAdRun'
+        && keys.length === 3
+        && boundedInteger(relay.payload['adLength'], 1, 18_000)
+        && boundedInteger(relay.payload['adLengthMs'], 1_000, 18_000_000)
+        && typeof relay.payload['adScheduled'] === 'boolean';
+    }
+    if (relay.eventType === 'addon.thsv.ad-break-companion.control') {
+      const action = relay.payload['action'];
+      if (action === 'hide') return relay.sourceEventType === 'THSV Addon - Ad Break Companion - Clear Display' && keys.length === 1 && relay.simulated;
+      if (action === 'preview-upcoming') {
+        return relay.sourceEventType === 'THSV Addon - Ad Break Companion - Preview Upcoming'
+          && keys.length === 2 && relay.payload['seconds'] === 60 && relay.simulated;
+      }
+      return action === 'preview-active'
+        && relay.sourceEventType === 'THSV Addon - Ad Break Companion - Preview Active'
+        && keys.length === 2 && relay.payload['seconds'] === 90 && relay.simulated;
+    }
+    return false;
+  }
   if (relay.moduleId !== 'thsv.kofi-donations' || relay.eventType !== 'addon.thsv.kofi-donations.donation-received') return false;
   if (relay.sourceEventType !== 'KofiDonation' || relay.relayToken !== '') return false;
   const keys = Object.keys(relay.payload);
@@ -266,6 +301,10 @@ function isTrustedProviderIngress(relay: AddOnRelay): boolean {
     && typeof relay.payload['isPublic'] === 'boolean'
     && typeof relay.payload['message'] === 'string'
     && typeof relay.payload['timestamp'] === 'string';
+}
+
+function boundedInteger(value: unknown, minimum: number, maximum: number): boolean {
+  return typeof value === 'number' && Number.isInteger(value) && value >= minimum && value <= maximum;
 }
 
 function assertBoundedPayload(payload: AddOnRelay['payload']): void {

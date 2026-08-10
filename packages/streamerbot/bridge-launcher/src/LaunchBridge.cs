@@ -4,6 +4,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Text.RegularExpressions;
 
 public class CPHInline
 {
@@ -46,8 +48,7 @@ public class CPHInline
             if (!process.WaitForExit(LaunchTimeoutMs)) return Fail("the launcher did not finish within the expected time.");
             if (process.ExitCode != 0) return Fail("the launcher reported a failure (exit code " + process.ExitCode + ").");
             CPH.LogInfo("THSV StreamBridge launch completed through its validated lifecycle launcher.");
-            Notify("Bridge connected and healthy.");
-            return true;
+            return ReportReadiness();
         }
         catch (Exception exception)
         {
@@ -56,6 +57,8 @@ public class CPHInline
     }
 
     private const int LaunchTimeoutMs = 30_000;
+    private const int HealthTimeoutMs = 5_000;
+    private const string HealthUrl = "http://127.0.0.1:8787/ready";
 
     // Resolve the editable action argument first, then preserve the legacy global as a migration fallback.
     private bool TryResolveInstallPath(out string installPath)
@@ -92,6 +95,37 @@ public class CPHInline
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden,
         };
+    }
+
+    private bool ReportReadiness()
+    {
+        try
+        {
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(HealthUrl);
+            request.Method = "GET";
+            request.Timeout = HealthTimeoutMs;
+            request.ReadWriteTimeout = HealthTimeoutMs;
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+            {
+                string body = reader.ReadToEnd();
+                if (Regex.IsMatch(body, "\\\"ready\\\"\\s*:\\s*true", RegexOptions.IgnoreCase))
+                {
+                    CPH.LogInfo("THSV StreamBridge readiness check passed: bridge, adapters, Streamer.bot delivery, and modules are healthy.");
+                    Notify("Status: GREEN - bridge, platforms, delivery, and modules are connected.");
+                    return true;
+                }
+                return Fail("the bridge started but its readiness check did not pass.");
+            }
+        }
+        catch (WebException exception)
+        {
+            return Fail("the bridge started but readiness is unavailable (" + exception.Status + ").");
+        }
+        catch (Exception exception)
+        {
+            return Fail("the bridge started but readiness could not be checked (" + exception.GetType().Name + ").");
+        }
     }
 
     // Every invocation raises exactly one toast — success and failure paths are exclusive,

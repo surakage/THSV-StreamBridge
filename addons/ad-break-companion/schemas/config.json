@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ad Break Companion",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Ad Break Companion", "default": true },
+    "leadSeconds": { "type": "integer", "title": "Show the warning this many seconds before the ad", "minimum": 15, "maximum": 300, "default": 60 },
+    "startGraceSeconds": { "type": "integer", "title": "Wait for the Ad Run signal after zero", "minimum": 5, "maximum": 60, "default": 15 },
+    "allowTriggerTests": { "type": "boolean", "title": "Show Streamer.bot trigger tests", "default": true },
+    "upcomingLabel": { "type": "string", "title": "Upcoming countdown heading", "minLength": 1, "maxLength": 80, "default": "AD BREAK IN" },
+    "activeLabel": { "type": "string", "title": "Active ad heading", "minLength": 1, "maxLength": 80, "default": "AD BREAK" },
+    "upcomingMessage": { "type": "string", "title": "Upcoming message", "minLength": 1, "maxLength": 160, "default": "A quick break is coming up" },
+    "activeMessage": { "type": "string", "title": "Active ad message", "minLength": 1, "maxLength": 160, "default": "The stream will continue after this break" },
+    "overlayBackgroundMode": { "type": "string", "title": "Background style", "enum": ["glass", "solid", "none"], "default": "glass" },
+    "overlayBackgroundColor": { "type": "string", "title": "Background color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#101722" },
+    "overlayBackgroundOpacity": { "type": "number", "title": "Background opacity", "minimum": 0, "maximum": 1, "default": 0.9 },
+    "overlayAccentColor": { "type": "string", "title": "Accent color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#f4c95d" },
+    "overlayTextColor": { "type": "string", "title": "Countdown color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
+    "overlayMutedColor": { "type": "string", "title": "Secondary text color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#d9e2ef" },
+    "overlayCriticalColor": { "type": "string", "title": "Final ten seconds color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ff6b7d" },
+    "overlayBorderColor": { "type": "string", "title": "Border color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#f4c95d" }
+  }
+}

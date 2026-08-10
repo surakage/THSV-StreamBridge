@@ -27,9 +27,18 @@ const relaySchema = z.object({
   role: z.string().max(64).default(''),
   isModerator: z.boolean().default(false),
   isBroadcaster: z.boolean().default(false),
+  isMe: z.boolean().default(false),
+  isInternal: z.boolean().default(false),
+  isBot: z.boolean().default(false),
+  botUserId: z.string().max(256).default(''),
+  botUserName: z.string().max(256).default(''),
   isSubscribed: z.boolean().default(false),
   isVip: z.boolean().default(false),
   message: z.string().max(2_000).default(''),
+  emotes: z.array(z.object({
+    name: z.string().max(100), startIndex: z.number().int().min(0).max(2_000), endIndex: z.number().int().min(0).max(2_000),
+    imageUrl: z.string().max(2_048), provider: z.string().max(32).default('native'),
+  }).strict()).max(100).default([]),
   firstMessage: z.boolean().default(false),
   firstMessageKnown: z.boolean().default(false),
   isReply: z.boolean().default(false),
@@ -155,14 +164,27 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
       ...(providerSourceId === '' || isSyntheticSourceId ? { unverifiedFields: ['source.eventId'] } : {}),
     },
   };
+  // The normalized channel already carries the broadcaster identity. Payload aliases are reserved
+  // for Streamer.bot's separate bot account so ordinary chat payloads remain backward compatible.
+  const connectedAccountIds = [...new Set([clean(relay.botUserId)].filter(Boolean))];
+  const connectedAccountNames = [...new Set([clean(relay.botUserName)].filter(Boolean))];
+  const connectedAccountContext = {
+    ...(connectedAccountIds.length === 0 ? {} : { connectedAccountIds }),
+    ...(connectedAccountNames.length === 0 ? {} : { connectedAccountNames }),
+    ...(relay.isMe || relay.isBroadcaster || relay.isBot ? { fromConnectedAccount: true } : {}),
+    ...(relay.isInternal ? { internalMessage: true } : {}),
+  };
 
   if (eventType === 'chat.message') {
-    const message = clean(relay.message);
+    const rawMessage = relay.message;
+    const message = clean(rawMessage);
     if (message === '') throw new Error(`${relay.sourceEventType} requires a message.`);
     const replyMessage = clean(relay.replyMessage);
     const replyUserName = clean(relay.replyUserName) || clean(relay.replyUserLogin);
     return { ...common, payload: {
       message,
+      ...chatFragments(rawMessage, relay.emotes),
+      ...connectedAccountContext,
       ...(relay.firstMessageKnown ? { firstMessage: relay.firstMessage } : {}),
       ...(relay.platform === 'twitch' && relay.isReply && replyMessage !== '' && replyUserName !== '' ? {
         isReply: true,
@@ -177,6 +199,7 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   if (eventType === 'stream.online' || eventType === 'stream.offline') {
     const thumbnailUrl = validHttps(relay.streamThumbnailUrl);
     return { ...common, user: undefined, payload: {
+      ...connectedAccountContext,
       ...(clean(relay.streamId) === '' ? {} : { streamId: clean(relay.streamId) }),
       ...(clean(relay.streamTitle) === '' ? {} : { title: clean(relay.streamTitle) }),
       ...(clean(relay.streamCategoryId) === '' ? {} : { categoryId: clean(relay.streamCategoryId) }),
@@ -224,6 +247,31 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     } };
   }
   return { ...common, payload: { quantity: positiveInteger(relay.quantity, 1) } };
+}
+
+function chatFragments(message: string, emotes: NativeRelay['emotes']): { fragments?: Record<string, string>[] } {
+  const accepted = emotes
+    .filter((emote) => emote.startIndex <= emote.endIndex && emote.endIndex < message.length && validEmoteUrl(emote.imageUrl) !== undefined)
+    .sort((left, right) => left.startIndex - right.startIndex || right.endIndex - left.endIndex);
+  if (accepted.length === 0) return {};
+  const fragments: Record<string, string>[] = [];
+  let cursor = 0;
+  for (const emote of accepted) {
+    if (emote.startIndex < cursor) continue;
+    if (emote.startIndex > cursor) fragments.push({ type: 'text', text: message.slice(cursor, emote.startIndex) });
+    fragments.push({ type: 'emote', name: clean(emote.name) || message.slice(emote.startIndex, emote.endIndex + 1), imageUrl: validEmoteUrl(emote.imageUrl) ?? '', provider: clean(emote.provider) || 'native' });
+    cursor = emote.endIndex + 1;
+  }
+  if (cursor < message.length) fragments.push({ type: 'text', text: message.slice(cursor) });
+  return fragments.some((fragment) => fragment['type'] === 'emote') ? { fragments } : {};
+}
+
+function validEmoteUrl(value: string): string | undefined {
+  try {
+    const url = new URL(value);
+    const hosts = ['static-cdn.jtvnw.net', 'yt3.ggpht.com', 'yt3.googleusercontent.com', 'cdn.betterttv.net', 'cdn.frankerfacez.com', 'cdn.7tv.app', 'cdn.kick.com'];
+    return url.protocol === 'https:' && hosts.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`)) ? url.toString() : undefined;
+  } catch { return undefined; }
 }
 
 function boundedEventId(prefix: string, value: string): string {

@@ -1,6 +1,6 @@
 import type { NormalizedEvent } from '../../schemas/event.js';
 
-export const MULTI_CHAT_CONTRACT_VERSION = '1.1.0';
+export const MULTI_CHAT_CONTRACT_VERSION = '1.2.0';
 export const MULTI_CHAT_MAX_MESSAGE_LENGTH = 2_000;
 
 export interface MultiChatMessage {
@@ -23,9 +23,14 @@ export interface MultiChatMessage {
     readonly isBot: boolean;
   };
   readonly message: string;
+  readonly fragments: readonly ChatMessageFragment[];
   readonly messageLength: number;
   readonly simulated: boolean;
 }
+
+export type ChatMessageFragment =
+  | { readonly type: 'text'; readonly text: string }
+  | { readonly type: 'emote'; readonly name: string; readonly imageUrl: string; readonly provider: string };
 
 export class InvalidMultiChatEventError extends Error {}
 
@@ -69,9 +74,33 @@ export function projectMultiChatMessage(event: NormalizedEvent): MultiChatMessag
       isBot: event.user.actorType === 'bot',
     },
     message,
+    fragments: normalizedChatFragments(event.payload['fragments'], message),
     messageLength: message.length,
     simulated: event.metadata.simulated,
   };
+}
+
+function normalizedChatFragments(raw: unknown, message: string): readonly ChatMessageFragment[] {
+  if (!Array.isArray(raw)) return [{ type: 'text', text: message }];
+  const fragments: ChatMessageFragment[] = [];
+  for (const entry of raw.slice(0, 200)) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    const value = entry as Readonly<Record<string, unknown>>;
+    if (value['type'] === 'text' && typeof value['text'] === 'string') {
+      const text = value['text'].replace(/\p{Cc}+/gu, ' ');
+      if (text.length > 0) fragments.push({ type: 'text', text });
+    } else if (value['type'] === 'emote' && typeof value['name'] === 'string' && typeof value['imageUrl'] === 'string' && typeof value['provider'] === 'string' && trustedEmoteUrl(value['imageUrl'])) {
+      fragments.push({ type: 'emote', name: value['name'].slice(0, 100), imageUrl: value['imageUrl'], provider: value['provider'].slice(0, 32) });
+    }
+  }
+  return fragments.length > 0 ? fragments : [{ type: 'text', text: message }];
+}
+
+function trustedEmoteUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && ['static-cdn.jtvnw.net', 'yt3.ggpht.com', 'yt3.googleusercontent.com', 'cdn.betterttv.net', 'cdn.frankerfacez.com', 'cdn.7tv.app', 'cdn.kick.com'].some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
+  } catch { return false; }
 }
 
 export function normalizeChatPlainText(input: string): string {

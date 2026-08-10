@@ -6,17 +6,17 @@ Stream Launch Countdown is a separate optional add-on for a stream's Starting So
 
 1. Download the Stream Launch Countdown add-on ZIP from the matching GitHub release.
 2. In the local wizard, open **Add-ons**, upload the `.thsv-addon`, review its permissions, then install and enable it.
-3. Configure the normal duration, completion behavior, and appearance.
+3. Configure the normal duration, the exact program-scene name (including any emoji or folder symbol), completion behavior, and appearance.
 4. Import the bundled `THSV-StreamBridge-Stream-Launch-Countdown-3.5.0.sb` into Streamer.bot.
 5. Add the copyable `http://127.0.0.1:8787/overlay/countdown` URL to OBS, Meld, or Streamlabs Desktop as a 1920x1080 browser source.
 
-## Streamer.bot scene triggers
+## Automatic scene behavior
 
-Attach **THSV Addon - Stream Launch Countdown - Start** to the scene-active trigger for your Starting Soon scene. Start always begins a fresh configured countdown.
+Do not add OBS scene triggers to the imported Start or Stop actions. StreamBridge listens to its normalized program-scene updates and starts the countdown when the active program scene exactly matches a configured name. Leaving that scene stops and hides the countdown when **Stop outside automatic scenes** is enabled.
 
-When leaving that scene, attach **Stop** to pause and remove the overlay, or **Reset** to restore the configured time while leaving the timer visible and paused.
+Matching is case-insensitive but otherwise exact, so `📁 Starting Soon` and `Starting Soon` are different names. Preview-only changes in OBS Studio Mode do not restart the program countdown, and duplicate scene events preserve the remaining time.
 
-The imported package also provides Pause, Resume, Complete Now, and Set & Start. Set & Start exposes an editable `countdownSeconds` Set Argument from 1 through 86400 for a one-off duration. Complete Now safely previews the configured finish state and tone.
+The imported Streamer.bot package provides optional manual controls: Start, Stop, Pause, Resume, Reset, Complete Now, and Set & Start. Set & Start exposes an editable `countdownSeconds` Set Argument from 1 through 86400 for a one-off duration. Complete Now safely previews the configured finish state and tone.
 
 ## Optional scene switch at zero
 

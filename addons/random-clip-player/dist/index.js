@@ -29,13 +29,15 @@ const EMPTY_POOL_RETRY_MS = 30_000;
 // tests, for instance). A real installed context always has a complete settings object, since the
 // loader validates it against schemas/config.json with defaults applied before this ever runs.
 const FALLBACKS = Object.freeze({
+  automaticSceneNames: ['BRB', 'Stream Ending'],
+  stopOutsideAutomaticScenes: true,
   secondsBetweenClips: 5,
   clipCount: 20,
   minDurationSeconds: 5,
   maxDurationSeconds: 60,
   muted: false,
   volume: 1,
-  cacheVideo: false,
+  cacheVideo: true,
   cacheTtlHours: 12,
   cacheMaximumFileMb: 40,
 });
@@ -51,7 +53,18 @@ function readSettings(context) {
   const cacheVideo = settings.cacheVideo === true;
   const cacheTtlHours = Number.isInteger(settings.cacheTtlHours) ? Math.min(24, Math.max(1, settings.cacheTtlHours)) : FALLBACKS.cacheTtlHours;
   const cacheMaximumFileMb = Number.isInteger(settings.cacheMaximumFileMb) ? Math.min(50, Math.max(5, settings.cacheMaximumFileMb)) : FALLBACKS.cacheMaximumFileMb;
-  return { secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume, cacheVideo, cacheTtlHours, cacheMaximumFileMb };
+  const automaticSceneNames = Array.isArray(settings.automaticSceneNames) ? settings.automaticSceneNames.filter((value) => typeof value === 'string' && value.trim()).slice(0, 20) : FALLBACKS.automaticSceneNames;
+  const stopOutsideAutomaticScenes = settings.stopOutsideAutomaticScenes !== false;
+  return { automaticSceneNames, stopOutsideAutomaticScenes, secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume, cacheVideo, cacheTtlHours, cacheMaximumFileMb };
+}
+
+export function normalizedSceneName(value) {
+  return typeof value === 'string' ? value.trim().toLocaleLowerCase('en-US') : '';
+}
+
+export function sceneShouldPlay(sceneName, configuredNames) {
+  const current = normalizedSceneName(sceneName);
+  return current.length > 0 && configuredNames.some((name) => normalizedSceneName(name) === current);
 }
 
 const manifest = {
@@ -66,7 +79,7 @@ const manifest = {
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [GET_CLIPS_EVENT, SHARED_CLIPS_EVENT, GET_CLIP_DOWNLOAD_EVENT, CONTROL_EVENT],
+  eventSubscriptions: [GET_CLIPS_EVENT, SHARED_CLIPS_EVENT, GET_CLIP_DOWNLOAD_EVENT, CONTROL_EVENT, 'stream.scene-changed'],
   commandsProvided: [],
   actionsProvided: [],
   browserSourcesProvided: [],
@@ -74,8 +87,8 @@ const manifest = {
   installationSteps: [
     'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.5.0.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
-    'Bind or manually run the imported Enable and Disable actions. Playback always starts off after StreamBridge launches and cannot begin until Enable is triggered.',
-    'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback.',
+    'Enter the exact OBS program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
+    'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
   ],
   uninstallationSteps: ['Remove the add-on package; its separately owned rotation state remains preserved.'],
   migrations: [
@@ -247,31 +260,57 @@ async function handleClipDownloadReceived(event, context) {
   if (stopped) return;
   const clipId = event.payload?.clipId;
   const landscapeUrl = event.payload?.landscapeUrl;
-  if (typeof clipId !== 'string' || typeof landscapeUrl !== 'string' || landscapeUrl === '') return;
+  if (typeof clipId !== 'string') return;
   const state = sanitizeState(await context.state.read());
   if (!state.playbackEnabled || suspendedByMediaSlot || state.pendingClipId !== clipId) return; // Stale, disabled, suspended, or mismatched response; ignore.
   disarmSafetyNet(context);
+  if (event.payload?.success === false || typeof landscapeUrl !== 'string' || landscapeUrl === '') {
+    // Twitch occasionally returns clip metadata whose temporary MP4 can no longer be resolved.
+    // Complete this candidate in the no-repeat bag and immediately try another instead of
+    // requesting the same broken clip every safety-net cycle.
+    const seenClipIds = [...new Set([...state.seenClipIds, clipId])];
+    await context.state.write(toJsonState({ ...state, seenClipIds, pendingClipId: undefined, pendingPlaybackId: undefined }));
+    scheduleNext(context, 1_000);
+    return;
+  }
   const clip = state.clips.find((candidate) => candidate.id === clipId);
   const settings = readSettings(context);
-  let playbackUrl = landscapeUrl;
-  if (settings.cacheVideo) {
-    try { playbackUrl = (await context.mediaCache.fetch({ sourceUrl: landscapeUrl, cacheKey: clipId, ttlSeconds: settings.cacheTtlHours * 3_600, maximumBytes: settings.cacheMaximumFileMb * 1_048_576 })).url; }
-    catch { /* Cache is optional. A provider/cache failure falls back to the original temporary Twitch URL. */ }
-  }
   const playbackId = `${clipId}-${Date.now()}`;
   await context.state.write(toJsonState({ ...state, pendingPlaybackId: playbackId }));
   // Keep retrying until this exact playback reports that it started. A publication sent while the
   // browser source is closed or reconnecting is therefore recoverable instead of stalling forever.
   armSafetyNet(context, () => requestClipDownload(context, clipId));
-  try { await context.overlay.publish(`${context.moduleId}.media.play`, {
-    playbackId,
-    url: playbackUrl,
-    muted: settings.muted,
-    volume: settings.volume,
-    ...(clip?.thumbnailUrl ? { posterUrl: clip.thumbnailUrl } : {}),
-    ...(clip?.title ? { title: clip.title } : {}),
-    ...(typeof clip?.durationSeconds === 'number' ? { durationMs: Math.round(clip.durationSeconds * 1_000) } : {}),
-  }); } catch { /* The armed safety net retries without failing the whole optional module. */ }
+  // Preparing a full clip file can outlive the framework's five-second event budget. Keep that
+  // work outside the serialized event handler so a slow Twitch CDN response cannot time out and
+  // revoke this optional module's capabilities for the rest of the stream.
+  void prepareAndPublishClip(context, { clipId, playbackId, landscapeUrl, clip, settings });
+}
+
+async function prepareAndPublishClip(context, { clipId, playbackId, landscapeUrl, clip, settings }) {
+  let playbackUrl = landscapeUrl;
+  if (settings.cacheVideo) {
+    try { playbackUrl = (await context.mediaCache.fetch({ sourceUrl: landscapeUrl, cacheKey: clipId, ttlSeconds: settings.cacheTtlHours * 3_600, maximumBytes: settings.cacheMaximumFileMb * 1_048_576 })).url; }
+    catch {
+      // The directly playable Twitch URL is still a safe fallback when private caching fails.
+      playbackUrl = landscapeUrl;
+    }
+  }
+  if (stopped) return;
+  try {
+    const current = sanitizeState(await context.state.read());
+    if (!current.playbackEnabled || suspendedByMediaSlot || current.pendingClipId !== clipId || current.pendingPlaybackId !== playbackId) return;
+    await context.overlay.publish(`${context.moduleId}.media.play`, {
+      playbackId,
+      url: playbackUrl,
+      muted: settings.muted,
+      volume: settings.volume,
+      ...(clip?.thumbnailUrl ? { posterUrl: clip.thumbnailUrl } : {}),
+      ...(clip?.title ? { title: clip.title } : {}),
+      ...(typeof clip?.durationSeconds === 'number' ? { durationMs: Math.round(clip.durationSeconds * 1_000) } : {}),
+    }, { lane: 'media' });
+  } catch {
+    // The armed safety net retries without failing or stopping the optional module.
+  }
 }
 
 export default {
@@ -312,9 +351,22 @@ export default {
       if (event.eventType === GET_CLIPS_EVENT || event.eventType === SHARED_CLIPS_EVENT) return handleClipsReceived(event, context);
       if (event.eventType === GET_CLIP_DOWNLOAD_EVENT) return handleClipDownloadReceived(event, context);
       if (event.eventType === CONTROL_EVENT) return handleControl(event, context);
+      if (event.eventType === 'stream.scene-changed') return handleSceneChanged(event, context);
     });
   },
 };
+
+async function setPlaybackEnabled(enabled, context) {
+  return handleControl({ payload: { enabled } }, context);
+}
+
+async function handleSceneChanged(event, context) {
+  if (event.metadata?.simulated === true) return;
+  const settings = readSettings(context);
+  if (settings.automaticSceneNames.length === 0) return;
+  const enabled = sceneShouldPlay(event.payload?.sceneName, settings.automaticSceneNames);
+  if (enabled || settings.stopOutsideAutomaticScenes) await setPlaybackEnabled(enabled, context);
+}
 
 async function handleControl(event, context) {
   if (typeof event.payload?.enabled !== 'boolean') return;
@@ -363,10 +415,10 @@ async function onLifecycle(event, context) {
   if (event.phase === 'started' || event.phase === 'heartbeat') { disarmSafetyNet(context); return; }
   if (event.phase !== 'ended' && event.phase !== 'stopped' && event.phase !== 'failed' && event.phase !== 'timeout') return;
   disarmSafetyNet(context);
-  // Only a clean finish marks the clip seen; a failed/timed-out attempt is retried without being
-  // excluded from the rotation, per the retry-or-skip contract these phases are documented to
-  // represent (see docs/add-on-capabilities.md).
-  const seenClipIds = event.phase === 'ended' ? [...new Set([...state.seenClipIds, state.pendingClipId])] : state.seenClipIds;
+  // Complete a failed candidate in this no-repeat pass too. Re-requesting the same broken URL
+  // every five seconds can exhaust the broker's bounded Streamer.bot action budget and prevent
+  // every later clip from being tried. The candidate becomes eligible again on the next pool.
+  const seenClipIds = [...new Set([...state.seenClipIds, state.pendingClipId])];
   await context.state.write(toJsonState({ clips: state.clips, seenClipIds, playbackEnabled: true }));
   const settings = readSettings(context);
   // The configured pause is the complete post-clip wait. The overlay's short fade runs inside

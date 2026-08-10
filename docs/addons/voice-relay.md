@@ -18,12 +18,12 @@ Routes selected alerts and cross-platform viewer TTS requests through one bounde
 1. Connect Speaker.bot in Streamer.bot.
 2. Import Village Voice, approve only Speak, and test a harmless phrase.
 3. For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.
-4. For YouTube and TikTok, create the configured no-response command in Command Sync and enable Viewer Foundation points.
+4. For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.
 5. Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card.
 
 ## Streamer.bot
 
-Minimum supported Streamer.bot version: `1.0.5-beta.1`.
+Minimum supported Streamer.bot version: `1.0.7`.
 
 Imported group: `THSV Addon - Voice Relay`
 

@@ -3,8 +3,8 @@
   "name": "THSV StreamBridge - Automated Shoutouts",
   "version": "3.5.0",
   "author": "surakage",
-  "description": "Looks up Twitch creator profiles, optionally sends native shoutouts, and resolves one bounded target clip for the Automated Shoutouts add-on.",
-  "minimumStreamerBotVersion": "1.0.5-alpha.31",
+  "description": "Looks up Twitch creator profiles and optionally sends native shoutouts for the Automated Shoutouts add-on. Visual cards are rendered by StreamBridge.",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "e3d92d7e-193a-5bba-8b8c-4f17e605c9d2",
@@ -31,21 +31,6 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
       ]
-    },
-    {
-      "id": "e47c65a2-09d2-5c5b-9c99-c98e3e1d9362",
-      "name": "THSV Addon - Automated Shoutouts - Get Twitch Clip",
-      "group": "THSV Addon - Automated Shoutouts",
-      "source": "src/GetTwitchClip.cs",
-      "importFile": "THSV-StreamBridge-Automated-Shoutouts-3.5.0.sb",
-      "excludeFromHistory": true,
-      "excludeFromPending": true,
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
     }
   ],
   "runtime": {
@@ -54,5 +39,5 @@
   },
   "manualTriggerSetup": [],
   "triggerSafety": "All actions are broker-dispatched only. Do not attach Streamer.bot triggers; the bridge capability broker restricts calls to creator-approved action IDs.",
-  "verificationStatus": "Source and package structure tested; live Twitch category, native shoutout, and target-clip acceptance remain creator-verified."
+  "verificationStatus": "Source and package structure tested; live Twitch category and native shoutout acceptance remain creator-verified."
 }

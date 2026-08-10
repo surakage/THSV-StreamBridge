@@ -8,7 +8,7 @@ The broker is the only supported add-on route to shared framework services:
 - `streamerbot.run-approved-action` exposes `context.streamerbot.runApprovedAction(actionId, args)`. The action must be selected by the creator in the wizard after a live Streamer.bot inspection. Matching uses the exact UUID, never the action name. The Core Receiver is always prohibited to prevent recursive ingestion.
 - `schedule.bounded` exposes one-shot `context.schedule.after()` tasks from 1 second through 24 hours. Each module may hold at most 16 tasks. Outstanding tasks are cancelled when the module stops or fails.
 - `state.private` exposes one atomic JSON object under the module's private state directory. The object is limited to 100 keys and 64 KiB; one module cannot address another module's broker state.
-- `overlay.publish` exposes `context.overlay.publish(topic, payload)` and a core-hosted browser source at `/overlay/addons/<module-id>`. The route exists only while the installed add-on is enabled and declares this permission. Package HTML and JavaScript are never served.
+- `overlay.publish` exposes `context.overlay.publish(topic, payload, { lane })` and a core-hosted browser source at `/overlay/addons/<module-id>`. First-party add-ons explicitly select `foreground`, `media`, `timer`, `persistent`, `preview`, or `independent`. `foreground` is the only lane serialized through the shared transient-card queue; queue acceptance resolves immediately so a card waiting behind another presentation cannot exhaust the add-on's event-handler capability scope. Older packages that omit the option retain bounded topic-based compatibility routing. The route exists only while the installed add-on is enabled and declares this permission. Package HTML and JavaScript are never served.
 - `media.exclusive` exposes one bounded bridge-internal video slot through `context.mediaSlot`. A permitted add-on may claim it for at most ten minutes, observe ownership changes, or release only its own UUID lease. Higher-priority claims may preempt lower-priority owners; equal-priority add-ons cannot steal an active slot. Module shutdown and lease expiry release ownership automatically. No additional WebSocket is opened.
 - `media.cache` optionally prefetches a selected Twitch clip through `context.mediaCache`. The broker accepts only HTTPS Twitch CDN hosts, revalidates every redirect, caps one file at 50 MiB and the shared cache at 250 MiB, expires every file within 24 hours, and exposes it only through a loopback `/overlay/cache/<sha256>.mp4` URL with byte-range support. Add-ons without this permission cannot read or populate the cache.
 - `chat.send` exposes `context.chat.send(request)`. A request either replies only to its normalized source platform or targets an explicit unique platform list. Core applies Unicode-safe limits (Twitch 500, YouTube 200, Kick 500, TikTok 150), rejects or safely splits overflow, isolates platform failures, and limits each add-on to ten routing requests per minute. Delivery reuses the reviewed Timed Message Output action over the existing Streamer.bot connection.
@@ -29,6 +29,17 @@ Every approved action invocation also receives a short-lived, one-use `thsvAddon
 Capability diagnostics report grant, denial, and failure counts by module and never record state, overlay payloads, or action arguments. A denial is isolated to the requesting optional module.
 
 ## Hosted overlay topics
+
+Every publication should identify its presentation lane:
+
+- `foreground` for temporary cards, alerts, results, and redemption notices that must not overlap;
+- `media` for clip and music playback governed separately by the media slot;
+- `timer` for ad, countdown, and subathon state that must update immediately;
+- `persistent` for labels, counters, polls, and queue state;
+- `preview` for exact wizard previews that never enter the live queue;
+- `independent` for captions or other ephemeral surfaces intentionally allowed beside foreground cards.
+
+The lane is behavior, not styling. Stop and hide topics always cancel their matching active/queued presentation before being dispatched. Queue diagnostics expose the active owner, topic, lane, duration, queued timestamp, waiting entries, and configured inter-card gap.
 
 The shared host understands six namespaced presentation topics:
 

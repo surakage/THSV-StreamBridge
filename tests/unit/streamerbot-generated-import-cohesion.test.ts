@@ -56,6 +56,7 @@ describe('generated Streamer.bot import cohesion', () => {
         throw error;
       }
       const manifest = JSON.parse(manifestText) as ExportManifest;
+      expect(manifest.minimumStreamerBotVersion, `${entry.name} must target the stable Streamer.bot baseline`).toBe('1.0.7');
       const actions = manifest.actions ?? (manifest.action === undefined ? [] : [manifest.action]);
       expect(actions.length, `${entry.name} must define at least one action`).toBeGreaterThan(0);
       const importFiles = [...new Set(actions.map((action) => action.importFile))];

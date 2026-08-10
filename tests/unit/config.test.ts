@@ -132,9 +132,31 @@ describe('bridge configuration', () => {
     const action = { provider: 'run-existing-action', actionId: '7d107c29-1127-5bb1-ae8b-6f04d89a71d4', actionName: 'THSV StreamBridge - Send Timed Message', approvedByCreator: true };
     const valid = bridgeConfigSchema.parse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, gates: { requireLive: true, platforms: ['twitch'], scenes: [], activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { ...action, deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } }] } });
     expect(valid.timedActions.definitions[0]).toMatchObject({ gates: { platforms: ['twitch'] }, target: { deliveryPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } });
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, gates: { requireLive: false, platforms: [], scenes: [], activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { ...action, deliveryPlatforms: ['twitch'] } }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, selection: { mode: 'shuffle-container', messages: ['x'.repeat(151), 'valid'] }, target: { ...action, deliveryPlatforms: ['tiktok'] } }] } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['twitch', 'twitch'] } }] } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, deliveryPlatforms: ['facebook'] } }] } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [{ ...base, target: { ...action, actionId: '04ca0087-578d-5c2e-9e06-249dc072e9f8' } }] } }).success).toBe(false);
+  });
+
+  it('keeps timed-message groups as an exact organizational view of one shuffle list', async () => {
+    const config = await testConfig();
+    const definition = {
+      id: 'grouped-rotation', name: 'Grouped rotation', enabled: true, everyMinutes: 15, missedRunPolicy: 'skip', payload: {},
+      selection: {
+        mode: 'shuffle-container', messages: ['Rule one', 'Hydrate', 'Join Discord'],
+        groups: [
+          { id: 'rules', name: 'Rules', messages: ['Rule one'] },
+          { id: 'community', name: 'Community', messages: ['Hydrate', 'Join Discord'] },
+        ],
+      },
+    };
+    const parsed = bridgeConfigSchema.parse({ ...config, timedActions: { ...config.timedActions, definitions: [definition] } });
+    expect(parsed.timedActions.definitions[0]?.selection).toMatchObject({ mode: 'shuffle-container', messages: ['Rule one', 'Hydrate', 'Join Discord'], groups: [{ id: 'rules' }, { id: 'community' }] });
+    const drifted = { ...definition, selection: { ...definition.selection, messages: ['Hydrate', 'Rule one', 'Join Discord'] } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [drifted] } }).success).toBe(false);
+    const duplicated = { ...definition, selection: { ...definition.selection, messages: ['Rule one', 'Hydrate', 'hydrate'], groups: [{ id: 'rules', name: 'Rules', messages: ['Rule one'] }, { id: 'community', name: 'Community', messages: ['Hydrate', 'hydrate'] }] } };
+    expect(bridgeConfigSchema.safeParse({ ...config, timedActions: { ...config.timedActions, definitions: [duplicated] } }).success).toBe(false);
   });
 
   it('validates independent per-platform timed-message rotations and character limits', async () => {
@@ -211,17 +233,39 @@ describe('bridge configuration', () => {
       ...config.browserOverlay.chat, layout: 'compact', orientation: 'horizontal', newMessagePosition: 'start', animation: 'fade', textAlign: 'center', fontFamily: 'rounded', fontSizePx: 24, backgroundMode: 'solid', ignoredNames: ['ExampleBot', 'Another Viewer'],
     } } });
     expect(valid.browserOverlay.chat).toMatchObject({ layout: 'compact', orientation: 'horizontal', newMessagePosition: 'start', animation: 'fade', textAlign: 'center', fontSizePx: 24, ignoredNames: ['ExampleBot', 'Another Viewer'] });
+    expect(bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, layout: 'classic' } } }).browserOverlay.chat.layout).toBe('classic');
     expect(valid.browserOverlay.chat).toMatchObject({ messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' } });
     expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: { youtube: { subscriber: { enabled: true }, member: { enabled: true } }, tiktok: { likes: { enabled: true }, subscription: { enabled: true } }, streamlabs: { donation: { enabled: true } }, kofi: { donation: { enabled: true } } }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } });
     expect(valid.browserOverlay.chat.events).not.toHaveProperty('categories');
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 60 } } }).success).toBe(false);
+    expect(bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 12 } } }).browserOverlay.chat.fontSizePx).toBe(14);
+    expect(bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 36 } } }).browserOverlay.chat.fontSizePx).toBe(28);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, backgroundColor: 'red' } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, orientation: 'diagonal' } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, layout: 'bubble' } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, ignoredNames: ['ExampleBot', 'examplebot'] } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: { ...config.browserOverlay.chat.events, characterLimits: { ...config.browserOverlay.chat.events.characterLimits, youtube: 39 } } } } }).success).toBe(false);
     const invalidEvents = structuredClone(config.browserOverlay.chat.events);
     invalidEvents.platformEvents.youtube.subscriber.template = '{rawStreamerBotVariable}';
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: invalidEvents } } }).success).toBe(false);
+  });
+
+  it('repairs known mojibake in saved reward and alert templates', async () => {
+    const config = await testConfig();
+    const input = structuredClone(config);
+    input.browserOverlay.chat.events.platformEvents.twitch['reward-redemption'].template = '{actor} redeemed {rewardTitle} \u00c2\u00b7 {input}';
+    const profile = (titleTemplate: string) => ({
+      enabled: true, titleTemplate,
+      sound: { mode: 'none' as const, volume: 0.35 },
+      card: { backgroundColor: '#171120', fontFamily: 'system' as const, layout: 'classic' as const, mediaPlacement: 'behind' as const, transition: 'slide-vertical' as const },
+      aggregation: { mode: 'none' as const, windowMs: 5_000 },
+    });
+    input.browserOverlay.alerts.profiles.twitch = { follow: profile('\u00e2\u0153\u00a8 {actor} followed \u00e2\u20ac\u201d thank you!') };
+    input.browserOverlay.alerts.profiles.streamlabs = { donation: profile('\u00f0\u0178\u201d\u00a5 {actor} donated {amount} {currency} \u00c2\u00b7 LET\'S GO!') };
+    const repaired = bridgeConfigSchema.parse(input);
+    expect(repaired.browserOverlay.chat.events.platformEvents.twitch['reward-redemption'].template).toBe('{actor} redeemed {rewardTitle} \u00b7 {input}');
+    expect(repaired.browserOverlay.alerts.profiles.twitch?.follow?.titleTemplate).toBe('\u2728 {actor} followed \u2014 thank you!');
+    expect(repaired.browserOverlay.alerts.profiles.streamlabs?.donation?.titleTemplate).toBe('\ud83d\udd25 {actor} donated {amount} {currency} \u00b7 LET\'S GO!');
   });
 
   it('migrates legacy grouped chat events into separate platform events', async () => {

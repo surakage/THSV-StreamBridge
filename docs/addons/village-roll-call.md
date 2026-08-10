@@ -16,7 +16,7 @@ Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok
 ### Add-on-specific steps
 
 1. Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.
-2. Create the configured no-response check-in command for YouTube and TikTok through Command Sync.
+2. Choose the check-in command name. It registers automatically for YouTube and TikTok after restart.
 3. Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.
 4. Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.
 
@@ -51,4 +51,4 @@ Dependencies: `thsv.viewer-foundation`.
 
 1. Uninstall the add-on. Its bounded private leaderboard remains preserved for a later reinstall.
 
-If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.
+If setup drifts, inspect the main THSV intake actions in the wizard, verify the saved add-on command settings, restart StreamBridge, then rerun the offline test.

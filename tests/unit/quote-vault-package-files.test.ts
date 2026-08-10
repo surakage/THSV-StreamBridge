@@ -17,7 +17,7 @@ describe('Quote Vault Streamer.bot package', () => {
       version: string; minimumStreamerBotVersion: string;
       actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string }> }>;
     };
-    expect(manifest.minimumStreamerBotVersion).toBe('1.0.5-alpha.33');
+    expect(manifest.minimumStreamerBotVersion).toBe('1.0.7');
     expect(manifest.actions.map((action) => action.name)).toEqual([
       'THSV Addon - Quote Vault - Random Quote',
       'THSV Addon - Quote Vault - Statistics',

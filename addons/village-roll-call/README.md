@@ -6,7 +6,7 @@ Village Roll Call turns native Twitch and Kick rewards, plus a points command on
 
 1. Create a Twitch **Village Roll Call: Check In** reward and a matching Kick reward, then copy both stable IDs.
 2. Confirm Reward Redemption is attached to `THSV Twitch - Intake` and `THSV Kick - Intake`.
-3. Install Viewer Foundation and create the no-response `!checkin` command for YouTube and TikTok through Command Sync.
+3. Install Viewer Foundation and choose the YouTube/TikTok check-in command. It registers automatically through the existing chat intakes after restart.
 4. Choose the points cost and calendar time zone, then enable the add-on.
 5. Optional: add `/overlay/addons/thsv.village-roll-call` as an OBS, Meld, or Streamlabs browser source and press **Send preview card**.
 

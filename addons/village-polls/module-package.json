@@ -8,7 +8,8 @@
     "events.subscribe",
     "state.private",
     "chat.send",
-    "overlay.publish"
+    "overlay.publish",
+    "schedule.bounded"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -73,23 +74,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 12901,
-      "sha256": "35baa5a1414de54e51a2e8d26183d240b08aca0a599181aa9addd3042a563666"
+      "size": 18220,
+      "sha256": "6c0448ac07184097c902342d9b039f4a241961222496cfe9f3ebc5a96fb73e2b"
     },
     {
       "path": "schemas/config.json",
-      "size": 1648,
-      "sha256": "6c0d8636d22154c19b69f7fb120ed30bc1e12f9c6ac99149f84defb12b1a4eec"
+      "size": 3439,
+      "sha256": "221bbf065f8098371fcc6ddbb1144d0a5d5ec61cfd911fa7694b1882deae7ecd"
     },
     {
       "path": "ui/settings.json",
-      "size": 1644,
-      "sha256": "e7f88b8093ceac4c68c62f7b9c45d6c3d20583f9049751c197c3b00ff269a4cd"
+      "size": 3360,
+      "sha256": "e806049697b6f2ba97cd0f18c81a9fe7d8f9600a1ba13595e642a31d7d5984cb"
     },
     {
       "path": "README.md",
-      "size": 1533,
-      "sha256": "da205c20189d904217316096ef98c023b1d0ef6e3c5a841f1f9b8bd15063c68f"
+      "size": 1903,
+      "sha256": "e8a0576d9cc618f8f1a717e91b62ebf50c16b7685edd61402d82f36d038564ec"
     }
   ]
 }

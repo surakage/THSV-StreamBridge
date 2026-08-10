@@ -2,6 +2,7 @@
 // It stores only bounded timer state and accepts only the add-on's approved local controls.
 const MODULE_ID = 'thsv.starting-soon-countdown';
 const CONTROL_EVENT = 'addon.thsv.starting-soon-countdown.control';
+const SCENE_EVENT = 'stream.scene-changed';
 const CONTROL_ACTIONS = Object.freeze(['start', 'stop', 'pause', 'resume', 'reset', 'complete', 'set-and-start']);
 
 const manifest = {
@@ -12,13 +13,13 @@ const manifest = {
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  eventSubscriptions: [CONTROL_EVENT, SCENE_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
-    'Install and enable the add-on, then configure the duration, completion message, optional tone, and overlay style.',
+    'Install and enable the add-on, then configure the duration, exact program-scene name, completion message, optional tone, and overlay style.',
     'Import the bundled Streamer.bot package.',
-    'Attach Start to the scene-active trigger for your Starting Soon scene.',
-    'Attach Stop to the scene-inactive trigger for that scene, or use Reset if the paused clock should remain visible.',
+    'Do not attach OBS scene triggers to the imported Start or Stop actions; StreamBridge follows normalized program-scene changes directly.',
+    'Use the imported controls only as optional hotkeys or Stream Deck buttons for manual overrides.',
     'Optional: approve exactly one triggerless Streamer.bot action and enable the completion action to switch scenes at zero.',
     'Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop.',
   ],
@@ -29,6 +30,7 @@ const manifest = {
 
 const FALLBACKS = Object.freeze({
   enabled: true, durationHours: 0, durationMinutes: 10, durationSeconds: 0,
+  automaticSceneNames: ['Starting Soon'], stopOutsideAutomaticScenes: true,
   completionMessage: 'The stream is starting now!', completionTone: 'soft-chime', toneVolume: 0.6,
   completionDisplaySeconds: 10, runCompletionAction: false, completionActionDelaySeconds: 0,
   showOverlay: true, overlayLabel: 'STARTING SOON',
@@ -58,6 +60,14 @@ function hexColor(value, fallback) {
 }
 
 function settingsFor(context) { return { ...FALLBACKS, ...(context.settings ?? {}) }; }
+
+function normalizedSceneName(value) { return cleanText(value, 256).toLocaleLowerCase('en-US'); }
+
+export function sceneShouldStart(sceneName, configuredNames) {
+  const current = normalizedSceneName(sceneName);
+  if (!current || !Array.isArray(configuredNames)) return false;
+  return configuredNames.some((candidate) => normalizedSceneName(candidate) === current);
+}
 
 export function configuredDurationSeconds(settings) {
   const hours = integer(settings.durationHours, 0, 24, 0);
@@ -183,7 +193,7 @@ async function publishState(context, settings, state, playCompletionTone = false
       toneVolume: number(settings.toneVolume, 0, 1, FALLBACKS.toneVolume),
       completionSequence: state.completionSequence, playCompletionTone, lastReason: state.lastReason,
       lastAwardSeconds: 0, style: overlayStyle(settings), emittedAt: new Date().toISOString(),
-    });
+    }, { lane: 'timer' });
   } catch { /* A closed browser source must never stop countdown processing. */ }
 }
 
@@ -245,16 +255,34 @@ async function applyControl(control, context) {
   let state = initializeState(sanitizeState(await context.state.read(), configured), configured);
   state = applyElapsed(state).state;
   const now = Date.now();
-  if (control.action === 'start' || control.action === 'set-and-start') {
-    const duration = control.action === 'set-and-start' ? control.seconds : configured;
-    Object.assign(state, { remainingSeconds: duration, maximumSeconds: duration, running: true, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0 });
+  let reason = control.action;
+  if (control.action === 'start') {
+    // OBS Studio Mode can emit scene-inactive followed by another scene-active event
+    // for the same program scene. Normal Start is idempotent: it preserves an
+    // in-progress value (or resumes it after Stop/Pause) instead of resetting.
+    const inProgress = !state.completed && state.remainingSeconds > 0 && (state.running || state.remainingSeconds < state.maximumSeconds);
+    if (inProgress) {
+      reason = state.lastReason === 'stop' || state.lastReason === 'pause' ? 'start-resumed' : 'duplicate-start-ignored';
+      Object.assign(state, { running: true, visible: true });
+    } else Object.assign(state, { remainingSeconds: configured, maximumSeconds: configured, running: true, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0 });
+  } else if (control.action === 'set-and-start') {
+    Object.assign(state, { remainingSeconds: control.seconds, maximumSeconds: control.seconds, running: true, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0 });
   } else if (control.action === 'pause') state.running = false;
   else if (control.action === 'resume') { if (state.remainingSeconds > 0 && !state.completed) state.running = true; state.visible = true; }
   else if (control.action === 'reset') Object.assign(state, { remainingSeconds: configured, maximumSeconds: configured, running: false, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0 });
   else if (control.action === 'stop') Object.assign(state, { running: false, visible: false, completed: false, completionActionSent: false, completionActionDueAt: 0 });
   else if (control.action === 'complete') Object.assign(state, { remainingSeconds: 0, running: false, visible: true, completed: true, completedAt: now, completionSequence: state.completionSequence + 1, completionActionSent: true, completionActionDueAt: 0 });
-  state.updatedAt = now; state.lastReason = control.action;
+  state.updatedAt = now; state.lastReason = reason;
   await persist(context, settings, state, control.action === 'complete');
+}
+
+async function handleSceneChanged(event, context) {
+  const settings = settingsFor(context);
+  if (sceneShouldStart(event.payload?.sceneName, settings.automaticSceneNames)) {
+    await applyControl({ action: 'start', seconds: 0 }, context);
+  } else if (settings.stopOutsideAutomaticScenes !== false) {
+    await applyControl({ action: 'stop', seconds: 0 }, context);
+  }
 }
 
 export default {
@@ -275,6 +303,7 @@ export default {
   async stop(context) { stopped = true; cancelTimers(context); await operation; },
   async onEvent(event, context) {
     if (!settingsFor(context).enabled) return;
+    if (event.eventType === SCENE_EVENT) { await serialize(() => handleSceneChanged(event, context)); return; }
     const control = controlPayload(event); if (control) await serialize(() => applyControl(control, context));
   },
 };

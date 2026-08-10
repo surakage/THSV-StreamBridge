@@ -1,1 +1,27 @@
-{"intro":"Checks the public GamerPower giveaway feed and can direct viewers to the Discord list. Twitch and Kick use rewards; YouTube and TikTok use one command.","order":["enabled","rewardId","kickRewardId","commandName","discordInviteUrl","guideMessage","guideCooldownMinutes","discordEnabled","discordDestinationMode","discordThreadId","discordThreadName","discordWebhookName","deliveryPlatforms","refreshMinutes","maximumPostsPerRefresh","announceInitial"],"sections":[{"id":"access","title":"1. Viewer access","open":true,"fields":["enabled","rewardId","kickRewardId","commandName"],"notice":"Create one Free Games reward on Twitch and Kick, then paste each stable reward ID. Create the no-response command only for YouTube and TikTok through Command Sync. Existing platform intake actions receive all four paths."},{"id":"guide","title":"2. Send viewers to Discord","open":true,"fields":["discordInviteUrl","guideMessage","guideCooldownMinutes"],"notice":"When a matching reward or command arrives, StreamBridge replies only in that source chat. The cooldown prevents command spam. Use {name} and {discord} in the editable message."},{"id":"discord","title":"3. Post the free-game list to Discord","fields":["discordEnabled","discordDestinationMode","discordThreadId","discordThreadName","discordWebhookName"],"notice":"Import and approve Discord Deliver only when this is enabled. Keep the private webhook in Streamer.bot; never paste it into the wizard."},{"id":"schedule","title":"4. Automatic announcements","fields":["deliveryPlatforms","refreshMinutes","maximumPostsPerRefresh","announceInitial"],"notice":"Automatic full game links in chat remain optional. The first scan is silent by default so installing the add-on cannot flood chat or Discord."}],"fields":{}}
+{
+  "intro": "Checks the public GamerPower feed only after a valid viewer redemption. Twitch and Kick use rewards; YouTube and TikTok spend Viewer Foundation points.",
+  "order": ["enabled", "rewardId", "kickRewardId", "commandName", "pointsCost", "discordInviteUrl", "guideMessage", "noGamesMessage", "unavailableMessage", "discordEnabled", "maximumPostsPerRefresh", "discordDestinationMode", "discordThreadId", "discordThreadName", "discordWebhookName"],
+  "sections": [
+    {
+      "id": "access",
+      "title": "1. Redemption access",
+      "open": true,
+      "fields": ["enabled", "rewardId", "kickRewardId", "commandName", "pointsCost"],
+      "notice": "There is no timer. A matching live Twitch or Kick reward, or YouTube or TikTok points command, starts one lookup. Twitch can refund pending rewards; Kick currently cannot. YouTube and TikTok use Viewer Foundation points."
+    },
+    {
+      "id": "responses",
+      "title": "2. Chat responses",
+      "open": true,
+      "fields": ["discordInviteUrl", "guideMessage", "noGamesMessage", "unavailableMessage"],
+      "notice": "When games exist, only the source chat receives the short Discord guide. When none exist or lookup fails, the source chat receives the matching message and supported points are refunded automatically."
+    },
+    {
+      "id": "discord",
+      "title": "3. Keep Discord current",
+      "fields": ["discordEnabled", "maximumPostsPerRefresh", "discordDestinationMode", "discordThreadId", "discordThreadName", "discordWebhookName"],
+      "notice": "Each redemption can add a bounded number of newly discovered games to Discord. Already confirmed games are not posted again. Keep the private webhook only in Streamer.bot."
+    }
+  ],
+  "fields": {}
+}

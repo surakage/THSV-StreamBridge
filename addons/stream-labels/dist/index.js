@@ -171,7 +171,7 @@ function overlayPayload(state, settings, preview = false) {
   };
 }
 async function publish(state, settings, context, preview = false) {
-  await context.overlay.publish(`${MODULE_ID}.labels.update`, overlayPayload(state, settings, preview));
+  await context.overlay.publish(`${MODULE_ID}.labels.update`, overlayPayload(state, settings, preview), { lane: preview ? 'preview' : 'persistent' });
 }
 export async function processStreamLabelEvent(event, context, now = Date.now()) {
   const settings = settingsFor(context);

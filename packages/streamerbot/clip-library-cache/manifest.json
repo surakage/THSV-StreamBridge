@@ -4,7 +4,7 @@
   "version": "3.5.0",
   "author": "surakage",
   "description": "Fetches one bounded shared Twitch clip metadata snapshot so optional clip add-ons do not repeat the same lookup.",
-  "minimumStreamerBotVersion": "1.0.5-beta.1",
+  "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
       "id": "6d957f70-37fa-47d9-aa42-36f54fdb034c",

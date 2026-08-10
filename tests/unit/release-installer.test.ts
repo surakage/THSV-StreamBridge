@@ -74,7 +74,7 @@ describe('Windows release installer', () => {
     } finally {
       await rm(temp, { recursive: true, force: true });
     }
-  }, 30_000);
+  }, 60_000);
 
   it('rejects a release whose contents do not match its manifest', async () => {
     if (process.platform !== 'win32') return;

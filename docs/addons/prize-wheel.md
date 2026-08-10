@@ -16,7 +16,7 @@ Runs a creator-controlled equal-slice wheel with natural OBS animation, bounded 
 ### Add-on-specific steps
 
 1. Add the hosted Prize Wheel browser source to OBS, Meld, or Streamlabs.
-2. Create a no-response spinwheel command in Command Sync and restrict it to moderators or the broadcaster.
+2. Choose the spin command in the wizard. It registers automatically for moderators and the broadcaster after restart.
 3. Enter two through ten unique wheel choices, choose chat destinations, save, enable, and send a preview.
 
 ## Streamer.bot
@@ -50,4 +50,4 @@ Dependencies: none.
 
 1. Uninstalling preserves only the last bounded spin timestamp and winning choice.
 
-If setup drifts, inspect the main THSV intake actions in the wizard, restore the documented Command Sync templates or settings, then rerun the offline test.
+If setup drifts, inspect the main THSV intake actions in the wizard, verify the saved add-on command settings, restart StreamBridge, then rerun the offline test.

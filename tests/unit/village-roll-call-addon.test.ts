@@ -43,7 +43,10 @@ describe('Village Roll Call add-on', () => {
     expect(repeat).toMatchObject({ accepted: false, reason: 'already-checked-in' });
     expect(nextDay).toMatchObject({ accepted: true, count: 2 });
     expect(runtime.chat).toHaveLength(3);
-    expect(runtime.overlays.at(-1)).toMatchObject({ topic: 'thsv.village-roll-call.card.show' });
+    expect(runtime.overlays.at(-1)).toMatchObject({
+      topic: 'thsv.village-roll-call.card.show',
+      payload: { cardKind: 'village-roll-call', mode: 'leaderboard', monthLabel: 'July 2026' },
+    });
   });
 
   it('rolls monthly scores forward, announces the winner, and never persists simulations', async () => {

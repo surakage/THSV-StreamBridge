@@ -186,7 +186,7 @@ try {
         'discord-chat-archive.md', 'future-add-ons.md', 'future-projects-and-addons.md', 'getting-started.md', 'kofi-donations.md', 'module-system.md',
         'product-scope.md', 'production-readiness.md', 'quote-vault.md', 'release-candidate-status.md', 'release.md', 'rewards.md', 'scene-actions.md', 'security.md', 'setup.md', 'setup-for-beginners.md',
         'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
-        'starting-soon-countdown.md', 'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md', 'version-3-migration.md', 'live-test-checklist.md', 'viewer-foundation.md'
+        'ad-break-companion.md', 'starting-soon-countdown.md', 'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md', 'version-3-migration.md', 'live-test-checklist.md', 'viewer-foundation.md'
     )
     foreach ($document in $releaseDocs) {
         Copy-Item -LiteralPath (Join-Path $repo "docs\$document") -Destination (Join-Path $appRoot 'docs')

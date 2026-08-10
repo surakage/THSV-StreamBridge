@@ -16,7 +16,7 @@ describe('Multi-Chat contract', () => {
     ['tiktok-tikfinity-chat.json', 'tiktok'],
   ])('projects %s into one platform-neutral contract', async (fixtureName, platform) => {
     const projected = projectMultiChatMessage(await chatFixture(fixtureName));
-    expect(projected).toMatchObject({ contractVersion: '1.1.0', sequence: 1, visibility: 'public', platform, simulated: true });
+    expect(projected).toMatchObject({ contractVersion: '1.2.0', sequence: 1, visibility: 'public', platform, simulated: true });
     expect(projected?.message).toBeTypeOf('string');
     expect(projected?.user.displayName).not.toBe('');
   });
@@ -33,6 +33,17 @@ describe('Multi-Chat contract', () => {
       user: { ...event.user, roles: ['Broadcaster', 'MOD', 'Member'] },
     });
     expect(projected?.user).toMatchObject({ isBroadcaster: true, isModerator: true, isSubscriber: true });
+  });
+
+  it('preserves validated emote fragments and rejects untrusted image hosts', async () => {
+    const event = await chatFixture();
+    const projected = projectMultiChatMessage({ ...event, payload: { message: 'Hello Kappa', fragments: [
+      { type: 'text', text: 'Hello ' },
+      { type: 'emote', name: 'Kappa', imageUrl: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0', provider: 'twitch' },
+    ] } });
+    expect(projected?.fragments).toHaveLength(2);
+    const fallback = projectMultiChatMessage({ ...event, payload: { message: 'Bad', fragments: [{ type: 'emote', name: 'Bad', imageUrl: 'https://example.com/bad.png', provider: 'unknown' }] } });
+    expect(fallback?.fragments).toEqual([{ type: 'text', text: 'Bad' }]);
   });
 
   it('ignores non-chat event types', async () => {

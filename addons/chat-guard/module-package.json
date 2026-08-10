@@ -31,6 +31,7 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "chat.message",
+      "command.received",
       "addon.thsv.chat-guard.moderation-result",
       "addon.thsv.chat-guard.trusted-account-request"
     ],
@@ -57,9 +58,9 @@
     ],
     "installationSteps": [
       "Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.",
-      "Import the matching Chat Guard Streamer.bot package. Leave Moderate enabled and triggerless. Review the disabled !guardtrust command before enabling it.",
+      "Import the matching Chat Guard Streamer.bot package. Leave both helpers triggerless; the legacy !guardtrust Command object may remain disabled.",
       "Use the rule tester and privacy-safe moderation dashboard. Filter incidents and label false positives before changing enforcement rules.",
-      "To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator, then refresh Trusted viewers in the wizard.",
+      "To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator. The main chat intake registers it automatically after restart.",
       "Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance."
     ],
     "uninstallationSteps": [
@@ -78,13 +79,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 33022,
-      "sha256": "504d11b71af10f2af2731c8f933748c2500398d9efa8d4dd4c60dcbaf6113a7c"
+      "size": 34275,
+      "sha256": "19b69f12601fdb9ecb0893f390178155790e82cb1c5861e4c7a8faab516ea9d7"
     },
     {
       "path": "schemas/config.json",
-      "size": 7602,
-      "sha256": "957995b804202b3afe1f2e882cb41605b5bb5f04899c320e80c07e8e7f8469d5"
+      "size": 8049,
+      "sha256": "d12a7ec3f94ba69d91d23e113ebf425ecf85f8eb831676bd2bdefa8bf36806f0"
     },
     {
       "path": "ui/settings.json",
