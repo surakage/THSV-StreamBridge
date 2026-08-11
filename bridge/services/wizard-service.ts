@@ -28,6 +28,7 @@ import type { ReleaseUpdateService, ReleaseUpdateStatus, StagedReleaseUpdate } f
 import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
 import { REWARD_BLUEPRINTS, REWARD_PLATFORM_POLICY } from '../core/reward-blueprints.js';
+import type { StreamerBotLauncherService } from './streamerbot-launcher-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -152,6 +153,7 @@ export class WizardService {
     private readonly addOns?: AddOnWizardService,
     private readonly updates?: ReleaseUpdateService,
     private readonly addOnUpdates?: AddOnUpdateService,
+    private readonly streamerBotLauncher?: StreamerBotLauncherService,
   ) {}
 
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
@@ -407,6 +409,74 @@ export class WizardService {
     return this.configuration.export();
   }
 
+  public async streamerBotLauncherStatus(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return { ...await this.streamerBotLauncher.status() };
+  }
+
+  public async detectStreamerBotLauncher(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return this.streamerBotLauncher.detect();
+  }
+
+  public async saveStreamerBotLauncher(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    if (typeof request['executable'] !== 'string' || request['executable'].trim().length === 0) throw new WizardTransactionError(400, 'A Streamer.bot.exe path is required.');
+    return { ...await this.streamerBotLauncher.save(request['executable']) };
+  }
+
+  public async chooseStreamerBotLauncher(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return { ...await this.streamerBotLauncher.choose() };
+  }
+
+  public async saveOptionalStreamingApplication(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    const application = optionalStreamingApplication(request['application']);
+    if (typeof request['executable'] !== 'string' || request['executable'].trim().length === 0) throw new WizardTransactionError(400, 'An application executable path is required.');
+    return { ...await this.streamerBotLauncher.saveOptionalApplication(application, request['executable'], request['enabled'] !== false) };
+  }
+
+  public async chooseOptionalStreamingApplication(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return { ...await this.streamerBotLauncher.chooseOptionalApplication(optionalStreamingApplication(request['application'])) };
+  }
+
+  public async enableOptionalStreamingApplication(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    if (typeof request['enabled'] !== 'boolean') throw new WizardTransactionError(400, 'enabled must be true or false.');
+    return { ...await this.streamerBotLauncher.setOptionalApplicationEnabled(optionalStreamingApplication(request['application']), request['enabled']) };
+  }
+
+  public async startStreamerBotSafely(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return this.streamerBotLauncher.start();
+  }
+
+  public async startAllStreamingTools(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return this.streamerBotLauncher.startAllStreamingTools();
+  }
+
+  public async createStreamerBotDesktopShortcut(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return this.streamerBotLauncher.createDesktopShortcut();
+  }
+
+  public openStreamBridgeInstallFolder(input: unknown): Readonly<Record<string, unknown>> {
+    approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return this.streamerBotLauncher.openInstallFolder();
+  }
+
   public async listAddOns(): Promise<readonly WizardAddOnSummary[]> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.list();
@@ -531,6 +601,7 @@ export class WizardService {
       commandSync: this.commandSyncStore?.status(),
       addOns: this.addOns?.diagnostics(),
       updates: { configured: this.updates !== undefined, addOnsConfigured: this.addOnUpdates !== undefined },
+      streamerBotLauncher: { configured: this.streamerBotLauncher !== undefined },
     };
   }
 }
@@ -550,6 +621,18 @@ function parseCommandVerificationInputs(value: unknown): CommandVerificationEntr
   const commands = (value as Record<string, unknown>)['commands'];
   if (!Array.isArray(commands)) throw new InvalidCommandDesignError('commands is required and must be an array.');
   return commands.map((entry) => parseCommandVerificationEntry(entry));
+}
+
+function approvedLauncherRequest(input: unknown): Record<string, unknown> {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) throw new WizardTransactionError(400, 'Safe launcher request must be a JSON object.');
+  const record = input as Record<string, unknown>;
+  if (record['approvedByCreator'] !== true) throw new WizardTransactionError(403, 'This launcher change requires explicit creator approval.');
+  return record;
+}
+
+function optionalStreamingApplication(value: unknown): 'obs' | 'speakerbot' {
+  if (value !== 'obs' && value !== 'speakerbot') throw new WizardTransactionError(400, 'application must be obs or speakerbot.');
+  return value;
 }
 
 function parseCommandVerificationEntry(value: unknown): CommandVerificationEntryInput {

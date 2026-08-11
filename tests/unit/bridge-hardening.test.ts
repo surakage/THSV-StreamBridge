@@ -62,12 +62,22 @@ describe('StreamBridge hardening', () => {
     await bridge.stop();
   });
 
-  it('rejects malformed configured commands readably without poisoning deduplication', async () => {
+  it('keeps malformed configured commands inert without discarding their public chat event', async () => {
     const bridge = createTestBridge(await testConfig());
     await bridge.start();
     const event = await fixture();
-    await expect(bridge.simulate({ ...event, payload: { message: '!ping "open' } })).rejects.toThrow('Event validation failed');
-    await expect(bridge.simulate({ ...event, payload: { message: '!ping fixed' } })).resolves.toMatchObject({
+    const malformed = await bridge.simulate({ ...event, payload: { message: '!ping "open' } });
+    expect(malformed).toMatchObject({
+      duplicate: false,
+      eventId: event.eventId,
+    });
+    expect(malformed.derivedEventIds).toBeUndefined();
+    await expect(bridge.simulate({
+      ...event,
+      eventId: `${event.eventId}-fixed`,
+      source: { ...event.source, eventId: `${event.source.eventId ?? event.eventId}-fixed` },
+      payload: { message: '!ping fixed' },
+    })).resolves.toMatchObject({
       duplicate: false,
       derivedEventIds: [expect.stringMatching(/^command-/)],
     });

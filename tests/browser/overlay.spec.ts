@@ -63,6 +63,36 @@ async function installAddOnOverlayTransport(page: Page): Promise<void> {
   });
 }
 
+test('wizard presents the safe Streamer.bot launcher as a guided connection workflow', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.getByLabel('Control token').fill(token);
+  await page.locator('#login-form button').click();
+  await page.locator('[data-view="streamerbot"]').click();
+  await expect(page.getByRole('heading', { name: 'Safe Streamer.bot launcher' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Detect automatically' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Choose Streamer.bot.exe' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start all streaming tools' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start Streamer.bot only' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Optional one-button apps' })).toBeVisible();
+  await expect(page.getByLabel('OBS executable')).toBeVisible();
+  await expect(page.getByLabel('Speaker.bot executable')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Create one-button desktop shortcut' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open installed folder' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy Stream Deck target' })).toBeVisible();
+  await expect(page.getByLabel('Stream Deck one-button target')).toHaveAttribute('readonly', '');
+  await expect(page.locator('#streamerbot-launcher-state')).toContainText(/Safe launcher|Streamer\.bot/u);
+  await page.locator('[data-view="overview"]').click();
+  await expect(page.getByRole('button', { name: 'Download recovery key' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy control token' })).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download recovery key' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('THSV StreamBridge Recovery Key.txt');
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  expect(await readFile(downloadPath, 'utf8')).toContain(`Control token: ${token}`);
+});
+
 async function publishViewerSpotlightCard(page: Page, payload: Record<string, unknown>): Promise<void> {
   await page.evaluate((cardPayload) => window.__thsvPublishAddOnEvent?.({
     contractVersion: 'thsv-addon-overlay-v1',

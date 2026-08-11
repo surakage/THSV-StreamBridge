@@ -57,6 +57,10 @@ The normal launcher and `npm run dev` safely replace another tracked THSV Stream
 
 Open `http://127.0.0.1:8787/diagnostics`. Disabled adapters do not block readiness. Any enabled adapter that is not connected, a deferred placeholder, or an output crossing its delivery-failure threshold blocks readiness.
 
+If Streamer.bot reports that its WebSocket port is already in use after a quick close and reopen, open **Streamer.bot connection** in the wizard and select the portable `Streamer.bot.exe`, then use **Start Streamer.bot only**. Use **Start all streaming tools**, the generated **Start THSV Streaming Tools** desktop shortcut, or the Stream Deck target for ordinary startup; all three use the same complete flow and start enabled optional apps. The guarded launcher reads the active WebSocket port instead of assuming `8081`, serializes repeated clicks, waits up to 30 seconds for a recently closed listener to release, repairs a running Streamer.bot session that never opened its WebSocket server, and verifies that the listener belongs to the selected executable. An unrelated owner is reported by name and PID and is never terminated automatically.
+
+If Streamer.bot was moved, the wizard reports **File missing**. Choose the executable again; reinstalling StreamBridge is unnecessary. If another application owns the port, close or reconfigure that application deliberately. The launcher will not guess which program may be terminated.
+
 `health.ps1` reports not-ready responses without dumping a PowerShell web exception.
 
 ## Streamer.bot is unavailable
@@ -72,6 +76,10 @@ Check Streamer.bot Action History in this order:
 3. The relevant `THSV StreamBridge - Multi-Chat` or `THSV StreamBridge - Multi-Alerts` child should run once.
 
 Attach platform triggers only to intake actions. Keep Core Receiver and all `Multi-*` actions triggerless; add the `Multi-*` actions as immediate **Run Action** children under Core Receiver. If the intake runs but no receiver follows, confirm the platform is enabled in the wizard and the Streamer.bot WebSocket URL matches `127.0.0.1:8080/`. See [Streamer.bot setup](streamerbot-setup.md).
+
+## Streamer.bot logs BTTV, FFZ, or 7TV channel errors
+
+Streamer.bot may log `NotFound`, `BadRequest`, or "room not found" while its native emote handlers check a creator channel that has no channel-specific catalog with that provider. This does not mean StreamBridge chat delivery failed. StreamBridge fetches provider catalogs independently, keeps any available global catalog, and leaves the original emote code readable when a channel endpoint or image is unavailable. Do not disable native Twitch or YouTube emotes merely to hide these startup lines. Treat the message as actionable only when an emote the channel actually enabled fails the live-test checklist.
 
 ## An add-on is rejected after an update
 

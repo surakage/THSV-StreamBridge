@@ -263,6 +263,59 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.inspect());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/streamerbot-launcher' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.streamerBotLauncherStatus());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/detect' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.wizard.detectStreamerBotLauncher());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/save' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4_096);
+        return this.reply(response, 200, await this.wizard.saveStreamerBotLauncher(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/choose' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.chooseStreamerBotLauncher(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/optional/save' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4_096);
+        return this.reply(response, 200, await this.wizard.saveOptionalStreamingApplication(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/optional/choose' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.chooseOptionalStreamingApplication(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/optional/enable' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.enableOptionalStreamingApplication(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/start' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.startStreamerBotSafely(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/start-all' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.startAllStreamingTools(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/shortcut' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.createStreamerBotDesktopShortcut(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/open-folder' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, this.wizard.openStreamBridgeInstallFolder(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/transactions' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 201, await this.wizard.beginTransaction());

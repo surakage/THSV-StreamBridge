@@ -205,9 +205,22 @@ export class StreamBridge {
     let derivedCommand: NormalizedEvent | undefined;
     try { derivedCommand = initialFilterDecision.commandBlocked ? undefined : deriveCommandEvent(validatedEvent, this.effectiveCommands.config); }
     catch (error) {
-      this.deduplicator.forget(validatedEvent);
-      if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
-      throw error;
+      if (error instanceof InvalidMultiCommandError && validatedEvent.eventType === 'chat.message') {
+        // A malformed public command must never discard the underlying chat message. Keep the
+        // command inert, but continue publishing the original event to chat, archives, and other
+        // non-command consumers. This is especially important for ordinary sentences beginning
+        // with an exclamation mark or messages containing an unmatched quotation mark.
+        this.logger.info('Malformed chat command ignored while preserving the chat event', {
+          eventId: validatedEvent.eventId,
+          platform: validatedEvent.platform,
+          reason: error.message,
+        });
+        derivedCommand = undefined;
+      } else {
+        this.deduplicator.forget(validatedEvent);
+        if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
+        throw error;
+      }
     }
     const events = [withBridgeSequence(validatedEvent, ++this.nextSequence)];
     if (derivedCommand !== undefined) {

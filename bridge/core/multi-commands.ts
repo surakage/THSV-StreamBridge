@@ -63,10 +63,17 @@ export function parseCommandInput(
     throw new InvalidMultiCommandError(`Command input exceeds ${String(MULTI_COMMANDS_MAX_INPUT_LENGTH)} characters.`);
   }
 
-  const tokens = tokenizeCommand(normalized.slice(prefix.length));
-  if (tokens.length === 0) throw new InvalidMultiCommandError('Command name is missing.');
-  const invokedAs = normalizeCommandName(tokens[0] ?? '');
   const index = buildCommandIndex(definitions);
+  const commandInput = normalized.slice(prefix.length);
+  const rawInvokedAs = commandInput.split(/\s/u, 1)[0] ?? '';
+  if (rawInvokedAs === '') throw new InvalidMultiCommandError('Command name is missing.');
+  const invokedAs = normalizeCommandName(rawInvokedAs);
+  // Unknown exclamation-prefixed chat is not part of StreamBridge's command surface. Avoid
+  // interpreting the rest of that ordinary message as command syntax, so unmatched quotes or
+  // escapes cannot cause an otherwise valid chat event to be rejected.
+  if (!index.has(invokedAs)) return undefined;
+  const tokens = tokenizeCommand(commandInput);
+  if (tokens.length === 0) throw new InvalidMultiCommandError('Command name is missing.');
   const definition = index.get(invokedAs);
   if (definition === undefined) return undefined;
   const args = tokens.slice(1);

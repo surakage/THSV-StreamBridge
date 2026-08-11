@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeStreamerBotPlatformRelay } from '../../bridge/adapters/streamerbot-native-adapter.js';
+import { describeStreamerBotRelayRejection, normalizeStreamerBotPlatformRelay } from '../../bridge/adapters/streamerbot-native-adapter.js';
 
 function relay(platform: 'twitch' | 'youtube' | 'kick', sourceEventType: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -14,6 +14,26 @@ function relay(platform: 'twitch' | 'youtube' | 'kick', sourceEventType: string,
 }
 
 describe('native Streamer.bot platform relay adapter', () => {
+  it('logs bounded rejection context without viewer content, platform IDs, or relay secrets', () => {
+    const input = relay('twitch', 'TwitchRewardRedemption', {
+      relayId: 'one-use-relay-secret', sourceEventId: '', userName: 'private-viewer', message: 'private chat text',
+      argumentKeys: ['rewardId', 'redemptionId'], unexpected: 'rejected strict field',
+    });
+    let rejection: unknown;
+    try { normalizeStreamerBotPlatformRelay(input); } catch (error) { rejection = error; }
+    const diagnostics = describeStreamerBotRelayRejection(input, rejection);
+    expect(diagnostics).toMatchObject({
+      sourceEventType: 'TwitchRewardRedemption', sourceEventIdPresent: false,
+      argumentKeyCount: 2, argumentKeys: ['rewardId', 'redemptionId'],
+    });
+    expect(diagnostics['validationIssues']).toEqual(expect.arrayContaining([expect.objectContaining({ path: '(root)', code: 'unrecognized_keys' })]));
+    const serialized = JSON.stringify(diagnostics);
+    expect(serialized).not.toContain('one-use-relay-secret');
+    expect(serialized).not.toContain('private-viewer');
+    expect(serialized).not.toContain('private chat text');
+    expect(diagnostics['relayFingerprint']).toMatch(/^[a-f0-9]{12}$/u);
+  });
+
   it('hashes a composed source identity that would exceed the normalized event limit', () => {
     const event = normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchChatMessage', { sourceEventId: 'r'.repeat(256), message: 'bounded' }));
     expect(event.eventId).toMatch(/^streamerbot-twitch-sha256-[a-f0-9]{64}$/u);

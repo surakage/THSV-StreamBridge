@@ -9,11 +9,35 @@ import { AddOnWizardService } from '../../bridge/services/addon-wizard-service.j
 import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { StreamerBotLauncherService } from '../../bridge/services/streamerbot-launcher-service.js';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
 
 describe('wizard HTTP surface', () => {
+  it('protects and persists the public safe Streamer.bot launcher selection', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-launcher-http-')); const dataRoot = join(root, 'data');
+    const executable = join(root, 'portable', 'Streamer.bot.exe'); await mkdir(join(root, 'portable'), { recursive: true }); await writeFile(executable, 'test');
+    const obs = join(root, 'obs64.exe'); await writeFile(obs, 'test');
+    const config = await testConfig(); config.service.port = 0;
+    const bridge = createTestBridge(config); const launcher = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/');
+    const wizard = new WizardService(undefined, undefined, undefined, undefined, undefined, undefined, launcher);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard, dataRoot);
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`; const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    expect((await fetch(`${baseUrl}/wizard/api/streamerbot-launcher`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/streamerbot-launcher`, { headers })).status).toBe(200);
+    const denied = await fetch(`${baseUrl}/wizard/api/streamerbot-launcher/save`, { method: 'POST', headers, body: JSON.stringify({ executable, approvedByCreator: false }) });
+    expect(denied.status).toBe(403);
+    const saved = await fetch(`${baseUrl}/wizard/api/streamerbot-launcher/save`, { method: 'POST', headers, body: JSON.stringify({ executable, approvedByCreator: true }) });
+    expect(saved.status).toBe(200); expect(await saved.json()).toMatchObject({ configured: true, executable, websocketPort: 65534, state: 'stopped' });
+    const optionalSaved = await fetch(`${baseUrl}/wizard/api/streamerbot-launcher/optional/save`, { method: 'POST', headers, body: JSON.stringify({ application: 'obs', executable: obs, enabled: true, approvedByCreator: true }) });
+    expect(optionalSaved.status).toBe(200); expect(await optionalSaved.json()).toMatchObject({ optionalApps: { obs: { configured: true, enabled: true, executable: obs } } });
+    const optionalDisabled = await fetch(`${baseUrl}/wizard/api/streamerbot-launcher/optional/enable`, { method: 'POST', headers, body: JSON.stringify({ application: 'obs', enabled: false, approvedByCreator: true }) });
+    expect(optionalDisabled.status).toBe(200); expect(await optionalDisabled.json()).toMatchObject({ optionalApps: { obs: { configured: true, enabled: false } } });
+  });
+
   it('previews and digest-locks a creator-approved Viewer Foundation legacy migration', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-viewer-migration-'));
     await mkdir(join(root, 'state'), { recursive: true });

@@ -1,7 +1,7 @@
 import { createServer } from 'node:net';
 import { WebSocketServer } from 'ws';
 import { describe, expect, it } from 'vitest';
-import { StreamerBotAdapter } from '../../bridge/adapters/streamerbot-adapter.js';
+import { shouldLogConnectionWarning, StreamerBotAdapter } from '../../bridge/adapters/streamerbot-adapter.js';
 import { fixture, platformConfig, silentLogger, testConfig } from '../helpers.js';
 import { StreamerBotEventRelay } from '../../bridge/adapters/streamerbot-event-relay.js';
 import { StreamerBotAddOnRelayAdapter } from '../../bridge/adapters/streamerbot-addon-relay-adapter.js';
@@ -25,6 +25,11 @@ async function unusedPort(): Promise<number> {
 }
 
 describe('Streamer.bot adapter', () => {
+  it('rate-limits repeated offline warnings while preserving periodic visibility', () => {
+    expect(shouldLogConnectionWarning(0, 1_000)).toBe(true);
+    expect(shouldLogConnectionWarning(1_000, 60_999)).toBe(false);
+    expect(shouldLogConnectionWarning(1_000, 61_000)).toBe(true);
+  });
   it('rejects a challenge-free Hello when a peer password is configured', async () => {
     const config = await testConfig();
     const port = await unusedPort();

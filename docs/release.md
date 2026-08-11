@@ -37,7 +37,7 @@ THSV StreamBridge/
   addons/state/         private add-on settings and state
 ```
 
-The installer generates a random 256-bit control token for a new installation, restricts the installation to the current Windows user where supported, starts the bridge, waits for its loopback health endpoint, and opens the authenticated setup wizard through a 60-second single-use unlock ticket. A different installation receives a different token. Upgrading preserves the existing installation's token so saved local setup continues working.
+The installer generates a random 256-bit control token for a new installation, saves a protected `THSV StreamBridge Recovery Key.txt` in the installed folder, restricts both copies to the current Windows user where supported, starts the bridge, waits for its loopback health endpoint, and opens the authenticated setup wizard through a 60-second single-use unlock ticket. A different installation receives a different token. Upgrading preserves the existing installation's token and refreshes its recovery file so saved local setup continues working. The installer reports the recovery-file path without printing the token itself.
 
 If automatic launch is not wanted, run the extracted installer from a terminal with `--no-start`. `--install-root <path>` selects a safe alternative destination. These switches are primarily for managed or test installations; the normal public flow is the root install command.
 
@@ -48,6 +48,8 @@ After installation, complete the [Streamer.bot setup](streamerbot-setup.md) befo
 Use these launchers in the installation root (`%LOCALAPPDATA%\THSV StreamBridge`), or run **THSV StreamBridge - Open Setup Wizard** directly in Streamer.bot:
 
 - `Start THSV StreamBridge.cmd`
+- `Start THSV Streamer.bot Safely.cmd`
+- `Start THSV Streaming Tools.cmd`
 - `Stop THSV StreamBridge.cmd`
 - `Open THSV Setup Wizard.cmd`
 - `Uninstall THSV StreamBridge.cmd`
@@ -62,11 +64,15 @@ Each `.cmd` launcher stays open long enough to show the final result. If a launc
 & "$env:LOCALAPPDATA\THSV StreamBridge\runtime\node.exe" "$env:LOCALAPPDATA\THSV StreamBridge\launcher\start.mjs" --open-wizard
 ```
 
+The installer keeps launchers and the protected recovery key inside the managed installation and does not add automatic Desktop shortcuts. Stream Deck users can assign **System → Open** directly to `Start THSV Streaming Tools.cmd` in the installed folder. The command self-closes after success and pauses only on failure. Upgrades remove the two older installer-created **THSV StreamBridge Folder** and **THSV Streaming Tools** shortcuts when they still point at the same managed installation.
+
 ## Upgrade and rollback
 
 Run the newer release's root installer. It refuses a downgrade by default, stages and re-verifies the new release, keeps the current version as `previousVersion`, activates the new version, and runs a health check. If startup health fails, the activation record is restored to the previous version.
 
 Creator-owned `data/` and `addons/state/` directories are not part of a version swap. Old application versions beyond the active and previous versions are cleaned after a successful installation. A deliberate downgrade requires `--allow-downgrade` and should be preceded by an external copy of both creator-owned directories because older code may not understand newer state.
+
+The safe launcher stores its creator-selected Streamer.bot executable and optional, opt-in OBS Studio and Speaker.bot executable locations in `data/configuration/streamerbot-launcher.json`. Version 1 launcher settings migrate in place when an optional app is first saved. The installer preserves this file and refreshes the launcher code during upgrades. Newly launched optional apps receive a bounded 1.5-second process-stability check before Streamer.bot starts. These applications are never bundled, downloaded, updated, closed, or modified by StreamBridge; optional startup failures are warnings and do not block core readiness.
 
 Release `2.3.1` and later retry bounded transient Windows `EACCES`, `EBUSY`, `ENOTEMPTY`, and `EPERM` file-lock failures during activation. Close any File Explorer, editor, or antivirus scan holding the old application directory if the bounded retry still fails, then rerun the installer.
 

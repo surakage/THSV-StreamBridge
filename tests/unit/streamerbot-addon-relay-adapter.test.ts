@@ -227,9 +227,10 @@ describe('Streamer.bot add-on relay adapter', () => {
   });
 
   it('permits only exact action-matched Raid Scout creator controls and provider stop confirmation', () => {
-    for (const action of ['suggest', 'confirm', 'cancel', 'broadcast-stopped']) {
+    for (const action of ['suggest', 'finish', 'confirm', 'cancel', 'broadcast-stopped']) {
       const sourceEventType = action === 'broadcast-stopped'
         ? 'THSV Addon - Raid Scout - Broadcast Stopped'
+        : action === 'finish' ? 'THSV Addon - Raid Scout - Finish Stream'
         : `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
       expect(normalizeStreamerBotAddOnRelay(relay({
         moduleId: 'thsv.raid-scout',

@@ -8,7 +8,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'tools/dev.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs'] },
+        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'tools/dev.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -19,11 +19,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'tools/dev.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs'],
+    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'tools/dev.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       ...tseslint.configs.disableTypeChecked.languageOptions,
-      globals: { AbortSignal: 'readonly', clearInterval: 'readonly', fetch: 'readonly', process: 'readonly', setInterval: 'readonly', setTimeout: 'readonly' },
+      globals: { AbortSignal: 'readonly', clearInterval: 'readonly', fetch: 'readonly', process: 'readonly', setInterval: 'readonly', setTimeout: 'readonly', structuredClone: 'readonly' },
     },
   },
 );

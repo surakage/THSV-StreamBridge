@@ -21,11 +21,17 @@ For a public installation, Shutdown Bridge runs `launcher\stop.mjs`; for a sourc
 
 The lifecycle actions verify the selected install folder and required launcher files before starting anything. Exceptions are logged by type without exposing creator paths or command output.
 
-Launch Bridge checks `/ready` before showing green. Check Connections always shows the current result. Monitor Connections checks the same endpoint but only shows a grouped Windows toast on a transition: first status, disconnected or degraded, or recovered. Disabled adapters are treated as intentionally unavailable, not broken.
+Launch Bridge checks `/ready` before showing green. Check Connections always shows the current result. Monitor Connections checks the same endpoint but only shows a grouped Windows toast on a transition: first status, disconnected or degraded, recovered, or an optional-app status change. Disabled adapters are treated as intentionally unavailable, not broken.
+
+The status message also reports whether Streamer.bot is connected to its primary OBS connection and whether a local Speaker.bot process is running. These are advisory checks: an offline OBS instance or optional Speaker.bot installation is shown clearly but never changes healthy StreamBridge delivery to a failure. Speaker.bot may run on another computer, so the monitor deliberately says only whether a **local process** was detected rather than claiming that the integration socket is connected.
 
 Both actions wait for the launcher process to finish and check its exit code before reporting success — Launch Bridge allows up to 30 seconds (matching the launcher's own health-check window) and Shutdown Bridge up to 20 seconds. An action that only confirmed a process handle existed, without waiting for the launcher's own result, could report success even when the bridge failed to become healthy or failed to stop.
 
 No action creates, edits, deletes, enables, disables, or otherwise mutates another Streamer.bot object.
+
+## Stream Deck one-button startup
+
+The public installer keeps `Start THSV Streaming Tools.cmd` in `%LOCALAPPDATA%\THSV StreamBridge` without adding an automatic Desktop shortcut. Add a Stream Deck **System → Open** action and select that target. One press verifies or starts Streamer.bot first, then verifies or starts StreamBridge. If both are already ready, it exits without restarting them. The wizard's **Streamer.bot connection** page displays and copies the exact target for custom installation paths.
 
 ## Verification status
 

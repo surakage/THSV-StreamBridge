@@ -19,9 +19,10 @@ if (deleteEverything && !process.argv.includes('--confirm-delete-everything')) t
 const deferredCleanup = new Set();
 const stopResult = spawnSync(process.execPath, [join(installRoot, 'launcher', 'stop.mjs')], { stdio: 'inherit', timeout: 20_000 });
 if (stopResult.status !== 0) throw new Error(`StreamBridge could not be stopped safely; uninstall was cancelled before application files were removed.${stopResult.error ? ` ${stopResult.error.message}` : ''}`);
+removeConvenienceShortcuts();
 // The public uninstall wrapper removes itself after this process exits. Deleting the
 // currently executing batch file here makes cmd.exe report a false failure on return.
-for (const entry of ['app', 'runtime', 'launcher', 'Install THSV StreamBridge.cmd', 'Start THSV StreamBridge.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd']) await removeInstalledEntry(join(installRoot, entry));
+for (const entry of ['app', 'runtime', 'launcher', 'Install THSV StreamBridge.cmd', 'Start THSV StreamBridge.cmd', 'Start THSV Streamer.bot Safely.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd']) await removeInstalledEntry(join(installRoot, entry));
 if (deleteEverything) {
   if (!await removeInstalledEntry(installRoot)) throw new Error('Windows is holding installation data open. Nothing will be reported as fully deleted until every requested path is removed.');
   process.stdout.write('THSV StreamBridge and all creator data were removed.\n');
@@ -32,6 +33,22 @@ if (deleteEverything) {
   process.stdout.write(`THSV StreamBridge was removed. Creator data remains in ${join(installRoot, 'data')} and ${join(installRoot, 'addons')}.\n`);
 }
 if (deferredCleanup.size > 0) process.stdout.write(`Windows is still holding ${deferredCleanup.size} application path(s) open. The visible uninstaller will retry them after its window closes.\n`);
+
+function removeConvenienceShortcuts() {
+  if (process.platform !== 'win32') return;
+  const script = [
+    "$desktop = [Environment]::GetFolderPath('Desktop')",
+    '$shell = New-Object -ComObject WScript.Shell',
+    "foreach ($name in @('THSV StreamBridge Folder.lnk','THSV Streaming Tools.lnk','Start THSV Streaming Tools.lnk')) {",
+    '  $path = Join-Path $desktop $name',
+    '  if (-not (Test-Path -LiteralPath $path)) { continue }',
+    '  $shortcut = $shell.CreateShortcut($path)',
+    '  if ($shortcut.WorkingDirectory -eq $env:THSV_INSTALL_ROOT) { Remove-Item -LiteralPath $path -Force }',
+    '}',
+  ].join('; ');
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true, timeout: 10_000, env: { ...process.env, THSV_INSTALL_ROOT: installRoot } });
+  if (result.status !== 0) process.stderr.write('Warning: installed desktop shortcuts could not be removed automatically.\n');
+}
 
 // Antivirus scans, process shutdown, and terminals can retain Windows directory
 // handles. Remove unlocked children individually, record anything still held,

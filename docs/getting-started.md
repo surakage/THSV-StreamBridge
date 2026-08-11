@@ -38,7 +38,7 @@ The installer window stays open and reports success or failure. It installs to:
 %LOCALAPPDATA%\THSV StreamBridge
 ```
 
-It then creates a private local control token, starts the service, waits for the health check, and opens the authenticated setup wizard. Afterward, run **THSV StreamBridge - Open Setup Wizard** in Streamer.bot or use **Open THSV Setup Wizard** from the installation folder. Both create a short-lived, single-use local unlock link, so normal users never need to browse into `data/secrets` or copy the permanent token. Opening the wizard does not restart a healthy Bridge; if it is offline, the installed launcher starts it first. Manual token entry remains available only as an advanced recovery fallback.
+It then creates a private local control token, saves a protected `THSV StreamBridge Recovery Key.txt` in the installed folder, starts the service, waits for the health check, and opens the authenticated setup wizard. Afterward, run **THSV StreamBridge - Open Setup Wizard** in Streamer.bot or use **Open THSV Setup Wizard** from the installation folder. Both create a short-lived, single-use local unlock link, so normal users never need to browse into `data/secrets` or copy the permanent token. Opening the wizard does not restart a healthy Bridge; if it is offline, the installed launcher starts it first. Manual token entry remains available as an advanced recovery fallback, and the authenticated wizard can download another recovery-key copy.
 
 If Windows blocks the `.cmd` file, open PowerShell in the extracted folder and run the same installer directly through its bundled signed runtime:
 
@@ -47,6 +47,16 @@ If Windows blocks the `.cmd` file, open PowerShell in the extracted folder and r
 ```
 
 No administrator permission is normally required. See [Troubleshooting](troubleshooting.md#smart-app-control-blocks-the-installer) if the installation does not finish.
+
+### Connect the safe Streamer.bot launcher
+
+Open **Streamer.bot connection** in the setup wizard. Choose **Detect automatically** while Streamer.bot is running, or choose **Choose Streamer.bot.exe** and select the portable executable. StreamBridge saves only that local executable path and the WebSocket port already configured in the bridge. The setting lives under creator-owned `data/configuration`, so upgrades preserve it.
+
+Choose **Create one-button desktop shortcut** to add **Start THSV Streaming Tools** to the Windows desktop. It runs the same complete workflow as the Stream Deck target: enabled optional apps first, a short stabilization check for newly launched apps, then Streamer.bot and StreamBridge. Repeated launches are safe, and optional-app warnings never block core readiness. The guarded Streamer.bot step serializes repeated clicks, verifies the exact process that owns the configured WebSocket port, waits for a recently closed listener to release, and repairs an incomplete session through its normal window-close request. It never force-terminates an unrelated process.
+
+The installer keeps its launchers in the exact installed folder and does not add automatic Desktop shortcuts. In **Streamer.bot connection → Optional one-button apps**, you may select OBS Studio and Speaker.bot and enable either one for startup. They are disabled by default, never bundled, and never block Streamer.bot or StreamBridge if they are unavailable. For Stream Deck, add **System → Open** and select the **Stream Deck one-button target** shown in the wizard: `Start THSV Streaming Tools.cmd`. Repeated presses do not restart healthy services. Its console closes automatically after a successful launch and stays open only when a core tool needs attention. Use **Open installed folder** in the wizard whenever you need the recovery key or another launcher.
+
+The wizard reports a fully healthy launch in green, a healthy core launch with an optional OBS/Speaker.bot problem in amber, and a core startup failure in red. Amber never means StreamBridge delivery is blocked.
 
 ## 3. Prepare Streamer.bot
 
@@ -142,6 +152,8 @@ Do not look for optional add-on actions in the core `.sb` list. Each add-on deli
 Use the installed launchers:
 
 - `Start THSV StreamBridge.cmd` starts the active version and opens the wizard.
+- `Start THSV Streamer.bot Safely.cmd` starts only the selected portable Streamer.bot installation after checking its configured WebSocket port; use it for repair rather than ordinary full startup.
+- `Start THSV Streaming Tools.cmd` starts or verifies both Streamer.bot and StreamBridge; use it as the Stream Deck one-button target.
 - `Open THSV Setup Wizard.cmd` ensures the service is running and opens setup.
 - `Stop THSV StreamBridge.cmd` safely stops the managed instance.
 - `Uninstall THSV StreamBridge.cmd` removes the application while preserving creator data by default.

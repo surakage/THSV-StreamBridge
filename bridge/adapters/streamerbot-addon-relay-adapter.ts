@@ -176,9 +176,10 @@ function isCreatorControl(relay: AddOnRelay): boolean {
   }
   if (relay.moduleId === 'thsv.raid-scout' && relay.eventType === 'addon.thsv.raid-scout.control') {
     const action = relay.payload['action'];
-    if (action !== 'suggest' && action !== 'confirm' && action !== 'cancel' && action !== 'broadcast-stopped') return false;
+    if (action !== 'suggest' && action !== 'finish' && action !== 'confirm' && action !== 'cancel' && action !== 'broadcast-stopped') return false;
     const expectedSource = action === 'broadcast-stopped'
       ? 'THSV Addon - Raid Scout - Broadcast Stopped'
+      : action === 'finish' ? 'THSV Addon - Raid Scout - Finish Stream'
       : `THSV Addon - Raid Scout - ${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
     return relay.sourceEventType === expectedSource && Object.keys(relay.payload).length === 1;
   }

@@ -11,7 +11,11 @@ async function productionTextFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
   const files = await Promise.all(entries.map(async (entry): Promise<string[]> => {
     const path = join(root, entry.name);
-    if (entry.isDirectory()) return productionTextFiles(path);
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules') return [];
+      if (root === 'packages' && /^THSV-StreamBridge-\d/u.test(entry.name)) return [];
+      return productionTextFiles(path);
+    }
     if (entry.isFile() && textExtensions.has(extname(entry.name).toLowerCase())) return [path];
     return [];
   }));

@@ -17,8 +17,8 @@ Finds a safe live Twitch raid destination, retries bounded public clip previews,
 
 1. Import the separate Raid Scout Streamer.bot package.
 2. Keep its Controller action triggerless and approve that stable action ID as Raid Scout's fixed controller grant.
-3. Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.
-4. For optional automatic broadcast ending, attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld/Streamlabs users select their provider-native action. Attach Broadcast Stopped only to the provider's Streaming Stopped trigger.
+3. Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the one-press automatic path.
+4. For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld/Streamlabs users select their provider-native action. Attach Broadcast Stopped only to the provider's Streaming Stopped trigger.
 5. Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.
 6. For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.
 7. Configure preferred channels and filters, then test Suggest before enabling automatic mode.
@@ -32,15 +32,19 @@ Imported group: `THSV Addon - Raid Scout`
 
 - `THSV Addon - Raid Scout - Controller` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Suggest` in `THSV Addon - Raid Scout`
+- `THSV Addon - Raid Scout - Finish Stream` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Confirm` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Cancel` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Broadcast Stopped` in `THSV Addon - Raid Scout`
+- `THSV Addon - Raid Scout - Run Ending Ad` in `THSV Addon - Raid Scout`
+- `THSV Addon - Raid Scout - Stop All OBS Streaming Outputs` in `THSV Addon - Raid Scout`
 
-Controller must remain triggerless and is dispatched only through Raid Scout's approved stable action ID. Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Broadcast Stopped only confirms a provider stop signal and cannot stop a broadcast. Viewer suggestions arrive through the existing THSV Twitch Intake reward trigger, not a new Raid Scout trigger.
+Controller, Run Ending Ad, and Stop All OBS Streaming Outputs must remain triggerless and are dispatched only through Raid Scout's approved stable action IDs. Suggest begins the ending ad while Twitch is still live, then discovery and confirmation continue independently. The confirmed clip plays through completion before the raid starts. After Twitch accepts the raid, output stopping waits for the genuine Ad Run duration and its configured buffer. The OBS/Aitum helper requests Aitum RTMP, WHIP, FTL, and MPEG-TS outputs to stop and gives every secondary output one shared three-second confirmation window. OBS main is then stopped unconditionally, so an Aitum failure is reported but cannot hold the main broadcast online. Recording, replay buffer, and virtual camera remain untouched. Broadcast Stopped only confirms a provider stop signal and cannot stop a broadcast. Viewer suggestions arrive through the existing THSV Twitch Intake reward trigger, not a new Raid Scout trigger.
 
 Creator-selected triggers:
 
 - **suggest:** Attach only to a creator-controlled hotkey, deck button, or operator command.
+- **finish:** Attach only to a creator-controlled hotkey, deck button, or operator command for a one-press search, clip, raid, and end-broadcast flow.
 - **confirm:** Attach only to a creator-controlled hotkey, deck button, or operator command.
 - **cancel:** Attach only to a creator-controlled hotkey, deck button, or operator command.
 - **broadcastStopped:** Attach only to the Streaming Stopped trigger for the same OBS, Meld, or Streamlabs provider used by the selected Stop Streaming action.

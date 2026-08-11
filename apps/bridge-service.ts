@@ -25,6 +25,7 @@ import { OUTBOUND_PLATFORM_VALUES, OutboundMessageRouter } from '../bridge/core/
 import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
 import { CommandDirectoryService } from '../bridge/services/command-directory.js';
 import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
+import { StreamerBotLauncherService } from '../bridge/services/streamerbot-launcher-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -96,6 +97,7 @@ const wizard = new WizardService(
   new AddOnWizardService(addOnsRoot, addOnStateRoot),
   new ReleaseUpdateService(STREAMBRIDGE_VERSION, undefined, undefined, join(dataRoot, 'updates')),
   new AddOnUpdateService(CORE_CONTRACT_VERSION, undefined, undefined, undefined, join(dataRoot, 'updates')),
+  new StreamerBotLauncherService(dataRoot, config.streamerbot.url),
 );
 activeBridge.subscribe((event) => {
   if (event.eventType !== 'chat.message') {

@@ -35,6 +35,8 @@ interface QueuedPresentation {
   readonly reject: (error: Error) => void;
 }
 
+class OverlayPresentationCancelledError extends Error {}
+
 export class BrowserOverlayHub {
   private readonly sockets = new WebSocketServer({ noServer: true, maxPayload: 1_048_576 });
   private attachedServer: Server | undefined;
@@ -151,7 +153,13 @@ export class BrowserOverlayHub {
     // fail even though the presentation was accepted correctly. Resolve on bounded queue
     // acceptance; dispatch failures are host-owned and remain visible in the bridge log.
     const presentation = this.enqueuePresentation(moduleId, topic, presentationDuration(topic, payload, this.config.alertDurationMs), dispatch, playbackId);
-    void presentation.catch((error: unknown) => this.logger.warn('Queued add-on overlay presentation failed', { moduleId, topic, error }));
+    void presentation.catch((error: unknown) => {
+      if (error instanceof OverlayPresentationCancelledError) {
+        this.logger.debug('Queued add-on overlay presentation cancelled', { moduleId, topic, reason: error.message });
+        return;
+      }
+      this.logger.warn('Queued add-on overlay presentation failed', { moduleId, topic, error });
+    });
     return Promise.resolve();
   }
 
@@ -187,7 +195,7 @@ export class BrowserOverlayHub {
     this.livePlatforms.clear();
     if (this.presentationTimer !== undefined) clearTimeout(this.presentationTimer);
     this.presentationTimer = undefined; this.activePresentation = undefined;
-    for (const entry of this.presentationQueue.splice(0)) entry.reject(new Error('Overlay presentation queue stopped.'));
+    for (const entry of this.presentationQueue.splice(0)) entry.reject(new OverlayPresentationCancelledError('Overlay presentation queue stopped.'));
   }
 
   private broadcast(message: string): void {
@@ -203,7 +211,7 @@ export class BrowserOverlayHub {
     if (this.presentationTimer !== undefined) clearTimeout(this.presentationTimer);
     this.presentationTimer = undefined;
     this.activePresentation = undefined;
-    for (const entry of this.presentationQueue.splice(0)) entry.reject(new Error(`Overlay presentation queue reset: ${reason}.`));
+    for (const entry of this.presentationQueue.splice(0)) entry.reject(new OverlayPresentationCancelledError(`Overlay presentation queue reset: ${reason}.`));
     this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'overlay.reset', reason, emittedAt: new Date().toISOString() }));
     this.logger.info('Browser overlay surfaces reset', { reason });
   }
@@ -236,7 +244,7 @@ export class BrowserOverlayHub {
   private cancelPresentations(owner: string): void {
     for (let index = this.presentationQueue.length - 1; index >= 0; index -= 1) {
       const entry = this.presentationQueue[index]; if (entry?.owner !== owner) continue;
-      this.presentationQueue.splice(index, 1); entry.reject(new Error(`Overlay presentation for ${owner} was cancelled.`));
+      this.presentationQueue.splice(index, 1); entry.reject(new OverlayPresentationCancelledError(`Overlay presentation for ${owner} was cancelled.`));
     }
     if (this.activePresentation?.owner === owner) this.finishActivePresentation();
   }

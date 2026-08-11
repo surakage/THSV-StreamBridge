@@ -213,7 +213,17 @@ public class CPHInline
         string login = Read("raidScoutTargetLogin").TrimStart('@').ToLowerInvariant();
         string userId = Bounded(Read("raidScoutTargetUserId"), 64);
         if (!IsLogin(login)) return Fail("raid", requestId, relayToken, "A valid Twitch target login is required.");
-        bool accepted = userId.Length > 0 ? CPH.TwitchStartRaidById(userId) : CPH.TwitchStartRaidByName(login);
+        bool accepted = false;
+        if (userId.Length > 0)
+        {
+            try { accepted = CPH.TwitchStartRaidById(userId); }
+            catch (Exception exception) { CPH.LogWarn("THSV Raid Scout could not start the raid by user ID (" + exception.GetType().Name + "); trying the verified login fallback."); }
+        }
+        if (!accepted)
+        {
+            try { accepted = CPH.TwitchStartRaidByName(login); }
+            catch (Exception exception) { CPH.LogWarn("THSV Raid Scout could not start the raid by login (" + exception.GetType().Name + ")."); }
+        }
         var payload = new JObject { ["targetLogin"] = login, ["targetUserId"] = userId };
         Emit("raid", requestId, relayToken, accepted, accepted ? "" : "Twitch did not accept the raid request.", payload);
         CPH.SetArgument("raidScoutRaidAccepted", accepted);

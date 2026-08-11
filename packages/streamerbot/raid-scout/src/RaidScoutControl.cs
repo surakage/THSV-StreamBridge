@@ -1,5 +1,5 @@
 // Purpose: Sends one exact creator control or provider stop confirmation to the Raid Scout add-on.
-// Suggest, Confirm, and Cancel are creator controls. Broadcast Stopped belongs only on the
+// Suggest, Finish Stream, Confirm, and Cancel are creator controls. Broadcast Stopped belongs only on the
 // active OBS, Meld, or Streamlabs Streaming Stopped trigger.
 // References: mscorlib.dll, System.dll, System.Core.dll, netstandard.dll, and Newtonsoft.Json.dll.
 using System;
@@ -16,6 +16,7 @@ public class CPHInline
         string action = Read("raidScoutControlAction").ToLowerInvariant();
         string label;
         if (action == "suggest") label = "Suggest";
+        else if (action == "finish") label = "Finish Stream";
         else if (action == "confirm") label = "Confirm";
         else if (action == "cancel") label = "Cancel";
         else if (action == "broadcast-stopped") label = "Broadcast Stopped";

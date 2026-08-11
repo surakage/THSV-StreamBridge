@@ -22,6 +22,8 @@ describe('public release scripts', () => {
     expect(source).toContain('official SHA-256 verification');
     expect(source).toContain('npm.cmd ci --omit=dev --ignore-scripts');
     expect(source).toContain('Install THSV StreamBridge.cmd');
+    expect(source).toContain('start-streamerbot-safely.mjs');
+    expect(source).toContain('Start THSV Streamer.bot Safely.cmd');
     expect(source).toContain('Get-FileHash -Algorithm SHA256');
     expect(source).toContain('release-manifest.json');
     expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory");
@@ -79,12 +81,28 @@ describe('public release scripts', () => {
     expect(source).toContain("join(destination, 'addons', 'packages')");
     expect(source).toContain("join(root, 'secrets', 'control-token')");
     expect(source).toContain('randomBytes(32).toString');
-    expect(source).toContain('no token lookup is required');
+    expect(source).toContain('Wizard recovery key saved to:');
+    expect(source).toContain('`${PRODUCT} Recovery Key.txt`');
+    expect(source).toContain('protectPrivateFile(recoveryKeyPath)');
+    expect(source).not.toContain('process.stdout.write(controlToken');
+    expect(source).toContain('THSV StreamBridge Folder.lnk');
+    expect(source).toContain('THSV Streaming Tools.lnk');
+    expect(source).toContain('removeLegacyConvenienceShortcuts(installRoot)');
+    expect(source).toContain("process.platform !== 'win32' || argumentsMap.has('no-shortcuts')");
+    expect(source).not.toContain('$tools.Save()');
+    expect(source).toContain('One-button Stream Deck target:');
     expect(source).toContain('previousVersion');
     expect(source).toContain('failed its health check and was rolled back');
     expect(source).toContain('compareVersions');
     expect(source).toContain('Refusing to downgrade ${PRODUCT}');
     expect(source).not.toMatch(/Invoke-Expression|DownloadString|WebClient|npm\.cmd/u);
+  });
+
+  it('removes a creator-made one-button shortcut only during uninstall, not during upgrades', async () => {
+    const installer = await readFile('installer/install.mjs', 'utf8');
+    const uninstaller = await readFile('launcher/uninstall.mjs', 'utf8');
+    expect(installer).not.toContain("'Start THSV Streaming Tools.lnk'");
+    expect(uninstaller).toContain("'Start THSV Streaming Tools.lnk'");
   });
 
   it('keeps the public installer visible with an explicit success or failure result', async () => {
@@ -110,16 +128,23 @@ describe('public release scripts', () => {
 
   it('keeps every installed launcher visible with explicit results', async () => {
     const expectations = [
-      ['Start THSV StreamBridge.cmd', '[SUCCESS] THSV StreamBridge is running.', '[FAILED] THSV StreamBridge could not be started.'],
-      ['Stop THSV StreamBridge.cmd', '[SUCCESS] THSV StreamBridge is stopped.', '[FAILED] THSV StreamBridge could not be stopped cleanly.'],
-      ['Open THSV Setup Wizard.cmd', '[SUCCESS] The setup wizard was opened.', '[FAILED] The setup wizard could not be opened.'],
+      ['Start THSV StreamBridge.cmd', '[SUCCESS] THSV StreamBridge is running.', '[FAILED] THSV StreamBridge could not be started.', 'exit /b %THSV_LAUNCH_EXIT%'],
+      ['../Start THSV Streamer.bot Safely.cmd', '[SUCCESS] Streamer.bot is ready for StreamBridge.', '[FAILED] Streamer.bot was not changed unsafely.', 'exit /b %THSV_SAFE_START_EXIT%'],
+      ['Start THSV Streaming Tools.cmd', '[SUCCESS] Your THSV streaming tools are ready.', '[FAILED] One or more streaming tools are not ready.', 'exit /b %THSV_TOOLS_EXIT%'],
+      ['Stop THSV StreamBridge.cmd', '[SUCCESS] THSV StreamBridge is stopped.', '[FAILED] THSV StreamBridge could not be stopped cleanly.', 'exit /b %THSV_LAUNCH_EXIT%'],
+      ['Open THSV Setup Wizard.cmd', '[SUCCESS] The setup wizard was opened.', '[FAILED] The setup wizard could not be opened.', 'exit /b %THSV_LAUNCH_EXIT%'],
     ] as const;
-    for (const [name, success, failure] of expectations) {
+    for (const [name, success, failure, exit] of expectations) {
       const source = await readFile(`launcher/${name}`, 'utf8');
       expect(source).toContain(success);
       expect(source).toContain(failure);
       expect(source).toContain('pause >nul');
-      expect(source).toContain('exit /b %THSV_LAUNCH_EXIT%');
+      expect(source).toContain(exit);
+      if (name === 'Start THSV Streaming Tools.cmd') {
+        expect(source).toContain('runtime\\node.exe" -e "setTimeout(function(){},2000)"');
+        expect(source).not.toContain('timeout /t');
+        expect(source.indexOf('exit /b 0')).toBeLessThan(source.indexOf('pause >nul'));
+      }
     }
     const openWizard = await readFile('launcher/Open THSV Setup Wizard.cmd', 'utf8');
     expect(openWizard).toContain('launcher\\open-wizard.mjs');
@@ -133,6 +158,8 @@ describe('public release scripts', () => {
     expect(source).toContain("process.argv.includes('--delete-user-data')");
     expect(source).toContain("process.argv.includes('--confirm-delete-everything')");
     expect(source).toContain('Creator configuration, add-ons, state, logs, backups, and secrets were preserved');
+    expect(source).toContain('removeConvenienceShortcuts');
+    expect(source).toContain('Start THSV Streaming Tools.cmd');
     expect(source).toContain("record.product !== 'THSV StreamBridge'");
     expect(source).toContain('maxRetries: 2');
     expect(source).toContain('retryDelay: 100');

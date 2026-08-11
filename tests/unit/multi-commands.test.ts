@@ -82,6 +82,10 @@ describe('Multi-Commands contract', () => {
     expect(() => projectMultiCommand(withPayload({ command: 'ping', arguments: Array(MULTI_COMMANDS_MAX_ARGUMENTS + 1).fill('x') }))).toThrow(InvalidMultiCommandError);
   });
 
+  it('does not parse malformed syntax for an unregistered command', () => {
+    expect(parseCommandInput('!not-owned "ordinary chat', definitions)).toBeUndefined();
+  });
+
   it('evaluates role and bot permissions without platform checks', () => {
     expect(authorizeCommand(['MOD'], 'human', 'moderator', false)).toEqual({ authorized: true, reason: 'authorized' });
     expect(authorizeCommand(['member'], 'human', 'moderator', false)).toMatchObject({ authorized: false });

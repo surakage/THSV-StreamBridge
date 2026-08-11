@@ -73,6 +73,9 @@ describe('Bridge Launcher Streamer.bot package', () => {
     expect(source).not.toMatch(/token|password|authorization/i);
     expect(source).toContain('Process.Start');
     expect(source).toContain('start.ps1');
+    expect(source).toContain('CPH.ObsIsConnected()');
+    expect(source).toContain('Process.GetProcessesByName');
+    expect(source).toContain('Optional apps: OBS');
     expect(source).not.toContain('npm run dev');
   });
 
@@ -93,5 +96,10 @@ describe('Bridge Launcher Streamer.bot package', () => {
     expect(source).toContain('private static string lastState');
     expect(source).toContain('Status: GREEN');
     expect(source).toContain('Status: ATTENTION');
+    expect(source).toContain('CPH.ObsIsConnected()');
+    expect(source).toContain('Process.GetProcessesByName');
+    expect(source).toContain('Optional apps: OBS');
+    expect(source).toContain('state += "|" + optionalState');
+    expect(source).not.toContain('issues.Add("OBS');
   });
 });

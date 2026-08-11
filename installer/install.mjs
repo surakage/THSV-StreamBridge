@@ -54,7 +54,7 @@ try {
   await replaceDirectory(appTarget, stagedApp, appBackup, moved);
   await replaceDirectory(runtimeTarget, stagedRuntime, runtimeBackup, moved);
   await replaceDirectory(launcherTarget, stagedLauncher, launcherBackup, moved);
-  for (const name of ['Start THSV StreamBridge.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Uninstall THSV StreamBridge.cmd']) {
+  for (const name of ['Start THSV StreamBridge.cmd', 'Start THSV Streamer.bot Safely.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Uninstall THSV StreamBridge.cmd']) {
     await copyFile(join(sourceRoot, 'launcher', name), join(installRoot, name));
   }
   // The installer launcher belongs only in the downloaded release folder. Its
@@ -64,7 +64,7 @@ try {
     if (await exists(join(sourceRoot, name))) await copyFile(join(sourceRoot, name), join(installRoot, name));
   }
 
-  await prepareCreatorData(dataRoot, installRoot, manifest.version);
+  const recoveryKeyPath = await prepareCreatorData(dataRoot, installRoot, manifest.version);
   const record = {
     product: PRODUCT,
     layoutVersion: 2,
@@ -88,10 +88,15 @@ try {
     }
   }
 
+  removeLegacyConvenienceShortcuts(installRoot);
+
   for (const path of [appBackup, runtimeBackup, launcherBackup]) await rm(path, { recursive: true, force: true });
   await pruneOldVersions(join(installRoot, 'app'), new Set([manifest.version, previousRecord?.activeVersion].filter(Boolean)));
   process.stdout.write(`${PRODUCT} ${manifest.version} installed at ${installRoot}\n`);
-  process.stdout.write('A unique control token is stored privately for this Windows user. Use Open THSV Setup Wizard or the Streamer.bot launcher action; no token lookup is required.\n');
+  process.stdout.write(`Installed folder: ${installRoot}\n`);
+  process.stdout.write(`Wizard recovery key saved to: ${recoveryKeyPath}\n`);
+  process.stdout.write(`One-button Stream Deck target: ${join(installRoot, 'Start THSV Streaming Tools.cmd')}\n`);
+  process.stdout.write('Keep the recovery key private. Open THSV Setup Wizard still unlocks automatically, so the saved key is needed only for manual recovery.\n');
   if (!startAfterInstall) process.stdout.write('Installation validation completed without starting the bridge.\n');
 } catch (error) {
   await rollbackDirectories(moved);
@@ -106,6 +111,20 @@ async function prepareCreatorData(root, destination, version) {
   await protectPrivateDirectory(join(root, 'secrets'));
   const tokenPath = join(root, 'secrets', 'control-token');
   if (!await exists(tokenPath)) await writeFile(tokenPath, `${randomBytes(32).toString('base64url')}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  const controlToken = (await readFile(tokenPath, 'utf8')).trim();
+  const recoveryKeyPath = join(destination, `${PRODUCT} Recovery Key.txt`);
+  await writeFile(recoveryKeyPath, [
+    `${PRODUCT} wizard recovery key`,
+    '',
+    `Control token: ${controlToken}`,
+    '',
+    `Installed folder: ${destination}`,
+    '',
+    'Keep this file private. Anyone with this token and access to your Windows session could change StreamBridge settings.',
+    'For everyday use, open "Open THSV Setup Wizard.cmd" instead. It unlocks the local wizard automatically.',
+    '',
+  ].join('\n'), { encoding: 'utf8', mode: 0o600 });
+  await protectPrivateFile(recoveryKeyPath);
   const configPath = join(root, 'configuration', 'bridge.local.json');
   const legacyConfig = join(root, 'runtime', 'bridge.local.json');
   if (!await exists(configPath)) {
@@ -118,6 +137,15 @@ async function prepareCreatorData(root, destination, version) {
     config.streamerbot.deliveryStateFile = join(root, 'state', 'delivery-outbox.json');
     await writeJsonAtomic(configPath, config);
   }
+  return recoveryKeyPath;
+}
+
+async function protectPrivateFile(path) {
+  if (process.platform !== 'win32' || argumentsMap.has('skip-acl')) return;
+  const identity = process.env.USERDOMAIN && process.env.USERNAME ? `${process.env.USERDOMAIN}\\${process.env.USERNAME}` : process.env.USERNAME;
+  if (!identity) throw new Error('Unable to determine the current Windows identity for recovery-key permissions.');
+  const result = spawnSync('icacls.exe', [path, '/inheritance:r', '/grant:r', `${identity}:F`, '*S-1-5-18:F', '*S-1-5-32-544:F'], { encoding: 'utf8', windowsHide: true });
+  if (result.status !== 0) throw new Error(`Unable to protect the wizard recovery key: ${result.stderr || result.stdout}`);
 }
 
 async function verifyRelease(root, value) {
@@ -186,6 +214,24 @@ async function protectPrivateDirectory(path) {
   if (!identity) throw new Error('Unable to determine the current Windows identity for private installation permissions.');
   const result = spawnSync('icacls.exe', [path, '/inheritance:r', '/grant:r', `${identity}:(OI)(CI)F`, '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F'], { encoding: 'utf8', windowsHide: true });
   if (result.status !== 0) throw new Error(`Unable to protect private installation staging: ${result.stderr || result.stdout}`);
+}
+
+function removeLegacyConvenienceShortcuts(destination) {
+  if (process.platform !== 'win32' || argumentsMap.has('no-shortcuts')) return;
+  const script = [
+    "$desktop = [Environment]::GetFolderPath('Desktop')",
+    '$shell = New-Object -ComObject WScript.Shell',
+    "foreach ($name in @('THSV StreamBridge Folder.lnk','THSV Streaming Tools.lnk')) {",
+    '  $path = Join-Path $desktop $name',
+    '  if (-not (Test-Path -LiteralPath $path)) { continue }',
+    '  $shortcut = $shell.CreateShortcut($path)',
+    '  if ($shortcut.WorkingDirectory -eq $env:THSV_INSTALL_ROOT) { Remove-Item -LiteralPath $path -Force }',
+    '}',
+  ].join('; ');
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    encoding: 'utf8', windowsHide: true, timeout: 10_000, env: { ...process.env, THSV_INSTALL_ROOT: destination },
+  });
+  if (result.status !== 0) process.stderr.write('Warning: an older StreamBridge desktop shortcut could not be removed automatically.\n');
 }
 
 async function pruneOldVersions(root, retained) {

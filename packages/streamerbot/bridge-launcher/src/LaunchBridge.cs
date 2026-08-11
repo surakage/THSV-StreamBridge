@@ -112,7 +112,7 @@ public class CPHInline
                 if (Regex.IsMatch(body, "\\\"ready\\\"\\s*:\\s*true", RegexOptions.IgnoreCase))
                 {
                     CPH.LogInfo("THSV StreamBridge readiness check passed: bridge, adapters, Streamer.bot delivery, and modules are healthy.");
-                    Notify("Status: GREEN - bridge, platforms, delivery, and modules are connected.");
+                    Notify("Status: GREEN - bridge, platforms, delivery, and modules are connected." + OptionalApplicationStatus());
                     return true;
                 }
                 return Fail("the bridge started but its readiness check did not pass.");
@@ -130,6 +130,28 @@ public class CPHInline
 
     // Every invocation raises exactly one toast — success and failure paths are exclusive,
     // and the shared id keeps repeats grouped, so this action can never flood Action Center.
+    private string OptionalApplicationStatus()
+    {
+        string obsState;
+        try { obsState = CPH.ObsIsConnected() ? "connected" : "not connected"; }
+        catch (Exception exception) { obsState = "check unavailable (" + exception.GetType().Name + ")"; }
+        bool speakerRunning = LocalProcessIsRunning("Speaker.bot") || LocalProcessIsRunning("SpeakerBot");
+        return " Optional apps: OBS " + obsState + "; Speaker.bot "
+            + (speakerRunning ? "local process running" : "local process not detected") + ".";
+    }
+
+    private static bool LocalProcessIsRunning(string processName)
+    {
+        try
+        {
+            Process[] processes = Process.GetProcessesByName(processName);
+            bool running = processes.Length > 0;
+            foreach (Process process in processes) process.Dispose();
+            return running;
+        }
+        catch { return false; }
+    }
+
     private void Notify(string message)
     {
         CPH.ShowToastNotification(ToastId, "THSV StreamBridge", message, "THSV StreamBridge", null);

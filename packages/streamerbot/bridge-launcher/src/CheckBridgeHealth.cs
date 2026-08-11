@@ -4,6 +4,7 @@
 // References: mscorlib.dll, System.dll, and System.Core.dll.
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -24,6 +25,9 @@ public class CPHInline
         string state;
         string message;
         bool healthy = TryReadHealth(out state, out message);
+        string optionalState;
+        message += OptionalApplicationStatus(out optionalState);
+        state += "|" + optionalState;
         string previous = lastState;
         lastState = state;
         if (force || !String.Equals(previous, state, StringComparison.Ordinal))
@@ -98,6 +102,30 @@ public class CPHInline
         state = "attention:" + String.Join("|", issues.ToArray());
         message = "Status: ATTENTION - " + String.Join(", ", issues.ToArray()) + ".";
         return false;
+    }
+
+    private string OptionalApplicationStatus(out string state)
+    {
+        string obsState;
+        try { obsState = CPH.ObsIsConnected() ? "connected" : "not connected"; }
+        catch (Exception exception) { obsState = "check unavailable (" + exception.GetType().Name + ")"; }
+
+        bool speakerRunning = LocalProcessIsRunning("Speaker.bot") || LocalProcessIsRunning("SpeakerBot");
+        string speakerState = speakerRunning ? "local process running" : "local process not detected";
+        state = "obs=" + obsState + ";speaker=" + speakerState;
+        return " Optional apps: OBS " + obsState + "; Speaker.bot " + speakerState + ".";
+    }
+
+    private static bool LocalProcessIsRunning(string processName)
+    {
+        try
+        {
+            Process[] processes = Process.GetProcessesByName(processName);
+            bool running = processes.Length > 0;
+            foreach (Process process in processes) process.Dispose();
+            return running;
+        }
+        catch { return false; }
     }
 
     private static string Segment(string value, string startPattern, string endPattern)

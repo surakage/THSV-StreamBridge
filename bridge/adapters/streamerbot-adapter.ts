@@ -57,6 +57,12 @@ export function calculateReconnectDelay(initialDelayMs: number, maxDelayMs: numb
   return Math.max(1, Math.floor(cappedDelay * (0.5 + boundedRandom * 0.5)));
 }
 
+const CONNECTION_WARNING_INTERVAL_MS = 60_000;
+
+export function shouldLogConnectionWarning(lastWarningAt: number, now: number, intervalMs = CONNECTION_WARNING_INTERVAL_MS): boolean {
+  return lastWarningAt === 0 || now - lastWarningAt >= intervalMs;
+}
+
 export class StreamerBotAdapter {
   private socket: WebSocket | undefined;
   private state: StreamerBotState = 'stopped';
@@ -67,6 +73,8 @@ export class StreamerBotAdapter {
   private stopping = false;
   private authenticated = false;
   private relayAuthorized = false;
+  private lastConnectionWarningAt = 0;
+  private suppressedConnectionErrors = 0;
   private readonly pending = new Map<string, PendingRequest>();
   private readonly inspectionAudit: StreamerBotInspectionAuditEntry[] = [];
 
@@ -228,7 +236,7 @@ export class StreamerBotAdapter {
       socket.on('message', (data) => this.handleMessage(decodeMessage(data)));
       socket.once('error', (error) => {
         this.lastError = error.message;
-        this.logger.warn('Streamer.bot connection error', { error });
+        this.recordConnectionError(error);
         settle();
       });
       socket.once('close', () => {
@@ -316,10 +324,35 @@ export class StreamerBotAdapter {
   }
 
   private markReady(): void {
+    const reconnectAttempts = this.reconnectAttempts;
+    if (this.lastConnectionWarningAt !== 0) {
+      this.logger.info('Streamer.bot connection restored', {
+        reconnectAttempts,
+        suppressedConnectionErrors: this.suppressedConnectionErrors,
+      });
+    }
     this.authenticated = true;
     this.state = 'connected';
     this.reconnectAttempts = 0;
     this.lastError = undefined;
+    this.lastConnectionWarningAt = 0;
+    this.suppressedConnectionErrors = 0;
+  }
+
+  private recordConnectionError(error: Error): void {
+    const now = Date.now();
+    if (!shouldLogConnectionWarning(this.lastConnectionWarningAt, now)) {
+      this.suppressedConnectionErrors += 1;
+      return;
+    }
+    this.logger.warn('Streamer.bot connection error', {
+      error,
+      reconnectAttempts: this.reconnectAttempts,
+      suppressedConnectionErrors: this.suppressedConnectionErrors,
+      nextRepeatedWarningAfterMs: CONNECTION_WARNING_INTERVAL_MS,
+    });
+    this.lastConnectionWarningAt = now;
+    this.suppressedConnectionErrors = 0;
   }
 
   private sendRequest(id: string, value: unknown, signal?: AbortSignal): Promise<unknown> {

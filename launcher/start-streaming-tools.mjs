@@ -1,0 +1,111 @@
+import { execFileSync, spawn } from 'node:child_process';
+import { stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const launcherRoot = join(installRoot, 'launcher');
+const OPTIONAL_STARTUP_GRACE_MS = 1_500;
+const config = JSON.parse(await readFile(join(installRoot, 'data', 'configuration', 'bridge.local.json'), 'utf8'));
+if (!Number.isInteger(config.service?.port) || config.service.port < 1 || config.service.port > 65_535) throw new Error('The configured StreamBridge service port is invalid.');
+const baseUrl = `http://127.0.0.1:${String(config.service.port)}`;
+
+const optionalWarnings = await startOptionalApplications();
+
+runLauncher(join(launcherRoot, 'start-streamerbot.mjs'), ['--install-root', installRoot], 65_000);
+
+if (await bridgeReady(baseUrl)) {
+  process.stdout.write('Streamer.bot and THSV StreamBridge are already ready. No restart was needed.\n');
+} else {
+  runLauncher(join(launcherRoot, 'start.mjs'), ['--wait'], 35_000);
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline && !await bridgeReady(baseUrl)) await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
+  if (!await bridgeReady(baseUrl)) throw new Error('THSV StreamBridge started but did not reach ready status. Open the setup wizard and review Diagnostics.');
+  process.stdout.write('Streamer.bot and THSV StreamBridge are ready.\n');
+}
+if (optionalWarnings.length > 0) process.stdout.write(`Optional app warning: ${optionalWarnings.join(' ')}\n`);
+else process.stdout.write('Enabled optional streaming apps are ready.\n');
+
+function runLauncher(script, argumentsValue, timeout) {
+  try {
+    const result = execFileSync(process.execPath, [script, ...argumentsValue], { cwd: installRoot, encoding: 'utf8', windowsHide: true, timeout });
+    if (result.trim().length > 0) process.stdout.write(result);
+  } catch (error) {
+    const details = `${error?.stdout ?? ''}${error?.stderr ?? ''}`.trim();
+    throw new Error(details || `The launcher ${script} failed.`, { cause: error });
+  }
+}
+
+async function bridgeReady(url) {
+  try {
+    const response = await fetch(`${url}/ready`, { signal: AbortSignal.timeout(2_000) });
+    const body = await response.json();
+    return response.ok && body?.ready === true;
+  } catch { return false; }
+}
+
+async function startOptionalApplications() {
+  const warnings = [];
+  const started = [];
+  let launcherConfig;
+  try { launcherConfig = JSON.parse(await readFile(join(installRoot, 'data', 'configuration', 'streamerbot-launcher.json'), 'utf8')); }
+  catch { return warnings; }
+  const definitions = {
+    obs: { label: 'OBS Studio', processNames: ['obs64'] },
+    speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'] },
+  };
+  for (const [application, definition] of Object.entries(definitions)) {
+    const saved = launcherConfig?.optionalApps?.[application];
+    if (saved?.enabled !== true) continue;
+    if (typeof saved.executable !== 'string' || !await isFile(saved.executable)) {
+      warnings.push(`${definition.label} was enabled but its saved executable is missing.`);
+      continue;
+    }
+    if (processIsRunning(definition.processNames)) continue;
+    try {
+      const pid = await launchDetached(saved.executable);
+      started.push({ label: definition.label, pid });
+      process.stdout.write(`Started optional app: ${definition.label}.\n`);
+    } catch (error) { warnings.push(`${definition.label} could not start (${error instanceof Error ? error.message : String(error)}).`); }
+  }
+  if (started.length > 0) {
+    process.stdout.write('Allowing newly started optional apps to initialize before Streamer.bot connects.\n');
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
+    for (const application of started) if (!isAlive(application.pid)) warnings.push(`${application.label} exited during startup; continuing with Streamer.bot and StreamBridge.`);
+  }
+  return warnings;
+}
+
+function launchDetached(executable) {
+  return new Promise((resolveLaunch, rejectLaunch) => {
+    const child = spawn(executable, [], { cwd: dirname(executable), detached: true, windowsHide: false, stdio: 'ignore' });
+    child.once('error', rejectLaunch);
+    child.once('spawn', () => {
+      child.removeListener('error', rejectLaunch);
+      const pid = child.pid;
+      child.unref();
+      if (pid === undefined) rejectLaunch(new Error('Windows did not return a process ID.'));
+      else resolveLaunch(pid);
+    });
+  });
+}
+
+function isAlive(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch { return false; }
+}
+
+function processIsRunning(names) {
+  if (process.platform !== 'win32') return false;
+  try {
+    const escaped = names.map((name) => `'${name.replaceAll("'", "''")}'`).join(',');
+    const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `@(${escaped}|ForEach-Object{Get-Process -Name $_ -ErrorAction SilentlyContinue}).Count`], { encoding: 'utf8', windowsHide: true, timeout: 5_000 });
+    return Number(output.trim()) > 0;
+  } catch { return false; }
+}
+
+async function isFile(path) {
+  try { return (await stat(path)).isFile(); }
+  catch { return false; }
+}

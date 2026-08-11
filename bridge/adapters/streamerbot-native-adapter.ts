@@ -114,9 +114,39 @@ export class StreamerBotNativeAdapter extends ManagedAdapter {
       context.logger.info('Native Streamer.bot platform relay event accepted', { adapter: this.name, eventType: event.eventType, eventId: event.eventId, result });
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
-      context.logger.warn('Native Streamer.bot platform relay event rejected', { adapter: this.name, error });
+      context.logger.warn('Native Streamer.bot platform relay event rejected', {
+        adapter: this.name,
+        ...describeStreamerBotRelayRejection(message, error),
+        error,
+      });
     }
   }
+}
+
+/**
+ * Produces bounded, content-free diagnostics for rejected relays. Viewer text, names,
+ * platform IDs, relay tokens, and raw payloads must never be copied into the log.
+ */
+export function describeStreamerBotRelayRejection(
+  input: Readonly<Record<string, unknown>>,
+  error: unknown,
+): Readonly<Record<string, unknown>> {
+  const sourceEventType = diagnosticString(input['sourceEventType'], 100) || 'unknown';
+  const relayId = diagnosticString(input['relayId'], 256);
+  const argumentKeys = Array.isArray(input['argumentKeys'])
+    ? input['argumentKeys'].filter((value): value is string => typeof value === 'string').slice(0, 100)
+    : [];
+  const validationIssues = error instanceof z.ZodError
+    ? error.issues.slice(0, 12).map((issue) => ({ path: issue.path.join('.') || '(root)', code: issue.code, message: issue.message.slice(0, 200) }))
+    : [];
+  return {
+    sourceEventType,
+    relayFingerprint: relayId === '' ? 'missing' : createHash('sha256').update(relayId).digest('hex').slice(0, 12),
+    sourceEventIdPresent: diagnosticString(input['sourceEventId'], 256) !== '',
+    argumentKeyCount: argumentKeys.length,
+    argumentKeys,
+    ...(validationIssues.length === 0 ? {} : { validationIssues }),
+  };
 }
 
 export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: string): NormalizedEvent {
@@ -277,6 +307,10 @@ function validEmoteUrl(value: string): string | undefined {
 function boundedEventId(prefix: string, value: string): string {
   const composed = `${prefix}${value}`;
   return composed.length <= 256 ? composed : `${prefix}sha256-${createHash('sha256').update(value).digest('hex')}`;
+}
+
+function diagnosticString(value: unknown, maximumLength: number): string {
+  return typeof value === 'string' ? value.trim().slice(0, maximumLength) : '';
 }
 
 function normalizedEventType(relay: NativeRelay): NormalizedEvent['eventType'] {

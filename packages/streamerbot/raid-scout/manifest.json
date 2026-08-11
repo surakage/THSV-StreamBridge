@@ -44,6 +44,28 @@
       ]
     },
     {
+      "id": "5e3be19a-1ab3-5b11-8dea-8cc8fe985db7",
+      "name": "THSV Addon - Raid Scout - Finish Stream",
+      "group": "THSV Addon - Raid Scout",
+      "source": "src/RaidScoutControl.cs",
+      "importFile": "THSV-StreamBridge-Raid-Scout-3.5.0.sb",
+      "arguments": [
+        {
+          "name": "raidScoutControlAction",
+          "value": "finish",
+          "autoType": false,
+          "id": "be68b184-1a52-5ee1-a67a-f68747dd802c"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
       "id": "b2a5681e-329a-40ac-9ce3-57d249ba80fe",
       "name": "THSV Addon - Raid Scout - Confirm",
       "group": "THSV Addon - Raid Scout",
@@ -121,7 +143,8 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll"
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
       ]
     },
     {
@@ -160,12 +183,12 @@
       "Attach only to the Streaming Stopped trigger for the same OBS, Meld, or Streamlabs provider used by the selected Stop Streaming action."
     ],
     "runEndingAd": [
-      "Keep triggerless. Raid Scout dispatches it only after the selected clip and immediately before the creator-confirmed raid."
+      "Keep triggerless. Raid Scout dispatches it when Suggest or Finish Stream begins so discovery, confirmation, and clip playback use the commercial window."
     ],
     "stopAllObsStreamingOutputs": [
       "Keep triggerless. OBS/Aitum users may select and approve this action as Raid Scout's Stop Streaming action."
     ]
   },
-  "triggerSafety": "Controller, Run Ending Ad, and Stop All OBS Streaming Outputs must remain triggerless. Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Broadcast Stopped only confirms a provider stop signal. The ad action is dispatched once immediately before the confirmed raid; the stop-all action is dispatched only after raid acceptance, a genuine Ad Run timer, and the configured safety gate.",
+  "triggerSafety": "Controller, Run Ending Ad, and Stop All OBS Streaming Outputs must remain triggerless. Finish Stream, Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Broadcast Stopped only confirms a provider stop signal. The ad action is dispatched once when the ending search begins; the stop-all action is dispatched only after raid acceptance, a genuine Ad Run timer, clip completion, and the configured safety gate.",
   "verificationStatus": "Streamer.bot broadcaster, raid, redemption fulfill/cancel method signatures and Twitch Helix followed/category/clip contracts are source-verified; live Twitch discovery, clip playback, reward settlement, and raid acceptance remain creator-tested."
 }

@@ -42,7 +42,8 @@
       "reward.redemption",
       "command.received",
       "stream.online",
-      "stream.offline"
+      "stream.offline",
+      "stream.scene-changed"
     ],
     "commandsProvided": [
       {
@@ -59,7 +60,7 @@
     "installationSteps": [
       "Import the separate Raid Scout Streamer.bot package.",
       "Keep its Controller action triggerless and approve that stable action ID as Raid Scout's fixed controller grant.",
-      "Attach Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands.",
+      "Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the streamlined one-press path through every enabled ending step.",
       "For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld/Streamlabs users select their provider-native stop action. Attach Broadcast Stopped only to that provider's Streaming Stopped trigger.",
       "Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.",
       "For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.",
@@ -84,23 +85,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 75499,
-      "sha256": "45811569a2b94443388e38ab644174889685443e42757e8e00ca5696af89d3cf"
+      "size": 91696,
+      "sha256": "0b8d73dbb6b86502f1de163a0ff2895c632363048c38d759c00606210d42d9db"
     },
     {
       "path": "schemas/config.json",
-      "size": 12444,
-      "sha256": "c9a0907edc66751b87848394229b1a2b28c794e8aa684312a1581892aeb3e3b3"
+      "size": 13000,
+      "sha256": "3a4bb2a28356b9a319e3b2ef640ef298194eb50ff8e18d271d50d5f0f364ecb2"
     },
     {
       "path": "ui/settings.json",
-      "size": 13885,
-      "sha256": "d8998aa6ec5205271a23a4edf3c20cafb70f481f034440fbbf76f6bf747a46f5"
+      "size": 14170,
+      "sha256": "1de35bf87f9e4f6376da0b4448d04177e469320f5e3443ded928a379ff7d98e8"
     },
     {
       "path": "README.md",
-      "size": 6304,
-      "sha256": "111749794502b4bf37b6c6b7a1225da69c7ae51f0e2e34f08b7c20469cf5578a"
+      "size": 7180,
+      "sha256": "dff678b08961c53689996a2f985aa966f89e1eca59474dae25c3fa92907cc059"
     }
   ]
 }
