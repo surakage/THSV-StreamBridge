@@ -196,7 +196,8 @@ export class StreamerBotLauncherService {
       '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
       '$path',
     ].join('; ');
-    const result = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: { ...process.env, THSV_SHORTCUT_TARGET: target, THSV_SHORTCUT_ROOT: this.installRoot, THSV_SHORTCUT_ICON: `${configuration.executable},0` } }).trim();
+    const commandIcon = process.env.ComSpec ?? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'cmd.exe');
+    const result = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: { ...process.env, THSV_SHORTCUT_TARGET: target, THSV_SHORTCUT_ROOT: this.installRoot, THSV_SHORTCUT_ICON: `${commandIcon},0` } }).trim();
     if (result.length === 0) throw new Error('Windows did not return the desktop shortcut path.');
     return { path: result, status: await this.status() };
   }

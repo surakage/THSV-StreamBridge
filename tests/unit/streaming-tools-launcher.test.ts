@@ -41,6 +41,10 @@ describe('one-button streaming tools launcher', () => {
     expect(wizard).toContain('/wizard/api/streamerbot-launcher/start-all');
     expect(source).toContain('Start THSV Streaming Tools.lnk');
     expect(source).toContain('THSV_SHORTCUT_TARGET: target');
+    expect(source).toContain('process.env.ComSpec');
+    expect(source).toContain("'System32', 'cmd.exe'");
+    expect(source).toContain('THSV_SHORTCUT_ICON: `${commandIcon},0`');
+    expect(source).not.toContain('THSV_SHORTCUT_ICON: `${configuration.executable},0`');
     expect(source).not.toContain('THSV_SHORTCUT_ARGS');
   });
 });
