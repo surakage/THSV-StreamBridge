@@ -247,7 +247,7 @@ describe('Raid Scout add-on', () => {
     expect(eligible.map((item: { userId: string }) => item.userId)).toEqual(['safe']);
   });
 
-  it('selects the lowest-viewer eligible channel across every enabled source', () => {
+  it('selects the lowest viewer inside the first available preferred, followed, then category tier', () => {
     const state = sanitizeState({ bags: { preferred: ['alpha', 'beta'], followed: [], category: [] } });
     const candidates = [
       candidate('alpha', 'preferred', { viewerCount: 12 }),
@@ -256,10 +256,14 @@ describe('Raid Scout add-on', () => {
       candidate('delta', 'category', { viewerCount: 5 }),
     ];
     const first = selectCandidate(candidates, state, settings, 50);
-    expect(first.candidate?.userId).toBe('gamma');
+    expect(first.candidate?.userId).toBe('beta');
     const secondState = { ...state, bags: first.bags, suggestion: { candidate: first.candidate } };
     const second = selectCandidate(candidates, secondState, settings, 50);
-    expect(second.candidate?.userId).toBe('delta');
+    expect(second.candidate?.userId).toBe('alpha');
+    const noPreferred = selectCandidate(candidates.filter((item) => item.source !== 'preferred'), state, settings, 50);
+    expect(noPreferred.candidate?.userId).toBe('gamma');
+    const categoryOnly = selectCandidate(candidates.filter((item) => item.source === 'category'), state, settings, 50);
+    expect(categoryOnly.candidate?.userId).toBe('delta');
   });
 
   it('keeps the normal viewer ceiling strict unless the bounded fallback is explicitly requested', () => {

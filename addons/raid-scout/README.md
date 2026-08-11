@@ -25,7 +25,7 @@ The preferred tier can combine two lists:
 - Starts no raid until the creator uses Confirm unless advanced automatic mode is explicitly selected.
 - Can start one search per live stream when OBS enters an exact, creator-configured ending scene. Repeated scene-active or Studio Mode signals are ignored.
 - Can optionally request a bounded public clip list for the confirmed channel, shuffle it, retry other returned clips when Twitch cannot resolve one download, temporarily cache the first playable MP4 for smooth native playback, and then start the raid. Cached clips expire automatically.
-- Combines every eligible result from preferred, followed-live, and same-category discovery, then always selects the channel with the fewest viewers regardless of which source returned it.
+- Checks eligible preferred/local channels first and selects the live channel with the fewest viewers. When none qualify, it checks followed-live channels and selects the lowest there; only when that tier is empty does it select the lowest-viewer same-category channel.
 - Can optionally start or adopt one ending Twitch ad as Suggest begins, continue discovery, confirmation, and full clip playback during it, use the genuine Twitch Ad Run duration as its timer, and then run the selected Stop Streaming action after the raid attempt even when Twitch rejects or cannot confirm that raid. The same flow never requests a duplicate commercial. A fixed countdown remains available as an advanced fallback.
 
 ## Install

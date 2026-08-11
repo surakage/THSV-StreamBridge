@@ -353,10 +353,13 @@ export function filterCandidates(candidates, state, settings, broadcaster, optio
 }
 export function selectCandidate(candidates, state) {
   const currentId = state.suggestion?.candidate?.userId;
-  const ordered = candidates
-    .filter((candidate) => candidate.userId !== currentId)
-    .sort((left, right) => left.viewerCount - right.viewerCount || left.login.localeCompare(right.login));
-  return { candidate: ordered[0], bags: { ...state.bags } };
+  for (const source of ['preferred', 'followed', 'category']) {
+    const ordered = candidates
+      .filter((candidate) => candidate.source === source && candidate.userId !== currentId)
+      .sort((left, right) => left.viewerCount - right.viewerCount || left.login.localeCompare(right.login));
+    if (ordered[0]) return { candidate: ordered[0], bags: { ...state.bags } };
+  }
+  return { candidate: undefined, bags: { ...state.bags } };
 }
 
 function withoutPending(state) { const next = { ...state }; delete next.pending; return next; }
@@ -509,7 +512,7 @@ async function requestDiscovery(context, settings, state, autoConfirm = false) {
       raidScoutUseCategory: settings.useCategory, raidScoutMaximumFollowedResults: settings.maximumFollowedResults,
       raidScoutMaximumFollowedPages: settings.maximumFollowedPages,
       raidScoutMaximumCategoryResults: settings.maximumCategoryResults,
-      raidScoutSourceOrder: settings.sourceOrder.join(','),
+      raidScoutSourceOrder: 'preferred,followed,category',
       raidScoutCurrentAudienceEstimate: settings.currentAudienceEstimate,
     });
     armControllerWatchdog(context, settings, pending);
@@ -1276,7 +1279,7 @@ async function handleDiscoveryResult(event, context, settings, state) {
     }
   }
   const selected = selectCandidate(eligible, base, settings, currentAudience);
-  const sourceResults = sourceResultRecords(event.payload?.sourceResults, settings.sourceOrder);
+  const sourceResults = sourceResultRecords(event.payload?.sourceResults, ['preferred', 'followed', 'category']);
   cancelProgress(context);
   if (!selected.candidate) {
     const empty = { ...withoutSuggestion(base), bags: selected.bags, lastError: 'No eligible live channel matched the current filters.' };

@@ -12,8 +12,8 @@
     "useCategory": { "type": "boolean", "title": "Search the current Twitch category", "default": true },
     "sourceOrder": {
       "type": "string",
-      "title": "Discovery request order",
-      "description": "Controls which Twitch lists are fetched first. Raid Scout combines every returned eligible channel and always selects the one with the fewest viewers.",
+      "title": "Legacy discovery request order",
+      "description": "Retained for configuration compatibility. Discovery and selection now use the fixed preferred/local, followed-live, then same-category tier order.",
       "enum": ["preferred-followed-category", "preferred-category-followed", "followed-preferred-category", "followed-category-preferred", "category-preferred-followed", "category-followed-preferred"],
       "default": "preferred-followed-category"
     },
@@ -36,7 +36,7 @@
     "maximumViewers": { "type": "integer", "title": "Maximum candidate viewers", "minimum": 1, "maximum": 10000000, "default": 100000 },
     "allowViewerRangeFallback": { "type": "boolean", "title": "Use the closest safe match when the viewer ceiling is empty", "description": "If no otherwise-safe channel is at or below the maximum, Raid Scout may select the closest channel up to twice the configured maximum or 25 viewers above it. Language, channel, category, tag, self, and repeat protections remain enforced.", "default": true },
     "currentAudienceEstimate": { "type": "integer", "title": "Fallback current audience estimate", "description": "Zero uses the broadcaster's live viewer count returned by Twitch.", "minimum": 0, "maximum": 10000000, "default": 0 },
-    "preferSimilarSize": { "type": "boolean", "title": "Legacy similar-size preference", "description": "Retained for configuration compatibility. Raid Scout now always selects the eligible channel with the fewest viewers across every enabled source.", "default": true },
+    "preferSimilarSize": { "type": "boolean", "title": "Legacy similar-size preference", "description": "Retained for configuration compatibility. Raid Scout now selects the eligible channel with the fewest viewers inside the first available tier: preferred/local, followed, then same category.", "default": true },
     "minimumAudienceRatio": { "type": "number", "title": "Preferred minimum audience ratio", "minimum": 0.01, "maximum": 100, "default": 0.25 },
     "maximumAudienceRatio": { "type": "number", "title": "Preferred maximum audience ratio", "minimum": 0.01, "maximum": 100, "default": 2 },
     "preferredLanguage": { "type": "string", "title": "Preferred Twitch language code", "description": "Examples: en, es, fr. Leave empty for any language.", "maxLength": 12, "default": "" },
