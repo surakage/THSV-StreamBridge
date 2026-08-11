@@ -28,6 +28,7 @@ const settings = {
   maximumCategoryResults: 25,
   minimumViewers: 1,
   maximumViewers: 1_000,
+  allowViewerRangeFallback: true,
   currentAudienceEstimate: 0,
   preferSimilarSize: true,
   minimumAudienceRatio: 0.25,
@@ -127,6 +128,7 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
         maximumCategoryResults: 25,
         minimumViewers: 1,
         maximumViewers: 1_000,
+        allowViewerRangeFallback: true,
         currentAudienceEstimate: 0,
         preferSimilarSize: true,
         minimumAudienceRatio: 0.25,
@@ -253,6 +255,47 @@ describe('Raid Scout add-on', () => {
     const secondState = { ...state, bags: first.bags, suggestion: { candidate: first.candidate } };
     const second = selectCandidate(candidates, secondState, settings, 50);
     expect(second.candidate?.userId).toBe('beta');
+  });
+
+  it('keeps the normal viewer ceiling strict unless the bounded fallback is explicitly requested', () => {
+    const state = sanitizeState({});
+    const candidates = [
+      candidate('nearby', 'category', { viewerCount: 35 }),
+      candidate('wrong_language', 'category', { viewerCount: 36, language: 'fr' }),
+      candidate('too_large', 'category', { viewerCount: 75 }),
+    ];
+    const strictSettings = { ...settings, maximumViewers: 30 };
+    expect(filterCandidates(candidates, state, strictSettings, { userId: 'owner', login: 'owner' })).toEqual([]);
+    expect(filterCandidates(candidates, state, strictSettings, { userId: 'owner', login: 'owner' }, { ignoreMaximumViewers: true })
+      .map((item: { userId: string }) => item.userId)).toEqual(['nearby', 'too_large']);
+  });
+
+  it('uses the closest bounded viewer fallback and continues an automatic ending flow', async () => {
+    const testRuntime = runtime({
+      maximumViewers: 30,
+      allowViewerRangeFallback: true,
+      confirmationMode: 'automatic',
+      showSearchProgress: false,
+    });
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent(control('suggest'), testRuntime.context);
+    const discoverPending = testRuntime.value().pending as { requestId: string };
+    await raidScout.onEvent({
+      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
+      payload: {
+        operation: 'discover', requestId: discoverPending.requestId, success: true,
+        broadcasterUserId: 'owner', broadcasterLogin: 'owner', currentAudience: 7,
+        candidates: [
+          candidate('closest', 'category', { viewerCount: 35 }),
+          candidate('also_close', 'category', { viewerCount: 39 }),
+          candidate('too_large', 'category', { viewerCount: 75 }),
+        ],
+      },
+    }, testRuntime.context);
+    expect(testRuntime.value().suggestion).toMatchObject({ candidate: { userId: expect.stringMatching(/^(closest|also_close)$/) } });
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'raid' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid' }));
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'CLOSEST SAFE MATCH' }), { lane: 'foreground' });
   });
 
   it('fulfills and adds a bounded viewer suggestion, searches it first, and clears it after stream offline', async () => {

@@ -65,7 +65,7 @@ describe('Raid Scout package files', () => {
       'https://api.twitch.tv/helix/',
       'TimeSpan.FromSeconds(10)',
       'MaximumResponseCharacters = 262144',
-      'MaximumCandidates = 40',
+      'MaximumCandidates = 100',
       'sourceResults',
       'clips?broadcaster_id=',
       'https://clips.twitch.tv/embed?',

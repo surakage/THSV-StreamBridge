@@ -17,7 +17,7 @@ The preferred tier can combine two lists:
 
 ## Selection and safety
 
-- Removes the broadcaster, blocked channels, offline channels, filtered categories/tags/languages, viewer-count mismatches, recent raid destinations, and the current suggestion.
+- Removes the broadcaster, blocked channels, offline channels, filtered categories/tags/languages, viewer-count mismatches, recent raid destinations, and the current suggestion. Same-category discovery can inspect up to 100 live channels; when enabled, the bounded closest-match fallback may relax only the maximum-viewer ceiling while every other safety filter remains enforced.
 - Uses shuffle-without-repeats inside the first eligible tier.
 - Can prefer channels from 25% through 200% of the current audience before falling back to the full eligible tier.
 - Stores only local bounded candidate summaries and history.

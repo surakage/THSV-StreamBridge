@@ -9,9 +9,9 @@ const RAID_SCOUT_CONTROL_ACTION_IDS = new Set([
   CONTROLLER_ACTION_ID, RUN_ENDING_AD_ACTION_ID, 'e924f0ad-36c1-4687-8c05-c39466d06963', 'b2a5681e-329a-40ac-9ce3-57d249ba80fe',
   'c3a739c4-dfdc-455b-a377-bf9d72f4cd30', '74d1914e-8b75-4cb6-90f6-977a77803082', '5e3be19a-1ab3-5b11-8dea-8cc8fe985db7',
 ]);
-const MAXIMUM_CANDIDATES = 40;
+const MAXIMUM_CANDIDATES = 100;
 const MAXIMUM_HISTORY = 100;
-const MAXIMUM_BAG = 40;
+const MAXIMUM_BAG = 100;
 const MAXIMUM_VIEWER_SUGGESTIONS = 25;
 const MAXIMUM_PENDING_MS = 60_000;
 const MAXIMUM_CLIP_PENDING_MS = 120_000;
@@ -92,7 +92,8 @@ const FALLBACKS = Object.freeze({
   viewerSuggestionAcceptedMessage: '{viewer}, added {channel} to tonight\'s raid list.',
   viewerSuggestionRejectedMessage: '{viewer}, that raid suggestion could not be added.',
   sourceOrder: 'preferred-followed-category', maximumPreferredLookups: 20, maximumFollowedResults: 25,
-  maximumFollowedPages: 2, maximumCategoryResults: 25, minimumViewers: 1, maximumViewers: 100_000,
+  maximumFollowedPages: 2, maximumCategoryResults: 100, minimumViewers: 1, maximumViewers: 100_000,
+  allowViewerRangeFallback: true,
   currentAudienceEstimate: 0, preferSimilarSize: true, minimumAudienceRatio: 0.25, maximumAudienceRatio: 2,
   preferredLanguage: '', requireMatchingLanguage: false, excludedChannels: '', excludedCategories: '',
   excludedTags: '', recentRaidStreams: 7, confirmationMode: 'required', suggestionExpiryMinutes: 15,
@@ -177,11 +178,12 @@ function settingsFor(context) {
     usePreferred: boolean(raw.usePreferred, true), useFollowed: boolean(raw.useFollowed, true),
     useCategory: boolean(raw.useCategory, true), sourceOrder: sourceOrder.split('-'),
     maximumPreferredLookups: integer(raw.maximumPreferredLookups, 1, 25, FALLBACKS.maximumPreferredLookups),
-    maximumFollowedResults: integer(raw.maximumFollowedResults, 1, 40, FALLBACKS.maximumFollowedResults),
+    maximumFollowedResults: integer(raw.maximumFollowedResults, 1, MAXIMUM_CANDIDATES, FALLBACKS.maximumFollowedResults),
     maximumFollowedPages: integer(raw.maximumFollowedPages, 1, 3, FALLBACKS.maximumFollowedPages),
-    maximumCategoryResults: integer(raw.maximumCategoryResults, 1, 40, FALLBACKS.maximumCategoryResults),
+    maximumCategoryResults: integer(raw.maximumCategoryResults, 1, MAXIMUM_CANDIDATES, FALLBACKS.maximumCategoryResults),
     minimumViewers: integer(raw.minimumViewers, 0, 10_000_000, FALLBACKS.minimumViewers),
     maximumViewers: integer(raw.maximumViewers, 1, 10_000_000, FALLBACKS.maximumViewers),
+    allowViewerRangeFallback: boolean(raw.allowViewerRangeFallback, FALLBACKS.allowViewerRangeFallback),
     currentAudienceEstimate: integer(raw.currentAudienceEstimate, 0, 10_000_000, 0),
     preferSimilarSize: boolean(raw.preferSimilarSize, true),
     minimumAudienceRatio: decimal(raw.minimumAudienceRatio, 0.01, 100, FALLBACKS.minimumAudienceRatio),
@@ -332,7 +334,7 @@ function shuffle(values) {
   return output;
 }
 
-export function filterCandidates(candidates, state, settings, broadcaster) {
+export function filterCandidates(candidates, state, settings, broadcaster, options = {}) {
   const ownId = clean(broadcaster?.userId, 64); const ownLogin = normalizedLogin(broadcaster?.login);
   const priorRaidCutoff = Math.max(0, state.streamCycle - settings.recentRaidStreams + 1);
   const recentlyRaided = new Set(state.history.filter((entry) => entry.status === 'confirmed' && entry.streamCycle >= priorRaidCutoff).map((entry) => entry.candidate.userId));
@@ -341,7 +343,7 @@ export function filterCandidates(candidates, state, settings, broadcaster) {
     if (seen.has(candidate.userId)) return false; seen.add(candidate.userId);
     if (candidate.userId === ownId || candidate.login === ownLogin || settings.excludedChannels.has(candidate.login)) return false;
     if (recentlyRaided.has(candidate.userId)) return false;
-    if (candidate.viewerCount < settings.minimumViewers || candidate.viewerCount > settings.maximumViewers) return false;
+    if (candidate.viewerCount < settings.minimumViewers || (!options.ignoreMaximumViewers && candidate.viewerCount > settings.maximumViewers)) return false;
     if (settings.requireMatchingLanguage && settings.preferredLanguage && candidate.language !== settings.preferredLanguage) return false;
     const category = candidate.category.toLowerCase();
     if (settings.excludedCategories.some((excluded) => category.includes(excluded))) return false;
@@ -1276,8 +1278,20 @@ async function handleDiscoveryResult(event, context, settings, state) {
   }
   const candidates = Array.isArray(event.payload?.candidates) ? event.payload.candidates : [];
   const broadcaster = { userId: clean(event.payload?.broadcasterUserId, 64), login: normalizedLogin(event.payload?.broadcasterLogin) };
-  const eligible = filterCandidates(candidates, base, settings, broadcaster);
+  let eligible = filterCandidates(candidates, base, settings, broadcaster);
   const currentAudience = integer(event.payload?.currentAudience, 0, 10_000_000, settings.currentAudienceEstimate);
+  let viewerFallbackUsed = false;
+  if (eligible.length === 0 && settings.allowViewerRangeFallback) {
+    const fallbackCeiling = Math.max(settings.maximumViewers + 25, settings.maximumViewers * 2);
+    const overMaximum = filterCandidates(candidates, base, settings, broadcaster, { ignoreMaximumViewers: true })
+      .filter((candidate) => candidate.viewerCount > settings.maximumViewers && candidate.viewerCount <= fallbackCeiling);
+    if (overMaximum.length > 0) {
+      const closestViewerCount = Math.min(...overMaximum.map((candidate) => candidate.viewerCount));
+      const closestWindow = Math.max(5, Math.ceil(settings.maximumViewers * 0.25));
+      eligible = overMaximum.filter((candidate) => candidate.viewerCount <= closestViewerCount + closestWindow);
+      viewerFallbackUsed = true;
+    }
+  }
   const selected = selectCandidate(eligible, base, settings, currentAudience);
   const sourceResults = sourceResultRecords(event.payload?.sourceResults, settings.sourceOrder);
   cancelProgress(context);
@@ -1297,6 +1311,15 @@ async function handleDiscoveryResult(event, context, settings, state) {
     history: [...base.history, { candidate: selected.candidate, at: suggestion.suggestedAt, status: 'suggested', streamCycle: base.streamCycle, error: '' }].slice(-MAXIMUM_HISTORY),
   };
   await context.state.write(suggested);
+  if (viewerFallbackUsed) {
+    await publishStatusCard(
+      context,
+      settings,
+      'CLOSEST SAFE MATCH',
+      `No live channel was at or below ${settings.maximumViewers} viewers. Using the closest safe match at ${selected.candidate.viewerCount}.`,
+      4_000,
+    );
+  }
   if (autoConfirm) {
     await publishCard(context, settings, selected.candidate, false);
     return beginConfirmedDestination(context, settings, suggested, selected.candidate);

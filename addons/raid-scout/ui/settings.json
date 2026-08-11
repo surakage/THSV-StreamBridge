@@ -4,7 +4,7 @@
     "enabled", "autoStartSceneEnabled", "autoStartSceneName", "usePreferred", "useFollowed", "useCategory", "sourceOrder", "preferredChannels", "maximumPreferredLookups",
     "viewerSuggestionsEnabled", "viewerSuggestionRewardId", "kickViewerSuggestionRewardId", "viewerSuggestionCommand", "viewerSuggestionPointsCost", "maximumViewerSuggestions", "oneViewerSuggestionPerStream",
     "announceViewerSuggestions", "viewerSuggestionAcceptedMessage", "viewerSuggestionRejectedMessage",
-    "maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults", "minimumViewers", "maximumViewers",
+    "maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults", "minimumViewers", "maximumViewers", "allowViewerRangeFallback",
     "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio", "preferredLanguage",
     "requireMatchingLanguage", "excludedChannels", "excludedCategories", "excludedTags", "recentRaidStreams",
     "confirmationMode", "suggestionExpiryMinutes", "announceConfirmedRaid", "confirmedRaidMessage", "announceNoCandidate",
@@ -77,7 +77,7 @@
       "fields": ["preferredChannels", "maximumPreferredLookups", "viewerSuggestionsEnabled", "viewerSuggestionRewardId", "kickViewerSuggestionRewardId", "viewerSuggestionCommand", "viewerSuggestionPointsCost", "maximumViewerSuggestions", "oneViewerSuggestionPerStream", "announceViewerSuggestions", "viewerSuggestionAcceptedMessage", "viewerSuggestionRejectedMessage"]
     },
     { "id": "limits", "title": "4. Search limits", "description": "Only limits for enabled search sources are shown. Conservative limits keep Twitch requests fast and bounded.", "fields": ["maximumFollowedResults", "maximumFollowedPages", "maximumCategoryResults"] },
-    { "id": "audience", "title": "5. Audience size", "description": "Keep suggestions within a comfortable viewer range. Similar-size matching reveals its ratio controls only when enabled.", "fields": ["minimumViewers", "maximumViewers", "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio"] },
+    { "id": "audience", "title": "5. Audience size", "description": "Keep suggestions within a comfortable viewer range. The bounded fallback prevents a popular category from leaving the ending flow without a destination while preserving every other safety filter.", "fields": ["minimumViewers", "maximumViewers", "allowViewerRangeFallback", "currentAudienceEstimate", "preferSimilarSize", "minimumAudienceRatio", "maximumAudienceRatio"] },
     { "id": "language-category", "title": "6. Language, category, and tags", "description": "Require a matching language when needed, then exclude categories or tags you do not want recommended.", "fields": ["requireMatchingLanguage", "preferredLanguage", "excludedCategories", "excludedTags"] },
     { "id": "channels-history", "title": "7. Blocked channels and repeat protection", "description": "Your own channel, offline channels, the current suggestion, blocked channels, and recent confirmed raids are always removed.", "fields": ["excludedChannels", "recentRaidStreams"] },
     { "id": "messages", "title": "8. Confirmation and chat messages", "description": "Set how long a suggestion remains valid and choose which outcomes should be announced in chat. Message boxes appear only when their announcement is enabled.", "fields": ["suggestionExpiryMinutes", "announceConfirmedRaid", "confirmedRaidMessage", "announceNoCandidate", "noCandidateMessage"] },

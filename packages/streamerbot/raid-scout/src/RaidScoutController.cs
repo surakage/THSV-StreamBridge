@@ -20,7 +20,7 @@ public class CPHInline
     private const string SourceName = "THSV Addon - Raid Scout - Controller";
     private const string HelixRoot = "https://api.twitch.tv/helix/";
     private const int MaximumResponseCharacters = 262144;
-    private const int MaximumCandidates = 40;
+    private const int MaximumCandidates = 100;
     private static readonly HttpClient Http = CreateClient();
 
     public bool Execute()
