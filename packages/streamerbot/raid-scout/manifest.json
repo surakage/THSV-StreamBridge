@@ -189,6 +189,6 @@
       "Keep triggerless. OBS/Aitum users may select and approve this action as Raid Scout's Stop Streaming action."
     ]
   },
-  "triggerSafety": "Controller, Run Ending Ad, and Stop All OBS Streaming Outputs must remain triggerless. Finish Stream, Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Broadcast Stopped only confirms a provider stop signal. The ad action is dispatched once when the ending search begins; the stop-all action is dispatched only after raid acceptance, a genuine Ad Run timer, clip completion, and the configured safety gate.",
+  "triggerSafety": "Controller, Run Ending Ad, and Stop All OBS Streaming Outputs must remain triggerless. Finish Stream, Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Broadcast Stopped only confirms a provider stop signal. The ad action is dispatched once when the ending search begins; after clip completion and the raid attempt, the stop-all action is dispatched when the genuine Ad Run timer and configured safety gate finish even if Twitch rejects or cannot confirm the raid.",
   "verificationStatus": "Streamer.bot broadcaster, raid, redemption fulfill/cancel method signatures and Twitch Helix followed/category/clip contracts are source-verified; live Twitch discovery, clip playback, reward settlement, and raid acceptance remain creator-tested."
 }

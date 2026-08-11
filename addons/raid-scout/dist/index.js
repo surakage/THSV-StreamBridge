@@ -351,31 +351,12 @@ export function filterCandidates(candidates, state, settings, broadcaster, optio
     return !settings.excludedTags.some((excluded) => tags.some((tag) => tag.includes(excluded)));
   }).slice(0, MAXIMUM_CANDIDATES);
 }
-function audienceDistance(candidate, currentAudience) {
-  return currentAudience <= 0 ? 0 : Math.abs(Math.log((candidate.viewerCount + 1) / (currentAudience + 1)));
-}
-export function selectCandidate(candidates, state, settings, currentAudience = 0) {
-  const currentId = state.suggestion?.candidate?.userId; const nextBags = { ...state.bags };
-  for (const source of settings.sourceOrder) {
-    const tier = candidates.filter((candidate) => candidate.source === source && candidate.userId !== currentId);
-    if (tier.length === 0) continue;
-    const similar = settings.preferSimilarSize && currentAudience > 0 ? tier.filter((candidate) => {
-      const ratio = candidate.viewerCount / currentAudience;
-      return ratio >= settings.minimumAudienceRatio && ratio <= settings.maximumAudienceRatio;
-    }) : [];
-    const pool = similar.length > 0 ? similar : tier; const eligibleIds = new Set(pool.map((candidate) => candidate.userId));
-    let bag = (nextBags[source] || []).filter((id) => eligibleIds.has(id));
-    if (bag.length === 0) {
-      const ordered = settings.preferSimilarSize && currentAudience > 0
-        ? [...pool].sort((left, right) => audienceDistance(left, currentAudience) - audienceDistance(right, currentAudience)) : pool;
-      const window = ordered.slice(0, Math.max(5, Math.ceil(ordered.length / 2)));
-      bag = [...shuffle(window), ...shuffle(ordered.slice(window.length))].map((candidate) => candidate.userId);
-    }
-    const selectedId = bag.shift(); nextBags[source] = bag;
-    const selected = pool.find((candidate) => candidate.userId === selectedId);
-    if (selected) return { candidate: selected, bags: nextBags };
-  }
-  return { candidate: undefined, bags: nextBags };
+export function selectCandidate(candidates, state) {
+  const currentId = state.suggestion?.candidate?.userId;
+  const ordered = candidates
+    .filter((candidate) => candidate.userId !== currentId)
+    .sort((left, right) => left.viewerCount - right.viewerCount || left.login.localeCompare(right.login));
+  return { candidate: ordered[0], bags: { ...state.bags } };
 }
 
 function withoutPending(state) { const next = { ...state }; delete next.pending; return next; }
@@ -746,7 +727,8 @@ function armControllerWatchdog(context, settings, pending) {
         history: candidate ? [...current.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: current.streamCycle, error }].slice(-MAXIMUM_HISTORY) : current.history,
       };
       await context.state.write(recovered); await releaseRaidMediaSlot(context);
-      await publishStatusCard(context, settings, 'CHECK RAID STATUS', 'Twitch did not confirm the raid. Check Twitch before retrying manually.', 10_000);
+      await publishStatusCard(context, settings, 'RAID NOT CONFIRMED', 'Twitch did not confirm the raid. The approved broadcast-ending flow will still continue after the ending ad.', 10_000);
+      if (candidate) await beginBroadcastEnd(context, settingsFor(context), recovered, candidate);
     }
   }));
 }
@@ -806,6 +788,7 @@ async function dispatchRaid(context, state, candidate) {
       history: [...current.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: current.streamCycle, error: 'Controller dispatch failed.' }].slice(-MAXIMUM_HISTORY),
     };
     await context.state.write(failed); await releaseRaidMediaSlot(context);
+    await beginBroadcastEnd(context, settingsFor(context), failed, candidate);
   }));
   armControllerWatchdog(context, settingsFor(context), pending);
   return reserved;
@@ -1028,10 +1011,10 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
     }
     if (endingAdAttemptFailed) {
       endingAdAttemptFailed = false;
-      const failed = { ...state, lastError: 'Twitch did not confirm the ending ad, so Raid Scout left the broadcast live after starting the raid.' };
+      const failed = { ...state, lastError: 'Twitch did not confirm the ending ad, so Raid Scout left the broadcast live after the raid attempt.' };
       await context.state.write(failed);
       await releaseRaidMediaSlot(context);
-      await publishStatusCard(context, settings, 'END STREAM MANUALLY', 'The raid started, but Twitch did not confirm an ending ad. The broadcast was left live for safety.', 10_000);
+      await publishStatusCard(context, settings, 'END STREAM MANUALLY', 'The raid attempt finished, but Twitch did not confirm an ending ad. The broadcast was left live for safety.', 10_000);
       return failed;
     }
     const requestIdValue = requestId('end-broadcast');
@@ -1045,8 +1028,8 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
     const priorRequestAt = Math.max(endingAdRequestedAt, state.raidFlowAdRequestedAt || 0);
     const adWasRequestedBeforeRaid = priorRequestAt > 0 && Date.now() - priorRequestAt <= Math.max(waitMs, PREFLIGHT_ENDING_AD_REUSE_MS);
     await publishStatusCard(context, settings, adWasRequestedBeforeRaid ? 'WAITING FOR END AD' : 'STARTING END AD', adWasRequestedBeforeRaid
-      ? `Raid accepted. Waiting for Twitch to confirm the ending ad Raid Scout requested before the raid; the broadcast stays live if Twitch does not confirm it.`
-      : `Raid accepted. Asking Twitch to start a ${String(settings.endBroadcastAdDurationSeconds)} second ending ad, then waiting for Twitch's real Ad Run timer.`, Math.min(waitMs, 15_000));
+      ? `Raid attempt finished. Waiting for Twitch to confirm the ending ad Raid Scout requested earlier; the broadcast stays live if Twitch does not confirm it.`
+      : `Raid attempt finished. Asking Twitch to start a ${String(settings.endBroadcastAdDurationSeconds)} second ending ad, then waiting for Twitch's real Ad Run timer.`, Math.min(waitMs, 15_000));
     broadcastEndTask = context.schedule.after(waitMs, () => queueScheduledWork(async () => {
       broadcastEndTask = undefined;
       const current = sanitizeState(await context.state.read());
@@ -1069,7 +1052,7 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
   };
   const armed = { ...state, pending, lastError: '' };
   await context.state.write(armed);
-  await publishStatusCard(context, settings, 'RAID ACCEPTED', `Broadcast ending in ${String(settings.endBroadcastDelaySeconds)} seconds. Use Raid Scout Cancel to keep streaming.`, delayMs);
+  await publishStatusCard(context, settings, 'RAID FLOW COMPLETE', `Broadcast ending in ${String(settings.endBroadcastDelaySeconds)} seconds. Use Raid Scout Cancel to keep streaming.`, delayMs);
   broadcastEndTask = context.schedule.after(delayMs, () => queueScheduledWork(() => dispatchBroadcastEnd(context, pending.requestId)));
   return armed;
 }
@@ -1353,7 +1336,9 @@ async function handleRaidResult(event, context, settings, state) {
       ...next, lastError: error,
       history: [...next.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: state.streamCycle, error }].slice(-MAXIMUM_HISTORY),
     };
-    await context.state.write(next); await releaseRaidMediaSlot(context); return next;
+    await context.state.write(next); await releaseRaidMediaSlot(context);
+    await publishStatusCard(context, settings, 'RAID FAILED', 'Twitch did not accept the raid. The approved broadcast-ending flow will still continue after the ending ad.', 8_000);
+    return beginBroadcastEnd(context, settings, withoutSuggestion(next), candidate);
   }
   next = {
     ...withoutSuggestion(next), lastError: '',

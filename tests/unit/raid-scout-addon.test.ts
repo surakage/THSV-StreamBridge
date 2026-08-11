@@ -247,14 +247,19 @@ describe('Raid Scout add-on', () => {
     expect(eligible.map((item: { userId: string }) => item.userId)).toEqual(['safe']);
   });
 
-  it('uses the first eligible tier and consumes a persisted shuffle bag without repeats', () => {
+  it('selects the lowest-viewer eligible channel across every enabled source', () => {
     const state = sanitizeState({ bags: { preferred: ['alpha', 'beta'], followed: [], category: [] } });
-    const candidates = [candidate('alpha'), candidate('beta'), candidate('gamma', 'followed')];
+    const candidates = [
+      candidate('alpha', 'preferred', { viewerCount: 12 }),
+      candidate('beta', 'preferred', { viewerCount: 8 }),
+      candidate('gamma', 'followed', { viewerCount: 2 }),
+      candidate('delta', 'category', { viewerCount: 5 }),
+    ];
     const first = selectCandidate(candidates, state, settings, 50);
-    expect(first.candidate?.userId).toBe('alpha');
+    expect(first.candidate?.userId).toBe('gamma');
     const secondState = { ...state, bags: first.bags, suggestion: { candidate: first.candidate } };
     const second = selectCandidate(candidates, secondState, settings, 50);
-    expect(second.candidate?.userId).toBe('beta');
+    expect(second.candidate?.userId).toBe('delta');
   });
 
   it('keeps the normal viewer ceiling strict unless the bounded fallback is explicitly requested', () => {
@@ -799,6 +804,36 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'end-broadcast' }));
   });
 
+  it('ends after the genuine ad timer even when Twitch rejects the raid', async () => {
+    const now = 1_800_000_000_000;
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    const raidRequestId = 'raid-rejected-after-ad';
+    const target = candidate('small_channel', 'category', { viewerCount: 2 });
+    const initial = sanitizeState({
+      raidFlowStartedAt: now - 5_000,
+      raidFlowAdEndsAt: now + 30_000,
+      lastAdStartedAt: now - 1_000,
+      lastAdEndsAt: now + 30_000,
+      pending: { operation: 'raid', requestId: raidRequestId, startedAt: now, candidate: target },
+    });
+    const testRuntime = runtime({
+      endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID,
+      endBroadcastTiming: 'after-ad', endBroadcastAdEndBufferSeconds: 3, endBroadcastAcknowledged: true,
+    }, initial as Record<string, unknown>);
+    testRuntime.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent({
+      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
+      payload: { operation: 'raid', requestId: raidRequestId, success: false, error: 'Raid rejected.' },
+    }, testRuntime.context);
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', executeAt: now + 33_000 });
+    expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(33_000, expect.any(Function));
+    await testRuntime.runScheduled();
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({
+      raidScoutOperation: 'end-broadcast', raidScoutTargetLogin: 'small_channel',
+    }));
+  });
+
   it('arms a cancelable broadcast-ending countdown only after Twitch accepts the raid', async () => {
     const raidRequestId = 'raid-accepted-request';
     const initial = sanitizeState({
@@ -820,7 +855,7 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', actionId: END_BROADCAST_ACTION_ID });
     expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(10_000, expect.any(Function));
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({
-      title: 'RAID ACCEPTED', text: expect.stringContaining('Raid Scout Cancel'),
+      title: 'RAID FLOW COMPLETE', text: expect.stringContaining('Raid Scout Cancel'),
     }), { lane: 'foreground' });
 
     await raidScout.onEvent(control('cancel'), testRuntime.context);
@@ -893,7 +928,7 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'end-broadcast' }));
   });
 
-  it('does not arm broadcast ending after a rejected raid or without the explicit safety acknowledgement', async () => {
+  it('ends after a rejected raid attempt but still requires the explicit safety acknowledgement', async () => {
     const rejectedId = 'raid-rejected-request';
     const rejected = runtime({ endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastTiming: 'countdown', endBroadcastAcknowledged: true }, sanitizeState({
       pending: { operation: 'raid', requestId: rejectedId, startedAt: Date.now(), candidate: candidate('alpha') },
@@ -901,8 +936,9 @@ describe('Raid Scout add-on', () => {
     rejected.context.approvedActionIds.push(END_BROADCAST_ACTION_ID);
     await raidScout.start(rejected.context);
     await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'raid', requestId: rejectedId, success: false, error: 'Raid rejected.' } }, rejected.context);
-    expect(rejected.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.anything());
-    expect(rejected.value().pending).toBeUndefined();
+    expect(rejected.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', actionId: END_BROADCAST_ACTION_ID });
+    await rejected.runScheduled();
+    expect(rejected.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'end-broadcast' }));
 
     await raidScout.stop(rejected.context);
     const unacknowledgedId = 'raid-unacknowledged-request';
