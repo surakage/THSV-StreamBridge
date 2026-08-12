@@ -12,7 +12,7 @@ Use Community Analytics when you want StreamBridge features such as Viewer Spotl
 2. Keep platform triggers on the existing main THSV intake actions. Community Analytics has no `.sb` import and needs no direct Streamer.bot trigger.
 3. In the wizard, select which platforms count and add stable-ID exclusions. Leave simulated events disabled outside deliberate testing.
 4. Leave monthly participation scoring disabled unless Viewer Spotlight or another approved consumer needs it.
-5. Save, restart StreamBridge, then use **Refresh session summary** in the Reports section. Aggregate session JSON and pseudonymous viewer CSV exports are available there.
+5. Save, restart StreamBridge, then open **Community snapshot**. It puts the current stream, three key activity totals, and recent streams first. Open **All activity counters** only when you need the complete breakdown; detailed downloads and privacy tools stay in their own secondary panels.
 
 If the summary remains empty, confirm Viewer Foundation and the selected platform intake are healthy before changing retention or scoring settings.
 

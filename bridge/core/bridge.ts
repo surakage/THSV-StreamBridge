@@ -15,7 +15,7 @@ import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/
 import { ModuleRegistry } from './module-registry.js';
 import { buildEffectiveCommands, type EffectiveCommandsResult } from './effective-commands.js';
 import { EventFilterEngine, type FilterDecision } from './event-filters.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -314,6 +314,10 @@ export class StreamBridge {
     return this.modules.administerCommunityAnalytics(request);
   }
 
+  public administerQuoteVault(request: QuoteVaultAdminRequestV1): Promise<QuoteVaultAdminResultV1> {
+    return this.modules.administerQuoteVault(request);
+  }
+
   public administerViewerSpotlight(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1> {
     return this.modules.administerViewerSpotlight(request);
   }
@@ -340,7 +344,9 @@ export class StreamBridge {
     const outputs = await this.delivery.enqueueBatch(events);
     for (const [index, event] of events.entries()) {
       const decision = index === 0 ? initialDecision : this.filters.evaluate(event);
-      if (!decision.displayBlocked) {
+      const chatGuardDisplayBlocked = await this.modules.chatDisplayBlocked(event, decision.blockedModuleIds);
+      if (chatGuardDisplayBlocked) this.logger.info('Chat Guard withheld a matched message from local display', { eventId: event.eventId, platform: event.platform });
+      if (!decision.displayBlocked && !chatGuardDisplayBlocked) {
         try { await this.bus.publish(event); }
         catch (error) { this.logger.warn('Local event subscriber failed after durable queueing; external delivery continues', { eventId: event.eventId, error }); }
       }

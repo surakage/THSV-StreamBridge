@@ -27,7 +27,35 @@ function chat(message: string): NormalizedEvent {
   };
 }
 
+function featureCommandNames(result: ReturnType<typeof buildEffectiveCommands>): string[] {
+  return result.config.definitions
+    .filter((definition) => definition.name !== 'commands')
+    .map((definition) => definition.name);
+}
+
 describe('effective add-on command registry', () => {
+  it('always registers the Bridge-owned command directory with singular and plural forms', () => {
+    const result = buildEffectiveCommands({ enabled: false, prefix: '!', definitions: [] }, []);
+
+    expect(result.config.enabled).toBe(true);
+    expect(result.config.definitions[0]).toMatchObject({ name: 'commands', aliases: ['command'], minimumRole: 'viewer' });
+    expect(deriveCommandEvent(chat('!command'), result.config)).toMatchObject({
+      payload: { command: 'commands', targetModuleId: 'core.command-directory' },
+    });
+  });
+
+  it('reserves command and commands so creator definitions cannot shadow the built-in directory', () => {
+    const result = buildEffectiveCommands({ enabled: true, prefix: '!', definitions: [
+      { name: 'commands', aliases: [], minimumRole: 'moderator', allowBots: false, source: 'manual' },
+      { name: 'hello', aliases: ['command'], minimumRole: 'viewer', allowBots: false, source: 'manual' },
+    ] }, []);
+
+    expect(result.config.definitions).toEqual([
+      expect.objectContaining({ name: 'hello', aliases: [] }),
+      expect.objectContaining({ name: 'commands', aliases: ['command'], targetModuleId: 'core.command-directory' }),
+    ]);
+  });
+
   it('derives an installed add-on command from the normal chat intake', () => {
     const result = buildEffectiveCommands(base, [source('thsv.chat-play-pack', [{ id: 'chat-play.coinflip', name: 'coinflip' }])]);
     const event = deriveCommandEvent(chat('!coinflip heads'), result.config);
@@ -53,7 +81,7 @@ describe('effective add-on command registry', () => {
       ], { mode: 'both', genericCommandName: 'translate', languageCommands: ['en', 'es'] }),
     ]);
 
-    expect(result.config.definitions.map((definition) => definition.name)).toEqual(['leaves', 'hideout', 'translate', 'en', 'es']);
+    expect(featureCommandNames(result)).toEqual(['leaves', 'hideout', 'translate', 'en', 'es']);
   });
 
   it('keeps creator definitions authoritative and reports collisions without failing other commands', () => {
@@ -66,7 +94,7 @@ describe('effective add-on command registry', () => {
       { id: 'chat-play.slots', name: 'slots' },
     ])]);
 
-    expect(result.config.definitions.map((definition) => definition.name)).toEqual(['coinflip', 'slots']);
+    expect(featureCommandNames(result)).toEqual(['coinflip', 'slots']);
     expect(result.collisions).toEqual([expect.objectContaining({ commandId: 'chat-play.coinflip', name: 'coinflip', owner: 'creator configuration' })]);
   });
 
@@ -81,7 +109,7 @@ describe('effective add-on command registry', () => {
     const result = buildEffectiveCommands(base, [source('thsv.automated-shoutouts', [
       { id: 'automated-shoutouts.shoutout', name: 'shoutout (recommended alias: so)' },
     ], { triggerOnManualCommand: true, manualCommandName: 'shoutout' })]);
-    expect(result.config.definitions[0]).toMatchObject({ name: 'shoutout', aliases: ['so'], minimumRole: 'moderator' });
+    expect(result.addOnCommands[0]?.definition).toMatchObject({ name: 'shoutout', aliases: ['so'], minimumRole: 'moderator' });
   });
 
   it('uses saved claim and guide command names instead of stale manifest defaults', () => {
@@ -92,7 +120,7 @@ describe('effective add-on command registry', () => {
       source('thsv.village-roll-call', [{ id: 'village-roll-call.checkin', name: 'checkin' }], { commandName: 'daily' }),
     ]);
 
-    expect(result.config.definitions.map((definition) => definition.name)).toEqual(['crownme', 'earlybird', 'deals', 'daily']);
+    expect(featureCommandNames(result)).toEqual(['crownme', 'earlybird', 'deals', 'daily']);
   });
 
   it('registers editable fun commands, including the conventional digit-leading 8ball name', () => {
@@ -102,7 +130,7 @@ describe('effective add-on command registry', () => {
       { id: 'village-fun.chuck-norris', name: 'chucknorris' },
     ], { eightBallCommand: '8ball', jokeCommand: 'villagejoke', chuckNorrisEnabled: false })]);
 
-    expect(result.config.definitions.map((definition) => definition.name)).toEqual(['8ball', 'villagejoke']);
+    expect(featureCommandNames(result)).toEqual(['8ball', 'villagejoke']);
     expect(deriveCommandEvent(chat('!8ball will this work?'), result.config)).toMatchObject({ payload: { command: '8ball' } });
   });
 
@@ -150,7 +178,7 @@ describe('effective add-on command registry', () => {
       commandShortcuts: ['death=deaths|Deaths', 'win=wins|Wins', 'death=other|Duplicate', 'streamcounter=wrong|Conflict', 'not valid'],
     })]);
 
-    expect(result.config.definitions.map((definition) => definition.name)).toEqual(['streamcounter', 'death', 'win']);
+    expect(featureCommandNames(result)).toEqual(['streamcounter', 'death', 'win']);
     expect(result.addOnCommands.map((entry) => entry.commandId)).toEqual([
       'custom-counter.command',
       'custom-counter.shortcut.death',

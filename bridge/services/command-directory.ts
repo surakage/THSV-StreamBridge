@@ -2,12 +2,13 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import type { BridgeConfig } from '../../schemas/config.js';
 import type { ModuleRegistry } from '../core/module-registry.js';
-import { buildEffectiveCommands, type EffectiveAddOnCommand } from '../core/effective-commands.js';
+import { buildEffectiveCommands, commandName, COMMAND_DIRECTORY_ALIASES, COMMAND_DIRECTORY_COMMAND, type EffectiveAddOnCommand } from '../core/effective-commands.js';
+import type { StreamerBotCommandSummary } from '../adapters/streamerbot-adapter.js';
 
 const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
 type CommandPlatform = (typeof PLATFORMS)[number];
 
-export interface PublicCommandEntry {
+export interface CommandDirectoryEntry {
   readonly id: string;
   readonly command: string;
   readonly aliases: readonly string[];
@@ -15,7 +16,7 @@ export interface PublicCommandEntry {
   readonly category: string;
   readonly source: string;
   readonly platforms: readonly CommandPlatform[];
-  readonly minimumRole: 'viewer' | 'subscriber';
+  readonly minimumRole: 'viewer' | 'subscriber' | 'moderator' | 'broadcaster';
   readonly usage: string;
 }
 
@@ -25,8 +26,13 @@ export interface PublicCommandCatalogue {
   readonly catalogHash: string;
   readonly prefix: string;
   readonly commandCount: number;
-  readonly categories: readonly Readonly<{ name: string; commands: readonly PublicCommandEntry[] }>[];
-  readonly privacy: 'public-command-metadata-only';
+  readonly categories: readonly Readonly<{ name: string; commands: readonly CommandDirectoryEntry[] }>[];
+  readonly privacy: 'public-command-metadata-only' | 'authenticated-moderator-command-metadata-only';
+  readonly audience?: 'moderator';
+}
+
+export interface StreamerBotCommandInspector {
+  inspectCommands(): Promise<readonly StreamerBotCommandSummary[]>;
 }
 
 export interface CommandDirectoryPublicationStatus {
@@ -112,11 +118,14 @@ export class CommandDirectoryService {
   private readonly publishUrl: URL | undefined;
   private readonly tokenFile: string | undefined;
   private readonly request: typeof fetch;
+  private streamerBotCommands: readonly StreamerBotCommandSummary[] = Object.freeze([]);
+  private streamerBotRefreshedAt: string | undefined;
 
   public constructor(
     private readonly config: BridgeConfig,
     private readonly modules: ModuleRegistry,
     options: CommandDirectoryPublishOptions = {},
+    private readonly streamerBotInspector?: StreamerBotCommandInspector,
   ) {
     this.publishUrl = safePublishUrl(options.publishUrl ?? process.env['THSV_COMMAND_DIRECTORY_PUBLISH_URL']);
     this.tokenFile = nonEmpty(options.tokenFile ?? process.env['THSV_COMMAND_DIRECTORY_PUBLISH_TOKEN_FILE']);
@@ -127,16 +136,45 @@ export class CommandDirectoryService {
 
   public catalogue(now = new Date()): PublicCommandCatalogue {
     const effective = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources(), { includeStopped: true });
-    const entries = [...this.coreCommands(), ...this.addOnCommands(effective.addOnCommands)]
+    const builtIn = [this.commandDirectoryCommand(), ...this.coreCommands('viewer'), ...this.addOnCommands(effective.addOnCommands, 'viewer')];
+    const entries = [...builtIn, ...this.externalCommands('viewer', new Set(builtIn.flatMap((entry) => [entry.command, ...entry.aliases])))]
       .sort((left, right) => left.category.localeCompare(right.category) || left.command.localeCompare(right.command));
-    const grouped = new Map<string, PublicCommandEntry[]>();
+    return this.buildCatalogue(entries, 'viewer', now);
+  }
+
+  public moderatorCatalogue(now = new Date()): PublicCommandCatalogue {
+    const effective = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources(), { includeStopped: true });
+    const builtIn = [...this.coreCommands('moderator'), ...this.addOnCommands(effective.addOnCommands, 'moderator')];
+    const entries = [...builtIn, ...this.externalCommands('moderator', new Set(builtIn.flatMap((entry) => [entry.command, ...entry.aliases])))]
+      .sort((left, right) => left.category.localeCompare(right.category) || left.command.localeCompare(right.command));
+    return this.buildCatalogue(entries, 'moderator', now);
+  }
+
+  public async refreshStreamerBotCommands(): Promise<Readonly<{ available: boolean; count: number; refreshedAt?: string; error?: string }>> {
+    if (this.streamerBotInspector === undefined) return { available: false, count: 0, error: 'Streamer.bot command inspection is unavailable.' };
+    try {
+      this.streamerBotCommands = Object.freeze([...(await this.streamerBotInspector.inspectCommands())]);
+      this.streamerBotRefreshedAt = new Date().toISOString();
+      return { available: true, count: this.streamerBotCommands.length, refreshedAt: this.streamerBotRefreshedAt };
+    } catch (error) {
+      return { available: false, count: this.streamerBotCommands.length, ...(this.streamerBotRefreshedAt === undefined ? {} : { refreshedAt: this.streamerBotRefreshedAt }), error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  public streamerBotStatus(): Readonly<Record<string, unknown>> {
+    return { tracked: this.streamerBotCommands.length, ...(this.streamerBotRefreshedAt === undefined ? {} : { refreshedAt: this.streamerBotRefreshedAt }) };
+  }
+
+  private buildCatalogue(entries: readonly CommandDirectoryEntry[], audience: 'viewer' | 'moderator', now: Date): PublicCommandCatalogue {
+    const grouped = new Map<string, CommandDirectoryEntry[]>();
     for (const entry of entries) {
       const commands = grouped.get(entry.category) ?? [];
       commands.push(entry);
       grouped.set(entry.category, commands);
     }
     const categories = [...grouped.entries()].map(([name, commands]) => Object.freeze({ name, commands: Object.freeze(commands) }));
-    const stable = JSON.stringify({ schemaVersion: 1, prefix: this.config.commands.prefix, categories, privacy: 'public-command-metadata-only' });
+    const privacy = audience === 'viewer' ? 'public-command-metadata-only' : 'authenticated-moderator-command-metadata-only';
+    const stable = JSON.stringify({ schemaVersion: 1, prefix: this.config.commands.prefix, categories, privacy, ...(audience === 'moderator' ? { audience } : {}) });
     return Object.freeze({
       schemaVersion: 1,
       generatedAt: now.toISOString(),
@@ -144,7 +182,7 @@ export class CommandDirectoryService {
       prefix: this.config.commands.prefix,
       commandCount: entries.length,
       categories: Object.freeze(categories),
-      privacy: 'public-command-metadata-only',
+      privacy, ...(audience === 'moderator' ? { audience } : {}),
     });
   }
 
@@ -197,10 +235,11 @@ export class CommandDirectoryService {
     return this.publication;
   }
 
-  private coreCommands(): PublicCommandEntry[] {
+  private coreCommands(audience: 'viewer' | 'moderator'): CommandDirectoryEntry[] {
     if (!this.config.commands.enabled) return [];
     return this.config.commands.definitions.flatMap((definition, index) => {
-      if (definition.minimumRole === 'moderator' || definition.minimumRole === 'broadcaster') return [];
+      if (definition.name === COMMAND_DIRECTORY_COMMAND || COMMAND_DIRECTORY_ALIASES.includes(definition.name as 'command')) return [];
+      if (!roleMatchesAudience(definition.minimumRole, audience)) return [];
       return [Object.freeze({
         id: `core.${String(index)}.${definition.name}`, command: definition.name, aliases: Object.freeze([...definition.aliases]),
         description: 'Creator-configured stream command.', category: 'Stream Commands', source: 'Command Sync',
@@ -209,11 +248,25 @@ export class CommandDirectoryService {
     });
   }
 
-  private addOnCommands(commands: readonly EffectiveAddOnCommand[]): PublicCommandEntry[] {
+  private commandDirectoryCommand(): CommandDirectoryEntry {
+    return Object.freeze({
+      id: 'core.command-directory',
+      command: COMMAND_DIRECTORY_COMMAND,
+      aliases: COMMAND_DIRECTORY_ALIASES,
+      description: 'Open the current public stream-command directory.',
+      category: 'Stream Info',
+      source: 'THSV StreamBridge',
+      platforms: PLATFORMS,
+      minimumRole: 'viewer',
+      usage: COMMAND_DIRECTORY_COMMAND,
+    });
+  }
+
+  private addOnCommands(commands: readonly EffectiveAddOnCommand[], audience: 'viewer' | 'moderator'): CommandDirectoryEntry[] {
     return commands.flatMap((registered) => {
       const metadata = METADATA[registered.commandId] ?? {};
-      if (metadata.hidden === true || isCreatorControl(registered.commandId, registered.definition.name)) return [];
-      if (registered.definition.minimumRole === 'moderator' || registered.definition.minimumRole === 'broadcaster') return [];
+      if (audience === 'viewer' && (metadata.hidden === true || isCreatorControl(registered.commandId, registered.definition.name))) return [];
+      if (!roleMatchesAudience(registered.definition.minimumRole, audience)) return [];
       if (registered.platforms.length === 0) return [];
       const command = registered.definition.name;
       const category = metadata.category ?? MODULE_CATEGORIES[registered.moduleId] ?? registered.moduleName;
@@ -225,6 +278,38 @@ export class CommandDirectoryService {
       })];
     });
   }
+
+  private externalCommands(audience: 'viewer' | 'moderator', occupied: ReadonlySet<string>): CommandDirectoryEntry[] {
+    const claimed = new Set(occupied);
+    return this.streamerBotCommands.flatMap((entry): CommandDirectoryEntry[] => {
+      if (!entry.enabled) return [];
+      const aliases = (entry.aliases ?? []).map(commandName).filter((value): value is string => value !== undefined);
+      const primary = aliases[0] ?? commandName(entry.name);
+      if (primary === undefined || claimed.has(primary)) return [];
+      const role = streamerBotGroupRole(entry.group ?? '');
+      if (!roleMatchesAudience(role, audience)) return [];
+      const usableAliases = aliases.slice(1).filter((alias) => !claimed.has(alias));
+      claimed.add(primary); for (const alias of usableAliases) claimed.add(alias);
+      return [Object.freeze({
+        id: `streamerbot.${entry.id}`, command: primary, aliases: Object.freeze(usableAliases),
+        description: (entry.group ?? '').trim() === '' ? 'Streamer.bot command.' : `Streamer.bot command in ${(entry.group ?? '').trim()}.`,
+        category: audience === 'moderator' ? 'Streamer.bot Moderator Commands' : 'Streamer.bot Commands', source: 'Streamer.bot',
+        platforms: Object.freeze(['twitch', 'youtube', 'kick'] as const), minimumRole: role, usage: primary,
+      })];
+    });
+  }
+}
+
+function roleMatchesAudience(role: CommandDirectoryEntry['minimumRole'], audience: 'viewer' | 'moderator'): boolean {
+  const restricted = role === 'moderator' || role === 'broadcaster';
+  return audience === 'moderator' ? restricted : !restricted;
+}
+
+function streamerBotGroupRole(group: string): CommandDirectoryEntry['minimumRole'] {
+  const normalized = group.trim().toLowerCase();
+  if (/\b(?:broadcaster|creator|owner)\b/u.test(normalized)) return 'broadcaster';
+  if (/\b(?:mod|mods|moderator|moderators|admin|admins|staff)\b/u.test(normalized)) return 'moderator';
+  return 'viewer';
 }
 
 function isCreatorControl(id: string, name: string): boolean {

@@ -4,7 +4,7 @@ import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
 import { moduleManifestV2Schema, type ModuleManifestV2 } from '../contracts/v2/module-manifest.js';
 import type { ModuleHealthStatusV2 } from '../contracts/v2/health.js';
 import type { Logger } from '../services/logger.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { AddOnCapabilityBroker, type ModuleCapabilityGrant } from './addon-capability-broker.js';
 
 export interface FrameworkModule {
@@ -17,8 +17,11 @@ export interface FrameworkModule {
   start?(context: ModuleRuntimeContextV2): Promise<void>;
   stop?(context: ModuleRuntimeContextV2): Promise<void>;
   onEvent?(event: NormalizedEvent, context: ModuleRuntimeContextV2): Promise<void>;
+  /** Host-invoked only for the verified Chat Guard module before local chat presentation. */
+  inspectChatDisplay?(event: NormalizedEvent, context: ModuleRuntimeContextV2): Promise<boolean>;
   /** Host-only administration; never exposed through ModuleRuntimeContextV2. */
   administerCommunityAnalytics?(request: CommunityAnalyticsAdminRequestV1, context: ModuleRuntimeContextV2): Promise<CommunityAnalyticsAdminResultV1>;
+  administerQuoteVault?(request: QuoteVaultAdminRequestV1, context: ModuleRuntimeContextV2): Promise<QuoteVaultAdminResultV1>;
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ChatGuardAdminResultV1>;
   administerVillageDraw?(request: VillageDrawAdminRequestV1, context: ModuleRuntimeContextV2): Promise<VillageDrawAdminResultV1>;
@@ -117,6 +120,18 @@ export class ModuleRegistry {
     }
   }
 
+  public async chatDisplayBlocked(event: NormalizedEvent, blockedModuleIds: ReadonlySet<string> = new Set()): Promise<boolean> {
+    if (event.eventType !== 'chat.message' || blockedModuleIds.has('thsv.chat-guard')) return false;
+    const state = this.states.get('thsv.chat-guard');
+    if (state?.status !== 'healthy' || state.module.inspectChatDisplay === undefined) return false;
+    try {
+      return await withTimeout(state.module.inspectChatDisplay(event, state.context), this.optionalModuleTimeoutMs, 'Chat Guard display inspection');
+    } catch (error) {
+      this.logger.warn('Chat Guard display inspection failed; the event remains available to normal delivery', { eventId: event.eventId, error });
+      return false;
+    }
+  }
+
   public ready(): boolean {
     return [...this.states.values()].every((state) => !state.module.required || state.status === 'healthy');
   }
@@ -172,6 +187,14 @@ export class ModuleRegistry {
     if (state?.status !== 'healthy' || state.module.administerCommunityAnalytics === undefined) throw new Error('Community Analytics is unavailable. Enable it and restart StreamBridge.');
     const result = await withTimeout(state.module.administerCommunityAnalytics(parsed, state.context), this.optionalModuleTimeoutMs, 'Community Analytics administration');
     return Object.freeze(communityAnalyticsAdminResultSchema.parse(result));
+  }
+
+  public async administerQuoteVault(request: QuoteVaultAdminRequestV1): Promise<QuoteVaultAdminResultV1> {
+    const parsed = quoteVaultAdminSchema.parse(request) as QuoteVaultAdminRequestV1;
+    const state = this.states.get('thsv.quote-vault');
+    if (state?.status !== 'healthy' || state.module.administerQuoteVault === undefined) throw new Error('Quote Vault is unavailable. Enable it and restart StreamBridge.');
+    const result = await withTimeout(state.module.administerQuoteVault(parsed, state.context), this.optionalModuleTimeoutMs, 'Quote Vault administration');
+    return Object.freeze(quoteVaultAdminResultSchema.parse(result));
   }
 
   public async administerViewerSpotlight(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1> {
@@ -238,6 +261,14 @@ const communityAnalyticsAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('report'), reportKind: z.enum(['session-json', 'viewers-csv']) }).strict(),
 ]);
 const communityAnalyticsAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Community Analytics administration result exceeded the safe response size.');
+const quoteVaultAdminSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('status') }).strict(),
+  z.object({ operation: z.literal('sync-import'), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('add'), quotedName: z.string().trim().min(1).max(100), text: z.string().trim().min(1).max(400), sourcePlatform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('edit'), quoteId: z.number().int().min(1), quotedName: z.string().trim().min(1).max(100), text: z.string().trim().min(1).max(400), approvedByCreator: z.literal(true) }).strict(),
+  ...(['approve', 'delete', 'restore'] as const).map((operation) => z.object({ operation: z.literal(operation), quoteId: z.number().int().min(1), approvedByCreator: z.literal(true) }).strict()),
+]);
+const quoteVaultAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Quote Vault administration result exceeded the safe response size.');
 const viewerSpotlightAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   z.object({ operation: z.literal('stream-score'), approvedByCreator: z.literal(true) }).strict(),

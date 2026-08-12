@@ -202,10 +202,13 @@ test('wizard exposes automatic commands and one shared non-repeating timed-messa
   await expect(page.locator('[data-panel="command-sync"] h2')).toHaveText('Commands');
   await expect(page.locator('#command-directory-catalog')).toBeVisible();
   await expect(page.locator('#command-directory-search')).toBeVisible();
+  await page.locator('[data-disclosure-key="panel:command-sync:moderator-directory"] > summary').click();
+  await expect(page.locator('#moderator-command-directory-catalog')).toBeVisible();
+  await expect(page.locator('#moderator-command-directory-state')).toContainText('never published');
   await page.locator('#expand-command-directory').click();
   const commandRows = page.locator('.command-center-list article');
   expect(await commandRows.count()).toBeGreaterThan(0);
-  const commandLayout = await page.locator('.command-directory-card').evaluate((card) => {
+  const commandLayout = await page.locator('[data-disclosure-key="panel:command-sync:viewer-directory"]').evaluate((card) => {
     const catalog = card.querySelector('#command-directory-catalog')?.getBoundingClientRect();
     const sharing = card.querySelector('.command-directory-sharing')?.getBoundingClientRect();
     const codes = [...card.querySelectorAll('.command-center-list code')];
@@ -225,7 +228,7 @@ test('wizard exposes automatic commands and one shared non-repeating timed-messa
   expect(await page.locator('.command-center-list article:not([hidden])').count()).toBeGreaterThan(0);
   await page.locator('#command-directory-search').fill('');
   await page.setViewportSize({ width: 620, height: 900 });
-  const narrowCommandLayout = await page.locator('.command-directory-card').evaluate((card) => {
+  const narrowCommandLayout = await page.locator('[data-disclosure-key="panel:command-sync:viewer-directory"]').evaluate((card) => {
     const urlGrid = card.querySelector('.command-directory-url-grid');
     const commandRow = card.querySelector('.command-center-list article');
     if (!(urlGrid instanceof HTMLElement) || !(commandRow instanceof HTMLElement)) throw new Error('Command directory layout is incomplete.');

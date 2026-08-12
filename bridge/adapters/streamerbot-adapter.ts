@@ -40,6 +40,7 @@ export interface StreamerBotCommandSummary {
   readonly id: string;
   readonly name: string;
   readonly enabled: boolean;
+  readonly group?: string;
   // Trigger phrases beyond the primary name, when Streamer.bot's GetCommands response includes
   // them. Optional because the exact response shape here has not been independently confirmed;
   // collision checks fall back to name-only matching when this is absent.
@@ -493,7 +494,11 @@ function readCommands(data: unknown): readonly StreamerBotCommandSummary[] {
   return payload['commands'].flatMap((value): StreamerBotCommandSummary[] => {
     if (!isRecord(value) || typeof value['id'] !== 'string' || typeof value['name'] !== 'string') return [];
     const aliases = Array.isArray(value['commands']) ? value['commands'].filter((entry): entry is string => typeof entry === 'string') : undefined;
-    return [{ id: value['id'], name: value['name'], enabled: value['enabled'] !== false, ...(aliases === undefined ? {} : { aliases }) }];
+    const group = typeof value['group'] === 'string' && value['group'].trim() !== '' ? value['group'] : undefined;
+    return [{
+      id: value['id'], name: value['name'], enabled: value['enabled'] !== false,
+      ...(group === undefined ? {} : { group }), ...(aliases === undefined ? {} : { aliases }),
+    }];
   });
 }
 

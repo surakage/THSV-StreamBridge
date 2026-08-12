@@ -7,7 +7,7 @@ echo ============================================================
 echo               Start THSV Streaming Tools
 echo ============================================================
 echo.
-echo Starting or checking your enabled apps, Streamer.bot, and StreamBridge.
+echo Starting in safe order: Streamer.bot, Speaker.bot, StreamBridge, then OBS.
 echo Healthy sessions will not be restarted.
 echo Optional OBS or Speaker.bot issues are warnings and will not block the bridge.
 echo.

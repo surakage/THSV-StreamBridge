@@ -39,11 +39,15 @@ describe('bridge HTTP integration', () => {
     expect(await page.text()).toContain('!hello');
     const catalogue = await fetch(`${baseUrl}/commands/catalog.json`);
     expect(catalogue.status).toBe(200);
-    expect(await catalogue.json()).toMatchObject({ commandCount: 1, privacy: 'public-command-metadata-only' });
+    expect(await catalogue.json()).toMatchObject({ commandCount: 2, privacy: 'public-command-metadata-only' });
     expect((await fetch(`${baseUrl}/wizard/api/commands/directory`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/commands/directory/moderator`)).status).toBe(401);
     const directoryStatus = await fetch(`${baseUrl}/wizard/api/commands/directory`, { headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
     expect(directoryStatus.status).toBe(200);
-    expect(await directoryStatus.json()).toMatchObject({ commandCount: 1, publishing: { enabled: false, state: 'disabled' } });
+    expect(await directoryStatus.json()).toMatchObject({ commandCount: 2, publishing: { enabled: false, state: 'disabled' } });
+    const moderatorStatus = await fetch(`${baseUrl}/wizard/api/commands/directory/moderator`, { headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } });
+    expect(moderatorStatus.status).toBe(200);
+    expect(await moderatorStatus.json()).toMatchObject({ commandCount: 0, audience: 'moderator', privacy: 'authenticated-moderator-command-metadata-only' });
     for (const method of ['POST', 'DELETE']) {
       expect((await fetch(`${baseUrl}/wizard/api/commands/directory/publish`, { method })).status).toBe(401);
       expect((await fetch(`${baseUrl}/wizard/api/commands/directory/publish`, { method, headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } })).status).toBe(409);

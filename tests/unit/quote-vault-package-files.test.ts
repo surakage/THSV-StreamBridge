@@ -10,9 +10,16 @@ describe('Quote Vault Streamer.bot package', () => {
     expect(source).toContain('CPH.WebsocketBroadcastJson');
     expect(source).not.toMatch(/System\.IO|File\.|StreamWriter|Process\.Start|powershell|cmd\.exe/iu);
     expect(source).not.toMatch(/AddQuoteFor(?:Twitch|YouTube|Kick)/u);
+    const sync = await readFile('packages/streamerbot/quote-vault/src/NativeQuoteSync.cs', 'utf8');
+    expect(sync).toContain('CPH.GetQuoteCount()');
+    expect(sync).toContain('CPH.AddQuoteForTwitch');
+    expect(sync).toContain('CPH.AddQuoteForYouTube');
+    expect(sync).toContain('CPH.AddQuoteForKick');
+    expect(sync).toContain('addon.thsv.quote-vault.sync-result');
+    expect(sync).not.toMatch(/System\.IO|File\.|StreamWriter|Process\.Start|powershell|cmd\.exe/iu);
   });
 
-  it('packages two optional controls with editable platform arguments', async () => {
+  it('packages two creator controls and one broker-only native sync action', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/quote-vault/manifest.json', 'utf8')) as {
       version: string; minimumStreamerBotVersion: string;
       actions: Array<{ name: string; group: string; importFile: string; arguments: Array<{ name: string; value: string }> }>;
@@ -21,9 +28,10 @@ describe('Quote Vault Streamer.bot package', () => {
     expect(manifest.actions.map((action) => action.name)).toEqual([
       'THSV Addon - Quote Vault - Random Quote',
       'THSV Addon - Quote Vault - Statistics',
+      'THSV Addon - Quote Vault - Native Quote Sync',
     ]);
     expect(manifest.actions.every((action) => action.group === 'THSV Addon - Quote Vault')).toBe(true);
     expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Quote-Vault-${manifest.version}.sb`]));
-    expect(manifest.actions.every((action) => action.arguments.some((argument) => argument.name === 'quoteVaultSourcePlatform' && argument.value === 'twitch'))).toBe(true);
+    expect(manifest.actions.slice(0, 2).every((action) => action.arguments.some((argument) => argument.name === 'quoteVaultSourcePlatform' && argument.value === 'twitch'))).toBe(true);
   });
 });

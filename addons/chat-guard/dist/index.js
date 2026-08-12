@@ -13,8 +13,9 @@ const manifest = {
   healthChecks: [{ id: 'thsv.chat-guard.runtime', description: 'Confirms bounded public-chat classification and fail-closed optional moderation dispatch are available.' }],
 };
 const FALLBACKS = Object.freeze({ enabled: false, includeSimulated: false, enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], ignoredAccounts: ['twitch|name:nightbot', 'twitch|name:streamelements', 'youtube|name:streamelements', 'kick|name:streamelements', 'twitch|name:fossabot', 'twitch|name:moobot', 'twitch|name:sery_bot', 'twitch|name:soundalerts', 'twitch|name:wizebot', 'twitch|name:kofistreambot', 'twitch|name:streamlabs', 'twitch|name:botrix', 'youtube|name:botrix', 'kick|name:botrix', 'tiktok|name:botrix', 'twitch|name:commanderroot', 'twitch|name:deepbot', 'twitch|name:phantombot', 'twitch|name:stay_hydrated_bot', 'twitch|name:coebot', 'twitch|name:pretzelrocks', 'twitch|name:streamavatars'], exemptBroadcaster: true, exemptModerators: true, exemptVips: true, exemptSubscribers: false,
-  enforcementEnabled: false, creatorApprovedEnforcement: false, enforcementMode: 'observe', enforcementPlatforms: ['twitch', 'youtube', 'kick'], enforcedRules: ['blocked-term', 'blocked-domain'], minimumRuleMatches: 1, timeoutSeconds: 60, warningMessage: 'Please keep chat safe and follow the channel rules.', maximumEnforcementsPerMinute: 5, perUserEnforcementCooldownSeconds: 60,
-  blockedTerms: ['want to become famous', 'buy followers', 'buy viewers', 'cheap viewers', 'get more viewers at', 'promote your channel at', 'grow your channel fast', 'best viewers on'], blockedDomains: ['bigfollows.com', 'streamboo.com', 'bestviewers.com', 'viewers.shop'], allowedDomains: [], detectLinks: true, maximumLinks: 2, detectCaps: true, minimumCapsLetters: 12, maximumCapsPercent: 80, detectRepeatedCharacters: true, maximumCharacterRun: 8,
+  enforcementEnabled: false, creatorApprovedEnforcement: false, enforcementMode: 'observe', enforcementPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], enforcedRules: ['blocked-term', 'blocked-domain'], minimumRuleMatches: 1, timeoutSeconds: 60, warningMessage: 'Please keep chat safe and follow the channel rules.', maximumEnforcementsPerMinute: 5, perUserEnforcementCooldownSeconds: 60,
+  repeatOffenderTimeoutEnabled: true, repeatOffenderThreshold: 3, repeatOffenderWindowSeconds: 600, repeatOffenderTimeoutSeconds: 600,
+  blockedTerms: ['nigger', 'nigga', 'faggot', 'kike', 'wetback', 'tranny', 'chink', 'gook', 'spic', 'beaner', 'raghead', 'zipperhead', 'porch monkey', 'white power', 'heil hitler', 'gas the jews', 'kill yourself', 'go kill yourself', 'kys', 'rape you', 'dox you', 'swat you', 'child porn', 'crack', 'cocaine', 'crystal meth', 'meth', 'methamphetamine', 'heroin', 'fentanyl', 'oxycontin', 'oxycodone', 'mdma', 'ecstasy', 'molly', 'lsd', 'smoke weed', 'sell drugs', 'buy drugs', 'do drugs', 'want to become famous', 'buy followers', 'buy viewers', 'cheap viewers', 'get more viewers at', 'promote your channel at', 'grow your channel fast', 'best viewers on'], blockedDomains: ['bigfollows.com', 'streamboo.com', 'bestviewers.com', 'viewers.shop'], allowedDomains: [], detectLinks: true, maximumLinks: 2, detectCaps: true, minimumCapsLetters: 12, maximumCapsPercent: 80, detectRepeatedCharacters: true, maximumCharacterRun: 8,
   detectLongMessages: true, maximumMessageCharacters: 500, detectRepeatedMessages: true, repeatWindowSeconds: 30, repeatMessageCount: 3, retainedIncidents: 200, retentionHours: 24, maximumTrackedObservations: 500 });
 const PLATFORM = /^(twitch|youtube|kick|tiktok)$/u;
 const HEX_64 = /^[a-f0-9]{64}$/u;
@@ -39,6 +40,7 @@ function settingsFor(context) {
     maximumLinks: integer(raw.maximumLinks, 0, 20, 2), minimumCapsLetters: integer(raw.minimumCapsLetters, 4, 100, 12), maximumCapsPercent: integer(raw.maximumCapsPercent, 50, 100, 80),
     maximumCharacterRun: integer(raw.maximumCharacterRun, 3, 50, 8), maximumMessageCharacters: integer(raw.maximumMessageCharacters, 40, 2000, 500), repeatWindowSeconds: integer(raw.repeatWindowSeconds, 5, 300, 30), repeatMessageCount: integer(raw.repeatMessageCount, 2, 10, 3),
     enforcementMode: ['observe', 'warn', 'delete', 'timeout', 'ban'].includes(raw.enforcementMode) ? raw.enforcementMode : 'observe', minimumRuleMatches: integer(raw.minimumRuleMatches, 1, 8, 1), timeoutSeconds: integer(raw.timeoutSeconds, 10, 86_400, 60), warningMessage: clean(raw.warningMessage, 300) || FALLBACKS.warningMessage, maximumEnforcementsPerMinute: integer(raw.maximumEnforcementsPerMinute, 1, 20, 5), perUserEnforcementCooldownSeconds: integer(raw.perUserEnforcementCooldownSeconds, 10, 3600, 60),
+    repeatOffenderTimeoutEnabled: raw.repeatOffenderTimeoutEnabled === true, repeatOffenderThreshold: integer(raw.repeatOffenderThreshold, 2, 10, 3), repeatOffenderWindowSeconds: integer(raw.repeatOffenderWindowSeconds, 30, 3600, 600), repeatOffenderTimeoutSeconds: integer(raw.repeatOffenderTimeoutSeconds, 10, 86_400, 600),
     retainedIncidents: integer(raw.retainedIncidents, 10, 1000, 200), retentionHours: integer(raw.retentionHours, 1, 168, 24), maximumTrackedObservations: integer(raw.maximumTrackedObservations, 50, 2000, 500) };
 }
 function sanitizeState(value, settings = FALLBACKS, now = Date.now()) {
@@ -50,13 +52,15 @@ function sanitizeState(value, settings = FALLBACKS, now = Date.now()) {
   const permits = Array.isArray(source.permits) ? source.permits.filter((item) => item && typeof item === 'object' && HEX_64.test(item.accountHash) && Number.isSafeInteger(item.expiresAt) && item.expiresAt > now && Number.isSafeInteger(item.remainingUses) && item.remainingUses > 0).map((item) => ({ accountHash: item.accountHash, expiresAt: item.expiresAt, remainingUses: integer(item.remainingUses, 1, 20, 1) })).sort((left, right) => left.expiresAt - right.expiresAt).slice(0, 500) : [];
   const trustedAccounts = Array.isArray(source.trustedAccounts) ? source.trustedAccounts.filter((item) => item && typeof item === 'object' && PLATFORM.test(item.platform) && clean(item.userId, 256) && clean(item.label, 80) && Number.isSafeInteger(item.addedAt)).map((item) => ({ platform: item.platform, userId: clean(item.userId, 256), label: clean(item.label, 80), addedAt: item.addedAt })).slice(-100) : [];
   const enforcementResults = Array.isArray(source.enforcementResults) ? source.enforcementResults.filter((item) => item && typeof item === 'object' && HEX_64.test(item.incidentId) && Number.isSafeInteger(item.at) && item.at >= cutoff && ['dispatched', 'succeeded', 'failed', 'unsupported'].includes(item.status)).map((item) => ({ incidentId: item.incidentId, accountHash: HEX_64.test(item.accountHash) ? item.accountHash : '', at: item.at, platform: PLATFORM.test(item.platform) ? item.platform : 'system', mode: ['warn', 'delete', 'timeout', 'ban'].includes(item.mode) ? item.mode : 'warn', status: item.status, error: clean(item.error, 160) })).slice(-100) : [];
-  const state = { version: 2, salt, observations, processed, incidents, permits, trustedAccounts, enforcementResults };
+  const localTimeouts = Array.isArray(source.localTimeouts) ? source.localTimeouts.filter((item) => item && typeof item === 'object' && HEX_64.test(item.accountHash) && PLATFORM.test(item.platform) && Number.isSafeInteger(item.expiresAt) && item.expiresAt > now).map((item) => ({ accountHash: item.accountHash, platform: item.platform, expiresAt: item.expiresAt })).sort((left, right) => left.expiresAt - right.expiresAt).slice(0, 500) : [];
+  const state = { version: 3, salt, observations, processed, incidents, permits, trustedAccounts, enforcementResults, localTimeouts };
   while (JSON.stringify(state).length > MAXIMUM_STATE_BYTES) {
     if (state.observations.length > 10) { state.observations.shift(); continue; }
     if (state.processed.length > 10) { state.processed.shift(); continue; }
     if (state.incidents.length > 10) { state.incidents.shift(); continue; }
     if (state.permits.length > 10) { state.permits.shift(); continue; }
     if (state.enforcementResults.length > 10) { state.enforcementResults.shift(); continue; }
+    if (state.localTimeouts.length > 10) { state.localTimeouts.shift(); continue; }
     throw new Error('Chat Guard state cannot fit within its private-state safety limit.');
   }
   return state;
@@ -67,20 +71,32 @@ function canEnforce(platform, mode, event) {
   return platform === 'twitch' || platform === 'youtube' || platform === 'kick';
 }
 async function enforceIncident(event, incident, context, settings, state, now) {
-  const mode = settings.enforcementMode;
-  if (!settings.enforcementEnabled || !settings.creatorApprovedEnforcement || mode === 'observe' || incident.simulated) return 'none';
+  const baseMode = settings.enforcementMode;
+  if (!settings.enforcementEnabled || !settings.creatorApprovedEnforcement || baseMode === 'observe' || incident.simulated) return 'none';
   if (!settings.enforcementPlatforms.has(event.platform)) return 'not-selected';
   const actionableRules = incident.rules.filter((rule) => settings.enforcedRules.has(rule));
   if (actionableRules.length < settings.minimumRuleMatches) return 'below-threshold';
+  const repeatCutoff = now - settings.repeatOffenderWindowSeconds * 1000;
+  const offenseCount = state.incidents.filter((item) => item.accountHash === incident.accountHash && item.at >= repeatCutoff && item.rules.some((rule) => settings.enforcedRules.has(rule))).length;
+  const escalated = settings.repeatOffenderTimeoutEnabled && ['warn', 'delete'].includes(baseMode) && offenseCount >= settings.repeatOffenderThreshold;
+  const mode = escalated ? 'timeout' : baseMode;
   const recent = state.enforcementResults.filter((item) => item.at >= now - 60_000 && item.status !== 'unsupported').length;
-  const sameViewerRecentlyEnforced = state.enforcementResults.some((item) => item.accountHash === incident.accountHash && item.at >= now - settings.perUserEnforcementCooldownSeconds * 1000 && item.status !== 'unsupported');
-  if (recent >= settings.maximumEnforcementsPerMinute || sameViewerRecentlyEnforced || !canEnforce(event.platform, mode, event)) { state.enforcementResults.push({ incidentId: incident.id, accountHash: incident.accountHash, at: now, platform: event.platform, mode, status: 'unsupported', error: recent >= settings.maximumEnforcementsPerMinute ? 'Per-minute enforcement cap reached.' : sameViewerRecentlyEnforced ? 'Per-viewer enforcement cooldown is active.' : 'Mode is unsupported for this platform or missing a stable message ID.' }); return 'unsupported'; }
+  const sameViewerRecentlyEnforced = state.enforcementResults.some((item) => item.accountHash === incident.accountHash && item.at >= now - settings.perUserEnforcementCooldownSeconds * 1000 && item.status !== 'unsupported' && (!escalated || item.mode === 'timeout' || item.mode === 'ban'));
+  if (recent >= settings.maximumEnforcementsPerMinute || sameViewerRecentlyEnforced || (!escalated && !canEnforce(event.platform, mode, event))) { state.enforcementResults.push({ incidentId: incident.id, accountHash: incident.accountHash, at: now, platform: event.platform, mode, status: 'unsupported', error: recent >= settings.maximumEnforcementsPerMinute ? 'Per-minute enforcement cap reached.' : sameViewerRecentlyEnforced ? 'Per-viewer enforcement cooldown is active.' : 'Mode is unsupported for this platform or missing a stable message ID.' }); return 'unsupported'; }
   if (mode === 'warn') {
     const delivered = await context.chat.send({ message: settings.warningMessage, routing: 'source', sourcePlatform: event.platform, overflow: 'reject' });
     const succeeded = delivered.some((item) => item.accepted === true); state.enforcementResults.push({ incidentId: incident.id, accountHash: incident.accountHash, at: now, platform: event.platform, mode, status: succeeded ? 'succeeded' : 'failed', error: succeeded ? '' : 'Warning delivery was rejected.' }); return succeeded ? 'succeeded' : 'failed';
   }
+  if (escalated) {
+    state.localTimeouts = state.localTimeouts.filter((item) => !(item.accountHash === incident.accountHash && item.platform === event.platform));
+    state.localTimeouts.push({ accountHash: incident.accountHash, platform: event.platform, expiresAt: now + settings.repeatOffenderTimeoutSeconds * 1000 });
+    if (!canEnforce(event.platform, 'timeout', event)) {
+      state.enforcementResults.push({ incidentId: incident.id, accountHash: incident.accountHash, at: now, platform: event.platform, mode: 'timeout', status: 'succeeded', error: 'Local overlay timeout applied; this provider has no native timeout action.' });
+      return 'local-timeout';
+    }
+  }
   const requestId = incident.id.slice(0, 32);
-  await context.streamerbot.runApprovedAction(MODERATE_ACTION_ID, { chatGuardRequestId: requestId, chatGuardIncidentId: incident.id, chatGuardPlatform: event.platform, chatGuardMode: mode, chatGuardUserId: clean(event.user?.id, 256), chatGuardUserName: clean(event.user?.name, 256), chatGuardMessageId: clean(event.source?.eventId, 256), chatGuardBroadcastId: clean(event.channel?.id, 256), chatGuardTimeoutSeconds: settings.timeoutSeconds, chatGuardReason: `THSV Chat Guard: ${incident.rules.join(', ')}`.slice(0, 200) });
+  await context.streamerbot.runApprovedAction(MODERATE_ACTION_ID, { chatGuardRequestId: requestId, chatGuardIncidentId: incident.id, chatGuardPlatform: event.platform, chatGuardMode: mode, chatGuardUserId: clean(event.user?.id, 256), chatGuardUserName: clean(event.user?.name, 256), chatGuardMessageId: clean(event.source?.eventId, 256), chatGuardBroadcastId: clean(event.channel?.id, 256), chatGuardTimeoutSeconds: escalated ? settings.repeatOffenderTimeoutSeconds : settings.timeoutSeconds, chatGuardReason: `THSV Chat Guard: ${incident.rules.join(', ')}${escalated ? ', repeat-offender' : ''}`.slice(0, 200) });
   state.enforcementResults.push({ incidentId: incident.id, accountHash: incident.accountHash, at: now, platform: event.platform, mode, status: 'dispatched', error: '' }); return 'dispatched';
 }
 async function handleTrustedAccountRequest(event, context, now = Date.now()) {
@@ -112,10 +128,22 @@ function extractLinkHosts(message) { const matches = message.match(/(?:https?:\/
 function domainMatches(hostname, rule) { return hostname === rule || hostname.endsWith(`.${rule}`); }
 function capsRatio(message) { const letters = [...message].filter((character) => /\p{L}/u.test(character)); const upper = letters.filter((character) => character === character.toLocaleUpperCase() && character !== character.toLocaleLowerCase()).length; return { letters: letters.length, percent: letters.length === 0 ? 0 : Math.round((upper / letters.length) * 100) }; }
 function longestRun(message) { let longest = 0; let previous = ''; let current = 0; for (const character of [...message.toLocaleLowerCase()]) { if (character === previous) current += 1; else { previous = character; current = 1; } longest = Math.max(longest, current); } return longest; }
+function literalTermMatches(message, term) {
+  if (/^[\p{L}\p{N}]+$/u.test(term)) {
+    let start = message.indexOf(term);
+    while (start >= 0) {
+      const before = start === 0 ? '' : message[start - 1]; const after = start + term.length >= message.length ? '' : message[start + term.length];
+      if (!/[\p{L}\p{N}]/u.test(before) && !/[\p{L}\p{N}]/u.test(after)) return true;
+      start = message.indexOf(term, start + 1);
+    }
+    return false;
+  }
+  return message.includes(term);
+}
 function classify(message, previousMatches, settings) {
   const rules = [];
   const normalized = message.toLocaleLowerCase();
-  if (settings.blockedTerms.some((term) => normalized.includes(term))) rules.push('blocked-term');
+  if (settings.blockedTerms.some((term) => literalTermMatches(normalized, term))) rules.push('blocked-term');
   const linkHosts = extractLinkHosts(message);
   if (settings.blockedDomains.some((domain) => linkHosts.some((host) => domainMatches(host, domain)))) rules.push('blocked-domain');
   if (settings.allowedDomains.length > 0 && linkHosts.some((host) => !settings.allowedDomains.some((domain) => domainMatches(host, domain)))) rules.push('unapproved-domain');
@@ -125,6 +153,22 @@ function classify(message, previousMatches, settings) {
   if (settings.detectLongMessages && [...message].length > settings.maximumMessageCharacters) rules.push('long-message');
   if (settings.detectRepeatedMessages && previousMatches + 1 >= settings.repeatMessageCount) rules.push('repeated-message');
   return rules;
+}
+export async function shouldBlockChatGuardDisplay(event, context, now = Date.now()) {
+  const settings = settingsFor(context); if (!settings.enabled || event?.eventType !== 'chat.message' || !settings.enabledPlatforms.has(event.platform)) return false;
+  if (event.metadata?.simulated === true && settings.includeSimulated !== true) return false;
+  const user = event.user; if (!user?.id || user.actorType !== 'human' || isExempt(user, settings)) return false;
+  const stableAccount = `${event.platform}|${clean(user.id, 256)}`.toLowerCase();
+  const message = clean(event.payload?.message, 4000); if (!message) return false;
+  const nameRules = [`${event.platform}|name:${clean(user.name, 256)}`, `${event.platform}|name:${clean(user.displayName, 256)}`].map((item) => item.toLowerCase());
+  const state = sanitizeState(await context.state.read(), settings, now);
+  if (settings.ignoredAccounts.has(stableAccount) || nameRules.some((rule) => settings.ignoredAccounts.has(rule)) || state.trustedAccounts.some((item) => item.platform === event.platform && item.userId.toLowerCase() === clean(user.id, 256).toLowerCase())) return false;
+  const accountHash = await digest(`${state.salt}|account|${stableAccount}`); const messageHash = await digest(`${state.salt}|message|${message.toLocaleLowerCase()}`);
+  if (state.localTimeouts.some((item) => item.platform === event.platform && item.accountHash === accountHash && item.expiresAt > now)) return true;
+  const repeatCutoff = now - settings.repeatWindowSeconds * 1000; const previousMatches = state.observations.filter((item) => item.at >= repeatCutoff && item.accountHash === accountHash && item.messageHash === messageHash).length;
+  let rules = classify(message, previousMatches, settings); const permit = state.permits.find((item) => item.accountHash === accountHash);
+  if (permit !== undefined) rules = rules.filter((rule) => rule !== 'blocked-domain' && rule !== 'unapproved-domain');
+  return rules.length > 0;
 }
 export async function processChatGuardEvent(event, context, now = Date.now()) {
   const settings = settingsFor(context); if (!settings.enabled || event?.eventType !== 'chat.message' || !settings.enabledPlatforms.has(event.platform)) return undefined;
@@ -136,6 +180,7 @@ export async function processChatGuardEvent(event, context, now = Date.now()) {
   const state = sanitizeState(await context.state.read(), settings, now); if (settings.ignoredAccounts.has(stableAccount) || nameRules.some((rule) => settings.ignoredAccounts.has(rule)) || state.trustedAccounts.some((item) => item.platform === event.platform && item.userId.toLowerCase() === clean(user.id, 256).toLowerCase())) return undefined; const eventHash = await digest(`${state.salt}|event|${clean(event.eventId, 256)}`);
   if (state.processed.some((item) => item.id === eventHash)) return { duplicate: true };
   const accountHash = await digest(`${state.salt}|account|${stableAccount}`); const messageHash = await digest(`${state.salt}|message|${message.toLocaleLowerCase()}`);
+  if (state.localTimeouts.some((item) => item.platform === event.platform && item.accountHash === accountHash && item.expiresAt > now)) return { observed: true, flagged: false, rules: [], enforcement: 'local-timeout-active', permitApplied: false };
   const repeatCutoff = now - settings.repeatWindowSeconds * 1000; const previousMatches = state.observations.filter((item) => item.at >= repeatCutoff && item.accountHash === accountHash && item.messageHash === messageHash).length;
   let rules = classify(message, previousMatches, settings); const permit = state.permits.find((item) => item.accountHash === accountHash); const domainRuleMatched = rules.includes('blocked-domain') || rules.includes('unapproved-domain');
   const permitApplied = permit !== undefined && domainRuleMatched;
@@ -209,10 +254,10 @@ export async function administerChatGuard(request, context, now = Date.now()) {
   }
   if (request.operation !== 'status') throw new Error('Unsupported Chat Guard administration operation.');
   const summary = summarizeChatGuardState(state, settings, now); const timestamps = state.incidents.map((item) => item.at);
-  const capabilities = { twitch: { observe: true, warn: true, delete: true, timeout: true, ban: true }, youtube: { observe: true, warn: true, delete: false, timeout: true, ban: true }, kick: { observe: true, warn: true, delete: true, timeout: true, ban: true }, tiktok: { observe: true, warn: true, delete: false, timeout: false, ban: false } };
+  const capabilities = { twitch: { observe: true, warn: true, delete: true, timeout: true, ban: true, localTimeout: true }, youtube: { observe: true, warn: true, delete: false, timeout: true, ban: true, localTimeout: true }, kick: { observe: true, warn: true, delete: true, timeout: true, ban: true, localTimeout: true }, tiktok: { observe: true, warn: true, delete: false, timeout: false, ban: false, localTimeout: true } };
   const trustedAccounts = await Promise.all(state.trustedAccounts.map(async (item) => ({ accountKey: await digest(`${state.salt}|managed-trust|${item.platform}|${item.userId.toLowerCase()}`), platform: item.platform, label: item.label, idSuffix: item.userId.length <= 6 ? item.userId : item.userId.slice(-6), addedAt: item.addedAt })));
   return { operation: 'status', ...summary, enabled: settings.enabled === true, enabledPlatforms: [...settings.enabledPlatforms], includeSimulated: settings.includeSimulated === true,
-    enforcementPolicy: { platforms: [...settings.enforcementPlatforms], rules: [...settings.enforcedRules], minimumRuleMatches: settings.minimumRuleMatches, maximumPerMinute: settings.maximumEnforcementsPerMinute, perUserCooldownSeconds: settings.perUserEnforcementCooldownSeconds }, trustedAccounts,
+    enforcementPolicy: { platforms: [...settings.enforcementPlatforms], rules: [...settings.enforcedRules], minimumRuleMatches: settings.minimumRuleMatches, maximumPerMinute: settings.maximumEnforcementsPerMinute, perUserCooldownSeconds: settings.perUserEnforcementCooldownSeconds, repeatOffenderTimeout: { enabled: settings.repeatOffenderTimeoutEnabled, threshold: settings.repeatOffenderThreshold, windowSeconds: settings.repeatOffenderWindowSeconds, timeoutSeconds: settings.repeatOffenderTimeoutSeconds } }, trustedAccounts,
     retentionHours: settings.retentionHours, retainedIncidentLimit: settings.retainedIncidents, activePermitCount: state.permits.length, nextPermitExpiryAt: state.permits.length ? Math.min(...state.permits.map((item) => item.expiresAt)) : null, oldestIncidentAt: timestamps.length ? Math.min(...timestamps) : null, newestIncidentAt: timestamps.length ? Math.max(...timestamps) : null,
     configuredSignals: { literalTerms: settings.blockedTerms.length, blockedDomains: settings.blockedDomains.length, allowedDomains: settings.allowedDomains.length, excessiveLinks: settings.detectLinks === true, excessiveCaps: settings.detectCaps === true, repeatedCharacters: settings.detectRepeatedCharacters === true, longMessages: settings.detectLongMessages === true, repeatedMessages: settings.detectRepeatedMessages === true },
     providerCapabilities: capabilities };
@@ -220,4 +265,4 @@ export async function administerChatGuard(request, context, now = Date.now()) {
 function serialize(task) { operation = operation.then(task, task); return operation; }
 export function resetChatGuardRuntime() { operation = Promise.resolve(); }
 export { sanitizeState as sanitizeChatGuardState, classify as classifyChatGuardMessage };
-export default { manifest, required: false, async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); if (settings.enabled) await context.state.write(sanitizeState(await context.state.read(), settings)); }, async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); }, async onEvent(event, context) { return serialize(() => event.eventType === RESULT_EVENT ? handleModerationResult(event, context) : event.eventType === TRUST_EVENT ? handleTrustedAccountRequest(event, context) : event.eventType === 'command.received' ? handleTrustCommand(event, context) : processChatGuardEvent(event, context)); }, async administerChatGuard(request, context) { return serialize(() => administerChatGuard(request, context)); } };
+export default { manifest, required: false, async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); if (settings.enabled) await context.state.write(sanitizeState(await context.state.read(), settings)); }, async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); }, async inspectChatDisplay(event, context) { return shouldBlockChatGuardDisplay(event, context); }, async onEvent(event, context) { return serialize(() => event.eventType === RESULT_EVENT ? handleModerationResult(event, context) : event.eventType === TRUST_EVENT ? handleTrustedAccountRequest(event, context) : event.eventType === 'command.received' ? handleTrustCommand(event, context) : processChatGuardEvent(event, context)); }, async administerChatGuard(request, context) { return serialize(() => administerChatGuard(request, context)); } };

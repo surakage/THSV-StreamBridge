@@ -1,11 +1,11 @@
 {
-  "intro": "Quote Vault keeps one moderated, local quote library for Twitch, YouTube, Kick, and TikTok. Ordinary chat is never saved; only explicit quote submissions and bounded management history enter private add-on state.",
+  "intro": "Quote Vault keeps one moderated, local quote library for Twitch, YouTube, Kick, and TikTok. Use the Quote library manager below these settings for everyday adding, review, editing, deletion, and recovery.",
   "order": [
     "enabled", "enabledPlatforms", "commandPrefix", "quoteCommand", "quotesCommand", "submitCommand", "addCommand",
     "approveCommand", "rejectCommand", "pendingCommand", "editCommand", "deleteCommand", "restoreCommand", "statsCommand",
     "communitySubmissionRole", "directAddRole", "ignoreBots", "ignoredUsers", "allowLinks",
     "maximumQuoteCharacters", "maximumApprovedQuotes", "maximumPendingQuotes",
-    "userSubmissionCooldownSeconds", "userRetrievalCooldownSeconds", "globalCommandCooldownSeconds", "moderatorBypassCooldowns",
+    "userSubmissionCooldownSeconds", "userRetrievalCooldownSeconds", "globalCommandCooldownSeconds", "moderatorBypassCooldowns", "streamerBotSyncEnabled", "streamerBotSyncActionId",
     "starterQuotes", "quoteMessageTemplate", "submittedMessageTemplate", "addedMessageTemplate", "approvedMessageTemplate",
     "rejectedMessageTemplate", "editedMessageTemplate", "deletedMessageTemplate", "restoredMessageTemplate",
     "duplicateMessage", "permissionMessage", "invalidUsageMessage", "notFoundMessage", "libraryFullMessage"
@@ -16,7 +16,7 @@
       "title": "1. Start here",
       "description": "Choose where Quote Vault is available. It uses normalized chat and needs no separate platform triggers.",
       "open": true,
-      "notice": "Recommended first test: keep community submissions enabled, submit one harmless quote, approve it as a moderator, then retrieve it from the same platform.",
+      "notice": "Recommended first test: submit one harmless viewer quote, approve it in the wizard Quote library, then retrieve it from the same platform. Broadcaster and moderator submissions skip the review queue automatically.",
       "fields": ["enabled", "enabledPlatforms", "commandPrefix"]
     },
     {
@@ -42,31 +42,38 @@
     {
       "id": "starter-library",
       "title": "5. Optional starter library",
-      "description": "Seed a new empty library without replacing existing quotes.",
-      "notice": "Use one line per item: Quoted Name | Quote text. This seed is read only when the private library has never contained a quote.",
+      "description": "Seed a brand-new empty library once. For normal additions, use the Quote library manager below.",
+      "notice": "Use one line per item: Quoted Name | Quote text. This one-time seed is read only when the private library has never contained a quote; it never replaces viewer-added or wizard-added quotes.",
       "fields": ["starterQuotes"]
     },
     {
+      "id": "streamerbot-sync",
+      "title": "6. Optional Streamer.bot quote sync",
+      "description": "Import the current Quote Vault Streamer.bot package before enabling this mirror.",
+      "notice": "Quote Vault stays authoritative. Compatible approved Twitch, YouTube, and Kick quotes are mirrored; TikTok and pending submissions remain local. Use the library manager's Import button to bring existing native quotes into Quote Vault.",
+      "fields": ["streamerBotSyncEnabled", "streamerBotSyncActionId"]
+    },
+    {
       "id": "quote-display",
-      "title": "6. Quote display",
+      "title": "7. Quote display",
       "description": "Control how approved quotes appear in the originating platform's chat.",
       "fields": ["quoteMessageTemplate"]
     },
     {
       "id": "confirmation-messages",
-      "title": "7. Submission and moderation messages",
+      "title": "8. Submission and moderation messages",
       "description": "Short confirmations for successful library changes.",
       "fields": ["submittedMessageTemplate", "addedMessageTemplate", "approvedMessageTemplate", "rejectedMessageTemplate", "editedMessageTemplate", "deletedMessageTemplate", "restoredMessageTemplate"]
     },
     {
       "id": "help-errors",
-      "title": "8. Help and error messages",
+      "title": "9. Help and error messages",
       "description": "Clear responses for rejected or invalid requests.",
       "fields": ["duplicateMessage", "permissionMessage", "invalidUsageMessage", "notFoundMessage", "libraryFullMessage"]
     },
     {
       "id": "privacy",
-      "title": "9. Privacy and retention",
+      "title": "10. Privacy and retention",
       "description": "Review what Quote Vault stores.",
       "notice": "Quote Vault stores only approved, pending, recently deleted quotes, their platform-scoped submitter identity, and a bounded moderation history. Ordinary chat is not retained. Deleted quotes remain recoverable only in a small rotating trash list. No data leaves the local computer except the quote responses deliberately sent to live chat.",
       "fields": []

@@ -61,6 +61,20 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
       ]
+    },
+    {
+      "id": "df4ee3e7-cee1-48e7-b301-5533d57c11d8",
+      "sourceSubActionId": "e58c92fc-2e09-4298-a7d2-f287183f5e78",
+      "name": "THSV Addon - Quote Vault - Native Quote Sync",
+      "group": "THSV Addon - Quote Vault",
+      "source": "src/NativeQuoteSync.cs",
+      "importFile": "THSV-StreamBridge-Quote-Vault-3.5.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
     }
   ],
   "runtime": {

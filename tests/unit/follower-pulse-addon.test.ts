@@ -27,7 +27,7 @@ describe('Follower Pulse', () => {
   });
 
   it('rejects malformed pages and bounds follower data', () => {
-    expect(normalizeFollowerPage({ scanId: 'scan-1', page: 0, total: 1, nextCursor: '', followers: [{ id: '42', login: 'valid_user', name: 'Valid', followedAt: '2026-07-27T12:00:00Z' }] })?.followers).toHaveLength(1);
+    expect(normalizeFollowerPage({ scanId: 'scan-1', page: 0, total: 1, rawCount: 1, rejectedCount: 0, nextCursor: '', followers: [{ id: '42', login: 'valid_user', name: 'Valid', followedAt: '2026-07-27T12:00:00Z' }] })).toMatchObject({ rawCount: 1, rejectedCount: 0, followers: [expect.any(Object)] });
     expect(normalizeFollowerPage({ scanId: '', page: 0, total: 0, followers: [] })).toBeUndefined();
     expect(normalizeFollowerPage({ scanId: 'scan-1', page: 0, total: 1, followers: [{ id: 'not-numeric', login: 'bad', name: 'Bad', followedAt: 'now' }] })?.followers).toHaveLength(0);
     expect(normalizeFollowerPage({ scanId: 'scan-1', page: 0, error: 'Twitch authorization failed.' })).toMatchObject({ total: 0, error: 'Twitch authorization failed.' });
@@ -37,7 +37,7 @@ describe('Follower Pulse', () => {
     expect(retryDelayMs('Streamer.bot could not start the Twitch follower snapshot.', 1)).toBe(30_000);
     expect(retryDelayMs('The Twitch follower snapshot page timed out.', 3)).toBe(120_000);
     expect(retryDelayMs('The Twitch follower snapshot page timed out.', 20)).toBe(900_000);
-    expect(retryDelayMs('Reconnect with moderator:read:followers access.', 1)).toBe(1_800_000);
+    expect(retryDelayMs('Reconnect with moderator:read:followers access.', 1)).toBe(43_200_000);
   });
 
   it('completes a full final page even when Twitch includes a continuation cursor', () => {
@@ -81,7 +81,7 @@ describe('Follower Pulse', () => {
     await followerPulse.onEvent({ eventType: 'addon.thsv.follower-pulse.snapshot-page', metadata: { simulated: false }, payload: { scanId: request.followerPulseScanId, page: 0, error: 'Reconnect with moderator:read:followers access.' } }, context);
     const status = await followerPulse.administerFollowerPulse({ operation: 'status' }, context);
     expect(status).toMatchObject({ scanActive: false, lastAttemptAt: 10_000, consecutiveFailures: 1, lastError: expect.stringContaining('moderator:read:followers') });
-    expect([...scheduled.values()].some((entry) => entry.delay === 1_800_000)).toBe(true);
+    expect([...scheduled.values()].some((entry) => entry.delay === 43_200_000)).toBe(true);
   });
 
   it('recovers quickly when Streamer.bot is still starting', async () => {

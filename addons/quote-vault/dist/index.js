@@ -2,6 +2,7 @@
 // TikTok. Public chat is parsed only for configured quote commands; ordinary chat
 // text is never retained. Viewer submissions are pending until a moderator approves.
 const CONTROL_EVENT = 'addon.thsv.quote-vault.control';
+const SYNC_RESULT_EVENT = 'addon.thsv.quote-vault.sync-result';
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const MAXIMUM_STATE_BYTES = 60_000;
 const MAXIMUM_APPROVED_QUOTES = 150;
@@ -20,7 +21,7 @@ const manifest = {
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['chat.message', CONTROL_EVENT],
+  eventSubscriptions: ['chat.message', CONTROL_EVENT, SYNC_RESULT_EVENT],
   commandsProvided: [
     { id: 'quote-vault.quote', name: 'quote - random, ID, or search' },
     { id: 'quote-vault.quotes', name: 'quotes - count or quoted-person lookup' },
@@ -44,7 +45,7 @@ const manifest = {
     'Install and configure Quote Vault. No separate platform chat trigger is required.',
     'Choose enabled platforms, command names, submission permissions, and safety limits.',
     'Import the optional Quote Vault Streamer.bot package only if creator-triggered random or statistics actions are wanted.',
-    'Tell moderators that viewer submissions remain pending until approved.',
+    'Use the wizard Quote library to add, edit, approve, delete, or restore quotes. Moderator submissions are approved automatically.',
   ],
   uninstallationSteps: ['Export or record wanted quotes before uninstalling. Private Quote Vault state remains preserved for a later reinstall.'],
   migrations: [],
@@ -78,6 +79,8 @@ const FALLBACKS = Object.freeze({
   userRetrievalCooldownSeconds: 10,
   globalCommandCooldownSeconds: 6,
   moderatorBypassCooldowns: true,
+  streamerBotSyncEnabled: false,
+  streamerBotSyncActionId: 'df4ee3e7-cee1-48e7-b301-5533d57c11d8',
   starterQuotes: [],
   quoteMessageTemplate: 'Quote #{id}: “{quote}” — {quotedName}',
   submittedMessageTemplate: 'Quote #{id} was submitted for moderator approval.',
@@ -139,6 +142,8 @@ function settingsFor(context) {
     userSubmissionCooldownSeconds: integer(raw.userSubmissionCooldownSeconds, 0, 3600, 60),
     userRetrievalCooldownSeconds: integer(raw.userRetrievalCooldownSeconds, 0, 600, 10),
     globalCommandCooldownSeconds: integer(raw.globalCommandCooldownSeconds, 6, 60, 6),
+    streamerBotSyncEnabled: raw.streamerBotSyncEnabled === true,
+    streamerBotSyncActionId: /^[0-9a-f-]{36}$/iu.test(cleanText(raw.streamerBotSyncActionId, 36)) ? cleanText(raw.streamerBotSyncActionId, 36).toLowerCase() : FALLBACKS.streamerBotSyncActionId,
   };
   const commandKeys = ['quoteCommand', 'quotesCommand', 'submitCommand', 'addCommand', 'approveCommand', 'rejectCommand', 'pendingCommand', 'editCommand', 'deleteCommand', 'restoreCommand', 'statsCommand'];
   const names = commandKeys.map((key) => parsed[key]);
@@ -227,6 +232,7 @@ function quoteRecord(value, status) {
     quotedName,
     ...(quotedUserId ? { quotedUserId } : {}),
     sourcePlatform,
+    ...(cleanText(value.gameName, 200) ? { gameName: cleanText(value.gameName, 200) } : {}),
     submittedBy,
     submittedAt,
     status,
@@ -236,6 +242,7 @@ function quoteRecord(value, status) {
     ...(value.deletedAt ? { deletedAt: cleanText(value.deletedAt, 40) } : {}),
     ...(value.rejectionReason ? { rejectionReason: cleanText(value.rejectionReason, 160) } : {}),
     ...(value.editedAt ? { editedAt: cleanText(value.editedAt, 40) } : {}),
+    ...(integer(value.streamerBotQuoteId, 1, Number.MAX_SAFE_INTEGER, 0) ? { streamerBotQuoteId: integer(value.streamerBotQuoteId, 1, Number.MAX_SAFE_INTEGER, 0) } : {}),
   };
 }
 
@@ -470,6 +477,22 @@ async function quoteCount(event, context, settings, state, input, now) {
   await send(context, event.platform, `Quote Vault has ${String(state.approved.length)} approved quote${state.approved.length === 1 ? '' : 's'} and ${String(state.pending.length)} pending.`);
 }
 
+async function requestStreamerBotSync(context, settings, syncOperation, quote) {
+  if (!settings.streamerBotSyncEnabled || quote.sourcePlatform === 'tiktok' || !['twitch', 'youtube', 'kick'].includes(quote.sourcePlatform)) return false;
+  try {
+    await context.streamerbot.runApprovedAction(settings.streamerBotSyncActionId, {
+      quoteVaultSyncOperation: syncOperation,
+      quoteVaultQuoteId: quote.id,
+      quoteVaultNativeQuoteId: quote.streamerBotQuoteId || 0,
+      quoteVaultPlatform: quote.sourcePlatform,
+      quoteVaultUserId: quote.quotedUserId || '',
+      quoteVaultQuotedName: quote.quotedName,
+      quoteVaultQuoteText: quote.text,
+    });
+    return true;
+  } catch { return false; }
+}
+
 async function addSubmission(event, context, settings, state, input, direct, now) {
   const requiredRole = direct ? settings.directAddRole : settings.communitySubmissionRole;
   if (!atLeast(event, requiredRole)) return replyTemplate(context, event, settings, settings.permissionMessage);
@@ -478,14 +501,15 @@ async function addSubmission(event, context, settings, state, input, direct, now
   if (!parsed) return replyTemplate(context, event, settings, settings.invalidUsageMessage);
   if (!settings.allowLinks && hasLink(parsed.text)) return send(context, event.platform, 'Links are disabled in Quote Vault submissions.');
   if (isDuplicate(state, parsed.text, parsed.quotedName)) return replyTemplate(context, event, settings, settings.duplicateMessage);
-  if (direct && state.approved.length >= settings.maximumApprovedQuotes) return replyTemplate(context, event, settings, settings.libraryFullMessage);
-  if (!direct && state.pending.length >= settings.maximumPendingQuotes) return send(context, event.platform, 'The Quote Vault review queue is full. Please try again later.');
-  const record = buildRecord(state, event, parsed, direct ? 'approved' : 'pending', now);
-  if (direct) {
+  const autoApprove = direct || isModerator(event);
+  if (autoApprove && state.approved.length >= settings.maximumApprovedQuotes) return replyTemplate(context, event, settings, settings.libraryFullMessage);
+  if (!autoApprove && state.pending.length >= settings.maximumPendingQuotes) return send(context, event.platform, 'The Quote Vault review queue is full. Please try again later.');
+  const record = buildRecord(state, event, parsed, autoApprove ? 'approved' : 'pending', now);
+  if (autoApprove) {
     record.approvedBy = actor(event);
     record.approvedAt = new Date(now).toISOString();
     state.approved.push(record);
-    recordAudit(state, 'add', record.id, event, now);
+    recordAudit(state, direct ? 'add' : 'auto-approve', record.id, event, now);
   } else {
     state.pending.push(record);
     recordAudit(state, 'submit', record.id, event, now);
@@ -493,7 +517,125 @@ async function addSubmission(event, context, settings, state, input, direct, now
   state.nextId += 1;
   recordCooldown(state, event, 'submit', now);
   if (!await writeIfFits(context, state)) return replyTemplate(context, event, settings, settings.libraryFullMessage);
-  await replyTemplate(context, event, settings, direct ? settings.addedMessageTemplate : settings.submittedMessageTemplate, quoteValues(record));
+  if (autoApprove) await requestStreamerBotSync(context, settings, 'add', record);
+  await replyTemplate(context, event, settings, autoApprove ? settings.addedMessageTemplate : settings.submittedMessageTemplate, quoteValues(record));
+}
+
+function creatorPerson(platform) {
+  return { platform: platformOf(platform) || 'twitch', name: 'Streamer' };
+}
+
+function projectAdminQuote(quote) {
+  return {
+    id: quote.id,
+    text: quote.text,
+    quotedName: quote.quotedName,
+    sourcePlatform: quote.sourcePlatform,
+    ...(quote.gameName ? { gameName: quote.gameName } : {}),
+    submittedBy: quote.submittedBy.name,
+    submittedAt: quote.submittedAt,
+    status: quote.status,
+    ...(quote.approvedAt ? { approvedAt: quote.approvedAt } : {}),
+    ...(quote.editedAt ? { editedAt: quote.editedAt } : {}),
+    ...(quote.deletedAt ? { deletedAt: quote.deletedAt } : {}),
+    ...(quote.rejectionReason ? { rejectionReason: quote.rejectionReason } : {}),
+    ...(quote.streamerBotQuoteId ? { streamerBotQuoteId: quote.streamerBotQuoteId } : {}),
+  };
+}
+
+function quoteVaultAdminStatus(state, settings, action = 'status', quoteId = 0) {
+  return {
+    contractVersion: '1.0.0',
+    action,
+    ...(quoteId ? { quoteId } : {}),
+    counts: { approved: state.approved.length, pending: state.pending.length, recoverable: state.deleted.length },
+    capacity: { approved: settings.maximumApprovedQuotes, pending: settings.maximumPendingQuotes },
+    streamerBotSync: { enabled: settings.streamerBotSyncEnabled, actionId: settings.streamerBotSyncActionId, mirrored: state.approved.filter((quote) => quote.streamerBotQuoteId).length },
+    approved: state.approved.map(projectAdminQuote).sort((left, right) => right.id - left.id),
+    pending: state.pending.map(projectAdminQuote).sort((left, right) => left.id - right.id),
+    deleted: state.deleted.map(projectAdminQuote).sort((left, right) => right.id - left.id),
+  };
+}
+
+async function administerQuoteVaultInternal(request, context, now) {
+  const settings = settingsFor(context);
+  let state = sanitizeQuoteVaultState(await context.state.read());
+  state = await seedStarterQuotes(context, settings, state);
+  if (request.operation === 'status') return quoteVaultAdminStatus(state, settings);
+  if (request.operation === 'sync-import') {
+    if (!settings.streamerBotSyncEnabled) throw new Error('Enable Streamer.bot quote sync and save the Quote Vault settings first.');
+    try { await context.streamerbot.runApprovedAction(settings.streamerBotSyncActionId, { quoteVaultSyncOperation: 'export-all' }); }
+    catch { throw new Error('Streamer.bot quote sync is unavailable. Import the current Quote Vault package, approve Native Quote Sync, then restart StreamBridge.'); }
+    return { ...quoteVaultAdminStatus(state, settings, 'sync-import'), syncRequested: true };
+  }
+  const platform = platformOf(request.sourcePlatform) || settings.enabledPlatforms[0] || 'twitch';
+  const creator = creatorPerson(platform);
+  const timestamp = new Date(now).toISOString();
+  let quoteId = Number.isInteger(request.quoteId) ? request.quoteId : 0;
+  if (request.operation === 'add') {
+    const text = cleanText(request.text, settings.maximumQuoteCharacters);
+    const quotedName = cleanName(request.quotedName, 100);
+    if (!text || !quotedName) throw new Error('Enter both the quoted person and quote text.');
+    if (!settings.allowLinks && hasLink(text)) throw new Error('Links are disabled in Quote Vault.');
+    if (isDuplicate(state, text, quotedName)) throw new Error(settings.duplicateMessage);
+    if (state.approved.length >= settings.maximumApprovedQuotes) throw new Error(settings.libraryFullMessage);
+    quoteId = state.nextId;
+    state.nextId += 1;
+    state.approved.push({ id: quoteId, text, quotedName, sourcePlatform: platform, submittedBy: creator, submittedAt: timestamp, status: 'approved', approvedBy: creator, approvedAt: timestamp });
+    state.audit = [...state.audit, { action: 'creator-add', quoteId, actor: creator, at: timestamp }].slice(-MAXIMUM_AUDIT_ENTRIES);
+  } else if (request.operation === 'edit') {
+    const approved = state.approved.find((quote) => quote.id === quoteId);
+    const pending = state.pending.find((quote) => quote.id === quoteId);
+    const quote = approved || pending;
+    if (!quote) throw new Error('That quote is no longer available. Refresh the library.');
+    const text = cleanText(request.text, settings.maximumQuoteCharacters);
+    const quotedName = cleanName(request.quotedName, 100);
+    if (!text || !quotedName) throw new Error('Enter both the quoted person and quote text.');
+    if (!settings.allowLinks && hasLink(text)) throw new Error('Links are disabled in Quote Vault.');
+    if (isDuplicate(state, text, quotedName, quoteId)) throw new Error(settings.duplicateMessage);
+    const updated = { ...quote, text, quotedName, editedAt: timestamp };
+    if (approved) state.approved = state.approved.map((item) => item.id === quoteId ? updated : item);
+    else state.pending = state.pending.map((item) => item.id === quoteId ? updated : item);
+    state.audit = [...state.audit, { action: 'creator-edit', quoteId, actor: creator, at: timestamp }].slice(-MAXIMUM_AUDIT_ENTRIES);
+  } else if (request.operation === 'approve') {
+    const quote = state.pending.find((item) => item.id === quoteId);
+    if (!quote) throw new Error('That pending quote is no longer available. Refresh the library.');
+    if (state.approved.length >= settings.maximumApprovedQuotes) throw new Error(settings.libraryFullMessage);
+    state.pending = state.pending.filter((item) => item.id !== quoteId);
+    state.approved.push({ ...quote, status: 'approved', approvedBy: creator, approvedAt: timestamp });
+    state.audit = [...state.audit, { action: 'creator-approve', quoteId, actor: creator, at: timestamp }].slice(-MAXIMUM_AUDIT_ENTRIES);
+  } else if (request.operation === 'delete') {
+    const quote = state.approved.find((item) => item.id === quoteId) || state.pending.find((item) => item.id === quoteId);
+    if (!quote) throw new Error('That quote is no longer available. Refresh the library.');
+    state.approved = state.approved.filter((item) => item.id !== quoteId);
+    state.pending = state.pending.filter((item) => item.id !== quoteId);
+    state.deleted = [...state.deleted, { ...quote, status: 'deleted', deletedBy: creator, deletedAt: timestamp }].slice(-MAXIMUM_DELETED_QUOTES);
+    state.audit = [...state.audit, { action: 'creator-delete', quoteId, actor: creator, at: timestamp }].slice(-MAXIMUM_AUDIT_ENTRIES);
+  } else if (request.operation === 'restore') {
+    const quote = state.deleted.find((item) => item.id === quoteId);
+    if (!quote) throw new Error('That recoverable quote is no longer available. Refresh the library.');
+    if (state.approved.length >= settings.maximumApprovedQuotes) throw new Error(settings.libraryFullMessage);
+    const restored = { ...quote, status: 'approved', approvedBy: creator, approvedAt: timestamp };
+    delete restored.deletedBy;
+    delete restored.deletedAt;
+    delete restored.rejectionReason;
+    state.deleted = state.deleted.filter((item) => item.id !== quoteId);
+    state.approved.push(restored);
+    state.audit = [...state.audit, { action: 'creator-restore', quoteId, actor: creator, at: timestamp }].slice(-MAXIMUM_AUDIT_ENTRIES);
+  }
+  if (!await writeIfFits(context, state)) throw new Error(settings.libraryFullMessage);
+  const changed = state.approved.find((quote) => quote.id === quoteId);
+  if (changed && ['add', 'approve', 'restore'].includes(request.operation)) await requestStreamerBotSync(context, settings, 'add', changed);
+  if (changed && request.operation === 'edit') await requestStreamerBotSync(context, settings, changed.streamerBotQuoteId ? 'replace' : 'add', changed);
+  if (request.operation === 'delete') {
+    const removed = state.deleted.find((quote) => quote.id === quoteId);
+    if (removed?.streamerBotQuoteId) await requestStreamerBotSync(context, settings, 'delete', removed);
+  }
+  return quoteVaultAdminStatus(state, settings, request.operation, quoteId);
+}
+
+export function administerQuoteVaultRequest(request, context, now = Date.now()) {
+  return serialize(() => administerQuoteVaultInternal(request, context, now));
 }
 
 async function approve(event, context, settings, state, input, now) {
@@ -507,7 +649,37 @@ async function approve(event, context, settings, state, input, now) {
   state.approved.push(approved);
   recordAudit(state, 'approve', approved.id, event, now);
   if (!await writeIfFits(context, state)) return replyTemplate(context, event, settings, settings.libraryFullMessage);
+  await requestStreamerBotSync(context, settings, 'add', approved);
   await replyTemplate(context, event, settings, settings.approvedMessageTemplate, quoteValues(approved));
+}
+
+async function handleSyncResult(event, context, settings, state) {
+  const syncOperation = cleanText(event.payload?.operation, 30).toLocaleLowerCase('en-US');
+  if (syncOperation === 'export-all') {
+    const incoming = Array.isArray(event.payload?.quotes) ? event.payload.quotes.slice(0, 500) : [];
+    for (const item of incoming) {
+      if (state.approved.length >= settings.maximumApprovedQuotes) break;
+      const nativeId = integer(item?.id, 1, Number.MAX_SAFE_INTEGER, 0);
+      const text = cleanText(item?.text, settings.maximumQuoteCharacters);
+      const quotedName = cleanName(item?.quotedName, 100) || 'Streamer.bot quote';
+      const sourcePlatform = platformOf(cleanText(item?.platform, 20).toLowerCase()) || 'twitch';
+      const gameName = cleanText(item?.gameName, 200);
+      if (!nativeId || !text || sourcePlatform === 'tiktok') continue;
+      const mapped = state.approved.find((quote) => quote.streamerBotQuoteId === nativeId);
+      if (mapped) { if (gameName) mapped.gameName = gameName; continue; }
+      const duplicate = state.approved.find((quote) => fingerprint(quote.text, quote.quotedName) === fingerprint(text, quotedName));
+      if (duplicate) { duplicate.streamerBotQuoteId = nativeId; continue; }
+      const timestamp = cleanText(item?.timestamp, 40) || new Date().toISOString();
+      state.approved.push({ id: state.nextId++, text, quotedName, sourcePlatform, ...(gameName ? { gameName } : {}), submittedBy: { platform: sourcePlatform, name: 'Streamer.bot import' }, submittedAt: timestamp, status: 'approved', approvedBy: { platform: sourcePlatform, name: 'Streamer.bot import' }, approvedAt: timestamp, streamerBotQuoteId: nativeId });
+    }
+    await writeIfFits(context, state);
+    return;
+  }
+  const quoteId = integer(event.payload?.quoteVaultQuoteId, 1, Number.MAX_SAFE_INTEGER, 0);
+  const nativeId = integer(event.payload?.nativeQuoteId, 1, Number.MAX_SAFE_INTEGER, 0);
+  if (!quoteId || !nativeId || event.payload?.success !== true) return;
+  state.approved = state.approved.map((quote) => quote.id === quoteId ? { ...quote, streamerBotQuoteId: nativeId } : quote);
+  await writeIfFits(context, state);
 }
 
 async function reject(event, context, settings, state, input, now) {
@@ -636,6 +808,7 @@ async function handleEvent(event, context) {
   let state = sanitizeQuoteVaultState(await context.state.read());
   pruneCooldowns(state, Date.now());
   state = await seedStarterQuotes(context, settings, state);
+  if (event.eventType === SYNC_RESULT_EVENT) return handleSyncResult(event, context, settings, state);
   if (event.eventType === CONTROL_EVENT) return handleControl(event, context, settings, state);
   const platform = platformOf(event.platform);
   if (!platform || !settings.enabledPlatforms.includes(platform) || !event.user) return;
@@ -687,5 +860,8 @@ export default {
   },
   async onEvent(event, context) {
     await serialize(() => handleEvent(event, context));
+  },
+  async administerQuoteVault(request, context) {
+    return administerQuoteVaultRequest(request, context);
   },
 };

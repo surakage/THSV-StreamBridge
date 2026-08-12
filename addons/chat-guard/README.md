@@ -15,8 +15,10 @@ The import also creates a disabled `!guardtrust` command. Review it before enabl
 An observation-only configuration is a valid finished setup. Delete, timeout, and ban modes are advanced options and should not be used until genuine live acceptance succeeds.
 
 - It consumes only normalized `chat.message` events through the existing StreamBridge connection.
+- A matched message is withheld from the local browser chat overlay before presentation. Chat Guard still records its privacy-safe incident and runs any separately approved provider action afterward.
 - It never subscribes to private, operator, system, or command messages.
 - Optional warn, delete, timeout, and ban modes are capability-gated per provider, rate-capped, and dispatched through one approved triggerless Streamer.bot action. Simulations never enforce.
+- Progressive enforcement can warn first and suppress a viewer's third matched offense for ten minutes from every THSV overlay on Twitch, YouTube, Kick, and TikTok. Twitch, YouTube, and Kick also receive provider-native timeouts; TikTok uses the local timeout because TikFinity has no native moderation action. The timeout has its own cooldown, so a message burst cannot repeatedly punish the same account.
 - Creator rules can flag literal terms, exact normalized blocked/unapproved domains, excessive links or caps, repeated characters, long messages, and repeated messages.
 - Trusted roles and creator-entered stable `platform|user-id` accounts can be exempted without trusting display names.
 - Creator-approved temporary link permits are limited by expiry and use count, store only a salted account hash, and bypass domain policy only—not caps, flooding, repeat, or length signals.
@@ -29,7 +31,7 @@ An observation-only configuration is a valid finished setup. Delete, timeout, an
 
 The dashboard is deliberately an incident history, not a chat transcript. Its report contains at most 100 incidents matching the current filters and omits trusted-viewer labels as well as raw account IDs.
 
-Use observe mode and the preview to tune false positives first. The wizard separates observation rules from the signals allowed to enforce, so caps or repeated-character observations do not need to trigger moderation.
+Use observe mode and the preview to tune false positives first. Every configured match is hidden from the local StreamBridge browser chat; automatic warnings, deletes, timeouts, and bans remain separately gated. Single blocked words match as whole words, while multiword phrases match literally. The wizard separates observation rules from the signals allowed to enforce, so caps or repeated-character observations do not need to trigger provider moderation.
 
 The Streamer.bot package also imports a disabled `!guardtrust` command. After reviewing and enabling it, a broadcaster or moderator can reply to a viewer message with `!guardtrust`; Streamer.bot sends that provider's stable viewer ID to the local bridge. The wizard shows a friendly label plus a masked ID and supports deliberate removal. Manual stable-ID entry remains available for TikTok and provider contexts without reply identity.
 

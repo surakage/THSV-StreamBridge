@@ -24,6 +24,7 @@ import { STREAMBRIDGE_VERSION } from '../bridge/version.js';
 import { OUTBOUND_PLATFORM_VALUES, OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
 import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
 import { CommandDirectoryService } from '../bridge/services/command-directory.js';
+import { CommandDirectoryResponder } from '../bridge/services/command-directory-responder.js';
 import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
 import { StreamerBotLauncherService } from '../bridge/services/streamerbot-launcher-service.js';
 
@@ -87,7 +88,8 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
 });
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);
-const commandDirectory = new CommandDirectoryService(config, modules);
+const commandDirectory = new CommandDirectoryService(config, modules, {}, streamerBotInspector);
+const commandDirectoryResponder = new CommandDirectoryResponder(commandDirectory, outboundRouter, logger);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
 const activeBridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, deliveryOutboxStore, modules });
 const wizard = new WizardService(
@@ -112,11 +114,28 @@ activeBridge.subscribe((event) => {
       overlayHub.publish(event);
     });
 });
+activeBridge.subscribe((event) => commandDirectoryResponder.handle(event));
 let stopping = false;
+let commandDirectoryRefreshActive = false;
+let commandDirectoryRefreshTimer: NodeJS.Timeout | undefined;
+
+async function refreshCommandDirectory(): Promise<void> {
+  if (commandDirectoryRefreshActive || stopping) return;
+  commandDirectoryRefreshActive = true;
+  try {
+    const refresh = await commandDirectory.refreshStreamerBotCommands();
+    if (!refresh.available) logger.warn('Streamer.bot commands were not refreshed for the command directory', { error: refresh.error });
+    if (commandDirectory.publicationStatus().enabled) {
+      const publication = await commandDirectory.publish();
+      if (publication.state !== 'published' && publication.state !== 'unchanged') logger.warn('Public command directory was not synchronized', { state: publication.state, error: publication.error });
+    }
+  } finally { commandDirectoryRefreshActive = false; }
+}
 
 async function shutdown(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
+  if (commandDirectoryRefreshTimer !== undefined) clearInterval(commandDirectoryRefreshTimer);
   logger.info('Shutdown requested', { signal });
   try {
     await server.stop();
@@ -146,11 +165,9 @@ try {
   await activeBridge.start();
   await server.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
-  if (commandDirectory.publicationStatus().enabled) {
-    const publication = await commandDirectory.publish();
-    if (publication.state === 'published' || publication.state === 'unchanged') logger.info('Public command directory synchronized', { state: publication.state, publicUrl: publication.publicUrl, catalogHash: publication.catalogHash });
-    else logger.warn('Public command directory was not synchronized', { state: publication.state, error: publication.error });
-  }
+  await refreshCommandDirectory();
+  commandDirectoryRefreshTimer = setInterval(() => void refreshCommandDirectory(), 5 * 60_000);
+  commandDirectoryRefreshTimer.unref();
 } catch (error) {
   logger.error('Startup failed', { error });
   await activeBridge.stop().catch(() => undefined);

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import quoteVault, { parseQuoteSubmission, resetQuoteVaultRuntime, sanitizeQuoteVaultState, selectQuote } from '../../addons/quote-vault/dist/index.js';
+import quoteVault, { administerQuoteVaultRequest, parseQuoteSubmission, resetQuoteVaultRuntime, sanitizeQuoteVaultState, selectQuote } from '../../addons/quote-vault/dist/index.js';
 
 function chatEvent(platform = 'twitch', message = '!quotesubmit @Streamer | The sloth has spoken.', roles: string[] = [], id = 'event-1') {
   return {
@@ -28,6 +28,7 @@ function runtime(settings: Record<string, unknown> = {}, initialState: Record<st
         write: vi.fn(async (value: Record<string, unknown>) => { state = value; }),
       },
       chat: { send: vi.fn(async () => []) },
+      streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
     },
   };
 }
@@ -82,6 +83,55 @@ describe('Quote Vault add-on', () => {
       sourcePlatform: 'youtube',
       message: 'Quote #1 was approved.',
     }));
+  });
+
+  it('automatically approves broadcaster and moderator submissions without filling the review queue', async () => {
+    const testRuntime = runtime();
+    await quoteVault.onEvent(chatEvent('twitch', '!quotesubmit @Creator | Moderator quote', ['moderator'], 'mod-submit'), testRuntime.context);
+    await quoteVault.onEvent(chatEvent('youtube', '!quotesubmit @Creator | Broadcaster quote', ['broadcaster'], 'broadcaster-submit'), testRuntime.context);
+    expect(testRuntime.value()).toMatchObject({
+      approved: [
+        { id: 1, text: 'Moderator quote', status: 'approved' },
+        { id: 2, text: 'Broadcaster quote', status: 'approved' },
+      ],
+      pending: [],
+    });
+    expect(testRuntime.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ sourcePlatform: 'youtube', message: 'Quote #2 was added.' }));
+  });
+
+  it('lets the authenticated wizard add, edit, approve, delete, and restore the same local library', async () => {
+    const testRuntime = runtime();
+    await quoteVault.onEvent(chatEvent('kick', '!quotesubmit @Viewer | Needs review', [], 'viewer-submit'), testRuntime.context);
+    let result = await administerQuoteVaultRequest({ operation: 'status' }, testRuntime.context, Date.parse('2026-08-11T12:00:00.000Z'));
+    expect(result).toMatchObject({ counts: { approved: 0, pending: 1, recoverable: 0 }, pending: [{ id: 1, quotedName: 'Viewer' }] });
+
+    result = await administerQuoteVaultRequest({ operation: 'edit', quoteId: 1, quotedName: 'Village Viewer', text: 'Edited before approval', approvedByCreator: true }, testRuntime.context, Date.parse('2026-08-11T12:01:00.000Z'));
+    expect(result).toMatchObject({ pending: [{ id: 1, quotedName: 'Village Viewer', text: 'Edited before approval' }] });
+    result = await administerQuoteVaultRequest({ operation: 'approve', quoteId: 1, approvedByCreator: true }, testRuntime.context, Date.parse('2026-08-11T12:02:00.000Z'));
+    expect(result).toMatchObject({ counts: { approved: 1, pending: 0, recoverable: 0 } });
+    result = await administerQuoteVaultRequest({ operation: 'add', quotedName: 'Streamer', text: 'Added in the wizard', sourcePlatform: 'tiktok', approvedByCreator: true }, testRuntime.context, Date.parse('2026-08-11T12:03:00.000Z'));
+    expect(result).toMatchObject({ counts: { approved: 2, pending: 0, recoverable: 0 }, approved: [{ id: 2, sourcePlatform: 'tiktok' }, { id: 1 }] });
+    result = await administerQuoteVaultRequest({ operation: 'delete', quoteId: 2, approvedByCreator: true }, testRuntime.context, Date.parse('2026-08-11T12:04:00.000Z'));
+    expect(result).toMatchObject({ counts: { approved: 1, pending: 0, recoverable: 1 }, deleted: [{ id: 2 }] });
+    result = await administerQuoteVaultRequest({ operation: 'restore', quoteId: 2, approvedByCreator: true }, testRuntime.context, Date.parse('2026-08-11T12:05:00.000Z'));
+    expect(result).toMatchObject({ counts: { approved: 2, pending: 0, recoverable: 0 } });
+  });
+
+  it('imports native Streamer.bot quotes without duplicating existing records and mirrors compatible additions', async () => {
+    const testRuntime = runtime({ streamerBotSyncEnabled: true });
+    await administerQuoteVaultRequest({ operation: 'sync-import', approvedByCreator: true }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith('df4ee3e7-cee1-48e7-b301-5533d57c11d8', { quoteVaultSyncOperation: 'export-all' });
+    await quoteVault.onEvent({
+      eventId: 'sync-import-1', eventType: 'addon.thsv.quote-vault.sync-result', platform: 'system', receivedAt: '2026-08-11T12:00:00.000Z', channel: { name: 'system' },
+      payload: { operation: 'export-all', success: true, quotes: [{ id: 41, text: 'Imported native quote', quotedName: 'Native User', platform: 'twitch', timestamp: '2026-08-10T12:00:00.000Z' }] }, metadata: { simulated: false },
+    }, testRuntime.context);
+    await quoteVault.onEvent({
+      eventId: 'sync-import-2', eventType: 'addon.thsv.quote-vault.sync-result', platform: 'system', receivedAt: '2026-08-11T12:00:01.000Z', channel: { name: 'system' },
+      payload: { operation: 'export-all', success: true, quotes: [{ id: 41, text: 'Imported native quote', quotedName: 'Native User', platform: 'twitch', timestamp: '2026-08-10T12:00:00.000Z' }] }, metadata: { simulated: false },
+    }, testRuntime.context);
+    expect(testRuntime.value()).toMatchObject({ approved: [{ id: 1, streamerBotQuoteId: 41, text: 'Imported native quote' }] });
+    await administerQuoteVaultRequest({ operation: 'add', quotedName: 'Streamer', text: 'Mirror this quote', sourcePlatform: 'youtube', approvedByCreator: true }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith('df4ee3e7-cee1-48e7-b301-5533d57c11d8', expect.objectContaining({ quoteVaultSyncOperation: 'add', quoteVaultPlatform: 'youtube', quoteVaultQuoteId: 2 }));
   });
 
   it('routes retrieval only to the command source and avoids immediate random repeats', async () => {

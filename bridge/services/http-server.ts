@@ -16,7 +16,7 @@ import type { BrowserOverlayHub } from './browser-overlay-hub.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { readCachedClip } from './clip-media-cache.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
@@ -30,6 +30,7 @@ export interface DiagnosticsTarget {
   testTimedAction?(id: string): Promise<Readonly<Record<string, unknown>>>;
   administerViewerFoundation?(request: ViewerFoundationAdminRequestV1): Promise<ViewerFoundationAdminResultV1>;
   administerCommunityAnalytics?(request: CommunityAnalyticsAdminRequestV1): Promise<CommunityAnalyticsAdminResultV1>;
+  administerQuoteVault?(request: QuoteVaultAdminRequestV1): Promise<QuoteVaultAdminResultV1>;
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1>;
   administerVillageDraw?(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1>;
@@ -180,7 +181,14 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && requestPath === '/wizard/api/commands/directory') {
         if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
         release = this.guard.acquire(request, false);
-        return this.reply(response, 200, { ...this.commandDirectory.catalogue(), publishing: this.commandDirectory.publicationStatus() });
+        const streamerBot = await this.commandDirectory.refreshStreamerBotCommands();
+        return this.reply(response, 200, { ...this.commandDirectory.catalogue(), publishing: this.commandDirectory.publicationStatus(), streamerBot });
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/commands/directory/moderator') {
+        if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
+        release = this.guard.acquire(request, false);
+        const streamerBot = await this.commandDirectory.refreshStreamerBotCommands();
+        return this.reply(response, 200, { ...this.commandDirectory.moderatorCatalogue(), streamerBot });
       }
       if (request.method === 'POST' && requestPath === '/wizard/api/commands/directory/publish') {
         if (this.commandDirectory === undefined) return this.reply(response, 404, { error: 'Command directory is unavailable' });
@@ -188,6 +196,7 @@ export class DiagnosticsServer {
         // rate, and concurrency checks still apply; requiring JSON would reject
         // the wizard's ordinary POST before it reached the publisher.
         release = this.guard.acquire(request, false);
+        await this.commandDirectory.refreshStreamerBotCommands();
         const result = await this.commandDirectory.publish();
         return this.reply(response, result.state === 'failed' ? 502 : result.state === 'disabled' ? 409 : 200, result);
       }
@@ -403,6 +412,12 @@ export class DiagnosticsServer {
         if (this.target.administerCommunityAnalytics === undefined) return this.reply(response, 503, { error: 'Community Analytics administration is unavailable.' });
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerCommunityAnalytics(JSON.parse(body.text) as CommunityAnalyticsAdminRequestV1));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/quote-vault/admin' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerQuoteVault === undefined) return this.reply(response, 503, { error: 'Quote Vault administration is unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.target.administerQuoteVault(JSON.parse(body.text) as QuoteVaultAdminRequestV1));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/viewer-spotlight/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
@@ -652,6 +667,8 @@ export class DiagnosticsServer {
           ? 'Request body is not a valid Viewer Foundation administration request'
           : request.url === '/wizard/api/community-analytics/admin'
             ? 'Request body is not a valid Community Analytics administration request'
+          : request.url === '/wizard/api/quote-vault/admin'
+            ? 'Request body is not a valid Quote Vault administration request'
             : request.url === '/wizard/api/viewer-spotlight/admin'
               ? 'Request body is not a valid Viewer Spotlight administration request'
             : request.url === '/wizard/api/chat-guard/admin'

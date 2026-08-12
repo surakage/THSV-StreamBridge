@@ -10,6 +10,13 @@ describe('Follower Pulse Streamer.bot package', () => {
     const source = await readFile('packages/streamerbot/follower-pulse/src/SnapshotFollowers.cs', 'utf8');
     expect(source).toContain('https://api.twitch.tv/helix/channels/followers');
     expect(source).toContain('CPH.TwitchOAuthToken');
+    expect(source).toContain('https://id.twitch.tv/oauth2/validate');
+    expect(source).toContain('moderator:read:followers');
+    expect(source).toContain('validation["user_id"]');
+    expect(source).toContain('validation["scopes"] as JArray');
+    expect(source).toContain('["rawCount"] = rawCount');
+    expect(source).toContain('FallbackLogin(id)');
+    expect(source).toContain('parsedFollowedAt.ToUniversalTime().ToString("O")');
     expect(source).toContain('&first=100');
     expect(source).toContain('relayToken');
     expect(source).toContain('ReadBool("isTest")');

@@ -42,7 +42,8 @@ describe('CommandDirectoryService', () => {
     const catalogue = service.catalogue(new Date('2026-08-02T12:00:00.000Z'));
     const serialized = JSON.stringify(catalogue);
 
-    expect(catalogue.commandCount).toBe(3);
+    expect(catalogue.commandCount).toBe(4);
+    expect(serialized).toContain('commands');
     expect(serialized).toContain('hello');
     expect(serialized).toContain('quote');
     expect(serialized).toContain('coinflip');
@@ -94,6 +95,33 @@ describe('CommandDirectoryService', () => {
 
     expect(commands.find((entry) => entry.command === 'quote')?.platforms).toEqual(['youtube', 'kick']);
     expect(commands.find((entry) => entry.command === 'join')?.platforms).toEqual(['tiktok']);
+  });
+
+  it('tracks enabled Streamer.bot commands and keeps restricted groups out of the public catalogue', async () => {
+    const config = await testConfig();
+    config.commands = { enabled: true, prefix: '!', definitions: [
+      { name: 'hello', aliases: [], minimumRole: 'viewer', allowBots: false, source: 'manual' },
+      { name: 'secret', aliases: [], minimumRole: 'moderator', allowBots: false, source: 'manual' },
+    ] };
+    const registry = new ModuleRegistry([
+      { ...addOn('thsv.quote-vault', 'Quote Vault', [{ id: 'quote-vault.delete', name: 'quotedelete' }]), settings: { enabled: true, deleteCommand: 'quotedelete', enabledPlatforms: ['twitch'] } },
+    ], silentLogger);
+    const inspector = { inspectCommands: async () => [
+      { id: 'sb-public', name: 'Public helper', enabled: true, group: 'Community', aliases: ['!helper', '!helpme'] },
+      { id: 'sb-mod', name: 'Mod helper', enabled: true, group: 'Moderators', aliases: ['!modhelper'] },
+      { id: 'sb-disabled', name: 'Disabled', enabled: false, group: '', aliases: ['!disabled'] },
+    ] };
+    const service = new CommandDirectoryService(config, registry, {}, inspector);
+    await service.refreshStreamerBotCommands();
+
+    const publicNames = service.catalogue().categories.flatMap((category) => category.commands.map((entry) => entry.command));
+    const moderatorNames = service.moderatorCatalogue().categories.flatMap((category) => category.commands.map((entry) => entry.command));
+
+    expect(publicNames).toEqual(expect.arrayContaining(['commands', 'hello', 'helper']));
+    expect(publicNames).not.toEqual(expect.arrayContaining(['secret', 'quotedelete', 'modhelper', 'disabled']));
+    expect(moderatorNames).toEqual(expect.arrayContaining(['secret', 'quotedelete', 'modhelper']));
+    expect(moderatorNames).not.toEqual(expect.arrayContaining(['hello', 'helper', 'disabled']));
+    expect(service.moderatorCatalogue().privacy).toBe('authenticated-moderator-command-metadata-only');
   });
 
   it('publishes through the configured HTTPS endpoint without exposing its token', async () => {

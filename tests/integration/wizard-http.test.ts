@@ -79,6 +79,7 @@ describe('wizard HTTP surface', () => {
     expect((await fetch(`${baseUrl}/wizard/api/addons/acceptance`)).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-foundation/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/community-analytics/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/quote-vault/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-spotlight/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/chat-guard/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/follower-pulse/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);

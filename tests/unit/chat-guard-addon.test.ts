@@ -1,12 +1,47 @@
 import { describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import chatGuard, { administerChatGuard, processChatGuardEvent, sanitizeChatGuardState, summarizeChatGuardState } from '../../addons/chat-guard/dist/index.js';
+import chatGuard, { administerChatGuard, processChatGuardEvent, sanitizeChatGuardState, shouldBlockChatGuardDisplay, summarizeChatGuardState } from '../../addons/chat-guard/dist/index.js';
 
 function event(message: string, overrides: Record<string, unknown> = {}) { return { eventId: `event-${message}`, eventType: 'chat.message', platform: 'twitch', receivedAt: '2026-07-26T12:00:00.000Z', user: { id: 'stable-user-id', name: 'Visible Name', displayName: 'Visible Name', actorType: 'human', roles: [] }, payload: { message }, metadata: { simulated: false }, ...overrides }; }
 function runtime(settings: Record<string, unknown> = {}) { let state: Record<string, unknown> = {}; return { value: () => state, context: { settings: { enabled: true, ...settings }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) }, streamerbot: { runApprovedAction: vi.fn(async () => undefined) }, chat: { send: vi.fn(async () => [{ platform: 'twitch', accepted: true, parts: 1 }]) } } }; }
 
 describe('Chat Guard add-on', () => {
+  it('withholds blocked YouTube drug spam before local overlay presentation', async () => {
+    const testRuntime = runtime({ blockedTerms: ['crack', 'cocaine'] });
+    const unsafe = event('crack cocaine crack cocaine', { platform: 'youtube', user: { id: 'youtube-user', name: 'viewer', actorType: 'human', roles: [] } });
+    await expect(shouldBlockChatGuardDisplay(unsafe, testRuntime.context, 1_000)).resolves.toBe(true);
+    await expect(shouldBlockChatGuardDisplay(event('ordinary conversation', { platform: 'youtube', user: { id: 'youtube-user', name: 'viewer', actorType: 'human', roles: [] } }), testRuntime.context, 1_000)).resolves.toBe(false);
+    expect(testRuntime.value()).toEqual({});
+  });
+
+  it('uses whole-word matching for single terms to avoid ordinary-word false positives', async () => {
+    const testRuntime = runtime({ blockedTerms: ['meth', 'crack'] });
+    await expect(processChatGuardEvent(event('That method is cracking me up'), testRuntime.context, 1_000)).resolves.toMatchObject({ flagged: false });
+    await expect(processChatGuardEvent(event('meth and crack', { eventId: 'whole-word-match' }), testRuntime.context, 2_000)).resolves.toMatchObject({ flagged: true, rules: ['blocked-term'] });
+  });
+
+  it('warns first and escalates a continuous repeat offender to one timeout', async () => {
+    const testRuntime = runtime({ blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'warn', repeatOffenderTimeoutEnabled: true, repeatOffenderThreshold: 3, repeatOffenderWindowSeconds: 600, repeatOffenderTimeoutSeconds: 600, maximumEnforcementsPerMinute: 20, perUserEnforcementCooldownSeconds: 60 });
+    await expect(processChatGuardEvent(event('flag once', { eventId: 'repeat-one', platform: 'youtube' }), testRuntime.context, 1_000)).resolves.toMatchObject({ enforcement: 'succeeded' });
+    await expect(processChatGuardEvent(event('flag twice', { eventId: 'repeat-two', platform: 'youtube' }), testRuntime.context, 2_000)).resolves.toMatchObject({ enforcement: 'unsupported' });
+    await expect(processChatGuardEvent(event('flag three times', { eventId: 'repeat-three', platform: 'youtube' }), testRuntime.context, 3_000)).resolves.toMatchObject({ enforcement: 'dispatched' });
+    expect(testRuntime.context.chat.send).toHaveBeenCalledTimes(1);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledOnce();
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith('9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9', expect.objectContaining({ chatGuardPlatform: 'youtube', chatGuardMode: 'timeout', chatGuardTimeoutSeconds: 600, chatGuardReason: expect.stringContaining('repeat-offender') }));
+  });
+
+  it('applies a local timeout on TikTok and suppresses later messages without claiming native moderation', async () => {
+    const testRuntime = runtime({ blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'warn', enforcementPlatforms: ['tiktok'], repeatOffenderTimeoutEnabled: true, repeatOffenderThreshold: 3, repeatOffenderWindowSeconds: 600, repeatOffenderTimeoutSeconds: 600, maximumEnforcementsPerMinute: 20, perUserEnforcementCooldownSeconds: 60 });
+    const tiktok = { platform: 'tiktok', user: { id: 'tiktok-user', name: 'viewer', actorType: 'human', roles: [] } };
+    await expect(processChatGuardEvent(event('flag once', { ...tiktok, eventId: 'tiktok-one' }), testRuntime.context, 1_000)).resolves.toMatchObject({ enforcement: 'succeeded' });
+    await expect(processChatGuardEvent(event('flag twice', { ...tiktok, eventId: 'tiktok-two' }), testRuntime.context, 2_000)).resolves.toMatchObject({ enforcement: 'unsupported' });
+    await expect(processChatGuardEvent(event('flag three times', { ...tiktok, eventId: 'tiktok-three' }), testRuntime.context, 3_000)).resolves.toMatchObject({ enforcement: 'local-timeout' });
+    await expect(shouldBlockChatGuardDisplay(event('ordinary follow-up', { ...tiktok, eventId: 'tiktok-four' }), testRuntime.context, 4_000)).resolves.toBe(true);
+    await expect(processChatGuardEvent(event('ordinary follow-up', { ...tiktok, eventId: 'tiktok-four' }), testRuntime.context, 4_000)).resolves.toMatchObject({ enforcement: 'local-timeout-active' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+  });
+
   it('flags configured signals while enforcement stays off by default', async () => {
     const testRuntime = runtime({ blockedTerms: ['unsafe term'], maximumLinks: 1, minimumCapsLetters: 4, maximumCapsPercent: 75, maximumCharacterRun: 3, maximumMessageCharacters: 40 });
     const result = await processChatGuardEvent(event('UNSAFE TERM AAAAA HTTPS://ONE.TEST HTTPS://TWO.TEST THIS MESSAGE IS DELIBERATELY LONG'), testRuntime.context, 1000);

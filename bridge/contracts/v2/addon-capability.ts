@@ -246,6 +246,17 @@ export interface CommunityAnalyticsAdminRequestV1 {
 
 export type CommunityAnalyticsAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
+export type QuoteVaultAdminRequestV1 =
+  | { readonly operation: 'status' }
+  | { readonly operation: 'sync-import'; readonly approvedByCreator: true }
+  | { readonly operation: 'add'; readonly quotedName: string; readonly text: string; readonly sourcePlatform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly approvedByCreator: true }
+  | { readonly operation: 'edit'; readonly quoteId: number; readonly quotedName: string; readonly text: string; readonly approvedByCreator: true }
+  | { readonly operation: 'approve'; readonly quoteId: number; readonly approvedByCreator: true }
+  | { readonly operation: 'delete'; readonly quoteId: number; readonly approvedByCreator: true }
+  | { readonly operation: 'restore'; readonly quoteId: number; readonly approvedByCreator: true };
+
+export type QuoteVaultAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
+
 export type ViewerSpotlightAdminRequestV1 =
   | { readonly operation: 'status' }
   | { readonly operation: 'stream-score'; readonly approvedByCreator: true }

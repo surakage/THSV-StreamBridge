@@ -324,7 +324,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
   await expect(page.getByRole('article').getByText(`Raid Scout ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.raid-scout"] .addon-trigger-readiness')).toContainText('Use the existing chat intakes');
-  await expect(raidScoutSettings.locator('summary')).toHaveCount(13);
+  await expect(raidScoutSettings.locator('summary')).toHaveCount(14);
   await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
   await expect(raidScoutSettings.getByLabel('Raid confirmation mode')).toHaveValue('required');
   await expect(raidScoutSettings.getByLabel('Show each search phase on the Raid Scout overlay')).toBeChecked();
@@ -506,4 +506,78 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(hydrationOverlay.locator('#hydration-shell')).toBeVisible();
   await expect(hydrationOverlay.locator('#hydration-progress')).toHaveAttribute('style', /width:\s*50%/u);
   await hydrationOverlay.close();
+});
+
+test('Community Analytics keeps the creator snapshot simple and responsive', async ({ page }) => {
+  await page.route('**/wizard/api/community-analytics/admin', async (route) => await route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      operation: 'status', trackedViewerCount: 42, retainedSessionCount: 8, engagementScoreEnabled: true, scoreSeason: '2026-08', rankCohortSize: 12,
+      current: { startedAt: Date.parse('2026-08-11T19:00:00-05:00'), approximate: false, livePlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], uniqueViewers: 17, counters: { messages: 128, commands: 9, follows: 3, subscriptions: 2, memberships: 1, giftSubscriptions: 2, gifts: 4, cheers: 2, superChats: 1, raids: 1, rewardRedemptions: 6 } },
+      recentSessions: [{ startedAt: Date.parse('2026-08-10T19:00:00-05:00'), endedAt: Date.parse('2026-08-10T22:25:00-05:00'), approximate: false, uniqueViewers: 31, counters: { messages: 244, commands: 16, follows: 4 } }],
+    }),
+  }));
+  await page.goto('/wizard/');
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  await page.getByRole('button', { name: 'Add-ons' }).click();
+  await page.locator('[data-disclosure-key="panel:addons:install"] summary').click();
+  const archive = await packageAddOn('addons/community-analytics');
+  await page.getByLabel('Add-on package').setInputFiles({ name: 'community-analytics.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(archive) });
+  await page.getByLabel(/I reviewed and trust/u).check();
+  await page.getByRole('button', { name: 'Verify and install' }).click();
+  const card = page.locator('[data-addon-id="thsv.community-analytics"]');
+  await expect(card.locator('summary').filter({ hasText: 'Count community activity' })).toBeVisible();
+  await expect(card.locator('summary').filter({ hasText: 'Optional participation score' })).toBeVisible();
+  await expect(card.locator('summary').filter({ hasText: 'Advanced: exclusions and storage' })).toBeVisible();
+  await expect(card.getByText('Live now', { exact: true })).toBeVisible();
+  await expect(card.locator('.analytics-key-metrics article')).toHaveCount(3);
+  await expect(card.getByText('137', { exact: true })).toBeVisible();
+  await expect(card.getByText('22', { exact: true })).toBeVisible();
+  await expect(card.getByText('Recent streams', { exact: true })).toBeVisible();
+  await expect(card.locator('.analytics-details')).not.toHaveAttribute('open', '');
+  await expect(card.getByText('Download detailed reports', { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 520, height: 900 });
+  await expect(page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).resolves.toBe(true);
+});
+
+test('Quote Vault exposes a responsive creator-managed quote library', async ({ page }) => {
+  const requests: Array<Record<string, unknown>> = [];
+  await page.route('**/wizard/api/quote-vault/admin', async (route) => {
+    const request = route.request().postDataJSON() as Record<string, unknown>;
+    requests.push(request);
+    const approved = Array.from({ length: 30 }, (_, index) => ({ id: index + 1, quotedName: index === 0 ? 'Streamer' : `Villager ${String(index + 1)}`, text: index === 0 ? 'The approved quote' : `Scalable quote number ${String(index + 1)}`, sourcePlatform: index % 2 === 0 ? 'twitch' : 'youtube', submittedBy: 'Moderator', submittedAt: '2026-08-11T19:00:00.000Z', approvedAt: '2026-08-11T19:01:00.000Z', status: 'approved' }));
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      contractVersion: '1.0.0', action: request.operation, counts: { approved: approved.length, pending: 1, recoverable: 1 }, capacity: { approved: 100, pending: 20 },
+      pending: [{ id: 101, quotedName: 'Viewer', text: 'Please review this quote', sourcePlatform: 'youtube', submittedBy: 'VillageViewer', submittedAt: '2026-08-11T20:00:00.000Z', status: 'pending' }],
+      approved,
+      deleted: [{ id: 102, quotedName: 'Streamer', text: 'Recoverable quote', sourcePlatform: 'kick', submittedBy: 'Streamer', submittedAt: '2026-08-10T19:00:00.000Z', deletedAt: '2026-08-11T18:00:00.000Z', status: 'deleted' }],
+    }) });
+  });
+  await page.goto('/wizard/');
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  await page.getByRole('button', { name: 'Add-ons' }).click();
+  await page.locator('[data-disclosure-key="panel:addons:install"] summary').click();
+  const archive = await packageAddOn('addons/quote-vault');
+  await page.getByLabel('Add-on package').setInputFiles({ name: 'quote-vault.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(archive) });
+  await page.getByLabel(/I reviewed and trust/u).check();
+  await page.getByRole('button', { name: 'Verify and install' }).click();
+  const card = page.locator('[data-addon-id="thsv.quote-vault"]');
+  await expect(card.getByText('Quote library', { exact: true })).toBeVisible();
+  await expect(card.locator('[data-quote-vault-row]')).toHaveCount(12);
+  await expect(card.getByText('Page 1 of 3', { exact: true })).toBeVisible();
+  await card.getByLabel('Search quotes').fill('approved quote');
+  await expect(card.locator('[data-quote-vault-row]')).toHaveCount(1);
+  await expect(card.getByText('The approved quote', { exact: true })).toBeVisible();
+  await card.getByRole('button', { name: 'Clear filters' }).click();
+  await card.getByRole('tab', { name: /Needs review/u }).click();
+  await expect(card.getByText('Please review this quote', { exact: true })).toBeVisible();
+  await card.getByRole('tab', { name: /Approved/u }).click();
+  await card.locator('[data-quote-vault-add-form] [name="quotedName"]').fill('Creator');
+  await card.locator('[data-quote-vault-add-form] [name="text"]').fill('Added from the wizard');
+  await card.getByRole('button', { name: 'Add approved quote' }).click();
+  await expect.poll(() => requests.some((request) => request.operation === 'add' && request.text === 'Added from the wizard')).toBe(true);
+  await page.setViewportSize({ width: 520, height: 900 });
+  await expect(page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).resolves.toBe(true);
 });

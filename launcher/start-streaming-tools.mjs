@@ -10,10 +10,11 @@ const OPTIONAL_STARTUP_GRACE_MS = 1_500;
 const config = JSON.parse(await readFile(join(installRoot, 'data', 'configuration', 'bridge.local.json'), 'utf8'));
 if (!Number.isInteger(config.service?.port) || config.service.port < 1 || config.service.port > 65_535) throw new Error('The configured StreamBridge service port is invalid.');
 const baseUrl = `http://127.0.0.1:${String(config.service.port)}`;
-
-const optionalWarnings = await startOptionalApplications();
+const launcherConfig = await readLauncherConfiguration();
+const optionalWarnings = [];
 
 runLauncher(join(launcherRoot, 'start-streamerbot.mjs'), ['--install-root', installRoot], 65_000);
+optionalWarnings.push(...await startOptionalApplication('speakerbot', launcherConfig));
 
 if (await bridgeReady(baseUrl)) {
   process.stdout.write('Streamer.bot and THSV StreamBridge are already ready. No restart was needed.\n');
@@ -24,6 +25,7 @@ if (await bridgeReady(baseUrl)) {
   if (!await bridgeReady(baseUrl)) throw new Error('THSV StreamBridge started but did not reach ready status. Open the setup wizard and review Diagnostics.');
   process.stdout.write('Streamer.bot and THSV StreamBridge are ready.\n');
 }
+optionalWarnings.push(...await startOptionalApplication('obs', launcherConfig));
 if (optionalWarnings.length > 0) process.stdout.write(`Optional app warning: ${optionalWarnings.join(' ')}\n`);
 else process.stdout.write('Enabled optional streaming apps are ready.\n');
 
@@ -45,35 +47,35 @@ async function bridgeReady(url) {
   } catch { return false; }
 }
 
-async function startOptionalApplications() {
+async function readLauncherConfiguration() {
+  try { return JSON.parse(await readFile(join(installRoot, 'data', 'configuration', 'streamerbot-launcher.json'), 'utf8')); }
+  catch { return undefined; }
+}
+
+async function startOptionalApplication(application, launcherConfig) {
   const warnings = [];
-  const started = [];
-  let launcherConfig;
-  try { launcherConfig = JSON.parse(await readFile(join(installRoot, 'data', 'configuration', 'streamerbot-launcher.json'), 'utf8')); }
-  catch { return warnings; }
   const definitions = {
     obs: { label: 'OBS Studio', processNames: ['obs64'] },
     speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'] },
   };
-  for (const [application, definition] of Object.entries(definitions)) {
-    const saved = launcherConfig?.optionalApps?.[application];
-    if (saved?.enabled !== true) continue;
-    if (typeof saved.executable !== 'string' || !await isFile(saved.executable)) {
-      warnings.push(`${definition.label} was enabled but its saved executable is missing.`);
-      continue;
-    }
-    if (processIsRunning(definition.processNames)) continue;
-    try {
-      const pid = await launchDetached(saved.executable);
-      started.push({ label: definition.label, pid });
-      process.stdout.write(`Started optional app: ${definition.label}.\n`);
-    } catch (error) { warnings.push(`${definition.label} could not start (${error instanceof Error ? error.message : String(error)}).`); }
+  const definition = definitions[application];
+  const saved = launcherConfig?.optionalApps?.[application];
+  if (saved?.enabled !== true) return warnings;
+  if (typeof saved.executable !== 'string' || !await isFile(saved.executable)) return [`${definition.label} was enabled but its saved executable is missing.`];
+  if (processIsRunning(definition.processNames)) {
+    process.stdout.write(`${definition.label} is already running.\n`);
+    return warnings;
   }
-  if (started.length > 0) {
-    process.stdout.write('Allowing newly started optional apps to initialize before Streamer.bot connects.\n');
-    await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
-    for (const application of started) if (!isAlive(application.pid)) warnings.push(`${application.label} exited during startup; continuing with Streamer.bot and StreamBridge.`);
+  let pid;
+  try {
+    pid = await launchDetached(saved.executable);
+    process.stdout.write(`Started optional app: ${definition.label}.\n`);
+  } catch (error) {
+    return [`${definition.label} could not start (${error instanceof Error ? error.message : String(error)}).`];
   }
+  process.stdout.write(`Allowing ${definition.label} to initialize before continuing.\n`);
+  await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
+  if (!isAlive(pid)) warnings.push(`${definition.label} exited during startup; continuing with Streamer.bot and StreamBridge.`);
   return warnings;
 }
 

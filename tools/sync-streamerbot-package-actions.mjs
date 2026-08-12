@@ -39,8 +39,20 @@ const report = [];
 for (const packagedAction of exported.data.actions) {
   assert.equal(typeof packagedAction?.id, 'string', 'Packaged action has no stable ID');
   const matches = liveStore.actions.filter((action) => action.id === packagedAction.id);
-  assert.equal(matches.length, 1, `Expected exactly one installed action ${packagedAction.id}`);
+  assert.ok(matches.length <= 1, `Expected no more than one installed action ${packagedAction.id}`);
   const liveAction = matches[0];
+  if (!liveAction) {
+    const added = structuredClone(packagedAction);
+    liveStore.actions.push(added);
+    report.push({
+      actionId: added.id,
+      name: added.name,
+      added: true,
+      triggersPreserved: Array.isArray(added.triggers) ? added.triggers.length : 0,
+      subActionsInstalled: Array.isArray(added.subActions) ? added.subActions.length : 0,
+    });
+    continue;
+  }
   const preserved = Object.fromEntries(protectedFields.map((field) => [field, structuredClone(liveAction[field])]));
   const replacement = structuredClone(packagedAction);
   for (const field of protectedFields) {
@@ -51,6 +63,7 @@ for (const packagedAction of exported.data.actions) {
   report.push({
     actionId: replacement.id,
     name: replacement.name,
+    added: false,
     triggersPreserved: Array.isArray(replacement.triggers) ? replacement.triggers.length : 0,
     subActionsInstalled: Array.isArray(replacement.subActions) ? replacement.subActions.length : 0,
   });
@@ -67,6 +80,8 @@ assert.deepEqual(
 for (const actionId of packageIds) {
   const before = originalStore.actions.find((action) => action.id === actionId);
   const after = liveStore.actions.find((action) => action.id === actionId);
+  assert.ok(after, `Package action ${actionId} is missing after sync`);
+  if (!before) continue;
   for (const field of protectedFields) assert.deepEqual(after[field], before[field], `Package sync would change ${field} for ${actionId}`);
 }
 

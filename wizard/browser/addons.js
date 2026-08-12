@@ -441,6 +441,7 @@ const RECOMMENDED_ADDON_ACTION_NAMES = {
   'thsv.follower-pulse': ['THSV Addon - Follower Pulse - Snapshot Page'],
   'thsv.free-game-check': ['THSV Addon - Free Game Check - Refresh', 'THSV Addon - Free Game Check - Settle Twitch Reward'],
   'thsv.live-beacon': ['THSV Addon - Live Beacon - Deliver'],
+  'thsv.quote-vault': ['THSV Addon - Quote Vault - Native Quote Sync'],
   'thsv.raid-scout': ['THSV Addon - Raid Scout - Controller', 'THSV Addon - Raid Scout - Run Ending Ad'],
   'thsv.random-clip-player': ['THSV Addon - Random Clip Player - Get Clips', 'THSV Addon - Random Clip Player - Get Clip Download'],
   'thsv.user-translate': ['THSV Addon - Translate - Translate Text'],
@@ -543,7 +544,12 @@ function renderViewerFoundationAdmin(addOn) {
 
 function renderCommunityAnalyticsAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.community-analytics' || !addOn.enabled) return '';
-  return `<details class="form-section addon-step" data-disclosure-key="addon:thsv.community-analytics:administration" open><summary><span><strong>View activity &amp; reports</strong><small>A readable local summary loads automatically; downloads remain available for deeper review.</small></span></summary><div class="addon-step-body"><p class="notice">These are local StreamBridge observations—not official platform analytics, revenue, payout, or tax data. Names, account IDs, chat text, raw events, and financial amounts are excluded.</p><div class="button-row"><button type="button" class="ghost" data-analytics-admin-status>Refresh activity</button><button type="button" class="ghost" data-analytics-report="session-json">Download session summary</button><button type="button" class="ghost" data-analytics-report="viewers-csv">Download viewer activity</button></div><div class="analytics-dashboard" data-analytics-admin-output aria-live="polite"><p class="notice">Loading the private local activity summary…</p></div><details class="addon-settings-section" data-disclosure-key="addon:thsv.community-analytics:privacy-tools"><summary><span><strong>Advanced: one-viewer privacy tools</strong><small>Export or permanently remove one pseudonymous Viewer Foundation record.</small></span></summary><div class="addon-settings-section-body"><form class="addon-settings-grid" data-analytics-export-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="twitch-…"></label><div class="button-row full-row"><button type="submit" class="ghost">Preview privacy record</button></div></form><form class="addon-settings-grid" data-analytics-delete-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label class="check full-row"><input name="approved" type="checkbox" required> I understand this permanently erases this viewer's private analytics record and active-session attendance.</label><div class="button-row full-row"><button type="submit" class="danger">Delete analytics record</button></div></form></div></details></div></details>`;
+  return `<details class="form-section addon-step analytics-admin" data-disclosure-key="addon:thsv.community-analytics:administration" open><summary><span><strong>Community snapshot</strong><small>See what is happening now and review recent streams in one place.</small></span></summary><div class="addon-step-body"><div class="analytics-toolbar"><p><strong>Private local counts.</strong> No names, chat text, account IDs, financial amounts, or raw events are shown.</p><button type="button" class="ghost" data-analytics-admin-status>Refresh snapshot</button></div><div class="analytics-dashboard" data-analytics-admin-output aria-live="polite"><p class="notice">Loading your community snapshot…</p></div><details class="addon-settings-section analytics-secondary" data-disclosure-key="addon:thsv.community-analytics:downloads"><summary><span><strong>Download detailed reports</strong><small>Export aggregate stream summaries or pseudonymous viewer counters.</small></span></summary><div class="addon-settings-section-body"><div class="button-row analytics-downloads"><button type="button" class="ghost" data-analytics-report="session-json">Download stream summaries</button><button type="button" class="ghost" data-analytics-report="viewers-csv">Download viewer counters</button></div><p class="addon-settings-notice">These files contain local StreamBridge observations only. They are not official platform, revenue, payout, or tax reports.</p></div></details><details class="addon-settings-section analytics-secondary" data-disclosure-key="addon:thsv.community-analytics:privacy-tools"><summary><span><strong>Privacy tools</strong><small>Preview or permanently erase one pseudonymous viewer record.</small></span></summary><div class="addon-settings-section-body"><form class="addon-settings-grid" data-analytics-export-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64" placeholder="twitch-…"></label><div class="button-row full-row"><button type="submit" class="ghost">Preview viewer record</button></div></form><form class="addon-settings-grid" data-analytics-delete-form><label>Viewer Foundation ID<input name="viewerId" required pattern="[a-z][a-z0-9-]{0,63}" maxlength="64"></label><label class="check full-row"><input name="approved" type="checkbox" required> Permanently erase this viewer's analytics record and active-session attendance.</label><div class="button-row full-row"><button type="submit" class="danger">Erase viewer record</button></div></form></div></details></div></details>`;
+}
+
+function renderQuoteVaultAdmin(addOn) {
+  if (addOn.moduleId !== 'thsv.quote-vault' || !addOn.enabled) return '';
+  return `<details class="form-section addon-step quote-vault-admin" data-disclosure-key="addon:thsv.quote-vault:library" open><summary><span><strong>Quote library</strong><small>Add, review, edit, delete, restore, and synchronize quotes without chat commands.</small></span></summary><div class="addon-step-body"><p class="notice"><strong>One cross-platform library:</strong> viewer submissions wait here for review, while broadcaster and moderator submissions are accepted automatically. Changes are saved locally as soon as they succeed.</p><form class="addon-settings-grid quote-vault-add" data-quote-vault-add-form><label>Quoted person<input name="quotedName" required maxlength="100" autocomplete="off" placeholder="Display name"></label><label>Source platform<select name="sourcePlatform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok</option></select></label><label class="full-row">Quote text<textarea name="text" required maxlength="400" rows="3" placeholder="What was said?"></textarea></label><div class="button-row full-row"><button type="submit">Add approved quote</button><button type="button" class="ghost" data-quote-vault-refresh>Refresh library</button></div></form><div data-quote-vault-output aria-live="polite"><p class="notice">Loading the local quote library...</p></div><details class="addon-settings-section" data-disclosure-key="addon:thsv.quote-vault:streamerbot-sync"><summary><span><strong>Streamer.bot quote synchronization</strong><small>Import existing native quotes or mirror compatible approved records.</small></span></summary><div class="addon-settings-section-body"><p>Quote Vault remains authoritative. Import reads native Streamer.bot quotes without deleting them. Mirroring supports Twitch, YouTube, and Kick; TikTok and pending submissions remain Quote Vault-only.</p><div class="button-row"><button type="button" class="ghost" data-quote-vault-sync-import>Import existing Streamer.bot quotes</button></div><p class="notice" data-quote-vault-sync-status>Enable sync in settings, import the current Quote Vault Streamer.bot package, approve <strong>Native Quote Sync</strong>, and restart StreamBridge.</p></div></details></div></details>`;
 }
 
 function renderViewerSpotlightAdmin(addOn) {
@@ -618,7 +624,7 @@ function renderAddOns() {
       : '';
     const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:approved-actions`)}"><summary><span><span class="step-number">${nextWorkflowStep++}</span><strong>Approve Streamer.bot actions</strong><small>${addOn.moduleId === 'thsv.chat-guard' ? 'Optional: required only for automatic moderation.' : 'Grant only the actions this add-on is allowed to run.'}</small></span></summary><div class="addon-step-body">${chatGuardGrantHelp}${renderAddOnActionGrant(addOn)}</div></details>`;
     const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:overlay-tools`)}"><summary><span><span class="step-number">${nextWorkflowStep++}</span><strong>Open overlay &amp; test</strong><small>Open the hosted overlay and send a safe preview before going live.</small></span></summary><div class="addon-step-body">${renderAddOnOverlayTools(addOn)}</div></details>`;
-    const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderFollowerPulseAdmin(addOn)}${renderChatGuardAdmin(addOn)}${renderVillageDrawAdmin(addOn)}`;
+    const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderQuoteVaultAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderFollowerPulseAdmin(addOn)}${renderChatGuardAdmin(addOn)}${renderVillageDrawAdmin(addOn)}`;
     const setupGuide = renderAddOnSetupGuide(addOn);
     if (addOn.moduleId === 'thsv.chat-guard' && addOn.enabled) nextWorkflowStep = Math.max(nextWorkflowStep, 7);
     if (addOn.moduleId === 'thsv.village-draw' && addOn.enabled) nextWorkflowStep = Math.max(nextWorkflowStep, 6);
@@ -672,6 +678,10 @@ function renderAddOns() {
   document.querySelector('[data-analytics-delete-form]')?.addEventListener('submit', deleteCommunityAnalyticsRecord);
   document.querySelectorAll('[data-analytics-report]').forEach((button) => button.addEventListener('click', downloadCommunityAnalyticsReport));
   if (document.querySelector('[data-analytics-admin-output]')) void refreshCommunityAnalyticsStatus();
+  document.querySelector('[data-quote-vault-add-form]')?.addEventListener('submit', addQuoteVaultQuote);
+  document.querySelector('[data-quote-vault-refresh]')?.addEventListener('click', refreshQuoteVaultStatus);
+  document.querySelector('[data-quote-vault-sync-import]')?.addEventListener('click', importQuoteVaultFromStreamerBot);
+  if (document.querySelector('[data-quote-vault-output]')) void refreshQuoteVaultStatus();
   document.querySelector('[data-spotlight-admin-status]')?.addEventListener('click', refreshViewerSpotlightStatus);
   document.querySelector('[data-spotlight-stream-score]')?.addEventListener('click', showViewerSpotlightStreamScore);
   document.querySelector('[data-spotlight-display-form]')?.addEventListener('submit', displayViewerSpotlightCard);
@@ -895,12 +905,16 @@ function analyticsAdminOutput(value) {
   if (value && typeof value === 'object' && value.operation === 'status') {
     const current = value.current;
     const counters = current?.counters || {};
-    const counterLabels = { messages: 'Chat messages', commands: 'Commands', follows: 'Follows', subscriptions: 'Subscriptions', memberships: 'Memberships', giftSubscriptions: 'Gift subscriptions', gifts: 'Gifts', cheers: 'Cheers / bits', superChats: 'Super Chats', raids: 'Raids', rewardRedemptions: 'Reward redemptions' };
+    const counterLabels = { messages: 'Chat messages', commands: 'Commands used', follows: 'New followers', subscriptions: 'Subscriptions', memberships: 'Memberships', giftSubscriptions: 'Gift subscriptions', gifts: 'Platform gifts', cheers: 'Cheers / Bits', superChats: 'Super Chats', raids: 'Raids', rewardRedemptions: 'Reward redemptions' };
     const counterCards = Object.entries(counterLabels).map(([key, label]) => `<article class="analytics-counter"><span>${safe(label)}</span><strong>${safe(Number(counters[key] || 0).toLocaleString())}</strong></article>`).join('');
-    const platforms = Array.isArray(current?.livePlatforms) && current.livePlatforms.length > 0 ? current.livePlatforms.map(addOnOptionLabel).join(', ') : 'None detected';
-    const recent = Array.isArray(value.recentSessions) ? value.recentSessions.slice().reverse().slice(0, 5) : [];
-    const recentSessions = recent.length === 0 ? '<p class="analytics-empty">No completed sessions yet. The current session moves here after the final platform sends an offline event.</p>' : `<div class="analytics-session-list">${recent.map((session) => `<article class="analytics-session"><div><strong>${safe(new Date(session.startedAt).toLocaleString())}</strong><small>${safe(session.approximate ? 'Estimated session' : 'Confirmed stream session')} · ${safe(Number(session.uniqueViewers || 0).toLocaleString())} viewers</small></div><span>${safe(formatAnalyticsDuration(session.startedAt, session.endedAt))}</span></article>`).join('')}</div>`;
-    output.innerHTML = `<div class="grid analytics-overview"><article class="stat"><span>Current session</span><strong>${current ? 'Active' : 'Not active'}</strong><small>${safe(current?.approximate ? 'Estimated from observed activity' : current ? 'Started by a live signal' : 'Waiting for activity')}</small></article><article class="stat"><span>Tracked viewers</span><strong>${safe(Number(value.trackedViewerCount || 0).toLocaleString())}</strong><small>Pseudonymous local records</small></article><article class="stat"><span>Completed sessions</span><strong>${safe(Number(value.retainedSessionCount || 0).toLocaleString())}</strong><small>Retained local summaries</small></article><article class="stat"><span>Participation score</span><strong>${value.engagementScoreEnabled ? 'On' : 'Off'}</strong><small>${safe(value.engagementScoreEnabled ? `${value.scoreSeason || 'Current season'} · ${Number(value.rankCohortSize || 0).toLocaleString()} ranked viewers` : 'Optional and disabled')}</small></article></div><section class="analytics-panel"><div class="analytics-panel-heading"><div><h4>Current activity</h4><p>${safe(current ? `${platforms} · started ${new Date(current.startedAt).toLocaleString()}` : 'No active session is being observed.')}</p></div><strong>${safe(Number(current?.uniqueViewers || 0).toLocaleString())} viewers</strong></div><div class="analytics-counter-grid">${counterCards}</div></section><section class="analytics-panel"><h4>Recent completed sessions</h4>${recentSessions}</section>`;
+    const platformList = Array.isArray(current?.livePlatforms) ? current.livePlatforms : [];
+    const platformChips = platformList.length > 0 ? platformList.map((platform) => `<span class="analytics-platform">${safe(addOnOptionLabel(platform))}</span>`).join('') : '<span class="analytics-platform analytics-platform-muted">No live platform detected</span>';
+    const messageCount = Number(counters.messages || 0); const commandCount = Number(counters.commands || 0);
+    const communityActions = Object.entries(counters).filter(([key]) => key !== 'messages' && key !== 'commands').reduce((total, [, count]) => total + Number(count || 0), 0);
+    const recent = Array.isArray(value.recentSessions) ? value.recentSessions.slice().reverse().slice(0, 4) : [];
+    const recentSessions = recent.length === 0 ? '<p class="analytics-empty">No completed streams yet. A summary appears here after every live platform goes offline.</p>' : `<div class="analytics-session-list">${recent.map((session) => { const total = Object.values(session.counters || {}).reduce((sum, count) => sum + Number(count || 0), 0); return `<article class="analytics-session"><div><strong>${safe(new Date(session.startedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }))}</strong><small>${safe(new Date(session.startedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))} · ${safe(session.approximate ? 'Estimated' : 'Confirmed')}</small></div><dl><div><dt>Viewers</dt><dd>${safe(Number(session.uniqueViewers || 0).toLocaleString())}</dd></div><div><dt>Activity</dt><dd>${safe(total.toLocaleString())}</dd></div><div><dt>Length</dt><dd>${safe(formatAnalyticsDuration(session.startedAt, session.endedAt))}</dd></div></dl></article>`; }).join('')}</div>`;
+    const scoreLine = value.engagementScoreEnabled ? `<span>Participation score: <strong>On</strong> · ${safe(value.scoreSeason || 'Current month')} · ${safe(Number(value.rankCohortSize || 0).toLocaleString())} ranked viewers</span>` : '<span>Participation score is off</span>';
+    output.innerHTML = `<section class="analytics-now ${current ? 'is-live' : 'is-idle'}"><div><span class="analytics-live-state">${current ? 'Live now' : 'Between streams'}</span><h4>${current ? 'Current community activity' : 'Ready for the next stream'}</h4><p>${safe(current?.approximate ? 'Activity was detected without a live-start signal.' : current ? `Counting since ${new Date(current.startedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.` : 'Counts begin automatically when an enabled platform goes live.')}</p></div><div class="analytics-platforms">${platformChips}</div></section><div class="analytics-key-metrics"><article><span>Viewers now</span><strong>${safe(Number(current?.uniqueViewers || 0).toLocaleString())}</strong><small>Unique local identities</small></article><article><span>Chat activity</span><strong>${safe((messageCount + commandCount).toLocaleString())}</strong><small>${safe(messageCount.toLocaleString())} messages · ${safe(commandCount.toLocaleString())} commands</small></article><article><span>Community actions</span><strong>${safe(communityActions.toLocaleString())}</strong><small>Follows, support, raids, and rewards</small></article></div><details class="analytics-panel analytics-details"><summary><span><strong>All activity counters</strong><small>Open for the full platform event breakdown.</small></span></summary><div class="analytics-counter-grid">${counterCards}</div></details><section class="analytics-panel analytics-recent"><div class="analytics-panel-heading"><div><h4>Recent streams</h4><p>The latest four completed local summaries.</p></div></div>${recentSessions}</section><footer class="analytics-footnote"><span>${safe(Number(value.trackedViewerCount || 0).toLocaleString())} tracked viewers · ${safe(Number(value.retainedSessionCount || 0).toLocaleString())} retained streams</span>${scoreLine}</footer>`;
     return;
   }
   if (typeof value === 'string') output.innerHTML = `<p class="notice">${safe(value)}</p>`;
@@ -946,6 +960,124 @@ async function downloadCommunityAnalyticsReport(event) {
   } catch (error) { analyticsAdminOutput(error.message); }
 }
 
+const quoteVaultView = { data: null, error: '', tab: 'approved', query: '', platform: 'all', sort: 'newest', page: 1, pageSize: 12, editingId: 0, searchTimer: 0 };
+
+function quoteVaultCompactRow(quote, kind) {
+  const date = quote.approvedAt || quote.submittedAt || quote.deletedAt;
+  const edit = kind === 'deleted' ? '' : `<button type="button" class="ghost compact" data-quote-vault-edit="${safe(quote.id)}">Edit</button>`;
+  const action = kind === 'pending'
+    ? `<button type="button" class="compact" data-quote-vault-action="approve" data-quote-id="${safe(quote.id)}">Approve</button><button type="button" class="danger compact" data-quote-vault-action="delete" data-quote-id="${safe(quote.id)}">Delete</button>`
+    : kind === 'deleted'
+      ? `<button type="button" class="compact" data-quote-vault-action="restore" data-quote-id="${safe(quote.id)}">Restore</button>`
+      : `<button type="button" class="danger compact" data-quote-vault-action="delete" data-quote-id="${safe(quote.id)}">Delete</button>`;
+  const native = quote.streamerBotQuoteId ? ` · Streamer.bot #${safe(quote.streamerBotQuoteId)}` : '';
+  const game = quote.gameName ? ` · ${safe(quote.gameName)}` : '';
+  return `<article class="quote-vault-row" data-quote-vault-row="${safe(quote.id)}"><div class="quote-vault-row-id">#${safe(quote.id)}</div><div class="quote-vault-row-copy"><div class="quote-vault-row-heading"><strong>${safe(quote.quotedName)}</strong><span class="quote-vault-platform">${safe(addOnOptionLabel(quote.sourcePlatform))}</span></div><p>${safe(quote.text)}</p><small>${kind === 'deleted' ? 'Removed' : kind === 'pending' ? 'Submitted' : 'Added'} ${safe(date ? new Date(date).toLocaleString() : 'recently')} · ${safe(quote.submittedBy || 'Viewer')}${game}${native}</small></div><div class="quote-vault-row-actions">${edit}${action}</div></article>`;
+}
+
+function quoteVaultEditor(quote) {
+  if (!quote || quote.status === 'deleted') return '';
+  return `<form class="quote-vault-editor" data-quote-vault-edit-form><input type="hidden" name="quoteId" value="${safe(quote.id)}"><div class="quote-vault-editor-heading"><strong>Editing quote #${safe(quote.id)}</strong><button type="button" class="ghost compact" data-quote-vault-edit-cancel>Cancel</button></div><div class="addon-settings-grid"><label>Quoted person<input name="quotedName" required maxlength="100" value="${safe(quote.quotedName)}"></label><label class="full-row">Quote text<textarea name="text" required maxlength="400" rows="3">${safe(quote.text)}</textarea></label></div><div class="button-row"><button type="submit">Save changes</button></div></form>`;
+}
+
+function quoteVaultFilteredRows() {
+  const value = quoteVaultView.data;
+  if (!value) return [];
+  const source = quoteVaultView.tab === 'pending' ? value.pending : quoteVaultView.tab === 'deleted' ? value.deleted : value.approved;
+  const query = quoteVaultView.query.trim().toLocaleLowerCase('en-US');
+  const rows = source.filter((quote) => {
+    if (quoteVaultView.platform !== 'all' && quote.sourcePlatform !== quoteVaultView.platform) return false;
+    if (!query) return true;
+    return [quote.id, quote.quotedName, quote.text, quote.submittedBy, quote.sourcePlatform, quote.gameName, quote.streamerBotQuoteId].some((item) => String(item || '').toLocaleLowerCase('en-US').includes(query));
+  });
+  rows.sort((left, right) => quoteVaultView.sort === 'oldest' ? left.id - right.id : quoteVaultView.sort === 'name' ? String(left.quotedName).localeCompare(String(right.quotedName), undefined, { sensitivity: 'base' }) : right.id - left.id);
+  return rows;
+}
+
+function renderQuoteVaultLibrary() {
+  const output = document.querySelector('[data-quote-vault-output]');
+  if (!output) return;
+  const value = quoteVaultView.data;
+  if (!value || typeof value !== 'object' || !value.counts) { output.innerHTML = `<p class="notice">${safe(String(value || 'Quote Vault is unavailable.'))}</p>`; return; }
+  const pending = Array.isArray(value.pending) ? value.pending : [];
+  const approved = Array.isArray(value.approved) ? value.approved : [];
+  const deleted = Array.isArray(value.deleted) ? value.deleted : [];
+  const rows = quoteVaultFilteredRows();
+  const pages = Math.max(1, Math.ceil(rows.length / quoteVaultView.pageSize));
+  quoteVaultView.page = Math.min(Math.max(1, quoteVaultView.page), pages);
+  const start = (quoteVaultView.page - 1) * quoteVaultView.pageSize;
+  const visible = rows.slice(start, start + quoteVaultView.pageSize);
+  const activeSource = quoteVaultView.tab === 'pending' ? pending : quoteVaultView.tab === 'deleted' ? deleted : approved;
+  const editorQuote = [...pending, ...approved].find((quote) => quote.id === quoteVaultView.editingId);
+  const empty = activeSource.length === 0 ? (quoteVaultView.tab === 'pending' ? 'No viewer quotes are waiting for approval.' : quoteVaultView.tab === 'deleted' ? 'Recoverable trash is empty.' : 'No approved quotes yet. Add one above or let viewers submit one.') : 'No quotes match the current search and platform filters.';
+  const range = rows.length ? `${start + 1}–${Math.min(start + quoteVaultView.pageSize, rows.length)} of ${rows.length}` : '0 results';
+  output.innerHTML = `<div class="quote-vault-counts" role="tablist" aria-label="Quote library sections"><button type="button" role="tab" aria-selected="${quoteVaultView.tab === 'pending'}" data-quote-vault-tab="pending"><span>Needs review</span><strong>${safe(value.counts.pending || 0)}</strong><small>Viewer submissions</small></button><button type="button" role="tab" aria-selected="${quoteVaultView.tab === 'approved'}" data-quote-vault-tab="approved"><span>Approved</span><strong>${safe(value.counts.approved || 0)}</strong><small>of ${safe(value.capacity?.approved || 0)}</small></button><button type="button" role="tab" aria-selected="${quoteVaultView.tab === 'deleted'}" data-quote-vault-tab="deleted"><span>Recoverable</span><strong>${safe(value.counts.recoverable || 0)}</strong><small>Recently removed</small></button></div><div class="quote-vault-toolbar"><label class="quote-vault-search">Search quotes<input type="search" data-quote-vault-search value="${safe(quoteVaultView.query)}" placeholder="Person, text, ID, or submitter"></label><label>Platform<select data-quote-vault-platform><option value="all">All platforms</option>${['twitch', 'youtube', 'kick', 'tiktok'].map((platform) => `<option value="${platform}"${quoteVaultView.platform === platform ? ' selected' : ''}>${safe(addOnOptionLabel(platform))}</option>`).join('')}</select></label><label>Sort<select data-quote-vault-sort><option value="newest"${quoteVaultView.sort === 'newest' ? ' selected' : ''}>Newest first</option><option value="oldest"${quoteVaultView.sort === 'oldest' ? ' selected' : ''}>Oldest first</option><option value="name"${quoteVaultView.sort === 'name' ? ' selected' : ''}>Quoted person</option></select></label><label>Per page<select data-quote-vault-page-size>${[12, 25, 50].map((size) => `<option value="${size}"${quoteVaultView.pageSize === size ? ' selected' : ''}>${size}</option>`).join('')}</select></label></div>${quoteVaultView.error ? `<p class="notice quote-vault-error" role="alert">${safe(quoteVaultView.error)}</p>` : ''}${quoteVaultEditor(editorQuote)}<section class="quote-vault-section" role="tabpanel"><div class="quote-vault-section-heading"><div><h4>${quoteVaultView.tab === 'pending' ? 'Needs review' : quoteVaultView.tab === 'deleted' ? 'Recoverable trash' : 'Approved library'}</h4><small>${safe(range)}</small></div>${quoteVaultView.query || quoteVaultView.platform !== 'all' ? '<button type="button" class="ghost compact" data-quote-vault-clear>Clear filters</button>' : ''}</div>${visible.length ? `<div class="quote-vault-list">${visible.map((quote) => quoteVaultCompactRow(quote, quoteVaultView.tab)).join('')}</div>` : `<p class="notice">${safe(empty)}</p>`}<nav class="quote-vault-pagination" aria-label="Quote pages"><button type="button" class="ghost compact" data-quote-vault-page="previous"${quoteVaultView.page <= 1 ? ' disabled' : ''}>Previous</button><span>Page ${safe(quoteVaultView.page)} of ${safe(pages)}</span><button type="button" class="ghost compact" data-quote-vault-page="next"${quoteVaultView.page >= pages ? ' disabled' : ''}>Next</button></nav></section>`;
+  output.querySelectorAll('[data-quote-vault-edit-form]').forEach((form) => form.addEventListener('submit', editQuoteVaultQuote));
+  output.querySelectorAll('[data-quote-vault-action]').forEach((button) => button.addEventListener('click', runQuoteVaultAction));
+  output.querySelectorAll('[data-quote-vault-tab]').forEach((button) => button.addEventListener('click', () => { quoteVaultView.tab = button.dataset.quoteVaultTab; quoteVaultView.page = 1; quoteVaultView.editingId = 0; renderQuoteVaultLibrary(); }));
+  output.querySelectorAll('[data-quote-vault-edit]').forEach((button) => button.addEventListener('click', () => { quoteVaultView.editingId = Number(button.dataset.quoteVaultEdit); renderQuoteVaultLibrary(); output.querySelector('[data-quote-vault-edit-form] input[name="quotedName"]')?.focus(); }));
+  output.querySelector('[data-quote-vault-edit-cancel]')?.addEventListener('click', () => { quoteVaultView.editingId = 0; renderQuoteVaultLibrary(); });
+  output.querySelector('[data-quote-vault-clear]')?.addEventListener('click', () => { quoteVaultView.query = ''; quoteVaultView.platform = 'all'; quoteVaultView.page = 1; renderQuoteVaultLibrary(); });
+  output.querySelector('[data-quote-vault-search]')?.addEventListener('input', (event) => { quoteVaultView.query = event.currentTarget.value; quoteVaultView.page = 1; clearTimeout(quoteVaultView.searchTimer); quoteVaultView.searchTimer = setTimeout(() => { renderQuoteVaultLibrary(); const search = output.querySelector('[data-quote-vault-search]'); search?.focus(); if (search) search.setSelectionRange(search.value.length, search.value.length); }, 120); });
+  output.querySelector('[data-quote-vault-platform]')?.addEventListener('change', (event) => { quoteVaultView.platform = event.currentTarget.value; quoteVaultView.page = 1; renderQuoteVaultLibrary(); });
+  output.querySelector('[data-quote-vault-sort]')?.addEventListener('change', (event) => { quoteVaultView.sort = event.currentTarget.value; quoteVaultView.page = 1; renderQuoteVaultLibrary(); });
+  output.querySelector('[data-quote-vault-page-size]')?.addEventListener('change', (event) => { quoteVaultView.pageSize = Number(event.currentTarget.value) || 12; quoteVaultView.page = 1; renderQuoteVaultLibrary(); });
+  output.querySelectorAll('[data-quote-vault-page]').forEach((button) => button.addEventListener('click', () => { quoteVaultView.page += button.dataset.quoteVaultPage === 'next' ? 1 : -1; renderQuoteVaultLibrary(); output.querySelector('.quote-vault-section-heading')?.scrollIntoView({ block: 'nearest' }); }));
+  const syncStatus = document.querySelector('[data-quote-vault-sync-status]');
+  if (syncStatus && value.streamerBotSync) syncStatus.textContent = value.streamerBotSync.enabled ? `${value.streamerBotSync.mirrored || 0} approved quote(s) currently map to Streamer.bot native IDs.` : 'Synchronization is disabled. Enable it in Quote Vault settings before importing or mirroring.';
+}
+
+function quoteVaultOutput(value) {
+  if (value && typeof value === 'object' && value.counts) { quoteVaultView.data = value; quoteVaultView.error = ''; }
+  else quoteVaultView.error = String(value || 'Quote Vault is unavailable.');
+  renderQuoteVaultLibrary();
+}
+
+async function quoteVaultAdmin(request) {
+  const result = await api('/wizard/api/quote-vault/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+  quoteVaultOutput(result);
+  return result;
+}
+
+async function refreshQuoteVaultStatus() {
+  try { await quoteVaultAdmin({ operation: 'status' }); } catch (error) { quoteVaultOutput(error.message); }
+}
+
+async function importQuoteVaultFromStreamerBot() {
+  if (!confirm('Import compatible Streamer.bot native quotes into Quote Vault? Existing quotes remain in Streamer.bot and duplicates are linked instead of copied twice.')) return;
+  try {
+    await quoteVaultAdmin({ operation: 'sync-import', approvedByCreator: true });
+    const status = document.querySelector('[data-quote-vault-sync-status]');
+    if (status) status.textContent = 'Import requested. Refresh the library in a moment after Streamer.bot returns the native quote list.';
+    setTimeout(() => void refreshQuoteVaultStatus(), 1200);
+  } catch (error) { quoteVaultOutput(error.message); }
+}
+
+async function addQuoteVaultQuote(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try {
+    quoteVaultView.tab = 'approved'; quoteVaultView.page = 1; quoteVaultView.sort = 'newest';
+    await quoteVaultAdmin({ operation: 'add', quotedName: form.elements.quotedName.value.trim(), text: form.elements.text.value.trim(), sourcePlatform: form.elements.sourcePlatform.value, approvedByCreator: true });
+    form.reset();
+  } catch (error) { quoteVaultOutput(error.message); }
+}
+
+async function editQuoteVaultQuote(event) {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.checkValidity()) return form.reportValidity();
+  try { quoteVaultView.editingId = 0; await quoteVaultAdmin({ operation: 'edit', quoteId: Number(form.elements.quoteId.value), quotedName: form.elements.quotedName.value.trim(), text: form.elements.text.value.trim(), approvedByCreator: true }); }
+  catch (error) { quoteVaultOutput(error.message); }
+}
+
+async function runQuoteVaultAction(event) {
+  const operation = event.currentTarget.dataset.quoteVaultAction;
+  const quoteId = Number(event.currentTarget.dataset.quoteId);
+  if (operation === 'delete' && !confirm(`Move quote #${quoteId} to recoverable trash?`)) return;
+  try { await quoteVaultAdmin({ operation, quoteId, approvedByCreator: true }); }
+  catch (error) { quoteVaultOutput(error.message); }
+}
+
 function spotlightAdminOutput(value) {
   const output = document.querySelector('[data-spotlight-admin-output]');
   if (output) output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
@@ -987,8 +1119,9 @@ function followerPulseOutput(value) {
   const history = changes.length === 0
     ? '<p class="notice">No confirmed follower changes have been retained yet. The first complete scan creates a silent baseline.</p>'
     : `<div class="item-list">${changes.map((change) => { const display = change.displayName || change.login || 'Unknown Twitch account'; const login = change.login && change.login.toLowerCase() !== String(display).toLowerCase() ? ` @${change.login}` : ''; return `<article class="item"><strong>${change.type === 'unfollow' ? 'Unfollowed' : 'Followed'} · ${safe(display)}</strong><small>${safe(login)}${login ? ' · ' : ''}${safe(new Date(change.occurredAt).toLocaleString())}</small></article>`; }).join('')}</div>`;
-  const error = value.lastError ? `<p class="notice"><strong>Last scan issue:</strong> ${safe(value.lastError)}</p>` : '';
-  output.innerHTML = `<div class="grid"><article class="stat"><span>Baseline</span><strong>${value.baselineComplete ? 'Ready' : 'Not ready'}</strong><small>${value.baselineComplete ? 'Complete comparisons enabled' : 'Waiting for one complete scan'}</small></article><article class="stat"><span>Tracked followers</span><strong>${safe(Number(value.trackedFollowerCount || 0).toLocaleString())}</strong><small>Last Twitch total: ${safe(Number(value.lastApiTotal || 0).toLocaleString())}</small></article><article class="stat"><span>Pending confirmation</span><strong>${safe(Number(value.pendingConfirmationCount || 0).toLocaleString())}</strong><small>${safe(Number(value.confirmMissingScans || 2))} complete missing scans required</small></article><article class="stat"><span>Snapshot</span><strong>${value.scanActive ? 'Checking now' : 'Idle'}</strong><small>Last attempt: ${safe(lastAttempt)}<br>Last complete: ${safe(lastScan)}<br>Next check: ${safe(nextScan)}${Number(value.consecutiveFailures || 0) > 0 ? `<br>Retry level: ${safe(Number(value.consecutiveFailures))}` : ''}</small></article></div>${error}<h4>Recent confirmed changes</h4>${history}`;
+  const permissionBlocked = /moderator:read:followers|active Twitch OAuth token/iu.test(String(value.lastError || ''));
+  const error = value.lastError ? `<p class="notice"><strong>Last scan issue:</strong> ${safe(value.lastError)}${permissionBlocked ? '<br><br><strong>Fix:</strong> Open Streamer.bot &rarr; Platforms &rarr; Twitch &rarr; Accounts, reconnect the <strong>Broadcaster Account</strong> (not the Bot Account), approve every requested permission, then return here and click <strong>Check Twitch now</strong>.' : ''}</p>` : '';
+  output.innerHTML = `<div class="grid"><article class="stat"><span>Baseline</span><strong>${value.baselineComplete ? 'Ready' : permissionBlocked ? 'Permission needed' : 'Not ready'}</strong><small>${value.baselineComplete ? 'Complete comparisons enabled' : permissionBlocked ? 'Reconnect the Twitch broadcaster account' : 'Waiting for one complete scan'}</small></article><article class="stat"><span>Tracked followers</span><strong>${safe(Number(value.trackedFollowerCount || 0).toLocaleString())}</strong><small>Last Twitch total: ${safe(Number(value.lastApiTotal || 0).toLocaleString())}</small></article><article class="stat"><span>Pending confirmation</span><strong>${safe(Number(value.pendingConfirmationCount || 0).toLocaleString())}</strong><small>${safe(Number(value.confirmMissingScans || 2))} complete missing scans required</small></article><article class="stat"><span>Snapshot</span><strong>${value.scanActive ? 'Checking now' : permissionBlocked ? 'Waiting for permission' : 'Idle'}</strong><small>Last attempt: ${safe(lastAttempt)}<br>Last complete: ${safe(lastScan)}<br>Next check: ${safe(nextScan)}${Number(value.consecutiveFailures || 0) > 0 && !permissionBlocked ? `<br>Retry level: ${safe(Number(value.consecutiveFailures))}` : ''}</small></article></div>${error}<h4>Recent confirmed changes</h4>${history}`;
 }
 
 async function followerPulseAdmin(request) {

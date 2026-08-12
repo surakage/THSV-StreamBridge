@@ -7,7 +7,8 @@
   "permissions": [
     "events.subscribe",
     "chat.send",
-    "state.private"
+    "state.private",
+    "streamerbot.run-approved-action"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -28,7 +29,8 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "chat.message",
-      "addon.thsv.quote-vault.control"
+      "addon.thsv.quote-vault.control",
+      "addon.thsv.quote-vault.sync-result"
     ],
     "commandsProvided": [
       {
@@ -95,7 +97,7 @@
       "Install and configure Quote Vault. No separate platform chat trigger is required.",
       "Choose enabled platforms, command names, submission permissions, and safety limits.",
       "Import the optional Quote Vault Streamer.bot package only if creator-triggered random or statistics actions are wanted.",
-      "Tell moderators that viewer submissions remain pending until approved."
+      "Use the wizard Quote library to add, edit, approve, delete, or restore quotes. Moderator submissions are approved automatically."
     ],
     "uninstallationSteps": [
       "Export or record wanted quotes before uninstalling. Private Quote Vault state remains preserved for a later reinstall."
@@ -115,18 +117,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 35488,
-      "sha256": "a0245aa0352611acfae5196fdd9a76eebd6b942aef30bb43ccaf67481e5d8bfb"
+      "size": 47574,
+      "sha256": "fcc99aa1978e848f33141b7420e2dfabfd1d3f3ddef7ea5fc6efacd1ede6003c"
     },
     {
       "path": "schemas/config.json",
-      "size": 7296,
-      "sha256": "32dfaab06f5733e9248d1898aa1d9fe3d8439fa2c09610fd91a8870fa21770b9"
+      "size": 7941,
+      "sha256": "0dbbf9f003391c58f057fb71c6c0bb0eab83e0617b4cb8d2b77a25c2f6af884f"
     },
     {
       "path": "ui/settings.json",
-      "size": 4552,
-      "sha256": "36c5dfa05431e305dc70edcb75abce1e41f76554a035d255d8c22f234b4a8f16"
+      "size": 5285,
+      "sha256": "dcd08179bf3a0e80672649c118cb0121850c9af2f9aa7bc70a3a6b6c9e92e892"
     }
   ]
 }

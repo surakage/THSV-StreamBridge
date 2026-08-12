@@ -38,6 +38,10 @@ export interface EffectiveCommandsResult {
   readonly collisions: readonly CommandRegistrationCollision[];
 }
 
+export const COMMAND_DIRECTORY_TARGET_MODULE_ID = 'core.command-directory';
+export const COMMAND_DIRECTORY_COMMAND = 'commands';
+export const COMMAND_DIRECTORY_ALIASES = Object.freeze(['command'] as const);
+
 const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'automated-shoutouts.shoutout': { setting: 'manualCommandName', aliases: ['so'], minimumRole: 'moderator', enabledSetting: 'triggerOnManualCommand', platformSetting: 'enabledPlatforms' },
   'chat-guard.trust-viewer': { minimumRole: 'moderator' },
@@ -126,9 +130,14 @@ export function buildEffectiveCommands(
   sources: readonly CommandDirectoryModuleSource[],
   options: Readonly<{ includeStopped?: boolean }> = {},
 ): EffectiveCommandsResult {
-  const definitions: Array<CommandDefinition & { readonly targetModuleId?: string }> = (core.enabled ? core.definitions : []).map((definition) => ({ ...definition, aliases: [...definition.aliases], targetModuleId: 'core.creator-configuration' }));
+  const definitions: Array<CommandDefinition & { readonly targetModuleId?: string }> = (core.enabled ? core.definitions : []).flatMap((definition) => {
+    if (definition.name === COMMAND_DIRECTORY_COMMAND || COMMAND_DIRECTORY_ALIASES.includes(definition.name as 'command')) return [];
+    const aliases = definition.aliases.filter((alias) => alias !== COMMAND_DIRECTORY_COMMAND && !COMMAND_DIRECTORY_ALIASES.includes(alias as 'command'));
+    return [{ ...definition, aliases, targetModuleId: 'core.creator-configuration' }];
+  });
   const owners = new Map<string, string>();
   for (const definition of definitions) for (const name of [definition.name, ...definition.aliases]) owners.set(name, 'creator configuration');
+  registerCommandDirectoryCommand(definitions, owners);
   const addOnCommands: EffectiveAddOnCommand[] = [];
   const collisions: CommandRegistrationCollision[] = [];
 
@@ -148,10 +157,29 @@ export function buildEffectiveCommands(
     registerVirtualCommands(source, definitions, owners, addOnCommands, collisions);
   }
   return {
-    config: { ...core, enabled: core.enabled || addOnCommands.length > 0, definitions },
+    config: { ...core, enabled: definitions.length > 0, definitions },
     addOnCommands: Object.freeze(addOnCommands),
     collisions: Object.freeze(collisions),
   };
+}
+
+function registerCommandDirectoryCommand(
+  definitions: Array<CommandDefinition & { readonly targetModuleId?: string }>,
+  owners: Map<string, string>,
+): void {
+  // This Bridge-owned command is reserved so it behaves consistently on every
+  // installation without requiring a Streamer.bot Command object or trigger.
+  const aliases = COMMAND_DIRECTORY_ALIASES;
+  definitions.push({
+    name: COMMAND_DIRECTORY_COMMAND,
+    aliases: [...aliases],
+    minimumRole: 'viewer',
+    allowBots: false,
+    source: 'synced',
+    targetModuleId: COMMAND_DIRECTORY_TARGET_MODULE_ID,
+  });
+  owners.set(COMMAND_DIRECTORY_COMMAND, 'StreamBridge command directory');
+  for (const alias of aliases) owners.set(alias, 'StreamBridge command directory');
 }
 
 export function commandName(value: unknown): string | undefined {

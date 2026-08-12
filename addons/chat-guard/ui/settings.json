@@ -1,6 +1,6 @@
 {
   "intro": "Beginner setup: turn on safe observation, select your platforms, add any words or domains you always want flagged, save, and test. Observation never moderates anyone. Automatic actions remain a separate optional step.",
-  "order": ["enabled", "enabledPlatforms", "blockedTerms", "blockedDomains", "detectLinks", "detectRepeatedMessages", "detectCaps", "detectRepeatedCharacters", "detectLongMessages", "exemptBroadcaster", "exemptModerators", "exemptVips", "exemptSubscribers", "enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "allowedDomains", "maximumLinks", "minimumCapsLetters", "maximumCapsPercent", "maximumCharacterRun", "maximumMessageCharacters", "repeatWindowSeconds", "repeatMessageCount", "enforcementPlatforms", "enforcedRules", "minimumRuleMatches", "timeoutSeconds", "warningMessage", "maximumEnforcementsPerMinute", "perUserEnforcementCooldownSeconds", "ignoredAccounts", "includeSimulated", "retainedIncidents", "retentionHours", "maximumTrackedObservations"],
+  "order": ["enabled", "enabledPlatforms", "blockedTerms", "blockedDomains", "detectLinks", "detectRepeatedMessages", "detectCaps", "detectRepeatedCharacters", "detectLongMessages", "exemptBroadcaster", "exemptModerators", "exemptVips", "exemptSubscribers", "enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "repeatOffenderTimeoutEnabled", "repeatOffenderThreshold", "repeatOffenderWindowSeconds", "repeatOffenderTimeoutSeconds", "allowedDomains", "maximumLinks", "minimumCapsLetters", "maximumCapsPercent", "maximumCharacterRun", "maximumMessageCharacters", "repeatWindowSeconds", "repeatMessageCount", "enforcementPlatforms", "enforcedRules", "minimumRuleMatches", "timeoutSeconds", "warningMessage", "maximumEnforcementsPerMinute", "perUserEnforcementCooldownSeconds", "ignoredAccounts", "includeSimulated", "retainedIncidents", "retentionHours", "maximumTrackedObservations"],
   "sections": [
     {
       "id": "quick-start",
@@ -8,7 +8,7 @@
       "description": "Watch for problems without taking action against anyone.",
       "open": true,
       "fields": ["enabled", "enabledPlatforms", "blockedTerms", "blockedDomains"],
-      "notice": "Recommended first run: enable observation, choose your platforms, optionally enter obvious blocked words or domains, then save and restart. Leave automatic actions off until the rule tester looks correct."
+      "notice": "Matched messages are hidden from the local StreamBridge browser chat before presentation. Provider warnings, deletes, timeouts, and bans remain off until separately approved."
     },
     {
       "id": "common-rules",
@@ -29,8 +29,8 @@
       "id": "automatic-actions",
       "title": "4. Optional automatic action",
       "description": "Skip this section if you only want reports and rule testing.",
-      "fields": ["enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode"],
-      "notice": "Safest rollout: observe first, then choose Warn. Delete, Timeout, and Ban should be used only after live testing. Both switches must be on before Chat Guard can act, and simulations never act."
+      "fields": ["enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "repeatOffenderTimeoutEnabled", "repeatOffenderThreshold", "repeatOffenderWindowSeconds", "repeatOffenderTimeoutSeconds"],
+      "notice": "Recommended live policy: Warn first, then suppress the third matched offender for ten minutes on every THSV overlay. Twitch, YouTube, and Kick also receive native timeouts; TikTok uses the local timeout because TikFinity exposes no native moderation action. Both approval switches must be on before Chat Guard can act."
     },
     {
       "id": "rule-tuning",
@@ -67,5 +67,9 @@
     "warningMessage": { "visibleWhen": { "field": "enforcementMode", "equals": "warn" } },
     "maximumEnforcementsPerMinute": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } },
     "perUserEnforcementCooldownSeconds": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } }
+    ,"repeatOffenderTimeoutEnabled": { "visibleWhen": { "field": "enforcementEnabled", "equals": true } }
+    ,"repeatOffenderThreshold": { "visibleWhen": { "field": "repeatOffenderTimeoutEnabled", "equals": true } }
+    ,"repeatOffenderWindowSeconds": { "visibleWhen": { "field": "repeatOffenderTimeoutEnabled", "equals": true } }
+    ,"repeatOffenderTimeoutSeconds": { "visibleWhen": { "field": "repeatOffenderTimeoutEnabled", "equals": true } }
   }
 }

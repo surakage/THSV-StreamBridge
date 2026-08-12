@@ -32,6 +32,17 @@ function moduleDefinition(moduleId: string, options: Partial<FrameworkModule> & 
 }
 
 describe('ModuleRegistry', () => {
+  it('uses only verified Chat Guard to inspect chat before local display', async () => {
+    const chatGuard = moduleDefinition('thsv.chat-guard', { eventSubscriptions: ['chat.message'] });
+    const inspectChatDisplay = vi.fn(async () => true);
+    const registry = new ModuleRegistry([{ ...chatGuard, inspectChatDisplay }], silentLogger);
+    await registry.start();
+    const chatEvent = await fixture();
+    await expect(registry.chatDisplayBlocked(chatEvent)).resolves.toBe(true);
+    expect(inspectChatDisplay).toHaveBeenCalledOnce();
+    await expect(registry.chatDisplayBlocked({ ...chatEvent, eventType: 'channel.follow' })).resolves.toBe(false);
+  });
+
   it('registers the five required built-in core projections', async () => {
     const registry = createBuiltinModuleRegistry(silentLogger);
     await registry.start();
