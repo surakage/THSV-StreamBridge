@@ -28,6 +28,7 @@ import { CommandDirectoryResponder } from '../bridge/services/command-directory-
 import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
 import { StreamerBotLauncherService } from '../bridge/services/streamerbot-launcher-service.js';
 import { AutomaticUpdateMonitor } from '../bridge/services/automatic-update-monitor.js';
+import { StreamerBotUniversalImportService } from '../bridge/services/streamerbot-universal-import-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -112,6 +113,7 @@ const wizard = new WizardService(
   addOnUpdates,
   new StreamerBotLauncherService(dataRoot, config.streamerbot.url),
   automaticUpdates,
+  new StreamerBotUniversalImportService(),
 );
 activeBridge.subscribe((event) => {
   if (event.eventType !== 'chat.message') {

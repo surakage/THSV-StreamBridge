@@ -273,6 +273,15 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.inspect());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/streamerbot/import-catalogue' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.streamerBotImportCatalogue());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot/import-package' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.generateStreamerBotImport(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/streamerbot-launcher' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.streamerBotLauncherStatus());

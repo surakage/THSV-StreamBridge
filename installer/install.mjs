@@ -102,6 +102,7 @@ try {
   process.stdout.write(`One-button Stream Deck target: ${join(installRoot, 'Start THSV Streaming Tools.cmd')}\n`);
   process.stdout.write(`Notification-area shell: ${join(installRoot, 'Open THSV StreamBridge Tray.cmd')}\n`);
   process.stdout.write('Keep the recovery key private. Open THSV Setup Wizard still unlocks automatically, so the saved key is needed only for manual recovery.\n');
+  process.stdout.write('Next: open Setup Wizard -> Streamer.bot -> One Streamer.bot import. Choose your features, download one .sb file, import it once, then follow the generated trigger checklist.\n');
   if (!startAfterInstall) process.stdout.write('Installation validation completed without starting the bridge.\n');
 } catch (error) {
   await rollbackDirectories(moved);

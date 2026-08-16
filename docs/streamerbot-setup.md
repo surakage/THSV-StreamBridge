@@ -2,6 +2,18 @@
 
 Complete the core installation in [Getting started](getting-started.md) before configuring Streamer.bot. StreamBridge sends one `DoAction` request through Streamer.bot's local WebSocket server and waits for its correlated `status: ok` response.
 
+## Recommended fresh-computer flow: one selective import
+
+Open **THSV Setup Wizard → Streamer.bot** and complete the **One Streamer.bot import** card:
+
+1. Select or detect `Streamer.bot.exe`, start Streamer.bot, and confirm its WebSocket connection is ready.
+2. Choose the included features and installed optional add-ons you plan to use. Framework packages are included automatically.
+3. Select **Create & download one import**, then import that single `.sb` file in Streamer.bot.
+4. Open the generated **Recommended trigger checklist** in the wizard. Attach only those triggers; leave internal receivers, controllers, projections, and delivery actions triggerless.
+5. Select **Inspect actions** and run harmless test triggers before going live.
+
+The generated package retains the canonical stable action, sub-action, argument, trigger, and command IDs from every selected package. Generating a newer matching package is therefore an upgrade path rather than a request to create parallel action groups. The individual imports below remain available for recovery and development.
+
 ## 1. Start the WebSocket server
 
 1. In Streamer.bot, open **Servers/Clients > WebSocket Server**.

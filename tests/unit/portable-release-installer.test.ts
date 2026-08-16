@@ -90,6 +90,7 @@ describe('portable Windows release installer', () => {
     expect(installedSecureOpener).toContain('/wizard/#unlock=${ticketResult.ticket}');
     expect(processOutput(firstResult)).toContain(`Wizard recovery key saved to: ${join(firstInstall, 'THSV StreamBridge Recovery Key.txt')}`);
     expect(processOutput(firstResult)).toContain(`One-button Stream Deck target: ${join(firstInstall, 'Start THSV Streaming Tools.cmd')}`);
+    expect(processOutput(firstResult)).toContain('One Streamer.bot import. Choose your features, download one .sb file, import it once');
     expect(processOutput(firstResult)).toContain(`Notification-area shell: ${join(firstInstall, 'Open THSV StreamBridge Tray.cmd')}`);
     expect(processOutput(firstResult)).not.toContain(firstToken);
     expect(processOutput(firstResult)).not.toContain('older StreamBridge desktop shortcut could not be removed');

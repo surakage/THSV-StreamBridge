@@ -54,3 +54,23 @@ test('wizard does not bleed horizontally at a narrow dock-like width', async ({ 
   }).map((button) => button.textContent.trim()));
   expect(clipped).toEqual([]);
 });
+
+test('fresh setup creates one selective Streamer.bot import and exposes its trigger guide', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await unlock(page);
+  await page.getByRole('button', { name: 'Streamer.bot', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'One Streamer.bot import' })).toBeVisible();
+  await expect(page.locator('[data-import-kind="core"] input')).toHaveCount(12);
+  await expect(page.locator('[data-import-kind="core"] input:checked')).toHaveCount(12);
+  await expect(page.locator('[data-import-kind="addon"] input')).toHaveCount(7);
+  expect(await page.locator('[data-import-kind="addon"] input:disabled').count()).toBeGreaterThan(0);
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Create & download one import' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('THSV-StreamBridge-Universal-Setup-3.6.0.sb');
+  await expect(page.locator('#universal-import-state')).toContainText('Import this one file in Streamer.bot');
+  await page.getByRole('button', { name: 'Review recommended triggers' }).click();
+  await expect(page.locator('#universal-trigger-guide')).toHaveAttribute('open', '');
+  await expect(page.locator('#universal-trigger-list')).toContainText('Native Platform Intake');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});

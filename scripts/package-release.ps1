@@ -67,7 +67,6 @@ try {
     Get-ChildItem -LiteralPath $resolvedPackages -Filter '*.thsv-addon*' -File | Remove-Item -Force
     Get-ChildItem -LiteralPath $resolvedPackages -Filter 'THSV-StreamBridge-AddOn-*.zip*' -File | Remove-Item -Force
     $addOnOutputs = @()
-    $addOnPackageFolderNames = @()
     Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory |
         Sort-Object Name |
         ForEach-Object {
@@ -117,9 +116,10 @@ try {
                 "$($descriptor.manifest.name) $($descriptor.manifest.version)", '',
                 '1. Open THSV StreamBridge Setup Wizard -> Add-ons.',
                 "2. Install $([System.IO.Path]::GetFileName($addOnArchive)) and approve its requested permissions.",
-                '3. In Streamer.bot, choose Import and import every .sb file from the Streamer.bot folder.',
-                '4. Return to the wizard, enable the add-on, approve only its required Streamer.bot actions, save settings, and restart StreamBridge.', '',
-                'The Streamer.bot imports in this bundle belong only to this add-on. They are intentionally not included in the main StreamBridge package.'
+                '3. Return to THSV Setup Wizard -> Streamer.bot -> One Streamer.bot import.',
+                '4. Select this add-on and your other enabled features, then download and import the single generated .sb file.',
+                '5. Return to the wizard, enable the add-on, approve only its required Streamer.bot actions, save settings, and restart StreamBridge.', '',
+                'The individual Streamer.bot import remains in this bundle as a recovery option. Normal setup should use the wizard-generated universal import so only one file is imported.'
             )
         } else {
             $installText = @(
@@ -140,7 +140,6 @@ try {
         $addOnChecksum = "$addOnBundle.sha256"
         Set-Content -LiteralPath $addOnChecksum -Encoding ascii -Value "$addOnBundleHash  $([System.IO.Path]::GetFileName($addOnBundle))"
         Remove-Item -LiteralPath $addOnArchive -Force
-        $addOnPackageFolderNames += $_.Name
         $addOnOutputs += [pscustomobject]@{
             ModuleId = [string]$descriptor.manifest.moduleId
             Name = [string]$descriptor.manifest.name
@@ -221,7 +220,10 @@ try {
     $coreStreamerBotRoot = Join-Path $appRoot 'packages\streamerbot'
     New-Item -ItemType Directory -Path $coreStreamerBotRoot | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot\import-index.json') -Destination $coreStreamerBotRoot
-    Get-ChildItem -LiteralPath (Join-Path $repo 'packages\streamerbot') -Directory | Where-Object { $_.Name -notin $addOnPackageFolderNames } | ForEach-Object {
+    # Ship every reviewed import template so the authenticated local wizard can compose one
+    # selective, version-matched Streamer.bot package. Optional add-on code still requires
+    # explicit creator approval and is never installed or enabled by this template copy.
+    Get-ChildItem -LiteralPath (Join-Path $repo 'packages\streamerbot') -Directory | ForEach-Object {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $coreStreamerBotRoot $_.Name) -Recurse
     }
     # Keep only the import file named by each package manifest; stale generated imports are not runtime assets.
@@ -231,6 +233,25 @@ try {
         $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
         $currentImports = @($manifest.action.importFile) + @($manifest.actions | ForEach-Object { $_.importFile }) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
         Get-ChildItem -LiteralPath $_.FullName -Filter '*.sb' -File | Where-Object { $_.Name -notin $currentImports } | Remove-Item -Force
+    }
+    # Treat the generated import index as the release allow-list and integrity manifest.
+    # A partial copy or stale package directory must fail packaging, not a creator's setup.
+    $indexedStreamerBotFolders = @($streamerBotImportIndex.packages | ForEach-Object { [string]$_.folder })
+    $unexpectedStreamerBotFolders = @(Get-ChildItem -LiteralPath $coreStreamerBotRoot -Directory | Where-Object { $_.Name -notin $indexedStreamerBotFolders })
+    if ($unexpectedStreamerBotFolders.Count -gt 0) { throw "Release staging contains unindexed Streamer.bot packages: $($unexpectedStreamerBotFolders.Name -join ', ')" }
+    foreach ($packageRecord in $streamerBotImportIndex.packages) {
+        $packageRoot = Join-Path $coreStreamerBotRoot ([string]$packageRecord.folder)
+        $manifestPath = Join-Path $packageRoot 'manifest.json'
+        if (-not (Test-Path -LiteralPath $manifestPath)) { throw "Release staging is missing Streamer.bot manifest for $($packageRecord.folder)." }
+        if ((Get-Sha256Hex $manifestPath) -ne [string]$packageRecord.manifestSha256) { throw "Release staging has a mismatched Streamer.bot manifest for $($packageRecord.folder)." }
+        foreach ($importRecord in $packageRecord.imports) {
+            $importPath = Join-Path $packageRoot ([string]$importRecord.filename)
+            if (-not (Test-Path -LiteralPath $importPath)) { throw "Release staging is missing Streamer.bot import $($importRecord.filename)." }
+            $importFile = Get-Item -LiteralPath $importPath
+            if ($importFile.Length -ne [long]$importRecord.size -or (Get-Sha256Hex $importPath) -ne [string]$importRecord.sha256) {
+                throw "Release staging has a mismatched Streamer.bot import $($importRecord.filename)."
+            }
+        }
     }
     Push-Location $appRoot
     try {

@@ -28,8 +28,8 @@ describe('wizard launcher package', () => {
     const script = await readFile('wizard/browser/app.js', 'utf8');
     const addOnScript = await readFile('wizard/browser/addons.js', 'utf8');
     const emotePreview = await readFile('wizard/browser/emote-preview.svg', 'utf8');
-    expect(shell.match(/aria-live="polite"/g)).toHaveLength(20);
-    expect(shell.match(/role="status"/g)).toHaveLength(19);
+    expect(shell.match(/aria-live="polite"/g)).toHaveLength(22);
+    expect(shell.match(/role="status"/g)).toHaveLength(20);
     expect(shell).toContain('id="wizard-feedback"');
     expect(shell).toContain('Open THSV Setup Wizard');
     expect(shell).toContain('Advanced recovery fallback only');

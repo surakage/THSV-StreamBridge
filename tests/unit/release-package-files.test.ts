@@ -37,8 +37,13 @@ describe('public release scripts', () => {
     expect(source).toContain('$hasStreamerBotPackage = Test-Path -LiteralPath $streamerBotManifestPath');
     expect(source).toContain('No Streamer.bot import is required. This add-on uses the existing normalized-event and capability-broker connection.');
     expect(source).not.toContain('is missing its separate Streamer.bot package');
-    expect(source).toContain("Where-Object { $_.Name -notin $addOnPackageFolderNames }");
-    expect(source).toContain('They are intentionally not included in the main StreamBridge package.');
+    expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'packages\\streamerbot') -Directory | ForEach-Object");
+    expect(source).toContain('selective, version-matched Streamer.bot package');
+    expect(source).toContain('$indexedStreamerBotFolders');
+    expect(source).toContain('Release staging contains unindexed Streamer.bot packages');
+    expect(source).toContain('Release staging has a mismatched Streamer.bot manifest');
+    expect(source).toContain('Release staging has a mismatched Streamer.bot import');
+    expect(source).toContain('Normal setup should use the wizard-generated universal import');
     expect(source).toContain('*.thsv-addon*');
     expect(source).toContain("'wizard'");
     expect(source).toContain('$releaseDocs');

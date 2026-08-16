@@ -30,6 +30,7 @@ import { STREAMBRIDGE_VERSION } from '../version.js';
 import { REWARD_BLUEPRINTS, REWARD_PLATFORM_POLICY } from '../core/reward-blueprints.js';
 import type { StreamerBotLauncherService } from './streamerbot-launcher-service.js';
 import type { AutomaticUpdateMonitor } from './automatic-update-monitor.js';
+import type { StreamerBotUniversalImportService, UniversalImportCatalogue, UniversalImportResult } from './streamerbot-universal-import-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -156,7 +157,22 @@ export class WizardService {
     private readonly addOnUpdates?: AddOnUpdateService,
     private readonly streamerBotLauncher?: StreamerBotLauncherService,
     private readonly automaticUpdates?: AutomaticUpdateMonitor,
+    private readonly universalImports?: StreamerBotUniversalImportService,
   ) {}
+
+  public async streamerBotImportCatalogue(): Promise<UniversalImportCatalogue> {
+    if (this.universalImports === undefined) throw new WizardTransactionError(503, 'Universal Streamer.bot import generation is unavailable in this installation. Repair or update StreamBridge.');
+    return this.universalImports.catalogue(await this.listAddOns());
+  }
+
+  public async generateStreamerBotImport(input: unknown): Promise<UniversalImportResult> {
+    if (this.universalImports === undefined) throw new WizardTransactionError(503, 'Universal Streamer.bot import generation is unavailable in this installation. Repair or update StreamBridge.');
+    if (typeof input !== 'object' || input === null || Array.isArray(input)) throw new WizardTransactionError(400, 'Choose at least one feature before creating the Streamer.bot import.');
+    const selected = (input as Record<string, unknown>)['packages'];
+    if (!Array.isArray(selected) || selected.some((value) => typeof value !== 'string')) throw new WizardTransactionError(400, 'The selected Streamer.bot feature list is invalid. Refresh the wizard and try again.');
+    try { return await this.universalImports.build(selected as string[], await this.listAddOns()); }
+    catch (error) { throw new WizardTransactionError(400, error instanceof Error ? error.message : String(error)); }
+  }
 
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
     return {

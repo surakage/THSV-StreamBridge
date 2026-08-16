@@ -19,17 +19,18 @@ StreamBridge never needs your platform passwords. Streamer.bot and TikFinity rem
 4. Double-click **Install THSV StreamBridge.cmd** and leave the result window open until it reports success.
 5. Open **THSV StreamBridge Setup Wizard** from the Start menu or installed folder.
 
-## 3. Import the core Streamer.bot package
+## 3. Create one Streamer.bot import
 
-1. In the wizard, open **Streamer.bot** and follow the core import steps.
-2. Import the matching versioned core `.sb` package into Streamer.bot.
-3. Accept the custom C# warning only for the reviewed THSV package from the official release.
-4. Leave framework actions in their generated THSV groups.
-5. Press **Inspect now** in the wizard. A previously inspected action still works; inspection only refreshes the displayed name and drift status.
+1. In the wizard, open **Streamer.bot** and confirm the selected executable and WebSocket connection.
+2. In **One Streamer.bot import**, select the features you plan to use. Required framework actions are included automatically.
+3. Select **Create & download one import**, then import that single versioned `.sb` package into Streamer.bot.
+4. Accept the custom C# warning only for the reviewed THSV package from the official release.
+5. Leave framework actions in their generated THSV groups.
+6. Open **Recommended trigger checklist**, add only the listed triggers, then press **Inspect actions**. A previously inspected action still works; inspection only refreshes the displayed name and drift status.
 
 ## 4. Add platform triggers once
 
-Use one main intake per platform:
+Use one main intake per platform. The wizard's generated trigger checklist remains the authoritative setup reminder:
 
 - Twitch triggers go on **THSV Twitch - Intake**.
 - YouTube triggers go on **THSV YouTube - Intake**.
