@@ -6,6 +6,7 @@ import { STREAMBRIDGE_VERSION } from '../version.js';
 import { verifyGitHubArtifactProvenance, type ProvenanceVerifier, type ProvenanceVerification } from './release-update-service.js';
 
 const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge';
+const OFFICIAL_RELEASE_FEED = 'https://www.slothbloom.com/api/streambridge/releases/latest';
 const INDEX_ASSET_NAME = 'THSV-StreamBridge-AddOns-index.json';
 const MAXIMUM_INDEX_BYTES = 1_048_576;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -13,6 +14,7 @@ const DOWNLOAD_TIMEOUT_MS = 30_000;
 const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const SHA256 = /^[a-f0-9]{64}$/u;
 const VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
+const UPDATE_CHECK_CACHE_MS = 21_600_000;
 
 interface GitHubReleaseAsset { readonly name?: unknown; readonly browser_download_url?: unknown; readonly size?: unknown; }
 const MAXIMUM_RELEASE_BUNDLE_BYTES = 268_435_456;
@@ -63,6 +65,7 @@ export interface AddOnUpdateStatus {
   readonly revokedCount: number;
   readonly addOns: readonly AddOnUpdateItem[];
   readonly error?: string;
+  readonly discoverySource?: 'slothbloom' | 'github';
 }
 
 export interface VerifiedAddOnUpdatePackage {
@@ -77,9 +80,18 @@ export interface VerifiedAddOnUpdatePackage {
   readonly provenance: 'verified';
   readonly repository: string;
   readonly workflow: string;
+  readonly streamerBotImports: readonly VerifiedStreamerBotImport[];
+}
+
+export interface VerifiedStreamerBotImport {
+  readonly filename: string;
+  readonly archive: Uint8Array;
+  readonly sha256: string;
 }
 
 export class AddOnUpdateService {
+  private cachedStatus: { readonly key: string; readonly status: AddOnUpdateStatus } | undefined;
+
   public constructor(
     private readonly currentCoreVersion: string,
     private readonly repository = DEFAULT_REPOSITORY,
@@ -114,7 +126,7 @@ export class AddOnUpdateService {
 
   public async stage(installed: readonly InstalledAddOnSummary[], input: unknown): Promise<VerifiedAddOnUpdatePackage> {
     const request = stageRequest(input);
-    const status = await this.check(installed);
+    const status = await this.check(installed, true);
     if (!status.available) throw new Error(status.error ?? 'The official add-on release could not be checked.');
     const update = status.addOns.find((entry) => entry.moduleId === request.moduleId);
     if (update?.state !== 'update-available' || update.latestVersion === undefined || update.downloadUrl === undefined || update.archiveName === undefined || update.sha256 === undefined) {
@@ -131,7 +143,7 @@ export class AddOnUpdateService {
       archiveName: update.archiveName,
       sha256: outerSha256,
     });
-    const inner = extractInnerAddOn(outerArchive);
+    const inner = extractReleaseBundle(outerArchive);
     return {
       moduleId: update.moduleId,
       version: update.latestVersion,
@@ -144,15 +156,17 @@ export class AddOnUpdateService {
       provenance: 'verified',
       repository: provenance.repository,
       workflow: provenance.workflow,
+      streamerBotImports: inner.streamerBotImports,
     };
   }
 
-  public async check(installed: readonly InstalledAddOnSummary[]): Promise<AddOnUpdateStatus> {
+  public async check(installed: readonly InstalledAddOnSummary[], force = false): Promise<AddOnUpdateStatus> {
+    const cacheKey = installed.map((addOn) => `${addOn.moduleId}@${addOn.version}:${addOn.trust.publisherId ?? ''}`).sort().join('|');
+    if (!force && this.cachedStatus?.key === cacheKey && Date.now() - Date.parse(this.cachedStatus.status.checkedAt) < UPDATE_CHECK_CACHE_MS) return this.cachedStatus.status;
     const checkedAt = new Date().toISOString();
     try {
-      const releaseResponse = await this.request(`https://api.github.com/repos/${this.repository}/releases/latest`, this.requestOptions());
-      if (!releaseResponse.ok) throw new Error(`GitHub add-on update check returned HTTP ${String(releaseResponse.status)}.`);
-      const release = await releaseResponse.json() as GitHubRelease;
+      const discovered = await this.fetchLatestRelease();
+      const release = discovered.release;
       if (release.draft === true || release.prerelease === true) throw new Error('The latest GitHub release is not a public stable release.');
       const releaseVersion = version(text(release.tag_name, 'release tag', 100).replace(/^v/u, ''), 'release version');
       const releaseUrl = trustedUrl(release.html_url, 'release page', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${this.repository}/releases/`));
@@ -172,9 +186,10 @@ export class AddOnUpdateService {
         this.currentBridgeVersion,
         (archiveName) => findPackageAssetUrl(release.assets, archiveName, this.repository),
       ));
-      return {
+      const result: AddOnUpdateStatus = {
         checkedAt,
         available: true,
+        discoverySource: discovered.source,
         releaseUrl,
         releaseVersion,
         indexAssetUrl: indexAsset.url,
@@ -182,8 +197,12 @@ export class AddOnUpdateService {
         revokedCount: addOns.filter((addOn) => addOn.state === 'revoked').length,
         addOns,
       };
+      this.cachedStatus = { key: cacheKey, status: result };
+      return result;
     } catch (error) {
-      return { checkedAt, available: false, updateCount: 0, revokedCount: 0, addOns: [], error: error instanceof Error ? error.message : String(error) };
+      const result: AddOnUpdateStatus = { checkedAt, available: false, updateCount: 0, revokedCount: 0, addOns: [], error: error instanceof Error ? error.message : String(error) };
+      this.cachedStatus = { key: cacheKey, status: result };
+      return result;
     }
   }
 
@@ -192,6 +211,18 @@ export class AddOnUpdateService {
       headers: { accept: 'application/vnd.github+json', 'user-agent': `THSV-StreamBridge/${this.currentCoreVersion}` },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     };
+  }
+
+  private async fetchLatestRelease(): Promise<{ readonly release: GitHubRelease; readonly source: 'slothbloom' | 'github' }> {
+    if (this.repository === DEFAULT_REPOSITORY) {
+      try {
+        const response = await this.request(OFFICIAL_RELEASE_FEED, this.requestOptions());
+        if (response.ok) return { release: await response.json() as GitHubRelease, source: 'slothbloom' };
+      } catch { /* Website discovery is optional; verified GitHub releases remain authoritative. */ }
+    }
+    const response = await this.request(`https://api.github.com/repos/${this.repository}/releases/latest`, this.requestOptions());
+    if (!response.ok) throw new Error(`GitHub add-on update check returned HTTP ${String(response.status)}.`);
+    return { release: await response.json() as GitHubRelease, source: 'github' };
   }
 
   private async download(url: string, name: string, maximumBytes: number): Promise<Uint8Array> {
@@ -218,7 +249,7 @@ function stageRequest(value: unknown): { readonly moduleId: string; readonly ver
   };
 }
 
-function extractInnerAddOn(outerArchive: Uint8Array): { readonly filename: string; readonly archive: Uint8Array; readonly sha256: string } {
+function extractReleaseBundle(outerArchive: Uint8Array): { readonly filename: string; readonly archive: Uint8Array; readonly sha256: string; readonly streamerBotImports: readonly VerifiedStreamerBotImport[] } {
   let files = 0;
   let expandedBytes = 0;
   const names = new Set<string>();
@@ -250,7 +281,19 @@ function extractInnerAddOn(outerArchive: Uint8Array): { readonly filename: strin
   const publishedSha256 = parseInnerChecksum(new TextDecoder('utf-8', { fatal: true }).decode(checksumBytes), filename);
   const actualSha256 = digest(archive);
   if (actualSha256 !== publishedSha256) throw new Error('The inner add-on package does not match its adjacent SHA-256 checksum.');
-  return { filename, archive, sha256: actualSha256 };
+  const streamerBotNames = [...normalizedEntries.keys()].filter((name) => /^Streamer\.bot\/[^/]+\.sb$/iu.test(name)).sort();
+  if (streamerBotNames.length > 10) throw new Error('The add-on release bundle contains too many Streamer.bot imports.');
+  const streamerBotImports = streamerBotNames.map((path) => {
+    const importArchive = normalizedEntries.get(path);
+    const importFilename = path.slice('Streamer.bot/'.length);
+    if (importArchive === undefined || importArchive.byteLength === 0 || importArchive.byteLength > 2_500_000) throw new Error(`The Streamer.bot import ${importFilename} is empty or exceeds the safety limit.`);
+    const checksum = normalizedEntries.get(`${path}.sha256`);
+    if (checksum === undefined || checksum.byteLength > 1_024) throw new Error(`The Streamer.bot import ${importFilename} is missing its adjacent checksum.`);
+    const importSha256 = digest(importArchive);
+    if (parseInnerChecksum(new TextDecoder('utf-8', { fatal: true }).decode(checksum), importFilename) !== importSha256) throw new Error(`The Streamer.bot import ${importFilename} does not match its checksum.`);
+    return { filename: importFilename, archive: importArchive, sha256: importSha256 };
+  });
+  return { filename, archive, sha256: actualSha256, streamerBotImports };
 }
 
 function parseInnerChecksum(value: string, filename: string): string {

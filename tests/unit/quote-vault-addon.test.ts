@@ -144,11 +144,13 @@ describe('Quote Vault add-on', () => {
       lastShownId: 1,
     });
     expect(selectQuote(state, '', () => 0)).toMatchObject({ id: 2 });
-    const testRuntime = runtime({}, state);
+    // Existing installs saved the original default. It is upgraded at runtime so retrieval shows
+    // only the quote and never appends the quoted/submitting/requesting viewer name.
+    const testRuntime = runtime({ quoteMessageTemplate: 'Quote #{id}: “{quote}” — {quotedName}' }, state);
     await quoteVault.onEvent(chatEvent('kick', '!quote 2', ['moderator'], 'get-2'), testRuntime.context);
     expect(testRuntime.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({
       sourcePlatform: 'kick',
-      message: 'Quote #2: “Second quote” — Beta',
+      message: 'Second quote',
     }));
   });
 

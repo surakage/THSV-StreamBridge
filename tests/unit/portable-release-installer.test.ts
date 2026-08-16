@@ -10,8 +10,9 @@ interface ReleaseFile { readonly path: string; readonly size: number; readonly s
 async function writePortableRelease(root: string, version: string, marker: string): Promise<void> {
   for (const directory of ['installer', 'launcher', 'runtime', 'app/config', 'app/dist/apps']) await mkdir(join(root, directory), { recursive: true });
   await copyFile('installer/install.mjs', join(root, 'installer', 'install.mjs'));
+  await copyFile('installer/apply-update.mjs', join(root, 'installer', 'apply-update.mjs'));
   await copyFile('installer/Install THSV StreamBridge.cmd', join(root, 'installer', 'Install THSV StreamBridge.cmd'));
-  for (const name of ['start.mjs', 'start-streaming-tools.mjs', 'stop.mjs', 'open-wizard.mjs', 'uninstall.mjs', 'Start THSV StreamBridge.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Uninstall THSV StreamBridge.cmd']) await copyFile(join('launcher', name), join(root, 'launcher', name));
+  for (const name of ['start.mjs', 'start-streaming-tools.mjs', 'stop.mjs', 'open-wizard.mjs', 'uninstall.mjs', 'tray.ps1', 'Start THSV StreamBridge.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Open THSV StreamBridge Tray.cmd', 'Uninstall THSV StreamBridge.cmd']) await copyFile(join('launcher', name), join(root, 'launcher', name));
   await copyFile('tools/start-streamerbot-safely.mjs', join(root, 'launcher', 'start-streamerbot.mjs'));
   await copyFile('Start THSV Streamer.bot Safely.cmd', join(root, 'launcher', 'Start THSV Streamer.bot Safely.cmd'));
   await copyFile(process.execPath, join(root, 'runtime', 'node.exe'));
@@ -25,9 +26,9 @@ async function writePortableRelease(root: string, version: string, marker: strin
     streamerbot: { deliveryStateFile: 'data/state/delivery-outbox.json' },
   }));
   const paths = [
-    'installer/install.mjs', 'installer/Install THSV StreamBridge.cmd',
-    'launcher/start.mjs', 'launcher/start-streaming-tools.mjs', 'launcher/stop.mjs', 'launcher/open-wizard.mjs', 'launcher/uninstall.mjs', 'launcher/start-streamerbot.mjs',
-    'launcher/Start THSV StreamBridge.cmd', 'launcher/Start THSV Streamer.bot Safely.cmd', 'launcher/Start THSV Streaming Tools.cmd', 'launcher/Stop THSV StreamBridge.cmd', 'launcher/Open THSV Setup Wizard.cmd', 'launcher/Uninstall THSV StreamBridge.cmd',
+    'installer/install.mjs', 'installer/apply-update.mjs', 'installer/Install THSV StreamBridge.cmd',
+    'launcher/start.mjs', 'launcher/start-streaming-tools.mjs', 'launcher/stop.mjs', 'launcher/open-wizard.mjs', 'launcher/uninstall.mjs', 'launcher/tray.ps1', 'launcher/start-streamerbot.mjs',
+    'launcher/Start THSV StreamBridge.cmd', 'launcher/Start THSV Streamer.bot Safely.cmd', 'launcher/Start THSV Streaming Tools.cmd', 'launcher/Stop THSV StreamBridge.cmd', 'launcher/Open THSV Setup Wizard.cmd', 'launcher/Open THSV StreamBridge Tray.cmd', 'launcher/Uninstall THSV StreamBridge.cmd',
     'runtime/node.exe', 'runtime/NODE-LICENSE.txt', 'runtime/node-version.txt',
     'app/dist/apps/bridge-service.js', 'app/config/bridge.example.json',
   ];
@@ -57,6 +58,12 @@ describe('portable Windows release installer', () => {
     expect(source).toContain("join(dataRoot, 'secrets', 'command-directory-publish-token.txt')");
     expect(source).toContain("childEnvironment['THSV_COMMAND_DIRECTORY_PUBLISH_TOKEN_FILE'] = commandDirectoryTokenPath");
     expect(source).toContain("delete childEnvironment['THSV_COMMAND_DIRECTORY_PUBLISH_TOKEN_FILE']");
+    expect(source).toContain('rotateLaunchLog(stdoutPath)');
+    expect(source).toContain('rotateLaunchLog(stderrPath)');
+    expect(source).toContain('maximumBytes = 5 * 1024 * 1024');
+    expect(source).toContain('listeningPidForPort(port)');
+    expect(source).toContain('not the StreamBridge process that was just started');
+    expect(source.indexOf("child.once('spawn'")).toBeLessThan(source.indexOf('await writeFile(pidPath'));
   });
 
   it('installs side by side, preserves creator data, rejects downgrades, and generates unique per-install tokens', async () => {
@@ -83,14 +90,21 @@ describe('portable Windows release installer', () => {
     expect(installedSecureOpener).toContain('/wizard/#unlock=${ticketResult.ticket}');
     expect(processOutput(firstResult)).toContain(`Wizard recovery key saved to: ${join(firstInstall, 'THSV StreamBridge Recovery Key.txt')}`);
     expect(processOutput(firstResult)).toContain(`One-button Stream Deck target: ${join(firstInstall, 'Start THSV Streaming Tools.cmd')}`);
+    expect(processOutput(firstResult)).toContain(`Notification-area shell: ${join(firstInstall, 'Open THSV StreamBridge Tray.cmd')}`);
     expect(processOutput(firstResult)).not.toContain(firstToken);
     expect(processOutput(firstResult)).not.toContain('older StreamBridge desktop shortcut could not be removed');
     expect(await readFile(join(firstInstall, 'Start THSV Streamer.bot Safely.cmd'), 'utf8')).toContain('launcher\\start-streamerbot.mjs');
     expect(await readFile(join(firstInstall, 'Start THSV Streaming Tools.cmd'), 'utf8')).toContain('launcher\\start-streaming-tools.mjs');
+    expect(await readFile(join(firstInstall, 'Open THSV StreamBridge Tray.cmd'), 'utf8')).toContain('launcher\\tray.ps1');
     expect(await readFile(join(firstInstall, 'launcher', 'start-streamerbot.mjs'), 'utf8')).toContain('streamerbot-launcher.json');
     await writeFile(join(firstInstall, 'data', 'state', 'creator-state.json'), '{"preserved":true}\n');
     await writeFile(join(firstInstall, 'data', 'configuration', 'streamerbot-launcher.json'), JSON.stringify({ version: 2, executable: 'C:\\Portable\\Streamer.bot.exe', websocketPort: 8081, optionalApps: { obs: { executable: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe', enabled: true }, speakerbot: { executable: 'D:\\Tools\\Speaker.bot.exe', enabled: false } } }));
     await writeFile(join(firstInstall, 'addons', 'state', 'creator-addon.json'), '{"preserved":true}\n');
+    await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.legacy-addon'), { recursive: true });
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.legacy-addon', 'module-package.json'), '{"manifest":{"moduleId":"thsv.legacy-addon","version":"2.0.0"}}\n');
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.legacy-addon', 'installed-package.json'), '{"moduleId":"thsv.legacy-addon","version":"2.0.0","enabled":true,"approvedActionIds":["action-one"]}\n');
+    await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.legacy-addon'), { recursive: true });
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.legacy-addon', 'settings.json'), '{"legacy":true}\n');
 
     await writePortableRelease(source, '2.1.0', 'second');
     const upgrade = install(source, firstInstall);
@@ -102,6 +116,11 @@ describe('portable Windows release installer', () => {
     expect(await readFile(join(firstInstall, 'data', 'configuration', 'streamerbot-launcher.json'), 'utf8')).toContain('optionalApps');
     expect(await readFile(join(firstInstall, 'data', 'configuration', 'streamerbot-launcher.json'), 'utf8')).toContain('obs64.exe');
     expect(await readFile(join(firstInstall, 'addons', 'state', 'creator-addon.json'), 'utf8')).toContain('preserved');
+    expect(await readFile(join(firstInstall, 'addons', 'packages', 'thsv.legacy-addon', 'module-package.json'), 'utf8')).toContain('thsv.legacy-addon');
+    expect(JSON.parse(await readFile(join(firstInstall, 'addons', 'packages', 'thsv.legacy-addon', 'installed-package.json'), 'utf8'))).toMatchObject({ enabled: false, approvedActionIds: ['action-one'] });
+    expect(await readFile(join(firstInstall, 'addons', 'migration-inbox', 'thsv.legacy-addon', 'state', 'settings.json'), 'utf8')).toContain('legacy');
+    expect(JSON.parse(await readFile(join(firstInstall, 'addons', 'migration-inbox', 'feature-migrations.json'), 'utf8'))).toMatchObject({ version: 1, candidates: [expect.objectContaining({ moduleId: 'thsv.legacy-addon', originalEnabled: true })] });
+    await expect(stat(join(firstInstall, 'addons', 'state', 'thsv.legacy-addon', 'settings.json'))).rejects.toThrow();
     expect(JSON.parse(await readFile(join(firstInstall, 'data', 'runtime', 'install-manifest.json'), 'utf8'))).toMatchObject({ activeVersion: '2.1.0', previousVersion: '2.0.0' });
 
     await writePortableRelease(source, '2.0.0', 'downgrade');

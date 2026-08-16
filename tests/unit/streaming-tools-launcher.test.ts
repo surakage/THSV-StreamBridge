@@ -2,20 +2,23 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('one-button streaming tools launcher', () => {
-  it('starts Streamer.bot, then Speaker.bot, makes the bridge ready, and opens OBS last', async () => {
+  it('starts Streamer.bot, then Speaker.bot, makes the bridge ready, and opens enabled broadcast apps last', async () => {
     const source = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
+    expect(source).toContain("join(launcherRoot, 'tray.ps1')");
+    expect(source).toContain('THSV StreamBridge Tray is available.');
     const streamerBotStart = source.indexOf("runLauncher(join(launcherRoot, 'start-streamerbot.mjs')");
     const speakerBotStart = source.indexOf("startOptionalApplication('speakerbot'");
     const bridgeCheck = source.indexOf('if (await bridgeReady(baseUrl))');
-    const obsStart = source.indexOf("startOptionalApplication('obs'");
+    const broadcastAppsStart = source.indexOf("for (const application of ['obs', 'meld', 'streamlabs'])");
     expect(streamerBotStart).toBeGreaterThan(-1);
     expect(streamerBotStart).toBeLessThan(speakerBotStart);
     expect(speakerBotStart).toBeLessThan(bridgeCheck);
-    expect(bridgeCheck).toBeLessThan(obsStart);
+    expect(bridgeCheck).toBeLessThan(broadcastAppsStart);
     expect(source).toContain('already ready. No restart was needed');
     expect(source).toContain("join(launcherRoot, 'start.mjs')");
     expect(source).toContain("`${url}/ready`");
     expect(source).toContain('readLauncherConfiguration()');
+    expect(source).toContain("['obs', 'meld', 'streamlabs']");
     expect(source).toContain('startOptionalApplication(application, launcherConfig)');
     expect(source).toContain("saved?.enabled !== true");
     expect(source).toContain('Optional app warning:');
@@ -31,9 +34,9 @@ describe('one-button streaming tools launcher', () => {
   it('ships a visible command wrapper suitable for Stream Deck System Open', async () => {
     const source = await readFile('launcher/Start THSV Streaming Tools.cmd', 'utf8');
     expect(source).toContain('launcher\\start-streaming-tools.mjs');
-    expect(source).toContain('Streamer.bot, Speaker.bot, StreamBridge, then OBS');
+    expect(source).toContain('Streamer.bot, Speaker.bot, StreamBridge, then enabled broadcast apps');
     expect(source).toContain('[SUCCESS] Your THSV streaming tools are ready.');
-    expect(source).toContain('Optional OBS or Speaker.bot issues are warnings');
+    expect(source).toContain('Optional OBS, Meld, Streamlabs, or Speaker.bot issues are warnings');
     expect(source).toContain('Closing automatically in 2 seconds.');
     expect(source).toContain('runtime\\node.exe" -e "setTimeout(function(){},2000)"');
     expect(source).not.toContain('timeout /t');

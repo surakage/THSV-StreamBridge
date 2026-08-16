@@ -8,6 +8,7 @@ const targetVersion = stableVersionArgument(process.argv[2]);
 const root = process.cwd();
 await alignRootPackage();
 await alignProductVersion();
+await alignReleaseDocumentation();
 await alignAddOns();
 await alignStreamerBotPackages();
 process.stdout.write(`Aligned THSV StreamBridge and all first-party packages to ${targetVersion}.\n`);
@@ -117,6 +118,61 @@ async function alignStreamerBotPackages(): Promise<void> {
     await writeJson(manifestPath, manifest);
     for (const entry of await readdir(packageRoot, { withFileTypes: true })) {
       if (entry.isFile() && entry.name.endsWith('.sb')) await unlink(join(packageRoot, entry.name));
+    }
+    const sourceRoot = join(packageRoot, 'src');
+    if (await exists(sourceRoot)) {
+      for (const sourcePath of await filesBelow(sourceRoot, '.cs')) {
+        const source = await readFile(sourcePath, 'utf8');
+        const aligned = source.replace(
+          /(THSV-StreamBridge-[A-Za-z0-9-]+\/)\d+\.\d+\.\d+(?=["'])/gu,
+          `$1${targetVersion}`,
+        );
+        if (aligned !== source) await writeTextWithRetry(sourcePath, aligned);
+      }
+    }
+  }
+}
+
+async function alignReleaseDocumentation(): Promise<void> {
+  const paths = [join(root, 'README.md')];
+  for (const folder of ['addons', 'packages/streamerbot', 'docs']) {
+    const folderPath = join(root, ...folder.split('/'));
+    paths.push(...await filesBelow(folderPath, '.md', folder === 'docs' ? new Set(['releases']) : undefined));
+  }
+  for (const path of paths) {
+    const source = await readFile(path, 'utf8');
+    const aligned = source
+      .replace(
+        /((?:THSV|thsv)[A-Za-z0-9_.\\/-]*-)\d+\.\d+\.\d+((?:\.sb|\.thsv-addon)\b)/gu,
+        `$1${targetVersion}$2`,
+      )
+      .replace(/Current THSV \d+\.\d+\.\d+ imports/gu, `Current THSV ${targetVersion} imports`);
+    if (aligned !== source) await writeTextWithRetry(path, aligned);
+  }
+}
+
+async function filesBelow(path: string, extension: string, excludedFolders = new Set<string>()): Promise<string[]> {
+  const result: string[] = [];
+  for (const entry of await readdir(path, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (!excludedFolders.has(entry.name)) result.push(...await filesBelow(join(path, entry.name), extension, excludedFolders));
+    } else if (entry.isFile() && entry.name.endsWith(extension)) {
+      result.push(join(path, entry.name));
+    }
+  }
+  return result;
+}
+
+async function writeTextWithRetry(path: string, value: string): Promise<void> {
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      await writeFile(path, value, 'utf8');
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'EPERM' && code !== 'EBUSY') throw error;
+      if (attempt === 4) throw error;
+      await new Promise<void>((resolve) => setTimeout(resolve, attempt * 75));
     }
   }
 }

@@ -182,10 +182,40 @@ export const timedActionsSchema = z.object({
 export const ALERT_PRESENTATION_TYPE_VALUES = ['follow', 'subscription', 'membership', 'gift-subscription', 'gift', 'donation', 'cheer', 'super-chat', 'raid', 'milestone'] as const;
 const ALERT_TEMPLATE_TOKEN_VALUES = ['actor', 'alertType', 'platform', 'amount', 'currency', 'quantity', 'itemName', 'tier', 'message', 'metric', 'value'] as const;
 const alertTemplateTokens = new Set<string>(ALERT_TEMPLATE_TOKEN_VALUES);
+const WINDOWS_1252_BYTES = new Map<number, number>([
+  [0x20ac, 0x80], [0x201a, 0x82], [0x0192, 0x83], [0x201e, 0x84], [0x2026, 0x85], [0x2020, 0x86], [0x2021, 0x87],
+  [0x02c6, 0x88], [0x2030, 0x89], [0x0160, 0x8a], [0x2039, 0x8b], [0x0152, 0x8c], [0x017d, 0x8e], [0x2018, 0x91],
+  [0x2019, 0x92], [0x201c, 0x93], [0x201d, 0x94], [0x2022, 0x95], [0x2013, 0x96], [0x2014, 0x97], [0x02dc, 0x98],
+  [0x2122, 0x99], [0x0161, 0x9a], [0x203a, 0x9b], [0x0153, 0x9c], [0x017e, 0x9e], [0x0178, 0x9f],
+]);
+
+function mojibakeScore(value: string): number {
+  return (value.match(/[\u00c2\u00c3\u00e2\u00f0\u00ef\ufffd]/gu) ?? []).length;
+}
+
+function decodeWindows1252Utf8(value: string): string | undefined {
+  const bytes: number[] = [];
+  for (const character of value) {
+    const point = character.codePointAt(0) ?? 0;
+    const mapped = WINDOWS_1252_BYTES.get(point);
+    if (mapped !== undefined) bytes.push(mapped);
+    else if (point <= 0xff) bytes.push(point);
+    else return undefined;
+  }
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bytes)); }
+  catch { return undefined; }
+}
+
 export function repairCommonMojibake(value: string): string {
-  // Repair only well-known UTF-8-as-Windows-1252 sequences found in older saved
-  // wizard profiles. Ordinary Unicode and creator wording remain untouched.
-  return value
+  // Accept a strict Windows-1252-to-UTF-8 repair only when it reduces suspicious byte markers.
+  // This fixes provider text such as emoji and punctuation without changing ordinary Unicode.
+  let repaired = value;
+  for (let pass = 0; pass < 2; pass += 1) {
+    const decoded = decodeWindows1252Utf8(repaired);
+    if (decoded === undefined || mojibakeScore(decoded) >= mojibakeScore(repaired)) break;
+    repaired = decoded;
+  }
+  return repaired
     .replaceAll('\u00c2\u00b7', '\u00b7')
     .replaceAll('\u00e2\u0153\u00a8', '\u2728')
     .replaceAll('\u00e2\u20ac\u201d', '\u2014')
@@ -193,7 +223,8 @@ export function repairCommonMojibake(value: string): string {
     .replaceAll('\u00e2\u20ac\u2122', '\u2019')
     .replaceAll('\u00e2\u20ac\u00a6', '\u2026')
     .replaceAll('\u00e2\u20ac\u00a2', '\u2022')
-    .replaceAll('\u00f0\u0178\u201d\u00a5', '\ud83d\udd25');
+    .replaceAll('\u00f0\u0178\u201d\u00a5', '\ud83d\udd25')
+    .replace(/\u00c2(?=$|\s|[.,!?;:)\]])/gu, '');
 }
 const alertTemplateSchema = z.string().max(500).overwrite(repairCommonMojibake).refine((value) => !/[\p{Cc}]/u.test(value), 'Alert templates cannot contain control characters.').superRefine((value, context) => {
   for (const match of value.matchAll(/\{([a-z][a-zA-Z]*)\}/gu)) {

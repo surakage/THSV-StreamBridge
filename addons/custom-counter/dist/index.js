@@ -5,8 +5,8 @@ const CONTROL_EVENT = 'addon.thsv.custom-counter.control';
 const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
 const OPERATIONS = new Set(['increment', 'decrement', 'add', 'subtract', 'set', 'reset', 'show', 'hide', 'rename', 'save', 'load']);
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Custom Counter', version: '3.5.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Custom Counter', version: '3.6.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.6.0', maximumTestedBridgeVersion: '3.6.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: [CONTROL_EVENT, 'command.received', 'channel.follow', 'channel.subscription', 'channel.membership', 'engagement.raid'],
   commandsProvided: [{ id: 'custom-counter.command', name: 'streamcounter' }], actionsProvided: [], browserSourcesProvided: [],
   coordination: [{ resource: 'overlay.counter', mode: 'background', priority: 10, timeoutMs: 600000, cooldownMs: 0, skippable: false }],

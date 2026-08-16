@@ -467,8 +467,8 @@ test('wizard progressively reveals advanced blocker, alert, and add-on controls'
   await expect(page.locator('[data-view="rewards"]')).toHaveCount(0);
   await expect(page.locator('[data-panel="rewards"]')).toHaveCount(0);
 
-  await page.locator('[data-view="addons"]').click();
-  await expect(page.locator('[data-disclosure-key="panel:addons:install"]')).not.toHaveAttribute('open', '');
+  await page.locator('[data-view="addon-marketplace"]').click();
+  await expect(page.locator('[data-disclosure-key="panel:addon-marketplace:install"]')).not.toHaveAttribute('open', '');
 });
 
 test('wizard shows only the selected platform events and exposes platform color modes', async ({ page }) => {
@@ -660,11 +660,11 @@ test('wide compact chat scatters bubbles safely and minimal chat wraps complete 
 
   await page.goto('/overlay/chat?layout=compact');
   await expect(page.locator('#status')).toHaveText('LIVE');
-  for (let index = 0; index < 6; index += 1) {
+  for (let index = 0; index < 8; index += 1) {
     await simulate(request, { ...input, user: { ...baseUser, displayName: `Scattered Viewer ${String(index)}` }, payload: { message: `Bubble ${String(index)} appears in a safe screen region.` } }, `scatter-${String(index)}`);
   }
   const bubbles = page.locator('#chat .message');
-  await expect(bubbles).toHaveCount(6);
+  await expect(bubbles).toHaveCount(8);
   await expect(bubbles.last()).toHaveCSS('opacity', '1');
   const bubbleLayout = await bubbles.evaluateAll((elements) => elements.map((element) => {
     const bounds = element.getBoundingClientRect();
@@ -675,8 +675,8 @@ test('wide compact chat scatters bubbles safely and minimal chat wraps complete 
     });
     return { slot: (element as HTMLElement).dataset.bubbleSlot, left: Math.round(bounds.left), top: Math.round(bounds.top), inside: bounds.left >= 0 && bounds.top >= 0 && bounds.right <= innerWidth && bounds.bottom <= innerHeight, overlaps };
   }));
-  expect(new Set(bubbleLayout.map((entry) => entry.slot)).size).toBe(6);
-  expect(new Set(bubbleLayout.map((entry) => `${String(entry.left)}:${String(entry.top)}`)).size).toBe(6);
+  expect(new Set(bubbleLayout.map((entry) => entry.slot)).size).toBe(8);
+  expect(new Set(bubbleLayout.map((entry) => `${String(entry.left)}:${String(entry.top)}`)).size).toBe(8);
   expect(bubbleLayout.every((entry) => entry.inside), JSON.stringify(bubbleLayout)).toBe(true);
   expect(bubbleLayout.every((entry) => !entry.overlaps), JSON.stringify(bubbleLayout)).toBe(true);
   await expect(bubbles.first().locator('.display-name')).toHaveCSS('text-overflow', 'ellipsis');

@@ -87,13 +87,21 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     const others = [...chat.children].filter((candidate) => candidate !== item && candidate.style.getPropertyValue('--bubble-left'));
     let seed = stableHash(`${item.dataset.eventId || ''}:${String(compactBubbleCursor)}`);
     let selected = { left: edge, top: edge, clearance: -1 };
+    let collisionFree = false;
     for (let attempt = 0; attempt < 24; attempt += 1) {
       seed = nextBubbleRandom(seed); const left = Math.round(edge + (maximumLeft - edge) * (seed / 4294967296));
       seed = nextBubbleRandom(seed); const top = Math.round(edge + (maximumTop - edge) * (seed / 4294967296));
       const distances = others.map((candidate) => { const bounds = candidate.getBoundingClientRect(); return Math.hypot(left + item.offsetWidth / 2 - (bounds.left + bounds.width / 2), top + item.offsetHeight / 2 - (bounds.top + bounds.height / 2)); });
       const clearance = distances.length ? Math.min(...distances) : Number.POSITIVE_INFINITY;
+      const intersects = others.some((candidate) => bubbleIntersects(left, top, item.offsetWidth, item.offsetHeight, candidate));
+      if (!intersects) { selected = { left, top, clearance }; collisionFree = true; break; }
       if (clearance > selected.clearance) selected = { left, top, clearance };
-      if (!others.some((candidate) => bubbleIntersects(left, top, item.offsetWidth, item.offsetHeight, candidate))) break;
+    }
+    for (let top = edge; !collisionFree && top <= maximumTop; top += 16) {
+      for (let left = edge; left <= maximumLeft; left += 16) {
+        if (others.some((candidate) => bubbleIntersects(left, top, item.offsetWidth, item.offsetHeight, candidate))) continue;
+        selected = { left, top, clearance: 0 }; collisionFree = true; break;
+      }
     }
     item.dataset.bubbleSlot = String(stableHash(`${item.dataset.eventId || ''}:${String(compactBubbleCursor)}`));
     compactBubbleCursor += 1;
@@ -101,7 +109,11 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     item.style.setProperty('--bubble-top', `${selected.top}px`);
   }
 
-  function refreshCompactBubbles() { for (const item of chat.children) positionCompactBubble(item); }
+  function refreshCompactBubbles() {
+    const items = [...chat.children];
+    for (const item of items) { item.style.removeProperty('--bubble-left'); item.style.removeProperty('--bubble-top'); delete item.dataset.bubbleSlot; }
+    for (const item of items) positionCompactBubble(item);
+  }
 
   function receive(event) {
     if (event.kind === 'overlay.reset') resetOverlaySurface();

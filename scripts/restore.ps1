@@ -5,6 +5,16 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Get-Sha256Hex([string]$Path) {
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        try { return ([System.BitConverter]::ToString($sha256.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+        finally { $sha256.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
 if (-not $ApproveRestore) { throw 'Restore requires -ApproveRestore because it replaces current configuration, state, and installed add-on code.' }
 $repo = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $backup = [System.IO.Path]::GetFullPath($BackupPath)
@@ -26,7 +36,7 @@ foreach ($file in $manifest.files) {
     $path = Resolve-BackupFile ([string]$file.path)
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Backup file is missing: $($file.path)" }
     if ((Get-Item -LiteralPath $path).Length -ne [long]$file.size) { throw "Backup file size mismatch: $($file.path)" }
-    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+    $hash = Get-Sha256Hex $path
     if ($hash -ne ([string]$file.sha256).ToLowerInvariant()) { throw "Backup file hash mismatch: $($file.path)" }
 }
 

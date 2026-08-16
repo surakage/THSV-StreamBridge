@@ -24,6 +24,10 @@ const RETRY_DELAY_MS = 5_000;
 // A valid response can still contain no clips inside the creator's duration range. Back off
 // before refreshing again so an empty/filtered library cannot flood Streamer.bot's action queue.
 const EMPTY_POOL_RETRY_MS = 30_000;
+// Twitch and Streamer.bot currently expose at most 100 clip records per bounded lookup. Retain
+// the union of shared-cache and compatibility responses so a later 20-record fallback cannot
+// collapse a larger rotation pool and make the same small group appear to repeat forever.
+const MAX_LIBRARY_CLIPS = 100;
 
 // Fallbacks only for a context built without going through the real install/load path (bare unit
 // tests, for instance). A real installed context always has a complete settings object, since the
@@ -71,9 +75,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '3.5.0',
+  version: '3.6.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.6.0', maximumTestedBridgeVersion: '3.6.0',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
@@ -85,9 +89,9 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.5.0.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.6.0.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
-    'Enter the exact OBS program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
+    'Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
     'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
   ],
   uninstallationSteps: ['Remove the add-on package; its separately owned rotation state remains preserved.'],
@@ -110,6 +114,26 @@ export function selectNextClip(clips, seenClipIds, random = Math.random) {
   const eligible = clips.filter((clip) => !seenClipIds.includes(clip.id));
   const pool = eligible.length > 0 ? eligible : clips;
   return pool[Math.floor(random() * pool.length)];
+}
+
+export function mergeClipPools(incomingClips, existingClips, maximum = MAX_LIBRARY_CLIPS) {
+  const unique = new Map();
+  for (const candidate of [...incomingClips, ...existingClips]) {
+    if (!candidate || typeof candidate.id !== 'string' || candidate.id === '' || unique.has(candidate.id)) continue;
+    unique.set(candidate.id, candidate);
+    if (unique.size >= maximum) break;
+  }
+  return [...unique.values()];
+}
+
+export function resetCompletedBag(seenClipIds, eligibleIds) {
+  if (eligibleIds.size === 0 || ![...eligibleIds].every((id) => seenClipIds.includes(id))) return seenClipIds;
+  // Keep only the most recently completed eligible clip. This starts a fresh shuffle while
+  // preventing the clip at the end of one cycle from being selected again immediately.
+  for (let index = seenClipIds.length - 1; index >= 0; index -= 1) {
+    if (eligibleIds.has(seenClipIds[index])) return [seenClipIds[index]];
+  }
+  return [];
 }
 
 function sanitizeState(raw) {
@@ -231,11 +255,9 @@ async function requestNextClip(context) {
 
 async function handleClipsReceived(event, context) {
   if (stopped) return;
-  const clips = Array.isArray(event.payload?.clips) ? event.payload.clips.filter((clip) => clip && typeof clip.id === 'string') : [];
+  const incomingClips = Array.isArray(event.payload?.clips) ? event.payload.clips.filter((clip) => clip && typeof clip.id === 'string') : [];
   const state = sanitizeState(await context.state.read());
-  if (!state.playbackEnabled || suspendedByMediaSlot) return;
-  if (state.pendingClipId !== undefined) return;
-  disarmSafetyNet(context);
+  const clips = mergeClipPools(incomingClips, state.clips);
   // Drop seen-IDs for clips no longer in the refreshed list (deleted, or aged out of the fetch
   // window) so the rotation pool cannot shrink forever as the underlying clip library changes.
   const clipIds = new Set(clips.map((clip) => clip.id));
@@ -245,10 +267,14 @@ async function handleClipsReceived(event, context) {
   // Reset only the playable bag. An unseen clip outside the configured duration range must not
   // prevent a completed playable batch from beginning its next no-repeat cycle.
   const eligibleIds = new Set(eligible.map((clip) => clip.id));
-  const seenClipIds = eligible.length > 0 && eligible.every((clip) => stillSeenClipIds.includes(clip.id))
-    ? stillSeenClipIds.filter((id) => !eligibleIds.has(id))
-    : stillSeenClipIds;
+  const seenClipIds = resetCompletedBag(stillSeenClipIds, eligibleIds);
   await context.state.write(toJsonState({ ...state, clips, seenClipIds }));
+  // Keep the shared library warm while the player is idle/offline. Previously the snapshot was
+  // discarded whenever playback was disabled, so the next BRB activation fell back to the smaller
+  // legacy fetch and repeatedly cycled that same subset of clips.
+  if (!state.playbackEnabled || suspendedByMediaSlot) return;
+  if (state.pendingClipId !== undefined) return;
+  disarmSafetyNet(context);
   if (eligible.length === 0) {
     scheduleNext(context, EMPTY_POOL_RETRY_MS);
     return;

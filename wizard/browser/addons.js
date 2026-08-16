@@ -20,10 +20,28 @@ async function waitForAddOnOverlayClient(moduleId, timeoutMs = 1_500) {
   return 0;
 }
 
+function prepareExtensionAndAddOnWorkspace() {
+  const panel = document.querySelector('[data-panel="addons"]');
+  const nav = document.querySelector('[data-view="addons"]');
+  if (!panel) return;
+  if (nav) nav.textContent = 'Extensions';
+  const title = panel.querySelector('.title-row h2');
+  const intro = panel.querySelector('.title-row .clamp-text');
+  if (title) title.textContent = 'Extensions';
+  if (intro) intro.textContent = 'Extensions are included StreamBridge feature groups. Manage their components here; optional add-on installation and maintenance have a separate page.';
+  const sections = [...panel.querySelectorAll(':scope > section.transaction')];
+  const inventoryHeading = sections.find((section) => section.querySelector('#addon-list'))?.querySelector('h3');
+  if (inventoryHeading) inventoryHeading.textContent = 'Extension management';
+}
+
 async function loadAddOns() {
+  prepareExtensionAndAddOnWorkspace();
   const status = byId('addon-state');
+  const marketplaceStatus = byId('addon-marketplace-state');
   status.setAttribute('aria-busy', 'true');
   status.textContent = 'Verifying installed add-ons...';
+  marketplaceStatus?.setAttribute('aria-busy', 'true');
+  if (marketplaceStatus) marketplaceStatus.textContent = 'Verifying optional add-ons...';
   try {
     const [result, runtime] = await Promise.all([
       api('/wizard/api/addons'),
@@ -37,6 +55,8 @@ async function loadAddOns() {
       if (!/not found/iu.test(String(error?.message || error))) throw error;
     }
     state.addOns = result.addOns;
+    state.addOnFeatureFamilies = Array.isArray(result.featureFamilies) ? result.featureFamilies : Array.isArray(runtime?.mainFeatures?.catalog) ? runtime.mainFeatures.catalog : [];
+    state.featureMigrations = Array.isArray(result.featureMigrations) ? result.featureMigrations : [];
     state.addOnRuntime = runtime;
     syncAddOnRestartState(runtime?.startedAt);
     state.discoveredAddOns = result.discovered || [];
@@ -55,11 +75,24 @@ async function loadAddOns() {
     renderTrustedPublishers();
     const pending = state.addOnRestartRequiredIds.size;
     const runtimeSummary = runtime ? `${runtime.ready ? 'Runtime ready' : 'Runtime needs attention'}; ${runtime.browserOverlay?.clients || 0} shared overlay client(s) connected.` : 'Runtime diagnostics are unavailable; saved settings remain usable.';
-    status.textContent = `${state.addOns.length} installed and ${state.discoveredAddOns.length} discovered add-on package(s) inspected. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${pending} pending add-on change${pending === 1 ? '' : 's'}.` : ''}`;
+    const managed = managedExtensionIds();
+    const extensionCount = state.addOns.filter((addOn) => managed.has(addOn.moduleId)).length;
+    const installedAddOnCount = state.addOns.length - extensionCount;
+    status.textContent = `${state.addOnFeatureFamilies.length} built-in extension(s) use ${extensionCount} installed component package(s). ${installedAddOnCount} optional add-on(s) installed; ${state.discoveredAddOns.length} package(s) awaiting review. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${pending} pending component change${pending === 1 ? '' : 's'}.` : ''}`;
+    if (marketplaceStatus) marketplaceStatus.textContent = `${installedAddOnCount} optional add-on(s) installed; ${state.discoveredAddOns.length} package(s) awaiting review. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${pending} pending package change${pending === 1 ? '' : 's'}.` : ''}`;
   } catch (error) {
-    status.textContent = error.message;
+    state.addOns = [];
+    state.addOnFeatureFamilies = [];
+    state.featureMigrations = [];
+    state.discoveredAddOns = [];
+    state.addOnRuntime = null;
+    renderAddOns();
+    renderDiscoveredAddOns();
+    status.textContent = `Inventory unavailable: ${error.message}. Nothing was changed. Confirm StreamBridge is running, then press Refresh.`;
+    if (marketplaceStatus) marketplaceStatus.textContent = status.textContent;
   } finally {
     status.removeAttribute('aria-busy');
+    marketplaceStatus?.removeAttribute('aria-busy');
   }
 }
 
@@ -95,6 +128,8 @@ function markAddOnRestartRequired(moduleId) {
 function reportAddOnFeedback(message, kind = 'success', button) {
   const status = byId('addon-state');
   if (status) status.textContent = message;
+  const marketplaceStatus = byId('addon-marketplace-state');
+  if (marketplaceStatus) marketplaceStatus.textContent = message;
   showWizardFeedback(message, kind, button);
 }
 
@@ -154,6 +189,7 @@ function renderTrustedPublishers() {
 
 async function checkTrustedPublisherUpdates(event) {
   const publisherId = event.currentTarget.dataset.checkTrustedPublisher;
+  byId('update-all-compatible-addons')?.classList.add('hidden');
   const status = byId('addon-update-state'); status.textContent = `Checking the authenticated release for ${publisherId}...`;
   try {
     const result = await api('/wizard/api/addons/trusted-updates/check', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ publisherId }) });
@@ -225,7 +261,7 @@ function renderAddOnUpdate(addOn) {
   const archive = update.archiveName ? `<small><strong>Verified release package:</strong> ${safe(update.archiveName)}</small>` : '';
   const checksum = update.sha256 ? `<small><strong>Published SHA-256:</strong> <code>${safe(update.sha256)}</code></small>` : '';
   const download = update.state === 'update-available' && update.latestVersion
-    ? `<div class="button-row"><button type="button" class="compact" data-stage-addon-update="${safe(update.moduleId)}" data-stage-addon-version="${safe(update.latestVersion)}">Download &amp; verify update</button></div><small>The wizard verifies the official release bundle, SHA-256 checksums, GitHub build provenance, publisher, version, and inner package before placing it in the inbox. Installation still requires your separate review and approval.</small>`
+    ? `<div class="button-row"><button type="button" class="compact" data-install-addon-update="${safe(update.moduleId)}" data-install-addon-version="${safe(update.latestVersion)}">Update safely</button><button type="button" class="ghost compact" data-stage-addon-update="${safe(update.moduleId)}" data-stage-addon-version="${safe(update.latestVersion)}">Download for review</button></div><small><strong>Update safely</strong> verifies both release layers, publisher identity, compatibility, and package hashes before replacing only this component's code. Saved settings and private state remain intact; restart StreamBridge once after all chosen updates. Download for review keeps the two-step inbox workflow.</small>`
     : '';
   return `<div class="notice addon-update-result" data-addon-update-state="${safe(update.state)}"><strong>${safe(labels[update.state] || update.state)}.</strong>${safe(version + warning)}${archive}${checksum}${download}</div>`;
 }
@@ -234,8 +270,10 @@ function renderAddOnField(name, schema, value, ui = {}) {
   const type = schema.type;
   const label = safe(schema.title || name);
   const help = schema.description ? `<small>${safe(schema.description)}</small>` : '';
+  const visualTarget = addOnVisualSettingTarget(name, schema);
+  const visualHelp = visualTarget ? `<small class="overlay-field-target"><span aria-hidden="true">&#9678;</span><strong>Overlay area:</strong> ${safe(visualTarget)}</small>` : '';
   const fullRow = type === 'array' || schema.format === 'multiline' || ui.fullRow === true;
-  const wrapper = (content) => `<div class="addon-setting ${fullRow ? 'full-row' : ''}"${addOnVisibilityAttributes(ui)}>${content}</div>`;
+  const wrapper = (content) => `<div class="addon-setting ${fullRow ? 'full-row' : ''}${visualTarget ? ' overlay-visual-setting' : ''}"${visualTarget ? ` data-overlay-visual-target="${safe(visualTarget)}"` : ''}${addOnVisibilityAttributes(ui)}>${content}${visualHelp}</div>`;
   if (ui.control === 'scene-mappings') return wrapper(renderSceneMappingEditor(name, value, help));
   if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this add-on's action-grants section.</small></label>`);
   if (type === 'array' && Array.isArray(schema.items?.enum)) {
@@ -249,6 +287,67 @@ function renderAddOnField(name, schema, value, ui = {}) {
   if (schema.format === 'multiline') return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="${safe(Number.isInteger(ui.rows) ? ui.rows : 4)}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 2000)}">${safe(value ?? '')}</textarea>${help}</label>`);
   if (schema.format === 'color') return wrapper(`<label>${label}<input name="${safe(name)}" type="color" value="${safe(value || '#6f42c1')}">${help}</label>`);
   return wrapper(`<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 500)}">${help}</label>`);
+}
+
+function addOnVisualSettingTarget(name, schema = {}) {
+  const normalized = String(name).toLocaleLowerCase();
+  const exact = {
+    watercolor: 'Water fill inside the bottle or glass',
+    waterhighlightcolor: 'Water surface, wave, and bubble highlights',
+    warningcolor: 'Warning state, countdown emphasis, and warning badge',
+    criticalcolor: 'Final countdown and critical-status emphasis',
+    livecolor: 'Live state badge and active status accent',
+    bordercolor: 'Outer card border and divider lines',
+    overlaybordercolor: 'Outer card border and divider lines',
+    overlaybackgroundcolor: 'Main overlay card background',
+    backgroundcolor: 'Main overlay card background',
+    overlaybackgroundopacity: 'Transparency of the main overlay card background',
+    backgroundopacity: 'Transparency of the main overlay card background',
+    overlayaccentcolor: 'Borders, progress bars, badges, and highlighted details',
+    accentcolor: 'Borders, progress bars, badges, and highlighted details',
+    overlaytextcolor: 'Primary headings, names, timers, and numbers',
+    textcolor: 'Primary headings, names, timers, and numbers',
+    overlaymutedcolor: 'Secondary labels, captions, and supporting text',
+    mutedcolor: 'Secondary labels, captions, and supporting text',
+    overlayfontfamily: 'All text in this overlay',
+    fontfamily: 'All text in this overlay',
+    overlayfontsize: 'Primary overlay text size',
+    fontsize: 'Primary overlay text size',
+    containerstyle: 'Shape of the main visual container',
+    backgroundmode: 'Background treatment behind the overlay content',
+    overlaybackgroundmode: 'Background treatment behind the overlay content',
+    layout: 'Arrangement of the overlay content',
+    alignment: 'Position and alignment of the overlay content',
+    textalignment: 'Alignment of headings, names, and supporting text',
+    shownumbers: 'Water total, goal, and percentage numbers',
+    shownextreminder: 'Next-reminder status line',
+    showprogress: 'Progress bar and completion amount',
+  };
+  if (exact[normalized]) return exact[normalized];
+  if (/background.*color|color.*background/u.test(normalized)) return 'Background of the matching card, panel, or surface';
+  if (/accent.*color|color.*accent/u.test(normalized)) return 'Matching borders, badges, progress, and highlighted details';
+  if (/title.*color|heading.*color/u.test(normalized)) return 'Title and heading text';
+  if (/text.*color|color.*text/u.test(normalized)) return 'Matching text in the rendered overlay';
+  if (/border.*color|outline.*color/u.test(normalized)) return 'Matching border or outline';
+  if (/progress.*color/u.test(normalized)) return 'Progress bar or completion indicator';
+  if (schema.format === 'color') return `${String(schema.title || name)} elements in the rendered overlay`;
+  if (/opacity/u.test(normalized)) return 'Transparency of the matching overlay surface';
+  if (/font.*size|size.*font/u.test(normalized)) return 'Size of the matching overlay text';
+  if (/font/u.test(normalized)) return 'Typography used by the rendered overlay';
+  if (/color/u.test(normalized)) return 'The matching color in the rendered overlay';
+  return '';
+}
+
+function addOnSupportsVisualEditor(addOn) {
+  if (!addOn.enabled || addOn.health !== 'installed' || !addOn.permissions?.includes('overlay.publish')) return false;
+  return orderedAddOnProperties(addOn).some(([name, schema]) => Boolean(addOnVisualSettingTarget(name, schema)));
+}
+
+function renderAddOnVisualEditor(addOn) {
+  if (!addOnSupportsVisualEditor(addOn)) return '';
+  const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
+  const portrait = ['thsv.village-hydration-station', 'thsv.viewer-spotlight'].includes(addOn.moduleId);
+  return `<section class="overlay-live-editor${portrait ? ' is-portrait' : ''}" data-overlay-live-editor="${safe(addOn.moduleId)}"><div class="overlay-editor-heading"><div><span class="preview-label">Live appearance editor</span><strong>See each change on the real overlay</strong><small>Draft preview only. Nothing is saved, staged, or sent to OBS until you use the controls below.</small></div><span class="status-chip status-neutral" data-overlay-draft-state>Loading preview...</span></div><div class="overlay-editor-frame-shell"><iframe data-overlay-editor-frame="${safe(addOn.moduleId)}" title="${safe(addOn.name)} appearance preview" src="${safe(overlayPath)}?editor=wizard" loading="eager"></iframe></div><p class="overlay-editor-note"><strong>Tip:</strong> fields marked <span aria-hidden="true">&#9678;</span> name the exact overlay area they control. Change a value to update this preview immediately, then choose <strong>Save all settings</strong> when it looks right.</p></section>`;
 }
 
 function parseSceneMappingRows(value) {
@@ -355,8 +454,9 @@ function renderAddOnSettings(addOn) {
     return `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:${disclosureId}`)}"${addOnVisibilityAttributes(section)} ${openByDefault ? 'open' : ''}><summary><span>${safe(addOnSectionTitle(section.title))}${section.description ? `<small>${safe(section.description)}</small>` : ''}</span></summary><div class="addon-settings-section-body">${body}</div></details>`;
   }).join('');
   const remaining = renderNames(entries.map(([name]) => name).filter((name) => !rendered.has(name)));
-  if (!sections) return `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:general`)}" open><summary><span>General settings<small>The essential settings supplied by this add-on.</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>`;
-  return `${sections}${remaining ? `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:other`)}"><summary><span>Other settings<small>Less commonly changed options</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>` : ''}`;
+  const editor = renderAddOnVisualEditor(addOn);
+  if (!sections) return `${editor}<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:general`)}" open><summary><span>General settings<small>The essential settings supplied by this add-on.</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>`;
+  return `${editor}${sections}${remaining ? `<details class="addon-settings-section" data-disclosure-key="${safe(`addon:${addOn.moduleId}:settings:other`)}"><summary><span>Other settings<small>Less commonly changed options</small></span></summary><div class="addon-settings-grid">${remaining}</div></details>` : ''}`;
 }
 
 function renderAddOnSetupGuide(addOn) {
@@ -486,7 +586,7 @@ function renderAddOnTriggerReadiness(addOn) {
   if (addOn.moduleId === 'thsv.village-polls') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-polls:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>No separate Streamer.bot commands or poll triggers are needed.</small></span><span class="status-chip status-ready">Direct chat commands</span></summary><div class="addon-step-body"><ol><li>Keep chat-message triggers on the existing main THSV Twitch, YouTube, Kick, and TikTok intake actions.</li><li>Do not generate Village Polls commands in Command Sync and do not attach separate poll triggers in Streamer.bot.</li><li>Restart StreamBridge after saving the enabled setting.</li><li>Open a poll with <code>!poll open Question | First choice | Second choice</code>, vote with <code>!vote 1</code>, and close it with <code>!poll close</code>.</li></ol><p class="notice"><strong>One universal total:</strong> Village Polls reads normalized chat directly and combines Twitch, YouTube, Kick, and TikTok votes. Native Twitch and YouTube polls are not mixed in because Kick and TikTok votes cannot be inserted into those provider totals. Opening and closing are announced to all four chats; the result also appears for 12 seconds on the Village Polls overlay.</p></div></details>`;
   if (addOn.moduleId === 'thsv.viewer-foundation') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.viewer-foundation:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>Points and lurk commands register automatically from the saved names.</small></span><span class="status-chip status-ready">Commands automatic</span></summary><div class="addon-step-body"><ol><li>Keep chat, follow, subscription, membership, gift, cheer, Super Chat, raid, and reward triggers on the existing main THSV platform intake actions.</li><li>Choose the balance and lurk command names in this wizard, save, and restart StreamBridge.</li><li>Viewers can then use <code>!points</code> and <code>!lurk</code> without separate Streamer.bot Command objects or Command Sync packages.</li><li>Use local test events before going live. Disable legacy duplicate Command objects only after this intake-owned path passes.</li></ol><p class="notice"><strong>Time tracking is observation-based:</strong> platforms do not expose a dependable cross-platform silent-viewer list. Active time is settled when a viewer continues chatting; lurk time settles on their next message or when the final observed platform goes offline.</p></div></details>`;
   if (addOn.moduleId === 'thsv.village-draw') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.village-draw:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>No separate Streamer.bot commands or giveaway triggers are needed.</small></span><span class="status-chip status-ready">Direct chat commands</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first.</li><li>Keep chat-message triggers on the existing main THSV Twitch, YouTube, Kick, and TikTok intake actions.</li><li>Do not generate Village Draw commands in Command Sync and do not attach duplicate triggers in Streamer.bot.</li><li>Save the prize and entry settings, restart StreamBridge, then use the authenticated controls below to open entries.</li><li>Viewers use <code>!enter</code>, <code>!tickets 3</code>, and <code>!mytickets</code> directly in chat.</li></ol><p class="notice"><strong>Management stays protected:</strong> <code>!giveaway</code> shows public status, while management arguments still require Moderator or Broadcaster. Pending point purchases must settle before entries can close or a winner can be drawn.</p></div></details>`;
-  if (addOn.moduleId === 'thsv.clip-library-cache') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.clip-library-cache:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the shared Twitch lookup</strong><small>One internal action supplies every installed clip add-on.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Clip Library Cache</strong> in Streamer.bot.</li><li>Leave <strong>Refresh</strong> enabled and triggerless. Do not attach a timer or platform trigger.</li><li>Approve only Refresh in the next wizard step, enable the shared clip list, save, and restart StreamBridge.</li><li>Return to Random Clip Player or Clip Courier to configure what happens with the shared results.</li></ol><p class="notice"><strong>Why this is separate:</strong> it is optional shared infrastructure. Keeping it outside Bridge Core means creators without clip features perform no clip lookup, while multiple clip add-ons avoid duplicate Twitch requests.</p><p>This helper has no overlay and never plays, posts, or downloads a clip by itself.</p></div></details>`;
+  if (addOn.moduleId === 'thsv.clip-library-cache') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.clip-library-cache:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect the Clip Engine library</strong><small>One internal action supplies every Clip Engine experience.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Clip Library Cache</strong> in Streamer.bot.</li><li>Leave <strong>Refresh</strong> enabled and triggerless. Do not attach a timer or platform trigger.</li><li>Approve only Refresh in the next wizard step, enable the shared clip list, save, and restart StreamBridge.</li><li>Use the Clip Engine cards above to configure Random Clip Player, Clip Courier, or Raid Scout playback.</li></ol><p class="notice"><strong>Clip Engine foundation:</strong> this component owns the shared bounded Twitch lookup. It stays optional for creators who do not use clips, while every enabled clip experience shares the same records and avoids duplicate API requests.</p><p>It has no overlay and never plays, posts, or downloads a clip by itself.</p></div></details>`;
   if (addOn.moduleId === 'thsv.clip-courier') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.clip-courier:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Connect !clip and Discord</strong><small>The main Twitch intake owns the command; two private helpers create and deliver the clip.</small></span><span class="status-chip status-neutral">Package import required</span></summary><div class="addon-step-body"><ol><li>Import <strong>THSV StreamBridge - Clip Courier</strong> in Streamer.bot. Leave Create Clip and Deliver triggerless.</li><li>Open <strong>Create Clip</strong>. Set <code>clipCourierDurationSeconds</code> to <strong>30</strong> or <strong>60</strong>, then Save and Compile.</li><li>Open <strong>Deliver</strong>, replace <code>clipCourierWebhookUrl</code> with a private webhook for the Discord channel or forum selected above, then Save and Compile.</li><li>Approve <strong>Create Clip</strong> and <strong>Deliver</strong> below, enable Clip Courier, save, and restart StreamBridge.</li><li>Test <code>!clip</code> from Twitch through the main intake. Disable any older Streamer.bot <code>!clip</code> Command object so only the intake-owned route responds.</li><li>Optional: install Clip Library Cache and enable current-stream discovery if clips made without <code>!clip</code> should also be sent.</li></ol><p class="notice"><strong>No old-library posting:</strong> automatic discovery accepts only Twitch clip timestamps inside the stream session observed by StreamBridge. If the session boundary is unknown, it sends nothing. Never paste the webhook into the wizard or a support message.</p></div></details>`;
   if (addOn.moduleId === 'thsv.community-analytics') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.community-analytics:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Confirm the data path</strong><small>Community Analytics listens to the existing Bridge intakes.</small></span><span class="status-chip status-ready">No add-on import needed</span></summary><div class="addon-step-body"><ol><li>Install and enable <strong>Viewer Foundation</strong> first.</li><li>Keep Twitch, YouTube, Kick, and TikTok triggers attached to their main <strong>THSV &lt;Platform&gt; - Intake</strong> actions.</li><li>Do not create a Community Analytics action or attach duplicate chat triggers.</li><li>Save the selected platforms and restart StreamBridge. Local counters update when normalized events arrive.</li><li>Use the Reports section below to refresh the session summary or export bounded reports.</li></ol><p class="notice">This is a private local observation tool, not official platform analytics. It stores no chat text, display names, avatars, raw events, or financial amounts.</p></div></details>`;
   if (addOn.moduleId === 'thsv.chat-guard') return `<details class="form-section addon-trigger-readiness addon-step" data-disclosure-key="addon:thsv.chat-guard:trigger-readiness"><summary><span><span class="step-number">3</span><strong>Use the existing chat intakes</strong><small>Moderation uses one helper; trusted-viewer replies are registered automatically.</small></span><span class="status-chip status-neutral">Moderation import optional</span></summary><div class="addon-step-body"><ol><li>Import the version-matched Chat Guard package only when automatic moderation is needed. Leave both helper actions triggerless.</li><li>Approve <strong>Moderate</strong> only after observation testing. The Trust Viewer helper is retained for backward compatibility but is no longer required by the intake-owned command.</li><li>Keep platform chat triggers only on the main THSV intake actions.</li></ol><p><strong>To trust someone:</strong> as broadcaster or moderator, reply to that viewer's chat message with <code>!guardtrust</code>. StreamBridge reads the stable reply identity and adds it locally after restart.</p><p class="notice">Twitch, YouTube, and Kick support the reply workflow. For TikTok, use the clearly labeled manual fallback.</p></div></details>`;
@@ -597,16 +697,191 @@ function renderVillageDrawAdmin(addOn) {
   ].join('');
 }
 
+function mainFeatureFamilies() { return Array.isArray(state.addOnFeatureFamilies) ? state.addOnFeatureFamilies : []; }
+
+function mainFeatureForModule(moduleId) {
+  return mainFeatureFamilies().find((feature) => [...(feature.modules || []), ...(feature.relatedModules || [])].includes(moduleId));
+}
+
+function featureFamilyStatus(feature) {
+  const installed = [...feature.modules, ...(feature.relatedModules || [])].map((id) => state.addOns.find((addOn) => addOn.moduleId === id)).filter(Boolean);
+  const enabled = installed.filter((addOn) => addOn.enabled);
+  const requiredInstalled = feature.modules.map((id) => state.addOns.find((addOn) => addOn.moduleId === id)).filter(Boolean);
+  const requiredEnabled = requiredInstalled.filter((addOn) => addOn.enabled);
+  const missing = Math.max(0, feature.modules.length - requiredInstalled.length);
+  const incomplete = missing > 0 || (requiredInstalled.length > 0 && requiredEnabled.length < requiredInstalled.length);
+  const attention = enabled.some((addOn) => state.addOnRestartRequiredIds.has(addOn.moduleId) || (state.addOnRuntime && addOnRuntimeModule(addOn.moduleId)?.status !== 'healthy'));
+  const status = installed.length === 0 ? 'Not installed' : attention ? 'Needs attention' : missing > 0 ? 'Incomplete' : requiredEnabled.length === 0 ? 'Disabled' : incomplete ? 'Partially enabled' : 'Ready';
+  return { installed, enabled, attention, incomplete, status };
+}
+
+function safeFeatureCount(value) { return Number.isSafeInteger(value) && value >= 0 ? value : 0; }
+
+function runtimeMainFeature(feature, runtime) {
+  const keys = {
+    'broadcast-director': 'broadcastDirector',
+    'clip-engine': 'clipEngine',
+    'community-rewards': 'communityRewards',
+    'community-messaging': 'communityMessaging',
+    'community-insights': 'communityInsights',
+    'community-play': 'communityPlay',
+    'voice-language': 'voiceLanguage',
+  };
+  return runtime?.[keys[feature.id]] || null;
+}
+
+function featureComponentState(addOn) {
+  if (!addOn.enabled) return { label: 'Disabled', statusClass: 'status-neutral' };
+  if (state.addOnRestartRequiredIds.has(addOn.moduleId)) return { label: 'Restart required', statusClass: 'status-warning' };
+  const runtime = addOnRuntimeModule(addOn.moduleId);
+  if (!state.addOnRuntime) return { label: 'Runtime unknown', statusClass: 'status-neutral' };
+  if (!runtime) return { label: 'Not active', statusClass: 'status-warning' };
+  if (runtime.status === 'healthy') return { label: 'Healthy', statusClass: 'status-ready' };
+  return { label: addOnOptionLabel(typeof runtime.status === 'string' ? runtime.status : 'Needs attention'), statusClass: 'status-warning' };
+}
+
+function featureMetrics(feature, runtimeFeature) {
+  if (!runtimeFeature || typeof runtimeFeature !== 'object') return [];
+  const queue = state.addOnRuntime?.browserOverlay?.presentationQueue;
+  const policy = state.addOnRuntime?.browserOverlay?.presentationPolicy;
+  const policyReady = policy?.contractVersion === '1.0.0';
+  const queued = Array.isArray(queue?.queued) ? queue.queued.length : 0;
+  if (feature.id === 'broadcast-director') return [
+    ['Stage', addOnOptionLabel(typeof runtimeFeature.stage === 'string' ? runtimeFeature.stage : 'offline')],
+    ['Live platforms', String(Array.isArray(runtimeFeature.livePlatforms) ? runtimeFeature.livePlatforms.length : 0)],
+    ['Ad', addOnOptionLabel(typeof runtimeFeature.ad?.state === 'string' ? runtimeFeature.ad.state : 'idle')],
+    ['Raid Scout', addOnOptionLabel(typeof runtimeFeature.raid?.state === 'string' ? runtimeFeature.raid.state : 'idle')],
+    ['Presentation', policyReady ? 'Timers independent; raid cards queued' : 'Runtime policy unavailable'],
+  ];
+  if (feature.id === 'clip-engine') return [
+    ['Cached clips', String(safeFeatureCount(runtimeFeature.librarySize))],
+    ['Clip responses', String(safeFeatureCount(runtimeFeature.randomClipResponses))],
+    ['Media owner', typeof runtimeFeature.media?.ownerModuleId === 'string' && runtimeFeature.media.ownerModuleId ? runtimeFeature.media.ownerModuleId : 'Idle'],
+    ['Last result', runtimeFeature.lastError ? 'Needs review' : 'Healthy'],
+    ['Presentation', policyReady ? 'Media plays independently' : 'Runtime policy unavailable'],
+  ];
+  if (feature.id === 'community-rewards') return [
+    ['Session', runtimeFeature.sessionActive ? 'Live' : 'Offline'],
+    ['Redemptions', String(safeFeatureCount(runtimeFeature.redemptions))],
+    ['Component operations', String(safeFeatureCount(runtimeFeature.operations))],
+    ['Queued overlays', String(queued)],
+    ['Reported issues', String(safeFeatureCount(runtimeFeature.failures) + safeFeatureCount(runtimeFeature.capabilityFailures))],
+    ['Presentation', policyReady ? 'Foreground queue' : 'Runtime policy unavailable'],
+  ];
+  if (feature.id === 'community-messaging') return [
+    ['Session', runtimeFeature.sessionActive ? 'Live' : 'Offline'],
+    ['Chat events', String(safeFeatureCount(runtimeFeature.messagesObserved))],
+    ['Component operations', String(safeFeatureCount(runtimeFeature.operations))],
+    ['Pending sends', String(safeFeatureCount(runtimeFeature.outboundPending))],
+    ['Reported issues', String(safeFeatureCount(runtimeFeature.failures) + safeFeatureCount(runtimeFeature.capabilityFailures))],
+    ['Presentation', policyReady ? 'Shoutouts queued; delivery background' : 'Runtime policy unavailable'],
+  ];
+  if (['community-insights', 'community-play', 'voice-language'].includes(feature.id)) return [
+    ['Session', runtimeFeature.sessionActive ? 'Live' : 'Offline'],
+    ['Component operations', String(safeFeatureCount(runtimeFeature.operations))],
+    ['Pending sends', String(safeFeatureCount(runtimeFeature.outboundPending))],
+    ['Reported issues', String(safeFeatureCount(runtimeFeature.failures) + safeFeatureCount(runtimeFeature.capabilityFailures))],
+    ['Last component', typeof runtimeFeature.lastComponent === 'string' && runtimeFeature.lastComponent ? runtimeFeature.lastComponent : 'No activity yet'],
+  ];
+  return [];
+}
+
+function renderFeatureDetails(feature, result, runtimeFeature) {
+  const metrics = featureMetrics(feature, runtimeFeature);
+  const metricsHtml = metrics.length ? `<dl class="main-feature-metrics">${metrics.map(([label, value]) => `<div><dt>${safe(label)}</dt><dd>${safe(value)}</dd></div>`).join('')}</dl>` : '<p class="notice">Runtime metrics will appear after StreamBridge connects.</p>';
+  const componentHtml = result.installed.length
+    ? `<ul class="main-feature-component-list">${result.installed.map((addOn) => { const component = featureComponentState(addOn); return `<li><button type="button" class="ghost compact" data-select-feature-addon="${safe(addOn.moduleId)}">${safe(addOn.name)}</button><span class="status-chip ${component.statusClass}">${safe(component.label)}</span></li>`; }).join('')}</ul>`
+    : '<p class="notice">No components from this feature are installed. Core services continue without them.</p>';
+  return `<details class="main-feature-details"><summary>System details</summary><div class="main-feature-details-body">${metricsHtml}${componentHtml}</div></details>`;
+}
+
+function renderBroadcastAppCompatibility() {
+  return `<section class="broadcast-app-compatibility" aria-label="Broadcast application compatibility"><header><div><p class="addon-kicker">One Bridge, three broadcast apps</p><h3>OBS, Meld, and Streamlabs support</h3><p>Chat, commands, rewards, timers, Discord delivery, analytics, and saved state do not depend on a broadcast app. Visual features use the same local browser-source URL in all three apps. Scene automation uses Streamer.bot's normalized Scene Changed relay for the app you choose.</p></div><span class="status-chip status-ready">Provider neutral</span></header><div class="broadcast-app-grid"><article class="broadcast-app-card"><span class="status-chip status-ready">Supported</span><h4>OBS Studio</h4><p>Browser sources and scene automation are supported. OBS/Aitum output helpers remain intentionally OBS-specific.</p></article><article class="broadcast-app-card"><span class="status-chip status-ready">Supported</span><h4>Meld Studio</h4><p>Use a Meld Browser layer and Meld Scene Changed, Streaming Started, and Streaming Stopped triggers in Streamer.bot.</p></article><article class="broadcast-app-card"><span class="status-chip status-ready">Supported</span><h4>Streamlabs Desktop</h4><p>Use a Browser Source and Streamlabs Desktop scene and streaming triggers in Streamer.bot.</p></article></div><p class="notice"><strong>Important:</strong> connect and relay only the broadcast app that owns each scene or stop-stream action. An unavailable unselected app never blocks chat, overlays, or another selected provider.</p></section>`;
+}
+
+function renderMainFeatureHub() {
+  const families = mainFeatureFamilies();
+  if (!families.length) return '<section class="main-feature-hub"><p class="notice">Bridge feature ownership is unavailable until the service and wizard versions match.</p></section>';
+  const runtime = state.addOnRuntime?.mainFeatures || {};
+  return `${renderBroadcastAppCompatibility()}<section class="main-feature-hub" aria-label="Built-in StreamBridge extensions"><div class="main-feature-heading"><div><p class="addon-kicker">Included with StreamBridge</p><h3>Built-in extensions</h3><p>These ${safe(String(families.length))} extensions are part of the full Bridge experience. Their components share one operating surface while retaining safe state and failure boundaries.</p></div><span class="status-chip status-ready">${safe(String(families.length))} included</span></div>${renderFeatureMigrationHub()}<div class="main-feature-grid">${families.map((feature) => {
+    const result = featureFamilyStatus(feature);
+    const runtimeFeature = runtimeMainFeature(feature, runtime);
+    const overlayQueue = state.addOnRuntime?.browserOverlay?.presentationQueue;
+    const queuedOverlays = Array.isArray(overlayQueue?.queued) ? overlayQueue.queued.length : 0;
+    const detail = feature.id === 'broadcast-director' && runtimeFeature
+      ? `${addOnOptionLabel(runtimeFeature.stage || 'offline')} · ${(runtimeFeature.livePlatforms || []).length} live platform(s)`
+      : feature.id === 'clip-engine' && runtimeFeature
+        ? `${String(runtimeFeature.librarySize || 0)} cached clip record(s)`
+        : feature.id === 'community-rewards' && runtimeFeature
+          ? `${String(safeFeatureCount(runtimeFeature.redemptions))} redemption event(s) · ${String(queuedOverlays)} queued overlay(s)`
+          : feature.id === 'community-messaging' && runtimeFeature
+            ? `${String(safeFeatureCount(runtimeFeature.messagesObserved))} chat event(s) · ${String(safeFeatureCount(runtimeFeature.failures) + safeFeatureCount(runtimeFeature.capabilityFailures))} reported issue(s)`
+            : runtimeFeature
+              ? `${String(safeFeatureCount(runtimeFeature.operations))} component operation(s) · ${String(safeFeatureCount(runtimeFeature.failures) + safeFeatureCount(runtimeFeature.capabilityFailures))} reported issue(s)`
+            : `${result.enabled.length} of ${result.installed.length} installed component(s) enabled`;
+    return `<article class="main-feature-card" data-main-feature="${safe(feature.id)}"><div class="main-feature-card-title"><div><h4 title="${safe(feature.name)}">${safe(feature.name)}</h4><small>${safe(detail)}</small></div><span class="status-chip ${result.attention || result.incomplete ? 'status-warning' : result.enabled.length ? 'status-ready' : 'status-neutral'}">${safe(result.status)}</span></div><p>${safe(feature.description)}</p>${renderFeatureDetails(feature, result, runtimeFeature)}</article>`;
+  }).join('')}</div></section>`;
+}
+
+function migrationSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return 'No saved files';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function renderFeatureMigrationHub() {
+  const candidates = Array.isArray(state.featureMigrations) ? state.featureMigrations : [];
+  if (!candidates.length) return '';
+  const pending = candidates.filter((candidate) => candidate.status === 'pending').length;
+  return `<section class="feature-migration-hub" aria-label="Migrated component data"><div class="feature-migration-heading"><div><p class="addon-kicker">Private migration inbox</p><h4>Choose what comes into the full Bridge</h4><p>Saved component data stays local and inactive here until you import it. Importing data and enabling its component are separate choices.</p></div><span class="status-chip ${pending ? 'status-warning' : 'status-ready'}">${pending ? `${pending} decision${pending === 1 ? '' : 's'} pending` : 'Reviewed'}</span></div><div class="feature-migration-list">${candidates.map((candidate) => {
+    const feature = mainFeatureForModule(candidate.moduleId);
+    const decided = candidate.status !== 'pending';
+    const unavailable = !candidate.installed;
+    return `<form class="feature-migration-row" data-feature-migration="${safe(candidate.moduleId)}"><div class="feature-migration-copy"><strong>${safe(candidate.name)}</strong><small>${safe(feature?.name || 'Bridge component')} · from ${safe(candidate.sourceVersion)} · ${safe(String(candidate.stagedFiles))} file(s), ${safe(migrationSize(candidate.stagedBytes))}</small><span class="status-chip ${candidate.status === 'imported' ? 'status-ready' : candidate.status === 'skipped' ? 'status-neutral' : 'status-warning'}">${safe(candidate.status === 'pending' ? 'Awaiting your choice' : candidate.status === 'imported' ? 'Data imported' : 'Data not imported')}</span></div><div class="feature-migration-options"><label class="check"><input type="checkbox" name="importData" ${candidate.dataImported || candidate.stagedData ? 'checked' : ''} ${candidate.dataImported || !candidate.stagedData ? 'disabled' : ''}> Import saved settings and history</label>${candidate.dataImported ? '<small>Imported data stays preserved. Disable the component below if you do not want it to run.</small>' : ''}<label class="check"><input type="checkbox" name="enabled" ${candidate.currentlyEnabled || (!decided && candidate.originalEnabled) ? 'checked' : ''}> Enable component after restart</label>${candidate.activeData && candidate.stagedData && !candidate.dataImported ? '<label class="check migration-replace"><input type="checkbox" name="replaceExistingData"> Replace current component data</label>' : ''}<button type="submit" ${unavailable ? 'disabled' : ''}>${decided ? 'Update migration choice' : 'Apply this migration'}</button>${unavailable ? '<small class="error">Install or repair the current component package first.</small>' : ''}</div></form>`;
+  }).join('')}</div><p class="notice"><strong>Nothing is deleted:</strong> skipped migration data remains in the private local inbox so you can return later. Replacing current data requires its separate checkbox.</p></section>`;
+}
+
+function managedExtensionIds() {
+  return new Set(mainFeatureFamilies().flatMap((feature) => feature.modules || []));
+}
+
+function addOnSelectorOptions(selected, bridgeManaged) {
+  const managed = managedExtensionIds();
+  if (!bridgeManaged) return state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).sort((left, right) => left.name.localeCompare(right.name)).map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('');
+  return mainFeatureFamilies().map((feature) => {
+    const options = feature.modules.map((id) => state.addOns.find((addOn) => addOn.moduleId === id)).filter(Boolean);
+    return options.length ? `<optgroup label="${safe(feature.name)}">${options.map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+}
+
+function renderInstalledAddOnCatalog(selected) {
+  const managed = managedExtensionIds();
+  const addOns = state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).sort((left, right) => left.name.localeCompare(right.name));
+  const cards = addOns.length ? `<div class="installed-addon-grid">${addOns.map((addOn) => {
+    const component = featureComponentState(addOn);
+    return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Optional add-on</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer"><span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
+  }).join('')}</div>` : '<p class="notice">No optional add-ons are installed. Add one from the verified package area above when you need it.</p>';
+  return `${renderBroadcastAppCompatibility()}<section class="installed-addon-catalog" aria-label="Installed optional add-ons"><div class="catalog-heading"><div><p class="addon-kicker">Optional and separately installed</p><h3>Installed add-ons</h3><p>Add-ons are independent features you choose to add. They are not required by the seven built-in extensions.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
+}
+
 function renderAddOns() {
   const list = byId('addon-list');
+  const marketplaceList = byId('addon-marketplace-list');
   if (!state.addOns.length) {
-    list.innerHTML = '<p class="notice">No add-ons are installed. Core chat, commands, alerts, timers, and rewards continue to work without add-ons.</p>';
+    list.innerHTML = renderMainFeatureHub() + (marketplaceList ? '' : renderInstalledAddOnCatalog()) + '<p class="notice">No extension component packages are installed. Core chat, commands, alerts, timers, and rewards continue to work.</p>';
+    if (marketplaceList) marketplaceList.innerHTML = renderInstalledAddOnCatalog();
+    document.querySelectorAll('[data-feature-migration]').forEach((form) => form.addEventListener('submit', applyFeatureMigration));
     return;
   }
   const selected = state.addOns.find((addOn) => addOn.moduleId === state.selectedAddOnId) || state.addOns[0];
   state.selectedAddOnId = selected.moduleId;
-  const selector = `<label class="addon-selector">Manage installed add-on<select id="addon-selector">${state.addOns.map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('')}</select></label>`;
-  list.innerHTML = selector + [selected].map((addOn) => {
+  const selectedFeature = mainFeatureForModule(selected.moduleId);
+  const selectedIsExtension = selectedFeature?.managementMode === 'bridge-managed-components';
+  const selector = `<label class="addon-selector">${selectedIsExtension ? 'Manage a built-in extension component' : 'Manage an installed add-on'}<select id="addon-selector">${addOnSelectorOptions(selected, selectedIsExtension)}</select></label>`;
+  const selectedCard = [selected].map((addOn) => {
+    const feature = mainFeatureForModule(addOn.moduleId);
+    const bridgeManaged = feature?.managementMode === 'bridge-managed-components';
     const rejected = addOn.health === 'rejected';
     const fields = rejected ? '' : renderAddOnSettings(addOn);
     const permissions = addOn.permissions.length ? addOn.permissions.join(', ') : 'No optional permissions requested';
@@ -617,7 +892,7 @@ function renderAddOns() {
     const viewerWarning = addOn.permissions.some((permission) => permission.startsWith('viewer.foundation.') || permission.startsWith('community.analytics.')) ? '<p class="notice"><strong>Viewer-data permission:</strong> this add-on participates in the optional Viewer Foundation or Community Analytics services. Review whether it provides or reads pseudonymous viewer data before enabling it.</p>' : '';
     const triggerReadiness = rejected ? '' : renderAddOnTriggerReadiness(addOn);
     const settingsIntro = typeof addOn.settingsUi?.intro === 'string' && addOn.settingsUi.intro.trim() ? addOn.settingsUi.intro : 'Open only the section you want to change. Hidden options keep their saved values.';
-    const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:configure`)}" open><summary><span><span class="step-number">2</span><strong>Configure the add-on</strong><small>Change only the sections you need; saved collapsed sections stay collapsed.</small></span></summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><div class="addon-settings-heading"><p class="addon-settings-intro">${safe(settingsIntro)}</p><div class="button-row"><button type="button" class="ghost compact" data-addon-sections="expand">Expand all</button><button type="button" class="ghost compact" data-addon-sections="collapse">Collapse all</button></div></div>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Settings are preserved now and become active after StreamBridge restarts.</small></div></form></details>`;
+    const settings = rejected || !fields ? '' : `<details class="form-section addon-settings-shell addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:configure`)}" open><summary><span><span class="step-number">2</span><strong>${bridgeManaged ? `Configure this ${safe(feature.name)} component` : 'Configure this add-on'}</strong><small>Change only the sections you need; saved collapsed sections stay collapsed.</small></span></summary><form class="addon-settings" data-addon-settings="${safe(addOn.moduleId)}"><div class="addon-settings-heading"><p class="addon-settings-intro">${safe(settingsIntro)}</p><div class="button-row"><button type="button" class="ghost compact" data-addon-sections="expand">Expand all</button><button type="button" class="ghost compact" data-addon-sections="collapse">Collapse all</button></div></div>${fields}<div class="addon-settings-save"><button type="submit">Save all settings</button><small>Settings are preserved now and become active after StreamBridge restarts.</small></div></form></details>`;
     let nextWorkflowStep = 4;
     const chatGuardGrantHelp = addOn.moduleId === 'thsv.chat-guard'
       ? '<p class="notice"><strong>Observation-only users can leave this empty.</strong> For automatic moderation, approve only <strong>THSV Addon - Chat Guard - Moderate</strong>. The main chat intake now handles <code>!guardtrust</code> locally; the older Trust Viewer helper does not need approval.</p>'
@@ -631,24 +906,36 @@ function renderAddOns() {
     const acceptance = rejected ? '' : renderAddOnAcceptance(addOn, nextWorkflowStep);
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
     const packageDetails = rejected ? '' : `<details class="form-section addon-package-details" data-disclosure-key="${safe(`addon:${addOn.moduleId}:package-details`)}"><summary><span><strong>Package and publisher details</strong><small>Permissions, source, updates, release notes, and security information.</small></span></summary><div class="addon-step-body"><p><strong>Publisher:</strong> ${safe(addOn.author)}</p><p><strong>Package type:</strong> ${safe(addOn.packageKind)}</p><p><strong>Permissions:</strong> ${safe(permissions)}</p>${trustLinks}${liveChatWarning}${providerWarning}${viewerWarning}${addOn.packageKind === 'executable' ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}</div></details>`;
-    const maintenance = rejected ? '' : `<details class="form-section addon-maintenance" data-disclosure-key="${safe(`addon:${addOn.moduleId}:maintenance`)}"><summary><span><strong>Enable, disable, or uninstall</strong><small>Routine maintenance and removal controls.</small></span></summary><div class="addon-step-body"><div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Enable and disable changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></div></details>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">Installed add-on</p><h3>${safe(addOn.name)} ${safe(addOn.version)}</h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status"><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}<div class="addon-flow">${setupGuide}${!rejected && !fields ? '<p class="notice">This add-on has no creator-editable settings. Continue to its connection and testing steps.</p>' : ''}${settings}${triggerReadiness}${actionGrant}${overlayTools}${viewerAdministration}${acceptance}</div>${packageDetails}${maintenance}</article>`;
+    const maintenance = rejected ? '' : `<details class="form-section addon-maintenance" data-disclosure-key="${safe(`addon:${addOn.moduleId}:maintenance`)}"><summary><span><strong>${bridgeManaged ? 'Advanced component maintenance' : 'Enable, disable, or uninstall'}</strong><small>${bridgeManaged ? `This component normally stays managed inside ${safe(feature.name)}.` : 'Routine maintenance and removal controls.'}</small></span></summary><div class="addon-step-body">${bridgeManaged ? `<p class="notice"><strong>Bridge-managed component:</strong> disabling or uninstalling this package degrades ${safe(feature.name)} but does not erase its private settings.</p>` : ''}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Enable and disable changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></div></details>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">${bridgeManaged ? `${safe(feature.name)} component` : 'Installed add-on'}</p><h3 title="${safe(`${addOn.name} ${addOn.version}`)}"><span>${safe(addOn.name)}</span> <small>${safe(addOn.version)}</small></h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status"><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}<div class="addon-flow">${setupGuide}${!rejected && !fields ? '<p class="notice">This component has no creator-editable settings. Continue to its connection and testing steps.</p>' : ''}${settings}${triggerReadiness}${actionGrant}${overlayTools}${viewerAdministration}${acceptance}</div>${packageDetails}${maintenance}</article>`;
   }).join('');
+  const selectedArea = `<section class="selected-package-area ${selectedIsExtension ? 'selected-extension-area' : 'selected-addon-area'}"><div class="catalog-heading"><div><p class="addon-kicker">${selectedIsExtension ? 'Built-in extension settings' : 'Optional add-on settings'}</p><h3>${selectedIsExtension ? safe(selectedFeature.name) : 'Manage installed add-on'}</h3></div></div>${selector}${selectedCard}</section>`;
+  const addOnArea = renderInstalledAddOnCatalog(selected) + (selectedIsExtension ? '' : selectedArea);
+  list.innerHTML = renderMainFeatureHub() + (selectedIsExtension ? selectedArea : '') + (marketplaceList ? '' : addOnArea);
+  if (marketplaceList) marketplaceList.innerHTML = addOnArea;
   // Saving settings and other add-on operations rebuild this subtree. Restore both open and
   // closed choices immediately so sections never flash or return to their package defaults.
   restoreDisclosureStates(list);
-  byId('addon-selector').addEventListener('change', (event) => { state.selectedAddOnId = event.target.value; renderAddOns(); });
+  if (marketplaceList) restoreDisclosureStates(marketplaceList);
+  byId('addon-selector')?.addEventListener('change', (event) => { state.selectedAddOnId = event.target.value; renderAddOns(); });
+  document.querySelectorAll('[data-select-feature-addon]').forEach((button) => button.addEventListener('click', () => { state.selectedAddOnId = button.dataset.selectFeatureAddon; renderAddOns(); byId('addon-selector')?.focus(); }));
+  document.querySelectorAll('[data-select-installed-addon]').forEach((button) => button.addEventListener('click', () => { state.selectedAddOnId = button.dataset.selectInstalledAddon; renderAddOns(); byId('addon-selector')?.focus(); }));
+  document.querySelectorAll('[data-feature-migration]').forEach((form) => form.addEventListener('submit', applyFeatureMigration));
   document.querySelectorAll('[data-toggle-addon]').forEach((button) => button.addEventListener('click', toggleAddOn));
   document.querySelectorAll('[data-remove-addon]').forEach((button) => button.addEventListener('click', removeAddOn));
   document.querySelectorAll('[data-stage-addon-update]').forEach((button) => button.addEventListener('click', stageOfficialAddOnUpdate));
+  document.querySelectorAll('[data-install-addon-update]').forEach((button) => button.addEventListener('click', installOfficialAddOnUpdate));
   document.querySelectorAll('[data-addon-settings]').forEach((form) => {
     form.addEventListener('submit', saveAddOnSettings);
-    form.addEventListener('change', () => updateAddOnFieldVisibility(form));
+    form.addEventListener('input', () => scheduleAddOnOverlayDraftPreview(form));
+    form.addEventListener('change', () => { updateAddOnFieldVisibility(form); scheduleAddOnOverlayDraftPreview(form); });
+    form.querySelector('[data-overlay-editor-frame]')?.addEventListener('load', () => scheduleAddOnOverlayDraftPreview(form, true));
     form.querySelectorAll('[data-addon-sections]').forEach((button) => button.addEventListener('click', () => {
       const open = button.dataset.addonSections === 'expand';
       form.querySelectorAll('.addon-settings-section').forEach((section) => { section.open = open; });
     }));
     updateAddOnFieldVisibility(form);
+    scheduleAddOnOverlayDraftPreview(form, true);
   });
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
@@ -720,9 +1007,76 @@ async function stageOfficialAddOnUpdate(event) {
       body: JSON.stringify({ moduleId, version, approvedByCreator: true, ...(publisherId ? { publisherId } : {}) }),
     });
     await loadAddOns();
-    status.textContent = `${result.moduleId} ${result.version} passed authenticated release provenance and package verification. Review it under Discovered packages, then choose Verify and install.`;
+    status.textContent = `${result.moduleId} ${result.version} passed authenticated release provenance and package verification. Review it under Discovered packages, then choose Verify and install.${result.streamerBotImportRequired ? ` Its matching Streamer.bot import was also verified and saved in ${result.streamerBotImportDirectory}.` : ''}`;
   } catch (error) {
     status.textContent = error.message;
+  } finally {
+    status.removeAttribute('aria-busy');
+    button.disabled = false;
+  }
+}
+
+async function installOfficialAddOnUpdate(event) {
+  const moduleId = event.currentTarget.dataset.installAddonUpdate;
+  const version = event.currentTarget.dataset.installAddonVersion;
+  if (!confirm(`Update ${moduleId} to ${version}? StreamBridge will verify the authenticated release, publisher, compatibility, checksums, and inner package before installing it. Saved settings and state are preserved. Restart StreamBridge after finishing your selected updates.`)) return;
+  const button = event.currentTarget;
+  const status = byId('addon-update-state');
+  button.disabled = true;
+  status.setAttribute('aria-busy', 'true');
+  status.textContent = `Verifying and updating ${moduleId} to ${version}...`;
+  try {
+    const publisherId = state.addOnUpdatePublisherId || '';
+    const result = await api(publisherId ? '/wizard/api/addons/trusted-updates/install' : '/wizard/api/addons/updates/install', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ moduleId, version, approvedByCreator: true, ...(publisherId ? { publisherId } : {}) }),
+    });
+    markAddOnRestartRequired(result.moduleId);
+    await loadAddOns();
+    state.selectedAddOnId = result.moduleId;
+    renderAddOns();
+    activatePanel(mainFeatureForModule(result.moduleId) ? 'addons' : 'addon-marketplace');
+    reportAddOnFeedback(`${result.moduleId} ${result.version} was verified and installed. Saved settings and state were preserved.${result.streamerBotImportRequired ? ` Re-import ${result.streamerBotImports.join(', ')} from ${result.streamerBotImportDirectory} in Streamer.bot so its actions match this add-on.` : ''} Restart StreamBridge once after finishing all updates.`, 'success', button);
+  } catch (error) {
+    reportAddOnFeedback(`The update was not installed: ${error.message}`, 'error', button);
+  } finally {
+    status.removeAttribute('aria-busy');
+    button.disabled = false;
+  }
+}
+
+async function installAllCompatibleAddOnUpdates(event) {
+  const updates = (state.addOnUpdates?.addOns || []).filter((entry) => entry.state === 'update-available' && entry.latestVersion);
+  if (!updates.length || state.addOnUpdatePublisherId) return;
+  const summary = updates.map((entry) => `${entry.moduleId} -> ${entry.latestVersion}`).join('\n');
+  if (!confirm(`Update these ${updates.length} compatible official add-on(s)?\n\n${summary}\n\nEvery package will be independently authenticated and verified. Saved settings and state are preserved. StreamBridge will need one restart after the batch finishes.`)) return;
+  const button = event.currentTarget;
+  const status = byId('addon-update-state');
+  button.disabled = true;
+  status.setAttribute('aria-busy', 'true');
+  const installed = [];
+  const failed = [];
+  try {
+    for (const update of updates) {
+      status.textContent = `Updating ${update.moduleId} to ${update.latestVersion} (${installed.length + failed.length + 1} of ${updates.length})...`;
+      try {
+        const result = await api('/wizard/api/addons/updates/install', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ moduleId: update.moduleId, version: update.latestVersion, approvedByCreator: true }),
+        });
+        installed.push(`${result.moduleId} ${result.version}${result.streamerBotImportRequired ? ' (Streamer.bot re-import staged)' : ''}`);
+        markAddOnRestartRequired(result.moduleId);
+      } catch (error) {
+        failed.push(`${update.moduleId}: ${error.message}`);
+      }
+    }
+    await loadAddOns();
+    state.addOnUpdates = null;
+    button.classList.add('hidden');
+    const resultText = `${installed.length} add-on(s) updated and verified.${installed.some((entry) => entry.includes('re-import staged')) ? ' Matching Streamer.bot imports were verified under data/addons/inbox/streamerbot; re-import those before testing.' : ''}${installed.length ? ' Restart StreamBridge once to activate them.' : ''}${failed.length ? ` ${failed.length} failed safely: ${failed.join(' | ')}` : ''}`;
+    reportAddOnFeedback(resultText, failed.length ? 'error' : 'success', button);
   } finally {
     status.removeAttribute('aria-busy');
     button.disabled = false;
@@ -1331,9 +1685,13 @@ async function installDiscoveredAddOn(event) {
     const discovered = state.discoveredAddOns.find((addOn) => addOn.filename === filename);
     if (!discovered?.sha256) { reportAddOnFeedback('Inspect this package again before installing it.', 'error', button); return; }
     const result = await api('/wizard/api/addons/install-discovered', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename, sha256: discovered.sha256, approvedByCreator: true }) });
-    state.selectedAddOnId = result.moduleId;
     markAddOnRestartRequired(result.moduleId);
     await loadAddOns();
+    if (state.addOns.some((addOn) => addOn.moduleId === result.moduleId)) {
+      state.selectedAddOnId = result.moduleId;
+      renderAddOns();
+      activatePanel(mainFeatureForModule(result.moduleId) ? 'addons' : 'addon-marketplace');
+    }
     reportAddOnFeedback(`Installed ${result.moduleId} ${result.version} from the inbox. Restart StreamBridge to activate it.`, 'success', button);
   } catch (error) { reportAddOnFeedback(`The discovered add-on was not installed: ${error.message}`, 'error', button); }
 }
@@ -1471,6 +1829,24 @@ async function toggleAddOn(event) {
   } catch (error) { reportAddOnFeedback(`${id} was not ${enabled ? 'enabled' : 'disabled'}: ${error.message}`, 'error', button); }
 }
 
+async function applyFeatureMigration(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const moduleId = form.dataset.featureMigration;
+  const button = form.querySelector('button[type="submit"]');
+  const importData = form.elements.importData?.checked === true;
+  const enabled = form.elements.enabled?.checked === true;
+  const replaceExistingData = form.elements.replaceExistingData?.checked === true;
+  const dataWarning = replaceExistingData ? ' Existing component data will be replaced by the retained migration copy.' : '';
+  if (!confirm(`Apply the migration choice for ${moduleId}? Saved migration data will ${importData ? 'be imported' : 'remain in the private inbox'} and the component will ${enabled ? 'be enabled' : 'stay disabled'} after restart.${dataWarning}`)) return;
+  try {
+    await api(`/wizard/api/addons/${encodeURIComponent(moduleId)}/feature-migration`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ importData, enabled, replaceExistingData, approvedByCreator: true }) });
+    markAddOnRestartRequired(moduleId);
+    await loadAddOns();
+    reportAddOnFeedback(`${moduleId} migration choice was saved. ${importData ? 'Migrated data was imported.' : 'Migrated data remains available but was not imported.'} Restart StreamBridge to apply the component state.`, 'success', button);
+  } catch (error) { reportAddOnFeedback(`${moduleId} migration was not applied: ${error.message}`, 'error', button); }
+}
+
 async function removeAddOn(event) {
   const button = event.currentTarget;
   const id = button.dataset.removeAddon;
@@ -1496,15 +1872,8 @@ async function saveAddOnSettings(event) {
     if (mappings.some((mapping) => !mapping.sceneName || !mapping.actionId)) { const message = 'Every scene mapping needs an exact scene name and a target action.'; byId('addon-state').textContent = message; showWizardFeedback(message, 'error', button); return; }
     if (new Set(mappings.map((mapping) => mapping.id)).size !== mappings.length) { const message = 'Every scene mapping needs a unique ID.'; byId('addon-state').textContent = message; showWizardFeedback(message, 'error', button); return; }
   }
-  const settings = {};
-  for (const [name, schema] of Object.entries(addOn.configurationSchema.properties || {})) {
-    const field = form.elements.namedItem(name);
-    if (schema.type === 'boolean') settings[name] = field.checked;
-    else if (schema.type === 'array' && Array.isArray(schema.items?.enum)) settings[name] = [...form.querySelectorAll(`[name="${CSS.escape(name)}"]:checked`)].map((input) => input.value);
-    else if (schema.type === 'array') settings[name] = field.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
-    else if (schema.type === 'number' || schema.type === 'integer') settings[name] = Number(field.value);
-    else settings[name] = field.value;
-  }
+  const settings = collectAddOnSettings(form, addOn);
+  if (settings === null) { reportAddOnFeedback(`Settings were not saved for ${id}: the form is incomplete.`, 'error', button); return; }
   if (button) { button.disabled = true; button.textContent = 'Saving…'; }
   try {
     await api(`/wizard/api/addons/${encodeURIComponent(id)}/settings`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(settings) });
@@ -1522,6 +1891,62 @@ async function saveAddOnSettings(event) {
     reportAddOnFeedback(message, 'success', button);
   } catch (error) { const message = `Settings were not saved for ${id}: ${error.message}`; reportAddOnFeedback(message, 'error', button); }
   finally { if (button?.isConnected) { button.disabled = false; button.textContent = originalLabel; button.classList.remove('is-working'); button.removeAttribute('aria-busy'); } }
+}
+
+const addOnOverlayDraftPreviewState = new WeakMap();
+
+function collectAddOnSettings(form, addOn) {
+  if (!addOn?.configurationSchema?.properties) return null;
+  const settings = {};
+  for (const [name, schema] of Object.entries(addOn.configurationSchema.properties)) {
+    const field = form.elements.namedItem(name);
+    if (!field) return null;
+    if (schema.type === 'boolean') settings[name] = field.checked;
+    else if (schema.type === 'array' && Array.isArray(schema.items?.enum)) settings[name] = [...form.querySelectorAll(`[name="${CSS.escape(name)}"]:checked`)].map((input) => input.value);
+    else if (schema.type === 'array') settings[name] = field.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
+    else if (schema.type === 'number' || schema.type === 'integer') settings[name] = Number(field.value);
+    else settings[name] = field.value;
+  }
+  return settings;
+}
+
+function scheduleAddOnOverlayDraftPreview(form, immediate = false) {
+  const frame = form.querySelector('[data-overlay-editor-frame]');
+  if (!frame) return;
+  const prior = addOnOverlayDraftPreviewState.get(form) || { timer: 0, revision: 0 };
+  clearTimeout(prior.timer);
+  prior.revision += 1;
+  const revision = prior.revision;
+  prior.timer = setTimeout(() => void updateAddOnOverlayDraftPreview(form, revision), immediate ? 0 : 140);
+  addOnOverlayDraftPreviewState.set(form, prior);
+}
+
+async function updateAddOnOverlayDraftPreview(form, revision) {
+  if (!form.isConnected) return;
+  const moduleId = form.dataset.addonSettings;
+  const addOn = state.addOns.find((candidate) => candidate.moduleId === moduleId);
+  const frame = form.querySelector('[data-overlay-editor-frame]');
+  const status = form.querySelector('[data-overlay-draft-state]');
+  const settings = collectAddOnSettings(form, addOn);
+  if (!frame || !status || settings === null) return;
+  status.textContent = 'Updating preview...';
+  status.className = 'status-chip status-neutral';
+  try {
+    const mode = moduleId === 'thsv.ad-break-companion' ? 'active' : '';
+    const result = await api(`/wizard/api/addons/${encodeURIComponent(moduleId)}/overlay-preview-draft`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ settings, mode }) });
+    const current = addOnOverlayDraftPreviewState.get(form);
+    if (!form.isConnected || current?.revision !== revision) return;
+    frame.contentWindow?.postMessage({ kind: 'thsv.overlay-editor.preview', event: result.event }, location.origin);
+    status.textContent = 'Draft preview - not saved';
+    status.className = 'status-chip status-ready';
+    status.removeAttribute('title');
+  } catch (error) {
+    const current = addOnOverlayDraftPreviewState.get(form);
+    if (!form.isConnected || current?.revision !== revision) return;
+    status.textContent = 'Preview paused';
+    status.className = 'status-chip status-warning';
+    status.title = error.message;
+  }
 }
 
 function addAddOnActionDraft(event) {
@@ -1623,15 +2048,20 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
   try {
     const contentBase64 = await fileAsBase64(file);
     const result = await api('/wizard/api/addons/install', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename: file.name, contentBase64, approvedByCreator: form.elements.approvedByCreator.checked }) });
-    state.selectedAddOnId = result.moduleId;
     markAddOnRestartRequired(result.moduleId);
     form.reset();
     await loadAddOns();
+    if (state.addOns.some((addOn) => addOn.moduleId === result.moduleId)) {
+      state.selectedAddOnId = result.moduleId;
+      renderAddOns();
+      activatePanel(mainFeatureForModule(result.moduleId) ? 'addons' : 'addon-marketplace');
+    }
     reportAddOnFeedback(`Installed ${result.moduleId} ${result.version}. Restart StreamBridge to activate it.`, 'success', form.querySelector('button[type="submit"]'));
   } catch (error) { reportAddOnFeedback(`The add-on was not installed: ${error.message}`, 'error', form.querySelector('button[type="submit"]')); }
   finally { status.removeAttribute('aria-busy'); }
 });
 byId('refresh-addons').addEventListener('click', loadAddOns);
+byId('refresh-addon-marketplace')?.addEventListener('click', loadAddOns);
 byId('check-addon-updates').addEventListener('click', async () => {
   const button = byId('check-addon-updates');
   const status = byId('addon-update-state');
@@ -1642,6 +2072,8 @@ byId('check-addon-updates').addEventListener('click', async () => {
     const result = await api('/wizard/api/addons/updates/check', { method: 'POST' });
     state.addOnUpdatePublisherId = '';
     state.addOnUpdates = result.available ? result : null;
+    const updateAllButton = byId('update-all-compatible-addons');
+    updateAllButton?.classList.toggle('hidden', !result.available || result.updateCount < 1);
     if (!result.available) status.textContent = `Add-on update check unavailable: ${result.error}`;
     else {
       const message = result.revokedCount > 0
@@ -1654,6 +2086,7 @@ byId('check-addon-updates').addEventListener('click', async () => {
   } catch (error) { status.textContent = error.message; }
   finally { status.removeAttribute('aria-busy'); button.disabled = false; }
 });
+byId('update-all-compatible-addons')?.addEventListener('click', installAllCompatibleAddOnUpdates);
 byId('trusted-publisher-form').addEventListener('submit', async (event) => {
   event.preventDefault(); const form = event.currentTarget;
   if (!form.checkValidity()) { form.reportValidity(); return; }

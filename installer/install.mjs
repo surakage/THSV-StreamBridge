@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
-import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { spawn, spawnSync } from 'node:child_process';
+import { copyFile, cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
@@ -26,6 +26,7 @@ if (previousRecord !== undefined) {
 
 await stopInstalledBridge(installRoot);
 await mkdir(installRoot, { recursive: true });
+await migrateLegacyAddOns(installRoot, previousRecord?.activeVersion);
 const transactionRoot = join(installRoot, `.install-${randomUUID()}`);
 await mkdir(transactionRoot, { recursive: true });
 await protectPrivateDirectory(transactionRoot);
@@ -54,7 +55,7 @@ try {
   await replaceDirectory(appTarget, stagedApp, appBackup, moved);
   await replaceDirectory(runtimeTarget, stagedRuntime, runtimeBackup, moved);
   await replaceDirectory(launcherTarget, stagedLauncher, launcherBackup, moved);
-  for (const name of ['Start THSV StreamBridge.cmd', 'Start THSV Streamer.bot Safely.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Uninstall THSV StreamBridge.cmd']) {
+  for (const name of ['Start THSV StreamBridge.cmd', 'Start THSV Streamer.bot Safely.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Open THSV StreamBridge Tray.cmd', 'Uninstall THSV StreamBridge.cmd']) {
     await copyFile(join(sourceRoot, 'launcher', name), join(installRoot, name));
   }
   // The installer launcher belongs only in the downloaded release folder. Its
@@ -80,29 +81,52 @@ try {
   if (startAfterInstall) {
     const result = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait', '--open-wizard'], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
     if (result.status !== 0) {
-      if (previousRecord?.activeVersion !== undefined) {
-        await writeJsonAtomic(recordPath, { ...previousRecord, rolledBackAt: new Date().toISOString(), failedVersion: manifest.version });
-        spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait'], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
-      } else await rm(recordPath, { force: true });
-      throw new Error(`The new version failed its health check and was rolled back. ${result.stderr || result.stdout}`.trim());
+      throw new Error(`The new version failed its health check and was rolled back. ${result.error?.message || result.stderr || result.stdout}`.trim());
     }
   }
 
   removeLegacyConvenienceShortcuts(installRoot);
 
-  for (const path of [appBackup, runtimeBackup, launcherBackup]) await rm(path, { recursive: true, force: true });
-  await pruneOldVersions(join(installRoot, 'app'), new Set([manifest.version, previousRecord?.activeVersion].filter(Boolean)));
+  // Everything above this line is transactional. Once the health check passes,
+  // cleanup is best-effort so a locked old folder cannot undo a healthy install.
+  for (const path of [appBackup, runtimeBackup, launcherBackup]) await rm(path, { recursive: true, force: true }).catch((error) => {
+    process.stderr.write(`Warning: old rollback data could not be removed (${error instanceof Error ? error.message : String(error)}).\n`);
+  });
+  await pruneOldVersions(join(installRoot, 'app'), new Set([manifest.version, previousRecord?.activeVersion].filter(Boolean))).catch((error) => {
+    process.stderr.write(`Warning: an older application version could not be pruned (${error instanceof Error ? error.message : String(error)}).\n`);
+  });
+  if (startAfterInstall) launchTrayShell(installRoot);
   process.stdout.write(`${PRODUCT} ${manifest.version} installed at ${installRoot}\n`);
   process.stdout.write(`Installed folder: ${installRoot}\n`);
   process.stdout.write(`Wizard recovery key saved to: ${recoveryKeyPath}\n`);
   process.stdout.write(`One-button Stream Deck target: ${join(installRoot, 'Start THSV Streaming Tools.cmd')}\n`);
+  process.stdout.write(`Notification-area shell: ${join(installRoot, 'Open THSV StreamBridge Tray.cmd')}\n`);
   process.stdout.write('Keep the recovery key private. Open THSV Setup Wizard still unlocks automatically, so the saved key is needed only for manual recovery.\n');
   if (!startAfterInstall) process.stdout.write('Installation validation completed without starting the bridge.\n');
 } catch (error) {
   await rollbackDirectories(moved);
+  if (previousRecord?.activeVersion !== undefined) {
+    await writeJsonAtomic(recordPath, { ...previousRecord, rolledBackAt: new Date().toISOString(), failedVersion: manifest.version });
+    if (startAfterInstall) {
+      const recovery = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait'], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
+      if (recovery.status !== 0) process.stderr.write(`Warning: the previous StreamBridge version was restored but could not restart automatically. ${recovery.error?.message || recovery.stderr || recovery.stdout || ''}\n`);
+    }
+  } else {
+    await rm(recordPath, { force: true });
+  }
   throw error;
 } finally {
   await rm(transactionRoot, { recursive: true, force: true });
+}
+
+function launchTrayShell(root) {
+  if (process.platform !== 'win32') return;
+  const child = spawn('powershell.exe', [
+    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
+    '-File', join(root, 'launcher', 'tray.ps1'), '-InstallRoot', root,
+  ], { cwd: root, detached: true, windowsHide: true, stdio: 'ignore' });
+  child.once('error', (error) => process.stderr.write(`Warning: the notification-area shell could not start (${error.message}).\n`));
+  child.unref();
 }
 
 async function prepareCreatorData(root, destination, version) {
@@ -138,6 +162,49 @@ async function prepareCreatorData(root, destination, version) {
     await writeJsonAtomic(configPath, config);
   }
   return recoveryKeyPath;
+}
+
+async function migrateLegacyAddOns(destination, activeVersion) {
+  if (typeof activeVersion !== 'string' || activeVersion.length === 0) return;
+  const legacyRoot = join(destination, 'app', activeVersion, 'addons');
+  if (!await exists(legacyRoot)) return;
+  const legacyPackages = join(legacyRoot, 'packages');
+  if (!await exists(legacyPackages)) return;
+  const persistentPackages = join(destination, 'addons', 'packages');
+  const migrationRoot = join(destination, 'addons', 'migration-inbox');
+  const ledgerPath = join(migrationRoot, 'feature-migrations.json');
+  await mkdir(persistentPackages, { recursive: true });
+  await mkdir(migrationRoot, { recursive: true });
+  const existingLedger = await readJsonIfPresent(ledgerPath);
+  const candidates = Array.isArray(existingLedger?.candidates) ? [...existingLedger.candidates] : [];
+  const known = new Set(candidates.map((candidate) => candidate?.moduleId).filter((value) => typeof value === 'string'));
+
+  for (const entry of await readdir(legacyPackages)) {
+    const source = join(legacyPackages, entry);
+    const descriptor = await readJsonIfPresent(join(source, 'module-package.json'));
+    const record = await readJsonIfPresent(join(source, 'installed-package.json'));
+    const moduleId = descriptor?.manifest?.moduleId;
+    const version = descriptor?.manifest?.version;
+    if (typeof moduleId !== 'string' || !/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId) || typeof version !== 'string') continue;
+    if (record?.moduleId !== moduleId || record?.version !== version) continue;
+    const target = join(persistentPackages, moduleId);
+    if (await exists(target)) continue;
+    await cp(source, target, { recursive: true, errorOnExist: true, force: false });
+    const originalEnabled = record.enabled !== false;
+    await writeJsonAtomic(join(target, 'installed-package.json'), { ...record, enabled: false, changedAt: new Date().toISOString() });
+
+    const legacyState = join(legacyRoot, 'state', moduleId);
+    const stagedState = join(migrationRoot, moduleId, 'state');
+    if (await exists(legacyState) && !await exists(stagedState)) {
+      await mkdir(dirname(stagedState), { recursive: true });
+      await cp(legacyState, stagedState, { recursive: true, errorOnExist: true, force: false });
+    }
+    if (!known.has(moduleId)) {
+      candidates.push({ moduleId, sourceVersion: version, discoveredAt: new Date().toISOString(), originalEnabled });
+      known.add(moduleId);
+    }
+  }
+  if (candidates.length > 0) await writeJsonAtomic(ledgerPath, { version: 1, candidates });
 }
 
 async function protectPrivateFile(path) {

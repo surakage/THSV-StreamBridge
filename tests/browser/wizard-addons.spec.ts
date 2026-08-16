@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { zipSync } from 'fflate';
@@ -10,6 +11,12 @@ async function packageAddOn(root: string): Promise<Uint8Array> {
   const entries: Record<string, Uint8Array> = { 'module-package.json': descriptorBytes };
   for (const file of descriptor.files) entries[file.path] = await readFile(join(root, ...file.path.split('/')));
   return zipSync(entries, { level: 9 });
+}
+
+async function openAddOnInstaller(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
+  const installer = page.locator('[data-disclosure-key="panel:addon-marketplace:install"]');
+  if ((await installer.getAttribute('open')) === null) await installer.locator('summary').click();
 }
 
 test('launcher ticket unlocks the wizard once without leaving the secret in browser history', async ({ page, request }) => {
@@ -24,6 +31,36 @@ test('launcher ticket unlocks the wizard once without leaving the secret in brow
   expect(replay.status()).toBe(401);
 });
 
+test('wizard prepares and starts a verified offline Bridge update without manual extraction', async ({ page }) => {
+  const requests: Array<{ path: string; body: Record<string, unknown> }> = [];
+  await page.route('**/wizard/api/updates/check', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    checkedAt: new Date().toISOString(), currentVersion: STREAMBRIDGE_VERSION, available: true, updateAvailable: true, latestVersion: '3.6.0', releaseName: 'THSV StreamBridge 3.6.0', releaseUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v3.6.0', publishedAt: '2026-08-15T12:00:00Z', releaseNotes: 'Update center improvements.',
+    archive: { name: 'THSV-StreamBridge-3.6.0.zip', url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v3.6.0/THSV-StreamBridge-3.6.0.zip', size: 40_000_000 },
+    checksum: { name: 'THSV-StreamBridge-3.6.0.zip.sha256', url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v3.6.0/THSV-StreamBridge-3.6.0.zip.sha256', size: 100 },
+  }) }));
+  await page.route('**/wizard/api/updates/stage', async (route) => {
+    requests.push({ path: 'stage', body: route.request().postDataJSON() as Record<string, unknown> });
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '3.6.0', archiveName: 'THSV-StreamBridge-3.6.0.zip', archivePath: 'C:\\Updates\\THSV-StreamBridge-3.6.0.zip', sha256: 'a'.repeat(64), provenance: 'verified', repository: 'surakage/THSV-StreamBridge', workflow: 'release.yml@v3.6.0', applyReady: true }) });
+  });
+  await page.route('**/wizard/api/updates/apply', async (route) => {
+    requests.push({ path: 'apply', body: route.request().postDataJSON() as Record<string, unknown> });
+    await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ accepted: true, version: '3.6.0', installRoot: 'C:\\THSV StreamBridge', message: 'The verified updater started. StreamBridge will restart and reopen the wizard.' }) });
+  });
+  page.on('dialog', async (dialog) => await dialog.accept());
+  await page.goto('/wizard/');
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  await page.getByRole('button', { name: 'Check for updates' }).click();
+  await page.getByRole('button', { name: /Download & prepare/u }).click();
+  await expect(page.getByRole('button', { name: 'Install verified update' })).toBeVisible();
+  await page.getByRole('button', { name: 'Install verified update' }).click();
+  await expect(page.locator('#update-state')).toContainText('restart and reopen the wizard');
+  expect(requests).toEqual([
+    { path: 'stage', body: { version: '3.6.0', approvedByCreator: true } },
+    { path: 'apply', body: { version: '3.6.0', approvedByCreator: true } },
+  ]);
+});
+
 test('wizard installs and configures add-ons without injecting package code', async ({ page, context }) => {
   test.setTimeout(90_000);
   await page.goto('/wizard/');
@@ -36,18 +73,21 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
   await expect(page.locator('#mode')).toContainText('Authenticated');
-  await expect(page.locator('.workspace > nav .nav-heading')).toHaveText(['Core setup', 'Automation', 'On stream', 'Extensions', 'Advanced']);
+  await expect(page.locator('.workspace > nav .nav-heading')).toHaveText(['Core setup', 'Automation', 'On stream', 'Features', 'Advanced']);
   await expect(page.locator('[data-panel="overview"] .page-kicker')).toHaveText('Home');
   const versionCard = page.locator('#overview-cards .stat').filter({ hasText: 'Version' });
   await expect(versionCard).toContainText(STREAMBRIDGE_VERSION);
   await expect(page.locator('#overview-cards .stat').filter({ hasText: 'Preview' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Add-ons' }).click();
-  await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Extensions', exact: true })).toBeVisible();
   await expect(page.locator('[data-panel="addons"] > .page-header')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Check official updates' })).toBeHidden();
+  await expect(page.locator('[data-panel="addons"] #addon-install-form')).toHaveCount(0);
+  await openAddOnInstaller(page);
+  await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Check official updates' })).toBeVisible();
-  await expect(page.getByText('Update checks are creator-started and never silently install or enable code.', { exact: false })).toBeVisible();
-  await expect(page.getByText('No add-ons are installed')).toBeVisible();
-  await page.locator('[data-disclosure-key="panel:addons:install"] summary').click();
+  await expect(page.locator('#addon-update-state')).not.toBeEmpty();
+  await expect(page.getByText('No optional add-ons are installed', { exact: false })).toBeVisible();
 
   const root = 'examples/addons/declarative-settings';
   const archive = zipSync({
@@ -59,6 +99,19 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   await expect(page.getByRole('article').getByText('Declarative Settings Example 1.0.0', { exact: true })).toBeVisible();
+  await expect(page.locator('#wizard-feedback')).toContainText('Installed sample.declarative-settings 1.0.0');
+  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
+  await expect(page.locator('#addon-state')).toContainText('built-in extension');
+  const migrationRows = await page.evaluate(`state.featureMigrations = [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', sourceVersion: '0.9.0', discoveredAt: '2026-08-15T00:00:00.000Z', originalEnabled: false, installed: true, currentlyEnabled: false, status: 'pending', stagedData: true, stagedFiles: 3, stagedBytes: 2048, activeData: false }]; renderAddOns(); document.querySelectorAll('[data-feature-migration]').length;`);
+  expect(migrationRows).toBe(1);
+  const migration = page.locator('[data-feature-migration="sample.declarative-settings"]');
+  await expect(page.getByRole('heading', { name: 'Choose what comes into the full Bridge' })).toBeVisible();
+  await expect(migration).toContainText('3 file(s), 2 KB');
+  await expect(migration.getByLabel('Import saved settings and history')).toBeChecked();
+  await expect(migration.getByLabel('Enable component after restart')).not.toBeChecked();
+  await expect(migration.getByRole('button', { name: 'Apply this migration' })).toBeEnabled();
+  await page.evaluate('state.featureMigrations = []; renderAddOns();');
+  await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-card-status')).toContainText('Restart required');
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-runtime-summary')).toContainText('restart StreamBridge');
   await page.evaluate(`(() => {
@@ -74,8 +127,9 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.evaluate(`state.addOnUpdates = { available: true, updateCount: 1, revokedCount: 0, addOns: [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', installedVersion: '1.0.0', latestVersion: '1.1.0', state: 'update-available', sha256: '${'a'.repeat(64)}', downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.4.1/sample.zip' }] }; renderAddOns();`);
   await expect(page.getByText('Update available.', { exact: false })).toBeVisible();
   await expect(page.getByText('Latest authenticated version: 1.1.0.', { exact: false })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Download & verify update' })).toBeVisible();
-  await expect(page.getByText('Installation still requires your separate review and approval', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Update safely' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download for review' })).toBeVisible();
+  await expect(page.getByText('Saved settings and private state remain intact', { exact: false })).toBeVisible();
 
   const addOnHeading = page.locator('[data-addon-settings] [name="heading"]');
   await addOnHeading.fill('My private add-on setting');
@@ -147,6 +201,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.evaluate(`(() => { state.liveActions = []; state.addOns = state.addOns.filter((candidate) => !['thsv.voice-relay', 'thsv.village-hydration-station'].includes(candidate.moduleId)); state.selectedAddOnId = 'sample.declarative-settings'; renderAddOns(); })()`);
 
   const userTranslateArchive = await packageAddOn('addons/user-translate');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'user-translate.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(userTranslateArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -187,6 +242,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
   const shoutoutArchive = await packageAddOn('addons/automated-shoutouts');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'automated-shoutouts.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(shoutoutArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -208,6 +264,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
   const subathonArchive = await packageAddOn('addons/subathon-timer');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'subathon-timer.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(subathonArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -233,6 +290,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await subathonOverlay.close();
 
   const countdownArchive = await packageAddOn('addons/starting-soon-countdown');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'starting-soon-countdown.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(countdownArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -265,6 +323,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await countdownOverlay.close();
 
   const sceneActionsArchive = await packageAddOn('addons/scene-actions');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'scene-actions.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(sceneActionsArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -305,6 +364,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).resolves.toBe(true);
 
   const kofiArchive = await packageAddOn('addons/kofi-donations');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'kofi-donations.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(kofiArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -318,6 +378,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.evaluate('state.liveActions = []; renderAddOns();');
 
   const raidScoutArchive = await packageAddOn('addons/raid-scout');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'raid-scout.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(raidScoutArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -350,9 +411,20 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(noCandidateMessage).not.toBeVisible();
   await raidScoutSettings.getByLabel('Post a no-candidate message in Twitch chat').check();
   await expect(noCandidateMessage).toBeVisible();
+  await raidScoutSettings.locator('summary').filter({ hasText: 'Optional automatic broadcast ending' }).click();
+  await raidScoutSettings.getByLabel('End the broadcast after the raid attempt').check();
+  const broadcastApplication = raidScoutSettings.getByLabel('Broadcast application');
+  await expect(broadcastApplication).toHaveValue('obs');
+  await expect(broadcastApplication.locator('option')).toHaveText(['OBS Studio (including Aitum outputs)', 'Meld Studio', 'Streamlabs Desktop']);
+  await broadcastApplication.selectOption('meld');
+  await expect(broadcastApplication).toHaveValue('meld');
+  await broadcastApplication.selectOption('streamlabs');
+  await expect(broadcastApplication).toHaveValue('streamlabs');
+  await expect(raidScoutSettings.getByLabel('Provider Stop Streaming action')).toBeVisible();
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
   const chatGuardArchive = await packageAddOn('addons/chat-guard');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'chat-guard.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(chatGuardArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -390,17 +462,48 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByText('Review by incident ID', { exact: true }).click();
   await expect(page.getByLabel('Decision')).toHaveValue('confirmed');
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await page.evaluate(`(() => {
+    state.addOnRuntime = {
+      ...(state.addOnRuntime || {}),
+      mainFeatures: {
+        ...(state.addOnRuntime?.mainFeatures || {}),
+        communityRewards: { sessionActive: true, redemptions: 7, operations: 4, failures: 0, capabilityFailures: 0 },
+        communityMessaging: { sessionActive: true, messagesObserved: 23, operations: 5, failures: 1, capabilityFailures: 2, outboundPending: 2 },
+      },
+      browserOverlay: {
+        ...(state.addOnRuntime?.browserOverlay || {}),
+        presentationPolicy: { contractVersion: '1.0.0' },
+        presentationQueue: { active: null, queued: [{ owner: 'thsv.first-five' }] },
+      },
+    };
+    renderAddOns();
+  })()`);
+  await expect(page.locator('[data-main-feature="community-rewards"]')).toContainText('7 redemption event(s) · 1 queued overlay(s)');
+  await expect(page.locator('[data-main-feature="community-messaging"]')).toContainText('23 chat event(s) · 3 reported issue(s)');
+  await expect(page.locator('.main-feature-details')).toHaveCount(7);
+  const messagingFeature = page.locator('[data-main-feature="community-messaging"]');
+  await messagingFeature.locator('summary').click();
+  await expect(messagingFeature).toContainText('Pending sends');
+  await expect(messagingFeature).toContainText('2');
+  await expect(messagingFeature).toContainText('Shoutouts queued; delivery background');
+  await expect(page.locator('[data-main-feature="community-rewards"]')).toContainText('Foreground queue');
+  await expect(messagingFeature.getByRole('button', { name: 'Chat Guard' })).toBeVisible();
 
   const clipCacheArchive = await packageAddOn('addons/clip-library-cache');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'clip-library-cache.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(clipCacheArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   await expect(page.getByRole('article').getByText(`Clip Library Cache ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
-  await expect(page.locator('[data-addon-id="thsv.clip-library-cache"] .addon-trigger-readiness')).toContainText('Why this is separate');
-  await expect(page.locator('[data-addon-settings="thsv.clip-library-cache"]')).toContainText('shared background infrastructure');
+  await expect(page.locator('[data-main-feature="clip-engine"]')).toContainText('Clip Engine');
+  await expect(page.locator('[data-main-feature="clip-engine"]')).toContainText('Clip Library Cache');
+  await expect(page.getByLabel('Manage a built-in extension component').locator('optgroup[label="Clip Engine"]')).toHaveCount(1);
+  await expect(page.locator('[data-addon-id="thsv.clip-library-cache"] .addon-trigger-readiness')).toContainText('Clip Engine foundation');
+  await expect(page.locator('[data-addon-settings="thsv.clip-library-cache"]')).toContainText('shared library inside the Clip Engine');
   await expect(page.locator('[data-addon-settings="thsv.clip-library-cache"]')).toContainText('Nothing appears on stream');
 
   const clipCourierArchive = await packageAddOn('addons/clip-courier');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'clip-courier.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(clipCourierArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -413,10 +516,20 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"]')).not.toContainText('Publish an existing clip');
 
   const villageDrawArchive = await packageAddOn('addons/village-draw');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'village-draw.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(villageDrawArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   await expect(page.getByRole('article').getByText(`Village Draw ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Built-in extensions', exact: true })).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Installed add-ons', exact: true })).toBeVisible();
+  await expect(page.locator('.installed-addon-card').filter({ hasText: 'Village Draw' })).toBeVisible();
+  await expect(page.getByLabel('Manage an installed add-on')).toHaveValue('thsv.village-draw');
+  await expect(page.locator('[data-main-feature] [data-select-feature-addon="thsv.village-draw"]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Built-in extensions', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Installed add-ons', exact: true })).toBeHidden();
+  await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
   const villageDrawSettings = page.locator('[data-addon-settings="thsv.village-draw"]');
   await expect(villageDrawSettings).toContainText('casual community giveaways');
   await villageDrawSettings.locator('summary').filter({ hasText: 'Entry and ticket rules' }).click();
@@ -441,6 +554,7 @@ test('wizard installs and configures add-ons without injecting package code', as
     'dist/index.js': await readFile(join(executableRoot, 'dist/index.js')),
     'schemas/config.json': await readFile(join(executableRoot, 'schemas/config.json')),
   });
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'no-op.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(executableArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
@@ -494,11 +608,26 @@ test('wizard installs and configures add-ons without injecting package code', as
   await overlay.close();
 
   const hydrationArchive = await packageAddOn('addons/village-hydration-station');
+  await openAddOnInstaller(page);
   await page.getByLabel('Add-on package').setInputFiles({ name: 'village-hydration-station.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(hydrationArchive) });
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   await page.locator('#addon-selector').selectOption('thsv.village-hydration-station');
   const hydrationCard = page.locator('[data-addon-id="thsv.village-hydration-station"]');
+  const visualEditor = hydrationCard.locator('[data-overlay-live-editor="thsv.village-hydration-station"]');
+  await expect(visualEditor.getByText('See each change on the real overlay')).toBeVisible();
+  await expect(hydrationCard.locator('[data-overlay-visual-target="Water fill inside the bottle or glass"]')).toContainText('Overlay area: Water fill inside the bottle or glass');
+  await expect(visualEditor.locator('[data-overlay-draft-state]')).toContainText('Draft preview - not saved');
+  const editorOverlay = page.frameLocator('[data-overlay-editor-frame="thsv.village-hydration-station"]');
+  await expect(editorOverlay.getByText('PREVIEW', { exact: true })).toBeAttached();
+  await expect(editorOverlay.locator('#hydration-shell')).toBeVisible();
+  await hydrationCard.locator('input[name="waterColor"]').evaluate((element) => {
+    (element as HTMLInputElement).value = '#1266ee';
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(visualEditor.locator('[data-overlay-draft-state]')).toContainText('Draft preview - not saved');
+  await expect.poll(async () => editorOverlay.locator('#hydration-shell').evaluate((element) => element.style.getPropertyValue('--hydration-water'))).toBe('#1266ee');
+  expect(await page.evaluate(`state.addOns.find((candidate) => candidate.moduleId === 'thsv.village-hydration-station').settings.waterColor`)).not.toBe('#1266ee');
   await hydrationCard.getByText('Open overlay & test', { exact: true }).click();
   const hydrationOverlay = await context.newPage();
   await hydrationOverlay.goto('http://127.0.0.1:8799/overlay/addons/thsv.village-hydration-station');
@@ -520,8 +649,7 @@ test('Community Analytics keeps the creator snapshot simple and responsive', asy
   await page.goto('/wizard/');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
-  await page.getByRole('button', { name: 'Add-ons' }).click();
-  await page.locator('[data-disclosure-key="panel:addons:install"] summary').click();
+  await openAddOnInstaller(page);
   const archive = await packageAddOn('addons/community-analytics');
   await page.getByLabel('Add-on package').setInputFiles({ name: 'community-analytics.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(archive) });
   await page.getByLabel(/I reviewed and trust/u).check();
@@ -557,8 +685,7 @@ test('Quote Vault exposes a responsive creator-managed quote library', async ({ 
   await page.goto('/wizard/');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
-  await page.getByRole('button', { name: 'Add-ons' }).click();
-  await page.locator('[data-disclosure-key="panel:addons:install"] summary').click();
+  await openAddOnInstaller(page);
   const archive = await packageAddOn('addons/quote-vault');
   await page.getByLabel('Add-on package').setInputFiles({ name: 'quote-vault.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(archive) });
   await page.getByLabel(/I reviewed and trust/u).check();

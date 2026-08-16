@@ -1,6 +1,6 @@
 {
   "name": "@thsv/streambridge",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "private": true,
   "license": "MIT",
   "description": "A modular, local-first cross-platform livestream automation framework",
@@ -20,6 +20,7 @@
     "dev": "node tools/dev.mjs",
     "lint": "eslint .",
     "package:streamerbot": "tsx tools/build-streamerbot-export.ts",
+    "imports:sync": "tsx tools/sync-streamerbot-imports.ts",
     "release:sync-version": "tsx tools/sync-release-version.ts",
     "simulate": "tsx tools/simulate-event.ts",
     "simulate:burst": "tsx tools/simulate-burst.ts",

@@ -1,10 +1,10 @@
 {
-  "intro": "Clip Library Cache is shared background infrastructure for clip add-ons. Install it once, then Random Clip Player and Clip Courier reuse the same bounded Twitch clip list instead of making separate repeated lookups. It does not play, post, download, or display clips by itself.",
+  "intro": "Clip Library Cache is the shared library inside the Clip Engine. Install it once, then Random Clip Player, Clip Courier, and Raid Scout can reuse one bounded Twitch clip list instead of making separate repeated lookups. It does not play, post, download, or display clips by itself.",
   "order": ["enabled", "refreshMinutes", "clipCount", "maximumCache"],
   "sections": [
-    { "id": "setup", "title": "1. Turn on the shared clip list", "description": "Required by Random Clip Player and Clip Courier.", "open": true, "fields": ["enabled"], "notice": "This is a helper service, not a visible feature. Leave it enabled when any installed clip add-on lists thsv.clip-library-cache as a dependency." },
+    { "id": "setup", "title": "1. Turn on the Clip Engine library", "description": "Shared by Random Clip Player, Clip Courier, and Raid Scout.", "open": true, "fields": ["enabled"], "notice": "This is the Clip Engine's background library. Leave it enabled when an installed clip component lists thsv.clip-library-cache as a dependency." },
     { "id": "limits", "title": "2. Advanced refresh limits", "description": "The defaults are suitable for most channels.", "fields": ["refreshMinutes", "clipCount", "maximumCache"], "notice": "A refresh reads public Twitch clip metadata through your existing Streamer.bot Twitch account. Video files and temporary signed playback URLs are never stored here." },
-    { "id": "result", "title": "3. What happens after setup", "description": "Nothing appears on stream from this helper alone.", "fields": [], "notice": "StreamBridge periodically asks the approved Refresh action for one bounded list. Every enabled clip add-on can reuse that snapshot. Configure playback in Random Clip Player and Discord posting in Clip Courier." }
+    { "id": "result", "title": "3. What happens after setup", "description": "Nothing appears on stream from the library alone.", "fields": [], "notice": "StreamBridge periodically asks the approved Refresh action for one bounded list. Every enabled Clip Engine component can reuse that snapshot. Configure playback in Random Clip Player or Raid Scout and Discord posting in Clip Courier." }
   ],
   "fields": {}
 }

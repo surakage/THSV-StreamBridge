@@ -93,6 +93,10 @@ describe('wizard add-on management', () => {
     await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', labels: ['one', 'two', 'three', 'four'] })).rejects.toThrow('from 1 through 3 items');
     await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', labels: ['first', 'second'] })).resolves.toMatchObject({ saved: true });
     await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Live now');
+    await expect(service.previewSettings('sample.status-card', { label: 'Unsaved preview', interval: 20, enabled: true, color: 'purple', labels: ['draft'] })).resolves.toMatchObject({ moduleId: 'sample.status-card', settings: { label: 'Unsaved preview', interval: 20, enabled: true, color: 'purple', labels: ['draft'] } });
+    const settingsAfterPreview = await readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8');
+    expect(settingsAfterPreview).toContain('Live now');
+    expect(settingsAfterPreview).not.toContain('Unsaved preview');
 
     await expect(service.setEnabled('sample.status-card', { enabled: false, approvedByCreator: true })).resolves.toMatchObject({ enabled: false });
     const actionId = '11111111-1111-4111-8111-111111111111';
@@ -104,6 +108,30 @@ describe('wizard add-on management', () => {
     await expect(service.list()).resolves.toEqual([]);
     await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Live now');
   }, 15_000);
+
+  it('keeps migrated component data private until the creator imports it and chooses whether to enable the component', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-feature-migration-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state');
+    const migrationRoot = join(root, 'migration-inbox');
+    const service = new AddOnWizardService(packages, state);
+    await service.install({ filename: 'status-card.thsv-addon', contentBase64: Buffer.from(declarativeArchive()).toString('base64'), approvedByCreator: true });
+    await service.setEnabled('sample.status-card', { enabled: false, approvedByCreator: true });
+    await mkdir(join(migrationRoot, 'sample.status-card', 'state'), { recursive: true });
+    await writeFile(join(migrationRoot, 'sample.status-card', 'state', 'settings.json'), '{"label":"Migrated card","interval":20,"enabled":true,"color":"green","labels":["old"]}\n');
+    await writeFile(join(migrationRoot, 'feature-migrations.json'), JSON.stringify({ version: 1, candidates: [{ moduleId: 'sample.status-card', sourceVersion: '0.9.0', discoveredAt: '2026-08-15T00:00:00.000Z', originalEnabled: true }] }));
+
+    await expect(service.listFeatureMigrations()).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.status-card', status: 'pending', stagedData: true, stagedFiles: 1, activeData: false, currentlyEnabled: false })]);
+    await expect(service.applyFeatureMigration('sample.status-card', { importData: true, enabled: true, approvedByCreator: false })).rejects.toThrow('explicit creator approval');
+    await mkdir(join(state, 'sample.status-card'), { recursive: true });
+    await writeFile(join(state, 'sample.status-card', 'settings.json'), '{"label":"Current card","interval":30,"enabled":false,"color":"purple","labels":["new"]}\n');
+    await expect(service.applyFeatureMigration('sample.status-card', { importData: true, enabled: true, approvedByCreator: true })).rejects.toThrow('Replace current data');
+    await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Current card');
+    await expect(service.applyFeatureMigration('sample.status-card', { importData: true, enabled: true, replaceExistingData: true, approvedByCreator: true })).resolves.toMatchObject({ imported: true, enabled: true, dataReplaced: true, restartRequired: true });
+    await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Migrated card');
+    await expect(service.listFeatureMigrations()).resolves.toEqual([expect.objectContaining({ moduleId: 'sample.status-card', status: 'imported', currentlyEnabled: true, activeData: true })]);
+    await expect(service.applyFeatureMigration('sample.status-card', { importData: false, enabled: false, approvedByCreator: true })).rejects.toThrow('already imported');
+    await expect(service.applyFeatureMigration('sample.status-card', { importData: true, enabled: false, approvedByCreator: true })).resolves.toMatchObject({ imported: true, enabled: false, dataReplaced: false });
+  });
 
   it('rejects traversal entries before extracting an archive', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-addon-traversal-')); temporary.push(root);
@@ -146,8 +174,10 @@ describe('wizard add-on management', () => {
       moduleId: 'sample.status-card', version: '1.0.0', filename: 'status-card.thsv-addon', archive, sha256,
       outerArchiveName: 'THSV-StreamBridge-AddOn-Sample-1.0.0.zip', outerSha256: 'a'.repeat(64),
       provenance: 'verified' as const, repository: 'surakage/THSV-StreamBridge', workflow: 'expected-workflow',
+      streamerBotImports: [{ filename: 'THSV-Sample-1.0.0.sb', archive: new TextEncoder().encode('streamerbot import'), sha256: createHash('sha256').update('streamerbot import').digest('hex') }],
     };
-    await expect(service.stageVerifiedOfficialUpdate(verified)).resolves.toMatchObject({ staged: true, moduleId: 'sample.status-card', installRequiresCreatorReview: true, restartRequired: false });
+    await expect(service.stageVerifiedOfficialUpdate(verified)).resolves.toMatchObject({ staged: true, moduleId: 'sample.status-card', installRequiresCreatorReview: true, streamerBotImportRequired: true, streamerBotImports: ['THSV-Sample-1.0.0.sb'], restartRequired: false });
+    await expect(readFile(join(inbox, 'streamerbot', 'sample.status-card', '1.0.0', 'THSV-Sample-1.0.0.sb'), 'utf8')).resolves.toBe('streamerbot import');
     await expect(service.discover()).resolves.toEqual([expect.objectContaining({ filename: 'status-card.thsv-addon', health: 'available', moduleId: 'sample.status-card' })]);
     await expect(service.stageVerifiedOfficialUpdate({ ...verified, version: '2.0.0' })).rejects.toThrow('identity does not match');
   });

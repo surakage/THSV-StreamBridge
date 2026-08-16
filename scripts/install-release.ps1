@@ -9,6 +9,15 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Get-Sha256Hex([string]$Path) {
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        try { return ([System.BitConverter]::ToString($sha256.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+        finally { $sha256.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
 function Resolve-SafeRoot([string]$Path, [string]$Label) {
     $resolved = [System.IO.Path]::GetFullPath($Path).TrimEnd([System.IO.Path]::DirectorySeparatorChar)
     $driveRoot = [System.IO.Path]::GetPathRoot($resolved).TrimEnd([System.IO.Path]::DirectorySeparatorChar)
@@ -43,21 +52,13 @@ function Remove-SafeTree([string]$Path, [string]$ParentRoot) {
 }
 
 function Protect-PrivateStage([string]$Path) {
-    $security = New-Object System.Security.AccessControl.DirectorySecurity
-    $security.SetAccessRuleProtection($true, $false)
-    $inheritance = [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
-    $propagation = [System.Security.AccessControl.PropagationFlags]::None
-    $allow = [System.Security.AccessControl.AccessControlType]::Allow
-    $fullControl = [System.Security.AccessControl.FileSystemRights]::FullControl
-    $identities = @(
-        [System.Security.Principal.WindowsIdentity]::GetCurrent().User,
-        (New-Object System.Security.Principal.SecurityIdentifier('S-1-5-18')),
-        (New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544'))
-    )
-    foreach ($identity in $identities) {
-        $security.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($identity, $fullControl, $inheritance, $propagation, $allow)))
-    }
-    Set-Acl -LiteralPath $Path -AclObject $security
+    $icacls = Join-Path $env:SystemRoot 'System32\icacls.exe'
+    if (-not (Test-Path -LiteralPath $icacls -PathType Leaf)) { throw 'Windows ACL utility is unavailable.' }
+    $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    # SID-based grants avoid localized account-name failures and require no PowerShell
+    # Security module, so clean Windows PowerShell 5.1 and PowerShell 7 both work.
+    & $icacls $Path '/inheritance:r' '/grant:r' "*${currentSid}:(OI)(CI)F" '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not protect private installer staging: $Path" }
 }
 
 function Assert-ManifestFiles([string]$Root, $Manifest) {
@@ -65,7 +66,7 @@ function Assert-ManifestFiles([string]$Root, $Manifest) {
         $candidate = Resolve-ManifestPath $Root ([string]$file.path)
         if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { throw "Release file is missing: $($file.path)" }
         if ((Get-Item -LiteralPath $candidate).Length -ne [long]$file.size) { throw "Release file size mismatch: $($file.path)" }
-        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $candidate).Hash.ToLowerInvariant()
+        $actualHash = Get-Sha256Hex $candidate
         if ($actualHash -ne ([string]$file.sha256).ToLowerInvariant()) { throw "Release file hash mismatch: $($file.path)" }
     }
 }
@@ -158,7 +159,7 @@ try {
         Copy-Item -LiteralPath $sourceFile -Destination $stageFile -Force
     }
     Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $stage 'release-manifest.json') -Force
-    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $manifestPath).Hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $stage 'release-manifest.json')).Hash) {
+    if ((Get-Sha256Hex $manifestPath) -ne (Get-Sha256Hex (Join-Path $stage 'release-manifest.json'))) {
         throw 'Release manifest changed while it was copied into private staging.'
     }
     # Trust only the creator-private copy from this point forward. This closes the

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error plain-JS add-on entrypoint has no type declarations
-import { filterClipsByDuration, normalizedSceneName, sceneShouldPlay, selectNextClip } from '../../addons/random-clip-player/dist/index.js';
+import { filterClipsByDuration, mergeClipPools, normalizedSceneName, resetCompletedBag, sceneShouldPlay, selectNextClip } from '../../addons/random-clip-player/dist/index.js';
 
 interface Clip { readonly id: string; readonly durationSeconds: number }
 
@@ -9,6 +9,8 @@ const filterByDuration = filterClipsByDuration as (clips: readonly Clip[], minDu
 const pickNext = selectNextClip as (clips: readonly Clip[], seenClipIds: readonly string[], random?: () => number) => Clip | undefined;
 const normalizeScene = normalizedSceneName as (sceneName: string) => string;
 const shouldPlayScene = sceneShouldPlay as (sceneName: string, configuredSceneNames: readonly string[]) => boolean;
+const mergePools = mergeClipPools as (incoming: readonly Clip[], existing: readonly Clip[], maximum?: number) => readonly Clip[];
+const resetBag = resetCompletedBag as (seenIds: readonly string[], eligibleIds: ReadonlySet<string>) => readonly string[];
 
 function clip(id: string, durationSeconds: number): Clip {
   return { id, durationSeconds };
@@ -58,6 +60,24 @@ describe('Random Clip Player - selectNextClip', () => {
     const clips = [clip('a', 10), clip('b', 10), clip('c', 10)];
     expect(pickNext(clips, [], () => 0)?.id).toBe('a');
     expect(pickNext(clips, [], () => 0.999)?.id).toBe('c');
+  });
+});
+
+describe('Random Clip Player - refreshed rotation pool', () => {
+  it('does not let a smaller fallback response discard clips from the shared cache', () => {
+    const shared = [clip('a', 10), clip('b', 10), clip('c', 10), clip('d', 10)];
+    const fallback = [clip('a', 11), clip('b', 11)];
+    expect(mergePools(fallback, shared).map((entry) => entry.id)).toEqual(['a', 'b', 'c', 'd']);
+    expect(mergePools(fallback, shared)[0]?.durationSeconds).toBe(11);
+  });
+
+  it('bounds merged clip metadata and removes duplicate IDs', () => {
+    expect(mergePools([clip('a', 10), clip('a', 20), clip('b', 10)], [clip('c', 10)], 2).map((entry) => entry.id)).toEqual(['a', 'b']);
+  });
+
+  it('keeps the last completed clip blocked when a finished bag reshuffles', () => {
+    expect(resetBag(['a', 'b', 'c'], new Set(['a', 'b', 'c']))).toEqual(['c']);
+    expect(resetBag(['a'], new Set(['a', 'b']))).toEqual(['a']);
   });
 });
 

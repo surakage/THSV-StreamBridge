@@ -22,8 +22,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Hydration Station', version: '3.5.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Hydration Station', version: '3.6.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.6.0', maximumTestedBridgeVersion: '3.6.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [CONTROL_EVENT, 'reward.redemption', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'hydration-station.remind', name: 'hydrate' }, { id: 'hydration-station.creator', name: 'water' }],
@@ -46,6 +46,8 @@ let reminderTimer;
 let noticeTimer;
 let dailyResetTimer;
 const livePlatforms = new Set();
+const explicitlyOfflinePlatforms = new Set();
+let lifecycleEpoch = 0;
 
 function clean(value, maximum = 160) { return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join(''); }
 function integer(value, minimum, maximum, fallback) { const parsed = typeof value === 'number' ? value : Number(value); return Number.isSafeInteger(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback; }
@@ -140,7 +142,8 @@ function armNoticeClear(context, expiresAt) {
 function armReminder(context, settings, state) {
   cancelTask(context, reminderTimer); reminderTimer = undefined;
   if (stopped || !settings.enabled || !settings.automaticReminders || livePlatforms.size === 0 || state.nextReminderAt <= 0) return;
-  reminderTimer = context.schedule.after(Math.min(2_147_000_000, Math.max(1_000, state.nextReminderAt - Date.now())), () => serialize(() => fireAutomaticReminder(context)));
+  const expectedEpoch = lifecycleEpoch;
+  reminderTimer = context.schedule.after(Math.min(2_147_000_000, Math.max(1_000, state.nextReminderAt - Date.now())), () => serialize(() => fireAutomaticReminder(context, expectedEpoch)));
 }
 function armDailyReset(context) {
   cancelTask(context, dailyResetTimer); dailyResetTimer = undefined;
@@ -152,9 +155,9 @@ function armDailyReset(context) {
     armDailyReset(context);
   }));
 }
-async function fireAutomaticReminder(context) {
+async function fireAutomaticReminder(context, expectedEpoch) {
   reminderTimer = undefined; const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings);
-  if (!settings.enabled || !settings.automaticReminders || livePlatforms.size === 0) return;
+  if (expectedEpoch !== lifecycleEpoch || !settings.enabled || !settings.automaticReminders || livePlatforms.size === 0) return;
   applyDailyReset(state, settings);
   const now = Date.now(); const message = settings.automaticReminderMessage;
   state.lastReminderAt = now; state.remindersThisStream += 1; state.nextReminderAt = now + settings.reminderIntervalMinutes * 60_000; state.sequence += 1;
@@ -204,6 +207,9 @@ async function processViewerReminder(event, context, settings, state) {
     // the authenticated intake, so it is safe to reconcile only that platform without emitting
     // a synthetic stream.online event (which would reset other stream-scoped add-ons).
     if (event.eventType !== 'reward.redemption' || event.payload?.verifiedTransport !== true || !LIVE_PLATFORMS.includes(event.platform)) return false;
+    // A late redemption must never override an authoritative offline lifecycle signal.
+    // Recovery is only for a bridge process that has not observed this platform's lifecycle yet.
+    if (explicitlyOfflinePlatforms.has(event.platform)) return true;
     livePlatforms.add(event.platform);
     if (state.nextReminderAt <= 0) setNextReminder(state, settings);
     if (!state.sessionKey) state.sessionKey = `recovered:${clean(event.receivedAt || event.eventId, 80)}`;
@@ -219,9 +225,15 @@ async function process(event, context) {
   const settings = settingsFor(context); if (!settings.enabled) return; const state = stateFor(await context.state.read(), settings);
   if (applyDailyReset(state, settings)) await context.state.write(state);
   if ((event.eventType === 'stream.online' || event.eventType === 'stream.offline') && event.metadata?.simulated !== true && LIVE_PLATFORMS.includes(event.platform)) {
-    const wasOffline = livePlatforms.size === 0; if (event.eventType === 'stream.online') livePlatforms.add(event.platform); else livePlatforms.delete(event.platform);
+    lifecycleEpoch += 1;
+    const wasOffline = livePlatforms.size === 0;
+    if (event.eventType === 'stream.online') { explicitlyOfflinePlatforms.delete(event.platform); livePlatforms.add(event.platform); }
+    else { explicitlyOfflinePlatforms.add(event.platform); livePlatforms.delete(event.platform); }
     if (event.eventType === 'stream.online' && wasOffline) { if (settings.resetMode === 'stream') { state.totalOunces = 0; state.entries = []; state.lastLoggedAt = 0; state.remindersThisStream = 0; state.sessionKey = clean(event.receivedAt, 80); state.sequence += 1; } setNextReminder(state, settings); }
-    if (livePlatforms.size === 0) { state.nextReminderAt = 0; cancelTask(context, reminderTimer); reminderTimer = undefined; }
+    if (livePlatforms.size === 0) {
+      state.nextReminderAt = 0; state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 };
+      cancelTask(context, reminderTimer); cancelTask(context, noticeTimer); reminderTimer = undefined; noticeTimer = undefined;
+    }
     await context.state.write(state); if (livePlatforms.size === 0) await context.overlay.publish(`${MODULE_ID}.hydration.hide`, { moduleId: MODULE_ID }).catch(() => undefined); armReminder(context, settings, state); return;
   }
   if (await creatorControl(event, context, settings, state)) return;
@@ -230,8 +242,8 @@ async function process(event, context) {
 
 export default {
   manifest, required: false,
-  async start(context) { stopped = false; operation = Promise.resolve(); livePlatforms.clear(); cancelTask(context, reminderTimer); cancelTask(context, noticeTimer); cancelTask(context, dailyResetTimer); reminderTimer = undefined; noticeTimer = undefined; dailyResetTimer = undefined; const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings); applyDailyReset(state, settings); state.nextReminderAt = 0; state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); await context.overlay.publish(`${MODULE_ID}.hydration.hide`, { moduleId: MODULE_ID }).catch(() => undefined); armDailyReset(context); },
-  async stop(context) { stopped = true; cancelTask(context, reminderTimer); cancelTask(context, noticeTimer); cancelTask(context, dailyResetTimer); reminderTimer = undefined; noticeTimer = undefined; dailyResetTimer = undefined; livePlatforms.clear(); await operation.catch(() => undefined); operation = Promise.resolve(); },
+  async start(context) { stopped = false; operation = Promise.resolve(); lifecycleEpoch += 1; livePlatforms.clear(); explicitlyOfflinePlatforms.clear(); cancelTask(context, reminderTimer); cancelTask(context, noticeTimer); cancelTask(context, dailyResetTimer); reminderTimer = undefined; noticeTimer = undefined; dailyResetTimer = undefined; const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings); applyDailyReset(state, settings); state.nextReminderAt = 0; state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); await context.overlay.publish(`${MODULE_ID}.hydration.hide`, { moduleId: MODULE_ID }).catch(() => undefined); armDailyReset(context); },
+  async stop(context) { stopped = true; lifecycleEpoch += 1; cancelTask(context, reminderTimer); cancelTask(context, noticeTimer); cancelTask(context, dailyResetTimer); reminderTimer = undefined; noticeTimer = undefined; dailyResetTimer = undefined; livePlatforms.clear(); explicitlyOfflinePlatforms.clear(); await operation.catch(() => undefined); operation = Promise.resolve(); },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
 };
 

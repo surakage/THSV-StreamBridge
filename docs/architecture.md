@@ -70,6 +70,8 @@ Chat and alert projections reuse the reviewed shared contracts, then add present
 
 The combined, Chat-only, and Alerts-only pages are independent layout surfaces. Pages in the same Chromium/CEF browser-source host connect to one same-origin `SharedWorker`; that worker owns one WebSocket and distributes projected events to the pages. Hosts that isolate sources or do not implement `SharedWorker` fall back to one reconnecting WebSocket per page without changing the event contract.
 
+Main-feature presentation uses a versioned host policy. Transient reward and shoutout cards are serialized through the foreground queue; clip playback uses an independently lifecycle-tracked media lane; countdown and ad status use a non-queued timer lane; moderation, archive, and quote delivery remain background-only. The host policy takes precedence over a built-in add-on's requested lane so a package regression cannot make these surfaces overlap. Explicit lanes from third-party packages remain supported, and template previews always bypass the queue for exact OBS sizing.
+
 ## Module host
 
 The service composes built-in projections through `ModuleRegistry`. Manifests define dependencies and event subscriptions; dependency order is deterministic, event-handler failures are isolated, and health is reported per module. Required built-ins participate in readiness. Optional add-ons may later use the same contracts, but archived progression, Bloom, and Speaker.bot implementations are inert and are never imported by core.
@@ -85,6 +87,14 @@ Optional add-ons install beneath an isolated add-on root through schema validati
 Package verification is repeated after copying into a creator-private staging directory and again after migration, immediately before activation. This closes the verify-then-copy gap and prevents a migration from rewriting activated module code without a matching manifest hash. Add-ons are still trusted local code with the bridge process's permissions; package hashes provide integrity, while release provenance provides publisher authentication.
 
 Executable modules use a loader-owned capability broker for supported access to namespaced state, bounded one-shot schedules, exact creator-approved Streamer.bot actions over the bridge's existing correlated WebSocket, and namespaced overlay publication. Per-module action concurrency and rolling rate limits prevent one add-on from consuming the shared request pool. The Core Receiver action is never grantable. The fixed `/overlay/addons/<module-id>` renderer shares the existing overlay transport and never serves package HTML or JavaScript.
+
+## Main feature coordination
+
+The wizard groups related components into seven creator-facing main features without merging their packages or changing their stable module IDs. `MainFeatureCoordinator` observes accepted, non-simulated normalized events and combines privacy-safe operational state for Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language diagnostics. It stores no viewer identity, chat text, quote text, clip ID, signed playback URL, translation text, or spoken text.
+
+Broadcast Director coordinates the visible lifecycle of Live Beacon, Starting Soon Countdown, Scene Actions, Ad Break Companion, and Raid Scout. Clip Engine reports the shared Clip Library Cache, Random Clip Player activity, Clip Courier, Raid Scout playback, and the capability broker's shared media owner. Community Rewards combines session redemption and component-operation counts with foreground queue health. Community Messaging combines session chat throughput, component results, pending outbound work, and capability failures. Their established event and persistence contracts remain component-owned, and their coordinator projections never retain viewer or message content.
+
+This is a compatibility boundary rather than a monolith. Existing Streamer.bot imports, reward IDs, creator approvals, add-on configuration, storage, removal, and failure isolation continue to use their original module IDs. A component can be upgraded, disabled, or removed without migrating unrelated components; the main feature status degrades visibly instead of hiding the failure.
 
 ## Deduplication
 

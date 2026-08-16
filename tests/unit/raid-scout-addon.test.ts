@@ -55,6 +55,7 @@ const settings = {
   clipPreviewMuted: false,
   clipPreviewVolume: 0.8,
   endBroadcastAfterRaid: false,
+  endBroadcastProvider: 'obs',
   endBroadcastActionId: '',
   endBroadcastTiming: 'after-ad',
   endBroadcastDelaySeconds: 10,
@@ -155,6 +156,7 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
         clipPreviewMuted: false,
         clipPreviewVolume: 0.8,
         endBroadcastAfterRaid: false,
+        endBroadcastProvider: 'obs',
         endBroadcastActionId: '',
         endBroadcastTiming: 'after-ad',
         endBroadcastDelaySeconds: 10,
@@ -556,6 +558,17 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().twitchLive).toBe(false);
   });
 
+  it('uses the selected Meld scene relay and ignores a different broadcast app', async () => {
+    const testRuntime = runtime({ autoStartSceneEnabled: true, autoStartProvider: 'meld', autoStartSceneName: 'Ending Soon' });
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
+    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'meld', sceneName: 'Ending Soon' }, metadata: { simulated: false } }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    expect(testRuntime.value()).toMatchObject({ autoSceneStartedCycle: 1, pending: { operation: 'discover' } });
+  });
+
   it('finishes a phased no-match search without treating card duration as a callback', async () => {
     const testRuntime = runtime({ showSearchProgress: true, announceNoCandidate: false });
     await raidScout.onEvent(control('suggest'), testRuntime.context);
@@ -628,6 +641,7 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(24_000, expect.any(Function));
     testRuntime.lifecycle({ playbackId: playback.playbackId, phase: 'ended', occurredAt: new Date().toISOString() });
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(testRuntime.context.mediaSlot.release).toHaveBeenCalledTimes(1);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid', raidScoutTargetLogin: 'alpha' }));
   });
 
@@ -876,6 +890,7 @@ describe('Raid Scout add-on', () => {
     });
     const testRuntime = runtime({
       endBroadcastAfterRaid: true,
+      endBroadcastProvider: 'meld',
       endBroadcastActionId: END_BROADCAST_ACTION_ID,
       endBroadcastTiming: 'countdown',
       endBroadcastDelaySeconds: 5,
@@ -891,7 +906,8 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({
       raidScoutOperation: 'end-broadcast', raidScoutTargetLogin: 'beta',
     }));
-    expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-awaiting-stop' });
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-awaiting-stop', provider: 'meld' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({ raidScoutBroadcastProvider: 'meld' }));
 
     await raidScout.onEvent({ ...control('broadcast-stopped'), metadata: { simulated: true } }, testRuntime.context);
     expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-awaiting-stop' });

@@ -9,8 +9,8 @@ Finds a safe live Twitch raid destination, retries bounded public clip previews,
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Raid-Scout-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Raid-Scout-3.5.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Raid-Scout-3.5.0.sb` in Streamer.bot.
+2. In **Setup Wizard > Add-ons**, install `THSV-Raid-Scout-3.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Raid-Scout-3.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -18,7 +18,7 @@ Finds a safe live Twitch raid destination, retries bounded public clip previews,
 1. Import the separate Raid Scout Streamer.bot package.
 2. Keep its Controller action triggerless and approve that stable action ID as Raid Scout's fixed controller grant.
 3. Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the one-press automatic path.
-4. For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld/Streamlabs users select their provider-native action. Attach Broadcast Stopped only to the provider's Streaming Stopped trigger.
+4. For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. Choose OBS Studio, Meld Studio, or Streamlabs Desktop in the wizard. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld and Streamlabs users select an action containing their provider-native Stop Streaming sub-action. Attach Broadcast Stopped only to the selected provider's Streaming Stopped trigger.
 5. Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.
 6. For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.
 7. Configure preferred channels and filters, then test Suggest before enabling automatic mode.

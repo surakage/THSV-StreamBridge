@@ -78,6 +78,24 @@ describe('Village Hydration Station add-on', () => {
     await hydration.stop(test.context);
   });
 
+  it('does not let delayed rewards or scheduled reminders revive hydration after offline', async () => {
+    const test = runtime({ twitchRewardId: 'hydrate-reward', speakerEnabled: true, voiceAlias: 'Hydration' });
+    await hydration.start(test.context);
+    await hydration.onEvent(event('stream.online', 'twitch'), test.context);
+    const reminder = test.timers.at(-1);
+    await hydration.onEvent(event('stream.offline', 'twitch'), test.context);
+    expect(test.state()).toMatchObject({ nextReminderAt: 0, notice: { kind: '', expiresAt: 0 } });
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-hydration-station.hydration.hide', expect.any(Object));
+
+    await reminder?.();
+    await hydration.onEvent(event('reward.redemption', 'twitch', { rewardId: 'hydrate-reward', redemptionId: 'late-redemption', verifiedTransport: true }), test.context);
+
+    expect(test.state()).toMatchObject({ nextReminderAt: 0, remindersThisStream: 0, notice: { kind: '' } });
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(test.context.overlay.publish).toHaveBeenCalledTimes(2);
+    await hydration.stop(test.context);
+  });
+
   it('allows only the broadcaster to log water and resets once when a new stream starts', async () => {
     const test = runtime({ goalOunces: 64, creatorCommand: 'water' });
     await hydration.start(test.context);

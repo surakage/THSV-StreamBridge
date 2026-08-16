@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Custom Counter",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "author": "surakage",
   "description": "One optional generic creator control for wizard-managed independent counters.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,14 +11,30 @@
       "name": "THSV Addon - Custom Counter - Controller",
       "group": "THSV Addon - Custom Counter",
       "arguments": [
-        { "name": "counterOperation", "value": "increment" },
-        { "name": "counterId", "value": "main" },
-        { "name": "counterName", "value": "" },
-        { "name": "counterAmount", "value": "0", "autoType": true },
-        { "name": "counterPreset", "value": "default" }
+        {
+          "name": "counterOperation",
+          "value": "increment"
+        },
+        {
+          "name": "counterId",
+          "value": "main"
+        },
+        {
+          "name": "counterName",
+          "value": ""
+        },
+        {
+          "name": "counterAmount",
+          "value": "0",
+          "autoType": true
+        },
+        {
+          "name": "counterPreset",
+          "value": "default"
+        }
       ],
       "source": "src/ControlCounter.cs",
-      "importFile": "THSV-StreamBridge-Custom-Counter-3.5.0.sb",
+      "importFile": "THSV-StreamBridge-Custom-Counter-3.6.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -26,8 +42,17 @@
       ]
     }
   ],
-  "runtime": { "queue": "THSV Add-ons", "concurrent": true },
-  "editableArguments": ["counterOperation", "counterId", "counterName", "counterAmount", "counterPreset"],
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": true
+  },
+  "editableArguments": [
+    "counterOperation",
+    "counterId",
+    "counterName",
+    "counterAmount",
+    "counterPreset"
+  ],
   "manualTriggerSetup": [
     "No direct trigger is required. Wizard-created counter commands need no Streamer.bot action or Command object.",
     "Use this optional Controller only for a creator-controlled hotkey, Stream Deck button, or trusted non-chat trigger.",

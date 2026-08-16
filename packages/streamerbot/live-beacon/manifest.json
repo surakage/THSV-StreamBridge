@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Live Beacon",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "author": "surakage",
   "description": "Delivers one broker-authorized Discord embed per live platform to a creator-owned channel or forum webhook.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Live Beacon - Broadcast Started",
       "group": "THSV Addon - Live Beacon",
       "source": "src/BroadcastStarted.cs",
-      "importFile": "THSV-StreamBridge-Live-Beacon-3.5.0.sb",
+      "importFile": "THSV-StreamBridge-Live-Beacon-3.6.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -24,7 +24,7 @@
       "name": "THSV Addon - Live Beacon - Deliver",
       "group": "THSV Addon - Live Beacon",
       "source": "src/DeliverDiscord.cs",
-      "importFile": "THSV-StreamBridge-Live-Beacon-3.5.0.sb",
+      "importFile": "THSV-StreamBridge-Live-Beacon-3.6.0.sb",
       "arguments": [
         {
           "name": "liveBeaconWebhookUrl",

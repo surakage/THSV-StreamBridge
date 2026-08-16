@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.6.0] - 2026-08-15
+
+- Promoted Community Analytics, Custom Counter, Follower Pulse, Village Voice, Translate, Chat Play Pack, and Village Fun Commands into built-in extensions with shared lifecycle coordination, explicit enablement, migration controls, and isolated failure boundaries.
+- Separated built-in extensions from optional add-ons in the setup wizard, expanded the responsive workspace for wide displays, and added clearer action feedback, live overlay previews, guided setup, and update status.
+- Added a native Windows tray shell, one-click ordered launcher, safer stale-session recovery, discoverable installation/token controls, and an automatic signed release update monitor with live-stream safeguards.
+- Added synchronized, indexed Streamer.bot imports generated from reviewed source, including Raid Scout multi-output start/stop helpers and package integrity metadata.
+- Hardened Raid Scout, Random Clip Player, Starting Soon Countdown, Hydration Station, Quote Vault, Clip Library Cache, Chat Guard, alert coordination, and browser overlays against stale state, duplicate triggers, playback interruptions, shutdown failures, and malformed provider data.
+- Added application branding assets and expanded setup, architecture, feature, add-on, website handoff, release, backup, restore, installer, and troubleshooting documentation.
+- Regenerated all 41 Streamer.bot import packages and aligned every first-party package with THSV StreamBridge 3.6.0.
+
 - Repaired legacy mojibake in saved reward activity and alert templates, including middle dots, sparkle/fire emoji, apostrophes, bullets, ellipses, and dash punctuation.
 - Made Stream Launch Countdown Start idempotent so OBS Studio Mode scene-active duplicates and transient Stop/Start cycles preserve the running timer; Reset plus Start or Set & Start remain the explicit restart paths.
 - Fixed Hydration Station so only accepted viewer redemption/command reminders display temporarily through the shared overlay queue; startup, stream lifecycle, scheduled reminders, and creator controls remain visually silent, and hydration cards no longer interrupt independent clip playback.

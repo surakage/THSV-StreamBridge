@@ -9,8 +9,8 @@ Provides one bounded, moderated, local quote library shared by Twitch, YouTube, 
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Quote-Vault-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Quote-Vault-3.5.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Quote-Vault-3.5.0.sb` in Streamer.bot.
+2. In **Setup Wizard > Add-ons**, install `THSV-Quote-Vault-3.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Quote-Vault-3.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -19,6 +19,10 @@ Provides one bounded, moderated, local quote library shared by Twitch, YouTube, 
 2. Choose enabled platforms, command names, submission permissions, and safety limits.
 3. Import the optional Quote Vault Streamer.bot package only if creator-triggered random or statistics actions are wanted.
 4. Tell moderators that viewer submissions remain pending until approved.
+
+By default, `!quote` sends only the stored quote text. The person who requested, submitted, or was
+attributed to the quote is not appended. Creators who deliberately want attribution can customize
+the **Displayed quote** template in the wizard.
 
 ## Streamer.bot
 

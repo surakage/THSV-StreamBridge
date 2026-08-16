@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import {
   AddOnPackageError,
@@ -18,6 +18,9 @@ const MAXIMUM_ARCHIVE_BYTES = 7_500_000;
 const MAXIMUM_SETTINGS_BYTES = 65_536;
 const MAXIMUM_ACCEPTANCE_BYTES = 131_072;
 const MAXIMUM_TRUSTED_PUBLISHERS_BYTES = 32_768;
+const MAXIMUM_MIGRATION_LEDGER_BYTES = 131_072;
+const MAXIMUM_MIGRATION_FILES = 1_000;
+const MAXIMUM_MIGRATION_BYTES = 10_000_000;
 const ACCEPTANCE_STATUS = new Set(['pending', 'passed', 'failed', 'not-required']);
 const PUBLISHER_ID = /^[a-z][a-z0-9.-]{1,99}$/u;
 const GITHUB_REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
@@ -66,6 +69,32 @@ export interface TrustedAddOnPublisher {
   readonly addedAt: string;
 }
 
+interface StoredFeatureMigrationCandidate {
+  readonly moduleId: string;
+  readonly sourceVersion: string;
+  readonly discoveredAt: string;
+  readonly originalEnabled: boolean;
+  readonly decidedAt?: string;
+  readonly dataImported?: boolean;
+  readonly enabledAfterImport?: boolean;
+}
+
+interface FeatureMigrationLedger {
+  readonly version: 1;
+  readonly candidates: readonly StoredFeatureMigrationCandidate[];
+}
+
+export interface FeatureMigrationCandidate extends StoredFeatureMigrationCandidate {
+  readonly name: string;
+  readonly installed: boolean;
+  readonly currentlyEnabled: boolean;
+  readonly status: 'pending' | 'imported' | 'skipped';
+  readonly stagedData: boolean;
+  readonly stagedFiles: number;
+  readonly stagedBytes: number;
+  readonly activeData: boolean;
+}
+
 export class AddOnWizardService {
   public constructor(private readonly packagesRoot: string, private readonly stateRoot: string, private readonly inboxRoot = join(resolve(packagesRoot), 'inbox')) {}
 
@@ -76,6 +105,54 @@ export class AddOnWizardService {
       try { return { ...addOn, settings: await this.readSettings(addOn.moduleId, addOn.configurationSchema) }; }
       catch (error) { return { ...addOn, enabled: false, health: 'rejected' as const, error: error instanceof Error ? error.message : String(error), settings: {} }; }
     }));
+  }
+
+  public async listFeatureMigrations(): Promise<readonly FeatureMigrationCandidate[]> {
+    const ledger = await this.readFeatureMigrationLedger();
+    const installed = new Map((await listInstalledAddOnPackages(this.packagesRoot)).map((addOn) => [addOn.moduleId, addOn]));
+    return Promise.all(ledger.candidates.map(async (candidate) => {
+      const addOn = installed.get(candidate.moduleId);
+      const staged = await migrationDirectorySummary(this.featureMigrationStatePath(candidate.moduleId));
+      const activeData = await directoryHasEntries(join(resolve(this.stateRoot), candidate.moduleId));
+      return {
+        ...candidate,
+        name: addOn?.name ?? candidate.moduleId,
+        installed: addOn !== undefined && addOn.health !== 'rejected',
+        currentlyEnabled: addOn?.enabled === true,
+        status: candidate.decidedAt === undefined ? 'pending' : candidate.dataImported === true ? 'imported' : 'skipped',
+        stagedData: staged.files > 0,
+        stagedFiles: staged.files,
+        stagedBytes: staged.bytes,
+        activeData,
+      };
+    }));
+  }
+
+  public async applyFeatureMigration(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    assertModuleId(moduleId);
+    const body = objectInput(input);
+    if (body['approvedByCreator'] !== true) throw new AddOnWizardError(403, 'Importing migrated component data requires explicit creator approval.');
+    if (typeof body['importData'] !== 'boolean' || typeof body['enabled'] !== 'boolean') throw new AddOnWizardError(400, 'importData and enabled must be true or false.');
+    const replaceExistingData = body['replaceExistingData'] === true;
+    const ledger = await this.readFeatureMigrationLedger();
+    const candidate = ledger.candidates.find((entry) => entry.moduleId === moduleId);
+    if (candidate === undefined) throw new AddOnWizardError(404, 'Migrated component data was not found.');
+    const installed = (await listInstalledAddOnPackages(this.packagesRoot)).find((addOn) => addOn.moduleId === moduleId);
+    if (installed === undefined || installed.health === 'rejected') throw new AddOnWizardError(409, 'Install or repair the current component package before importing its migrated data.');
+
+    const importWasCompleted = candidate.dataImported === true;
+    if (importWasCompleted && !body['importData']) throw new AddOnWizardError(409, 'Migrated data was already imported and remains preserved. Disable the component if you do not want it to run.');
+    if (body['importData'] && !importWasCompleted) await this.importFeatureMigrationState(moduleId, replaceExistingData);
+    try { await setAddOnPackageEnabled(moduleId, this.packagesRoot, body['enabled'], true); }
+    catch (error) { throw asWizardError(error); }
+    const updated: StoredFeatureMigrationCandidate = {
+      ...candidate,
+      decidedAt: new Date().toISOString(),
+      dataImported: importWasCompleted || body['importData'],
+      enabledAfterImport: body['enabled'],
+    };
+    await this.writeFeatureMigrationLedger({ version: 1, candidates: ledger.candidates.map((entry) => entry.moduleId === moduleId ? updated : entry) });
+    return { moduleId, imported: importWasCompleted || body['importData'], enabled: body['enabled'], dataReplaced: !importWasCompleted && body['importData'] && replaceExistingData, restartRequired: true };
   }
 
   public async listTrustedPublishers(): Promise<readonly TrustedAddOnPublisher[]> {
@@ -175,6 +252,17 @@ export class AddOnWizardService {
         await rm(temporary, { force: true }).catch(() => undefined);
         throw error;
       }
+      const streamerBotImportDirectory = join(this.inboxRoot, 'streamerbot', update.moduleId, update.version);
+      if (update.streamerBotImports.length > 0) {
+        await mkdir(streamerBotImportDirectory, { recursive: true, mode: 0o700 });
+        for (const importPackage of update.streamerBotImports) {
+          if (!/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,220}\.sb$/u.test(importPackage.filename)) throw new AddOnWizardError(409, 'The verified Streamer.bot import filename is unsafe.');
+          if (digest(importPackage.archive) !== importPackage.sha256) throw new AddOnWizardError(409, 'A verified Streamer.bot import changed before staging.');
+          const destination = join(streamerBotImportDirectory, importPackage.filename);
+          await writeFile(destination, importPackage.archive, { mode: 0o600 });
+          await writeFile(`${destination}.sha256`, `${importPackage.sha256}  ${importPackage.filename}\n`, { encoding: 'ascii', mode: 0o600 });
+        }
+      }
       return {
         staged: true,
         filename: update.filename,
@@ -185,6 +273,9 @@ export class AddOnWizardService {
         repository: update.repository,
         workflow: update.workflow,
         installRequiresCreatorReview: true,
+        streamerBotImportRequired: update.streamerBotImports.length > 0,
+        streamerBotImports: update.streamerBotImports.map((entry) => entry.filename),
+        ...(update.streamerBotImports.length === 0 ? {} : { streamerBotImportDirectory }),
         restartRequired: false,
       };
     } catch (error) { throw asWizardError(error); }
@@ -242,6 +333,15 @@ export class AddOnWizardService {
     return { moduleId, saved: true, restartRequired: true, settings };
   }
 
+  public async previewSettings(moduleId: string, input: unknown): Promise<WizardAddOnSummary> {
+    assertModuleId(moduleId);
+    const addOn = (await listInstalledAddOnPackages(this.packagesRoot)).find((candidate) => candidate.moduleId === moduleId);
+    if (addOn === undefined) throw new AddOnWizardError(404, 'The add-on is not installed.');
+    if (addOn.health === 'rejected') throw new AddOnWizardError(409, 'Rejected add-ons cannot preview settings. Repair or uninstall the package first.');
+    const settings = validateSettings(addOn.configurationSchema, objectInput(input));
+    return Object.freeze({ ...addOn, settings });
+  }
+
   public async listAcceptance(): Promise<Readonly<Record<string, AddOnAcceptanceEntry>>> {
     const installed = new Map((await listInstalledAddOnPackages(this.packagesRoot)).map((addOn) => [addOn.moduleId, addOn.version]));
     const saved = await this.readAcceptanceFile();
@@ -280,6 +380,78 @@ export class AddOnWizardService {
   }
 
   private trustedPublishersPath(): string { return join(this.stateRoot, 'trusted-publishers.json'); }
+
+  private featureMigrationRoot(): string { return join(dirname(resolve(this.packagesRoot)), 'migration-inbox'); }
+  private featureMigrationLedgerPath(): string { return join(this.featureMigrationRoot(), 'feature-migrations.json'); }
+  private featureMigrationStatePath(moduleId: string): string { return join(this.featureMigrationRoot(), moduleId, 'state'); }
+
+  private async readFeatureMigrationLedger(): Promise<FeatureMigrationLedger> {
+    try {
+      const raw = await readFile(this.featureMigrationLedgerPath(), 'utf8');
+      if (Buffer.byteLength(raw) > MAXIMUM_MIGRATION_LEDGER_BYTES) throw new AddOnWizardError(409, 'The feature migration catalogue exceeds its private storage limit.');
+      const parsed = JSON.parse(raw) as unknown;
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new AddOnWizardError(409, 'The feature migration catalogue is invalid.');
+      const record = parsed as Record<string, unknown>;
+      if (record['version'] !== 1 || !Array.isArray(record['candidates']) || record['candidates'].length > 100) throw new AddOnWizardError(409, 'The feature migration catalogue is invalid.');
+      const candidates = record['candidates'].map((value): StoredFeatureMigrationCandidate => {
+        const item = objectInput(value);
+        const moduleId = stringInput(item['moduleId'], 'moduleId', 150); assertModuleId(moduleId);
+        const sourceVersion = stringInput(item['sourceVersion'], 'sourceVersion', 100);
+        const discoveredAt = stringInput(item['discoveredAt'], 'discoveredAt', 100);
+        if (typeof item['originalEnabled'] !== 'boolean') throw new AddOnWizardError(409, 'The feature migration catalogue is invalid.');
+        const decidedAt = typeof item['decidedAt'] === 'string' ? item['decidedAt'] : undefined;
+        const dataImported = typeof item['dataImported'] === 'boolean' ? item['dataImported'] : undefined;
+        const enabledAfterImport = typeof item['enabledAfterImport'] === 'boolean' ? item['enabledAfterImport'] : undefined;
+        return { moduleId, sourceVersion, discoveredAt, originalEnabled: item['originalEnabled'], ...(decidedAt === undefined ? {} : { decidedAt }), ...(dataImported === undefined ? {} : { dataImported }), ...(enabledAfterImport === undefined ? {} : { enabledAfterImport }) };
+      });
+      if (new Set(candidates.map((entry) => entry.moduleId)).size !== candidates.length) throw new AddOnWizardError(409, 'The feature migration catalogue contains duplicate components.');
+      return { version: 1, candidates };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { version: 1, candidates: [] };
+      if (error instanceof AddOnWizardError) throw error;
+      throw new AddOnWizardError(409, 'The feature migration catalogue could not be read.');
+    }
+  }
+
+  private async writeFeatureMigrationLedger(ledger: FeatureMigrationLedger): Promise<void> {
+    const encoded = `${JSON.stringify(ledger, null, 2)}\n`;
+    if (Buffer.byteLength(encoded) > MAXIMUM_MIGRATION_LEDGER_BYTES) throw new AddOnWizardError(413, 'The feature migration catalogue exceeds its private storage limit.');
+    const path = this.featureMigrationLedgerPath();
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    const temporary = `${path}.${randomUUID()}.tmp`;
+    await writeFile(temporary, encoded, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, path);
+  }
+
+  private async importFeatureMigrationState(moduleId: string, replaceExistingData: boolean): Promise<void> {
+    const source = this.featureMigrationStatePath(moduleId);
+    const summary = await migrationDirectorySummary(source);
+    if (summary.files === 0) throw new AddOnWizardError(409, 'This migrated component has no saved data to import.');
+    const root = resolve(this.stateRoot);
+    const target = join(root, moduleId);
+    const targetHasData = await directoryHasEntries(target);
+    if (targetHasData && !replaceExistingData) throw new AddOnWizardError(409, 'Current component data already exists. Select Replace current data only after reviewing this migration.');
+    const suffix = randomUUID();
+    const stage = join(root, `.migration-${moduleId}-${suffix}`);
+    const rollback = join(root, `.migration-rollback-${moduleId}-${suffix}`);
+    let movedCurrent = false;
+    try {
+      await mkdir(root, { recursive: true, mode: 0o700 });
+      await cp(source, stage, { recursive: true, errorOnExist: true, force: false });
+      await migrationDirectorySummary(stage);
+      if (targetHasData) { await rename(target, rollback); movedCurrent = true; }
+      await rename(stage, target);
+      if (movedCurrent) await rm(rollback, { recursive: true, force: true });
+    } catch (error) {
+      await rm(stage, { recursive: true, force: true }).catch(() => undefined);
+      if (movedCurrent) {
+        await rm(target, { recursive: true, force: true }).catch(() => undefined);
+        await rename(rollback, target).catch(() => undefined);
+      }
+      if (error instanceof AddOnWizardError) throw error;
+      throw new AddOnWizardError(500, 'Migrated component data could not be imported; current data was preserved.');
+    }
+  }
 
   private async readTrustedPublishers(): Promise<readonly TrustedAddOnPublisher[]> {
     try {
@@ -396,6 +568,38 @@ function asWizardError(error: unknown): AddOnWizardError {
   if (error instanceof AddOnWizardError) return error;
   if (error instanceof AddOnPackageError) return new AddOnWizardError(400, error.message);
   return new AddOnWizardError(500, error instanceof Error ? error.message : String(error));
+}
+
+async function directoryHasEntries(path: string): Promise<boolean> {
+  try { return (await readdir(path)).length > 0; }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+async function migrationDirectorySummary(root: string): Promise<{ readonly files: number; readonly bytes: number }> {
+  const pending = [root];
+  let files = 0;
+  let bytes = 0;
+  while (pending.length > 0) {
+    const current = pending.pop() as string;
+    let entries;
+    try { entries = await readdir(current, { withFileTypes: true }); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT' && current === root) return { files: 0, bytes: 0 };
+      throw new AddOnWizardError(409, 'Migrated component data could not be inspected safely.');
+    }
+    for (const entry of entries) {
+      const path = join(current, entry.name);
+      const information = await lstat(path);
+      if (information.isSymbolicLink() || (!information.isDirectory() && !information.isFile())) throw new AddOnWizardError(409, 'Migrated component data contains an unsupported file type.');
+      if (information.isDirectory()) pending.push(path);
+      else { files += 1; bytes += information.size; }
+      if (files > MAXIMUM_MIGRATION_FILES || bytes > MAXIMUM_MIGRATION_BYTES) throw new AddOnWizardError(413, 'Migrated component data exceeds the 1,000 file or 10 MB safety limit.');
+    }
+  }
+  return { files, bytes };
 }
 
 export function validateSettings(schemaValue: unknown, input: Record<string, unknown>, useDefaults = false): Readonly<Record<string, unknown>> {

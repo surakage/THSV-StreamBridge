@@ -9,7 +9,7 @@ Village Hydration Station is a live-only water reminder and personal ounce track
 ## Install
 
 1. Install and enable the add-on in the local wizard.
-2. Import `THSV-StreamBridge-Village-Hydration-Station-3.5.0.sb`.
+2. Import `THSV-StreamBridge-Village-Hydration-Station-3.6.0.sb`.
 3. Add `/overlay/addons/thsv.village-hydration-station` as a compact `520 x 620` browser source, or position it within a `1920 x 1080` source. Use **Send preview** to display the exact saved template while sizing it.
 4. Attach **Log Water** to a creator Stream Deck button or hotkey. A blank amount uses the saved default serving.
 5. Choose how you will log water: use the broadcaster-only `!water` command, or attach **Log Water** to a Stream Deck button or creator hotkey.

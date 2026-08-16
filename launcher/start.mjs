@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, rmSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, renameSync, rmSync, statSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,8 +30,12 @@ process.once('exit', releaseLaunchLock);
 await stopExisting(baseUrl);
 mkdirSync(join(dataRoot, 'logs'), { recursive: true });
 mkdirSync(runtimeRoot, { recursive: true });
-const stdout = openSync(join(dataRoot, 'logs', 'service.stdout.log'), 'a');
-const stderr = openSync(join(dataRoot, 'logs', 'service.stderr.log'), 'a');
+const stdoutPath = join(dataRoot, 'logs', 'service.stdout.log');
+const stderrPath = join(dataRoot, 'logs', 'service.stderr.log');
+rotateLaunchLog(stdoutPath);
+rotateLaunchLog(stderrPath);
+const stdout = openSync(stdoutPath, 'a');
+const stderr = openSync(stderrPath, 'a');
 const childEnvironment = {
   ...process.env,
   THSV_STREAMBRIDGE_CONFIG: configPath,
@@ -48,12 +52,23 @@ const child = spawn(process.execPath, [entrypoint], {
   stdio: ['ignore', stdout, stderr],
   env: childEnvironment,
 });
-closeSync(stdout); closeSync(stderr);
+let childPid;
+try {
+  childPid = await new Promise((resolveSpawn, rejectSpawn) => {
+    child.once('error', rejectSpawn);
+    child.once('spawn', () => {
+      child.removeListener('error', rejectSpawn);
+      if (child.pid === undefined) rejectSpawn(new Error('Windows did not return a process ID for StreamBridge.'));
+      else resolveSpawn(child.pid);
+    });
+  });
+} finally {
+  closeSync(stdout); closeSync(stderr);
+}
 child.unref();
-if (child.pid === undefined) throw new Error('Windows did not return a process ID for StreamBridge.');
-await writeFile(pidPath, `${String(child.pid)}\n`, { encoding: 'ascii' });
+await writeFile(pidPath, `${String(childPid)}\n`, { encoding: 'ascii' });
 
-try { await waitForHealth(baseUrl, child.pid, 15_000); }
+try { await waitForHealth(baseUrl, childPid, config.service.port, 15_000); }
 catch (error) { await rm(pidPath, { force: true }); throw error; }
 
 if (openWizard) {
@@ -100,13 +115,17 @@ function isOurRuntimeProcess(pid) {
   } catch { return false; }
 }
 
-async function waitForHealth(url, pid, timeoutMs) {
+async function waitForHealth(url, pid, port, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (!isAlive(pid)) throw new Error(`StreamBridge exited during startup. Check ${join(dataRoot, 'logs', 'service.stderr.log')}.`);
     try {
       const response = await fetch(`${url}/health`, { signal: AbortSignal.timeout(1_000) });
-      if (response.ok && (await response.json()).status === 'healthy') return;
+      if (response.ok && (await response.json()).status === 'healthy') {
+        const listenerPid = listeningPidForPort(port);
+        if (process.platform !== 'win32' || listenerPid === pid) return;
+        if (listenerPid !== undefined) throw new Error(`Port ${String(port)} is owned by PID ${String(listenerPid)}, not the StreamBridge process that was just started. Stop the conflicting app or choose another Bridge port.`);
+      }
     } catch { /* Continue until the bounded startup deadline. */ }
     await delay(200);
   }
@@ -114,9 +133,39 @@ async function waitForHealth(url, pid, timeoutMs) {
   throw new Error(`StreamBridge did not become healthy within ${String(timeoutMs)} ms.`);
 }
 
+function listeningPidForPort(port) {
+  if (process.platform !== 'win32') return undefined;
+  try {
+    const output = spawnSync('netstat.exe', ['-ano', '-p', 'tcp'], { encoding: 'utf8', timeout: 5_000, windowsHide: true }).stdout ?? '';
+    for (const line of output.split(/\r?\n/u)) {
+      const fields = line.trim().split(/\s+/u);
+      if (fields[0]?.toUpperCase() !== 'TCP' || fields[3]?.toUpperCase() !== 'LISTENING') continue;
+      const address = fields[1] ?? '';
+      if (!address.endsWith(`:${String(port)}`)) continue;
+      const pid = Number(fields[4]);
+      if (Number.isInteger(pid) && pid > 0) return pid;
+    }
+  } catch { /* The bounded health loop retries while Windows refreshes its listener table. */ }
+  return undefined;
+}
+
 function isAlive(pid) { try { process.kill(pid, 0); return true; } catch { return false; } }
 function delay(ms) { return new Promise((resolveDelay) => setTimeout(resolveDelay, ms)); }
 function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value; }
+
+function rotateLaunchLog(path, maximumBytes = 5 * 1024 * 1024, retainedFiles = 3) {
+  try {
+    if (!existsSync(path) || statSync(path).size < maximumBytes) return;
+    rmSync(`${path}.${String(retainedFiles)}`, { force: true });
+    for (let index = retainedFiles - 1; index >= 1; index -= 1) {
+      const source = `${path}.${String(index)}`;
+      if (existsSync(source)) renameSync(source, `${path}.${String(index + 1)}`);
+    }
+    renameSync(path, `${path}.1`);
+  } catch (error) {
+    process.stderr.write(`THSV StreamBridge could not rotate ${path}: ${error instanceof Error ? error.message : String(error)}\n`);
+  }
+}
 
 async function acquireLaunchLock() {
   for (let attempt = 0; attempt < 2; attempt += 1) {

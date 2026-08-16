@@ -16,7 +16,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 
 ## 1. Download and verify core
 
-1. Open the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest).
+1. Open [Download THSV StreamBridge](https://www.slothbloom.com/downloads/streambridge). This stable SlothBloom address redirects to the exact current archive on the official GitHub release.
 2. Download `THSV-StreamBridge-3.5.0.zip` and `THSV-StreamBridge-3.5.0.zip.sha256` from the Version 3 release.
 3. Follow [Release verification](../RELEASE-VERIFICATION.md) to verify the SHA-256 digest and GitHub artifact attestation.
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
@@ -55,6 +55,8 @@ Open **Streamer.bot connection** in the setup wizard. Choose **Detect automatica
 Choose **Create one-button desktop shortcut** to add **Start THSV Streaming Tools** to the Windows desktop. It runs the same complete workflow as the Stream Deck target: enabled optional apps first, a short stabilization check for newly launched apps, then Streamer.bot and StreamBridge. Repeated launches are safe, and optional-app warnings never block core readiness. The guarded Streamer.bot step serializes repeated clicks, verifies the exact process that owns the configured WebSocket port, waits for a recently closed listener to release, and repairs an incomplete session through its normal window-close request. It never force-terminates an unrelated process.
 
 The installer keeps its launchers in the exact installed folder and does not add automatic Desktop shortcuts. In **Streamer.bot connection → Optional one-button apps**, you may select OBS Studio and Speaker.bot and enable either one for startup. They are disabled by default, never bundled, and never block Streamer.bot or StreamBridge if they are unavailable. For Stream Deck, add **System → Open** and select the **Stream Deck one-button target** shown in the wizard: `Start THSV Streaming Tools.cmd`. Repeated presses do not restart healthy services. Its console closes automatically after a successful launch and stays open only when a core tool needs attention. Use **Open installed folder** in the wizard whenever you need the recovery key or another launcher.
+
+The installer starts **THSV StreamBridge Tray** after the Bridge passes its health check. Double-click its Village icon to open the Setup Wizard, or right-click it for status, safe streaming-tool startup, Bridge start/stop, and the installed folder. The shell checks the local readiness endpoint every 30 seconds and shows a notification only when the status changes. Closing the shell does not stop StreamBridge; reopen it with `Open THSV StreamBridge Tray.cmd` from the installed folder.
 
 The wizard reports a fully healthy launch in green, a healthy core launch with an optional OBS/Speaker.bot problem in amber, and a core startup failure in red. Amber never means StreamBridge delivery is blocked.
 
@@ -112,6 +114,14 @@ Add these local URLs as Browser Sources:
 
 Use a 1920 x 1080 browser source first, then crop it in your broadcast application. Customize appearance and use the preview controls from the wizard before going live.
 
+### Choose the broadcast app you actually use
+
+- **OBS Studio:** add the URL as a Browser Source and relay OBS scene/streaming events from Streamer.bot.
+- **Meld Studio:** add the URL as a Browser layer and relay Meld Scene Changed, Streaming Started, and Streaming Stopped events.
+- **Streamlabs Desktop:** add the URL as a Browser Source and relay Streamlabs Desktop scene/streaming events.
+
+Chat, commands, rewards, timed actions, Discord delivery, analytics, and persistent state do not depend on OBS. Features that react to scenes consume the same normalized StreamBridge scene event from the selected application. Raid Scout separately lets you choose which provider owns its ending scene and Stop Streaming action. The bundled Aitum multi-output stop helper remains intentionally OBS-only; Meld and Streamlabs use their provider-native Streamer.bot Stop Streaming actions.
+
 Meld Studio may require a one-time Windows loopback exemption. Follow [Meld Studio troubleshooting](troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard) if a local URL does not load.
 
 ## 6. Test before going live
@@ -168,7 +178,11 @@ Starting again safely replaces the previously tracked StreamBridge instance. It 
 4. Let the installer stage and verify the new version, stop the old version, activate the new version, and run its health check.
 5. Reopen the wizard and review compatibility or add-on update notices.
 
-For an official add-on update, open **Add-ons**, choose **Check official add-on updates**, and select **Download & verify update** on the affected package. This verifies the official release provenance, outer index hash, inner checksum, publisher, version, compatibility, and manifest before placing it under **Discovered packages**. Review the package there and choose **Verify and install** as a separate approval, then restart StreamBridge. Staging alone does not install, enable, or restart the add-on.
+StreamBridge checks core and official component updates when its authenticated Streamer.bot connection becomes ready, again after a reconnect, and then at most once every six hours while connected. SlothBloom is the friendly discovery feed and GitHub is the automatic fallback. The wizard shows the retained result when it unlocks, and **Check for updates** requests a fresh result. For a feature or add-on, select **Update safely** to verify the official release provenance, outer index hash, inner checksum, publisher, version, compatibility, and manifest before installing only that package. Settings and private state stay in place; update all desired packages and restart StreamBridge once. Select **Download for review** when you prefer the separate **Discovered packages** approval path.
+
+If more than one compatible official add-on update is available, **Update all compatible** runs the same authenticated verification separately for each package and reports any failure without undoing successful updates. A matching Streamer.bot `.sb` from the release is checksum-verified and saved under `data/addons/inbox/streamerbot/<module>/<version>/`; re-import it when the wizard reports that the add-on's actions changed. Imports are deliberately never pushed into Streamer.bot silently.
+
+For a Bridge release, select **Download & prepare**. After verification completes and every platform is offline, select **Install verified update**. The managed Windows installation stops StreamBridge, installs through the same health-checked portable installer, rolls back if the new version does not become healthy, restarts the Bridge, and reopens the wizard. The server rejects this operation while any platform is live. A source checkout is never overwritten by the wizard; use the downloaded release installer for that environment.
 
 Advanced creators may expand **Optional third-party publishers** and bind one declared publisher ID to one GitHub `owner/repository`. Third-party repositories must publish the same bounded add-on index/bundle format from a tagged `.github/workflows/release.yml` run with GitHub artifact attestation. StreamBridge locks verification to that exact repository, workflow, tag, checksum, package publisher, and installed publisher before staging. Adding trust never downloads, installs, enables, or updates an add-on; every check, download, inbox installation, and restart remains a separate creator action. Remove the trust record at any time without deleting installed add-ons or their private state.
 

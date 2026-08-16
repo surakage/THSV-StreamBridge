@@ -1,6 +1,16 @@
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
+
+function Get-Sha256Hex([string]$Path) {
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        try { return ([System.BitConverter]::ToString($sha256.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+        finally { $sha256.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
 $repo = Split-Path -Parent $PSScriptRoot
 $stamp = '{0}-{1}' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), ([guid]::NewGuid().ToString('N').Substring(0, 8))
 $backupRoot = Join-Path $repo "data\backups\$stamp"
@@ -17,7 +27,7 @@ $files = @(Get-ChildItem -LiteralPath $backupRoot -File -Recurse | Sort-Object F
     [ordered]@{
         path = $_.FullName.Substring($resolvedBackup.Length + 1).Replace([System.IO.Path]::DirectorySeparatorChar, '/')
         size = $_.Length
-        sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant()
+        sha256 = Get-Sha256Hex $_.FullName
     }
 })
 $manifest = [ordered]@{

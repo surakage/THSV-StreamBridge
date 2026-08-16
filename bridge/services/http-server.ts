@@ -20,6 +20,7 @@ import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalytic
 import { readCachedClip } from './clip-media-cache.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
+import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -449,7 +450,7 @@ export class DiagnosticsServer {
       }
       if (request.method === 'GET' && request.url === '/wizard/api/addons' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), discovered: await this.wizard.discoverAddOns(), trustedPublishers: await this.wizard.listTrustedAddOnPublishers() });
+        return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), featureFamilies: MAIN_FEATURE_FAMILIES, featureMigrations: await this.wizard.listFeatureMigrations(), discovered: await this.wizard.discoverAddOns(), trustedPublishers: await this.wizard.listTrustedAddOnPublishers() });
       }
       if (request.method === 'GET' && request.url === '/wizard/api/addons/acceptance' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -464,6 +465,22 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.stageReleaseUpdate(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/updates/apply' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const diagnostics = this.target.diagnostics();
+        const timedActions = diagnostics['timedActions'];
+        const livePlatforms = typeof timedActions === 'object' && timedActions !== null && !Array.isArray(timedActions) && Array.isArray((timedActions as Record<string, unknown>)['livePlatforms'])
+          ? (timedActions as Record<string, unknown>)['livePlatforms'] as unknown[]
+          : [];
+        const mainFeatures = diagnostics['mainFeatures'];
+        const broadcastDirector = typeof mainFeatures === 'object' && mainFeatures !== null && !Array.isArray(mainFeatures)
+          ? (mainFeatures as Record<string, unknown>)['broadcastDirector'] : undefined;
+        const featureLivePlatforms = typeof broadcastDirector === 'object' && broadcastDirector !== null && !Array.isArray(broadcastDirector) && Array.isArray((broadcastDirector as Record<string, unknown>)['livePlatforms'])
+          ? (broadcastDirector as Record<string, unknown>)['livePlatforms'] as unknown[] : [];
+        if (livePlatforms.length > 0 || featureLivePlatforms.length > 0) return this.reply(response, 409, { error: 'Finish the live stream before installing a StreamBridge update. Feature package updates may be prepared while live, but the Bridge itself will not restart on air.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 202, await this.wizard.applyReleaseUpdate(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/addons/updates/check' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.checkForAddOnUpdates());
@@ -472,6 +489,11 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.stageAddOnUpdate(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/updates/install' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.installAddOnUpdate(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'GET' && request.url === '/wizard/api/addons/trusted-publishers' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -498,6 +520,11 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.stageTrustedPublisherAddOnUpdate(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/trusted-updates/install' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.installTrustedPublisherAddOnUpdate(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/addons/install' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, Math.max(this.config.maxPayloadBytes, 10_000_000));
@@ -513,6 +540,12 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.setAddOnEnabled(decodeURIComponent(addOnEnabledMatch[1]), JSON.parse(body.text) as unknown));
+      }
+      const featureMigrationMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/feature-migration$/u.exec(request.url ?? '') : null;
+      if (featureMigrationMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.applyFeatureMigration(decodeURIComponent(featureMigrationMatch[1]), JSON.parse(body.text) as unknown));
       }
       const addOnActionGrantsMatch = request.method === 'PUT' ? /^\/wizard\/api\/addons\/([^/]+)\/action-grants$/u.exec(request.url ?? '') : null;
       if (addOnActionGrantsMatch?.[1] !== undefined && this.wizard !== undefined) {
@@ -533,21 +566,30 @@ export class DiagnosticsServer {
           await this.overlayHub.publishAddOn(moduleId, topic, { force: true });
           return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic });
         }
-        const topic = moduleId === 'thsv.ad-break-companion' ? `${moduleId}.timer.update`
-          : moduleId === 'thsv.starting-soon-countdown' || moduleId === 'thsv.subathon-timer' ? `${moduleId}.timer.update`
-          : moduleId === 'thsv.stream-labels' ? `${moduleId}.labels.update`
-          : moduleId === 'thsv.prize-wheel' ? `${moduleId}.wheel.spin`
-          : moduleId === 'thsv.custom-counter' ? `${moduleId}.counter.update`
-          : moduleId === 'thsv.village-hydration-station' ? `${moduleId}.hydration.update`
-          : moduleId === 'thsv.random-clip-player' || moduleId === 'thsv.village-jukebox' ? `${moduleId}.media.play`
-                : moduleId === 'thsv.viewer-lobby' ? `${moduleId}.queue.update`
-              : moduleId === 'thsv.village-polls' ? `${moduleId}.poll.update`
-            : `${moduleId}.card.show`;
+        const topic = addOnOverlayPreviewTopic(moduleId);
         const requestedPreviewMode = previewRequest !== null && typeof previewRequest === 'object' && !Array.isArray(previewRequest)
           ? (previewRequest as Record<string, unknown>)['mode'] : undefined;
         const previewMode = typeof requestedPreviewMode === 'string' ? requestedPreviewMode : '';
         await this.overlayHub.publishAddOn(moduleId, topic, { ...buildAddOnOverlayPreview(addOn, previewMode), templatePreview: true });
         return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic });
+      }
+      const addOnOverlayDraftPreviewMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/overlay-preview-draft$/u.exec(request.url ?? '') : null;
+      if (addOnOverlayDraftPreviewMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        const requestBody = JSON.parse(body.text) as unknown;
+        if (requestBody === null || typeof requestBody !== 'object' || Array.isArray(requestBody)) throw new AddOnWizardError(400, 'Overlay draft preview request must be an object.');
+        const record = requestBody as Record<string, unknown>;
+        const moduleId = decodeURIComponent(addOnOverlayDraftPreviewMatch[1]);
+        const addOn = await this.wizard.previewAddOnSettings(moduleId, record['settings']);
+        if (addOn.health !== 'installed' || !addOn.enabled || !addOn.permissions.includes('overlay.publish')) return this.reply(response, 404, { error: 'Enabled add-on overlay not found' });
+        const previewMode = typeof record['mode'] === 'string' ? record['mode'] : '';
+        const topic = addOnOverlayPreviewTopic(moduleId);
+        const event = {
+          contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId, topic,
+          emittedAt: new Date().toISOString(), payload: { ...buildAddOnOverlayPreview(addOn, previewMode), templatePreview: true },
+        };
+        return this.reply(response, 200, { accepted: true, simulated: true, persisted: false, moduleId, event });
       }
       const addOnRemoveMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/remove$/u.exec(request.url ?? '') : null;
       if (addOnRemoveMatch?.[1] !== undefined && this.wizard !== undefined) {
@@ -760,7 +802,7 @@ export class DiagnosticsServer {
     response.statusCode = 200;
     response.setHeader('content-type', asset.contentType);
     response.setHeader('cache-control', 'no-store');
-    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; media-src 'self' blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; media-src 'self' blob:; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
     response.end(body);
   }
 }
@@ -769,6 +811,18 @@ interface AddOnPreviewSource {
   readonly moduleId: string;
   readonly name: string;
   readonly settings: Readonly<Record<string, unknown>>;
+}
+
+export function addOnOverlayPreviewTopic(moduleId: string): string {
+  if (['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.subathon-timer'].includes(moduleId)) return `${moduleId}.timer.update`;
+  if (moduleId === 'thsv.stream-labels') return `${moduleId}.labels.update`;
+  if (moduleId === 'thsv.prize-wheel') return `${moduleId}.wheel.spin`;
+  if (moduleId === 'thsv.custom-counter') return `${moduleId}.counter.update`;
+  if (moduleId === 'thsv.village-hydration-station') return `${moduleId}.hydration.update`;
+  if (moduleId === 'thsv.random-clip-player' || moduleId === 'thsv.village-jukebox') return `${moduleId}.media.play`;
+  if (moduleId === 'thsv.viewer-lobby') return `${moduleId}.queue.update`;
+  if (moduleId === 'thsv.village-polls') return `${moduleId}.poll.update`;
+  return `${moduleId}.card.show`;
 }
 
 interface LegacyViewerMigrationPreview {

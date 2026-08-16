@@ -1,6 +1,6 @@
 # Village Hydration Station Streamer.bot package
 
-Import `THSV-StreamBridge-Village-Hydration-Station-3.5.0.sb` into Streamer.bot 1.0.7 or newer.
+Import `THSV-StreamBridge-Village-Hydration-Station-3.6.0.sb` into Streamer.bot 1.0.7 or newer.
 
 - Attach **Log Water** to Stream Deck or a creator hotkey. A blank `hydrationAmount` uses the wizard's default serving.
 - Hydration does not require Streamer.bot Voice Control. Use the broadcaster-only `!water` command or attach **Log Water** to a Stream Deck button or creator hotkey.

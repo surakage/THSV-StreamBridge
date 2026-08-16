@@ -39,6 +39,13 @@ describe('wizard launcher package', () => {
     expect(shell).toContain('Do not share either one on stream.');
     expect(styles).toContain('.wizard-feedback[data-kind="success"]');
     expect(styles).toContain('.wizard-feedback[data-kind="warning"]');
+    expect(script).toContain('applied in this page.');
+    expect(script).toContain("addEventListener('unhandledrejection'");
+    expect(styles).toContain('width:min(2200px');
+    expect(styles).toContain('.broadcast-app-grid');
+    expect(addOnScript).toContain('OBS, Meld, and Streamlabs support');
+    expect(shell).toContain('id="choose-optional-meld"');
+    expect(shell).toContain('id="choose-optional-streamlabs"');
     expect(script).toContain("warnings.length?'warning':'success'");
     expect(script).toContain('showWizardFeedback(`${action.label} completed.`');
     expect(script).toContain("fetch('/wizard/api/unlock'");
@@ -174,7 +181,7 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain('data-viewer-undo-form');
     expect(addOnScript).toContain('Show recent administration history');
     expect(addOnScript).toContain('data-viewer-delete-form');
-    expect(addOnScript).toContain('Why this is separate:');
+    expect(addOnScript).toContain('Clip Engine foundation');
     expect(addOnScript).toContain('Approve <strong>Create Clip</strong> and <strong>Deliver</strong> below');
     expect(addOnScript).toContain('No old-library posting:');
     expect(addOnScript).toContain('No add-on import needed');

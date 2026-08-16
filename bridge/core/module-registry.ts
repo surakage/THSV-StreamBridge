@@ -82,7 +82,7 @@ export class ModuleRegistry {
       } catch (error) {
         state.status = 'failed';
         state.message = error instanceof Error ? error.message : String(error);
-        this.broker.cleanup(moduleId);
+        await this.cleanupFailedModule(state, 'startup failure');
         this.logger.error('Framework module failed to start; other modules remain active', { moduleId, required: state.module.required, error });
       }
     }
@@ -92,8 +92,10 @@ export class ModuleRegistry {
     for (const moduleId of [...this.order].reverse()) {
       const state = this.states.get(moduleId);
       if (state === undefined || state.status === 'stopped') continue;
-      try { await this.runWithIsolation(state.module, 'stop', state.module.stop === undefined ? undefined : () => state.module.stop?.(state.context)); }
-      catch (error) { this.logger.warn('Framework module stop failed', { moduleId, error }); }
+      if (state.status === 'healthy') {
+        try { await this.runWithIsolation(state.module, 'stop', state.module.stop === undefined ? undefined : () => state.module.stop?.(state.context)); }
+        catch (error) { this.logger.warn('Framework module stop failed', { moduleId, error }); }
+      }
       this.broker.cleanup(moduleId);
       state.status = 'stopped';
       state.message = undefined;
@@ -114,7 +116,7 @@ export class ModuleRegistry {
       catch (error) {
         state.status = 'failed';
         state.message = error instanceof Error ? error.message : String(error);
-        this.broker.cleanup(moduleId);
+        await this.cleanupFailedModule(state, 'event-handler failure');
         this.logger.error('Framework module event handler failed; event delivery continues', { moduleId, eventId: event.eventId, eventType: event.eventType, required: state.module.required, error });
       }
     }
@@ -227,6 +229,17 @@ export class ModuleRegistry {
     if (state?.status !== 'healthy' || state.module.administerFollowerPulse === undefined) throw new Error('Follower Pulse is unavailable. Enable it and restart StreamBridge.');
     const result = await withTimeout(state.module.administerFollowerPulse(parsed, state.context), this.optionalModuleTimeoutMs, 'Follower Pulse administration');
     return Object.freeze(followerPulseAdminResultSchema.parse(result));
+  }
+
+  private async cleanupFailedModule(state: ModuleRuntimeState, reason: string): Promise<void> {
+    const moduleId = state.module.manifest.moduleId;
+    try {
+      await this.runWithIsolation(state.module, 'failure cleanup', state.module.stop === undefined ? undefined : () => state.module.stop?.(state.context));
+    } catch (error) {
+      this.logger.warn('Framework module failure cleanup did not finish cleanly', { moduleId, reason, error });
+    } finally {
+      this.broker.cleanup(moduleId);
+    }
   }
 
   private async runWithIsolation(module: FrameworkModule, operation: string, callback: (() => Promise<void> | undefined) | undefined): Promise<void> {

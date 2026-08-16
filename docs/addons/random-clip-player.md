@@ -1,5 +1,7 @@
 # Random Clip Player setup
 
+Random Clip Player keeps a bounded shuffle bag of up to 100 unique Twitch clips. Shared-cache and compatibility refreshes are merged, so a smaller fallback response cannot discard the broader library. Every eligible clip is used before reshuffling, and the final clip from one pass stays blocked at the start of the next pass to prevent an immediate repeat.
+
 **Module:** `thsv.random-clip-player`
 **Version:** `3.5.0`
 **Publisher:** THSV StreamBridge
@@ -9,13 +11,13 @@ Plays a random clip from the broadcaster's own Twitch clip library on a timer, u
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Random-Clip-Player-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Random-Clip-Player-3.5.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.5.0.sb` in Streamer.bot.
+2. In **Setup Wizard > Add-ons**, install `THSV-Random-Clip-Player-3.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.5.0.sb into Streamer.bot.
+1. Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-3.6.0.sb into Streamer.bot.
 2. In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.
 3. Enter the exact OBS program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.
 4. Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.

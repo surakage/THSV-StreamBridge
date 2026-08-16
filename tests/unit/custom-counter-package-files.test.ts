@@ -40,7 +40,10 @@ describe('Custom Counter package files', () => {
   });
 
   it('packages reusable counter ID and display-name arguments without Streamer.bot command triggers', async () => {
-    const encoded = Buffer.from(await readFile('packages/streamerbot/custom-counter/THSV-StreamBridge-Custom-Counter-3.5.0.sb', 'utf8'), 'base64');
+    const manifest = JSON.parse(await readFile('packages/streamerbot/custom-counter/manifest.json', 'utf8')) as {
+      actions: Array<{ importFile: string }>;
+    };
+    const encoded = Buffer.from(await readFile(`packages/streamerbot/custom-counter/${manifest.actions[0]?.importFile ?? ''}`, 'utf8'), 'base64');
     expect(encoded.subarray(0, 4).toString('ascii')).toBe('SBAE');
     const exported = JSON.parse(gunzipSync(encoded.subarray(4)).toString('utf8')) as { data: { actions: Array<{ triggers: unknown[]; subActions: Array<{ type: number; variableName?: string }> }>; commands: unknown[] } };
     expect(exported.data.actions).toHaveLength(1);

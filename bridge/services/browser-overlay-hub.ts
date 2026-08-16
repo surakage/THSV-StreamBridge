@@ -6,6 +6,8 @@ import type { BrowserOverlayConfig } from '../../schemas/config.js';
 import { BROWSER_OVERLAY_CONTRACT_VERSION, projectBrowserOverlayEvents } from '../core/browser-overlay.js';
 import type { Logger } from './logger.js';
 import type { AddOnOverlayLifecycleV2, AddOnOverlayPresentationLaneV2, AddOnOverlayPublishOptionsV2 } from '../contracts/v2/addon-capability.js';
+import { MAIN_FEATURE_PRESENTATION_POLICY } from '../core/main-feature-registry.js';
+export { MAIN_FEATURE_PRESENTATION_POLICY } from '../core/main-feature-registry.js';
 
 const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const PLAYBACK_ID = /^[A-Za-z0-9._:-]{1,100}$/u;
@@ -175,7 +177,7 @@ export class BrowserOverlayHub {
     for (const subscriptions of this.addOnSubscriptions.values()) {
       for (const [moduleId, renderers] of subscriptions) addOnClients[moduleId] = (addOnClients[moduleId] ?? 0) + renderers.size;
     }
-    return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, published: this.published, addOnPublished: this.addOnPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
+    return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, published: this.published, addOnPublished: this.addOnPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationPolicy: MAIN_FEATURE_PRESENTATION_POLICY, presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
   }
   public clientConfig(): BrowserOverlayConfig { return { ...this.config }; }
 
@@ -362,6 +364,8 @@ function mediaReplayTtl(durationMs: unknown): number {
 
 function presentationLane(moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>, requested?: AddOnOverlayPresentationLaneV2): AddOnOverlayPresentationLaneV2 {
   if (payload['preview'] === true || payload['templatePreview'] === true) return 'preview';
+  const mainFeatureLane = mainFeaturePresentationLane(moduleId, topic);
+  if (mainFeatureLane !== undefined) return mainFeatureLane;
   if (requested !== undefined) return requested;
   // Backward-compatible classification for third-party packages built before explicit lanes.
   if (moduleId === 'thsv.accessibility-captions') return 'independent';
@@ -370,6 +374,14 @@ function presentationLane(moduleId: string, topic: string, payload: Readonly<Rec
   if (topic.endsWith('.labels.update') || topic.endsWith('.counter.update') || topic.endsWith('.poll.update') || topic.endsWith('.queue.update')) return 'persistent';
   if (topic.endsWith('.card.show') || topic.endsWith('.result.show') || topic.endsWith('.wheel.spin') || topic.endsWith('.hydration.update')) return 'foreground';
   return 'independent';
+}
+
+function mainFeaturePresentationLane(moduleId: string, topic: string): AddOnOverlayPresentationLaneV2 | undefined {
+  if (MAIN_FEATURE_PRESENTATION_POLICY.backgroundOnly.some((id) => id === moduleId)) return 'independent';
+  if (MAIN_FEATURE_PRESENTATION_POLICY.timerLane.some((id) => id === moduleId) && (topic.endsWith('.timer.update') || topic.endsWith('.timer.hide'))) return 'timer';
+  if (MAIN_FEATURE_PRESENTATION_POLICY.mediaLane.some((id) => id === moduleId) && (topic.endsWith('.media.play') || topic.endsWith('.media.stop'))) return 'media';
+  if (MAIN_FEATURE_PRESENTATION_POLICY.foregroundQueue.some((id) => id === moduleId) && (topic.endsWith('.card.show') || topic.endsWith('.result.show') || topic.endsWith('.wheel.spin') || topic.endsWith('.hydration.update'))) return 'foreground';
+  return undefined;
 }
 
 function isPresentationStopTopic(moduleId: string, topic: string): boolean {

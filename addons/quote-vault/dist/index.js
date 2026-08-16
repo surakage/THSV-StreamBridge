@@ -10,14 +10,15 @@ const MAXIMUM_PENDING_QUOTES = 30;
 const MAXIMUM_DELETED_QUOTES = 20;
 const MAXIMUM_AUDIT_ENTRIES = 40;
 const MAXIMUM_COOLDOWNS = 250;
+const LEGACY_QUOTE_MESSAGE_TEMPLATE = 'Quote #{id}: “{quote}” — {quotedName}';
 
 const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.quote-vault',
   name: 'Quote Vault',
-  version: '3.5.0',
+  version: '3.6.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.6.0', maximumTestedBridgeVersion: '3.6.0',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -82,7 +83,7 @@ const FALLBACKS = Object.freeze({
   streamerBotSyncEnabled: false,
   streamerBotSyncActionId: 'df4ee3e7-cee1-48e7-b301-5533d57c11d8',
   starterQuotes: [],
-  quoteMessageTemplate: 'Quote #{id}: “{quote}” — {quotedName}',
+  quoteMessageTemplate: '{quote}',
   submittedMessageTemplate: 'Quote #{id} was submitted for moderator approval.',
   addedMessageTemplate: 'Quote #{id} was added.',
   approvedMessageTemplate: 'Quote #{id} was approved.',
@@ -124,6 +125,11 @@ function settingsFor(context) {
     enabledPlatforms: Array.isArray(raw.enabledPlatforms) ? raw.enabledPlatforms.filter((platform) => PLATFORMS.includes(platform)) : PLATFORMS,
     ignoredUsers: Array.isArray(raw.ignoredUsers) ? raw.ignoredUsers.slice(0, 500) : [],
     starterQuotes: Array.isArray(raw.starterQuotes) ? raw.starterQuotes.slice(0, 30) : [],
+    // Upgrade the original attribution-heavy default in place. Creator-authored templates remain
+    // untouched, but existing installs no longer append a name when viewers use !quote.
+    quoteMessageTemplate: cleanText(raw.quoteMessageTemplate, 1000) === LEGACY_QUOTE_MESSAGE_TEMPLATE
+      ? FALLBACKS.quoteMessageTemplate
+      : cleanText(raw.quoteMessageTemplate, 1000) || FALLBACKS.quoteMessageTemplate,
     commandPrefix: cleanText(raw.commandPrefix, 1) || '!',
     quoteCommand: commandName(raw.quoteCommand, FALLBACKS.quoteCommand),
     quotesCommand: commandName(raw.quotesCommand, FALLBACKS.quotesCommand),

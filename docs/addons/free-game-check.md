@@ -9,8 +9,8 @@ Checks bounded public game giveaways only after a viewer redemption, routes avai
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Free-Game-Check-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Free-Game-Check-3.5.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Free-Game-Check-3.5.0.sb` in Streamer.bot.
+2. In **Setup Wizard > Add-ons**, install `THSV-Free-Game-Check-3.6.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Free-Game-Check-3.6.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps

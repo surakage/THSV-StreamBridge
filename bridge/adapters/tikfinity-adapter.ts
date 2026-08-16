@@ -58,6 +58,9 @@ export class TikfinityAdapter extends ManagedAdapter {
 
   private async receive(message: Readonly<Record<string, unknown>>): Promise<void> {
     if (message['type'] !== 'thsv.tikfinity' || this.context === undefined) return;
+    // TikFinity can emit empty chat-shaped callbacks for connection/activity changes. They are
+    // not malformed viewer messages and should not put the adapter into an error state.
+    if (message['kind'] === 'chat' && (typeof message['commandParams'] !== 'string' || clean(message['commandParams']) === '')) return;
     try {
       const normalized = normalizeTikfinityRelay(message, this.name);
       const events = normalized.eventType === 'engagement.milestone' && normalized.payload['metric'] === 'likes' ? this.likeMilestones(normalized, message) : [normalized];

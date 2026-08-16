@@ -26,7 +26,8 @@ export interface StreamerBotLauncherStatus {
   readonly optionalApps: Readonly<Record<OptionalApplication, OptionalApplicationStatus>>;
 }
 
-export type OptionalApplication = 'obs' | 'speakerbot';
+export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot';
+const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot'] as const satisfies readonly OptionalApplication[];
 
 export interface OptionalApplicationStatus {
   readonly application: OptionalApplication;
@@ -240,7 +241,7 @@ export class StreamerBotLauncherService {
   private async optionalApplicationStatuses(): Promise<Readonly<Record<OptionalApplication, OptionalApplicationStatus>>> {
     const configuration = await this.readConfiguration();
     const runningProcesses = this.optionalProcesses();
-    const entries = await Promise.all((['obs', 'speakerbot'] as const).map(async (application) => {
+    const entries = await Promise.all(OPTIONAL_APPLICATIONS.map(async (application) => {
       const metadata = optionalApplicationMetadata(application);
       if (process.platform !== 'win32') return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: false, state: 'unsupported', message: `${metadata.label} startup is available on Windows only.` }] as const;
       const saved = configuration?.optionalApps[application];
@@ -260,7 +261,7 @@ export class StreamerBotLauncherService {
     const configuration = await this.readConfiguration();
     const runningProcesses = this.optionalProcesses();
     const candidates = new Map<string, OptionalApplicationCandidate>();
-    for (const application of ['obs', 'speakerbot'] as const) {
+    for (const application of OPTIONAL_APPLICATIONS) {
       const metadata = optionalApplicationMetadata(application);
       const add = async (path: string | undefined, source: OptionalApplicationCandidate['source']): Promise<void> => {
         if (path === undefined || !metadata.executableNames.includes(basename(path).toLocaleLowerCase('en-US')) || !await isFile(path)) return;
@@ -278,7 +279,7 @@ export class StreamerBotLauncherService {
   private optionalProcesses(): readonly ProcessIdentity[] {
     const now = Date.now();
     if (this.optionalProcessCache !== undefined && this.optionalProcessCache.expiresAt > now) return this.optionalProcessCache.processes;
-    const processes = processesNamed(['obs64', 'Speaker.bot', 'SpeakerBot']);
+    const processes = processesNamed(['obs64', 'Meld', 'Meld Studio', 'Streamlabs Desktop', 'slobs-client', 'Speaker.bot', 'SpeakerBot']);
     this.optionalProcessCache = { expiresAt: now + 10_000, processes };
     return processes;
   }
@@ -338,6 +339,25 @@ function optionalApplicationMetadata(application: OptionalApplication): {
     processNames: ['obs64'],
     commonLocations: () => [join(programFiles, 'obs-studio', 'bin', '64bit', 'obs64.exe')],
   };
+  if (application === 'meld') return {
+    label: 'Meld Studio',
+    executableNames: ['meld.exe', 'meld studio.exe'],
+    processNames: ['Meld', 'Meld Studio'],
+    commonLocations: () => [
+      join(programFiles, 'Meld Studio', 'Meld Studio.exe'),
+      local ? join(local, 'Programs', 'Meld Studio', 'Meld Studio.exe') : undefined,
+      local ? join(local, 'Meld Studio', 'Meld Studio.exe') : undefined,
+    ],
+  };
+  if (application === 'streamlabs') return {
+    label: 'Streamlabs Desktop',
+    executableNames: ['streamlabs desktop.exe', 'slobs-client.exe'],
+    processNames: ['Streamlabs Desktop', 'slobs-client'],
+    commonLocations: () => [
+      join(programFiles, 'Streamlabs Desktop', 'Streamlabs Desktop.exe'),
+      local ? join(local, 'Programs', 'streamlabs-desktop', 'Streamlabs Desktop.exe') : undefined,
+    ],
+  };
   return {
     label: 'Speaker.bot',
     executableNames: ['speaker.bot.exe'],
@@ -353,7 +373,7 @@ function optionalApplicationMetadata(application: OptionalApplication): {
 function validOptionalApplications(value: unknown): LauncherConfiguration['optionalApps'] {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
   const result: Partial<Record<OptionalApplication, { executable: string; enabled: boolean }>> = {};
-  for (const application of ['obs', 'speakerbot'] as const) {
+  for (const application of OPTIONAL_APPLICATIONS) {
     const entry = (value as Record<string, unknown>)[application];
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) continue;
     const executable = (entry as Record<string, unknown>)['executable'];

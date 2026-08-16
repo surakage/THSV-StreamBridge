@@ -42,6 +42,21 @@ describe('public Streamer.bot launcher configuration', () => {
     expect(saved).toMatchObject({ version: 2, executable: streamerBot, optionalApps: { obs: { executable: obs, enabled: true }, speakerbot: { executable: speaker, enabled: false } } });
   });
 
+  it('stores Meld and Streamlabs as independent optional broadcast applications', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-provider-apps-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data'); const portable = join(root, 'portable');
+    const streamerBot = join(portable, 'Streamer.bot.exe'); const meld = join(root, 'Meld Studio.exe'); const streamlabs = join(root, 'Streamlabs Desktop.exe');
+    await mkdir(portable, { recursive: true });
+    await Promise.all([writeFile(streamerBot, 'streamerbot'), writeFile(meld, 'meld'), writeFile(streamlabs, 'streamlabs')]);
+    const service = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/');
+    await service.save(streamerBot);
+    let status = await service.saveOptionalApplication('meld', meld, true);
+    expect(status.optionalApps.meld).toMatchObject({ configured: true, enabled: true, executable: meld, executableExists: true });
+    status = await service.saveOptionalApplication('streamlabs', streamlabs, true);
+    expect(status.optionalApps.streamlabs).toMatchObject({ configured: true, enabled: true, executable: streamlabs, executableExists: true });
+    expect(status.optionalApps.obs).toMatchObject({ configured: false, enabled: false });
+  });
+
   it('rejects missing files and misleading executable names', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-streamerbot-launcher-invalid-')); temporaryRoots.push(root);
     const service = new StreamerBotLauncherService(join(root, 'data'), 'ws://127.0.0.1:65534/');

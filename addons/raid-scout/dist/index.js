@@ -59,9 +59,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '3.5.0',
+  version: '3.6.0',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.6.0', maximumTestedBridgeVersion: '3.6.0',
   dependencies: ['thsv.viewer-foundation'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -74,7 +74,7 @@ const manifest = {
     'Import the separate Raid Scout Streamer.bot package.',
     'Keep its Controller action triggerless and approve that stable action ID as Raid Scout\'s fixed controller grant.',
     'Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the streamlined one-press path through every enabled ending step.',
-    'For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion\'s Ad Run Intake to Twitch Ads > Ad Run. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld/Streamlabs users select their provider-native stop action. Attach Broadcast Stopped only to that provider\'s Streaming Stopped trigger.',
+    'For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion\'s Ad Run Intake to Twitch Ads > Ad Run. Choose OBS Studio, Meld Studio, or Streamlabs Desktop in the wizard, select and approve that provider\'s Stop Streaming action, and attach Broadcast Stopped only to the selected provider\'s Streaming Stopped trigger.',
     'Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.',
     'For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.',
     'Configure preferred channels and filters, then test Suggest before enabling automatic mode.',
@@ -86,7 +86,7 @@ const manifest = {
 };
 
 const FALLBACKS = Object.freeze({
-  enabled: true, autoStartSceneEnabled: false, autoStartSceneName: '', preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
+  enabled: true, autoStartSceneEnabled: false, autoStartProvider: 'obs', autoStartSceneName: '', preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
   viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', kickViewerSuggestionRewardId: '', viewerSuggestionCommand: 'raidsuggest', viewerSuggestionPointsCost: 50, maximumViewerSuggestions: 20,
   oneViewerSuggestionPerStream: true, announceViewerSuggestions: true,
   viewerSuggestionAcceptedMessage: '{viewer}, added {channel} to tonight\'s raid list.',
@@ -104,7 +104,7 @@ const FALLBACKS = Object.freeze({
   showSearchProgress: true,
   showSuggestionCard: true, showConfirmedCard: true, cardSeconds: 20, overlayBackgroundMode: 'glass',
   previewClipBeforeRaid: false, pauseOtherVideoOverlays: true, clipLookupCount: 20, clipPreviewMuted: false, clipPreviewVolume: 0.8,
-  endBroadcastAfterRaid: false, endBroadcastActionId: '', endBroadcastTiming: 'after-ad', endBroadcastDelaySeconds: 10,
+  endBroadcastAfterRaid: false, endBroadcastProvider: 'obs', endBroadcastActionId: '', endBroadcastTiming: 'after-ad', endBroadcastDelaySeconds: 10,
   endBroadcastAdDurationSeconds: 180, endBroadcastAdWaitSeconds: 45, endBroadcastAdEndBufferSeconds: 3, endBroadcastAcknowledged: false,
   overlayBackgroundColor: '#17122b', overlayBackgroundOpacity: 0.94, overlayAccentColor: '#9146ff',
   overlayTextColor: '#ffffff', overlayFontFamily: 'display',
@@ -163,6 +163,7 @@ function settingsFor(context) {
   return {
     enabled: boolean(raw.enabled, true),
     autoStartSceneEnabled: boolean(raw.autoStartSceneEnabled, false),
+    autoStartProvider: ['obs', 'meld', 'streamlabs'].includes(raw.autoStartProvider) ? raw.autoStartProvider : FALLBACKS.autoStartProvider,
     autoStartSceneName: clean(raw.autoStartSceneName, 200),
     preferredChannels: lines(raw.preferredChannels, 100, normalizedLogin),
     viewerSuggestionsEnabled: boolean(raw.viewerSuggestionsEnabled, false),
@@ -208,6 +209,7 @@ function settingsFor(context) {
     clipPreviewMuted: boolean(raw.clipPreviewMuted, false),
     clipPreviewVolume: decimal(raw.clipPreviewVolume, 0, 1, FALLBACKS.clipPreviewVolume),
     endBroadcastAfterRaid: boolean(raw.endBroadcastAfterRaid, false),
+    endBroadcastProvider: ['obs', 'meld', 'streamlabs'].includes(raw.endBroadcastProvider) ? raw.endBroadcastProvider : FALLBACKS.endBroadcastProvider,
     endBroadcastActionId: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(clean(raw.endBroadcastActionId, 36)) ? clean(raw.endBroadcastActionId, 36) : '',
     endBroadcastTiming: ['after-ad', 'countdown'].includes(raw.endBroadcastTiming) ? raw.endBroadcastTiming : FALLBACKS.endBroadcastTiming,
     endBroadcastDelaySeconds: integer(raw.endBroadcastDelaySeconds, 5, 60, FALLBACKS.endBroadcastDelaySeconds),
@@ -261,12 +263,17 @@ function pendingRecord(value) {
   const playbackId = clean(value.playbackId, 100);
   const durationMs = integer(value.durationMs, 5_000, 90_000, 0);
   const actionId = clean(value.actionId, 36);
+  const provider = ['obs', 'meld', 'streamlabs'].includes(value.provider) ? value.provider : 'obs';
   const executeAt = integer(value.executeAt, 0, Number.MAX_SAFE_INTEGER, 0);
   if (!operation || !requestId || !startedAt || (operation !== 'discover' && !candidate)
     || (operation === 'clip-download' && !clip)
     || (operation === 'clip-playback' && (!playbackId || durationMs === 0))
     || (operation.startsWith('end-broadcast-') && (!actionId || !executeAt))) return undefined;
-  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(actionId ? { actionId, executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}) };
+  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}) };
+}
+
+function broadcastProviderName(provider) {
+  return provider === 'meld' ? 'Meld Studio' : provider === 'streamlabs' ? 'Streamlabs Desktop' : 'OBS Studio';
 }
 
 function clipRecord(value) {
@@ -899,6 +906,10 @@ async function finishClipPreview(context, settings, state, playbackId) {
   cancelClipFallback(context);
   const candidate = state.pending.candidate;
   const next = withoutPending(state); await context.state.write(next);
+  // The selected creator's preview owns the exclusive media slot only while that preview is
+  // visible. Release it before starting the raid/ad wait so Random Clip Player can immediately
+  // resume the creator's own clips for the remainder of the ending commercial.
+  await releaseRaidMediaSlot(context);
   return requestRaid(context, next, candidate);
 }
 
@@ -920,6 +931,7 @@ async function dispatchBroadcastEnd(context, requestIdValue) {
   const settings = settingsFor(context);
   const actionId = state.pending.actionId;
   if (!settings.endBroadcastAfterRaid || !settings.endBroadcastAcknowledged || settings.endBroadcastActionId !== actionId
+    || settings.endBroadcastProvider !== state.pending.provider
     || RAID_SCOUT_CONTROL_ACTION_IDS.has(actionId) || !context.approvedActionIds.includes(actionId)) {
     await failBroadcastEnd(context, settings, state, requestIdValue, 'Automatic broadcast ending was canceled because its saved action or safety acknowledgement changed.');
     return;
@@ -929,15 +941,17 @@ async function dispatchBroadcastEnd(context, requestIdValue) {
     pending: { ...state.pending, operation: 'end-broadcast-awaiting-stop', startedAt: Date.now(), executeAt: Date.now() + BROADCAST_STOP_CONFIRMATION_MS },
   };
   await context.state.write(awaiting);
-  await publishStatusCard(context, settings, 'ENDING BROADCAST', 'The approved Stop Streaming action was sent. Waiting for the broadcast app to confirm it stopped.', 8_000);
+  const providerName = broadcastProviderName(state.pending.provider);
+  await publishStatusCard(context, settings, 'ENDING BROADCAST', `The approved ${providerName} Stop Streaming action was sent. Waiting for ${providerName} to confirm it stopped.`, 8_000);
   try {
     await context.streamerbot.runApprovedAction(actionId, {
       raidScoutOperation: 'end-broadcast', raidScoutRequestId: requestIdValue,
+      raidScoutBroadcastProvider: state.pending.provider,
       raidScoutTargetLogin: state.pending.candidate.login, raidScoutTargetUserId: state.pending.candidate.userId,
     });
   } catch {
     state = sanitizeState(await context.state.read());
-    await failBroadcastEnd(context, settingsFor(context), state, requestIdValue, 'Streamer.bot could not run the approved Stop Streaming action.');
+    await failBroadcastEnd(context, settingsFor(context), state, requestIdValue, `Streamer.bot could not run the approved ${providerName} Stop Streaming action.`);
     return;
   }
   state = sanitizeState(await context.state.read());
@@ -945,7 +959,7 @@ async function dispatchBroadcastEnd(context, requestIdValue) {
   broadcastStopConfirmationTask = context.schedule.after(BROADCAST_STOP_CONFIRMATION_MS, () => queueScheduledWork(async () => {
     broadcastStopConfirmationTask = undefined;
     const current = sanitizeState(await context.state.read());
-    await failBroadcastEnd(context, settingsFor(context), current, requestIdValue, 'The broadcast app did not confirm Streaming Stopped. Raid Scout will not retry; stop the stream manually.');
+    await failBroadcastEnd(context, settingsFor(context), current, requestIdValue, `${providerName} did not confirm Streaming Stopped. Raid Scout will not retry; stop the stream manually.`);
   }));
 }
 
@@ -954,7 +968,7 @@ async function armBroadcastEndAt(context, settings, state, candidate, requestIdV
   const delayMs = Math.max(0, executeAt - Date.now());
   const pending = {
     operation: 'end-broadcast-countdown', requestId: requestIdValue, startedAt: Date.now(), candidate,
-    actionId: settings.endBroadcastActionId, executeAt,
+    provider: settings.endBroadcastProvider, actionId: settings.endBroadcastActionId, executeAt,
   };
   const armed = { ...state, pending, lastError: '' };
   await context.state.write(armed);
@@ -1024,7 +1038,7 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
     const waitMs = settings.endBroadcastAdWaitSeconds * 1_000;
     const pending = {
       operation: 'end-broadcast-waiting-for-ad', requestId: requestIdValue, startedAt: Date.now(), candidate,
-      actionId: settings.endBroadcastActionId, executeAt: Date.now() + waitMs,
+      provider: settings.endBroadcastProvider, actionId: settings.endBroadcastActionId, executeAt: Date.now() + waitMs,
     };
     const waiting = { ...state, pending, lastError: '' };
     await context.state.write(waiting);
@@ -1051,7 +1065,7 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
   const delayMs = settings.endBroadcastDelaySeconds * 1_000;
   const pending = {
     operation: 'end-broadcast-countdown', requestId: requestId('end-broadcast'), startedAt: Date.now(), candidate,
-    actionId: settings.endBroadcastActionId, executeAt: Date.now() + delayMs,
+    provider: settings.endBroadcastProvider, actionId: settings.endBroadcastActionId, executeAt: Date.now() + delayMs,
   };
   const armed = { ...state, pending, lastError: '' };
   await context.state.write(armed);
@@ -1357,11 +1371,11 @@ async function handleSceneChanged(event, context, settings, state) {
   if (event.metadata?.simulated === true || !settings.autoStartSceneEnabled || !state.twitchLive) return state;
   const provider = clean(event.payload?.provider, 30).toLowerCase();
   const sceneName = clean(event.payload?.sceneName, 200);
-  if ((provider && provider !== 'obs') || !sceneName || sceneName.toLowerCase() !== settings.autoStartSceneName.toLowerCase()) return state;
+  if ((provider && provider !== settings.autoStartProvider) || !sceneName || sceneName.toLowerCase() !== settings.autoStartSceneName.toLowerCase()) return state;
   if (state.autoSceneStartedCycle === state.streamCycle || state.pending) return state;
 
-  // Claim this stream cycle before dispatch so duplicate OBS scene-active signals (including Studio
-  // Mode transitions) cannot start overlapping searches.
+  // Claim this stream cycle before dispatch so duplicate broadcast-app scene-active signals cannot
+  // start overlapping searches.
   const claimed = { ...state, autoSceneStartedCycle: state.streamCycle, lastError: '' };
   await context.state.write(claimed);
   const prepared = await startOrAdoptEndingAd(context, settings, claimed);

@@ -91,7 +91,7 @@ public class CPHInline
     private string TranslateMyMemory(string text, string sourceLanguage, string targetLanguage, int timeoutSeconds)
     {
         string url = "https://api.mymemory.translated.net/get?q=" + Uri.EscapeDataString(text) + "&langpair=" + Uri.EscapeDataString(sourceLanguage + "|" + targetLanguage) + "&mt=1";
-        JObject root = RequestJson(url, timeoutSeconds, "THSV-StreamBridge-Translate/2.6.0");
+        JObject root = RequestJson(url, timeoutSeconds, "THSV-StreamBridge-Translate/3.6.0");
         int status = root.Value<int?>("responseStatus") ?? 0;
         string translated = root["responseData"] == null ? "" : (string)root["responseData"]["translatedText"];
         if (status != 200 || String.IsNullOrWhiteSpace(translated)) throw new InvalidDataException("Translation provider returned no usable translation.");
@@ -103,7 +103,7 @@ public class CPHInline
         // This is an optional, explicitly disclosed no-key consumer endpoint. It is not the
         // authenticated Google Cloud Translation API and may change without notice.
         string url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" + Uri.EscapeDataString(sourceLanguage) + "&tl=" + Uri.EscapeDataString(targetLanguage) + "&dt=t&dj=1&q=" + Uri.EscapeDataString(text);
-        JObject root = RequestJson(url, timeoutSeconds, "THSV-StreamBridge-Translate/2.6.0");
+        JObject root = RequestJson(url, timeoutSeconds, "THSV-StreamBridge-Translate/3.6.0");
         var sentences = root["sentences"] as JArray;
         if (sentences == null || sentences.Count == 0) throw new InvalidDataException("Translation provider returned no sentences.");
         var translated = new StringBuilder();

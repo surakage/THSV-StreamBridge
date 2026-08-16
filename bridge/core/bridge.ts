@@ -16,6 +16,7 @@ import { ModuleRegistry } from './module-registry.js';
 import { buildEffectiveCommands, type EffectiveCommandsResult } from './effective-commands.js';
 import { EventFilterEngine, type FilterDecision } from './event-filters.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import { MainFeatureCoordinator } from './main-feature-coordinator.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -55,6 +56,7 @@ export class StreamBridge {
   private readonly filters: EventFilterEngine;
   private effectiveCommands: EffectiveCommandsResult;
   private readonly livePlatforms = new Set<string>();
+  private readonly mainFeatures = new MainFeatureCoordinator();
   private running = false;
   private startedAt: string | undefined;
   private lastAcceptedEventAt: string | undefined;
@@ -120,6 +122,7 @@ export class StreamBridge {
     if (Array.isArray(restoredLivePlatforms)) {
       this.livePlatforms.clear();
       for (const platform of restoredLivePlatforms) if (typeof platform === 'string') this.livePlatforms.add(platform);
+      this.mainFeatures.restoreLivePlatforms(restoredLivePlatforms);
     }
     this.logger.info('Bridge core started', { service: this.config.service.name });
   }
@@ -229,6 +232,7 @@ export class StreamBridge {
     }
     try {
       const outputs = await this.publishEvents(events, initialFilterDecision);
+      this.mainFeatures.observe(validatedEvent);
       const lastEvent = events.at(-1);
       if (lastEvent === undefined) throw new Error('No accepted event was produced');
       const acceptedAt = new Date().toISOString();
@@ -289,6 +293,7 @@ export class StreamBridge {
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
+    const capabilityDiagnostics = this.modules.capabilityDiagnostics();
     return {
       ...this.health(),
       ...this.readiness(),
@@ -297,7 +302,8 @@ export class StreamBridge {
       deduplicationPersistence: this.dependencies.deduplicationStore.status(),
       timedActions: this.timedActions?.controlStatus(),
       modules: this.modules.statuses(),
-      addOnCapabilities: this.modules.capabilityDiagnostics(),
+      addOnCapabilities: capabilityDiagnostics,
+      mainFeatures: this.mainFeatures.snapshot(this.modules.statuses(), capabilityDiagnostics),
       commands: {
         creatorDefinitions: this.config.commands.definitions.length,
         registeredAddOnCommands: this.effectiveCommands.addOnCommands.length,

@@ -7,8 +7,8 @@
   "properties": {
     "automaticSceneNames": {
       "type": "array",
-      "title": "Exact OBS scene names that play clips",
-      "description": "Enter one exact OBS program-scene name per line, including any emoji, icon, bracketed text, or punctuation in that scene name. Matching ignores capitalization only.",
+      "title": "Exact broadcast-app scenes that play clips",
+      "description": "Enter one exact OBS, Meld, or Streamlabs program-scene name per line, including any emoji, icon, bracketed text, or punctuation. Matching ignores capitalization only.",
       "items": { "type": "string", "minLength": 1, "maxLength": 120 },
       "maxItems": 20,
       "uniqueItems": true,

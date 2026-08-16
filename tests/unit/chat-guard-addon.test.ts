@@ -93,7 +93,7 @@ describe('Chat Guard add-on', () => {
 
   it('bounds and expires incident state while returning aggregate-only status', () => {
     const hash = 'a'.repeat(64); const state = sanitizeChatGuardState({ salt: 'b'.repeat(64), observations: Array.from({ length: 100 }, (_, index) => ({ accountHash: hash, messageHash: hash, at: index + 9000 })), processed: Array.from({ length: 100 }, (_, index) => ({ id: hash, at: index + 9000 })), incidents: Array.from({ length: 100 }, (_, index) => ({ id: hash, accountHash: hash, messageHash: hash, at: index + 9000, platform: 'twitch', rules: ['excessive-links'] })) }, { retentionHours: 1, retainedIncidents: 10, maximumTrackedObservations: 50 }, 10_000);
-    expect(state.incidents).toHaveLength(10); expect(state.observations).toHaveLength(50); expect(state.processed).toHaveLength(50); expect(JSON.stringify(state).length).toBeLessThanOrEqual(60_000);
+    expect(state.incidents).toHaveLength(10); expect(state.observations).toHaveLength(50); expect(state.processed).toHaveLength(50); expect(JSON.stringify(state).length).toBeLessThanOrEqual(48_000);
     expect(summarizeChatGuardState(state, { retentionHours: 1, retainedIncidents: 10, maximumTrackedObservations: 50 }, 10_000)).toMatchObject({ mode: 'observe', incidentCount: 10, byRule: { 'excessive-links': 10 }, byPlatform: { twitch: 10 } });
   });
 

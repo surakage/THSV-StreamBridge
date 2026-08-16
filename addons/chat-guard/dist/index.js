@@ -4,8 +4,8 @@ const MODERATE_ACTION_ID = '9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9';
 const RESULT_EVENT = 'addon.thsv.chat-guard.moderation-result';
 const TRUST_EVENT = 'addon.thsv.chat-guard.trusted-account-request';
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.chat-guard', name: 'Chat Guard', version: '3.5.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.5.0', maximumTestedBridgeVersion: '3.5.0',
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.chat-guard', name: 'Chat Guard', version: '3.6.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.6.0', maximumTestedBridgeVersion: '3.6.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'command.received', RESULT_EVENT, TRUST_EVENT], commandsProvided: [{ id: 'chat-guard.trust-viewer', name: '!guardtrust' }], actionsProvided: [{ id: 'chat-guard.moderate', name: 'THSV Addon - Chat Guard - Moderate' }, { id: 'chat-guard.trust-viewer', name: 'THSV Addon - Chat Guard - Trust Viewer' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.chat-guard/', 'data/addons/.state/thsv.chat-guard/'],
   installationSteps: ['Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.', 'Import the matching Chat Guard Streamer.bot package. Leave both helpers triggerless; the legacy !guardtrust Command object may remain disabled.', 'Use the rule tester and privacy-safe moderation dashboard. Filter incidents and label false positives before changing enforcement rules.', 'To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator. The main chat intake registers it automatically after restart.', 'Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance.'],
@@ -20,7 +20,9 @@ const FALLBACKS = Object.freeze({ enabled: false, includeSimulated: false, enabl
 const PLATFORM = /^(twitch|youtube|kick|tiktok)$/u;
 const HEX_64 = /^[a-f0-9]{64}$/u;
 const RULE = /^(blocked-term|blocked-domain|unapproved-domain|excessive-links|excessive-caps|repeated-characters|long-message|repeated-message)$/u;
-const MAXIMUM_STATE_BYTES = 60_000;
+// Atomic state files are formatted for recovery and creator inspection. Keep compact JSON
+// comfortably below the broker's 65,536-byte on-disk ceiling after indentation.
+const MAXIMUM_STATE_BYTES = 48_000;
 let operation = Promise.resolve();
 
 function clean(value, maximum = 512) { return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, '').trim() : '')].slice(0, maximum).join(''); }

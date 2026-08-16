@@ -197,6 +197,37 @@ describe('Browser Overlay Hub contract', () => {
     } finally { vi.useRealTimers(); }
   });
 
+  it('enforces the versioned main-feature presentation lanes over built-in publisher requests', async () => {
+    vi.useFakeTimers();
+    try {
+      const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+      await hub.publishAddOn('thsv.first-five', 'thsv.first-five.card.show', { title: 'First Five', durationMs: 10_000 }, { lane: 'independent' });
+      await hub.publishAddOn('thsv.random-clip-player', 'thsv.random-clip-player.media.play', { playbackId: 'policy-clip', url: 'https://clips.example/video.mp4', durationMs: 30_000 }, { lane: 'foreground' });
+      await hub.publishAddOn('thsv.starting-soon-countdown', 'thsv.starting-soon-countdown.timer.update', { remainingSeconds: 120 }, { lane: 'foreground' });
+      await hub.publishAddOn('thsv.chat-guard', 'thsv.chat-guard.status.update', { state: 'healthy' }, { lane: 'foreground' });
+
+      expect(hub.status()).toMatchObject({
+        addOnPublished: 4,
+        presentationPolicy: {
+          contractVersion: '1.0.0',
+          foregroundQueue: ['thsv.automated-shoutouts', 'thsv.fan-crown', 'thsv.first-five', 'thsv.raid-scout', 'thsv.viewer-spotlight', 'thsv.village-hydration-station', 'thsv.village-roll-call'],
+          mediaLane: ['thsv.raid-scout', 'thsv.random-clip-player'],
+          timerLane: ['thsv.ad-break-companion', 'thsv.starting-soon-countdown'],
+          backgroundOnly: ['thsv.chat-guard', 'thsv.discord-chat-archive', 'thsv.quote-vault', 'thsv.follower-pulse', 'thsv.community-analytics', 'thsv.user-translate', 'thsv.village-fun-commands'],
+        },
+        presentationQueue: { active: { owner: 'thsv.first-five', lane: 'foreground' }, queued: [] },
+      });
+      hub.stop();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('keeps exact previews outside the queue even for a foreground main feature', async () => {
+    const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    await hub.publishAddOn('thsv.viewer-spotlight', 'thsv.viewer-spotlight.card.show', { title: 'Exact card', templatePreview: true }, { lane: 'foreground' });
+    expect(hub.status()).toMatchObject({ addOnPublished: 1, presentationQueue: { active: null, queued: [] } });
+    hub.stop();
+  });
+
   it('accepts lifecycle reports only for playback IDs published by the owning add-on', async () => {
     const config = await testConfig();
     const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);

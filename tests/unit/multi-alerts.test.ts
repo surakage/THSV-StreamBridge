@@ -39,6 +39,8 @@ describe('Multi-Alerts contract', () => {
   });
 
   it('normalizes inert alert text while preserving Unicode and emoji', () => {
+    expect(normalizeAlertPlainText('Village Roll Call \u00c2')).toBe('Village Roll Call');
+    expect(normalizeAlertPlainText('\u00f0\u0178\u201c\u0081 Stream Ending')).toBe('📁 Stream Ending');
     expect(normalizeAlertPlainText('  Thanks\n\t🦥 世界\u0000  ')).toBe('Thanks 🦥 世界');
     expect(projectMultiAlert(withPayload('engagement.super-chat', {
       amount: '1.00', currency: 'USD', message: '<script>alert(1)</script> 🦥',

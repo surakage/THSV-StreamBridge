@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Clip Library Cache",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "author": "surakage",
   "description": "Fetches one bounded shared Twitch clip metadata snapshot so optional clip add-ons do not repeat the same lookup.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Clip Library Cache - Refresh",
       "group": "THSV Addon - Clip Library Cache",
       "source": "src/RefreshClips.cs",
-      "importFile": "THSV-StreamBridge-Clip-Library-Cache-3.5.0.sb",
+      "importFile": "THSV-StreamBridge-Clip-Library-Cache-3.6.0.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [

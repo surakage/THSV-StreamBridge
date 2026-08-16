@@ -7,7 +7,7 @@ describe('Raid Scout package files', () => {
       version: string; actions: Array<{ id: string; name: string; group: string; importFile: string; arguments?: Array<{ name: string; value: string }> }>;
       triggerSafety: string;
     };
-    expect(manifest.actions).toHaveLength(8);
+    expect(manifest.actions).toHaveLength(9);
     expect(manifest.actions[0]).toMatchObject({
       id: '6a78d950-17b5-4a98-9de7-1a5b4275f31c',
       name: 'THSV Addon - Raid Scout - Controller',
@@ -20,19 +20,26 @@ describe('Raid Scout package files', () => {
       group: 'THSV Addon - Raid Scout',
     });
     expect(manifest.actions[7]).toMatchObject({
+      id: '9a7f2c1d-5b84-4ec3-8d61-f7a209c4e836',
+      name: 'THSV Addon - Raid Scout - Test Go Live - OBS and Aitum',
+      group: 'THSV Addon - Raid Scout',
+    });
+    expect(manifest.actions[8]).toMatchObject({
       id: '0c4d8af8-593c-5e6a-b07f-948079c22cd1',
       name: 'THSV Addon - Raid Scout - Stop All OBS Streaming Outputs',
       group: 'THSV Addon - Raid Scout',
     });
     expect(manifest.actions[6]?.arguments).toBeUndefined();
     expect(manifest.actions[7]?.arguments).toBeUndefined();
+    expect(manifest.actions[8]?.arguments).toBeUndefined();
     expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Raid-Scout-${manifest.version}.sb`]));
-    expect(manifest.triggerSafety).toContain('Controller, Run Ending Ad, and Stop All OBS Streaming Outputs must remain triggerless');
+    expect(manifest.triggerSafety).toContain('Controller, Run Ending Ad, Test Go Live, and Stop All OBS Streaming Outputs ship triggerless');
     const control = await readFile('packages/streamerbot/raid-scout/src/RaidScoutControl.cs', 'utf8');
     expect(control).toContain('action == "broadcast-stopped"');
     expect(control).toContain('action == "finish"');
     expect(control).toContain('Broadcast Stopped');
     const stopAllOutputs = await readFile('packages/streamerbot/raid-scout/src/StopAllObsStreamingOutputs.cs', 'utf8');
+    const startAllOutputs = await readFile('packages/streamerbot/raid-scout/src/StartAllObsStreamingOutputs.cs', 'utf8');
     const runEndingAd = await readFile('packages/streamerbot/raid-scout/src/RunEndingAd.cs', 'utf8');
     expect(runEndingAd).toContain('CPH.TwitchRunCommercial(duration)');
     expect(runEndingAd).toContain('Twitch Ads > Ad Run');
@@ -41,6 +48,12 @@ describe('Raid Scout package files', () => {
     expect(stopAllOutputs).toContain('StopOutput');
     expect(stopAllOutputs).toContain('ObsOutputServiceFlag');
     expect(stopAllOutputs).toContain('aitum_multi_output_');
+    expect(stopAllOutputs).toContain('vertical_canvas_stream_');
+    expect(stopAllOutputs).toContain('CallVendorRequest');
+    expect(stopAllOutputs).toContain('aitum-vertical-canvas');
+    expect(stopAllOutputs).toContain('stop_streaming');
+    expect(stopAllOutputs).toContain('raidScoutVerticalStopRequested');
+    expect(stopAllOutputs).toContain('JsonConvert.DeserializeObject<ObsResponse>');
     expect(stopAllOutputs).toContain('outputKind.Contains("mpegts")');
     expect(stopAllOutputs).not.toContain('JToken responseData');
     expect(stopAllOutputs).toContain('GetOutputStatus');
@@ -51,6 +64,15 @@ describe('Raid Scout package files', () => {
     expect(stopAllOutputs).toContain('CPH.ObsStopStreaming()');
     expect(stopAllOutputs.indexOf('continuing to stop OBS main even though')).toBeLessThan(stopAllOutputs.indexOf('CPH.ObsStopStreaming()'));
     expect(stopAllOutputs).not.toMatch(/ObsStopRecording|ObsReplayBufferStop/u);
+    expect(startAllOutputs).toContain('CPH.ObsStartStreaming()');
+    expect(startAllOutputs).toContain('StartOutput');
+    expect(startAllOutputs).toContain('GetOutputStatus');
+    expect(startAllOutputs).toContain('aitum_multi_output_');
+    expect(startAllOutputs).toContain('vertical_canvas_stream_');
+    expect(startAllOutputs).toContain('thsvGoLiveTestSuccess');
+    expect(startAllOutputs).toContain('thsvGoLiveTestDryRun');
+    expect(startAllOutputs).toContain('without starting a broadcast');
+    expect(startAllOutputs).not.toMatch(/ObsStartRecording|ObsReplayBufferStart|simple_stream|adv_stream|rtmp_output/u);
   });
 
   it('bounds Twitch discovery and keeps credentials inside fixed Helix requests', async () => {
@@ -82,7 +104,7 @@ describe('Raid Scout package files', () => {
       manifest: { eventSubscriptions: string[] };
     };
     const schema = JSON.parse(await readFile('addons/raid-scout/schemas/config.json', 'utf8')) as {
-      properties: Record<string, { default?: unknown }>;
+      properties: Record<string, { default?: unknown; enum?: unknown[] }>;
     };
     const ui = JSON.parse(await readFile('addons/raid-scout/ui/settings.json', 'utf8')) as {
       sections: Array<{ id: string }>;
@@ -90,6 +112,8 @@ describe('Raid Scout package files', () => {
     const runtime = await readFile('addons/raid-scout/dist/index.js', 'utf8');
     expect(schema.properties['confirmationMode']?.default).toBe('required');
     expect(schema.properties['autoStartSceneEnabled']?.default).toBe(false);
+    expect(schema.properties['autoStartProvider']?.enum).toEqual(['obs', 'meld', 'streamlabs']);
+    expect(runtime).toContain("provider !== settings.autoStartProvider");
     expect(schema.properties['showSuggestionCard']?.default).toBe(true);
     expect(schema.properties['showSearchProgress']?.default).toBe(true);
     expect(schema.properties['previewClipBeforeRaid']?.default).toBe(false);
@@ -97,6 +121,7 @@ describe('Raid Scout package files', () => {
     expect(schema.properties['viewerSuggestionsEnabled']?.default).toBe(false);
     expect(schema.properties['maximumViewerSuggestions']?.default).toBe(20);
     expect(schema.properties['endBroadcastAfterRaid']?.default).toBe(false);
+    expect(schema.properties['endBroadcastProvider']?.default).toBe('obs');
     expect(schema.properties['endBroadcastAcknowledged']?.default).toBe(false);
     expect(ui.sections.map((section) => section.id)).toEqual([
       'quick-start', 'discovery', 'preferred', 'limits', 'audience', 'language-category',

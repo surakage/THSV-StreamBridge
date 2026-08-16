@@ -1,5 +1,5 @@
 {
-  "intro": "Choose the exact OBS scenes where clip rotation should run. Scene changes can start and stop playback automatically, while the imported Enable and Disable actions remain available for manual control.",
+  "intro": "Choose the exact OBS, Meld, or Streamlabs scenes where clip rotation should run. Normalized scene changes can start and stop playback automatically, while the imported Enable and Disable actions remain available for manual control.",
   "order": [
     "automaticSceneNames",
     "stopOutsideAutomaticScenes",
@@ -17,7 +17,7 @@
     {
       "id": "scenes",
       "title": "1. Automatic scenes",
-      "description": "Paste each complete OBS program-scene name exactly as OBS shows it. Include emoji, icons, brackets, spaces, and punctuation.",
+      "description": "Paste each complete program-scene name exactly as the selected broadcast app shows it. Include emoji, icons, brackets, spaces, and punctuation.",
       "open": true,
       "fields": ["automaticSceneNames", "stopOutsideAutomaticScenes"]
     },
@@ -50,7 +50,7 @@
       "id": "review",
       "title": "6. Review before enabling",
       "description": "Confirm the required Streamer.bot actions and browser source.",
-      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. OBS program-scene changes start and stop configured scenes automatically; Enable and Disable remain optional manual controls.",
+      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Relay Scene Changed from the app you use; normalized program-scene changes start and stop configured scenes automatically. Enable and Disable remain optional manual controls.",
       "fields": []
     }
   ],

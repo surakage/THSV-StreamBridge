@@ -9,6 +9,7 @@
   });
   const moduleId = aliases[location.pathname] || location.pathname.slice('/overlay/addons/'.length);
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId)) return;
+  const editorMode = new URLSearchParams(location.search).get('editor') === 'wizard';
   const card = document.getElementById('card');
   const genericCard = document.getElementById('generic-card');
   const cardImage = document.getElementById('card-image');
@@ -1303,6 +1304,19 @@
     socket.addEventListener('open', () => transportState('live'));
     socket.addEventListener('message', (message) => { try { receive(JSON.parse(message.data)); } catch { /* Ignore malformed transport data. */ } });
     socket.addEventListener('close', () => { transportState('reconnecting'); setTimeout(connectDirectly, 1_500); });
+  }
+
+  if (editorMode) {
+    resetOverlaySurface();
+    status.textContent = 'PREVIEW';
+    status.dataset.state = 'preview';
+    addEventListener('message', (message) => {
+      if (message.origin !== location.origin || message.source !== parent) return;
+      if (message.data?.kind !== 'thsv.overlay-editor.preview') return;
+      receive(message.data.event);
+    });
+    parent.postMessage({ kind: 'thsv.overlay-editor.ready', moduleId }, location.origin);
+    return;
   }
 
   if ('SharedWorker' in window) {

@@ -1,15 +1,22 @@
 import { compareVersions } from './addon-package-manager.js';
+import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { unzipSync } from 'fflate';
 import { verify, type Bundle } from 'sigstore';
 import { uncompress } from 'snappyjs';
 
 const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge';
+const OFFICIAL_RELEASE_FEED = 'https://www.slothbloom.com/api/streambridge/releases/latest';
 const REQUEST_TIMEOUT_MS = 10_000;
 const MAXIMUM_ARCHIVE_BYTES = 268_435_456;
 const MAXIMUM_CHECKSUM_BYTES = 1_024;
 const MAXIMUM_ATTESTATION_BYTES = 2_097_152;
+const MAXIMUM_RELEASE_FILES = 20_000;
+const MAXIMUM_RELEASE_EXPANDED_BYTES = 536_870_912;
+const STAGED_RELEASE_RECORD = 'staged-release.json';
+const UPDATE_CHECK_CACHE_MS = 21_600_000;
 const VERSION_TAG = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?$/u;
 
 interface GitHubReleaseAsset {
@@ -49,6 +56,7 @@ export interface ReleaseUpdateStatus {
   readonly checksum?: ReleaseAssetSummary;
   readonly sbom?: ReleaseAssetSummary;
   readonly error?: string;
+  readonly discoverySource?: 'slothbloom' | 'github';
 }
 
 export interface StagedReleaseUpdate {
@@ -59,7 +67,17 @@ export interface StagedReleaseUpdate {
   readonly provenance: 'verified';
   readonly repository: string;
   readonly workflow: string;
+  readonly applyReady: true;
 }
+
+export interface AppliedReleaseUpdate {
+  readonly accepted: true;
+  readonly version: string;
+  readonly installRoot: string;
+  readonly message: string;
+}
+
+export type UpdateProcessLauncher = (executable: string, argumentsValue: readonly string[], workingDirectory: string) => number | undefined;
 
 export interface ProvenanceVerification {
   readonly repository: string;
@@ -79,6 +97,8 @@ export interface GitHubProvenanceOptions {
 }
 
 export class ReleaseUpdateService {
+  private cachedStatus: ReleaseUpdateStatus | undefined;
+
   public constructor(
     private readonly currentVersion: string,
     private readonly repository = DEFAULT_REPOSITORY,
@@ -93,6 +113,7 @@ export class ReleaseUpdateService {
       userAgentVersion: this.currentVersion,
       cacheRoot: this.stagingRoot,
     }),
+    private readonly launchUpdate: UpdateProcessLauncher = launchDetachedUpdate,
   ) {
     if (!VERSION_TAG.test(currentVersion)) throw new Error(`Current version is not valid SemVer: ${currentVersion}`);
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repository)) throw new Error('GitHub repository must be owner/name.');
@@ -100,7 +121,7 @@ export class ReleaseUpdateService {
 
   public async stage(input: unknown): Promise<StagedReleaseUpdate> {
     const request = stageRequest(input);
-    const status = await this.check();
+    const status = await this.check(true);
     if (!status.available) throw new Error(status.error ?? 'The official release could not be checked.');
     if (!status.updateAvailable || status.latestVersion === undefined) throw new Error('No newer stable StreamBridge release is available.');
     if (request.version !== status.latestVersion) throw new Error('The available release changed. Check for updates again before downloading.');
@@ -127,7 +148,8 @@ export class ReleaseUpdateService {
       await rm(temporary, { force: true }).catch(() => undefined);
       throw error;
     }
-    return {
+    const preparedPath = await this.prepareRelease(artifact, status.latestVersion, actualSha256);
+    const staged: StagedReleaseUpdate = {
       version: status.latestVersion,
       archiveName: status.archive.name,
       archivePath: resolve(destination),
@@ -135,25 +157,114 @@ export class ReleaseUpdateService {
       provenance: 'verified',
       repository: provenance.repository,
       workflow: provenance.workflow,
+      applyReady: true,
     };
+    await writeFile(join(this.stagingRoot, STAGED_RELEASE_RECORD), `${JSON.stringify({ ...staged, preparedPath }, null, 2)}\n`, { mode: 0o600 });
+    return staged;
   }
 
-  public async check(): Promise<ReleaseUpdateStatus> {
-    const checkedAt = new Date().toISOString();
+  public async apply(input: unknown): Promise<AppliedReleaseUpdate> {
+    const request = applyRequest(input);
+    const staged = JSON.parse(await readFile(join(this.stagingRoot, STAGED_RELEASE_RECORD), 'utf8')) as Record<string, unknown>;
+    if (staged['version'] !== request.version || staged['provenance'] !== 'verified' || staged['applyReady'] !== true) throw new Error('The verified staged update does not match this request. Download and verify it again.');
+    const archiveName = text(staged['archiveName'], 'staged archive name', 250);
+    const sha256 = sha256Text(staged['sha256']);
+    const archivePath = resolve(this.stagingRoot, archiveName);
+    if (createHash('sha256').update(await readFile(archivePath)).digest('hex') !== sha256) throw new Error('The staged release archive changed after verification. Download it again.');
+    const preparedRoot = resolve(this.stagingRoot, `prepared-${request.version}`);
+    const installRoot = resolve(this.stagingRoot, '..', '..');
+    const installedRecord = JSON.parse(await readFile(join(installRoot, 'data', 'runtime', 'install-manifest.json'), 'utf8')) as Record<string, unknown>;
+    const recordedInstallRoot = typeof installedRecord['installRoot'] === 'string' ? resolve(installedRecord['installRoot']) : '';
+    if (installedRecord['product'] !== 'THSV StreamBridge' || installedRecord['layoutVersion'] !== 2 || installedRecord['activeVersion'] !== this.currentVersion || recordedInstallRoot !== installRoot) {
+      throw new Error('One-click update is available only from a managed THSV StreamBridge installation. Source checkouts must use the release installer directly.');
+    }
+    const executable = join(preparedRoot, 'runtime', 'node.exe');
+    const applyScript = join(preparedRoot, 'installer', 'apply-update.mjs');
+    await assertRegularFile(executable, 'prepared Node.js runtime');
+    await assertRegularFile(applyScript, 'prepared update helper');
+    const pid = this.launchUpdate(executable, [applyScript, '--install-root', installRoot], preparedRoot);
+    if (pid === undefined) throw new Error('Windows did not start the verified update helper. The current installation was not changed.');
+    return { accepted: true, version: request.version, installRoot, message: 'The verified updater started. StreamBridge will stop, install with rollback protection, restart, and reopen the wizard.' };
+  }
+
+  private async prepareRelease(artifact: Uint8Array, version: string, sha256: string): Promise<string> {
+    const names = new Set<string>();
+    let files = 0;
+    let expandedBytes = 0;
+    const extracted = unzipSync(artifact, { filter: (file) => {
+      if (file.name.replaceAll('\\', '/').endsWith('/')) {
+        normalizedArchivePath(file.name.replaceAll('\\', '/').slice(0, -1));
+        return false;
+      }
+      const name = normalizedArchivePath(file.name);
+      if (names.has(name)) throw new Error(`Duplicate release archive path: ${file.name}`);
+      names.add(name);
+      files += 1;
+      expandedBytes += file.originalSize;
+      if (files > MAXIMUM_RELEASE_FILES || expandedBytes > MAXIMUM_RELEASE_EXPANDED_BYTES) throw new Error('The release archive exceeds its safe extraction limits.');
+      return true;
+    } });
+    const normalized = new Map(Object.entries(extracted).map(([name, bytes]) => [normalizedArchivePath(name), bytes]));
+    for (const required of ['release-manifest.json', 'runtime/node.exe', 'installer/install.mjs', 'installer/apply-update.mjs']) if (!normalized.has(required)) throw new Error(`The verified release archive is missing ${required}.`);
+    const manifestBytes = normalized.get('release-manifest.json');
+    if (manifestBytes === undefined) throw new Error('The verified release archive is missing release-manifest.json.');
+    const manifest = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)) as Record<string, unknown>;
+    if (manifest['product'] !== 'THSV StreamBridge' || manifest['layoutVersion'] !== 2 || manifest['version'] !== version) throw new Error('The verified archive release identity does not match the published update.');
+    const destination = resolve(this.stagingRoot, `prepared-${version}`);
+    const temporary = resolve(this.stagingRoot, `.prepared-${version}-${randomUUID()}`);
+    await mkdir(temporary, { recursive: true, mode: 0o700 });
     try {
-      const response = await this.fetchRelease(`https://api.github.com/repos/${this.repository}/releases/latest`, {
-        headers: { accept: 'application/vnd.github+json', 'user-agent': `THSV-StreamBridge/${this.currentVersion}` },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-      if (!response.ok) throw new Error(`GitHub release check returned HTTP ${String(response.status)}.`);
-      const release = await response.json() as GitHubRelease;
-      return this.parseRelease(release, checkedAt);
+      for (const [name, bytes] of normalized) {
+        const path = resolve(temporary, ...name.split('/'));
+        if (path !== temporary && !path.startsWith(`${temporary}\\`) && !path.startsWith(`${temporary}/`)) throw new Error(`Unsafe release archive path: ${name}`);
+        await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+        await writeFile(path, bytes, { mode: 0o600 });
+      }
+      await writeFile(join(temporary, '.verified-update.json'), `${JSON.stringify({ version, sha256, preparedAt: new Date().toISOString() })}\n`, { mode: 0o600 });
+      await rm(destination, { recursive: true, force: true });
+      await rename(temporary, destination);
+      return destination;
     } catch (error) {
-      return { checkedAt, currentVersion: this.currentVersion, available: false, updateAvailable: false, error: error instanceof Error ? error.message : String(error) };
+      await rm(temporary, { recursive: true, force: true }).catch(() => undefined);
+      throw error;
     }
   }
 
-  private parseRelease(release: GitHubRelease, checkedAt: string): ReleaseUpdateStatus {
+  public async check(force = false): Promise<ReleaseUpdateStatus> {
+    if (!force && this.cachedStatus !== undefined && Date.now() - Date.parse(this.cachedStatus.checkedAt) < UPDATE_CHECK_CACHE_MS) return this.cachedStatus;
+    const checkedAt = new Date().toISOString();
+    try {
+      const discovered = await this.fetchLatestRelease();
+      const result = this.parseRelease(discovered.release, checkedAt, discovered.source);
+      this.cachedStatus = result;
+      return result;
+    } catch (error) {
+      const result: ReleaseUpdateStatus = { checkedAt, currentVersion: this.currentVersion, available: false, updateAvailable: false, error: error instanceof Error ? error.message : String(error) };
+      this.cachedStatus = result;
+      return result;
+    }
+  }
+
+  private async fetchLatestRelease(): Promise<{ readonly release: GitHubRelease; readonly source: 'slothbloom' | 'github' }> {
+    if (this.repository === DEFAULT_REPOSITORY) {
+      try {
+        const response = await this.fetchRelease(OFFICIAL_RELEASE_FEED, this.releaseRequestOptions());
+        if (response.ok) return { release: await response.json() as GitHubRelease, source: 'slothbloom' };
+      } catch { /* The official website is a discovery convenience; GitHub remains the fallback authority. */ }
+    }
+    const response = await this.fetchRelease(`https://api.github.com/repos/${this.repository}/releases/latest`, this.releaseRequestOptions());
+    if (!response.ok) throw new Error(`GitHub release check returned HTTP ${String(response.status)}.`);
+    return { release: await response.json() as GitHubRelease, source: 'github' };
+  }
+
+  private releaseRequestOptions(): RequestInit {
+    return {
+      headers: { accept: 'application/vnd.github+json', 'user-agent': `THSV-StreamBridge/${this.currentVersion}` },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    };
+  }
+
+  private parseRelease(release: GitHubRelease, checkedAt: string, discoverySource: 'slothbloom' | 'github'): ReleaseUpdateStatus {
     if (release.draft === true || release.prerelease === true) throw new Error('The latest GitHub release is not a public stable release.');
     const tag = text(release.tag_name, 'release tag', 100);
     if (!VERSION_TAG.test(tag)) throw new Error('The latest GitHub release tag is not valid SemVer.');
@@ -175,6 +286,7 @@ export class ReleaseUpdateService {
       currentVersion: this.currentVersion,
       available: true,
       updateAvailable: compareVersions(this.currentVersion, latestVersion) < 0,
+      discoverySource,
       latestVersion,
       releaseName: optionalText(release.name, 200) ?? tag,
       releaseUrl,
@@ -248,6 +360,35 @@ function stageRequest(value: unknown): { readonly version: string } {
   const input = value as Record<string, unknown>;
   if (input['approvedByCreator'] !== true) throw new Error('Downloading an update requires explicit creator approval.');
   return { version: normalizedVersion(text(input['version'], 'requested version', 100)) };
+}
+
+function applyRequest(value: unknown): { readonly version: string } {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('An update installation request is required.');
+  const input = value as Record<string, unknown>;
+  if (input['approvedByCreator'] !== true) throw new Error('Installing an update requires explicit creator approval.');
+  return { version: normalizedVersion(text(input['version'], 'requested version', 100)) };
+}
+
+function normalizedArchivePath(value: string): string {
+  const normalized = value.replaceAll('\\', '/');
+  if (!normalized || normalized.startsWith('/') || /^[A-Za-z]:/u.test(normalized) || !normalized.split('/').every((segment) => segment.length > 0 && segment !== '.' && segment !== '..')) throw new Error(`Unsafe release archive path: ${value}`);
+  return normalized;
+}
+
+function sha256Text(value: unknown): string {
+  if (typeof value !== 'string' || !/^[a-f0-9]{64}$/u.test(value)) throw new Error('The staged release checksum is invalid.');
+  return value;
+}
+
+async function assertRegularFile(path: string, label: string): Promise<void> {
+  const information = await lstat(path).catch(() => undefined);
+  if (information === undefined || !information.isFile() || information.isSymbolicLink()) throw new Error(`The ${label} is unavailable. Download and verify the update again.`);
+}
+
+function launchDetachedUpdate(executable: string, argumentsValue: readonly string[], workingDirectory: string): number | undefined {
+  const child = spawn(executable, [...argumentsValue], { cwd: workingDirectory, detached: true, windowsHide: true, stdio: 'ignore' });
+  child.unref();
+  return child.pid;
 }
 
 function normalizedVersion(value: string): string {

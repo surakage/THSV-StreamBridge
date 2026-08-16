@@ -7,9 +7,9 @@ echo ============================================================
 echo               Start THSV Streaming Tools
 echo ============================================================
 echo.
-echo Starting in safe order: Streamer.bot, Speaker.bot, StreamBridge, then OBS.
+echo Starting in safe order: Streamer.bot, Speaker.bot, StreamBridge, then enabled broadcast apps.
 echo Healthy sessions will not be restarted.
-echo Optional OBS or Speaker.bot issues are warnings and will not block the bridge.
+echo Optional OBS, Meld, Streamlabs, or Speaker.bot issues are warnings and will not block the bridge.
 echo.
 "%~dp0runtime\node.exe" "%~dp0launcher\start-streaming-tools.mjs"
 set "THSV_TOOLS_EXIT=%ERRORLEVEL%"

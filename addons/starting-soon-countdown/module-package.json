@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one exact-scene-aware Starting Soon countdown with a custom message, local tone, and optional approved completion action.",
-  "changelog": "3.5.0: added native exact program-scene matching, duplicate-event protection that preserves an in-progress timer, Studio Mode-safe behavior, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: renamed the creator-facing add-on to Stream Launch Countdown and added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
+  "changelog": "3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: added native exact program-scene matching, duplicate-event protection that preserves an in-progress timer, Studio Mode-safe behavior, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: renamed the creator-facing add-on to Stream Launch Countdown and added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.starting-soon-countdown",
     "name": "Stream Launch Countdown",
-    "version": "3.5.0",
+    "version": "3.6.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -42,7 +42,7 @@
     "installationSteps": [
       "Install and enable the add-on, then configure the duration, exact program-scene name, completion message, optional tone, and overlay style.",
       "Import the bundled Streamer.bot package.",
-      "Do not attach OBS scene triggers to the imported Start or Stop actions; StreamBridge follows normalized program-scene changes directly.",
+      "Do not attach OBS, Meld, or Streamlabs scene triggers to the imported Start or Stop actions; StreamBridge follows normalized program-scene changes directly.",
       "Use the imported controls only as optional hotkeys or Stream Deck buttons for manual overrides.",
       "Optional: approve exactly one triggerless Streamer.bot action and enable the completion action to switch scenes at zero.",
       "Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop."
@@ -57,16 +57,16 @@
         "description": "Confirms bounded countdown controls, persistence, and overlay publishing."
       }
     ],
-    "minimumBridgeVersion": "3.5.0",
-    "maximumTestedBridgeVersion": "3.5.0"
+    "minimumBridgeVersion": "3.6.0",
+    "maximumTestedBridgeVersion": "3.6.0"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 18474,
-      "sha256": "cde7926a5994762e9d5cabc25a916efd0845a5027d335f4d021eb56390882655"
+      "size": 18495,
+      "sha256": "4504bf238f85c6d8d9025ce1517a99266b0310a4397a92224f1cfdb68ad273a3"
     },
     {
       "path": "schemas/config.json",
@@ -75,13 +75,13 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 5014,
-      "sha256": "718d5d53ad1462921c01bcb1010a062d1276737633b190a79c40461f54f2251f"
+      "size": 5088,
+      "sha256": "d49138fc31ce80f3bab4ef271015598ff3d7d8bdc6727f9e1fb3cb66e5e80caa"
     },
     {
       "path": "README.md",
       "size": 2759,
-      "sha256": "3400e5df5c5635a541a07bfdb7b6ff7535ad51f73cb4fd3264040cb79cb08315"
+      "sha256": "856269ed60551a4e15f6a04f9d18f55f026aa597b0a0453063b40959db46010c"
     }
   ]
 }

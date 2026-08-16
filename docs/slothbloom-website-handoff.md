@@ -28,7 +28,7 @@ These changes are done and don't need anything from the website side to work —
 ## What's being asked of the website side
 
 1. ~~Confirm slothbloom.com is live~~ — **Done.** The project page exists at `https://www.slothbloom.com/projects/thsv-streambridge`, and the wizard header link and README byline now deep-link to it.
-2. **Keep the project page current** — a short description, maybe a screenshot of the wizard, and a link out to the GitHub Releases page above. That closes the loop: wizard/README → slothbloom.com project page → GitHub Releases → install.
+2. **Keep the project page current** — the website now owns the stable `/downloads/streambridge` link and `/api/streambridge/releases/latest` discovery feed. Both resolve the latest stable GitHub release, while StreamBridge continues to verify GitHub checksums and build provenance locally before installation.
 3. **Match the branding text** used on the bridge side ("A Slothbloom project") if the site refers to it differently, so the two stay consistent — or say what wording to use instead and it'll be updated on the bridge side.
 
 ## Explicitly NOT part of this (deferred, not decided)

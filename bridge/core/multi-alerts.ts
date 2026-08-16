@@ -1,3 +1,4 @@
+import { repairCommonMojibake } from '../../schemas/config.js';
 import type { JsonValue, NormalizedEvent } from '../../schemas/event.js';
 
 export const MULTI_ALERTS_CONTRACT_VERSION = '1.0.0';
@@ -114,7 +115,7 @@ export function projectMultiAlert(event: NormalizedEvent): MultiAlert | undefine
 }
 
 export function normalizeAlertPlainText(input: string): string {
-  return input.replace(/[\p{Cc}\s]+/gu, ' ').trim();
+  return repairCommonMojibake(input).replace(/[\p{Cc}\s]+/gu, ' ').trim();
 }
 
 // Alert presentation uses one predictable, readable shape across providers. The account login

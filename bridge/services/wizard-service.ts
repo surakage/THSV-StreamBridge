@@ -23,12 +23,13 @@ import {
   type CommandAdministrationRequest,
 } from '../core/command-administration.js';
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
-import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, TrustedAddOnPublisher, WizardAddOnSummary } from './addon-wizard-service.js';
-import type { ReleaseUpdateService, ReleaseUpdateStatus, StagedReleaseUpdate } from './release-update-service.js';
+import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, FeatureMigrationCandidate, TrustedAddOnPublisher, WizardAddOnSummary } from './addon-wizard-service.js';
+import type { AppliedReleaseUpdate, ReleaseUpdateService, ReleaseUpdateStatus, StagedReleaseUpdate } from './release-update-service.js';
 import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
 import { REWARD_BLUEPRINTS, REWARD_PLATFORM_POLICY } from '../core/reward-blueprints.js';
 import type { StreamerBotLauncherService } from './streamerbot-launcher-service.js';
+import type { AutomaticUpdateMonitor } from './automatic-update-monitor.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -154,6 +155,7 @@ export class WizardService {
     private readonly updates?: ReleaseUpdateService,
     private readonly addOnUpdates?: AddOnUpdateService,
     private readonly streamerBotLauncher?: StreamerBotLauncherService,
+    private readonly automaticUpdates?: AutomaticUpdateMonitor,
   ) {}
 
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
@@ -170,6 +172,7 @@ export class WizardService {
       transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
       lastInspection: this.lastInspection,
       lastCommandSync: this.lastCommandSync,
+      automaticUpdates: this.automaticUpdates?.snapshot(),
       ...(this.configuration === undefined ? {} : { configuration: await this.configuration.snapshot() }),
     };
   }
@@ -482,6 +485,16 @@ export class WizardService {
     return this.addOns.list();
   }
 
+  public async listFeatureMigrations(): Promise<readonly FeatureMigrationCandidate[]> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.listFeatureMigrations();
+  }
+
+  public async applyFeatureMigration(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.applyFeatureMigration(moduleId, input);
+  }
+
   public async discoverAddOns(): Promise<readonly DiscoveredAddOnSummary[]> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.discover();
@@ -494,7 +507,7 @@ export class WizardService {
 
   public async checkForUpdates(): Promise<ReleaseUpdateStatus> {
     if (this.updates === undefined) throw new WizardTransactionError(503, 'Release update checks are not configured.');
-    return this.updates.check();
+    return this.updates.check(true);
   }
 
   public async stageReleaseUpdate(input: unknown): Promise<StagedReleaseUpdate> {
@@ -502,15 +515,28 @@ export class WizardService {
     return this.updates.stage(input);
   }
 
+  public async applyReleaseUpdate(input: unknown): Promise<AppliedReleaseUpdate> {
+    if (this.updates === undefined) throw new WizardTransactionError(503, 'Release updates are not configured.');
+    return this.updates.apply(input);
+  }
+
   public async checkForAddOnUpdates(): Promise<AddOnUpdateStatus> {
     if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on update checks are not configured.');
-    return this.addOnUpdates.check(await this.addOns.list());
+    return this.addOnUpdates.check(await this.addOns.list(), true);
   }
 
   public async stageAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
     const verified = await this.addOnUpdates.stage(await this.addOns.list(), input);
     return this.addOns.stageVerifiedOfficialUpdate(verified);
+  }
+
+  public async installAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
+    const verified = await this.addOnUpdates.stage(await this.addOns.list(), input);
+    const staged = await this.addOns.stageVerifiedOfficialUpdate(verified);
+    const installed = await this.addOns.installDiscovered({ filename: verified.filename, sha256: verified.sha256, approvedByCreator: true });
+    return { ...staged, ...installed, provenance: verified.provenance, updateApplied: true, restartRequired: true };
   }
 
   public async listTrustedAddOnPublishers(): Promise<readonly TrustedAddOnPublisher[]> {
@@ -542,6 +568,17 @@ export class WizardService {
     const installed = (await this.addOns.list()).filter((addOn) => addOn.trust.publisherId === publisher.publisherId);
     const verified = await this.addOnUpdates.forRepository(publisher.repository).stage(installed, input);
     return this.addOns.stageVerifiedPublisherUpdate(verified, publisher);
+  }
+
+  public async installTrustedPublisherAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
+    const publisher = await this.trustedPublisherFromInput(input, true);
+    const installedAddOns = (await this.addOns.list()).filter((addOn) => addOn.trust.publisherId === publisher.publisherId);
+    if (installedAddOns.length === 0) throw new WizardTransactionError(404, 'No installed add-ons declare this trusted publisher ID.');
+    const verified = await this.addOnUpdates.forRepository(publisher.repository).stage(installedAddOns, input);
+    const staged = await this.addOns.stageVerifiedPublisherUpdate(verified, publisher);
+    const installed = await this.addOns.installDiscovered({ filename: verified.filename, sha256: verified.sha256, approvedByCreator: true });
+    return { ...staged, ...installed, provenance: verified.provenance, updateApplied: true, restartRequired: true };
   }
 
   private async trustedPublisherFromInput(input: unknown, requireApproval: boolean): Promise<TrustedAddOnPublisher> {
@@ -579,6 +616,11 @@ export class WizardService {
     return this.addOns.saveSettings(moduleId, input);
   }
 
+  public async previewAddOnSettings(moduleId: string, input: unknown): Promise<WizardAddOnSummary> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    return this.addOns.previewSettings(moduleId, input);
+  }
+
   public async listAddOnAcceptance(): Promise<Readonly<Record<string, AddOnAcceptanceEntry>>> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.listAcceptance();
@@ -601,6 +643,7 @@ export class WizardService {
       commandSync: this.commandSyncStore?.status(),
       addOns: this.addOns?.diagnostics(),
       updates: { configured: this.updates !== undefined, addOnsConfigured: this.addOnUpdates !== undefined },
+      automaticUpdates: this.automaticUpdates?.snapshot(),
       streamerBotLauncher: { configured: this.streamerBotLauncher !== undefined },
     };
   }
@@ -630,8 +673,8 @@ function approvedLauncherRequest(input: unknown): Record<string, unknown> {
   return record;
 }
 
-function optionalStreamingApplication(value: unknown): 'obs' | 'speakerbot' {
-  if (value !== 'obs' && value !== 'speakerbot') throw new WizardTransactionError(400, 'application must be obs or speakerbot.');
+function optionalStreamingApplication(value: unknown): 'obs' | 'meld' | 'streamlabs' | 'speakerbot' {
+  if (value !== 'obs' && value !== 'meld' && value !== 'streamlabs' && value !== 'speakerbot') throw new WizardTransactionError(400, 'application must be obs, meld, streamlabs, or speakerbot.');
   return value;
 }
 

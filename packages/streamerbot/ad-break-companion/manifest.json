@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Ad Break Companion",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "author": "surakage",
   "description": "Relays Twitch Upcoming Ad and Ad Run timing plus triggerless offline preview controls to Ad Break Companion.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -10,49 +10,97 @@
       "id": "20e1c55b-8307-5b21-8c1c-d64a94631342",
       "name": "THSV Addon - Ad Break Companion - Upcoming Ad Intake",
       "group": "THSV Addon - Ad Break Companion",
-      "arguments": [{ "name": "adBreakMode", "value": "upcoming" }],
+      "arguments": [
+        {
+          "name": "adBreakMode",
+          "value": "upcoming"
+        }
+      ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.5.0.sb",
-      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.6.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
     },
     {
       "id": "a266fe07-57b5-576f-b98e-92746ef4b479",
       "name": "THSV Addon - Ad Break Companion - Ad Run Intake",
       "group": "THSV Addon - Ad Break Companion",
-      "arguments": [{ "name": "adBreakMode", "value": "started" }],
+      "arguments": [
+        {
+          "name": "adBreakMode",
+          "value": "started"
+        }
+      ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.5.0.sb",
-      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.6.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
     },
     {
       "id": "363623af-c9a2-53c6-998f-e86c83fe6494",
       "name": "THSV Addon - Ad Break Companion - Preview Upcoming",
       "group": "THSV Addon - Ad Break Companion",
-      "arguments": [{ "name": "adBreakMode", "value": "preview-upcoming" }],
+      "arguments": [
+        {
+          "name": "adBreakMode",
+          "value": "preview-upcoming"
+        }
+      ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.5.0.sb",
-      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.6.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
     },
     {
       "id": "09354bf1-3cc7-54ea-a629-cb1be29b93d9",
       "name": "THSV Addon - Ad Break Companion - Preview Active",
       "group": "THSV Addon - Ad Break Companion",
-      "arguments": [{ "name": "adBreakMode", "value": "preview-active" }],
+      "arguments": [
+        {
+          "name": "adBreakMode",
+          "value": "preview-active"
+        }
+      ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.5.0.sb",
-      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.6.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
     },
     {
       "id": "75b482ed-5bd4-55f1-aad9-c8ce4b11d40a",
       "name": "THSV Addon - Ad Break Companion - Clear Display",
       "group": "THSV Addon - Ad Break Companion",
-      "arguments": [{ "name": "adBreakMode", "value": "hide" }],
+      "arguments": [
+        {
+          "name": "adBreakMode",
+          "value": "hide"
+        }
+      ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.5.0.sb",
-      "references": ["C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll", "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll", ".\\Newtonsoft.Json.dll"]
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-3.6.0.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
     }
   ],
-  "runtime": { "queue": "THSV Add-ons", "concurrent": true },
+  "runtime": {
+    "queue": "THSV Add-ons",
+    "concurrent": true
+  },
   "manualTriggerSetup": [
     "Attach Twitch > Ads > Upcoming Ad only to Upcoming Ad Intake.",
     "Attach Twitch > Ads > Ad Run only to Ad Run Intake.",

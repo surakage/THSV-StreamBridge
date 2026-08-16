@@ -24,7 +24,8 @@ describe('public release scripts', () => {
     expect(source).toContain('Install THSV StreamBridge.cmd');
     expect(source).toContain('start-streamerbot-safely.mjs');
     expect(source).toContain('Start THSV Streamer.bot Safely.cmd');
-    expect(source).toContain('Get-FileHash -Algorithm SHA256');
+    expect(source).toContain('function Get-Sha256Hex');
+    expect(source).toContain('[System.Security.Cryptography.SHA256]::Create()');
     expect(source).toContain('release-manifest.json');
     expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory");
     expect(source).toContain('npm.cmd run addon:package -- $_.FullName $addOnArchive');
@@ -68,10 +69,20 @@ describe('public release scripts', () => {
     const restore = await readFile('scripts/restore.ps1', 'utf8');
     expect(backup).toContain("data\\addons");
     expect(backup).toContain('backup-manifest.json');
-    expect(backup).toContain('Get-FileHash -Algorithm SHA256');
+    expect(backup).toContain('function Get-Sha256Hex');
+    expect(backup).toContain('[System.Security.Cryptography.SHA256]::Create()');
     expect(restore).toContain('[switch]$ApproveRestore');
-    expect(restore.indexOf('Get-FileHash -Algorithm SHA256')).toBeLessThan(restore.indexOf("& (Join-Path $repo 'scripts\\backup.ps1')"));
+    expect(restore.indexOf('Get-Sha256Hex $path')).toBeLessThan(restore.indexOf("& (Join-Path $repo 'scripts\\backup.ps1')"));
     expect(restore).toContain('.restore-rollback-');
+  });
+
+  it('protects installer staging without relying on a PowerShell ACL module or unavailable static method', async () => {
+    const installer = await readFile('scripts/install-release.ps1', 'utf8');
+    expect(installer).toContain("Join-Path $env:SystemRoot 'System32\\icacls.exe'");
+    expect(installer).toContain("'*S-1-5-18:(OI)(CI)F'");
+    expect(installer).toContain("'*S-1-5-32-544:(OI)(CI)F'");
+    expect(installer).not.toContain('Set-Acl');
+    expect(installer).not.toContain('[System.IO.Directory]::SetAccessControl');
   });
 
   it('verifies before private staging and preserves creator data in versioned installations', async () => {
@@ -93,6 +104,8 @@ describe('public release scripts', () => {
     expect(source).toContain('One-button Stream Deck target:');
     expect(source).toContain('previousVersion');
     expect(source).toContain('failed its health check and was rolled back');
+    expect(source.indexOf('await rollbackDirectories(moved)')).toBeLessThan(source.indexOf("const recovery = spawnSync(join(runtimeTarget, 'node.exe')"));
+    expect(source).toContain('cleanup is best-effort');
     expect(source).toContain('compareVersions');
     expect(source).toContain('Refusing to downgrade ${PRODUCT}');
     expect(source).not.toMatch(/Invoke-Expression|DownloadString|WebClient|npm\.cmd/u);
@@ -174,6 +187,16 @@ describe('public release scripts', () => {
     const source = await readFile('installer/install.mjs', 'utf8');
     expect(source).not.toContain("copyFile(join(sourceRoot, 'installer', 'Install THSV StreamBridge.cmd')");
     expect(source).toContain('installation was cancelled before replacing application files');
+  });
+
+  it('packages a delayed verified-update helper for one-click offline upgrades', async () => {
+    const packaging = await readFile('scripts/package-release.ps1', 'utf8');
+    const helper = await readFile('installer/apply-update.mjs', 'utf8');
+    expect(packaging).toContain("installer\\apply-update.mjs");
+    expect(helper).toContain('await delay(1_500)');
+    expect(helper).toContain("join(sourceRoot, 'installer', 'install.mjs')");
+    expect(helper).toContain("join(logRoot, 'last-update.log')");
+    expect(helper).not.toMatch(/Invoke-Expression|DownloadString|WebClient/u);
   });
 
   it('can stop the authenticated local service when its PID record is missing', async () => {

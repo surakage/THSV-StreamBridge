@@ -18,7 +18,7 @@ describe('Stream Launch Countdown Streamer.bot package', () => {
     expect(manifest.actions.every((action) => action.group === 'THSV Addon - Stream Launch Countdown')).toBe(true);
     expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Stream-Launch-Countdown-${manifest.version}.sb`]));
     expect(manifest.actions.at(-1)?.arguments).toContainEqual({ name: 'countdownSeconds', value: '600', autoType: true });
-    expect(manifest.manualTriggerSetup.join(' ')).toContain('No OBS scene triggers are required');
+    expect(manifest.manualTriggerSetup.join(' ')).toContain('No OBS, Meld, or Streamlabs scene triggers are required');
     expect(manifest.manualTriggerSetup.join(' ')).toContain('normalized program-scene changes directly');
     expect(manifest.manualTriggerSetup.join(' ')).not.toMatch(/attach Start|scene-active trigger|scene-inactive trigger/iu);
     expect(manifest.verificationStatus).toContain('Studio Mode-safe behavior');

@@ -10,11 +10,42 @@ import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { StreamerBotLauncherService } from '../../bridge/services/streamerbot-launcher-service.js';
+import { MAIN_FEATURE_FAMILIES } from '../../bridge/core/main-feature-registry.js';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
 
 describe('wizard HTTP surface', () => {
+  it('refuses to restart the Bridge for an update while any stream platform is live', async () => {
+    const config = await testConfig();
+    config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const wizard = new WizardService(undefined);
+    const applyRequests: unknown[] = [];
+    wizard.applyReleaseUpdate = (input) => {
+      applyRequests.push(input);
+      return Promise.resolve({ accepted: true, version: '9.9.9', installRoot: 'C:\\THSV StreamBridge', message: 'Update helper started.' });
+    };
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard);
+    await bridge.start();
+    await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    await bridge.ingest({
+      schemaVersion: '1.0.0', eventId: 'update-live-twitch', eventType: 'stream.online', platform: 'twitch',
+      source: { adapter: 'fixture', eventId: 'provider-update-live-twitch', eventName: 'Fixture' },
+      receivedAt: '2026-08-15T12:00:00.000Z', channel: { id: 'channel-1', name: 'ExampleChannel' },
+      payload: {}, metadata: { simulated: false },
+    });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    const unauthenticated = await fetch(`${baseUrl}/wizard/api/updates/apply`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    expect(unauthenticated.status).toBe(401);
+    const response = await fetch(`${baseUrl}/wizard/api/updates/apply`, { method: 'POST', headers, body: JSON.stringify({ version: '9.9.9', approvedByCreator: true }) });
+    expect(response.status).toBe(409);
+    expect(await response.text()).toContain('Finish the live stream before installing');
+    expect(applyRequests).toHaveLength(0);
+  });
+
   it('protects and persists the public safe Streamer.bot launcher selection', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-launcher-http-')); const dataRoot = join(root, 'data');
     const executable = join(root, 'portable', 'Streamer.bot.exe'); await mkdir(join(root, 'portable'), { recursive: true }); await writeFile(executable, 'test');
@@ -76,6 +107,7 @@ describe('wizard HTTP surface', () => {
     stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
     expect((await fetch(`${baseUrl}/wizard/api/addons`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/addons/sample.missing/feature-migration`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ importData: true, enabled: true, approvedByCreator: true }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/addons/acceptance`)).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-foundation/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/community-analytics/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
@@ -87,7 +119,7 @@ describe('wizard HTTP surface', () => {
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
     const inventory = await fetch(`${baseUrl}/wizard/api/addons`, { headers });
     expect(inventory.status).toBe(200);
-    expect(await inventory.json()).toEqual({ addOns: [], discovered: [], trustedPublishers: [] });
+    expect(await inventory.json()).toEqual({ addOns: [], featureFamilies: MAIN_FEATURE_FAMILIES, featureMigrations: [], discovered: [], trustedPublishers: [] });
     const acceptance = await fetch(`${baseUrl}/wizard/api/addons/acceptance`, { headers });
     expect(acceptance.status).toBe(200);
     expect(await acceptance.json()).toEqual({ acceptance: {} });
@@ -104,6 +136,8 @@ describe('wizard HTTP surface', () => {
     expect(await grant.text()).toContain('explicit creator approval');
     const missingAcceptance = await fetch(`${baseUrl}/wizard/api/addons/sample.missing/acceptance`, { method: 'PUT', headers, body: JSON.stringify({ offlineStatus: 'passed', providerStatus: 'pending', evidence: 'Local simulator passed.', approvedByCreator: true }) });
     expect(missingAcceptance.status).toBe(404);
+    const missingMigration = await fetch(`${baseUrl}/wizard/api/addons/sample.missing/feature-migration`, { method: 'POST', headers, body: JSON.stringify({ importData: true, enabled: true, approvedByCreator: true }) });
+    expect(missingMigration.status).toBe(404);
   });
 
   it('rejects non-canonical or content-type-confused overlay uploads before writing files', async () => {
@@ -195,6 +229,31 @@ describe('wizard HTTP surface', () => {
     expect(wizardShell.status).toBe(200);
     expect(wizardShell.headers.get('content-security-policy')).toContain("media-src 'self'");
     expect(wizardShell.headers.get('content-security-policy')).toContain("style-src 'self' 'unsafe-inline'");
+    expect(wizardShell.headers.get('content-security-policy')).toContain("frame-src 'self'");
+  });
+
+  it('validates an add-on overlay draft without persisting it or publishing it to OBS clients', async () => {
+    const config = await testConfig(); config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const drafts: unknown[] = [];
+    const wizard = new WizardService(undefined);
+    wizard.previewAddOnSettings = (_moduleId, input) => {
+      drafts.push(input);
+      return Promise.resolve({ moduleId: 'thsv.village-hydration-station', name: 'Village Hydration Station', version: '3.5.0', author: 'THSV Project', description: '', changelog: '', packageKind: 'executable', permissions: ['overlay.publish'], trust: {}, enabled: true, approvedActionIds: [], health: 'installed', configurationSchema: { type: 'object', properties: {} }, installationSteps: [], uninstallationSteps: [], healthChecks: [], commandsProvided: [], browserSourcesProvided: [], settings: input as Readonly<Record<string, unknown>> });
+    };
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard);
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`;
+    const settings = { goalOunces: 64, backgroundColor: '#123456', waterColor: '#00aaff' };
+    expect((await fetch(`${baseUrl}/wizard/api/addons/thsv.village-hydration-station/overlay-preview-draft`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ settings }) })).status).toBe(401);
+    const response = await fetch(`${baseUrl}/wizard/api/addons/thsv.village-hydration-station/overlay-preview-draft`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify({ settings }) });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      accepted: true, simulated: true, persisted: false,
+      event: { contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.village-hydration-station', topic: 'thsv.village-hydration-station.hydration.update', payload: { templatePreview: true, style: { backgroundColor: '#123456', waterColor: '#00aaff' } } },
+    });
+    expect(drafts).toEqual([settings]);
   });
 
   it('serves a locked shell and authenticates every wizard API request', async () => {

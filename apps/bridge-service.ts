@@ -27,6 +27,7 @@ import { CommandDirectoryService } from '../bridge/services/command-directory.js
 import { CommandDirectoryResponder } from '../bridge/services/command-directory-responder.js';
 import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
 import { StreamerBotLauncherService } from '../bridge/services/streamerbot-launcher-service.js';
+import { AutomaticUpdateMonitor } from '../bridge/services/automatic-update-monitor.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -92,14 +93,25 @@ const commandDirectory = new CommandDirectoryService(config, modules, {}, stream
 const commandDirectoryResponder = new CommandDirectoryResponder(commandDirectory, outboundRouter, logger);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
 const activeBridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, deliveryOutboxStore, modules });
+const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
+const releaseUpdates = new ReleaseUpdateService(STREAMBRIDGE_VERSION, undefined, undefined, join(dataRoot, 'updates'));
+const addOnUpdates = new AddOnUpdateService(CORE_CONTRACT_VERSION, undefined, undefined, undefined, join(dataRoot, 'updates'));
+const automaticUpdates = new AutomaticUpdateMonitor({
+  streamerBotConnected: () => streamerBotInspector?.status()['state'] === 'connected',
+  checkCore: () => releaseUpdates.check(true),
+  checkAddOns: async () => addOnUpdates.check(await addOnWizard.list(), true),
+  logger,
+  statePath: join(dataRoot, 'updates', 'automatic-update-status.json'),
+});
 const wizard = new WizardService(
   streamerBotInspector,
   new WizardConfigurationGateway(configPath, (platforms) => registry.capabilityReports(platforms)),
   new FileCommandSyncStore(join(dataRoot, 'state', 'command-sync.json'), logger),
-  new AddOnWizardService(addOnsRoot, addOnStateRoot),
-  new ReleaseUpdateService(STREAMBRIDGE_VERSION, undefined, undefined, join(dataRoot, 'updates')),
-  new AddOnUpdateService(CORE_CONTRACT_VERSION, undefined, undefined, undefined, join(dataRoot, 'updates')),
+  addOnWizard,
+  releaseUpdates,
+  addOnUpdates,
   new StreamerBotLauncherService(dataRoot, config.streamerbot.url),
+  automaticUpdates,
 );
 activeBridge.subscribe((event) => {
   if (event.eventType !== 'chat.message') {
@@ -136,6 +148,7 @@ async function shutdown(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
   if (commandDirectoryRefreshTimer !== undefined) clearInterval(commandDirectoryRefreshTimer);
+  automaticUpdates.stop();
   logger.info('Shutdown requested', { signal });
   try {
     await server.stop();
@@ -164,6 +177,7 @@ process.once('unhandledRejection', (error) => { logger.error('Unhandled rejectio
 try {
   await activeBridge.start();
   await server.start();
+  automaticUpdates.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
   await refreshCommandDirectory();
   commandDirectoryRefreshTimer = setInterval(() => void refreshCommandDirectory(), 5 * 60_000);

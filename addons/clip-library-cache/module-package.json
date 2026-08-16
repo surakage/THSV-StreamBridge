@@ -2,8 +2,8 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Shared background service that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, and other approved clip consumers.",
-  "changelog": "3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
+  "description": "Clip Engine library that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, Raid Scout, and other approved clip consumers.",
+  "changelog": "3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-library-cache",
     "name": "Clip Library Cache",
-    "version": "3.5.0",
+    "version": "3.6.0",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "3.5.0",
-    "maximumTestedBridgeVersion": "3.5.0",
+    "minimumBridgeVersion": "3.6.0",
+    "maximumTestedBridgeVersion": "3.6.0",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -45,7 +45,7 @@
       "data/addons/.state/thsv.clip-library-cache/"
     ],
     "installationSteps": [
-      "Install Clip Library Cache once when Random Clip Player, Clip Courier, or another installed add-on declares thsv.clip-library-cache as a dependency.",
+      "Install the Clip Engine library once when Random Clip Player, Clip Courier, Raid Scout, or another installed component declares thsv.clip-library-cache as a dependency.",
       "Import the matching Clip Library Cache Streamer.bot package. Keep Refresh enabled but triggerless; StreamBridge schedules it through the approved stable action ID.",
       "In the wizard, approve only THSV Addon - Clip Library Cache - Refresh, enable the shared clip list, save, and restart StreamBridge.",
       "Return to the consuming add-on. Clip Library Cache has no overlay and never plays, posts, or downloads a clip by itself."
@@ -66,8 +66,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 5106,
-      "sha256": "f5f28a51d05a4fd92501196083b79229f3ed23a01d4ea7a4cb92692cbca8044e"
+      "size": 5126,
+      "sha256": "b32a3420d1173a31ed6831e30fe0e207fe7a4c383a25a856c40875a3cae19a50"
     },
     {
       "path": "schemas/config.json",
@@ -76,8 +76,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 1462,
-      "sha256": "938f9be3c1b491e3e49ac3ec7abcbbdbb2ccaa1b0aa80a3228aa67656b5fe41c"
+      "size": 1503,
+      "sha256": "4115df7c6a622da1cf21460dbc6c7e62b5cef83ed12f4a9e41bcdfda8d6a42b2"
     },
     {
       "path": "README.md",

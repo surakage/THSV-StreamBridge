@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -70,6 +70,13 @@ describe('Random Clip Player add-on package', () => {
       payload: { clips: [{ id: 'ClipOne', title: 'A great play', durationSeconds: 12, thumbnailUrl: 'https://example.com/thumb.jpg' }] },
       metadata: { simulated: true },
     };
+    // Shared cache snapshots must warm the pool even while playback is idle. Scene activation can
+    // then use the larger shared library instead of falling back to a smaller legacy fetch.
+    await registry.publish({ ...clipsEvent, eventId: 'test-idle-cache-warm', eventType: 'addon.thsv.clip-library-cache.snapshot' });
+    expect(dispatchedActions).toHaveLength(0);
+    const idleState = JSON.parse(await readFile(join(stateRoot, 'thsv.random-clip-player', 'runtime-state.json'), 'utf8')) as { clips?: unknown[]; playbackEnabled?: boolean };
+    expect(idleState).toMatchObject({ playbackEnabled: false });
+    expect(idleState.clips).toHaveLength(1);
     await registry.publish({ ...clipsEvent, eventId: 'test-scene-initial-enable', eventType: 'stream.scene-changed', payload: { provider: 'obs', sceneName: 'Stream Ending' }, metadata: { simulated: false } });
     expect(broker.diagnostics()['scheduledTasks']).toBe(1);
     await registry.publish(clipsEvent);

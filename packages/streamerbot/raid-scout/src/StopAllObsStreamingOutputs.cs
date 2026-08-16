@@ -4,10 +4,8 @@
 // References: mscorlib.dll, System.dll, netstandard.dll, and Streamer.bot's bundled Newtonsoft.Json.dll.
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 public class CPHInline
 {
@@ -18,29 +16,32 @@ public class CPHInline
         int stoppedPluginOutputs = 0;
         int failedPluginOutputs = 0;
         var requestedPluginOutputs = new List<string>();
+        bool verticalStopRequested = false;
 
         try
         {
             string response = CPH.ObsSendRaw("GetOutputList", "{}");
-            JObject root = JObject.Parse(String.IsNullOrWhiteSpace(response) ? "{}" : response);
-            JObject responseData = root["responseData"] as JObject;
-            if (responseData == null) responseData = root;
-            JArray outputs = responseData["outputs"] as JArray;
+            ObsResponse root = JsonConvert.DeserializeObject<ObsResponse>(String.IsNullOrWhiteSpace(response) ? "{}" : response) ?? new ObsResponse();
+            ObsResponseData responseData = root.responseData ?? new ObsResponseData { outputs = root.outputs };
+            List<ObsOutput> outputs = responseData.outputs;
 
             if (outputs != null)
             {
-                foreach (JObject output in outputs.OfType<JObject>())
+                foreach (ObsOutput output in outputs)
                 {
-                    if (output.Value<bool?>("outputActive") != true) continue;
-                    string outputName = Bounded(output.Value<string>("outputName"), 200);
-                    string outputKind = Bounded(output.Value<string>("outputKind"), 100).ToLowerInvariant();
-                    int outputFlags = output.Value<int?>("outputFlags") ?? 0;
+                    if (output == null || output.outputActive != true) continue;
+                    string outputName = Bounded(output.outputName, 200);
+                    string outputKind = Bounded(output.outputKind, 100).ToLowerInvariant();
                     string lowerName = outputName.ToLowerInvariant();
+                    // Aitum Vertical is stopped through its supported vendor request below. Do
+                    // not count a generic StopOutput rejection as a failure when that dedicated
+                    // control remains available.
+                    if (lowerName.StartsWith("vertical_canvas_stream_")) continue;
 
                     // Aitum creates outputs with the stable aitum_multi_output_ prefix. Current
                     // obs-websocket output records do not guarantee outputFlags, so also recognize
                     // every transport kind Aitum itself can create (RTMP, WHIP, FTL, and MPEG-TS).
-                    bool isStreamingOutput = (outputFlags & ObsOutputServiceFlag) != 0
+                    bool isStreamingOutput = HasOutputServiceFlag(output.outputFlags)
                         || lowerName.StartsWith("aitum_multi_output_")
                         || outputKind.Contains("rtmp") || outputKind.Contains("whip")
                         || outputKind.Contains("ftl") || outputKind.Contains("mpegts") || outputKind.Contains("mpeg_ts");
@@ -54,8 +55,8 @@ public class CPHInline
 
                     try
                     {
-                        var request = new JObject { ["outputName"] = outputName };
-                        string stopResponse = CPH.ObsSendRaw("StopOutput", request.ToString(Formatting.None));
+                        string request = JsonConvert.SerializeObject(new Dictionary<string, string> { { "outputName", outputName } });
+                        string stopResponse = CPH.ObsSendRaw("StopOutput", request);
                         EnsureRequestSucceeded(stopResponse, "StopOutput");
                         requestedPluginOutputs.Add(outputName);
                     }
@@ -94,6 +95,30 @@ public class CPHInline
             CPH.LogWarn("THSV Raid Scout could not inspect OBS plug-in outputs: " + error.Message);
         }
 
+        // Aitum Vertical owns a dedicated obs-websocket vendor request. In OBS 32 its active
+        // output can be absent from GetOutputList even while YouTube Vertical is still live, so
+        // the generic StopOutput pass above is not sufficient on its own. Ask the plug-in to stop
+        // every configured Vertical Canvas stream before main OBS goes offline. A missing/older
+        // Aitum plug-in is non-fatal and cannot hold the main stream online.
+        try
+        {
+            string request = JsonConvert.SerializeObject(new
+            {
+                vendorName = "aitum-vertical-canvas",
+                requestType = "stop_streaming",
+                requestData = new { }
+            });
+            string response = CPH.ObsSendRaw("CallVendorRequest", request);
+            EnsureRequestSucceeded(response, "Aitum Vertical stop_streaming");
+            verticalStopRequested = true;
+            CPH.LogInfo("THSV Raid Scout asked Aitum Vertical to stop every Vertical Canvas stream.");
+            Thread.Sleep(500);
+        }
+        catch (Exception error)
+        {
+            CPH.LogWarn("THSV Raid Scout could not dispatch the Aitum Vertical stop request; continuing with OBS main: " + Bounded(error.Message, 240));
+        }
+
         if (failedPluginOutputs > 0)
             CPH.LogWarn("THSV Raid Scout is continuing to stop OBS main even though one or more plug-in outputs could not be confirmed offline.");
 
@@ -115,25 +140,24 @@ public class CPHInline
         CPH.SetArgument("raidScoutStopAllError", failedPluginOutputs == 0 ? "" : "One or more OBS plug-in streaming outputs could not be stopped.");
         CPH.SetArgument("raidScoutStoppedPluginOutputs", stoppedPluginOutputs);
         CPH.SetArgument("raidScoutFailedPluginOutputs", failedPluginOutputs);
+        CPH.SetArgument("raidScoutVerticalStopRequested", verticalStopRequested);
         return failedPluginOutputs == 0;
     }
 
     private bool WaitForOutputToStopUntil(string outputName, int deadline)
     {
-        var request = new JObject { ["outputName"] = outputName }.ToString(Formatting.None);
+        string request = JsonConvert.SerializeObject(new Dictionary<string, string> { { "outputName", outputName } });
         while (unchecked(Environment.TickCount - deadline) < 0)
         {
             try
             {
                 string response = CPH.ObsSendRaw("GetOutputStatus", request);
-                JObject root = JObject.Parse(String.IsNullOrWhiteSpace(response) ? "{}" : response);
-                JObject status = root["requestStatus"] as JObject;
+                ObsResponse root = JsonConvert.DeserializeObject<ObsResponse>(String.IsNullOrWhiteSpace(response) ? "{}" : response) ?? new ObsResponse();
                 // An output removed during shutdown is no longer active and therefore counts as
                 // stopped even if OBS reports that its name can no longer be found.
-                if (status != null && status.Value<bool?>("result") == false) return true;
-                JObject responseData = root["responseData"] as JObject;
-                if (responseData == null) responseData = root;
-                if (responseData.Value<bool?>("outputActive") != true) return true;
+                if (root.requestStatus != null && root.requestStatus.result == false) return true;
+                ObsResponseData responseData = root.responseData ?? new ObsResponseData { outputActive = root.outputActive };
+                if (responseData.outputActive != true) return true;
             }
             catch (Exception error)
             {
@@ -148,10 +172,9 @@ public class CPHInline
     private void EnsureRequestSucceeded(string response, string requestName)
     {
         if (String.IsNullOrWhiteSpace(response)) return;
-        JObject root = JObject.Parse(response);
-        JObject status = root["requestStatus"] as JObject;
-        if (status == null || status.Value<bool?>("result") != false) return;
-        string comment = Bounded(status.Value<string>("comment"), 240);
+        ObsResponse root = JsonConvert.DeserializeObject<ObsResponse>(response) ?? new ObsResponse();
+        if (root.requestStatus == null || root.requestStatus.result != false) return;
+        string comment = Bounded(root.requestStatus.comment, 240);
         throw new InvalidOperationException(requestName + " was rejected by OBS" + (comment.Length == 0 ? "." : ": " + comment));
     }
 
@@ -159,5 +182,51 @@ public class CPHInline
     {
         string clean = (value ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
         return clean.Length <= maximum ? clean : clean.Substring(0, maximum);
+    }
+
+    private bool HasOutputServiceFlag(object value)
+    {
+        if (value == null) return false;
+        try
+        {
+            long numeric = Convert.ToInt64(value);
+            return (numeric & ObsOutputServiceFlag) != 0;
+        }
+        catch
+        {
+            // OBS 32/obs-websocket exposes outputFlags as a named boolean object instead of the
+            // earlier integer bitmask. Read it without JToken casts so Streamer.bot's bundled
+            // Newtonsoft version cannot fail on the new response shape.
+            string encoded = JsonConvert.SerializeObject(value);
+            return encoded.IndexOf("\"OBS_OUTPUT_SERVICE\":true", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+    }
+
+    private sealed class ObsResponse
+    {
+        public ObsRequestStatus requestStatus { get; set; }
+        public ObsResponseData responseData { get; set; }
+        public List<ObsOutput> outputs { get; set; }
+        public bool? outputActive { get; set; }
+    }
+
+    private sealed class ObsRequestStatus
+    {
+        public bool result { get; set; }
+        public string comment { get; set; }
+    }
+
+    private sealed class ObsResponseData
+    {
+        public List<ObsOutput> outputs { get; set; }
+        public bool? outputActive { get; set; }
+    }
+
+    private sealed class ObsOutput
+    {
+        public string outputName { get; set; }
+        public string outputKind { get; set; }
+        public object outputFlags { get; set; }
+        public bool outputActive { get; set; }
     }
 }

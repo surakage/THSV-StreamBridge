@@ -84,6 +84,38 @@ describe('ModuleRegistry', () => {
     ]));
   });
 
+  it('stops failed modules exactly once and releases their scheduled work', async () => {
+    const startupStop = vi.fn(async () => undefined);
+    const eventStop = vi.fn(async () => undefined);
+    const broker = new AddOnCapabilityBroker(silentLogger, 'data/addons/.state-test');
+    const registry = new ModuleRegistry([
+      moduleDefinition('test.partial-start', {
+        capabilityGrant: { moduleId: 'test.partial-start', permissions: ['schedule.bounded'], approvedActionIds: [] },
+        start: async (context) => {
+          context.schedule.after(60_000, async () => undefined);
+          throw new Error('partial startup failed');
+        },
+        stop: startupStop,
+      }),
+      moduleDefinition('test.event-cleanup', {
+        capabilityGrant: { moduleId: 'test.event-cleanup', permissions: ['schedule.bounded'], approvedActionIds: [] },
+        start: async (context) => { context.schedule.after(60_000, async () => undefined); },
+        onEvent: async () => { throw new Error('event failed'); },
+        stop: eventStop,
+      }),
+    ], silentLogger, 5_000, broker);
+
+    await registry.start();
+    await registry.publish({ ...(await fixture()), metadata: { simulated: true, bridgeSequence: 1 } });
+    expect(startupStop).toHaveBeenCalledOnce();
+    expect(eventStop).toHaveBeenCalledOnce();
+    expect(registry.capabilityDiagnostics()['scheduledTasks']).toBe(0);
+
+    await registry.stop();
+    expect(startupStop).toHaveBeenCalledOnce();
+    expect(eventStop).toHaveBeenCalledOnce();
+  });
+
   it('passes a loader-owned scoped context through start, events, and stop', async () => {
     const contexts: unknown[] = [];
     const broker = new AddOnCapabilityBroker(silentLogger, 'data/addons/.state-test');

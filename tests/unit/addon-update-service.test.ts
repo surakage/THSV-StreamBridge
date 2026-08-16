@@ -97,7 +97,7 @@ describe('AddOnUpdateService', () => {
       installed('thsv.unlisted', '1.0.0'),
       installed('thsv.revoked', '1.0.0'),
     ]);
-    expect(result).toMatchObject({ available: true, updateCount: 1, revokedCount: 1 });
+    expect(result).toMatchObject({ available: true, updateCount: 1, revokedCount: 1, discoverySource: 'slothbloom' });
     expect(result.addOns).toEqual([
       expect.objectContaining({ moduleId: 'thsv.current', state: 'current' }),
       expect.objectContaining({
@@ -111,6 +111,23 @@ describe('AddOnUpdateService', () => {
       expect.objectContaining({ moduleId: 'thsv.revoked', state: 'revoked' }),
     ]);
     expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to GitHub release discovery when the website feed is unavailable', async () => {
+    const indexBody = index([]);
+    const encoded = JSON.stringify(indexBody);
+    const githubRelease = {
+      tag_name: 'v2.0.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0', draft: false, prerelease: false,
+      assets: [{ name: 'THSV-StreamBridge-AddOns-index.json', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json', size: Buffer.byteLength(encoded) }],
+    };
+    const request = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('temporarily unavailable', { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(githubRelease), { status: 200 }))
+      .mockResolvedValueOnce(new Response(encoded, { status: 200 }));
+    await expect(new AddOnUpdateService('2.0.0-preview.1', undefined, request).check([])).resolves.toMatchObject({
+      available: true, discoverySource: 'github', updateCount: 0,
+    });
+    expect(request).toHaveBeenCalledTimes(3);
   });
 
   it('fails closed for publisher mismatches, untrusted assets, and malformed indexes', async () => {
@@ -153,9 +170,14 @@ describe('AddOnUpdateService', () => {
     const inner = zipSync({ 'module-package.json': strToU8('{}') });
     const innerName = 'thsv.sample-2.0.0.thsv-addon';
     const innerSha256 = createHash('sha256').update(inner).digest('hex');
+    const streamerBotImport = strToU8('verified-streamerbot-import');
+    const streamerBotImportName = 'THSV-Sample-2.0.0.sb';
+    const streamerBotImportSha256 = createHash('sha256').update(streamerBotImport).digest('hex');
     const outer = zipSync({
       [innerName]: inner,
       [`${innerName}.sha256`]: strToU8(`${innerSha256}  ${innerName}\n`),
+      [`Streamer.bot/${streamerBotImportName}`]: streamerBotImport,
+      [`Streamer.bot/${streamerBotImportName}.sha256`]: strToU8(`${streamerBotImportSha256}  ${streamerBotImportName}\n`),
       'README.md': strToU8('Setup guide'),
     });
     const outerSha256 = createHash('sha256').update(outer).digest('hex');
@@ -186,6 +208,7 @@ describe('AddOnUpdateService', () => {
       sha256: innerSha256,
       outerSha256,
       provenance: 'verified',
+      streamerBotImports: [{ filename: streamerBotImportName, sha256: streamerBotImportSha256 }],
     });
     expect(verifyProvenance).toHaveBeenCalledWith(outer, expect.objectContaining({ version: '2.0.0', archiveName: outerName, sha256: outerSha256 }));
     await expect(service.stage([], { moduleId: 'thsv.sample', version: '2.0.0', approvedByCreator: false })).rejects.toThrow('explicit creator approval');

@@ -12,6 +12,7 @@ if (!Number.isInteger(config.service?.port) || config.service.port < 1 || config
 const baseUrl = `http://127.0.0.1:${String(config.service.port)}`;
 const launcherConfig = await readLauncherConfiguration();
 const optionalWarnings = [];
+optionalWarnings.push(...await startTrayShell());
 
 runLauncher(join(launcherRoot, 'start-streamerbot.mjs'), ['--install-root', installRoot], 65_000);
 optionalWarnings.push(...await startOptionalApplication('speakerbot', launcherConfig));
@@ -25,7 +26,7 @@ if (await bridgeReady(baseUrl)) {
   if (!await bridgeReady(baseUrl)) throw new Error('THSV StreamBridge started but did not reach ready status. Open the setup wizard and review Diagnostics.');
   process.stdout.write('Streamer.bot and THSV StreamBridge are ready.\n');
 }
-optionalWarnings.push(...await startOptionalApplication('obs', launcherConfig));
+for (const application of ['obs', 'meld', 'streamlabs']) optionalWarnings.push(...await startOptionalApplication(application, launcherConfig));
 if (optionalWarnings.length > 0) process.stdout.write(`Optional app warning: ${optionalWarnings.join(' ')}\n`);
 else process.stdout.write('Enabled optional streaming apps are ready.\n');
 
@@ -56,6 +57,8 @@ async function startOptionalApplication(application, launcherConfig) {
   const warnings = [];
   const definitions = {
     obs: { label: 'OBS Studio', processNames: ['obs64'] },
+    meld: { label: 'Meld Studio', processNames: ['Meld', 'Meld Studio'] },
+    streamlabs: { label: 'Streamlabs Desktop', processNames: ['Streamlabs Desktop', 'slobs-client'] },
     speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'] },
   };
   const definition = definitions[application];
@@ -77,6 +80,22 @@ async function startOptionalApplication(application, launcherConfig) {
   await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
   if (!isAlive(pid)) warnings.push(`${definition.label} exited during startup; continuing with Streamer.bot and StreamBridge.`);
   return warnings;
+}
+
+function startTrayShell() {
+  if (process.platform !== 'win32') return Promise.resolve([]);
+  return new Promise((resolveLaunch) => {
+    const child = spawn('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
+      '-File', join(launcherRoot, 'tray.ps1'), '-InstallRoot', installRoot,
+    ], { cwd: installRoot, detached: true, windowsHide: true, stdio: 'ignore' });
+    child.once('error', (error) => resolveLaunch([`THSV StreamBridge Tray could not start (${error.message}).`]));
+    child.once('spawn', () => {
+      child.unref();
+      process.stdout.write('THSV StreamBridge Tray is available.\n');
+      resolveLaunch([]);
+    });
+  });
 }
 
 function launchDetached(executable) {
