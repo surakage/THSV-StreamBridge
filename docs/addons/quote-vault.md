@@ -1,16 +1,16 @@
 # Quote Vault setup
 
 **Module:** `thsv.quote-vault`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Provides one bounded, moderated, local quote library shared by Twitch, YouTube, Kick, and TikTok with source-platform-only responses.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Quote-Vault-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Quote-Vault-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Quote-Vault-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Quote-Vault-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Quote-Vault-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Quote-Vault-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -18,11 +18,7 @@ Provides one bounded, moderated, local quote library shared by Twitch, YouTube, 
 1. Install and configure Quote Vault. No separate platform chat trigger is required.
 2. Choose enabled platforms, command names, submission permissions, and safety limits.
 3. Import the optional Quote Vault Streamer.bot package only if creator-triggered random or statistics actions are wanted.
-4. Tell moderators that viewer submissions remain pending until approved.
-
-By default, `!quote` sends only the stored quote text. The person who requested, submitted, or was
-attributed to the quote is not appended. Creators who deliberately want attribution can customize
-the **Displayed quote** template in the wizard.
+4. Use the wizard Quote library to add, edit, approve, delete, or restore quotes. Moderator submissions are approved automatically.
 
 ## Streamer.bot
 
@@ -32,6 +28,7 @@ Imported group: `THSV Addon - Quote Vault`
 
 - `THSV Addon - Quote Vault - Random Quote` in `THSV Addon - Quote Vault`
 - `THSV Addon - Quote Vault - Statistics` in `THSV Addon - Quote Vault`
+- `THSV Addon - Quote Vault - Native Quote Sync` in `THSV Addon - Quote Vault`
 
 These optional actions emit only exact Quote Vault control envelopes. Public quote commands are parsed from normalized chat and need no Streamer.bot command or platform trigger.
 
@@ -57,7 +54,7 @@ When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/add
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `chat.send`, `state.private`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `chat.send`, `state.private`, `streamerbot.run-approved-action`.
 
 Private storage: `data/addons/thsv.quote-vault/`, `data/addons/.state/thsv.quote-vault/`.
 

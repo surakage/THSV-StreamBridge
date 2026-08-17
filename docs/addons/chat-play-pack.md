@@ -1,21 +1,21 @@
 # Chat Play Pack setup
 
 **Module:** `thsv.chat-play-pack`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, idempotent points, optional OpenTDB trivia, and dictionary-backed Unscramble.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Chat-Play-Pack-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Chat-Play-Pack-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Chat-Play-Pack-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Chat-Play-Pack-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Chat-Play-Pack-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Chat-Play-Pack-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Review the built-in Viewer Foundation page and its point settings. No separate Foundation installation is required.
+1. Install Viewer Foundation first.
 2. Import Chat Play Pack only when using one of its two optional provider actions; viewer commands already use the main chat intakes.
 3. Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.
 4. Configure creator fallback questions and words before enabling provider-backed games.

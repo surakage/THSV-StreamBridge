@@ -17,7 +17,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 ## 1. Download and verify core
 
 1. Open [Download THSV StreamBridge](https://www.slothbloom.com/downloads/streambridge). This stable SlothBloom address redirects to the exact current archive on the official GitHub release.
-2. Download `THSV-StreamBridge-3.5.0.zip` and `THSV-StreamBridge-3.5.0.zip.sha256` from the Version 3 release.
+2. Download `THSV-StreamBridge-4.0.0.zip` and `THSV-StreamBridge-4.0.0.zip.sha256` from the Version 4 release.
 3. Follow [Release verification](../RELEASE-VERIFICATION.md) to verify the SHA-256 digest and GitHub artifact attestation.
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
 5. Extract the ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.
@@ -151,11 +151,11 @@ Core must be installed and working before any add-on.
 2. Verify the add-on ZIP and checksum.
 3. Extract it.
 4. In the wizard, open **Add-ons** and install the included `.thsv-addon`.
-5. Review its requested permissions, settings, and approved Streamer.bot action IDs.
-6. Import the `.sb` file from that add-on ZIP's `Streamer.bot` folder.
-7. Follow the add-on's `INSTALL.md`, restart StreamBridge if requested, and run its preview or test.
+5. Review its requested permissions, settings, and approved Streamer.bot action IDs, then enable and save it.
+6. Return to **Streamer.bot → One Streamer.bot import**, select the enabled add-on with the built-in features you use, and create one combined 4.0 `.sb` file.
+7. Import that file with overwrite enabled for matching THSV actions, follow the generated trigger checklist, restart StreamBridge if requested, and run the add-on's preview or test.
 
-Do not look for optional add-on actions in the core `.sb` list. Each add-on deliberately ships its own matching Streamer.bot import so core upgrades do not silently install optional automation.
+The individual `.sb` inside the add-on ZIP is a recovery option. The normal Version 4 path is the wizard-generated combined import, which includes only the extensions and optional add-ons you select.
 
 ## Daily use
 

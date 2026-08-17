@@ -1,16 +1,16 @@
 # Ad Break Companion setup
 
 **Module:** `thsv.ad-break-companion`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Shows a compact Twitch upcoming-ad and active-ad countdown without controlling ad playback.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Ad-Break-Companion-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Ad-Break-Companion-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Ad-Break-Companion-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Ad-Break-Companion-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Ad-Break-Companion-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Ad-Break-Companion-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -38,9 +38,9 @@ These actions relay bounded Twitch ad timing only. They cannot start, snooze, sc
 
 Creator-selected triggers:
 
-- **0:** Attach Twitch > Ads > Upcoming Ad only to Upcoming Ad Intake.
-- **1:** Attach Twitch > Ads > Ad Run only to Ad Run Intake.
-- **2:** Leave Preview Upcoming, Preview Active, and Clear Display triggerless.
+- Attach Twitch > Ads > Upcoming Ad only to Upcoming Ad Intake.
+- Attach Twitch > Ads > Ad Run only to Ad Run Intake.
+- Leave Preview Upcoming, Preview Active, and Clear Display triggerless.
 
 ## Browser source
 

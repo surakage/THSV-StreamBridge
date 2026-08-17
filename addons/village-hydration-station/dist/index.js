@@ -22,8 +22,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Hydration Station', version: '3.6.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.6.0', maximumTestedBridgeVersion: '3.6.0',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Hydration Station', version: '4.0.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.0', maximumTestedBridgeVersion: '4.0.0',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [CONTROL_EVENT, 'reward.redemption', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'hydration-station.remind', name: 'hydrate' }, { id: 'hydration-station.creator', name: 'water' }],

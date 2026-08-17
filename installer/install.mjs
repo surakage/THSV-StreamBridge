@@ -89,6 +89,9 @@ try {
 
   // Everything above this line is transactional. Once the health check passes,
   // cleanup is best-effort so a locked old folder cannot undo a healthy install.
+  await pruneLegacyInstallArtifacts(installRoot).catch((error) => {
+    process.stderr.write(`Warning: obsolete pre-versioned application files could not be removed (${error instanceof Error ? error.message : String(error)}).\n`);
+  });
   for (const path of [appBackup, runtimeBackup, launcherBackup]) await rm(path, { recursive: true, force: true }).catch((error) => {
     process.stderr.write(`Warning: old rollback data could not be removed (${error instanceof Error ? error.message : String(error)}).\n`);
   });
@@ -315,6 +318,19 @@ async function pruneOldVersions(root, retained) {
   const { readdir } = await import('node:fs/promises');
   if (!await exists(root)) return;
   for (const entry of await readdir(root, { withFileTypes: true })) if (entry.isDirectory() && !retained.has(entry.name) && !entry.name.includes('.rollback-')) await rm(join(root, entry.name), { recursive: true, force: true });
+}
+
+async function pruneLegacyInstallArtifacts(root) {
+  // Layout v2 runs exclusively from app/<version>. Creator-owned data, add-on
+  // packages/state, backups, launchers, and the bundled runtime are deliberately
+  // outside this list and are never touched here.
+  const obsoleteRoots = ['bridge', 'config', 'dist', 'docs', 'node_modules', 'overlays', 'packages', 'scripts', 'wizard'];
+  for (const name of obsoleteRoots) await rm(join(root, name), { recursive: true, force: true });
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    if (entry.isDirectory() && /^streamerbot-imports-\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(entry.name)) {
+      await rm(join(root, entry.name), { recursive: true, force: true });
+    }
+  }
 }
 
 function validateManifest(value) {

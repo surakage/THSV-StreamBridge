@@ -7,7 +7,7 @@ Stream Launch Countdown is a separate optional add-on for a stream's Starting So
 1. Download the Stream Launch Countdown add-on ZIP from the matching GitHub release.
 2. In the local wizard, open **Add-ons**, upload the `.thsv-addon`, review its permissions, then install and enable it.
 3. Configure the normal duration, the exact program-scene name (including any emoji or folder symbol), completion behavior, and appearance.
-4. Import the bundled `THSV-StreamBridge-Stream-Launch-Countdown-3.6.0.sb` into Streamer.bot.
+4. Import the bundled `THSV-StreamBridge-Stream-Launch-Countdown-4.0.0.sb` into Streamer.bot.
 5. Add the copyable `http://127.0.0.1:8787/overlay/countdown` URL to OBS, Meld, or Streamlabs Desktop as a 1920x1080 browser source.
 
 ## Automatic scene behavior

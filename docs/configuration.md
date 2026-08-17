@@ -72,7 +72,7 @@ The setup wizard intentionally has no standalone Rewards page. It cannot safely 
 
 ## Archived add-on configuration
 
-Stage 2 core has no `viewerIdentity`, `companion`, or `browserOverlay.maxCompanionQueue` settings. Legacy files containing those keys still load so an upgrade does not fail, but the keys are ignored and never reactivate archived features. Startup writes an `archived-config-ignored` warning to the structured service log with the exact ignored paths. The v2 migration preview reports preserved progression and companion state paths and flags Bloom-named commands for explicit creator review. See [Future add-ons](future-add-ons.md).
+The current core has no `viewerIdentity`, `companion`, or `browserOverlay.maxCompanionQueue` settings. Legacy files containing those keys still load so an upgrade does not fail, but the keys are ignored and never reactivate retired features. Startup records the exact ignored paths, and the migration preview identifies preserved state that still needs creator review.
 
 ## Ports
 

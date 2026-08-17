@@ -1,16 +1,16 @@
 # Follower Pulse setup
 
 **Module:** `thsv.follower-pulse`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Privately detects delayed Twitch unfollows through complete, bounded, two-scan follower reconciliation.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Follower-Pulse-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Follower-Pulse-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Follower-Pulse-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Follower-Pulse-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Follower-Pulse-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Follower-Pulse-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -29,12 +29,6 @@ Imported group: `THSV Addon - Follower Pulse`
 - `THSV Addon - Follower Pulse - Reconcile Now` in `THSV Addon - Follower Pulse`
 
 Snapshot Page must remain triggerless and is dispatched only through Follower Pulse's creator-approved stable action ID. Reconcile Now contains no Twitch credential access.
-
-## Private history
-
-Open **Setup Wizard > Extensions > Community Insights > Follower Pulse > Private follower history** to review baseline health, the last complete scan, pending confirmation count, scan errors, and retained confirmed follow/unfollow changes. **Check Twitch now** starts the same bounded private reconciliation without posting anything publicly. Twitch names shown here remain inside the authenticated loopback wizard and are never sent to chat, Discord, overlays, or ordinary logs.
-
-The first complete scan creates a silent baseline. By default, an account must be absent from two complete snapshots before it is recorded as an unfollow. Failed, partial, or changing snapshots preserve the previous baseline.
 
 Creator-selected triggers:
 

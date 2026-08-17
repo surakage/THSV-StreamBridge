@@ -1,16 +1,16 @@
 # First Five setup
 
 **Module:** `thsv.first-five`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with one placement per viewer per stream.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-First-Five-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-First-Five-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-First-Five-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-First-Five-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-First-Five-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-First-Five-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -30,8 +30,6 @@ Imported group: `THSV Addon - First Five`
 - `THSV Addon - First Five - Reset` in `THSV Addon - First Five`
 
 Controller must remain triggerless and is dispatched only by the creator-approved First Five add-on. Reset emits one tightly scoped local control event.
-
-Starting StreamBridge and receiving `stream.online` only prepare the placement state and Twitch reward chain. They do not display the First Five card. The card is shown only after a valid Twitch/Kick redemption or YouTube/TikTok points-command claim completes.
 
 Creator-selected triggers:
 

@@ -28,4 +28,4 @@ Alerts and reward redemptions require stable source event IDs. Capability report
 
 Stable `1.x` contracts remain unchanged during Stage 2A. `previewV2ConfigMigration()` parses a v1 configuration, returns a separately validated v2 candidate, lists excluded configuration and state paths, and never writes the source. It retains Bloom-named commands for explicit creator review instead of silently deleting them.
 
-Stage 2B archived excluded source, packages, tests, scripts, documentation, and Bloom assets. Legacy configuration keys load safely but are not reactivated; the migration preview enumerates their preserved state paths and retains creator Bloom commands for review. Stage 2C connected the built-in projections to the registry with dependency ordering, health reporting, and failure isolation. See [Stage 2 completion](stage-2-completion.md).
+The current core excludes retired Viewer Progression, Bloom Companion, and Speaker.bot Orchestration runtime surfaces. Legacy configuration keys load safely without reactivation so upgrades can preserve creator-owned data, while current integrations use dependency ordering, health reporting, and failure isolation.

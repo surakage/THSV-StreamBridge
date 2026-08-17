@@ -69,6 +69,11 @@ try {
     $bundledExtensionIds = @([regex]::Matches($mainFeatureRegistrySource, "'(?<id>thsv\.[a-z0-9-]+)'") | ForEach-Object { $_.Groups['id'].Value } | Where-Object { $_ -notin $builtInIntegrationIds } | Select-Object -Unique)
     $bundledExtensionsRoot = Join-Path $temporary 'bundled-extensions'
     New-Item -ItemType Directory -Path $bundledExtensionsRoot -Force | Out-Null
+    # Release output is a single-version handoff surface. Remove older generated core
+    # archives so a local package directory cannot be mistaken for the current release.
+    Get-ChildItem -LiteralPath $resolvedPackages -Filter 'THSV-StreamBridge-*.zip*' -File |
+        Where-Object { $_.Name -notlike 'THSV-StreamBridge-AddOn-*' } |
+        Remove-Item -Force
     Get-ChildItem -LiteralPath $resolvedPackages -Filter '*.thsv-addon*' -File | Remove-Item -Force
     Get-ChildItem -LiteralPath $resolvedPackages -Filter 'THSV-StreamBridge-AddOn-*.zip*' -File | Remove-Item -Force
     $addOnOutputs = @()
@@ -98,6 +103,16 @@ try {
             foreach ($importFile in $streamerBotImports) {
                 if (-not (Test-Path -LiteralPath (Join-Path $streamerBotPackageRoot $importFile))) { throw "$($descriptor.manifest.name) is missing Streamer.bot import $importFile." }
             }
+        }
+
+        $currentModuleId = [string]$descriptor.manifest.moduleId
+        if ($bundledExtensionIds -contains $currentModuleId) {
+            # Built-in extensions ship inside the main StreamBridge archive. Keep their
+            # verified component package for release staging, but do not publish a second,
+            # misleading optional add-on download for the same feature.
+            Copy-Item -LiteralPath $addOnArchive -Destination (Join-Path $bundledExtensionsRoot "$currentModuleId.thsv-addon")
+            Remove-Item -LiteralPath $addOnArchive -Force
+            return
         }
 
         $bundleName = "THSV-StreamBridge-AddOn-$safeName-$($descriptor.manifest.version)"
@@ -145,10 +160,6 @@ try {
         $addOnBundleHash = Get-Sha256Hex $addOnBundle
         $addOnChecksum = "$addOnBundle.sha256"
         Set-Content -LiteralPath $addOnChecksum -Encoding ascii -Value "$addOnBundleHash  $([System.IO.Path]::GetFileName($addOnBundle))"
-        $currentModuleId = [string]$descriptor.manifest.moduleId
-        if ($bundledExtensionIds -contains $currentModuleId) {
-            Copy-Item -LiteralPath $addOnArchive -Destination (Join-Path $bundledExtensionsRoot "$currentModuleId.thsv-addon")
-        }
         Remove-Item -LiteralPath $addOnArchive -Force
         $addOnOutputs += [pscustomobject]@{
             ModuleId = [string]$descriptor.manifest.moduleId
@@ -224,7 +235,7 @@ try {
     $releaseDocs = @(
         'add-on-capabilities.md', 'add-on-development.md', 'addon-setup-for-beginners.md', 'architecture.md', 'automated-shoutouts.md', 'browser-overlay.md',
         'compatibility.md', 'complete-setup-guide.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
-        'discord-chat-archive.md', 'future-add-ons.md', 'future-projects-and-addons.md', 'getting-started.md', 'kofi-donations.md', 'module-system.md',
+        'discord-chat-archive.md', 'future-projects-and-addons.md', 'getting-started.md', 'kofi-donations.md', 'module-system.md',
         'main-features.md', 'product-scope.md', 'production-readiness.md', 'quote-vault.md', 'release-candidate-status.md', 'release.md', 'rewards.md', 'scene-actions.md', 'security.md', 'setup.md', 'setup-for-beginners.md',
         'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
         'starting-soon-countdown.md', 'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md', 'version-3-migration.md', 'live-test-checklist.md', 'viewer-foundation.md'
@@ -352,7 +363,7 @@ try {
     @('archive','app\packages\streamerbot\viewer-progression','app\packages\streamerbot\companion-actions','app\packages\streamerbot\speaker-orchestration','app\overlays\browser\bloom-idle-sprite.png') | ForEach-Object {
         if (Test-Path -LiteralPath (Join-Path $staging $_)) { throw "Release staging contains archived add-on content: $_" }
     }
-    foreach ($unnecessary in @('app\examples', 'app\docs\milestones.md', 'app\docs\stage-2-completion.md', 'app\package-lock.json', 'app\node_modules\.package-lock.json')) {
+    foreach ($unnecessary in @('app\examples', 'app\docs\milestones.md', 'app\package-lock.json', 'app\node_modules\.package-lock.json')) {
         if (Test-Path -LiteralPath (Join-Path $staging $unnecessary)) { throw "Release staging contains a development-only file: $unnecessary" }
     }
     $forbiddenReleaseFiles = Get-ChildItem -LiteralPath $staging -File -Recurse | Where-Object {

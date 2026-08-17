@@ -1,21 +1,21 @@
 # Free Game Check setup
 
 **Module:** `thsv.free-game-check`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Checks bounded public game giveaways only after a viewer redemption, routes available games to Discord, and refunds supported empty checks.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Free-Game-Check-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Free-Game-Check-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Free-Game-Check-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Free-Game-Check-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Free-Game-Check-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Free-Game-Check-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Review the built-in Viewer Foundation settings before using YouTube or TikTok points.
+1. Install and enable Viewer Foundation before using YouTube or TikTok points.
 2. Import the Free Game Check Streamer.bot package and leave all three actions triggerless.
 3. Approve Refresh, approve Settle Twitch Reward for Twitch refunds, and approve Discord Deliver only when Discord posting is enabled.
 4. Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.
