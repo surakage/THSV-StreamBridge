@@ -64,7 +64,14 @@ try {
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     $streamerBotImportIndex = Get-Content -Raw -LiteralPath (Join-Path $repo 'packages\streamerbot\import-index.json') | ConvertFrom-Json
     if ($streamerBotImportIndex.bridgeVersion -ne [string]$package.version) { throw 'The Streamer.bot import index does not match the release version.' }
-    $mainFeatureRegistrySource = (Get-Content -Raw -LiteralPath (Join-Path $repo 'bridge\core\main-feature-registry.ts')).Split('export const MAIN_FEATURE_PRESENTATION_POLICY')[0]
+    $mainFeatureRegistryFile = Get-Content -Raw -LiteralPath (Join-Path $repo 'bridge\core\main-feature-registry.ts')
+    $presentationPolicyMarker = 'export const MAIN_FEATURE_PRESENTATION_POLICY'
+    $presentationPolicyIndex = $mainFeatureRegistryFile.IndexOf($presentationPolicyMarker, [System.StringComparison]::Ordinal)
+    if ($presentationPolicyIndex -lt 0) { throw 'The main feature registry presentation-policy marker is missing.' }
+    # Use IndexOf/Substring rather than String.Split. Windows PowerShell 5.1 can
+    # bind Split(string) as Split(char[]), which empties this prefix and causes
+    # every bundled extension to be published incorrectly as an optional add-on.
+    $mainFeatureRegistrySource = $mainFeatureRegistryFile.Substring(0, $presentationPolicyIndex)
     $builtInIntegrationIds = @('thsv.viewer-foundation', 'thsv.community-analytics', 'thsv.kofi-donations')
     $bundledExtensionIds = @([regex]::Matches($mainFeatureRegistrySource, "'(?<id>thsv\.[a-z0-9-]+)'") | ForEach-Object { $_.Groups['id'].Value } | Where-Object { $_ -notin $builtInIntegrationIds } | Select-Object -Unique)
     $bundledExtensionsRoot = Join-Path $temporary 'bundled-extensions'
