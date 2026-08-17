@@ -1,15 +1,15 @@
 # Version 4 release and acceptance status
 
-Snapshot: August 17, 2026. Release candidate: `4.0.0`.
+Snapshot: August 17, 2026. Release candidate: `4.0.1`.
 
 | Area | Status |
 | --- | --- |
 | Source validation | Passed lint, type checking, production build, and configuration validation. |
 | Automated tests | `170` files and `1,070` tests passed. |
 | Browser validation | `45` tests passed across overlays, extensions, add-ons, responsive layouts, and universal import generation. |
-| Streamer.bot packages | `41` reviewed packages regenerated and indexed at 4.0.0. |
+| Streamer.bot packages | `41` reviewed packages regenerated and indexed at 4.0.1. |
 | Windows release | Core ZIP and checksum built; 23 extension components bundled; exactly 11 optional add-on ZIPs and checksums published by the release workflow. |
-| Local upgrade | Managed installation upgraded from 3.6.0 to 4.0.0; health and readiness passed; creator data and one rollback version were preserved. |
+| Local upgrade | Managed installation upgraded to Version 4; health and readiness passed; creator data was preserved and inactive application versions were removed. |
 | Genuine providers | Tracked separately. High-impact paths still require the documented controlled live checks. |
 
 ## Version 4 package model

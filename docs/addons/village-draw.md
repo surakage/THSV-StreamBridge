@@ -1,15 +1,15 @@
 # Village Draw setup
 
 **Module:** `thsv.village-draw`
-**Version:** `4.0.0`
+**Version:** `4.0.1`
 **Publisher:** THSV StreamBridge
 
 Runs restart-safe free or Viewer Foundation points giveaways with bounded weighted tickets, authenticated controls, multi-platform announcements, and winner overlays.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Village-Draw-4.0.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Village-Draw-4.0.0.thsv-addon` and review its permissions.
+1. Download and extract `THSV-StreamBridge-AddOn-Village-Draw-4.0.1.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Village-Draw-4.0.1.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 

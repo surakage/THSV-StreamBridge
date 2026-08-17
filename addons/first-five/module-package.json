@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with one placement per viewer per stream.",
-  "changelog": "4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
+  "changelog": "4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -24,7 +24,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.first-five",
     "name": "First Five",
-    "version": "4.0.0",
+    "version": "4.0.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [
@@ -68,8 +68,8 @@
         "description": "Confirms serialized placement claims, reward transitions, and monthly leaderboard state."
       }
     ],
-    "minimumBridgeVersion": "4.0.0",
-    "maximumTestedBridgeVersion": "4.0.0"
+    "minimumBridgeVersion": "4.0.1",
+    "maximumTestedBridgeVersion": "4.0.1"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -77,7 +77,7 @@
     {
       "path": "dist/index.js",
       "size": 25339,
-      "sha256": "239d20302aad02be543413ccb4e84f096304621ebfab4855fe9dfbecd541abec"
+      "sha256": "eabce219d505e8d5412ca1b6be80e064f531eb055cf74dfe1795bfe2daf9d035"
     },
     {
       "path": "schemas/config.json",
@@ -92,7 +92,7 @@
     {
       "path": "README.md",
       "size": 1819,
-      "sha256": "40ce10255e8c208381679d0bcc021fb22b82639f9a11905344ada5c4deafbb36"
+      "sha256": "d7b8e457b5f6b87c02824379457754191f04483ae633226032cf4a660e498d20"
     }
   ]
 }

@@ -198,7 +198,6 @@ try {
         product = 'THSV StreamBridge'
         version = [string]$manifest.version
         activeVersion = [string]$manifest.version
-        previousVersion = $existingVersion
         installedAt = (Get-Date).ToUniversalTime().ToString('o')
         installRoot = $destination
         releaseFiles = @($manifest.files | ForEach-Object { [string]$_.path }) + @('release-manifest.json')

@@ -25,7 +25,7 @@ Use this guide only for the 11 optional add-ons published beside the main 4.0 re
 
 ## Install the add-on
 
-1. Download the matching `THSV-StreamBridge-AddOn-<Name>-4.0.0.zip` from the same official release as the main application.
+1. Download the matching `THSV-StreamBridge-AddOn-<Name>-4.0.1.zip` from the same official release as the main application.
 2. Extract the ZIP. Do not install directly from the ZIP preview.
 3. In the authenticated wizard, open **Add-ons** and choose the `.thsv-addon` file.
 4. Review its publisher, compatibility range, permissions, and dependencies.
