@@ -5,7 +5,7 @@ Version 4 replaces the old collection of separately installed first-party featur
 ## Safe upgrade path
 
 1. Stop streaming and close browser-source preview windows that are holding old files open.
-2. Download and verify `THSV-StreamBridge-4.0.0.zip` from the official release.
+2. Download and verify `THSV-StreamBridge-4.0.1.zip` from the official release.
 3. Extract it and run **Install THSV StreamBridge.cmd**.
 4. Let the installer verify the archive, activate 4.0, pass its health check, and migrate compatible saved feature data.
 5. Open **Extensions** and enable the built-in groups you want. Do not reinstall their former `.thsv-addon` copies.
@@ -15,7 +15,7 @@ Version 4 replaces the old collection of separately installed first-party featur
 
 ## What is preserved
 
-The installer preserves creator configuration, secrets, logs, backups, uploaded files, extension state, optional add-on settings and state, and the previous application version used for rollback. It removes only retired application copies and obsolete versioned import folders after 4.0 has started successfully.
+The installer preserves creator configuration, secrets, logs, backups, uploaded files, extension state, and optional add-on settings and state. After 4.0 starts successfully, it removes every inactive application copy and obsolete versioned import folder; no persistent rollback version is retained.
 
 ## What no longer needs a separate download
 

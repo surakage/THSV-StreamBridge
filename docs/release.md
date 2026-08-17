@@ -68,7 +68,7 @@ The installer keeps launchers and the protected recovery key inside the managed 
 
 ## Upgrade and rollback
 
-Run the newer release's root installer. It refuses a downgrade by default, stages and re-verifies the new release, keeps the current version as `previousVersion`, activates the new version, and runs a health check. If startup health fails, the activation record is restored to the previous version.
+Run the newer release's root installer. It refuses a downgrade by default, stages and re-verifies the new release, activates it, and runs a health check. If startup health fails during installation, the transaction restores the working installation. After a successful health check, every inactive application version is removed and no persistent rollback version is retained.
 
 Creator-owned `data/` and `addons/state/` directories are not part of a version swap. Old application versions beyond the active and previous versions are cleaned after a successful installation. A deliberate downgrade requires `--allow-downgrade` and should be preceded by an external copy of both creator-owned directories because older code may not understand newer state.
 

@@ -9,8 +9,8 @@ const PROFILE_IDS = Object.freeze(Object.keys(PROFILE_ACTIONS));
 const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.category-pilot', name: 'Category Pilot', version: '4.0.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.0', maximumTestedBridgeVersion: '4.0.0', dependencies: ['thsv.creator-controls'], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.category-pilot', name: 'Category Pilot', version: '4.0.1',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.1', maximumTestedBridgeVersion: '4.0.1', dependencies: ['thsv.creator-controls'], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.online', 'stream.offline', PROBE_RESULT, CONTROL_EVENT, PROFILE_RESULT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.category-pilot/', 'data/addons/.state/thsv.category-pilot/'],
   installationSteps: ['Install and configure Creator Controls first.', 'Import Category Pilot, approve its Process Probe and the Creator Controls profile actions used by mappings.', 'Start in Suggest only mode and attach Apply/Dismiss only to creator-controlled triggers.'],

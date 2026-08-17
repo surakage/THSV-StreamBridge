@@ -17,7 +17,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 ## 1. Download and verify core
 
 1. Open [Download THSV StreamBridge](https://www.slothbloom.com/downloads/streambridge). This stable SlothBloom address redirects to the exact current archive on the official GitHub release.
-2. Download `THSV-StreamBridge-4.0.0.zip` and `THSV-StreamBridge-4.0.0.zip.sha256` from the Version 4 release.
+2. Download `THSV-StreamBridge-4.0.1.zip` and `THSV-StreamBridge-4.0.1.zip.sha256` from the latest Version 4 release.
 3. Follow [Release verification](../RELEASE-VERIFICATION.md) to verify the SHA-256 digest and GitHub artifact attestation.
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
 5. Extract the ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.
@@ -186,7 +186,7 @@ For a Bridge release, select **Download & prepare**. After verification complete
 
 Advanced creators may expand **Optional third-party publishers** and bind one declared publisher ID to one GitHub `owner/repository`. Third-party repositories must publish the same bounded add-on index/bundle format from a tagged `.github/workflows/release.yml` run with GitHub artifact attestation. StreamBridge locks verification to that exact repository, workflow, tag, checksum, package publisher, and installed publisher before staging. Adding trust never downloads, installs, enables, or updates an add-on; every check, download, inbox installation, and restart remains a separate creator action. Remove the trust record at any time without deleting installed add-ons or their private state.
 
-Configuration, secrets, uploads, logs, backups, and add-on state are preserved. The installer keeps the previous application version for rollback and retries transient Windows file-lock errors during activation.
+Configuration, secrets, uploads, logs, backups, and add-on state are preserved. After the new version passes its health check, the installer removes every inactive application version and retries transient Windows file-lock errors during activation.
 
 ## Uninstall or reinstall
 

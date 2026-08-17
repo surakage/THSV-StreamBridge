@@ -70,7 +70,6 @@ try {
     product: PRODUCT,
     layoutVersion: 2,
     activeVersion: manifest.version,
-    previousVersion: previousRecord?.activeVersion,
     runtimeVersion: manifest.runtime.nodeVersion,
     installedAt: new Date().toISOString(),
     installRoot,
@@ -95,7 +94,7 @@ try {
   for (const path of [appBackup, runtimeBackup, launcherBackup]) await rm(path, { recursive: true, force: true }).catch((error) => {
     process.stderr.write(`Warning: old rollback data could not be removed (${error instanceof Error ? error.message : String(error)}).\n`);
   });
-  await pruneOldVersions(join(installRoot, 'app'), new Set([manifest.version, previousRecord?.activeVersion].filter(Boolean))).catch((error) => {
+  await pruneOldVersions(join(installRoot, 'app'), new Set([manifest.version])).catch((error) => {
     process.stderr.write(`Warning: an older application version could not be pruned (${error instanceof Error ? error.message : String(error)}).\n`);
   });
   if (startAfterInstall) launchTrayShell(installRoot);

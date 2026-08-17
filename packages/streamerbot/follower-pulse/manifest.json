@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Follower Pulse",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "author": "surakage",
   "description": "Provides a triggerless bounded Twitch follower-page controller and one creator-only reconciliation control.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Follower Pulse - Snapshot Page",
       "group": "THSV Addon - Follower Pulse",
       "source": "src/SnapshotFollowers.cs",
-      "importFile": "THSV-StreamBridge-Follower-Pulse-4.0.0.sb",
+      "importFile": "THSV-StreamBridge-Follower-Pulse-4.0.1.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [
@@ -28,7 +28,7 @@
       "name": "THSV Addon - Follower Pulse - Reconcile Now",
       "group": "THSV Addon - Follower Pulse",
       "source": "src/ReconcileNow.cs",
-      "importFile": "THSV-StreamBridge-Follower-Pulse-4.0.0.sb",
+      "importFile": "THSV-StreamBridge-Follower-Pulse-4.0.1.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

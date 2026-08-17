@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.0.1] - 2026-08-17
+
+- Removed persistent application rollback copies: after the replacement version passes its health check, the installer keeps only the active application version.
+- Removed the `previousVersion` field from successful installation records while retaining temporary transactional recovery if an installation fails before activation completes.
+- Updated release documentation and installer coverage to make the single-active-version policy explicit.
+
 ## [4.0.0] - 2026-08-17
 
 - Consolidated 23 frequently used components into seven built-in extension groups and made Viewer Foundation, Community Analytics, and Ko-fi Donations first-class integrations in the main installation.
@@ -7,7 +13,7 @@
 - Reduced public add-on downloads to 11 genuinely optional packages; bundled extension components remain integrity-verified inside the main archive and are no longer duplicated as optional ZIPs.
 - Added the native tray shell, ordered one-click tool launcher, authenticated token recovery, safe updater, responsive wizard navigation, live overlay editing previews, and explicit success and failure feedback.
 - Hardened stream lifecycle, presentation queues, independent timer/media lanes, clip playback, Raid Scout shutdown fallbacks, moderation, hydration, follower reconciliation, command directories, and stale-session recovery.
-- Removed retired archived prototypes, legacy recovery imports, redundant generated packages, and obsolete application-only installation folders while preserving creator data and rollback state.
+- Removed retired archived prototypes, legacy recovery imports, redundant generated packages, and obsolete application-only installation folders while preserving creator data.
 - Regenerated and indexed all 41 Streamer.bot packages at 4.0.0 and refreshed setup, migration, release, add-on, integration, website, and troubleshooting documentation.
 
 ## [3.6.0] - 2026-08-15

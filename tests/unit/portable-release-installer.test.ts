@@ -150,7 +150,10 @@ describe('portable Windows release installer', () => {
     await expect(stat(join(firstInstall, 'addons', 'packages', 'thsv.community-analytics'))).rejects.toThrow();
     await expect(stat(join(firstInstall, 'addons', 'packages', 'thsv.kofi-donations'))).rejects.toThrow();
     await expect(stat(join(firstInstall, 'addons', 'state', 'thsv.legacy-addon', 'settings.json'))).rejects.toThrow();
-    expect(JSON.parse(await readFile(join(firstInstall, 'data', 'runtime', 'install-manifest.json'), 'utf8'))).toMatchObject({ activeVersion: '2.1.0', previousVersion: '2.0.0' });
+    const upgradedRecord = JSON.parse(await readFile(join(firstInstall, 'data', 'runtime', 'install-manifest.json'), 'utf8')) as { readonly activeVersion?: unknown; readonly previousVersion?: unknown };
+    expect(upgradedRecord).toMatchObject({ activeVersion: '2.1.0' });
+    expect(upgradedRecord).not.toHaveProperty('previousVersion');
+    await expect(stat(join(firstInstall, 'app', '2.0.0'))).rejects.toThrow();
 
     await writePortableRelease(source, '2.0.0', 'downgrade');
     const downgrade = install(source, firstInstall);

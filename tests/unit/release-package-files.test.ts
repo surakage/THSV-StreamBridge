@@ -120,7 +120,8 @@ describe('public release scripts', () => {
     expect(source).toContain("process.platform !== 'win32' || argumentsMap.has('no-shortcuts')");
     expect(source).not.toContain('$tools.Save()');
     expect(source).toContain('One-button Stream Deck target:');
-    expect(source).toContain('previousVersion');
+    expect(source).not.toContain('previousVersion:');
+    expect(source).toContain("new Set([manifest.version])");
     expect(source).toContain('failed its health check and was rolled back');
     expect(source.indexOf('await rollbackDirectories(moved)')).toBeLessThan(source.indexOf("const recovery = spawnSync(join(runtimeTarget, 'node.exe')"));
     expect(source).toContain('cleanup is best-effort');
