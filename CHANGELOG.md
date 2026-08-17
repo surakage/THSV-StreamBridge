@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.0.0] - 2026-08-17
+
+- Consolidated 23 frequently used components into seven built-in extension groups and made Viewer Foundation, Community Analytics, and Ko-fi Donations first-class integrations in the main installation.
+- Added a selectable one-file Streamer.bot import workflow covering the required framework, chosen extensions, integrations, and enabled optional add-ons while preserving stable action IDs and creator-owned trigger review.
+- Reduced public add-on downloads to 11 genuinely optional packages; bundled extension components remain integrity-verified inside the main archive and are no longer duplicated as optional ZIPs.
+- Added the native tray shell, ordered one-click tool launcher, authenticated token recovery, safe updater, responsive wizard navigation, live overlay editing previews, and explicit success and failure feedback.
+- Hardened stream lifecycle, presentation queues, independent timer/media lanes, clip playback, Raid Scout shutdown fallbacks, moderation, hydration, follower reconciliation, command directories, and stale-session recovery.
+- Removed retired archived prototypes, legacy recovery imports, redundant generated packages, and obsolete application-only installation folders while preserving creator data and rollback state.
+- Regenerated and indexed all 41 Streamer.bot packages at 4.0.0 and refreshed setup, migration, release, add-on, integration, website, and troubleshooting documentation.
+
 ## [3.6.0] - 2026-08-15
 
 - Promoted Community Analytics, Custom Counter, Follower Pulse, Village Voice, Translate, Chat Play Pack, and Village Fun Commands into built-in extensions with shared lifecycle coordination, explicit enablement, migration controls, and isolated failure boundaries.
@@ -9,6 +19,7 @@
 - Hardened Raid Scout, Random Clip Player, Starting Soon Countdown, Hydration Station, Quote Vault, Clip Library Cache, Chat Guard, alert coordination, and browser overlays against stale state, duplicate triggers, playback interruptions, shutdown failures, and malformed provider data.
 - Added application branding assets and expanded setup, architecture, feature, add-on, website handoff, release, backup, restore, installer, and troubleshooting documentation.
 - Regenerated all 41 Streamer.bot import packages and aligned every first-party package with THSV StreamBridge 3.6.0.
+- Removed retired archived implementations, recovery-only legacy imports, the unreferenced generated Free Games import, and stale pre-versioned installation folders. The portable installer now removes those old application-only paths after the replacement version passes its health check while preserving creator data, extension state, backups, and the current version rollback.
 
 - Repaired legacy mojibake in saved reward activity and alert templates, including middle dots, sparkle/fire emoji, apostrophes, bullets, ellipses, and dash punctuation.
 - Made Stream Launch Countdown Start idempotent so OBS Studio Mode scene-active duplicates and transient Stop/Start cycles preserve the running timer; Reset plus Start or Set & Start remain the explicit restart paths.

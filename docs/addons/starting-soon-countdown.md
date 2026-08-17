@@ -1,23 +1,23 @@
 # Stream Launch Countdown setup
 
 **Module:** `thsv.starting-soon-countdown`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Runs one exact-scene-aware Starting Soon countdown with a custom message, local tone, and optional approved completion action.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Stream-Launch-Countdown-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Stream-Launch-Countdown-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Stream-Launch-Countdown-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Stream-Launch-Countdown-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Stream-Launch-Countdown-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Stream-Launch-Countdown-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Install and enable the add-on, then configure the duration, exact program-scene name (including any emoji or folder symbol), completion message, optional tone, and overlay style.
+1. Install and enable the add-on, then configure the duration, exact program-scene name, completion message, optional tone, and overlay style.
 2. Import the bundled Streamer.bot package.
-3. Do not attach OBS scene triggers to Start or Stop; StreamBridge follows normalized program-scene changes directly.
+3. Do not attach OBS, Meld, or Streamlabs scene triggers to the imported Start or Stop actions; StreamBridge follows normalized program-scene changes directly.
 4. Use the imported controls only as optional hotkeys or Stream Deck buttons for manual overrides.
 5. Optional: approve exactly one triggerless Streamer.bot action and enable the completion action to switch scenes at zero.
 6. Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop.
@@ -38,11 +38,9 @@ Imported group: `THSV Addon - Stream Launch Countdown`
 
 These actions publish only bounded local countdown-control envelopes. They do not send chat, call external APIs, or run other actions.
 
-**Automatic start is idempotent:** duplicate program-scene events are ignored, and OBS Studio Mode preview changes do not reset the running timer. Use Reset then Start for a deliberate restart, or Set & Start for an explicit one-off override.
-
 Creator-selected triggers:
 
-- **0 required:** The add-on subscribes to normalized program-scene changes. The imported actions are optional manual controls.
+- No OBS, Meld, or Streamlabs scene triggers are required on these manual actions. StreamBridge follows normalized program-scene changes directly; use these actions only as optional hotkeys or Stream Deck controls for manual overrides.
 
 ## Browser source
 

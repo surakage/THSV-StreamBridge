@@ -1,21 +1,21 @@
 # Clip Library Cache setup
 
 **Module:** `thsv.clip-library-cache`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
-Shared background service that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, and other approved clip consumers.
+Clip Engine library that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, Raid Scout, and other approved clip consumers.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Clip-Library-Cache-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Library-Cache-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Clip-Library-Cache-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Clip-Library-Cache-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Library-Cache-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Clip-Library-Cache-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
-1. Install Clip Library Cache once when Random Clip Player, Clip Courier, or another installed add-on declares thsv.clip-library-cache as a dependency.
+1. Install the Clip Engine library once when Random Clip Player, Clip Courier, Raid Scout, or another installed component declares thsv.clip-library-cache as a dependency.
 2. Import the matching Clip Library Cache Streamer.bot package. Keep Refresh enabled but triggerless; StreamBridge schedules it through the approved stable action ID.
 3. In the wizard, approve only THSV Addon - Clip Library Cache - Refresh, enable the shared clip list, save, and restart StreamBridge.
 4. Return to the consuming add-on. Clip Library Cache has no overlay and never plays, posts, or downloads a clip by itself.

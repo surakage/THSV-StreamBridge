@@ -101,6 +101,10 @@ describe('portable Windows release installer', () => {
     await writeFile(join(firstInstall, 'data', 'state', 'creator-state.json'), '{"preserved":true}\n');
     await writeFile(join(firstInstall, 'data', 'configuration', 'streamerbot-launcher.json'), JSON.stringify({ version: 2, executable: 'C:\\Portable\\Streamer.bot.exe', websocketPort: 8081, optionalApps: { obs: { executable: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe', enabled: true }, speakerbot: { executable: 'D:\\Tools\\Speaker.bot.exe', enabled: false } } }));
     await writeFile(join(firstInstall, 'addons', 'state', 'creator-addon.json'), '{"preserved":true}\n');
+    for (const obsolete of ['dist', 'docs', 'wizard', 'streamerbot-imports-3.0.0', 'streamerbot-imports-3.5.0']) {
+      await mkdir(join(firstInstall, obsolete), { recursive: true });
+      await writeFile(join(firstInstall, obsolete, 'obsolete.txt'), 'remove me\n');
+    }
     await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.legacy-addon'), { recursive: true });
     await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.legacy-addon', 'module-package.json'), '{"manifest":{"moduleId":"thsv.legacy-addon","version":"2.0.0"}}\n');
     await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.legacy-addon', 'installed-package.json'), '{"moduleId":"thsv.legacy-addon","version":"2.0.0","enabled":true,"approvedActionIds":["action-one"]}\n');
@@ -132,6 +136,9 @@ describe('portable Windows release installer', () => {
     expect(await readFile(join(firstInstall, 'data', 'configuration', 'streamerbot-launcher.json'), 'utf8')).toContain('optionalApps');
     expect(await readFile(join(firstInstall, 'data', 'configuration', 'streamerbot-launcher.json'), 'utf8')).toContain('obs64.exe');
     expect(await readFile(join(firstInstall, 'addons', 'state', 'creator-addon.json'), 'utf8')).toContain('preserved');
+    for (const obsolete of ['dist', 'docs', 'wizard', 'streamerbot-imports-3.0.0', 'streamerbot-imports-3.5.0']) {
+      await expect(stat(join(firstInstall, obsolete))).rejects.toThrow();
+    }
     expect(await readFile(join(firstInstall, 'addons', 'packages', 'thsv.legacy-addon', 'module-package.json'), 'utf8')).toContain('thsv.legacy-addon');
     expect(JSON.parse(await readFile(join(firstInstall, 'addons', 'packages', 'thsv.legacy-addon', 'installed-package.json'), 'utf8'))).toMatchObject({ enabled: false, approvedActionIds: ['action-one'] });
     expect(await readFile(join(firstInstall, 'addons', 'migration-inbox', 'thsv.legacy-addon', 'state', 'settings.json'), 'utf8')).toContain('legacy');

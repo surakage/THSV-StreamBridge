@@ -1,96 +1,61 @@
 # Beginner setup: optional add-ons
 
-Install optional add-ons only after Bridge Core chat and alerts pass. Every add-on reuses the main bridge event bus, Streamer.bot connection, private state, scheduler, chat router, and overlay transport.
+Version 4 includes most frequently used features in StreamBridge itself. Open **Extensions** for Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language. Do not download those components separately.
 
-## The four-step rule
+Use this guide only for the 11 optional add-ons published beside the main 4.0 release:
 
-For every add-on:
+- Accessibility Captions
+- Category Pilot
+- Creator Controls
+- Free Game Check
+- Prize Wheel
+- Stream Labels
+- Subathon Timer
+- Viewer Lobby
+- Village Draw
+- Village Jukebox
+- Village Polls
 
-1. Download the add-on ZIP from the **same GitHub release** as the installed bridge.
-2. Extract it and install the `.thsv-addon` in **Wizard > Add-ons**.
-3. If that ZIP contains a `Streamer.bot` folder, import its `.sb` file. If it does not, do not invent another action or trigger.
-4. Configure, save, enable, restart when prompted, and complete the add-on's offline test.
+## Before installing one
 
-The wizard's **Connect Streamer.bot** step is authoritative. “No direct trigger needed” means the add-on listens to the existing main intakes internally.
+1. Finish the [complete setup guide](complete-setup-guide.md).
+2. Confirm the wizard reports StreamBridge and Streamer.bot ready.
+3. Test one platform intake and the core chat or alert preview.
+4. Keep every platform offline while changing installation or Streamer.bot packages.
 
-## What each add-on needs
+## Install the add-on
 
-| Add-on | Extra `.sb` import | What starts it |
-| --- | --- | --- |
-| Accessibility Captions | No | Existing normalized chat/events |
-| Automated Shoutouts | Yes | Imported package plus documented Twitch/manual triggers |
-| Category Pilot | Yes | Imported detection/controller actions |
-| Chat Guard | Yes | Existing chat intake plus approved optional enforcement action |
-| Chat Play Pack | No | Command Sync templates through existing intakes |
-| Clip Courier | Yes | Imported Twitch `!clip` command and private delivery helper |
-| Clip Library Cache | Yes | Triggerless shared refresh action approved in the wizard |
-| Community Analytics | Built in | Existing normalized events; configure it on its dedicated Wizard page |
-| Creator Controls | Yes | Imported approved controller actions |
-| Village Polls | No | Command Sync poll-management and vote templates |
-| Discord Chat Archive | Yes | Existing chat intake plus approved Discord delivery action |
-| Fan Crown | Yes | Twitch reward intake plus imported controller |
-| First Five | Yes | Twitch reward intake plus imported controller |
-| Follower Pulse | Yes | Imported Twitch lookup action |
-| Free Game Check | Yes | Imported lookup/delivery actions |
-| Ko-fi Donations | Built in | Select its action in the universal import, then attach the existing Ko-fi donation trigger |
-| Live Beacon | Yes | Platform stream-online intake plus imported Discord delivery action |
-| Quote Vault | Yes | Existing command intake plus imported response action |
-| Raid Scout | Yes | Imported Twitch lookup/raid actions and optional browser source |
-| Random Clip Player | Yes | Imported Enable/Disable actions; do not attach a repeating timer |
-| Scene Actions | Yes | One scene-change trigger on its intake, then creator sub-actions |
-| Stream Launch Countdown | Yes | Imported Start/Stop/Pause/Resume actions |
-| Stream Labels | No | Existing normalized community events and one browser source |
-| Prize Wheel | No | Command Sync Prize Wheel template and one browser source |
-| Subathon Timer | Yes | Imported controller actions plus configured event rules |
-| Translate | Yes | Imported/manual command path or configured automatic mode |
-| Viewer Foundation | Built in | Existing platform intakes plus automatic `!points` and `!lurk` commands |
-| Viewer Lobby | Yes | Imported queue controller actions and browser manager |
-| Viewer Spotlight | Yes | Imported request/snapshot actions and browser source |
-| Village Draw | No | Viewer Foundation plus the existing main platform chat intakes; no Command Sync package |
-| Village Jukebox | Yes | Command Sync requests through the main intakes plus one private YouTube resolver |
-| Village Roll Call | No | Twitch/Kick rewards or YouTube/TikTok Viewer Foundation point commands through the main intakes |
-| Village Voice | Yes | Imported Speaker.bot relay action; optional native rewards or Viewer Foundation point commands |
+1. Download the matching `THSV-StreamBridge-AddOn-<Name>-4.0.0.zip` from the same official release as the main application.
+2. Extract the ZIP. Do not install directly from the ZIP preview.
+3. In the authenticated wizard, open **Add-ons** and choose the `.thsv-addon` file.
+4. Review its publisher, compatibility range, permissions, and dependencies.
+5. Install it, enter its settings, enable it, and save. Restart StreamBridge only when the wizard requests it.
 
-## Dependency order that avoids setup errors
+## Add its Streamer.bot actions
 
-Some add-ons build on another add-on. Install them in this order:
+1. Open **Streamer.bot → One Streamer.bot import** in the wizard.
+2. Choose **Select enabled features**.
+3. Confirm the new optional add-on is selected alongside the extension groups you use.
+4. Choose **Create & download one import** and import that one `.sb` file into Streamer.bot.
+5. Enable overwrite for matching THSV actions so stable IDs upgrade instead of creating duplicate groups.
+6. Follow the generated **Recommended trigger checklist**. Leave receivers, controllers, and delivery helpers triggerless unless the checklist explicitly names a trigger.
 
-1. Review the built-in **Viewer Foundation** page first when points, identity, check-ins, viewer cards, giveaways, or viewer-paid requests are used. No separate installation is required.
-2. Review the built-in **Community Analytics** page before enabling Viewer Spotlight; there is nothing extra to install.
-3. **Clip Library Cache** before Random Clip Player or Clip Courier when they will share one Twitch clip list.
-4. Install the feature add-on last, import only the `.sb` found in that feature's ZIP, and approve only the actions its wizard card recommends.
+The individual `.sb` file inside an add-on bundle is a recovery option. Normal setup should use the wizard-generated combined import.
 
-If the wizard reports a missing dependency, do not create a replacement Streamer.bot action. Install and enable the named dependency, save, restart StreamBridge, and return to the add-on.
+## Test safely
 
-## What “connected” means
+1. Use the add-on's wizard preview or harmless manual control first.
+2. Confirm the expected overlay, message, or state change happens once.
+3. Confirm no duplicate platform trigger is attached to both a main intake and an internal action.
+4. Treat simulator and Streamer.bot Test results as offline evidence only. Financial, reward, moderation, raid, outbound-chat, voice, and scene mutations still need a controlled live acceptance test.
 
-An add-on is ready only when all applicable checks pass:
+## Dependencies
 
-- its card says **Installed**, not Rejected;
-- required dependencies are installed and enabled;
-- the matching-version Streamer.bot import is present in that add-on's own group;
-- every broker action the wizard recommends has been approved by stable action ID;
-- required provider triggers remain on the main THSV platform intake, unless the add-on guide explicitly names a direct intake;
-- its browser source shows the brief LIVE connection badge and its offline preview appears once;
-- a simulated test is recorded as offline/manual evidence, never as a real provider pass.
+- Viewer Foundation and Community Analytics are built in and have dedicated wizard pages.
+- Clip Engine is built in; optional media features should use its shared cache and playback ownership instead of opening another socket.
+- Viewer Foundation remains the only shared points authority. Optional add-ons spend or refund through it rather than creating another balance.
+- All overlays share the existing StreamBridge browser transport.
 
-## Safe test order
+If the wizard reports a missing dependency, enable the named built-in group or install the named optional add-on. Do not create a replacement Streamer.bot action.
 
-1. Keep the add-on disabled while entering settings.
-2. Approve only the actions named by its guide.
-3. Enable it and restart StreamBridge.
-4. Refresh any browser source and wait for the brief LIVE badge.
-5. Use the wizard preview first.
-6. Use a Streamer.bot Test trigger second.
-7. Treat real provider acceptance as a separate final check; simulations never prove a financial, reward, moderation, raid, or outbound-chat side effect.
-
-## Avoid duplicate work and loops
-
-- Never add the same platform trigger to both the main intake and an add-on action unless the add-on guide explicitly says to.
-- Never make an add-on controller call itself.
-- Do not place Random Clip Player Enable on a repeating timer; enable it on scene entry and disable it on scene exit.
-- Use Clip Library Cache when multiple clip add-ons need the Twitch list, so they share one bounded refresh.
-- Keep Viewer Foundation as the only point-balance authority. Add-ons spend or refund through it instead of maintaining another currency.
-- One overlay page equals one browser connection to StreamBridge, not one WebSocket to Streamer.bot.
-
-Choose an add-on from the [complete setup-guide index](addons/README.md) for its exact command names, action grants, overlay URL, privacy limits, and recovery steps.
+See the [generated package guides](addons/README.md) for exact settings, permissions, overlays, commands, and recovery behavior.

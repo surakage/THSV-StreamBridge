@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Raid Scout",
-  "version": "3.6.0",
+  "version": "4.0.0",
   "author": "surakage",
   "description": "Provides bounded Twitch raid controls, resilient clip lookup, ending-ad coordination, provider stop confirmation, and creator-only OBS/Aitum start and stop helpers.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Raid Scout - Controller",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutController.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -26,7 +26,7 @@
       "name": "THSV Addon - Raid Scout - Suggest",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -48,7 +48,7 @@
       "name": "THSV Addon - Raid Scout - Finish Stream",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -70,7 +70,7 @@
       "name": "THSV Addon - Raid Scout - Confirm",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -92,7 +92,7 @@
       "name": "THSV Addon - Raid Scout - Cancel",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -114,7 +114,7 @@
       "name": "THSV Addon - Raid Scout - Broadcast Stopped",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -136,7 +136,7 @@
       "name": "THSV Addon - Raid Scout - Run Ending Ad",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RunEndingAd.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "excludeFromHistory": false,
       "excludeFromPending": false,
       "references": [
@@ -152,7 +152,7 @@
       "name": "THSV Addon - Raid Scout - Test Go Live - OBS and Aitum",
       "group": "THSV Addon - Raid Scout",
       "source": "src/StartAllObsStreamingOutputs.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "excludeFromHistory": false,
       "excludeFromPending": false,
       "references": [
@@ -168,7 +168,7 @@
       "name": "THSV Addon - Raid Scout - Stop All OBS Streaming Outputs",
       "group": "THSV Addon - Raid Scout",
       "source": "src/StopAllObsStreamingOutputs.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-3.6.0.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.0.sb",
       "excludeFromHistory": false,
       "excludeFromPending": false,
       "references": [

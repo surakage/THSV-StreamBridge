@@ -30,6 +30,8 @@ describe('public release scripts', () => {
     expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory");
     expect(source).toContain('npm.cmd run addon:package -- $_.FullName $addOnArchive');
     expect(source).toContain('THSV-StreamBridge-AddOn-');
+    expect(source).toContain("Get-ChildItem -LiteralPath $resolvedPackages -Filter 'THSV-StreamBridge-*.zip*'");
+    expect(source).toContain("Where-Object { $_.Name -notlike 'THSV-StreamBridge-AddOn-*' }");
     expect(source).toContain('THSV-StreamBridge-AddOns-index.json');
     expect(source).toContain("trustModel = 'GitHub release asset hashes plus GitHub artifact attestations; no silent install or auto-enable.'");
     expect(source).toContain('revoked = @()');
@@ -40,6 +42,8 @@ describe('public release scripts', () => {
     expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'packages\\streamerbot') -Directory | ForEach-Object");
     expect(source).toContain('selective, version-matched Streamer.bot package');
     expect(source).toContain('$bundledExtensionIds');
+    expect(source).toContain('do not publish a second');
+    expect(source.indexOf("if ($bundledExtensionIds -contains $currentModuleId)")).toBeLessThan(source.indexOf('$bundleName = "THSV-StreamBridge-AddOn-'));
     expect(source).toContain("Join-Path $appRoot 'packages\\extensions'");
     expect(source).toContain("Join-Path $appRoot 'integrations\\viewer-foundation'");
     expect(source).toContain("Join-Path $repo 'addons\\viewer-foundation'");
@@ -58,12 +62,11 @@ describe('public release scripts', () => {
     expect(source).toContain("'wizard'");
     expect(source).toContain('$releaseDocs');
     expect(source).toContain("'streamerbot-csharp-references.md'");
-    for (const currentGuide of ['complete-setup-guide.md', 'future-add-ons.md', 'future-projects-and-addons.md', 'kofi-donations.md', 'module-system.md', 'product-scope.md', 'release-candidate-status.md', 'scene-actions.md', 'viewer-foundation.md']) expect(source).toContain(`'${currentGuide}'`);
+    for (const currentGuide of ['complete-setup-guide.md', 'future-projects-and-addons.md', 'kofi-donations.md', 'module-system.md', 'product-scope.md', 'release-candidate-status.md', 'scene-actions.md', 'viewer-foundation.md']) expect(source).toContain(`'${currentGuide}'`);
     expect(source).toContain("Get-ChildItem -LiteralPath $_.FullName -Filter '*.sb'");
     expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'package-lock.json')");
     expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'node_modules\\.package-lock.json')");
     expect(source).toContain("'app\\examples'");
-    expect(source).toContain("'app\\docs\\stage-2-completion.md'");
     expect(source).toContain('.sha256');
     for (const forbidden of ['bridge.local.json', 'control-token', 'streambridge.pid', 'state|logs|backups']) expect(source).toContain(forbidden);
     for (const archived of ['viewer-progression', 'companion-actions', 'speaker-orchestration', 'bloom-idle-sprite.png']) expect(source).toContain(archived);
@@ -248,15 +251,14 @@ describe('public release scripts', () => {
     expect(source).not.toMatch(/tsx|node_modules|npm /u);
   });
 
-  it('packages asset provenance and direct dependency notices', async () => {
+  it('packages direct dependency and provider notices', async () => {
     const packageSource = await readFile('scripts/package-release.ps1', 'utf8');
     const notices = await readFile('THIRD-PARTY-NOTICES.md', 'utf8');
     expect(packageSource).toContain("'THIRD-PARTY-NOTICES.md'");
     expect(packageSource).toContain('npm.cmd ci --omit=dev --ignore-scripts');
     expect(packageSource).toContain('NODE-LICENSE.txt');
-    expect(notices).toContain("OpenAI's built-in image-generation service");
-    expect(notices).toContain('To the extent the THSV StreamBridge owner holds copyright or other licensable rights');
     expect(notices).toContain('| `ws` | `8.21.1` | MIT |');
     expect(notices).toContain('| `zod` | `4.4.3` | MIT |');
+    expect(notices).toContain('Optional Village Fun Commands content providers');
   });
 });

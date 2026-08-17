@@ -1,16 +1,16 @@
 # Custom Counter setup
 
 **Module:** `thsv.custom-counter`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Provides multiple bounded persistent creator counters, collision-safe moderator commands, reusable controls, and a customizable core-hosted overlay.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Custom-Counter-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Custom-Counter-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Custom-Counter-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Custom-Counter-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Custom-Counter-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Custom-Counter-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -32,9 +32,9 @@ The Controller publishes one bounded local relay. It does not write files, send 
 
 Creator-selected triggers:
 
-- **0:** No direct trigger is required. Wizard-created counter commands need no Streamer.bot action or Command object.
-- **1:** Use this optional Controller only for a creator-controlled hotkey, Stream Deck button, or trusted non-chat trigger.
-- **2:** Set counterOperation, counterId, counterName, counterAmount, and counterPreset as needed. Bridge-managed commands never require duplicated actions.
+- No direct trigger is required. Wizard-created counter commands need no Streamer.bot action or Command object.
+- Use this optional Controller only for a creator-controlled hotkey, Stream Deck button, or trusted non-chat trigger.
+- Set counterOperation, counterId, counterName, counterAmount, and counterPreset as needed. Bridge-managed commands never require duplicated actions.
 
 ## Browser source
 

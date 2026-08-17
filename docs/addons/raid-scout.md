@@ -1,24 +1,24 @@
 # Raid Scout setup
 
 **Module:** `thsv.raid-scout`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
-Finds a safe live Twitch raid destination, retries bounded public clip previews, and can safely end the broadcast after Twitch reports that an ending ad has finished.
+Finds a safe live Twitch raid destination, retries bounded public clip previews, can request an ending Twitch ad, and safely ends only after Twitch reports that ad has finished.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Raid-Scout-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Raid-Scout-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Raid-Scout-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Raid-Scout-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Raid-Scout-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Raid-Scout-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
 1. Import the separate Raid Scout Streamer.bot package.
 2. Keep its Controller action triggerless and approve that stable action ID as Raid Scout's fixed controller grant.
-3. Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the one-press automatic path.
-4. For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. Choose OBS Studio, Meld Studio, or Streamlabs Desktop in the wizard. OBS/Aitum users select and approve the included Stop All OBS Streaming Outputs action; Meld and Streamlabs users select an action containing their provider-native Stop Streaming sub-action. Attach Broadcast Stopped only to the selected provider's Streaming Stopped trigger.
+3. Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the streamlined one-press path through every enabled ending step.
+4. For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. Choose OBS Studio, Meld Studio, or Streamlabs Desktop in the wizard, select and approve that provider's Stop Streaming action, and attach Broadcast Stopped only to the selected provider's Streaming Stopped trigger.
 5. Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.
 6. For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.
 7. Configure preferred channels and filters, then test Suggest before enabling automatic mode.
@@ -37,17 +37,20 @@ Imported group: `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Cancel` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Broadcast Stopped` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Run Ending Ad` in `THSV Addon - Raid Scout`
+- `THSV Addon - Raid Scout - Test Go Live - OBS and Aitum` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Stop All OBS Streaming Outputs` in `THSV Addon - Raid Scout`
 
-Controller, Run Ending Ad, and Stop All OBS Streaming Outputs must remain triggerless and are dispatched only through Raid Scout's approved stable action IDs. Suggest begins the ending ad while Twitch is still live, then discovery and confirmation continue independently. The confirmed clip plays through completion before the raid starts. After Twitch accepts the raid, output stopping waits for the genuine Ad Run duration and its configured buffer. The OBS/Aitum helper requests Aitum RTMP, WHIP, FTL, and MPEG-TS outputs to stop and gives every secondary output one shared three-second confirmation window. OBS main is then stopped unconditionally, so an Aitum failure is reported but cannot hold the main broadcast online. Recording, replay buffer, and virtual camera remain untouched. Broadcast Stopped only confirms a provider stop signal and cannot stop a broadcast. Viewer suggestions arrive through the existing THSV Twitch Intake reward trigger, not a new Raid Scout trigger.
+Controller, Run Ending Ad, Test Go Live, and Stop All OBS Streaming Outputs ship triggerless. Test Go Live may be attached only to a protected creator control because it starts real OBS/Aitum broadcasts. Finish Stream, Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Broadcast Stopped only confirms a provider stop signal. The ad action is dispatched once when the ending search begins; after clip completion and the raid attempt, the stop-all action is dispatched when the genuine Ad Run timer and configured safety gate finish even if Twitch rejects or cannot confirm the raid.
 
 Creator-selected triggers:
 
 - **suggest:** Attach only to a creator-controlled hotkey, deck button, or operator command.
-- **finish:** Attach only to a creator-controlled hotkey, deck button, or operator command for a one-press search, clip, raid, and end-broadcast flow.
 - **confirm:** Attach only to a creator-controlled hotkey, deck button, or operator command.
 - **cancel:** Attach only to a creator-controlled hotkey, deck button, or operator command.
 - **broadcastStopped:** Attach only to the Streaming Stopped trigger for the same OBS, Meld, or Streamlabs provider used by the selected Stop Streaming action.
+- **runEndingAd:** Keep triggerless. Raid Scout dispatches it when Suggest or Finish Stream begins so discovery, confirmation, and clip playback use the commercial window.
+- **testGoLiveObsAndAitum:** Keep triggerless by default. Run it manually from Streamer.bot, or attach it only to a protected creator Stream Deck button or hotkey. Running it starts real broadcasts.
+- **stopAllObsStreamingOutputs:** Keep triggerless. OBS/Aitum users may select and approve this action as Raid Scout's Stop Streaming action.
 
 ## Browser source
 

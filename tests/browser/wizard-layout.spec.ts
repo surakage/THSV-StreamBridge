@@ -155,7 +155,7 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Create & download one import' }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('THSV-StreamBridge-Universal-Setup-3.6.0.sb');
+  expect(download.suggestedFilename()).toBe('THSV-StreamBridge-Universal-Setup-4.0.0.sb');
   await expect(page.locator('#universal-import-state')).toContainText('Import this one file in Streamer.bot');
   await page.getByRole('button', { name: 'Review recommended triggers' }).click();
   await expect(page.locator('#universal-trigger-guide')).toHaveAttribute('open', '');

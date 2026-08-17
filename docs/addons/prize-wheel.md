@@ -1,15 +1,15 @@
 # Prize Wheel setup
 
 **Module:** `thsv.prize-wheel`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Runs a creator-controlled equal-slice wheel with natural OBS animation, bounded multi-platform winner messages, and a result card.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Prize-Wheel-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Prize-Wheel-3.6.0.thsv-addon` and review its permissions.
+1. Download and extract `THSV-StreamBridge-AddOn-Prize-Wheel-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Prize-Wheel-4.0.0.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 

@@ -6,8 +6,8 @@ const MAXIMUM_MAPPINGS = 50;
 const pendingByConnection = new Map();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.scene-actions', name: 'Scene Actions', version: '3.6.0',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '3.6.0', maximumTestedBridgeVersion: '3.6.0', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.scene-actions', name: 'Scene Actions', version: '4.0.0',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.0', maximumTestedBridgeVersion: '4.0.0', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.scene-changed'], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.scene-actions/', 'data/addons/.state/thsv.scene-actions/'],
   installationSteps: ['Import the bundled Streamer.bot Scene Actions package.', 'Attach the documented OBS Studio, Streamlabs Desktop, and/or Meld Studio Scene Changed triggers to the imported Intake action.', 'Refresh Streamer.bot actions in the wizard, approve the scene actions this add-on may run, and edit the starter scene mappings.'],

@@ -1,16 +1,16 @@
 # Viewer Lobby setup
 
 **Module:** `thsv.viewer-lobby`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Lobby-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Lobby-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Viewer-Lobby-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Lobby-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Lobby-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Viewer-Lobby-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -38,7 +38,7 @@ Controls use an exact action-name/payload allowlist in StreamBridge. Clear is de
 
 Creator-selected triggers:
 
-- **0:** Attach only to creator-controlled hotkeys, deck buttons, or scene actions.
+- Attach only to creator-controlled hotkeys, deck buttons, or scene actions.
 
 ## Browser source
 

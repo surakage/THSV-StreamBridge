@@ -12,7 +12,7 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [Chat Play Pack](./chat-play-pack.md) | `thsv.chat-play-pack` | Included in add-on ZIP |
 | [Clip Courier](./clip-courier.md) | `thsv.clip-courier` | Included in add-on ZIP |
 | [Clip Library Cache](./clip-library-cache.md) | `thsv.clip-library-cache` | Included in add-on ZIP |
-| [Community Analytics](./community-analytics.md) | `thsv.community-analytics` | Not required |
+| [Community Analytics](./community-analytics.md) | `thsv.community-analytics` | Built in; no import required |
 | [Creator Controls](./creator-controls.md) | `thsv.creator-controls` | Included in add-on ZIP |
 | [Custom Counter](./custom-counter.md) | `thsv.custom-counter` | Included in add-on ZIP |
 | [Discord Chat Archive](./discord-chat-archive.md) | `thsv.discord-chat-archive` | Included in add-on ZIP |
@@ -31,7 +31,7 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [Stream Labels](./stream-labels.md) | `thsv.stream-labels` | Not required |
 | [Subathon Timer](./subathon-timer.md) | `thsv.subathon-timer` | Included in add-on ZIP |
 | [Translate](./user-translate.md) | `thsv.user-translate` | Included in add-on ZIP |
-| [Viewer Foundation](./viewer-foundation.md) | `thsv.viewer-foundation` | Not required |
+| [Viewer Foundation](./viewer-foundation.md) | `thsv.viewer-foundation` | Built in; no import required |
 | [Viewer Lobby](./viewer-lobby.md) | `thsv.viewer-lobby` | Included in add-on ZIP |
 | [Viewer Spotlight](./viewer-spotlight.md) | `thsv.viewer-spotlight` | Included in add-on ZIP |
 | [Village Draw](./village-draw.md) | `thsv.village-draw` | Not required |

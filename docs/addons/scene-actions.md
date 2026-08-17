@@ -1,16 +1,16 @@
 # Scene Actions setup
 
 **Module:** `thsv.scene-actions`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Scene-Actions-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Scene-Actions-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Scene-Actions-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Scene-Actions-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Scene-Actions-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Scene-Actions-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -36,9 +36,9 @@ Only the Intake action receives scene-change triggers. Starter target actions ha
 
 Creator-selected triggers:
 
-- **0:** Add OBS Studio > Scene Changed (Connection: Any; Scene: any) to THSV Scene Actions - Intake.
-- **1:** Add Streamlabs Desktop > Scene Changed (Instance: Any; Scene: any) to THSV Scene Actions - Intake.
-- **2:** Add Meld Studio > Scene Changed (Connection: Any) to THSV Scene Actions - Intake. If your Streamer.bot version requires a Scene value, attach one copy per scene.
+- Add OBS Studio > Scene Changed (Connection: Any; Scene: any) to THSV Scene Actions - Intake.
+- Add Streamlabs Desktop > Scene Changed (Instance: Any; Scene: any) to THSV Scene Actions - Intake.
+- Add Meld Studio > Scene Changed (Connection: Any) to THSV Scene Actions - Intake. If your Streamer.bot version requires a Scene value, attach one copy per scene.
 
 ## Browser source
 

@@ -1,16 +1,16 @@
 # Live Beacon setup
 
 **Module:** `thsv.live-beacon`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Posts separate guarded Twitch, YouTube, Kick, and optional TikTok live embeds to a Discord channel or forum.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Live-Beacon-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Live-Beacon-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Live-Beacon-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Live-Beacon-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Live-Beacon-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Live-Beacon-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -34,8 +34,8 @@ Broadcast Started accepts only creator-controlled broadcast-app start triggers a
 
 Creator-selected triggers:
 
-- **0:** Attach exactly one active broadcast app trigger to Broadcast Started: OBS Studio > Streaming Started, Streamlabs Desktop > Streaming Started, or Meld Studio > Streaming Started.
-- **1:** Use the wizard's fallback-platform selection only for platforms that lack a dependable provider start signal; TikTok is recommended.
+- Attach exactly one active broadcast app trigger to Broadcast Started: OBS Studio > Streaming Started, Streamlabs Desktop > Streaming Started, or Meld Studio > Streaming Started.
+- Use the wizard's fallback-platform selection only for platforms that lack a dependable provider start signal; TikTok is recommended.
 
 ## Browser source
 

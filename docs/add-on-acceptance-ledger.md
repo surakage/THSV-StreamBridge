@@ -1,5 +1,7 @@
 # Add-on acceptance ledger
 
+> **Historical provider evidence:** the detailed rows below preserve the August 2, 2026 Version 3 acceptance snapshot. They must not be read as the Version 4 package inventory. For current build gates, installation state, and the download boundary, see [Version 4 production readiness](production-readiness.md). Provider acceptance should be reconfirmed after migration for any changed high-impact action.
+
 Snapshot: August 2, 2026. Current release candidate and installed baseline: `3.5.0`.
 
 This ledger prevents **packaged**, **offline accepted**, and **provider accepted** from being treated as the same claim. A package is production-capable only for the rows and environments whose evidence has actually been recorded.

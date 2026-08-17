@@ -6,7 +6,7 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Version 3:** the bridge, all 35 first-party add-ons, and all 41 generated Streamer.bot import packages are synchronized at `3.5.0`. The complete automated, browser, Windows package, archive, dependency-audit, and local-upgrade gates pass. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [production-readiness gate](docs/production-readiness.md).
+> **Version 4:** StreamBridge, its 23 bundled extension components, three built-in integrations, 11 optional add-ons, and all 41 generated Streamer.bot packages are synchronized at `4.0.0`. Version 4 replaces the former install-every-feature model with seven built-in extension groups, a single selectable Streamer.bot import, and separate downloads only for genuinely optional add-ons. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [4.0 release notes](docs/releases/4.0.0.md).
 
 ## Start here
 
@@ -40,9 +40,9 @@ Streamer.bot remains the automation and decision engine. StreamBridge does not a
 
 ## Download and install
 
-Public releases have a stable [Download StreamBridge](https://www.slothbloom.com/downloads/streambridge) address on SlothBloom, backed by the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest). The website redirects to the exact current Windows x64 archive rather than duplicating executable files. The main archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, and core Streamer.bot packages. Optional add-on Streamer.bot actions are deliberately kept out of the main import list. Each add-on has its own ZIP containing the wizard-installable `.thsv-addon`, only that add-on's `.sb` import, setup instructions, and checksums. Users do not need to install Node.js, npm, Docker, or a database.
+Public releases have a stable [Download StreamBridge](https://www.slothbloom.com/downloads/streambridge) address on SlothBloom, backed by the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest). The website redirects to the exact current Windows x64 archive rather than duplicating executable files. The main archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, all built-in integrations and extension components, and the manifests used by the wizard's one-import generator. Optional add-ons remain separate ZIP downloads. Users do not need to install Node.js, npm, Docker, or a database.
 
-1. Download `THSV-StreamBridge-3.5.0.zip` and its adjacent `.sha256` file from the Version 3 release.
+1. Download `THSV-StreamBridge-4.0.0.zip` and its adjacent `.sha256` file from the Version 4 release.
 2. Verify the download using [RELEASE-VERIFICATION.md](RELEASE-VERIFICATION.md). GitHub artifact attestations provide a free publisher-verification path without requiring a paid Windows code-signing certificate.
 3. If Windows shows **Unblock** in the ZIP's Properties, select it before extracting.
 4. Extract the ZIP to a temporary folder; do not run the installer from inside the ZIP preview.
@@ -55,7 +55,7 @@ The installer keeps all launchers in the installed StreamBridge folder instead o
 
 The installer also starts the lightweight native Windows notification-area shell. Its THSV Village icon shows Bridge readiness and provides Setup Wizard, safe tool startup, Bridge start/stop, status refresh, and installed-folder shortcuts. It checks only the local `/ready` endpoint, never reads or displays the control token, never restarts a healthy service on its own, and notifies only when readiness changes. Exit affects the tray shell only; use `Open THSV StreamBridge Tray.cmd` in the installed folder to reopen it.
 
-For an optional feature, download its matching `THSV-StreamBridge-AddOn-<Name>-<version>.zip`. Extract it, install the `.thsv-addon` through the wizard, then import the `.sb` file from that bundle's `Streamer.bot` folder. Add-on actions are never mixed into the main StreamBridge package.
+For an optional feature, download its matching `THSV-StreamBridge-AddOn-<Name>-<version>.zip`. Extract it and install the `.thsv-addon` through the wizard. Then return to **Streamer.bot → One Streamer.bot import**, select the enabled add-on, and generate one combined `.sb` file. The individual import inside an add-on bundle is a recovery option, not the normal setup path.
 
 Default installation location: `%LOCALAPPDATA%\THSV StreamBridge`. Windows 10 or later and PowerShell 5.1 or later are required.
 
@@ -87,7 +87,7 @@ See [Portable Windows release](docs/release.md) for backup, rollback, downgrade,
 
 For the exact completed-versus-remaining acceptance cutoff, see [Published release and acceptance status](docs/release-candidate-status.md).
 
-Stream Launch Countdown is available as a separate optional add-on with its own Streamer.bot import and core-hosted `/overlay/countdown` browser source. See [Stream Launch Countdown](docs/starting-soon-countdown.md).
+Stream Launch Countdown is included in the built-in **Broadcast Director** extension group and uses the core-hosted `/overlay/countdown` browser source. Select Broadcast Director when generating the one Streamer.bot import. See [Stream Launch Countdown](docs/starting-soon-countdown.md).
 
 Add-ons must use the main StreamBridge installation. They reuse its normalized event bus, Streamer.bot connection, scheduler, private state, outbound router, and overlay transport instead of opening additional bridge instances or WebSockets.
 
@@ -97,7 +97,7 @@ Optional add-ons are separate downloads on the same GitHub Release as core. Each
 
 Release packaging runs `npm run imports:sync` before validation. Every declared `.sb` is regenerated from its reviewed C# source, stale sibling exports are excluded, and `packages/streamerbot/import-index.json` records the canonical filename, version, size, and SHA-256. Add-on release bundles include the matching import plus its adjacent checksum, so extension and optional add-on imports cannot drift unnoticed from the source that produced the release.
 
-Published packages are not automatically provider-accepted. Version 3 contains `34` independently installable first-party add-ons. Use the [Add-on acceptance ledger](docs/add-on-acceptance-ledger.md), [offline/private testing guide](docs/offline-acceptance.md), and [first-live checklist](docs/live-test-checklist.md) before enabling financial, reward, moderation, raid, outbound-chat, Discord, translation, voice, scene, or media side effects.
+Published packages are not automatically provider-accepted. Version 4 includes 23 extension components and three integrations in the main installation, with only 11 independently installable optional add-ons. Use the [Add-on acceptance ledger](docs/add-on-acceptance-ledger.md), [offline/private testing guide](docs/offline-acceptance.md), and [first-live checklist](docs/live-test-checklist.md) before enabling financial, reward, moderation, raid, outbound-chat, Discord, translation, voice, scene, or media side effects.
 
 The wizard organizes frequently combined components into seven [main features](docs/main-features.md): Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language. They appear on the dedicated **Extensions** page. Separately installed packages appear on the dedicated **Add-ons** page with their install, update, and package-management controls. Existing component IDs, settings, Streamer.bot actions, and failure isolation remain compatible.
 
@@ -120,7 +120,7 @@ Chat Guard defaults to observe-only behavior. Optional moderation modes require 
 
 Review [Security](docs/security.md), [release verification](RELEASE-VERIFICATION.md), and [integration assumptions](docs/integration-assumptions.md) before using financial, reward, or destructive automation.
 
-Version 3 builds on the v2 contracts and module host while synchronizing the full creator-facing product at `3.5.0`. The normalized event and add-on API contract remains independently versioned at `2.0.0-preview.1`, so compatibility checks describe the interface rather than the marketing release. Existing Version 1 and Version 2 installations should follow the [Version 3 migration guide](docs/version-3-migration.md).
+Version 4 keeps the v2 normalized-event and add-on API contract independently versioned at `2.0.0-preview.1`; compatibility checks describe the interface rather than the marketing release. Existing installations should follow the [Version 4 migration guide](docs/version-4-migration.md).
 
 This is a clean rebuild and has no dependency on earlier Streamer.bot, Speaker.bot, overlay, chatbot, or JSON projects.
 
@@ -216,9 +216,9 @@ Browser Overlay Hub adds one local transparent browser source for Meld Studio, O
 
 Use `http://127.0.0.1:8787/overlay/` for the combined canvas, add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources, or add `http://127.0.0.1:8787/overlay/chat/dock` as an interactive multichat dock. The dock can reply to one enabled platform or all enabled platforms through the existing Streamer.bot connection, using the connected creator account where Streamer.bot supports account selection. Chat appearance and ignored names are saved from the authenticated wizard. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). The same local overlay routes work as OBS Browser Sources, Meld Browser layers, and Streamlabs Desktop Browser Sources. Scene and streaming automation must use the matching OBS, Meld, or Streamlabs trigger in Streamer.bot; only the OBS/Aitum multi-output helper is OBS-specific.
 
-## Archived future add-ons
+## Viewer foundation and community insights
 
-The former Viewer Identity and Progression, Bloom Companion, and Speaker.bot Orchestration implementations are no longer core features. Their historical source, packages, tests, documentation, and assets remain preserved under `archive/future-add-ons/`. Viewer identity/progression now returns through the optional `thsv.viewer-foundation` add-on with salted identity, replay-safe progression, a permissioned consumer broker, and authenticated local administration. The optional `thsv.community-analytics` companion uses those identities for bounded session attendance and interaction counters without storing chat text or names. Core still does not load archived state, expose legacy endpoints, emit legacy events, or serve archived browser surfaces. See [Viewer Foundation](docs/viewer-foundation.md) and [Future add-ons](docs/future-add-ons.md).
+Viewer Foundation and Community Analytics are installed integrations in the current Bridge. Viewer Foundation provides salted identity resolution, replay-safe progression, permissioned consumers, and authenticated local administration. Community Analytics uses those identities for bounded session attendance and interaction counters without storing chat text or names. Retired Viewer Progression, Bloom Companion, and Speaker.bot Orchestration code and imports are not shipped or loaded. See [Viewer Foundation](docs/viewer-foundation.md) and [Main features](docs/main-features.md).
 
 ## Setup wizard
 
@@ -228,23 +228,23 @@ Streamer.bot inspection sends only documented `GetActions` and `GetCommands` req
 
 ## TikFinity intake
 
-The reviewed TikFinity-to-Streamer.bot intake relays TikTok chat, follows, gifts, 100-like milestones, and subscriptions. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-3.6.0.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
+The reviewed TikFinity-to-Streamer.bot intake relays TikTok chat, follows, gifts, 100-like milestones, and subscriptions. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.0.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
 
 TikFinity does not currently document a stable source-event ID or reliable simulator marker. Intake events therefore expose those limitations explicitly and default to simulated until live provenance is verified; do not use them for production progression or financial statistics yet.
 
 ## Native Streamer.bot platform intake
 
-Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-3.6.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
+Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.0.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
 
 The native intake also relays documented Twitch and YouTube emote ranges. StreamBridge locally matches BTTV for Twitch/YouTube, FrankerFaceZ for Twitch, and 7TV for Twitch/YouTube/Kick; unavailable catalogs and image failures preserve the original emote code as text.
 
 Stage 8 adds Twitch and Kick reward-redemption intake to those native actions. The separate triggerless `THSV StreamBridge - Reward Administration` package exposes only documented, creator-approved Twitch operations; Kick mutations are hidden and rejected until Streamer.bot documents them. See [Channel rewards](docs/rewards.md).
 
-## V2 add-on packages
+## Extension and add-on packages
 
 Stage 9 adds hash-verified, version-bounded optional module packages plus an authenticated Add-ons page in the local wizard. A declarative package can expose schema-validated settings without executing add-on code. Executable packages receive scoped handles for private state, bounded scheduling, exact creator-approved Streamer.bot actions through the bridge's single connection, and core-hosted namespaced card/media overlays with playback lifecycle reports. They still run with StreamBridge's Windows-account permissions, so the broker is not an operating-system sandbox and installation requires explicit creator approval. Packages copied into `data/addons/inbox/` are inspected and listed but never auto-installed. A failed or corrupted add-on is shown as rejected without stopping required core modules. Start with `examples/addons/declarative-settings/`, the [add-on developer guide](docs/add-on-development.md), the [capability broker reference](docs/add-on-capabilities.md), and the [future project roadmap](docs/future-projects-and-addons.md).
 
-Official Version 3 downloads include 34 independently installable add-ons. Each add-on ships as its own ZIP containing the matching `.thsv-addon`, installation notes, checksums, and its own Streamer.bot `.sb` import only when that add-on requires Streamer.bot actions. Broker-only add-ons use the bridge's existing normalized-event and capability-broker connection and need no placeholder import. Add-on actions are intentionally excluded from the main StreamBridge import set. Privacy-sensitive or externally mutating packages start disabled, and creator-specific live acceptance is separate from automated packaging. See the authoritative [add-on roadmap and status table](docs/future-projects-and-addons.md#portfolio-status).
+Official Version 4 downloads include one main StreamBridge archive and 11 independently installable optional add-ons. The 23 components in the seven extension groups are bundled in the main archive and are not duplicated as add-on downloads. Each optional add-on ZIP contains the matching `.thsv-addon`, installation notes, checksums, and a recovery `.sb` import only when it needs Streamer.bot actions. Normal setup uses the wizard to generate one combined import for the selected extensions and add-ons. Privacy-sensitive or externally mutating features start disabled, and creator-specific live acceptance remains separate from automated packaging. See the [main feature guide](docs/main-features.md) and [add-on setup guide](docs/addon-setup-for-beginners.md).
 
 ## Source development
 
@@ -265,11 +265,11 @@ The checked-in example uses live Streamer.bot delivery and will report not-ready
 
 To create creator-specific settings, copy `config/bridge.example.json` into `data/runtime`, edit the copy, and pass it to `start.ps1 -Config <path>`. Do not place credentials in JSON. A per-installation control token is generated automatically in ignored runtime storage.
 
-See [Getting started](docs/getting-started.md), the [Stage 2 completion record](docs/stage-2-completion.md), [Stage 3 completion record](docs/stage-3-completion.md), [Stage 4 completion record](docs/stage-4-completion.md), [Stage 5 completion record](docs/stage-5-completion.md), [Stage 6 completion record](docs/stage-6-completion.md), [Stage 7 completion record](docs/stage-7-completion.md), [Stage 8 completion record](docs/stage-8-completion.md), [Stage 9 completion record](docs/stage-9-completion.md), [Channel rewards](docs/rewards.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), [Future add-ons](docs/future-add-ons.md), and the [future project and add-on roadmap](docs/future-projects-and-addons.md).
+See [Getting started](docs/getting-started.md), [Main features](docs/main-features.md), [Channel rewards](docs/rewards.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and the [future project and add-on roadmap](docs/future-projects-and-addons.md).
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
 
-Version 3 release target: [THSV StreamBridge v3.5.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v3.5.0). Until that tag is published, use the latest release page rather than an unverified source archive.
+Version 4 release: [THSV StreamBridge v4.0.0](https://github.com/surakage/THSV-StreamBridge/releases/tag/v4.0.0). Use the latest release page rather than an unverified source archive.
 
 ## License
 

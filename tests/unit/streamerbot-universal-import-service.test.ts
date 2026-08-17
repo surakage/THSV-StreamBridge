@@ -12,7 +12,7 @@ function decode(contentBase64: string): { data: { actions: Array<{ id: string; n
 describe('Streamer.bot universal import service', () => {
   it('lists required framework packages, selectable extensions, and unavailable optional add-ons', async () => {
     const catalogue = await new StreamerBotUniversalImportService().catalogue([]);
-    expect(catalogue.bridgeVersion).toBe('3.6.0');
+    expect(catalogue.bridgeVersion).toBe('4.0.0');
     expect(catalogue.packages.filter((item) => item.required)).toHaveLength(12);
     expect(catalogue.packages.find((item) => item.folder === 'raid-scout')).toMatchObject({ kind: 'extension', available: true });
     expect(catalogue.packages.find((item) => item.folder === 'subathon-timer')).toMatchObject({ kind: 'addon', available: false });

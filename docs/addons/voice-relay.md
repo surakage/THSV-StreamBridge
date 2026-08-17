@@ -1,16 +1,16 @@
 # Village Voice setup
 
 **Module:** `thsv.voice-relay`
-**Version:** `3.5.0`
+**Version:** `4.0.0`
 **Publisher:** THSV StreamBridge
 
 Routes selected alerts and cross-platform viewer TTS requests through one bounded Speaker.bot queue with an optional avatar and progressive-text overlay.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Village-Voice-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Village-Voice-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Voice-Relay-3.6.0.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Village-Voice-4.0.0.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Village-Voice-4.0.0.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Voice-Relay-4.0.0.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
@@ -36,7 +36,7 @@ Speak is triggerless and requires a one-use broker token. Controls use an exact 
 
 Creator-selected triggers:
 
-- **0:** Attach Pause/Resume/Stop only to creator controls.
+- Attach Pause/Resume/Stop only to creator controls.
 
 ## Browser source
 

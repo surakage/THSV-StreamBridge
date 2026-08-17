@@ -81,7 +81,7 @@ public class CPHInline
 
     private JObject RequestJson(string url)
     {
-        var request = (HttpWebRequest)WebRequest.Create(url); request.Method = "GET"; request.Accept = "application/json"; request.UserAgent = "THSV-StreamBridge-Village-Jukebox/3.6.0"; request.Timeout = 10000; request.ReadWriteTimeout = 10000;
+        var request = (HttpWebRequest)WebRequest.Create(url); request.Method = "GET"; request.Accept = "application/json"; request.UserAgent = "THSV-StreamBridge-Village-Jukebox/4.0.0"; request.Timeout = 10000; request.ReadWriteTimeout = 10000;
         using (var response = (HttpWebResponse)request.GetResponse()) using (var stream = response.GetResponseStream()) using (var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, false))
         {
             if (response.StatusCode != HttpStatusCode.OK) throw new WebException("YouTube returned an HTTP error.");

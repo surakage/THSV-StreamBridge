@@ -1,5 +1,7 @@
 # Future projects and add-on roadmap
 
+> **Planning and historical implementation record:** package counts and version labels in older sections describe their dated snapshots. Version 4 bundles 23 components in seven extension groups, installs three integrations with the Bridge, and publishes only 11 optional add-on downloads. Use [Main features](main-features.md), [Version 4 production readiness](production-readiness.md), and the [optional add-on guide](addon-setup-for-beginners.md) for current installation decisions.
+
 This document separates responsibilities that belong in THSV StreamBridge core from optional creator features. The goal is a small, dependable main installation and add-ons that reuse its authenticated services instead of opening competing processes or WebSocket connections.
 
 Last organized: August 1, 2026.
