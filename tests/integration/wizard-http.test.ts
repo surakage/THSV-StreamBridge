@@ -51,7 +51,7 @@ describe('wizard HTTP surface', () => {
     const executable = join(root, 'portable', 'Streamer.bot.exe'); await mkdir(join(root, 'portable'), { recursive: true }); await writeFile(executable, 'test');
     const obs = join(root, 'obs64.exe'); await writeFile(obs, 'test');
     const config = await testConfig(); config.service.port = 0;
-    const bridge = createTestBridge(config); const launcher = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/');
+    const bridge = createTestBridge(config); const launcher = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32');
     const wizard = new WizardService(undefined, undefined, undefined, undefined, undefined, undefined, launcher);
     const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard, dataRoot);
     await bridge.start(); await server.start();
