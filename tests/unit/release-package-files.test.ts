@@ -42,6 +42,8 @@ describe('public release scripts', () => {
     expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'packages\\streamerbot') -Directory | ForEach-Object");
     expect(source).toContain('selective, version-matched Streamer.bot package');
     expect(source).toContain('$bundledExtensionIds');
+    expect(source).toContain("IndexOf($presentationPolicyMarker, [System.StringComparison]::Ordinal)");
+    expect(source).not.toContain(".Split('export const MAIN_FEATURE_PRESENTATION_POLICY')");
     expect(source).toContain('do not publish a second');
     expect(source.indexOf("if ($bundledExtensionIds -contains $currentModuleId)")).toBeLessThan(source.indexOf('$bundleName = "THSV-StreamBridge-AddOn-'));
     expect(source).toContain("Join-Path $appRoot 'packages\\extensions'");
