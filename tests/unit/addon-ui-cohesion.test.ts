@@ -50,7 +50,7 @@ describe('first-party add-on wizard cohesion', () => {
       const candidate = imported.createModule === undefined ? imported.default : await imported.createModule();
       expect(candidate, `${addOnName} must export its executable runtime`).toBeTypeOf('object');
       const runtime = candidate as { readonly manifest?: unknown; readonly required?: unknown };
-      expect(runtime.required, `${addOnName} must be loadable as an optional module`).toBe(false);
+      expect(runtime.required, `${addOnName} must declare the correct runtime ownership`).toBe(addOnName === 'viewer-foundation');
       expect(JSON.stringify(runtime.manifest), `${addOnName} runtime and package manifests must match exactly`).toBe(JSON.stringify(verified.descriptor.manifest));
     }
   });

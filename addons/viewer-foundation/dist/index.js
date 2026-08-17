@@ -33,12 +33,12 @@ const manifest = {
   commandsProvided: [{ id: 'viewer-foundation.balance', name: 'points' }], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.viewer-foundation/', 'data/addons/.state/thsv.viewer-foundation/'],
   installationSteps: [
-    'Install Viewer Foundation in the wizard and review its private-state permission.',
+    'Open the built-in Viewer Foundation page and review its private identity and progression settings.',
     'Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.',
     'Name the currency and choose chat, consistency, observed time, lurk, and event awards; then save and restart StreamBridge.',
     'Choose the balance and lurk command names. They register automatically through the existing chat intakes after restart.',
   ],
-  uninstallationSteps: ['Uninstall the add-on. Its pseudonymous progression state remains preserved for a later reinstall or privacy export.'],
+  uninstallationSteps: ['Viewer Foundation is a required Bridge integration and cannot be uninstalled separately.'],
   migrations: [],
   healthChecks: [{ id: 'thsv.viewer-foundation.runtime', description: 'Confirms named currency, salted identity resolution, bounded chat/time/event awards, replay protection, and atomic private progression state.' }],
 };
@@ -543,12 +543,11 @@ async function administerViewer(request, context, now = Date.now()) {
 export function resetViewerFoundationRuntime() { operation = Promise.resolve(); unregisterProvider = undefined; livePlatforms.clear(); }
 
 export default {
-  manifest, required: false,
+  manifest, required: true,
   async start(context) {
     operation = Promise.resolve();
     livePlatforms.clear();
     const settings = settingsFor(context);
-    if (!settings.enabled) return;
     const state = sanitizeViewerFoundationState(await context.state.read(), settings);
     await context.state.write(state);
     unregisterProvider = context.viewerFoundation.provide(Object.freeze({

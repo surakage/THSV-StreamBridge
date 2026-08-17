@@ -15,7 +15,7 @@ Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Sc
 
 ### Add-on-specific steps
 
-1. Install and enable Viewer Foundation and Community Analytics first.
+1. Review the built-in Viewer Foundation page, then enable Community Analytics before using identity-backed cards.
 2. Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.
 3. Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube and TikTok card command. It registers automatically after restart.
 4. Add /overlay/addons/thsv.viewer-spotlight as a browser source.

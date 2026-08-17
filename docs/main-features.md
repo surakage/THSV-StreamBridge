@@ -2,6 +2,8 @@
 
 StreamBridge presents the components creators use together as seven main features. The wizard is organized around the job being performed while preserving each existing package's stable identity and Streamer.bot wiring.
 
+Viewer Foundation and Community Analytics sit beneath those seven feature groups as Bridge integrations. Each has its own Wizard page, neither is counted as an extension or add-on, and neither needs separate installation, updating, or removal. Viewer Foundation owns private identity and progression; Community Analytics owns bounded private attendance and activity projections for features such as Viewer Spotlight.
+
 The wizard calls these seven included feature groups **extensions**. An extension is part of the StreamBridge operating experience even though its components retain isolated package identities internally. An **add-on** is an optional feature that the creator installs separately. The wizard gives Extensions and Add-ons their own navigation pages so neither inventory, its settings, nor package-install controls crowd the other.
 
 The feature catalogue and presentation lanes now come from one Bridge-owned registry. The wizard receives that registry from the authenticated add-on inventory instead of maintaining another hard-coded list. Official packages inside a family are presented as Bridge-managed extension components; standalone optional packages remain add-ons. This reduces the creator-facing add-on wall without merging component state or weakening failure isolation.
@@ -44,7 +46,7 @@ Community Messaging groups Automated Shoutouts, Discord Chat Archive, Chat Guard
 
 ## Community Insights
 
-Community Insights combines Follower Pulse and Community Analytics. Follower history, cross-platform participation totals, and reporting remain private and local. The shared feature reports only bounded operational health; it does not expose follower identities or viewer records in ordinary diagnostics.
+Community Insights adds optional Follower Pulse reconciliation on top of the built-in Community Analytics provider. Follower history, cross-platform participation totals, and reporting remain private and local. The shared feature reports only bounded operational health; it does not expose follower identities or viewer records in ordinary diagnostics.
 
 ## Community Play
 

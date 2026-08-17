@@ -404,6 +404,15 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerViewerFoundation(JSON.parse(body.text) as ViewerFoundationAdminRequestV1));
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/viewer-foundation' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { integration: await this.wizard.viewerFoundation() });
+      }
+      if (request.method === 'PUT' && request.url === '/wizard/api/viewer-foundation/settings' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.saveViewerFoundationSettings(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/viewer-foundation/migration' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await readLegacyViewerMigration(this.dataRoot));
@@ -422,6 +431,24 @@ export class DiagnosticsServer {
         if (this.target.administerCommunityAnalytics === undefined) return this.reply(response, 503, { error: 'Community Analytics administration is unavailable.' });
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerCommunityAnalytics(JSON.parse(body.text) as CommunityAnalyticsAdminRequestV1));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/community-analytics' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { integration: await this.wizard.communityAnalytics() });
+      }
+      if (request.method === 'PUT' && request.url === '/wizard/api/community-analytics/settings' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.saveCommunityAnalyticsSettings(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/kofi-donations' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { integration: await this.wizard.kofiDonations() });
+      }
+      if (request.method === 'PUT' && request.url === '/wizard/api/kofi-donations/settings' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.saveKofiDonationsSettings(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/quote-vault/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
@@ -543,6 +570,12 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 201, await this.wizard.installDiscoveredAddOn(JSON.parse(body.text) as unknown));
+      }
+      const featureFamilyEnabledMatch = request.method === 'POST' ? /^\/wizard\/api\/extensions\/([^/]+)\/enabled$/u.exec(request.url ?? '') : null;
+      if (featureFamilyEnabledMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.setFeatureFamilyEnabled(decodeURIComponent(featureFamilyEnabledMatch[1]), JSON.parse(body.text) as unknown));
       }
       const addOnEnabledMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/enabled$/u.exec(request.url ?? '') : null;
       if (addOnEnabledMatch?.[1] !== undefined && this.wizard !== undefined) {

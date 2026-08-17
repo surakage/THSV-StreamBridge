@@ -1,15 +1,22 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { cp, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
+import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
+import { VIEWER_FOUNDATION_MODULE_ID, viewerFoundationIntegrationRoot } from '../core/viewer-foundation-integration.js';
+import { COMMUNITY_ANALYTICS_MODULE_ID, communityAnalyticsIntegrationRoot } from '../core/community-analytics-integration.js';
+import { KOFI_DONATIONS_MODULE_ID, kofiDonationsIntegrationRoot } from '../core/kofi-donations-integration.js';
+import { isBuiltInIntegrationModuleId } from '../core/built-in-integrations.js';
 import {
   AddOnPackageError,
   installAddOnArchive,
   inspectAddOnArchive,
   listInstalledAddOnPackages,
   removeAddOnPackage,
+  safeChild,
   setAddOnApprovedActionIds,
   setAddOnPackageEnabled,
   type InstalledAddOnSummary,
+  verifyAddOnPackage,
 } from './addon-package-manager.js';
 import type { VerifiedAddOnUpdatePackage } from './addon-update-service.js';
 
@@ -31,6 +38,21 @@ export class AddOnWizardError extends Error {
 
 export interface WizardAddOnSummary extends InstalledAddOnSummary {
   readonly settings: Readonly<Record<string, unknown>>;
+}
+
+export interface WizardViewerFoundationIntegration extends WizardAddOnSummary {
+  readonly integration: true;
+  readonly required: true;
+}
+
+export interface WizardCommunityAnalyticsIntegration extends WizardAddOnSummary {
+  readonly integration: true;
+  readonly required: false;
+}
+
+export interface WizardKofiDonationsIntegration extends WizardAddOnSummary {
+  readonly integration: true;
+  readonly required: false;
 }
 
 export interface AddOnAcceptanceEntry {
@@ -96,15 +118,152 @@ export interface FeatureMigrationCandidate extends StoredFeatureMigrationCandida
 }
 
 export class AddOnWizardService {
-  public constructor(private readonly packagesRoot: string, private readonly stateRoot: string, private readonly inboxRoot = join(resolve(packagesRoot), 'inbox')) {}
+  public constructor(
+    private readonly packagesRoot: string,
+    private readonly stateRoot: string,
+    private readonly inboxRoot = join(resolve(packagesRoot), 'inbox'),
+    private readonly bundledExtensionsRoot = resolve('packages', 'extensions'),
+  ) {}
 
   public async list(): Promise<readonly WizardAddOnSummary[]> {
-    const installed = await listInstalledAddOnPackages(this.packagesRoot);
+    const installed = (await listInstalledAddOnPackages(this.packagesRoot)).filter((addOn) => !isBuiltInIntegrationModuleId(addOn.moduleId));
     return Promise.all(installed.map(async (addOn) => {
       if (addOn.health === 'rejected') return { ...addOn, settings: {} };
       try { return { ...addOn, settings: await this.readSettings(addOn.moduleId, addOn.configurationSchema) }; }
       catch (error) { return { ...addOn, enabled: false, health: 'rejected' as const, error: error instanceof Error ? error.message : String(error), settings: {} }; }
     }));
+  }
+
+  public async viewerFoundation(): Promise<WizardViewerFoundationIntegration> {
+    const verified = await verifyAddOnPackage(await viewerFoundationIntegrationRoot());
+    const descriptor = verified.descriptor;
+    const configurationSchema = JSON.parse(await readFile(safeChild(verified.root, descriptor.manifest.configurationSchema), 'utf8')) as unknown;
+    const settingsUi = descriptor.settingsUi === undefined ? undefined : JSON.parse(await readFile(safeChild(verified.root, descriptor.settingsUi), 'utf8')) as unknown;
+    return Object.freeze({
+      integration: true,
+      required: true,
+      moduleId: VIEWER_FOUNDATION_MODULE_ID,
+      name: descriptor.manifest.name,
+      version: descriptor.manifest.version,
+      author: descriptor.author,
+      description: descriptor.description,
+      changelog: descriptor.changelog,
+      packageKind: descriptor.packageKind,
+      permissions: descriptor.permissions,
+      trust: descriptor.trust,
+      enabled: true,
+      approvedActionIds: [],
+      health: 'installed',
+      configurationSchema,
+      settings: await this.readSettings(VIEWER_FOUNDATION_MODULE_ID, configurationSchema),
+      installationSteps: ['Viewer Foundation is installed and updated with StreamBridge.', ...descriptor.manifest.installationSteps.slice(1)],
+      uninstallationSteps: ['Viewer Foundation is a required Bridge integration and cannot be uninstalled separately.'],
+      healthChecks: descriptor.manifest.healthChecks,
+      commandsProvided: descriptor.manifest.commandsProvided,
+      browserSourcesProvided: descriptor.manifest.browserSourcesProvided,
+      ...(settingsUi === undefined ? {} : { settingsUi }),
+    });
+  }
+
+  public async saveViewerFoundationSettings(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const integration = await this.viewerFoundation();
+    const settings = validateSettings(integration.configurationSchema, objectInput(input));
+    const encoded = `${JSON.stringify(settings, null, 2)}\n`;
+    if (Buffer.byteLength(encoded) > MAXIMUM_SETTINGS_BYTES) throw new AddOnWizardError(413, 'Viewer Foundation settings exceed the 64 KiB safety limit.');
+    const path = settingsPath(this.stateRoot, VIEWER_FOUNDATION_MODULE_ID);
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    const temporary = `${path}.${randomUUID()}.tmp`;
+    await writeFile(temporary, encoded, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, path);
+    return { moduleId: VIEWER_FOUNDATION_MODULE_ID, saved: true, restartRequired: true, settings };
+  }
+
+  public async communityAnalytics(): Promise<WizardCommunityAnalyticsIntegration> {
+    const verified = await verifyAddOnPackage(await communityAnalyticsIntegrationRoot());
+    const descriptor = verified.descriptor;
+    const configurationSchema = JSON.parse(await readFile(safeChild(verified.root, descriptor.manifest.configurationSchema), 'utf8')) as unknown;
+    const settingsUi = descriptor.settingsUi === undefined ? undefined : JSON.parse(await readFile(safeChild(verified.root, descriptor.settingsUi), 'utf8')) as unknown;
+    return Object.freeze({
+      integration: true,
+      required: false,
+      moduleId: COMMUNITY_ANALYTICS_MODULE_ID,
+      name: descriptor.manifest.name,
+      version: descriptor.manifest.version,
+      author: descriptor.author,
+      description: descriptor.description,
+      changelog: descriptor.changelog,
+      packageKind: descriptor.packageKind,
+      permissions: descriptor.permissions,
+      trust: descriptor.trust,
+      enabled: true,
+      approvedActionIds: [],
+      health: 'installed',
+      configurationSchema,
+      settings: await this.readSettings(COMMUNITY_ANALYTICS_MODULE_ID, configurationSchema),
+      installationSteps: ['Community Analytics is installed and updated with StreamBridge.', ...descriptor.manifest.installationSteps.slice(1)],
+      uninstallationSteps: ['Community Analytics is a built-in Bridge integration and cannot be uninstalled separately.'],
+      healthChecks: descriptor.manifest.healthChecks,
+      commandsProvided: descriptor.manifest.commandsProvided,
+      browserSourcesProvided: descriptor.manifest.browserSourcesProvided,
+      ...(settingsUi === undefined ? {} : { settingsUi }),
+    });
+  }
+
+  public async saveCommunityAnalyticsSettings(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const integration = await this.communityAnalytics();
+    const settings = validateSettings(integration.configurationSchema, objectInput(input));
+    const encoded = `${JSON.stringify(settings, null, 2)}\n`;
+    if (Buffer.byteLength(encoded) > MAXIMUM_SETTINGS_BYTES) throw new AddOnWizardError(413, 'Community Analytics settings exceed the 64 KiB safety limit.');
+    const path = settingsPath(this.stateRoot, COMMUNITY_ANALYTICS_MODULE_ID);
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    const temporary = `${path}.${randomUUID()}.tmp`;
+    await writeFile(temporary, encoded, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, path);
+    return { moduleId: COMMUNITY_ANALYTICS_MODULE_ID, saved: true, restartRequired: true, settings };
+  }
+
+  public async kofiDonations(): Promise<WizardKofiDonationsIntegration> {
+    const verified = await verifyAddOnPackage(await kofiDonationsIntegrationRoot());
+    const descriptor = verified.descriptor;
+    const configurationSchema = JSON.parse(await readFile(safeChild(verified.root, descriptor.manifest.configurationSchema), 'utf8')) as unknown;
+    const settingsUi = descriptor.settingsUi === undefined ? undefined : JSON.parse(await readFile(safeChild(verified.root, descriptor.settingsUi), 'utf8')) as unknown;
+    return Object.freeze({
+      integration: true,
+      required: false,
+      moduleId: KOFI_DONATIONS_MODULE_ID,
+      name: descriptor.manifest.name,
+      version: descriptor.manifest.version,
+      author: descriptor.author,
+      description: descriptor.description,
+      changelog: descriptor.changelog,
+      packageKind: descriptor.packageKind,
+      permissions: descriptor.permissions,
+      trust: descriptor.trust,
+      enabled: true,
+      approvedActionIds: [],
+      health: 'installed',
+      configurationSchema,
+      settings: await this.readSettings(KOFI_DONATIONS_MODULE_ID, configurationSchema),
+      installationSteps: ['Ko-fi Donations is installed and updated with StreamBridge.', ...descriptor.manifest.installationSteps.slice(1)],
+      uninstallationSteps: ['Ko-fi Donations is a built-in provider integration and cannot be uninstalled separately. Turn it off in Alerts when unused.'],
+      healthChecks: descriptor.manifest.healthChecks,
+      commandsProvided: descriptor.manifest.commandsProvided,
+      browserSourcesProvided: descriptor.manifest.browserSourcesProvided,
+      ...(settingsUi === undefined ? {} : { settingsUi }),
+    });
+  }
+
+  public async saveKofiDonationsSettings(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const integration = await this.kofiDonations();
+    const settings = validateSettings(integration.configurationSchema, objectInput(input));
+    const encoded = `${JSON.stringify(settings, null, 2)}\n`;
+    if (Buffer.byteLength(encoded) > MAXIMUM_SETTINGS_BYTES) throw new AddOnWizardError(413, 'Ko-fi Donations settings exceed the 64 KiB safety limit.');
+    const path = settingsPath(this.stateRoot, KOFI_DONATIONS_MODULE_ID);
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    const temporary = `${path}.${randomUUID()}.tmp`;
+    await writeFile(temporary, encoded, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, path);
+    return { moduleId: KOFI_DONATIONS_MODULE_ID, saved: true, restartRequired: true, settings };
   }
 
   public async listFeatureMigrations(): Promise<readonly FeatureMigrationCandidate[]> {
@@ -194,6 +353,8 @@ export class AddOnWizardService {
     const archive = decodeBase64(stringInput(body['contentBase64'], 'contentBase64', Math.ceil(MAXIMUM_ARCHIVE_BYTES * 4 / 3) + 8));
     if (archive.length === 0 || archive.length > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(413, `Add-on packages must be from 1 through ${String(MAXIMUM_ARCHIVE_BYTES)} bytes.`);
     try {
+      const inspected = await inspectAddOnArchive(archive, this.packagesRoot);
+      assertOptionalModuleId(inspected.manifest.moduleId);
       const installed = await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
       return { installed: true, moduleId: installed.descriptor.manifest.moduleId, version: installed.descriptor.manifest.version, restartRequired: true };
     } catch (error) { throw asWizardError(error); }
@@ -211,6 +372,7 @@ export class AddOnWizardService {
         if (!information.isFile() || information.isSymbolicLink() || information.size < 1 || information.size > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(400, `Package must be a regular file from 1 through ${String(MAXIMUM_ARCHIVE_BYTES)} bytes.`);
         const archive = await readFile(path);
         const descriptor = await inspectAddOnArchive(archive, this.packagesRoot);
+        assertOptionalModuleId(descriptor.manifest.moduleId);
         return { filename, size: information.size, sha256: digest(archive), health: 'available', moduleId: descriptor.manifest.moduleId, name: descriptor.manifest.name, version: descriptor.manifest.version, author: descriptor.author, description: descriptor.description, packageKind: descriptor.packageKind, permissions: descriptor.permissions, trustMetadata: descriptor.trust, minimumCoreVersion: descriptor.manifest.minimumCoreVersion, maximumTestedCoreVersion: descriptor.manifest.maximumTestedCoreVersion, ...(descriptor.manifest.minimumBridgeVersion === undefined ? {} : { minimumBridgeVersion: descriptor.manifest.minimumBridgeVersion }), ...(descriptor.manifest.maximumTestedBridgeVersion === undefined ? {} : { maximumTestedBridgeVersion: descriptor.manifest.maximumTestedBridgeVersion }), trust: 'integrity-only' };
       } catch (error) { return { filename, size: 0, sha256: '0'.repeat(64), health: 'rejected', trust: 'integrity-only', error: error instanceof Error ? error.message : String(error) }; }
     }));
@@ -228,6 +390,8 @@ export class AddOnWizardService {
     try {
       const archive = await readFile(path);
       if (digest(archive) !== expectedSha256) throw new AddOnWizardError(409, 'The discovered package changed after review. Inspect it again before approving installation.');
+      const inspected = await inspectAddOnArchive(archive, this.packagesRoot);
+      assertOptionalModuleId(inspected.manifest.moduleId);
       const installed = await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
       return { installed: true, source: 'inbox', filename, moduleId: installed.descriptor.manifest.moduleId, version: installed.descriptor.manifest.version, restartRequired: true };
     } catch (error) { throw asWizardError(error); }
@@ -288,6 +452,7 @@ export class AddOnWizardService {
 
   public async setEnabled(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
     assertModuleId(moduleId);
+    assertOptionalModuleId(moduleId);
     const body = objectInput(input);
     if (typeof body['enabled'] !== 'boolean') throw new AddOnWizardError(400, 'enabled must be true or false.');
     try {
@@ -296,8 +461,72 @@ export class AddOnWizardService {
     } catch (error) { throw asWizardError(error); }
   }
 
+  public async setFeatureFamilyEnabled(featureId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const family = MAIN_FEATURE_FAMILIES.find((candidate) => candidate.id === featureId);
+    if (family === undefined) throw new AddOnWizardError(404, 'The selected extension group was not found. Refresh the wizard and try again.');
+    const body = objectInput(input);
+    if (typeof body['enabled'] !== 'boolean') throw new AddOnWizardError(400, 'enabled must be true or false.');
+    if (body['approvedByCreator'] !== true) throw new AddOnWizardError(403, 'Changing an extension group requires explicit creator approval.');
+    const enabled = body['enabled'];
+    const before = new Map((await listInstalledAddOnPackages(this.packagesRoot)).map((addOn) => [addOn.moduleId, addOn]));
+    const archives = new Map<string, Uint8Array>();
+    const managedModuleIds = new Set(family.modules);
+    if (enabled) {
+      const inspectBundled = async (moduleId: string): Promise<void> => {
+        if (isBuiltInIntegrationModuleId(moduleId)) { managedModuleIds.delete(moduleId); return; }
+        if (archives.has(moduleId)) return;
+        try {
+          const archive = await readFile(join(this.bundledExtensionsRoot, `${moduleId}.thsv-addon`));
+          if (archive.byteLength === 0 || archive.byteLength > MAXIMUM_ARCHIVE_BYTES) throw new AddOnWizardError(409, `${family.name} has an invalid bundled component. Repair or update StreamBridge.`);
+          const inspected = await inspectAddOnArchive(archive, this.packagesRoot);
+          if (inspected.manifest.moduleId !== moduleId) throw new AddOnWizardError(409, `${family.name} has a mismatched bundled component. Repair or update StreamBridge.`);
+          archives.set(moduleId, archive);
+          for (const dependency of inspected.manifest.dependencies) {
+            managedModuleIds.add(dependency);
+            await inspectBundled(dependency);
+          }
+        } catch (error) {
+          if (before.has(moduleId)) return;
+          if (error instanceof AddOnWizardError) throw error;
+          throw new AddOnWizardError(409, `${family.name} cannot be enabled because ${friendlyModuleId(moduleId)} is not bundled with this installation. Repair or update StreamBridge.`);
+        }
+      };
+      for (const moduleId of family.modules) await inspectBundled(moduleId);
+    }
+    const newlyInstalled: string[] = [];
+    const changed: Array<{ readonly moduleId: string; readonly enabled: boolean }> = [];
+    try {
+      for (const moduleId of enabled ? managedModuleIds : family.modules) {
+        const existing = before.get(moduleId);
+        if (enabled && existing === undefined) {
+          const archive = archives.get(moduleId);
+          if (archive === undefined) throw new AddOnWizardError(409, `${family.name} is missing ${friendlyModuleId(moduleId)}. Repair or update StreamBridge.`);
+          await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
+          newlyInstalled.push(moduleId);
+        } else if (existing !== undefined && existing.enabled !== enabled) {
+          changed.push({ moduleId, enabled: existing.enabled });
+        }
+        if (enabled || existing !== undefined) await setAddOnPackageEnabled(moduleId, this.packagesRoot, enabled, true);
+      }
+    } catch (error) {
+      for (const previous of changed.reverse()) await setAddOnPackageEnabled(previous.moduleId, this.packagesRoot, previous.enabled, true).catch(() => undefined);
+      for (const moduleId of newlyInstalled.reverse()) await removeAddOnPackage(moduleId, this.packagesRoot, true).catch(() => undefined);
+      throw asWizardError(error);
+    }
+    return {
+      featureId: family.id,
+      name: family.name,
+      enabled,
+      modules: family.modules,
+      dependencies: [...managedModuleIds].filter((moduleId) => !family.modules.includes(moduleId)),
+      installed: newlyInstalled,
+      restartRequired: true,
+    };
+  }
+
   public async setApprovedActions(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
     assertModuleId(moduleId);
+    assertOptionalModuleId(moduleId);
     const body = objectInput(input);
     const rawIds = body['actionIds'];
     if (!Array.isArray(rawIds) || !rawIds.every((value) => typeof value === 'string')) throw new AddOnWizardError(400, 'actionIds must be an array of Streamer.bot action IDs.');
@@ -310,6 +539,7 @@ export class AddOnWizardService {
 
   public async remove(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
     assertModuleId(moduleId);
+    assertOptionalModuleId(moduleId);
     const body = objectInput(input);
     try {
       await removeAddOnPackage(moduleId, this.packagesRoot, body['approvedByCreator'] === true);
@@ -319,6 +549,7 @@ export class AddOnWizardService {
 
   public async saveSettings(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
     assertModuleId(moduleId);
+    assertOptionalModuleId(moduleId);
     const addOn = (await listInstalledAddOnPackages(this.packagesRoot)).find((candidate) => candidate.moduleId === moduleId);
     if (addOn === undefined) throw new AddOnWizardError(404, 'The add-on is not installed.');
     if (addOn.health === 'rejected') throw new AddOnWizardError(409, 'Rejected add-ons cannot save settings. Repair or uninstall the package first.');
@@ -335,6 +566,7 @@ export class AddOnWizardService {
 
   public async previewSettings(moduleId: string, input: unknown): Promise<WizardAddOnSummary> {
     assertModuleId(moduleId);
+    assertOptionalModuleId(moduleId);
     const addOn = (await listInstalledAddOnPackages(this.packagesRoot)).find((candidate) => candidate.moduleId === moduleId);
     if (addOn === undefined) throw new AddOnWizardError(404, 'The add-on is not installed.');
     if (addOn.health === 'rejected') throw new AddOnWizardError(409, 'Rejected add-ons cannot preview settings. Repair or uninstall the package first.');
@@ -520,6 +752,12 @@ function assertInboxFilename(value: string): void {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,249}\.thsv-addon$/iu.test(value)) throw new AddOnWizardError(400, 'Discovered add-on filename is invalid.');
 }
 
+function assertOptionalModuleId(moduleId: string): void {
+  if (moduleId === VIEWER_FOUNDATION_MODULE_ID) throw new AddOnWizardError(409, 'Viewer Foundation is installed and updated with StreamBridge. Manage it from its dedicated Wizard page.');
+  if (moduleId === COMMUNITY_ANALYTICS_MODULE_ID) throw new AddOnWizardError(409, 'Community Analytics is installed and updated with StreamBridge. Manage it from its dedicated Wizard page.');
+  if (moduleId === KOFI_DONATIONS_MODULE_ID) throw new AddOnWizardError(409, 'Ko-fi Donations is installed and updated with StreamBridge. Manage it from Alerts > Donation provider setup.');
+}
+
 function settingsPath(root: string, moduleId: string): string {
   const base = resolve(root);
   const path = resolve(base, moduleId, 'settings.json');
@@ -677,4 +915,8 @@ function boundedInteger(value: unknown, minimum: number, maximum: number, fallba
 
 function boundedNumber(value: unknown, minimum: number, maximum: number, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum ? value : fallback;
+}
+
+function friendlyModuleId(moduleId: string): string {
+  return moduleId.replace(/^thsv\./u, '').split(/[.-]/u).filter(Boolean).map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join(' ');
 }

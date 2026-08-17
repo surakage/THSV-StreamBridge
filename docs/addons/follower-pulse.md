@@ -32,7 +32,7 @@ Snapshot Page must remain triggerless and is dispatched only through Follower Pu
 
 ## Private history
 
-Open **Setup Wizard > Add-ons > Follower Pulse > Private follower history** to review baseline health, the last complete scan, pending confirmation count, scan errors, and retained confirmed follow/unfollow changes. **Check Twitch now** starts the same bounded private reconciliation without posting anything publicly. Twitch names shown here remain inside the authenticated loopback wizard and are never sent to chat, Discord, overlays, or ordinary logs.
+Open **Setup Wizard > Extensions > Community Insights > Follower Pulse > Private follower history** to review baseline health, the last complete scan, pending confirmation count, scan errors, and retained confirmed follow/unfollow changes. **Check Twitch now** starts the same bounded private reconciliation without posting anything publicly. Twitch names shown here remain inside the authenticated loopback wizard and are never sent to chat, Discord, overlays, or ordinary logs.
 
 The first complete scan creates a silent baseline. By default, an account must be absent from two complete snapshots before it is recorded as an unfollow. Failed, partial, or changing snapshots preserve the previous baseline.
 

@@ -1,23 +1,23 @@
 # Ko-fi Donations setup
 
 **Module:** `thsv.kofi-donations`
-**Version:** `3.5.0`
+**Version:** `3.6.0`
 **Publisher:** THSV StreamBridge
 
 Receives verified Ko-fi Donation triggers through Streamer.bot and publishes stable-ID donations into StreamBridge's durable alert pipeline with privacy controls.
 
-## Install
+## Built-in setup
 
-1. Download and extract `THSV-StreamBridge-AddOn-Ko-fi-Donations-3.5.0.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Ko-fi-Donations-3.6.0.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-KoFi-Donations-3.6.0.sb` in Streamer.bot.
-4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. Ko-fi Donations is installed and updated with StreamBridge; do not install a separate `.thsv-addon`.
+2. In **Wizard > Streamer.bot > One Streamer.bot import**, select Ko-fi Donations and generate the universal import.
+3. Import that one `.sb` file, then attach **Integrations > Ko-Fi > Donation** to `THSV Addon - Ko-fi Donations - Intake`.
+4. In **Wizard > Alerts > Donation provider setup**, configure privacy, turn on Ko-fi intake, save, and restart StreamBridge.
 
 ### Add-on-specific steps
 
 1. Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.
-2. Import the Ko-fi Donations Streamer.bot package and attach Ko-Fi > Donation to its intake action.
-3. Install this add-on, review its financial-event permission, configure privacy, enable it, and restart StreamBridge.
+2. Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its intake action.
+3. Configure privacy and enable the built-in integration under Alerts.
 
 ## Streamer.bot
 
@@ -35,12 +35,12 @@ Creator-selected triggers:
 
 ## Browser source
 
-When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.kofi-donations` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.
+Ko-fi donations use the main alert overlay at `http://127.0.0.1:8787/overlay/alerts`; no Ko-fi-specific browser source is needed.
 
 ## Offline test
 
-1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.
-2. Save the intended settings and use its preview, test, or manual control where available.
+1. Keep the bridge and Streamer.bot running, then open **Alerts > Donation provider setup** in the wizard.
+2. Save the intended settings and use the Ko-fi alert preview.
 3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.
 4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.
 
@@ -58,6 +58,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstall the add-on. StreamBridge stores no Ko-fi webhook secrets or payment history.
+1. Turn off Ko-fi intake under **Alerts > Donation provider setup**. The integration remains available and StreamBridge stores no Ko-fi webhook secrets or payment history.
 
 If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.

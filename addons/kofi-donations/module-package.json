@@ -41,11 +41,11 @@
     ],
     "installationSteps": [
       "Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.",
-      "Import the Ko-fi Donations Streamer.bot package and attach Ko-Fi > Donation to its intake action.",
-      "Install this add-on, review its financial-event permission, configure privacy, enable it, and restart StreamBridge."
+      "Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its intake action.",
+      "Open Alerts > Donation provider setup, configure privacy, enable Ko-fi intake, and restart StreamBridge."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. StreamBridge stores no Ko-fi webhook secrets or payment history."
+      "Turn off Ko-fi intake in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history."
     ],
     "migrations": [],
     "healthChecks": [
@@ -62,8 +62,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 3678,
-      "sha256": "66d196d936a4f23c7bc3f03cb74886122810eaaa474c22c60c14645b8be04315"
+      "size": 3734,
+      "sha256": "a67d16f57d8481d163594be696c368edb7afb0a2148b1d1f65be2bd0bed1803e"
     },
     {
       "path": "schemas/config.json",
@@ -72,8 +72,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 2195,
-      "sha256": "99ccaad8619b93de435ffb47b94df87381ced0d197a52d0dfd7f7c0c9d67d1c7"
+      "size": 2262,
+      "sha256": "332e5950a2512b768e86136f2f6996173563c0ff9cfdabfd1e7a5a4bf20f5928"
     }
   ]
 }

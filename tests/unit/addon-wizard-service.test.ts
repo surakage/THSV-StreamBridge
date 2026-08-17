@@ -9,7 +9,7 @@ import { AddOnWizardService, validateSettings } from '../../bridge/services/addo
 const temporary: string[] = [];
 afterEach(async () => Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
 
-function declarativeArchive(): Uint8Array {
+function declarativeArchive(moduleId = 'sample.status-card', name = 'Sample Status Card', dependencies: readonly string[] = []): Uint8Array {
   const configuration = `${JSON.stringify({
     type: 'object', additionalProperties: false, required: ['label'],
     properties: {
@@ -24,10 +24,10 @@ function declarativeArchive(): Uint8Array {
     packageFormat: 'thsv-addon-v2', packageKind: 'declarative', author: 'THSV Project',
     description: 'A harmless declarative settings example.', changelog: 'Initial example.', permissions: ['state.private', 'streamerbot.run-approved-action'],
     manifest: {
-      contractVersion: '2.0.0-preview.1', moduleId: 'sample.status-card', name: 'Sample Status Card', version: '1.0.0',
-      minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies: [], requiredCapabilities: [],
+      contractVersion: '2.0.0-preview.1', moduleId, name, version: '1.0.0',
+      minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies, requiredCapabilities: [],
       configurationSchema: 'schemas/config.json', eventSubscriptions: [], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
-      dataStorageOwned: ['addons/state/sample.status-card/'], installationSteps: ['Install through the Add-ons page.'],
+      dataStorageOwned: [`addons/state/${moduleId}/`], installationSteps: ['Install through the Add-ons page.'],
       uninstallationSteps: ['Uninstall through the Add-ons page; private settings remain preserved.'], migrations: [], healthChecks: [],
     },
     files: [{ path: 'schemas/config.json', size: Buffer.byteLength(configuration), sha256: createHash('sha256').update(configuration).digest('hex') }],
@@ -108,6 +108,63 @@ describe('wizard add-on management', () => {
     await expect(service.list()).resolves.toEqual([]);
     await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Live now');
   }, 15_000);
+
+  it('installs and toggles a built-in extension group as one creator-approved operation', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-extension-group-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state'); const inbox = join(root, 'inbox'); const bundled = join(root, 'bundled');
+    await mkdir(bundled, { recursive: true });
+    await writeFile(join(bundled, 'thsv.voice-relay.thsv-addon'), declarativeArchive('thsv.voice-relay', 'Village Voice', ['thsv.viewer-foundation']));
+    await writeFile(join(bundled, 'thsv.user-translate.thsv-addon'), declarativeArchive('thsv.user-translate', 'Translate'));
+    const service = new AddOnWizardService(packages, state, inbox, bundled);
+
+    await expect(service.setFeatureFamilyEnabled('voice-language', { enabled: true, approvedByCreator: false })).rejects.toThrow('explicit creator approval');
+    await expect(service.setFeatureFamilyEnabled('voice-language', { enabled: true, approvedByCreator: true })).resolves.toMatchObject({
+      featureId: 'voice-language', enabled: true, installed: ['thsv.voice-relay', 'thsv.user-translate'], dependencies: [], restartRequired: true,
+    });
+    await expect(service.list()).resolves.toEqual(expect.arrayContaining([
+      expect.objectContaining({ moduleId: 'thsv.voice-relay', enabled: true }),
+      expect.objectContaining({ moduleId: 'thsv.user-translate', enabled: true }),
+    ]));
+    await expect(service.setFeatureFamilyEnabled('voice-language', { enabled: false, approvedByCreator: true })).resolves.toMatchObject({ enabled: false, installed: [] });
+    await expect(service.list()).resolves.toEqual(expect.arrayContaining([
+      expect.objectContaining({ moduleId: 'thsv.voice-relay', enabled: false }),
+      expect.objectContaining({ moduleId: 'thsv.user-translate', enabled: false }),
+    ]));
+    await expect(service.viewerFoundation()).resolves.toMatchObject({ moduleId: 'thsv.viewer-foundation', integration: true, required: true, enabled: true });
+  });
+
+  it('keeps Viewer Foundation settings in the existing private state while excluding the legacy package from add-ons', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-viewer-foundation-integration-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state');
+    const service = new AddOnWizardService(packages, state);
+    const integration = await service.viewerFoundation();
+    expect(integration.settings).toMatchObject({ enabled: true, currencyName: 'Village Points' });
+    await expect(service.saveViewerFoundationSettings({ ...integration.settings, currencyName: 'Sloth Seeds' })).resolves.toMatchObject({ saved: true, restartRequired: true });
+    await expect(service.viewerFoundation()).resolves.toMatchObject({ settings: expect.objectContaining({ currencyName: 'Sloth Seeds' }) as unknown });
+    await expect(service.list()).resolves.toEqual([]);
+  });
+
+  it('keeps Community Analytics data and settings in its existing private state while exposing it as a built-in integration', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-community-analytics-integration-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state');
+    const service = new AddOnWizardService(packages, state);
+    const integration = await service.communityAnalytics();
+    expect(integration).toMatchObject({ moduleId: 'thsv.community-analytics', integration: true, required: false, enabled: true, settings: expect.objectContaining({ enabled: true, retainedSessions: 30 }) as unknown });
+    await expect(service.saveCommunityAnalyticsSettings({ ...integration.settings, retainedSessions: 12 })).resolves.toMatchObject({ saved: true, restartRequired: true });
+    await expect(service.communityAnalytics()).resolves.toMatchObject({ settings: expect.objectContaining({ retainedSessions: 12 }) as unknown });
+    await expect(service.list()).resolves.toEqual([]);
+  });
+
+  it('keeps Ko-fi disabled by default while exposing its provider settings as a built-in integration', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-kofi-integration-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state');
+    const service = new AddOnWizardService(packages, state);
+    const integration = await service.kofiDonations();
+    expect(integration).toMatchObject({ moduleId: 'thsv.kofi-donations', integration: true, required: false, enabled: true, settings: expect.objectContaining({ enabled: false, channelName: 'Ko-fi' }) as unknown });
+    await expect(service.saveKofiDonationsSettings({ ...integration.settings, enabled: true, channelName: 'Village Tips' })).resolves.toMatchObject({ saved: true, restartRequired: true });
+    await expect(service.kofiDonations()).resolves.toMatchObject({ settings: expect.objectContaining({ enabled: true, channelName: 'Village Tips' }) as unknown });
+    await expect(service.list()).resolves.toEqual([]);
+  });
 
   it('keeps migrated component data private until the creator imports it and chooses whether to enable the component', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-feature-migration-')); temporary.push(root);

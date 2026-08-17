@@ -54,14 +54,14 @@
       "data/addons/.state/thsv.community-analytics/"
     ],
     "installationSteps": [
-      "Install and enable Viewer Foundation first; it is the only component allowed to resolve stable platform accounts into Viewer Foundation IDs.",
+      "Community Analytics is installed and updated with StreamBridge after Viewer Foundation.",
       "No Community Analytics Streamer.bot package or direct trigger is required. Keep chat and lifecycle triggers attached only to the main THSV platform intake actions.",
       "Choose the platforms to count, keep simulated events excluded for normal use, and add any stable account or Viewer Foundation exclusions.",
       "Leave monthly participation scoring off unless Viewer Spotlight or another approved consumer needs it; money and provider support never contribute.",
       "Save, restart StreamBridge, then use Reports, session summary, and privacy tools in the wizard to confirm data is being observed."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its bounded private counters remain preserved for a later reinstall or creator export."
+      "Community Analytics is a built-in Bridge integration and cannot be uninstalled separately. Its bounded private counters remain preserved across updates."
     ],
     "migrations": [],
     "healthChecks": [
@@ -76,8 +76,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 22416,
-      "sha256": "13115a6546d5f0e4fb996f4cc7dcbeaa8642993c29f7c25f2beef6548643410f"
+      "size": 22407,
+      "sha256": "3ac1c22de3fb0a2d7b86cfe3ff8d99adefa67684b80a0e2e00818a537696da5f"
     },
     {
       "path": "schemas/config.json",
@@ -91,8 +91,8 @@
     },
     {
       "path": "README.md",
-      "size": 3790,
-      "sha256": "949633c01684d83c3e868cd040e0d3bc56abf1516b351c5b0de728f16b9d9732"
+      "size": 3861,
+      "sha256": "1832b90d621e9a185a2cacab835483c6f58133b728eeea499fc5ad8be19e3d59"
     }
   ]
 }

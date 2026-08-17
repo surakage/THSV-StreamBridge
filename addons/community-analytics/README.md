@@ -1,6 +1,6 @@
 # Community Analytics
 
-Community Analytics is an optional, local-first companion to Viewer Foundation. It tracks bounded stream-session attendance and interaction counters across Twitch, YouTube, Kick, and TikTok.
+Community Analytics is a built-in, local-first companion to Viewer Foundation. It tracks bounded stream-session attendance and interaction counters across Twitch, YouTube, Kick, and TikTok.
 
 ## What it is for
 
@@ -8,7 +8,7 @@ Use Community Analytics when you want StreamBridge features such as Viewer Spotl
 
 ## Setup order
 
-1. Install and enable Viewer Foundation first.
+1. Open the built-in **Community Analytics** page after Viewer Foundation is ready. Both integrations are installed and updated with StreamBridge.
 2. Keep platform triggers on the existing main THSV intake actions. Community Analytics has no `.sb` import and needs no direct Streamer.bot trigger.
 3. In the wizard, select which platforms count and add stable-ID exclusions. Leave simulated events disabled outside deliberate testing.
 4. Leave monthly participation scoring disabled unless Viewer Spotlight or another approved consumer needs it.
@@ -16,7 +16,7 @@ Use Community Analytics when you want StreamBridge features such as Viewer Spotl
 
 If the summary remains empty, confirm Viewer Foundation and the selected platform intake are healthy before changing retention or scoring settings.
 
-- Viewer Foundation is the only identity authority; this add-on never links accounts or guesses from names.
+- Viewer Foundation is the only identity authority; this integration never links accounts or guesses from names.
 - It stores no chat text, display names, avatars, monetary values, credentials, or raw platform payloads.
 - Bots, system actors, ignored stable accounts, ignored Viewer Foundation IDs, and simulations are excluded by default.
 - A Viewer Foundation privacy deletion immediately removes the matching pseudonymous viewer record and active-session attendance. Completed aggregate session totals contain no viewer IDs and remain intact.
@@ -27,7 +27,7 @@ If the summary remains empty, confirm Viewer Foundation and the selected platfor
 - Counters are local StreamBridge observations, not official platform analytics, revenue, payout, or tax records.
 - The authenticated local wizard shows active/recent aggregate session summaries and supports one-viewer privacy export and confirmed deletion.
 - Deletion removes the viewer's private lifetime record and active-session attendance. Completed sessions retain only non-identifying aggregate totals, so there is no historical viewer identity to remove from them.
-- Permissioned add-ons that explicitly depend on Community Analytics can request one bounded pseudonymous viewer projection or the active aggregate session projection. They never receive the backing state file.
+- Permissioned features and add-ons can request one bounded pseudonymous viewer projection or the active aggregate session projection. They never receive the backing state file.
 - The wizard downloads an aggregate session JSON report or a pseudonymous viewer-counter CSV. Both are generated locally, size-bounded, and contain no raw event history.
 
 Viewer Spotlight now consumes these bounded projections for optional observed counters, monthly engagement score, and cohort-protected rank. Genuine live multi-platform acceptance remains separate from this automated foundation.

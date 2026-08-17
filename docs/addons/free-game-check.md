@@ -15,7 +15,7 @@ Checks bounded public game giveaways only after a viewer redemption, routes avai
 
 ### Add-on-specific steps
 
-1. Install and enable Viewer Foundation before using YouTube or TikTok points.
+1. Review the built-in Viewer Foundation settings before using YouTube or TikTok points.
 2. Import the Free Game Check Streamer.bot package and leave all three actions triggerless.
 3. Approve Refresh, approve Settle Twitch Reward for Twitch refunds, and approve Discord Deliver only when Discord posting is enabled.
 4. Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.

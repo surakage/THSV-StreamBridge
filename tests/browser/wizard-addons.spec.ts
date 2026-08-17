@@ -73,11 +73,16 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
   await expect(page.locator('#mode')).toContainText('Authenticated');
-  await expect(page.locator('.workspace > nav .nav-heading')).toHaveText(['Core setup', 'Automation', 'On stream', 'Features', 'Advanced']);
+  await expect(page.locator('.workspace > nav .nav-heading')).toHaveText(['Core setup', 'Automation', 'On stream', 'Foundation', 'Features', 'Advanced']);
   await expect(page.locator('[data-panel="overview"] .page-kicker')).toHaveText('Home');
   const versionCard = page.locator('#overview-cards .stat').filter({ hasText: 'Version' });
   await expect(versionCard).toContainText(STREAMBRIDGE_VERSION);
   await expect(page.locator('#overview-cards .stat').filter({ hasText: 'Preview' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Community Analytics', exact: true }).click();
+  await expect(page.locator('[data-panel="community-analytics"]')).toContainText('Installed and updated with THSV StreamBridge');
+  await expect(page.locator('[data-panel="community-analytics"]')).toContainText('Always installed');
+  await expect(page.locator('[data-panel="community-analytics"] [data-addon-settings="thsv.community-analytics"]')).toBeVisible();
+  await expect(page.locator('[data-panel="community-analytics"] [data-analytics-admin-output]')).toBeVisible();
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Extensions', exact: true })).toBeVisible();
   await expect(page.locator('[data-panel="addons"] > .page-header')).toBeVisible();
@@ -102,14 +107,40 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.locator('#wizard-feedback')).toContainText('Installed sample.declarative-settings 1.0.0');
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.locator('#addon-state')).toContainText('built-in extension');
-  const migrationRows = await page.evaluate(`state.featureMigrations = [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', sourceVersion: '0.9.0', discoveredAt: '2026-08-15T00:00:00.000Z', originalEnabled: false, installed: true, currentlyEnabled: false, status: 'pending', stagedData: true, stagedFiles: 3, stagedBytes: 2048, activeData: false }]; renderAddOns(); document.querySelectorAll('[data-feature-migration]').length;`);
-  expect(migrationRows).toBe(1);
+  await expect(page.getByRole('heading', { name: 'Built-in extension groups' })).toBeVisible();
+  await expect(page.getByText('7 groups', { exact: true })).toBeVisible();
+  await expect(page.locator('[data-main-feature]')).toHaveCount(7);
+  await expect(page.locator('[data-toggle-feature-family]')).toHaveCount(7);
+  await expect(page.locator('#addon-state')).toContainText('7 built-in extension groups');
+  await page.evaluate(`(() => {
+    const template = state.addOns.find((candidate) => candidate.moduleId === 'sample.declarative-settings');
+    state.addOns.push({ ...structuredClone(template), moduleId: 'thsv.voice-relay', name: 'Village Voice', enabled: true });
+    renderAddOns();
+  })()`);
+  await page.getByRole('button', { name: 'Configure Voice & Language' }).click();
+  await expect(page.locator('#addon-selector')).toHaveValue('thsv.voice-relay');
+  await expect(page.locator('[data-addon-id="thsv.voice-relay"]')).toBeVisible();
+  await page.evaluate(`state.addOns = state.addOns.filter((candidate) => candidate.moduleId !== 'thsv.voice-relay'); renderAddOns();`);
+  const groupDetails = page.locator('.main-feature-details');
+  await groupDetails.nth(0).locator('summary').click();
+  await expect(groupDetails.nth(0)).toHaveAttribute('open', '');
+  await groupDetails.nth(1).locator('summary').click();
+  await expect(groupDetails.nth(1)).toHaveAttribute('open', '');
+  await expect(groupDetails.nth(0)).not.toHaveAttribute('open', '');
+  const migrationRows = await page.evaluate(`state.featureMigrations = [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', sourceVersion: '0.9.0', discoveredAt: '2026-08-15T00:00:00.000Z', originalEnabled: false, installed: true, currentlyEnabled: false, status: 'pending', stagedData: true, stagedFiles: 3, stagedBytes: 2048, activeData: false }, { moduleId: 'thsv.automated-shoutouts', name: 'thsv.automated-shoutouts', sourceVersion: '3.5.0', discoveredAt: '2026-08-15T00:00:00.000Z', originalEnabled: true, installed: true, currentlyEnabled: true, status: 'imported', dataImported: true, stagedData: false, stagedFiles: 0, stagedBytes: 0, activeData: false }]; renderAddOns(); document.querySelectorAll('[data-feature-migration]').length;`);
+  expect(migrationRows).toBe(2);
   const migration = page.locator('[data-feature-migration="sample.declarative-settings"]');
   await expect(page.getByRole('heading', { name: 'Choose what comes into the full Bridge' })).toBeVisible();
-  await expect(migration).toContainText('3 file(s), 2 KB');
+  await expect(migration).toContainText('3 saved files · 2 KB');
   await expect(migration.getByLabel('Import saved settings and history')).toBeChecked();
   await expect(migration.getByLabel('Enable component after restart')).not.toBeChecked();
   await expect(migration.getByRole('button', { name: 'Apply this migration' })).toBeEnabled();
+  const friendlyMigration = page.locator('[data-feature-migration="thsv.automated-shoutouts"]');
+  await expect(friendlyMigration).toContainText('Automated Shoutouts');
+  await expect(friendlyMigration).not.toContainText('thsv.automated-shoutouts');
+  await expect(friendlyMigration).toContainText('Previous version 3.5.0');
+  await expect(friendlyMigration).toContainText('No saved data found');
+  await expect(friendlyMigration).toContainText('Imported');
   await page.evaluate('state.featureMigrations = []; renderAddOns();');
   await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-card-status')).toContainText('Restart required');
@@ -363,19 +394,14 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.locator('[data-addon-settings="thsv.scene-actions"] [data-scene-mapping-row]')).toHaveCount(6);
   await expect(page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).resolves.toBe(true);
 
-  const kofiArchive = await packageAddOn('addons/kofi-donations');
-  await openAddOnInstaller(page);
-  await page.getByLabel('Add-on package').setInputFiles({ name: 'kofi-donations.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(kofiArchive) });
-  await page.getByLabel(/I reviewed and trust/u).check();
-  await page.getByRole('button', { name: 'Verify and install' }).click();
-  await page.evaluate(`state.liveActions = [{
-    id: 'e61c4b43-6cf0-5d56-a1c9-2176ae09c312', name: 'THSV Addon - Ko-fi Donations - Intake',
-    group: 'THSV Addon - Ko-fi Donations', enabled: true, triggerCount: 1
-  }]; renderAddOns();`);
-  const kofiTriggerStatus = page.locator('[data-addon-id="thsv.kofi-donations"] .addon-trigger-readiness');
-  await expect(kofiTriggerStatus).toContainText('Ready');
-  await expect(kofiTriggerStatus).toContainText('Ko-fi > Donation');
-  await page.evaluate('state.liveActions = []; renderAddOns();');
+  await page.getByRole('button', { name: 'Alerts', exact: true }).click();
+  await page.locator('[data-panel="alerts"] summary').filter({ hasText: 'Donation provider setup' }).click();
+  const kofiIntegration = page.locator('#kofi-integration-content .kofi-donations-integration');
+  await expect(kofiIntegration.getByText('Built-in donation provider', { exact: true })).toBeVisible();
+  await expect(kofiIntegration.getByText('Installed and updated with THSV StreamBridge', { exact: true })).toBeVisible();
+  await expect(kofiIntegration).toContainText('select Ko-fi Donations when creating the one universal Streamer.bot import');
+  await expect(kofiIntegration.locator('[data-addon-settings="thsv.kofi-donations"]')).toBeVisible();
+  await page.evaluate('state.liveActions = [];');
 
   const raidScoutArchive = await packageAddOn('addons/raid-scout');
   await openAddOnInstaller(page);
@@ -478,8 +504,8 @@ test('wizard installs and configures add-ons without injecting package code', as
     };
     renderAddOns();
   })()`);
-  await expect(page.locator('[data-main-feature="community-rewards"]')).toContainText('7 redemption event(s) · 1 queued overlay(s)');
-  await expect(page.locator('[data-main-feature="community-messaging"]')).toContainText('23 chat event(s) · 3 reported issue(s)');
+  await expect(page.locator('[data-main-feature="community-rewards"]')).toContainText('7 redemption events · 1 queued overlay');
+  await expect(page.locator('[data-main-feature="community-messaging"]')).toContainText('23 chat events · 3 reported issues');
   await expect(page.locator('.main-feature-details')).toHaveCount(7);
   const messagingFeature = page.locator('[data-main-feature="community-messaging"]');
   await messagingFeature.locator('summary').click();
@@ -527,7 +553,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(page.getByLabel('Manage an installed add-on')).toHaveValue('thsv.village-draw');
   await expect(page.locator('[data-main-feature] [data-select-feature-addon="thsv.village-draw"]')).toHaveCount(0);
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Built-in extensions', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Built-in extension groups', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Installed add-ons', exact: true })).toBeHidden();
   await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
   const villageDrawSettings = page.locator('[data-addon-settings="thsv.village-draw"]');
@@ -649,12 +675,9 @@ test('Community Analytics keeps the creator snapshot simple and responsive', asy
   await page.goto('/wizard/');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
-  await openAddOnInstaller(page);
-  const archive = await packageAddOn('addons/community-analytics');
-  await page.getByLabel('Add-on package').setInputFiles({ name: 'community-analytics.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(archive) });
-  await page.getByLabel(/I reviewed and trust/u).check();
-  await page.getByRole('button', { name: 'Verify and install' }).click();
-  const card = page.locator('[data-addon-id="thsv.community-analytics"]');
+  await page.getByRole('button', { name: 'Community Analytics', exact: true }).click();
+  const card = page.locator('[data-panel="community-analytics"] .community-analytics-integration');
+  await expect(card.getByText('Always installed', { exact: true })).toBeVisible();
   await expect(card.locator('summary').filter({ hasText: 'Count community activity' })).toBeVisible();
   await expect(card.locator('summary').filter({ hasText: 'Optional participation score' })).toBeVisible();
   await expect(card.locator('summary').filter({ hasText: 'Advanced: exclusions and storage' })).toBeVisible();

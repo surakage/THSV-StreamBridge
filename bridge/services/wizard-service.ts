@@ -23,7 +23,7 @@ import {
   type CommandAdministrationRequest,
 } from '../core/command-administration.js';
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
-import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, FeatureMigrationCandidate, TrustedAddOnPublisher, WizardAddOnSummary } from './addon-wizard-service.js';
+import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, FeatureMigrationCandidate, TrustedAddOnPublisher, WizardAddOnSummary, WizardCommunityAnalyticsIntegration, WizardKofiDonationsIntegration, WizardViewerFoundationIntegration } from './addon-wizard-service.js';
 import type { AppliedReleaseUpdate, ReleaseUpdateService, ReleaseUpdateStatus, StagedReleaseUpdate } from './release-update-service.js';
 import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
@@ -182,7 +182,7 @@ export class WizardService {
       mode: this.configuration === undefined ? 'read-only-inspection' : 'configuration-management',
       authenticated: true,
       mutationSupport: this.configuration !== undefined,
-      navigation: ['Overview', 'Platforms', 'Blockers', 'Streamer.bot', 'Command Sync', 'Timed Actions', 'Chat Overlay', 'Alerts', 'Rewards', 'Add-ons', 'Ownership', 'Diagnostics'],
+      navigation: ['Overview', 'Platforms', 'Streamer.bot', 'Commands', 'Timed Actions', 'Chat Overlay', 'Alerts', 'Viewer Foundation', 'Community Analytics', 'Extensions', 'Add-ons', 'Blockers', 'Ownership', 'Diagnostics'],
       ownership: PACKAGE_OWNERSHIP,
       rewardManifest: { platforms: REWARD_PLATFORM_POLICY, blueprints: REWARD_BLUEPRINTS },
       transactions: this.configuration === undefined ? [...this.transactions.values()] : (this.configuration.diagnostics()['transactions'] ?? []),
@@ -501,6 +501,36 @@ export class WizardService {
     return this.addOns.list();
   }
 
+  public async viewerFoundation(): Promise<WizardViewerFoundationIntegration> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Viewer Foundation management is not configured.');
+    return this.addOns.viewerFoundation();
+  }
+
+  public async saveViewerFoundationSettings(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Viewer Foundation management is not configured.');
+    return this.addOns.saveViewerFoundationSettings(input);
+  }
+
+  public async communityAnalytics(): Promise<WizardCommunityAnalyticsIntegration> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Community Analytics management is not configured.');
+    return this.addOns.communityAnalytics();
+  }
+
+  public async saveCommunityAnalyticsSettings(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Community Analytics management is not configured.');
+    return this.addOns.saveCommunityAnalyticsSettings(input);
+  }
+
+  public async kofiDonations(): Promise<WizardKofiDonationsIntegration> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Ko-fi Donations management is not configured.');
+    return this.addOns.kofiDonations();
+  }
+
+  public async saveKofiDonationsSettings(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Ko-fi Donations management is not configured.');
+    return this.addOns.saveKofiDonationsSettings(input);
+  }
+
   public async listFeatureMigrations(): Promise<readonly FeatureMigrationCandidate[]> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.listFeatureMigrations();
@@ -615,6 +645,11 @@ export class WizardService {
   public async setAddOnEnabled(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.setEnabled(moduleId, input);
+  }
+
+  public async setFeatureFamilyEnabled(featureId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Extension management is not configured.');
+    return this.addOns.setFeatureFamilyEnabled(featureId, input);
   }
 
   public async setAddOnApprovedActions(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {

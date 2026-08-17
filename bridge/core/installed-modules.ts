@@ -3,11 +3,15 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Logger } from '../services/logger.js';
 import type { PlatformCapabilityId } from '../contracts/v2/capability.js';
-import { safeChild, validateInstalledActionIds, verifyAddOnPackage } from '../services/addon-package-manager.js';
+import { safeChild, supersededInstalledPackageDirectories, validateInstalledActionIds, verifyAddOnPackage } from '../services/addon-package-manager.js';
 import { validateSettings } from '../services/addon-wizard-service.js';
 import { createBuiltinModules } from './builtin-modules.js';
 import { ModuleRegistry, type FrameworkModule } from './module-registry.js';
 import type { AddOnCapabilityBroker } from './addon-capability-broker.js';
+import { VIEWER_FOUNDATION_MODULE_ID, VIEWER_FOUNDATION_PERMISSIONS, viewerFoundationIntegrationRoot } from './viewer-foundation-integration.js';
+import { COMMUNITY_ANALYTICS_MODULE_ID, COMMUNITY_ANALYTICS_PERMISSIONS, communityAnalyticsIntegrationRoot } from './community-analytics-integration.js';
+import { KOFI_DONATIONS_MODULE_ID, KOFI_DONATIONS_PERMISSIONS, kofiDonationsIntegrationRoot } from './kofi-donations-integration.js';
+import { isBuiltInIntegrationModuleId } from './built-in-integrations.js';
 
 const MAXIMUM_SETTINGS_BYTES = 65_536;
 
@@ -41,6 +45,57 @@ async function readAddOnSettings(stateRoot: string, moduleId: string, configurat
   }
 }
 
+export async function createViewerFoundationIntegration(stateRoot: string): Promise<FrameworkModule> {
+  const integrationRoot = await viewerFoundationIntegrationRoot();
+  const imported = await import(pathToFileURL(join(integrationRoot, 'dist', 'index.js')).href) as { default?: unknown };
+  if (!isFrameworkModule(imported.default) || imported.default.manifest.moduleId !== VIEWER_FOUNDATION_MODULE_ID) throw new Error('The built-in Viewer Foundation integration is invalid. Repair or update StreamBridge.');
+  const settings = await readAddOnSettings(stateRoot, VIEWER_FOUNDATION_MODULE_ID, imported.default.manifest.configurationSchema, integrationRoot);
+  return {
+    ...imported.default,
+    required: true,
+    settings,
+    capabilityGrant: {
+      moduleId: VIEWER_FOUNDATION_MODULE_ID,
+      permissions: VIEWER_FOUNDATION_PERMISSIONS,
+      approvedActionIds: [],
+    },
+  };
+}
+
+export async function createCommunityAnalyticsIntegration(stateRoot: string): Promise<FrameworkModule> {
+  const integrationRoot = await communityAnalyticsIntegrationRoot();
+  const imported = await import(pathToFileURL(join(integrationRoot, 'dist', 'index.js')).href) as { default?: unknown };
+  if (!isFrameworkModule(imported.default) || imported.default.manifest.moduleId !== COMMUNITY_ANALYTICS_MODULE_ID) throw new Error('The built-in Community Analytics integration is invalid. Repair or update StreamBridge.');
+  const settings = await readAddOnSettings(stateRoot, COMMUNITY_ANALYTICS_MODULE_ID, imported.default.manifest.configurationSchema, integrationRoot);
+  return {
+    ...imported.default,
+    required: false,
+    settings,
+    capabilityGrant: {
+      moduleId: COMMUNITY_ANALYTICS_MODULE_ID,
+      permissions: COMMUNITY_ANALYTICS_PERMISSIONS,
+      approvedActionIds: [],
+    },
+  };
+}
+
+export async function createKofiDonationsIntegration(stateRoot: string): Promise<FrameworkModule> {
+  const integrationRoot = await kofiDonationsIntegrationRoot();
+  const imported = await import(pathToFileURL(join(integrationRoot, 'dist', 'index.js')).href) as { default?: unknown };
+  if (!isFrameworkModule(imported.default) || imported.default.manifest.moduleId !== KOFI_DONATIONS_MODULE_ID) throw new Error('The built-in Ko-fi Donations integration is invalid. Repair or update StreamBridge.');
+  const settings = await readAddOnSettings(stateRoot, KOFI_DONATIONS_MODULE_ID, imported.default.manifest.configurationSchema, integrationRoot);
+  return {
+    ...imported.default,
+    required: false,
+    settings,
+    capabilityGrant: {
+      moduleId: KOFI_DONATIONS_MODULE_ID,
+      permissions: KOFI_DONATIONS_PERMISSIONS,
+      approvedActionIds: [],
+    },
+  };
+}
+
 type ModuleFactory = () => FrameworkModule | Promise<FrameworkModule>;
 
 function isFrameworkModule(value: unknown): value is FrameworkModule {
@@ -59,10 +114,16 @@ export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger, ad
     return [];
   }
 
+  const superseded = await supersededInstalledPackageDirectories(root);
   const modules: FrameworkModule[] = [];
   for (const directory of directories) {
+    if (superseded.has(directory)) { logger.info('Superseded legacy add-on package ignored', { directory }); continue; }
     try {
       const verified = await verifyAddOnPackage(join(root, directory), undefined, true);
+      if (isBuiltInIntegrationModuleId(verified.descriptor.manifest.moduleId)) {
+        logger.info('Legacy integration package ignored because the feature is built into StreamBridge', { directory, moduleId: verified.descriptor.manifest.moduleId });
+        continue;
+      }
       const installRecord = JSON.parse(await readFile(join(verified.root, 'installed-package.json'), 'utf8')) as { enabled?: boolean; approvedActionIds?: readonly string[] };
       if (installRecord.enabled === false) { logger.info('Installed add-on is disabled', { moduleId: verified.descriptor.manifest.moduleId }); continue; }
       if (verified.descriptor.packageKind === 'declarative') {
@@ -156,7 +217,8 @@ export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candi
 }
 
 export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker, addOnStateRoot?: string): Promise<ModuleRegistry> {
-  const builtins = createBuiltinModules();
-  const installed = await loadInstalledAddOns(addOnsRoot, logger, addOnStateRoot);
+  const stateRoot = addOnStateRoot ?? join(addOnsRoot, '.state');
+  const builtins = [...createBuiltinModules(), await createViewerFoundationIntegration(stateRoot), await createCommunityAnalyticsIntegration(stateRoot), await createKofiDonationsIntegration(stateRoot)];
+  const installed = await loadInstalledAddOns(addOnsRoot, logger, stateRoot);
   return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger, availableCapabilities)], logger, 5_000, broker);
 }

@@ -12,7 +12,7 @@ describe('add-on setup documentation', () => {
     expect(guides).toEqual(folders);
     for (const folder of folders) {
       const guide = await readFile(join(root, 'docs', 'addons', `${folder}.md`), 'utf8');
-      expect(guide).toContain('## Install');
+      expect(guide).toMatch(/## (?:Install|Built-in setup)/u);
       expect(guide).toContain('## Streamer.bot');
       expect(guide).toContain('## Offline test');
       expect(guide).toContain('## Data and permissions');
