@@ -55,13 +55,13 @@
       "data/addons/.state/thsv.viewer-foundation/"
     ],
     "installationSteps": [
-      "Install Viewer Foundation in the wizard and review its private-state permission.",
+      "Open the built-in Viewer Foundation page and review its private identity and progression settings.",
       "Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.",
       "Name the currency and choose chat, consistency, observed time, lurk, and event awards; then save and restart StreamBridge.",
       "Choose the balance and lurk command names. They register automatically through the existing chat intakes after restart."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its pseudonymous progression state remains preserved for a later reinstall or privacy export."
+      "Viewer Foundation is a required Bridge integration and cannot be uninstalled separately."
     ],
     "migrations": [],
     "healthChecks": [
@@ -78,23 +78,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 37066,
-      "sha256": "560856b55171c8a0fde234a1f88893e47c105e84a737e6328ae2f185ad6d1a0e"
+      "size": 37021,
+      "sha256": "526ec6980233c668f3a688f53b0b30c75d45b4d6fde91e45f26965b236507e8e"
     },
     {
       "path": "schemas/config.json",
-      "size": 4932,
-      "sha256": "122a81147a3a8610f1fa84b9888b261e25db1b40eef3cb76683b9558b4afa2a4"
+      "size": 5071,
+      "sha256": "ef8f7d1c258d02fd204cddb70ce8b57c680dba3df6a5f43fb377e1f95478cc25"
     },
     {
       "path": "ui/settings.json",
-      "size": 3754,
-      "sha256": "1feb10d2dd54fd6b6554e43b6842bd65b2c6d0ca8390de27035e378198fdafa3"
+      "size": 3749,
+      "sha256": "5144a25fd0ff833dfa3b5a1e3c909755e32e060a374299b2bab1e6633cad390e"
     },
     {
       "path": "README.md",
-      "size": 3753,
-      "sha256": "3371f4a9d32e26070636d19df6af9cd6315e78e1c4ca800702c28cf7dc8aff2f"
+      "size": 3854,
+      "sha256": "59a2d5f75ae1e0e1fa63a93f3a7c1129342ed744dbc7a2ee311e553c3bdd15ab"
     }
   ]
 }

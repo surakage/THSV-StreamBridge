@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { Dirent } from 'node:fs';
 import { chmod, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile, copyFile, lstat, cp } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -98,6 +99,44 @@ async function installedRecord(target: string, moduleId: string): Promise<Instal
   const record = JSON.parse(await readFile(safeChild(target, 'installed-package.json'), 'utf8')) as Partial<InstalledPackageRecord>;
   if (record.moduleId !== moduleId || typeof record.version !== 'string') throw new AddOnPackageError('The installed add-on record does not match the package being upgraded.');
   return record as InstalledPackageRecord;
+}
+
+async function previousInstalledRecord(root: string, target: string, moduleId: string): Promise<InstalledPackageRecord | undefined> {
+  const records: Array<{ readonly target: boolean; readonly record: InstalledPackageRecord }> = [];
+  let entries: Dirent[];
+  try { entries = await readdir(root, { withFileTypes: true }); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error; }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === 'inbox') continue;
+    const candidate = join(root, entry.name);
+    try {
+      const record = await installedRecord(candidate, moduleId);
+      if (record !== undefined) records.push({ target: resolve(candidate) === resolve(target), record });
+    } catch {
+      // Other packages and damaged legacy copies cannot contribute trusted state.
+    }
+  }
+  const primary = records.find((candidate) => candidate.target)?.record ?? records[0]?.record;
+  if (primary === undefined) return undefined;
+  const approvedActionIds = [...new Set(records.flatMap((candidate) => validateInstalledActionIds(candidate.record.approvedActionIds)))];
+  return { ...primary, approvedActionIds };
+}
+
+export async function supersededInstalledPackageDirectories(addOnsRoot: string): Promise<ReadonlySet<string>> {
+  const root = resolve(addOnsRoot);
+  let entries: Dirent[];
+  try { entries = await readdir(root, { withFileTypes: true }); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return new Set(); throw error; }
+  const directories = new Set(entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name));
+  const records = new Map<string, string>();
+  for (const directory of directories) {
+    if (directory.startsWith('.') || directory === 'inbox') continue;
+    try {
+      const raw = JSON.parse(await readFile(join(root, directory, 'installed-package.json'), 'utf8')) as Partial<InstalledPackageRecord>;
+      if (typeof raw.moduleId === 'string' && /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(raw.moduleId)) records.set(directory, raw.moduleId);
+    } catch { /* A rejected package remains visible to the normal verifier. */ }
+  }
+  return new Set([...records].filter(([directory, moduleId]) => directory !== moduleId && directories.has(moduleId) && records.get(moduleId) === moduleId).map(([directory]) => directory));
 }
 
 async function writeInstalledRecord(recordPath: string, record: InstalledPackageRecord): Promise<void> {
@@ -227,7 +266,7 @@ export async function installAddOnPackage(sourceRoot: string, addOnsRoot: string
     await options.stagePreparedHook?.(stage);
     const staged = await verifyAddOnPackage(stage);
     if (JSON.stringify(staged.descriptor) !== JSON.stringify(verified.descriptor)) throw new AddOnPackageError('Add-on descriptor changed while the package was copied into private staging.');
-    const previousRecord = await installedRecord(target, verified.descriptor.manifest.moduleId);
+    const previousRecord = await previousInstalledRecord(root, target, verified.descriptor.manifest.moduleId);
     const previousVersion = previousRecord?.version;
     const previousEnabled = previousRecord?.enabled !== false;
     const approvedActionIds = validateInstalledActionIds(previousRecord?.approvedActionIds);
@@ -300,8 +339,10 @@ export async function listInstalledAddOnPackages(addOnsRoot: string): Promise<re
   let entries;
   try { entries = await readdir(root, { withFileTypes: true }); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []; throw error; }
+  const superseded = await supersededInstalledPackageDirectories(root);
   const result: InstalledAddOnSummary[] = [];
   for (const entry of entries.filter((candidate) => candidate.isDirectory() && !candidate.name.startsWith('.') && candidate.name !== 'inbox').sort((left, right) => left.name.localeCompare(right.name))) {
+    if (superseded.has(entry.name)) continue;
     try {
       const verified = await verifyAddOnPackage(join(root, entry.name), undefined, true);
       const record = JSON.parse(await readFile(safeChild(verified.root, 'installed-package.json'), 'utf8')) as InstalledPackageRecord;

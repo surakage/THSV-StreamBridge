@@ -24,7 +24,7 @@ The wizard's **Connect Streamer.bot** step is authoritative. “No direct trigge
 | Chat Play Pack | No | Command Sync templates through existing intakes |
 | Clip Courier | Yes | Imported Twitch `!clip` command and private delivery helper |
 | Clip Library Cache | Yes | Triggerless shared refresh action approved in the wizard |
-| Community Analytics | No | Existing normalized events |
+| Community Analytics | Built in | Existing normalized events; configure it on its dedicated Wizard page |
 | Creator Controls | Yes | Imported approved controller actions |
 | Village Polls | No | Command Sync poll-management and vote templates |
 | Discord Chat Archive | Yes | Existing chat intake plus approved Discord delivery action |
@@ -32,7 +32,7 @@ The wizard's **Connect Streamer.bot** step is authoritative. “No direct trigge
 | First Five | Yes | Twitch reward intake plus imported controller |
 | Follower Pulse | Yes | Imported Twitch lookup action |
 | Free Game Check | Yes | Imported lookup/delivery actions |
-| Ko-fi Donations | Yes | Existing Ko-fi integration trigger plus imported add-on action |
+| Ko-fi Donations | Built in | Select its action in the universal import, then attach the existing Ko-fi donation trigger |
 | Live Beacon | Yes | Platform stream-online intake plus imported Discord delivery action |
 | Quote Vault | Yes | Existing command intake plus imported response action |
 | Raid Scout | Yes | Imported Twitch lookup/raid actions and optional browser source |
@@ -43,7 +43,7 @@ The wizard's **Connect Streamer.bot** step is authoritative. “No direct trigge
 | Prize Wheel | No | Command Sync Prize Wheel template and one browser source |
 | Subathon Timer | Yes | Imported controller actions plus configured event rules |
 | Translate | Yes | Imported/manual command path or configured automatic mode |
-| Viewer Foundation | No | Existing events plus optional Command Sync `!points` and `!lurk` |
+| Viewer Foundation | Built in | Existing platform intakes plus automatic `!points` and `!lurk` commands |
 | Viewer Lobby | Yes | Imported queue controller actions and browser manager |
 | Viewer Spotlight | Yes | Imported request/snapshot actions and browser source |
 | Village Draw | No | Viewer Foundation plus the existing main platform chat intakes; no Command Sync package |
@@ -55,8 +55,8 @@ The wizard's **Connect Streamer.bot** step is authoritative. “No direct trigge
 
 Some add-ons build on another add-on. Install them in this order:
 
-1. **Viewer Foundation** first when points, identity, check-ins, viewer cards, giveaways, or viewer-paid requests are used.
-2. **Community Analytics** after Viewer Foundation and before Viewer Spotlight.
+1. Review the built-in **Viewer Foundation** page first when points, identity, check-ins, viewer cards, giveaways, or viewer-paid requests are used. No separate installation is required.
+2. Review the built-in **Community Analytics** page before enabling Viewer Spotlight; there is nothing extra to install.
 3. **Clip Library Cache** before Random Clip Player or Clip Courier when they will share one Twitch clip list.
 4. Install the feature add-on last, import only the `.sb` found in that feature's ZIP, and approve only the actions its wizard card recommends.
 

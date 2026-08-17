@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AddOnCapabilityBroker } from '../../bridge/core/addon-capability-broker.js';
-import { loadInstalledAddOns } from '../../bridge/core/installed-modules.js';
+import { createViewerFoundationIntegration, loadInstalledAddOns } from '../../bridge/core/installed-modules.js';
 import { ModuleRegistry } from '../../bridge/core/module-registry.js';
 import { installAddOnPackage } from '../../bridge/services/addon-package-manager.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
@@ -33,7 +33,6 @@ describe('Village Roll Call installed add-on', () => {
   });
 
   it('loads through the verified package path and handles the configured reward', async () => {
-    const foundationInstalled = await installAddOnPackage('addons/viewer-foundation', addOnsRoot, true);
     const installed = await installAddOnPackage('addons/village-roll-call', addOnsRoot, true);
     await mkdir(join(stateRoot, 'thsv.village-roll-call'), { recursive: true });
     await writeFile(join(stateRoot, 'thsv.village-roll-call', 'settings.json'), JSON.stringify({
@@ -41,9 +40,8 @@ describe('Village Roll Call installed add-on', () => {
     }));
     const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.village-roll-call');
-    const foundation = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.viewer-foundation');
+    const foundation = await createViewerFoundationIntegration(stateRoot);
     if (!module) throw new Error('Village Roll Call must load through the installed add-on path.');
-    if (!foundation) throw new Error('Viewer Foundation must load as the Roll Call dependency.');
     const overlays: Array<{ topic: string; payload: Record<string, unknown> }> = [];
     const chats: string[] = [];
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
@@ -53,10 +51,7 @@ describe('Village Roll Call installed add-on', () => {
         return [{ platform: 'twitch', accepted: true, parts: 1 }];
       },
     });
-    const registry = new ModuleRegistry([{
-      ...foundation,
-      capabilityGrant: { moduleId: foundation.manifest.moduleId, permissions: foundationInstalled.descriptor.permissions, approvedActionIds: [] },
-    }, {
+    const registry = new ModuleRegistry([foundation, {
       ...module,
       capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: [] },
     }], silentLogger, 5_000, broker);

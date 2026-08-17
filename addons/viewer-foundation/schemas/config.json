@@ -4,7 +4,7 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Viewer Foundation", "default": true },
+    "enabled": { "type": "boolean", "title": "Enable viewer progression", "description": "The identity provider stays available. Turn this off only to pause viewer awards, balance commands, and point spending.", "default": true },
     "includeSimulated": { "type": "boolean", "title": "Award points for simulated events", "description": "Keep disabled outside deliberate testing.", "default": false },
     "currencyName": { "type": "string", "title": "Points name", "description": "The creator-facing name shown in balance and add-on messages, such as Village Points, Acorns, or Stars.", "minLength": 1, "maxLength": 40, "default": "Village Points" },
     "pointsCommand": { "type": "string", "title": "Balance command", "description": "Viewers use this command to check their current points and level.", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "points" },

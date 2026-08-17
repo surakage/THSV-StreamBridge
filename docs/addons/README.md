@@ -20,7 +20,7 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [First Five](./first-five.md) | `thsv.first-five` | Included in add-on ZIP |
 | [Follower Pulse](./follower-pulse.md) | `thsv.follower-pulse` | Included in add-on ZIP |
 | [Free Game Check](./free-game-check.md) | `thsv.free-game-check` | Included in add-on ZIP |
-| [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Included in add-on ZIP |
+| [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Built in; select its action in the universal import |
 | [Live Beacon](./live-beacon.md) | `thsv.live-beacon` | Included in add-on ZIP |
 | [Prize Wheel](./prize-wheel.md) | `thsv.prize-wheel` | Not required |
 | [Quote Vault](./quote-vault.md) | `thsv.quote-vault` | Included in add-on ZIP |

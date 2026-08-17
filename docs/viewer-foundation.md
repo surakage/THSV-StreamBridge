@@ -1,6 +1,8 @@
 # Viewer Foundation contract and threat model
 
-Viewer Foundation (`thsv.viewer-foundation`) is an optional first-party add-on. Bridge Core transports normalized events but does not own identities, balances, levels, achievements, or viewer profiles.
+Viewer Foundation (`thsv.viewer-foundation`) is a required first-party StreamBridge integration. It is installed and updated with the Bridge, has its own authenticated Wizard page, and owns the shared identity, balance, level, achievement, and privacy boundary used by Bridge features and optional add-ons.
+
+Older installations may still contain a verified Viewer Foundation package directory. StreamBridge ignores that legacy code copy and loads the built-in integration while continuing to use the same private state and settings location. Existing balances, account links, audit history, command names, and privacy records therefore migrate without duplication or reset.
 
 ## Authority and data contract
 
@@ -36,14 +38,14 @@ Chat activity has a per-viewer cooldown. High-impact public alert and reward eve
 | Inflate production data with test triggers | Simulated events are excluded by default and require an explicit creator setting. |
 | Retain private conversation content | No message text, command arguments, or raw payload is stored. |
 | Exhaust memory or the 64 KiB state boundary | Viewer and replay collections have hard caps; oldest viewer activity and expired replay identities are pruned. |
-| Let another add-on mutate balances by reading files | State remains behind the add-on capability broker; direct cross-add-on file access is unsupported. |
+| Let another add-on mutate balances by reading files | State remains behind the capability broker; direct cross-module file access is unsupported. Only the Bridge-owned Viewer Foundation provider can register the authority. |
 | Expose destructive privacy controls to viewers | Search, linking, audit, export, correction, undo, and deletion are authenticated local-wizard operations; mutations require explicit confirmation and none are chat commands. |
 | Overwrite newer activity while undoing an old correction | An undo is accepted only when the current balance exactly matches the correction's recorded result, and one correction audit ID can be undone only once. |
 | Leak raw linked account IDs into long-lived audit history | Link audit records retain only platform, viewer ID, and a shortened SHA-256 fingerprint; raw stable IDs remain in creator-private settings. |
 
 ## Delivery phases
 
-1. **Implemented foundation slice:** salted identities, explicit link parsing, fixed progression awards, cooldowns, replay protection, bounded private state, package UI, and tests.
+1. **Implemented built-in foundation:** salted identities, explicit link parsing, fixed progression awards, cooldowns, replay protection, bounded private state, dedicated Wizard UI, and tests.
 2. **Implemented consumer boundary:** a narrow broker-owned read/mutation service with dependency checks, provider identity enforcement, two-second call limits, idempotency, audit records, automatic lifecycle revocation, and no raw-state exposure.
 3. **Implemented authenticated administration:** live private-state summary, search by viewer ID or stable platform account, guided verified link management, privacy-preserving link audits, bounded viewer export, audited add/remove/reset corrections, fail-closed single-use correction undo, explicit deletion confirmation, mutation-history scrubbing, and serialized atomic writes through the active provider. Link rules remain validated settings and require restart after editing.
 4. **Next consumers:** Community Analytics first, followed by Viewer Spotlight; Bloom and game systems remain later opt-in consumers.

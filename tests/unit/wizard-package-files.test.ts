@@ -28,8 +28,8 @@ describe('wizard launcher package', () => {
     const script = await readFile('wizard/browser/app.js', 'utf8');
     const addOnScript = await readFile('wizard/browser/addons.js', 'utf8');
     const emotePreview = await readFile('wizard/browser/emote-preview.svg', 'utf8');
-    expect(shell.match(/aria-live="polite"/g)).toHaveLength(22);
-    expect(shell.match(/role="status"/g)).toHaveLength(20);
+    expect(shell.match(/aria-live="polite"/g)).toHaveLength(24);
+    expect(shell.match(/role="status"/g)).toHaveLength(22);
     expect(shell).toContain('id="wizard-feedback"');
     expect(shell).toContain('Open THSV Setup Wizard');
     expect(shell).toContain('Advanced recovery fallback only');
@@ -162,6 +162,7 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain('/overlay-preview');
     expect(addOnScript).toContain('/wizard/api/viewer-foundation/admin');
     expect(addOnScript).toContain('/wizard/api/community-analytics/admin');
+    expect(addOnScript).toContain('/wizard/api/kofi-donations');
     expect(addOnScript).toContain('/wizard/api/quote-vault/admin');
     expect(addOnScript).toContain('data-quote-vault-add-form');
     expect(addOnScript).toContain('broadcaster and moderator submissions are accepted automatically');

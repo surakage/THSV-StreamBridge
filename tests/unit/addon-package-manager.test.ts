@@ -1,4 +1,4 @@
-import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -29,6 +29,15 @@ async function migrationPackage(root: string, version: string, migrations: Array
 }
 
 describe('Stage 9 add-on packages', () => {
+  it('ignores legacy packages for integrations now owned by StreamBridge', async () => {
+    const root = await workspace();
+    const addOns = join(root, 'addons');
+    await installAddOnPackage('addons/viewer-foundation', addOns, true);
+    await installAddOnPackage('addons/community-analytics', addOns, true);
+    await installAddOnPackage('addons/kofi-donations', addOns, true);
+    await expect(loadInstalledAddOns(addOns, silentLogger, join(root, 'state'))).resolves.toEqual([]);
+  });
+
   it('verifies the public no-op sample and its complete hash manifest', async () => {
     const verified = await verifyAddOnPackage('examples/addons/no-op');
     expect(verified.descriptor).toMatchObject({ packageFormat: 'thsv-addon-v2', entrypoint: 'dist/index.js', manifest: { moduleId: 'sample.no-op' } });
@@ -133,6 +142,27 @@ describe('Stage 9 add-on packages', () => {
     await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([expect.objectContaining({ approvedActionIds: [actionId] })]);
     await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['not-an-id'], true)).rejects.toThrow('valid UUIDs');
     await expect(setAddOnApprovedActionIds('sample.no-op', addOns, ['143fce1d-c5b0-4108-b766-ee2d0249e2d4'], true)).rejects.toThrow('framework actions cannot be granted');
+  });
+
+  it('carries creator grants out of a legacy folder and ignores the superseded copy', async () => {
+    const root = await workspace(); const source = join(root, 'source'); const addOns = join(root, 'addons');
+    await cp('examples/addons/no-op', source, { recursive: true });
+    const descriptorPath = join(source, 'module-package.json');
+    const descriptor = JSON.parse(await readFile(descriptorPath, 'utf8')) as { permissions: string[] };
+    descriptor.permissions.push('streamerbot.run-approved-action');
+    await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
+    await installAddOnPackage(source, addOns, true);
+    const actionId = '22222222-2222-4222-8222-222222222222';
+    await setAddOnApprovedActionIds('sample.no-op', addOns, [actionId], true);
+    await rename(join(addOns, 'sample.no-op'), join(addOns, 'no-op'));
+
+    await installAddOnPackage(source, addOns, true);
+
+    await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([
+      expect.objectContaining({ moduleId: 'sample.no-op', approvedActionIds: [actionId], health: 'installed' }),
+    ]);
+    const modules = await loadInstalledAddOns(addOns, silentLogger);
+    expect(modules.map((module) => module.manifest.moduleId)).toEqual(['sample.no-op']);
   });
 
   it('upgrades a verified package that only supports the previously installed bridge release', async () => {

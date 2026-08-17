@@ -1,6 +1,6 @@
 # Viewer Foundation
 
-Viewer Foundation is the optional identity and progression authority for future THSV community features. It is deliberately not part of Bridge Core.
+Viewer Foundation is the built-in identity and progression authority for THSV StreamBridge community features. It ships and updates with the Bridge, while retaining an isolated module identity, private state boundary, and capability-broker contract.
 
 - Stable platform IDs are salted before pseudonymous viewer IDs are persisted.
 - Cross-platform accounts are linked only through explicit creator-authored rules.

@@ -64,13 +64,19 @@ try {
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     $streamerBotImportIndex = Get-Content -Raw -LiteralPath (Join-Path $repo 'packages\streamerbot\import-index.json') | ConvertFrom-Json
     if ($streamerBotImportIndex.bridgeVersion -ne [string]$package.version) { throw 'The Streamer.bot import index does not match the release version.' }
+    $mainFeatureRegistrySource = (Get-Content -Raw -LiteralPath (Join-Path $repo 'bridge\core\main-feature-registry.ts')).Split('export const MAIN_FEATURE_PRESENTATION_POLICY')[0]
+    $builtInIntegrationIds = @('thsv.viewer-foundation', 'thsv.community-analytics', 'thsv.kofi-donations')
+    $bundledExtensionIds = @([regex]::Matches($mainFeatureRegistrySource, "'(?<id>thsv\.[a-z0-9-]+)'") | ForEach-Object { $_.Groups['id'].Value } | Where-Object { $_ -notin $builtInIntegrationIds } | Select-Object -Unique)
+    $bundledExtensionsRoot = Join-Path $temporary 'bundled-extensions'
+    New-Item -ItemType Directory -Path $bundledExtensionsRoot -Force | Out-Null
     Get-ChildItem -LiteralPath $resolvedPackages -Filter '*.thsv-addon*' -File | Remove-Item -Force
     Get-ChildItem -LiteralPath $resolvedPackages -Filter 'THSV-StreamBridge-AddOn-*.zip*' -File | Remove-Item -Force
     $addOnOutputs = @()
-    Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory |
-        Sort-Object Name |
-        ForEach-Object {
-        $descriptorPath = Join-Path $_.FullName 'module-package.json'
+     Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory |
+         Sort-Object Name |
+         ForEach-Object {
+         if ($_.Name -in @('viewer-foundation', 'community-analytics', 'kofi-donations')) { return }
+         $descriptorPath = Join-Path $_.FullName 'module-package.json'
         if (-not (Test-Path -LiteralPath $descriptorPath)) { return }
         $packageFolderName = $_.Name
         $descriptor = Get-Content -Raw -LiteralPath $descriptorPath | ConvertFrom-Json
@@ -139,6 +145,10 @@ try {
         $addOnBundleHash = Get-Sha256Hex $addOnBundle
         $addOnChecksum = "$addOnBundle.sha256"
         Set-Content -LiteralPath $addOnChecksum -Encoding ascii -Value "$addOnBundleHash  $([System.IO.Path]::GetFileName($addOnBundle))"
+        $currentModuleId = [string]$descriptor.manifest.moduleId
+        if ($bundledExtensionIds -contains $currentModuleId) {
+            Copy-Item -LiteralPath $addOnArchive -Destination (Join-Path $bundledExtensionsRoot "$currentModuleId.thsv-addon")
+        }
         Remove-Item -LiteralPath $addOnArchive -Force
         $addOnOutputs += [pscustomobject]@{
             ModuleId = [string]$descriptor.manifest.moduleId
@@ -156,6 +166,10 @@ try {
             Permissions = @($descriptor.permissions)
             Revoked = $false
         }
+    }
+    $bundledExtensionFiles = @(Get-ChildItem -LiteralPath $bundledExtensionsRoot -Filter '*.thsv-addon' -File)
+    if ($bundledExtensionFiles.Count -ne $bundledExtensionIds.Count) {
+        throw "Release staging expected $($bundledExtensionIds.Count) bundled extension components but prepared $($bundledExtensionFiles.Count)."
     }
     $addOnIndexPath = Join-Path $resolvedPackages 'THSV-StreamBridge-AddOns-index.json'
     $addOnIndex = [ordered]@{
@@ -199,11 +213,17 @@ try {
     @('dist','overlays','wizard','package.json','package-lock.json') | ForEach-Object {
         Copy-Item -LiteralPath (Join-Path $repo $_) -Destination $appRoot -Recurse
     }
+    $viewerFoundationIntegrationRoot = Join-Path $appRoot 'integrations\viewer-foundation'
+    Copy-Item -LiteralPath (Join-Path $repo 'addons\viewer-foundation') -Destination $viewerFoundationIntegrationRoot -Recurse
+    $communityAnalyticsIntegrationRoot = Join-Path $appRoot 'integrations\community-analytics'
+    Copy-Item -LiteralPath (Join-Path $repo 'addons\community-analytics') -Destination $communityAnalyticsIntegrationRoot -Recurse
+    $kofiDonationsIntegrationRoot = Join-Path $appRoot 'integrations\kofi-donations'
+    Copy-Item -LiteralPath (Join-Path $repo 'addons\kofi-donations') -Destination $kofiDonationsIntegrationRoot -Recurse
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'config'), (Join-Path $appRoot 'docs') | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'config\bridge.example.json') -Destination (Join-Path $appRoot 'config')
     $releaseDocs = @(
         'add-on-capabilities.md', 'add-on-development.md', 'addon-setup-for-beginners.md', 'architecture.md', 'automated-shoutouts.md', 'browser-overlay.md',
-        'compatibility.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
+        'compatibility.md', 'complete-setup-guide.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
         'discord-chat-archive.md', 'future-add-ons.md', 'future-projects-and-addons.md', 'getting-started.md', 'kofi-donations.md', 'module-system.md',
         'main-features.md', 'product-scope.md', 'production-readiness.md', 'quote-vault.md', 'release-candidate-status.md', 'release.md', 'rewards.md', 'scene-actions.md', 'security.md', 'setup.md', 'setup-for-beginners.md',
         'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
@@ -217,6 +237,15 @@ try {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $appRoot 'docs\addons')
     }
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'packages') | Out-Null
+    $appExtensionsRoot = Join-Path $appRoot 'packages\extensions'
+    New-Item -ItemType Directory -Path $appExtensionsRoot -Force | Out-Null
+    $bundledExtensionFiles | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $appExtensionsRoot $_.Name)
+    }
+    $stagedBundledExtensionFiles = @(Get-ChildItem -LiteralPath $appExtensionsRoot -Filter '*.thsv-addon' -File)
+    if ($stagedBundledExtensionFiles.Count -ne $bundledExtensionIds.Count) {
+        throw "Release package expected $($bundledExtensionIds.Count) bundled extension components but staged $($stagedBundledExtensionFiles.Count)."
+    }
     $coreStreamerBotRoot = Join-Path $appRoot 'packages\streamerbot'
     New-Item -ItemType Directory -Path $coreStreamerBotRoot | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot\import-index.json') -Destination $coreStreamerBotRoot

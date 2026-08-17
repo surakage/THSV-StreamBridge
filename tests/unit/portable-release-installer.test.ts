@@ -106,6 +106,21 @@ describe('portable Windows release installer', () => {
     await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.legacy-addon', 'installed-package.json'), '{"moduleId":"thsv.legacy-addon","version":"2.0.0","enabled":true,"approvedActionIds":["action-one"]}\n');
     await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.legacy-addon'), { recursive: true });
     await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.legacy-addon', 'settings.json'), '{"legacy":true}\n');
+    await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.viewer-foundation'), { recursive: true });
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.viewer-foundation', 'module-package.json'), '{"manifest":{"moduleId":"thsv.viewer-foundation","version":"2.0.0"}}\n');
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.viewer-foundation', 'installed-package.json'), '{"moduleId":"thsv.viewer-foundation","version":"2.0.0","enabled":true}\n');
+    await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.viewer-foundation'), { recursive: true });
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.viewer-foundation', 'settings.json'), '{"currencyName":"Legacy Leaves"}\n');
+    await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.community-analytics'), { recursive: true });
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.community-analytics', 'module-package.json'), '{"manifest":{"moduleId":"thsv.community-analytics","version":"2.0.0"}}\n');
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.community-analytics', 'installed-package.json'), '{"moduleId":"thsv.community-analytics","version":"2.0.0","enabled":true}\n');
+    await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.community-analytics'), { recursive: true });
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.community-analytics', 'settings.json'), '{"retainedSessions":17}\n');
+    await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.kofi-donations'), { recursive: true });
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.kofi-donations', 'module-package.json'), '{"manifest":{"moduleId":"thsv.kofi-donations","version":"2.0.0"}}\n');
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'packages', 'thsv.kofi-donations', 'installed-package.json'), '{"moduleId":"thsv.kofi-donations","version":"2.0.0","enabled":true}\n');
+    await mkdir(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.kofi-donations'), { recursive: true });
+    await writeFile(join(firstInstall, 'app', '2.0.0', 'addons', 'state', 'thsv.kofi-donations', 'settings.json'), '{"enabled":true,"channelName":"Legacy Tips"}\n');
 
     await writePortableRelease(source, '2.1.0', 'second');
     const upgrade = install(source, firstInstall);
@@ -121,6 +136,12 @@ describe('portable Windows release installer', () => {
     expect(JSON.parse(await readFile(join(firstInstall, 'addons', 'packages', 'thsv.legacy-addon', 'installed-package.json'), 'utf8'))).toMatchObject({ enabled: false, approvedActionIds: ['action-one'] });
     expect(await readFile(join(firstInstall, 'addons', 'migration-inbox', 'thsv.legacy-addon', 'state', 'settings.json'), 'utf8')).toContain('legacy');
     expect(JSON.parse(await readFile(join(firstInstall, 'addons', 'migration-inbox', 'feature-migrations.json'), 'utf8'))).toMatchObject({ version: 1, candidates: [expect.objectContaining({ moduleId: 'thsv.legacy-addon', originalEnabled: true })] });
+    expect(await readFile(join(firstInstall, 'addons', 'state', 'thsv.viewer-foundation', 'settings.json'), 'utf8')).toContain('Legacy Leaves');
+    expect(await readFile(join(firstInstall, 'addons', 'state', 'thsv.community-analytics', 'settings.json'), 'utf8')).toContain('17');
+    expect(await readFile(join(firstInstall, 'addons', 'state', 'thsv.kofi-donations', 'settings.json'), 'utf8')).toContain('Legacy Tips');
+    await expect(stat(join(firstInstall, 'addons', 'packages', 'thsv.viewer-foundation'))).rejects.toThrow();
+    await expect(stat(join(firstInstall, 'addons', 'packages', 'thsv.community-analytics'))).rejects.toThrow();
+    await expect(stat(join(firstInstall, 'addons', 'packages', 'thsv.kofi-donations'))).rejects.toThrow();
     await expect(stat(join(firstInstall, 'addons', 'state', 'thsv.legacy-addon', 'settings.json'))).rejects.toThrow();
     expect(JSON.parse(await readFile(join(firstInstall, 'data', 'runtime', 'install-manifest.json'), 'utf8'))).toMatchObject({ activeVersion: '2.1.0', previousVersion: '2.0.0' });
 

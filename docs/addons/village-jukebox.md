@@ -15,7 +15,7 @@ Runs a bounded, fair, YouTube-first multi-platform song-request queue through on
 
 ### Add-on-specific steps
 
-1. Install and enable Viewer Foundation.
+1. Review the built-in Viewer Foundation settings before enabling point-paid requests.
 2. Import the Village Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.
 3. Approve the resolver and Twitch reward helper, choose the command names in the wizard, and add the hosted browser source. Commands register automatically after restart.
 4. Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback.

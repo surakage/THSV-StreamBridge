@@ -5,7 +5,7 @@ const BROADCAST_COMPONENTS = mainFeatureModuleIds('broadcast-director');
 const CLIP_COMPONENTS = mainFeatureModuleIds('clip-engine', true);
 const REWARD_COMPONENTS = mainFeatureModuleIds('community-rewards');
 const MESSAGING_COMPONENTS = mainFeatureModuleIds('community-messaging');
-const INSIGHT_COMPONENTS = mainFeatureModuleIds('community-insights');
+const INSIGHT_COMPONENTS = mainFeatureModuleIds('community-insights', true);
 const PLAY_COMPONENTS = mainFeatureModuleIds('community-play');
 const VOICE_LANGUAGE_COMPONENTS = mainFeatureModuleIds('voice-language');
 

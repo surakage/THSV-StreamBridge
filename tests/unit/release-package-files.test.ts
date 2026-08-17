@@ -39,6 +39,16 @@ describe('public release scripts', () => {
     expect(source).not.toContain('is missing its separate Streamer.bot package');
     expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'packages\\streamerbot') -Directory | ForEach-Object");
     expect(source).toContain('selective, version-matched Streamer.bot package');
+    expect(source).toContain('$bundledExtensionIds');
+    expect(source).toContain("Join-Path $appRoot 'packages\\extensions'");
+    expect(source).toContain("Join-Path $appRoot 'integrations\\viewer-foundation'");
+    expect(source).toContain("Join-Path $repo 'addons\\viewer-foundation'");
+    expect(source).toContain("Join-Path $appRoot 'integrations\\community-analytics'");
+    expect(source).toContain("Join-Path $repo 'addons\\community-analytics'");
+    expect(source).toContain("Join-Path $appRoot 'integrations\\kofi-donations'");
+    expect(source).toContain("Join-Path $repo 'addons\\kofi-donations'");
+    expect(source).not.toContain("+ @('thsv.viewer-foundation')");
+    expect(source).toContain('thsv-addon")');
     expect(source).toContain('$indexedStreamerBotFolders');
     expect(source).toContain('Release staging contains unindexed Streamer.bot packages');
     expect(source).toContain('Release staging has a mismatched Streamer.bot manifest');
@@ -48,7 +58,7 @@ describe('public release scripts', () => {
     expect(source).toContain("'wizard'");
     expect(source).toContain('$releaseDocs');
     expect(source).toContain("'streamerbot-csharp-references.md'");
-    for (const currentGuide of ['future-add-ons.md', 'future-projects-and-addons.md', 'kofi-donations.md', 'module-system.md', 'product-scope.md', 'release-candidate-status.md', 'scene-actions.md', 'viewer-foundation.md']) expect(source).toContain(`'${currentGuide}'`);
+    for (const currentGuide of ['complete-setup-guide.md', 'future-add-ons.md', 'future-projects-and-addons.md', 'kofi-donations.md', 'module-system.md', 'product-scope.md', 'release-candidate-status.md', 'scene-actions.md', 'viewer-foundation.md']) expect(source).toContain(`'${currentGuide}'`);
     expect(source).toContain("Get-ChildItem -LiteralPath $_.FullName -Filter '*.sb'");
     expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'package-lock.json')");
     expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'node_modules\\.package-lock.json')");

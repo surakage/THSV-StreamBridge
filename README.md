@@ -12,6 +12,7 @@ Instead of building a separate bot, socket, and overlay for every platform, Stre
 
 | Your situation | Follow this guide |
 | --- | --- |
+| Complete installation, wizard, and Streamer.bot setup | [Complete setup guide](docs/complete-setup-guide.md) |
 | First installation | [Getting started](docs/getting-started.md) |
 | First installation, simplified | [Beginner Bridge Core setup](docs/setup-for-beginners.md) |
 | Updating an existing installation | [Update instructions](docs/getting-started.md#update) |

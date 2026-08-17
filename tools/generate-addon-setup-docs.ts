@@ -36,10 +36,15 @@ interface StreamerBotManifest {
 const root = process.cwd();
 const addOnsRoot = join(root, 'addons');
 const outputRoot = join(root, 'docs', 'addons');
+const builtInIntegrations = new Map<string, { readonly management: string; readonly browserSource: string }>([
+  ['thsv.viewer-foundation', { management: 'its dedicated **Viewer Foundation** wizard page', browserSource: 'Viewer Foundation has no browser source. Features request only its bounded private projections.' }],
+  ['thsv.community-analytics', { management: 'its dedicated **Community Analytics** wizard page', browserSource: 'Community Analytics has no browser source. Its private reports remain in the authenticated local wizard.' }],
+  ['thsv.kofi-donations', { management: '**Alerts > Donation provider setup**', browserSource: 'Ko-fi donations use the main alert overlay at `http://127.0.0.1:8787/overlay/alerts`; no provider-specific browser source is needed.' }],
+]);
 await rm(outputRoot, { recursive: true, force: true });
 await mkdir(outputRoot, { recursive: true });
 
-const index: Array<{ name: string; moduleId: string; folder: string; streamerBot: boolean }> = [];
+const index: Array<{ name: string; moduleId: string; folder: string; streamerBot: boolean; builtIn: boolean }> = [];
 for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
   const descriptor = await readJson<AddOnDescriptor>(join(addOnsRoot, folder.name, 'module-package.json'));
   const streamerBotPath = join(root, 'packages', 'streamerbot', folder.name, 'manifest.json');
@@ -48,6 +53,17 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
   const imports = [...new Set(actions.map((action) => action.importFile).filter((value): value is string => typeof value === 'string'))];
   const groups = [...new Set(actions.map((action) => action.group).filter((value): value is string => typeof value === 'string'))];
   const overlayPath = `/overlay/addons/${descriptor.manifest.moduleId}`;
+  const integration = builtInIntegrations.get(descriptor.manifest.moduleId);
+  const installSteps = integration === undefined ? [
+    `1. Download and extract \`THSV-StreamBridge-AddOn-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.zip\` from the same GitHub release as StreamBridge.`,
+    `2. In **Setup Wizard > Add-ons**, install \`THSV-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.thsv-addon\` and review its permissions.`,
+    ...(imports.length === 0 ? ['3. No separate Streamer.bot import is required.'] : imports.map((name, position) => `${String(position + 3)}. Import \`Streamer.bot/${name}\` in Streamer.bot.`)),
+    `${String(imports.length + 3)}. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.`,
+  ] : [
+    '1. This integration is installed and updated with THSV StreamBridge; do not install a separate `.thsv-addon`.',
+    ...(imports.length === 0 ? [] : ['2. Select this integration when generating the one universal Streamer.bot import, then import that one `.sb` file.']),
+    `${imports.length === 0 ? '2' : '3'}. Configure it from ${integration.management}, save, and restart StreamBridge when prompted.`,
+  ];
   const lines = [
     `# ${descriptor.manifest.name} setup`,
     '',
@@ -57,12 +73,9 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
     '',
     descriptor.description,
     '',
-    '## Install',
+    integration === undefined ? '## Install' : '## Built-in setup',
     '',
-    `1. Download and extract \`THSV-StreamBridge-AddOn-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.zip\` from the same GitHub release as StreamBridge.`,
-    `2. In **Setup Wizard > Add-ons**, install \`THSV-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.thsv-addon\` and review its permissions.`,
-    ...(imports.length === 0 ? ['3. No separate Streamer.bot import is required.'] : imports.map((name, position) => `${String(position + 3)}. Import \`Streamer.bot/${name}\` in Streamer.bot.`)),
-    `${String(imports.length + 3)}. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.`,
+    ...installSteps,
     '',
     '### Add-on-specific steps',
     '',
@@ -83,11 +96,11 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
     '',
     '## Browser source',
     '',
-    `When this add-on publishes visual output, use \`http://127.0.0.1:8787${overlayPath}\` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.`,
+    integration?.browserSource ?? `When this add-on publishes visual output, use \`http://127.0.0.1:8787${overlayPath}\` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.`,
     '',
     '## Offline test',
     '',
-    '1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.',
+    integration === undefined ? '1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.' : `1. Keep the bridge and Streamer.bot running, then open ${integration.management}.`,
     '2. Save the intended settings and use its preview, test, or manual control where available.',
     '3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.',
     '4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.',
@@ -113,14 +126,14 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
       : 'If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.',
   ];
   await writeFile(join(outputRoot, `${folder.name}.md`), `${lines.join('\n')}\n`, 'utf8');
-  index.push({ name: descriptor.manifest.name, moduleId: descriptor.manifest.moduleId, folder: folder.name, streamerBot: actions.length > 0 });
+  index.push({ name: descriptor.manifest.name, moduleId: descriptor.manifest.moduleId, folder: folder.name, streamerBot: actions.length > 0, builtIn: integration !== undefined });
 }
 
 const indexLines = [
   '# Add-on setup guides', '',
   'These guides are generated from the same reviewed manifests used by the setup wizard and release packager. Always use an add-on bundle from the same release as the installed bridge.', '',
   '| Add-on | Module | Streamer.bot import |', '| --- | --- | --- |',
-  ...index.map((entry) => `| [${entry.name}](./${entry.folder}.md) | \`${entry.moduleId}\` | ${entry.streamerBot ? 'Included in add-on ZIP' : 'Not required'} |`),
+  ...index.map((entry) => `| [${entry.name}](./${entry.folder}.md) | \`${entry.moduleId}\` | ${entry.builtIn ? (entry.streamerBot ? 'Built in; select its action in the universal import' : 'Built in; no import required') : entry.streamerBot ? 'Included in add-on ZIP' : 'Not required'} |`),
 ];
 await writeFile(join(outputRoot, 'README.md'), `${indexLines.join('\n')}\n`, 'utf8');
 process.stdout.write(`Generated ${String(index.length)} add-on setup guides in docs/addons.\n`);

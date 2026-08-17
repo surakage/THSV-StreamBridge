@@ -63,7 +63,7 @@ export class StreamerBotLauncherService {
   private readonly installRoot: string;
   private optionalProcessCache: { readonly expiresAt: number; readonly processes: readonly ProcessIdentity[] } | undefined;
 
-  public constructor(private readonly dataRoot: string, private readonly websocketUrl: string) {
+  public constructor(private readonly dataRoot: string, private readonly websocketUrl: string, private readonly platform: NodeJS.Platform = process.platform) {
     this.installRoot = resolve(dataRoot, '..');
     this.configurationPath = join(dataRoot, 'configuration', 'streamerbot-launcher.json');
   }
@@ -72,7 +72,7 @@ export class StreamerBotLauncherService {
     const port = this.websocketPort();
     const location = this.locationFields();
     const optionalApps = await this.optionalApplicationStatuses();
-    if (process.platform !== 'win32') return { ...location, optionalApps, supported: false, configured: false, executableExists: false, websocketPort: port, state: 'unsupported', message: 'Safe Streamer.bot launch is available on Windows only.' };
+    if (this.platform !== 'win32') return { ...location, optionalApps, supported: false, configured: false, executableExists: false, websocketPort: port, state: 'unsupported', message: 'Safe Streamer.bot launch is available on Windows only.' };
     const configuration = await this.readConfiguration();
     if (configuration === undefined) return { ...location, optionalApps, supported: true, configured: false, executableExists: false, websocketPort: port, state: 'not-configured', message: 'Select Streamer.bot.exe once, or use automatic detection.' };
     const executableExists = await isFile(configuration.executable);
@@ -139,7 +139,7 @@ export class StreamerBotLauncherService {
   }
 
   public async choose(): Promise<StreamerBotLauncherStatus> {
-    if (process.platform !== 'win32') throw new Error('The native Streamer.bot file chooser is available on Windows only.');
+    if (this.platform !== 'win32') throw new Error('The native Streamer.bot file chooser is available on Windows only.');
     const script = [
       'Add-Type -AssemblyName System.Windows.Forms',
       '$dialog = New-Object System.Windows.Forms.OpenFileDialog',
@@ -204,7 +204,7 @@ export class StreamerBotLauncherService {
   }
 
   public openInstallFolder(): { readonly opened: true; readonly installRoot: string; readonly streamDeckTarget: string } {
-    if (process.platform !== 'win32') throw new Error('Opening the installed folder is available on Windows only.');
+    if (this.platform !== 'win32') throw new Error('Opening the installed folder is available on Windows only.');
     const child = spawn('explorer.exe', [this.installRoot], { detached: true, windowsHide: false, stdio: 'ignore' });
     child.unref();
     return { opened: true, ...this.locationFields() };
@@ -243,7 +243,7 @@ export class StreamerBotLauncherService {
     const runningProcesses = this.optionalProcesses();
     const entries = await Promise.all(OPTIONAL_APPLICATIONS.map(async (application) => {
       const metadata = optionalApplicationMetadata(application);
-      if (process.platform !== 'win32') return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: false, state: 'unsupported', message: `${metadata.label} startup is available on Windows only.` }] as const;
+      if (this.platform !== 'win32') return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: false, state: 'unsupported', message: `${metadata.label} startup is available on Windows only.` }] as const;
       const saved = configuration?.optionalApps[application];
       const expectedNames = new Set(metadata.processNames.map((name) => name.toLocaleLowerCase('en-US')));
       const runningProcess = runningProcesses.find((candidate) => expectedNames.has(candidate.name.toLocaleLowerCase('en-US')));

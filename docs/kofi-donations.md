@@ -1,8 +1,8 @@
-# Ko-fi Donations add-on
+# Ko-fi Donations integration
 
 Ko-fi Donations uses Streamer.bot's verified Ko-fi webhook as transport and Ko-fi's stable `messageId` for duplicate suppression. Accepted donations re-enter StreamBridge as `engagement.donation` on platform `kofi`, so they use core validation, durable outbox delivery, retry backoff, dead letters, alert rendering, and structured logs.
 
-Private Ko-fi supporter names and messages are not exposed publicly. The add-on never stores a Ko-fi verification token or payment history. Missing IDs, malformed amounts, and malformed currency codes fail closed.
+Private Ko-fi supporter names and messages are not exposed publicly. The built-in integration never stores a Ko-fi verification token or payment history. Missing IDs, malformed amounts, and malformed currency codes fail closed.
 
 One accepted donation feeds both presentation surfaces through the existing overlay connection:
 
@@ -11,4 +11,4 @@ One accepted donation feeds both presentation surfaces through the existing over
 
 The two controls are independent. Disabling the Ko-fi chat activity message does not suppress its alert, and neither path opens another Streamer.bot or browser-overlay WebSocket connection.
 
-Live acceptance requires a Ko-fi test webhook after the `.sb` trigger is attached. Streamlabs uses a separate native intake path that subscribes to `Streamlabs.Donation` over the existing Streamer.bot WebSocket and requires the raw event's provider-stable ID.
+Enable and configure the integration under **Wizard > Alerts > Donation provider setup**. Include Ko-fi Donations when generating the one universal Streamer.bot import; no separate add-on package is installed. Live acceptance requires a Ko-fi test webhook after the `.sb` trigger is attached. Streamlabs uses a separate native intake path that subscribes to `Streamlabs.Donation` over the existing Streamer.bot WebSocket and requires the raw event's provider-stable ID.

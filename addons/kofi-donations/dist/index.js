@@ -10,10 +10,10 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.kofi-donations/'],
   installationSteps: [
     'Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.',
-    'Import the Ko-fi Donations Streamer.bot package and attach Ko-Fi > Donation to its intake action.',
-    'Install this add-on, review its financial-event permission, configure privacy, enable it, and restart StreamBridge.',
+    'Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its intake action.',
+    'Open Alerts > Donation provider setup, configure privacy, enable Ko-fi intake, and restart StreamBridge.',
   ],
-  uninstallationSteps: ['Uninstall the add-on. StreamBridge stores no Ko-fi webhook secrets or payment history.'], migrations: [],
+  uninstallationSteps: ['Turn off Ko-fi intake in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history.'], migrations: [],
   healthChecks: [{ id: 'thsv.kofi-donations.runtime', description: 'Confirms stable-ID Ko-fi donations can enter the validated durable alert pipeline.' }],
 };
 

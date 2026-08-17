@@ -188,6 +188,15 @@ async function migrateLegacyAddOns(destination, activeVersion) {
     const version = descriptor?.manifest?.version;
     if (typeof moduleId !== 'string' || !/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId) || typeof version !== 'string') continue;
     if (record?.moduleId !== moduleId || record?.version !== version) continue;
+    if (moduleId === 'thsv.viewer-foundation' || moduleId === 'thsv.community-analytics' || moduleId === 'thsv.kofi-donations') {
+      const legacyState = join(legacyRoot, 'state', moduleId);
+      const activeState = join(destination, 'addons', 'state', moduleId);
+      if (await exists(legacyState) && !await exists(activeState)) {
+        await mkdir(dirname(activeState), { recursive: true });
+        await cp(legacyState, activeState, { recursive: true, errorOnExist: true, force: false });
+      }
+      continue;
+    }
     const target = join(persistentPackages, moduleId);
     if (await exists(target)) continue;
     await cp(source, target, { recursive: true, errorOnExist: true, force: false });
