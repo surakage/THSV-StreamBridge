@@ -113,6 +113,20 @@ describe('public release scripts', () => {
     expect(restore).toContain('.restore-rollback-');
   });
 
+  it('ships an authenticated encrypted recovery bundle with an approval-gated transactional restore', async () => {
+    const recovery = await readFile('launcher/recovery-bundle.mjs', 'utf8');
+    expect(recovery).toContain("createCipheriv('aes-256-gcm'");
+    expect(recovery).toContain('scryptSync');
+    expect(recovery).toContain('explicit creator approval');
+    expect(recovery).toContain('.thsv-recovery-rollback-');
+    expect(recovery).toContain("'data/secrets'");
+    expect(recovery).not.toContain("options.get('passphrase')");
+    expect(await readFile('launcher/Create THSV Recovery Bundle.cmd', 'utf8')).toContain('-Mode Export');
+    expect(await readFile('launcher/Restore THSV Recovery Bundle.cmd', 'utf8')).toContain('-Mode Restore');
+    expect(await readFile('installer/install.mjs', 'utf8')).toContain('Create THSV Recovery Bundle.cmd');
+    expect(await readFile('scripts/package-release.ps1', 'utf8')).toContain("-Filter '*.d.mts'");
+  });
+
   it('protects installer staging without relying on a PowerShell ACL module or unavailable static method', async () => {
     const installer = await readFile('scripts/install-release.ps1', 'utf8');
     expect(installer).toContain("Join-Path $env:SystemRoot 'System32\\icacls.exe'");

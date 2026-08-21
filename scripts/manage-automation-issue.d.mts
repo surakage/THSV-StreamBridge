@@ -1,4 +1,4 @@
-export type AutomationIssueKind = 'release-preflight' | 'post-release-smoke';
+export type AutomationIssueKind = 'release-preflight' | 'post-release-smoke' | 'dependency-canary';
 export type AutomationIssueResult = 'success' | 'failure' | 'cancelled';
 export type AutomationIssueAction = 'create' | 'close' | 'comment' | 'none';
 

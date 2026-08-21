@@ -16,6 +16,12 @@ describe('automation issue policy', () => {
     expect(decideAutomationIssue({ kind: 'post-release-smoke', result: 'success', tag: 'v4.0.3', openIssueNumber: '17' })).toMatchObject({ action: 'close', issueNumber: '17' });
   });
 
+  it('deduplicates dependency canary failures and closes the issue after recovery', () => {
+    expect(decideAutomationIssue({ kind: 'dependency-canary', result: 'failure' })).toMatchObject({ action: 'create', reason: 'first-tracked-failure' });
+    expect(decideAutomationIssue({ kind: 'dependency-canary', result: 'failure', openIssueNumber: '42' })).toMatchObject({ action: 'comment', issueNumber: '42' });
+    expect(decideAutomationIssue({ kind: 'dependency-canary', result: 'success', openIssueNumber: '42' })).toMatchObject({ action: 'close', issueNumber: '42' });
+  });
+
   it('supports a network-free command-line dry run', () => {
     const result = spawnSync(process.execPath, ['scripts/manage-automation-issue.mjs', '--kind', 'post-release-smoke', '--result', 'failure', '--tag', 'v4.0.3', '--repository', 'surakage/THSV-StreamBridge', '--run-url', 'https://github.test/run/1', '--dry-run'], { encoding: 'utf8' });
     expect(result.status, result.stderr).toBe(0);

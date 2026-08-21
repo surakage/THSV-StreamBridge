@@ -24,6 +24,9 @@ try {
     $lifecycleOutput = & (Join-Path $repositoryRoot 'tests\windows\release-archive.tests.ps1') -CurrentArchive $archive.FullName -PreviousArchive $previous.archive
     if ($LASTEXITCODE -ne 0) { throw 'Release install, repair, or upgrade smoke testing failed.' }
     $lifecycle = $lifecycleOutput | Select-Object -Last 1 | ConvertFrom-Json
+    $recoveryOutput = & (Join-Path $repositoryRoot 'tests\windows\recovery-bundle.tests.ps1') -CurrentArchive $archive.FullName
+    if ($LASTEXITCODE -ne 0) { throw 'Encrypted recovery bundle export and restore testing failed.' }
+    $recovery = $recoveryOutput | Select-Object -Last 1 | ConvertFrom-Json
     $evidenceDirectory = Join-Path $repositoryRoot 'artifacts\release-lifecycle'
     [System.IO.Directory]::CreateDirectory($evidenceDirectory) | Out-Null
     $evidencePath = Join-Path $evidenceDirectory 'latest.json'
@@ -37,6 +40,10 @@ try {
         upgradedFrom = $lifecycle.upgradedFrom
         upgradedTo = $lifecycle.upgradedTo
         creatorDataPreserved = $lifecycle.creatorDataPreserved
+        encryptedRecoveryBundleVerified = $recovery.encrypted -eq $true -and $recovery.verifiedBeforeRestore -eq $true
+        recoveryCreatorDataRestored = $recovery.creatorDataRestored
+        recoveryAddOnStateRestored = $recovery.addOnStateRestored
+        recoveryKeyRefreshed = $recovery.recoveryKeyRefreshed
     }
     [System.IO.File]::WriteAllText($evidencePath, "$($evidence | ConvertTo-Json -Depth 4)`n", [System.Text.UTF8Encoding]::new($false))
 

@@ -52,6 +52,8 @@ Use these launchers in the installation root (`%LOCALAPPDATA%\THSV StreamBridge`
 - `Start THSV Streaming Tools.cmd`
 - `Stop THSV StreamBridge.cmd`
 - `Open THSV Setup Wizard.cmd`
+- `Create THSV Recovery Bundle.cmd`
+- `Restore THSV Recovery Bundle.cmd`
 - `Uninstall THSV StreamBridge.cmd`
 
 Starting a second managed instance first requests authenticated shutdown of the recorded instance, waits for it to exit, and then starts the active version. The launcher passes explicit data, add-on package, and add-on-state roots so release upgrades cannot overwrite creator files.
@@ -65,6 +67,8 @@ Each `.cmd` launcher stays open long enough to show the final result. If a launc
 ```
 
 The installer keeps launchers and the protected recovery key inside the managed installation and does not add automatic Desktop shortcuts. Stream Deck users can assign **System → Open** directly to `Start THSV Streaming Tools.cmd` in the installed folder. The command self-closes after success and pauses only on failure. Upgrades remove the two older installer-created **THSV StreamBridge Folder** and **THSV Streaming Tools** shortcuts when they still point at the same managed installation.
+
+For an off-machine disaster-recovery copy, use the encrypted export and transactional restore described in [Encrypted recovery bundles](recovery-bundles.md). These bundles include secrets and add-on state only inside authenticated encryption; ordinary configuration exports remain intentionally secret-free.
 
 ## Upgrade and rollback
 
@@ -106,7 +110,11 @@ An add-on requesting `overlay.publish` receives a copyable `/overlay/addons/<mod
 
 Release tags are prepared through the manual **Prepare release tag** workflow. It requires the exact 40-character SHA currently at the tip of `main`, confirms the version against `package.json`, proves that commit belongs to a pull request merged into `main`, rejects existing tags, and waits at the protected `streambridge-tag` environment before creating one annotated tag. The tag then triggers the separate release workflow.
 
-Tagged releases first run startup-chaos acceptance, then wait at the `streambridge-release` GitHub environment before any release assets are built or published. Both environments require creator review and prevent administrator bypass. After approval, a Windows GitHub Actions runner installs from the lockfile, runs build/lint/typecheck/tests/config validation, creates an npm CycloneDX SBOM, builds the portable archive, and attests its build provenance and SBOM. It also creates an attested release-evidence manifest and checksum that bind the tag and commit to lifecycle evidence, startup-chaos evidence, and the exact size and SHA-256 of every release asset. The archive, checksum, add-ons, index, SBOM, evidence manifest, and evidence checksum are then published to a GitHub Release. Repository administrators should also enable GitHub immutable releases.
+Tagged releases first run startup-chaos acceptance, then wait at the `streambridge-release` GitHub environment before any release assets are built or published. Both environments require creator review and prevent administrator bypass. After approval, a Windows GitHub Actions runner installs from the lockfile, runs build/lint/typecheck/tests/config validation, verifies the bundled Node runtime's Authenticode identity, optionally signs first-party PowerShell launchers when the protected environment supplies the Windows signing PFX secrets, creates an npm CycloneDX SBOM, builds the portable archive, and attests its build provenance and SBOM. It also creates an attested release-evidence manifest and checksum that bind the tag and commit to lifecycle evidence, startup-chaos evidence, signing metadata, and the exact size and SHA-256 of every release asset. The archive, checksum, add-ons, index, SBOM, evidence manifest, and evidence checksum are then published to a GitHub Release.
+
+Release Readiness provides a single non-publishing handoff with the tag, candidate SHA, current `main` SHA, exact-match state, workflow links, PR checks, protected-branch status, active ruleset count, and immutable-release status. It never changes those settings. The repository administrator must review and enable the intended rulesets and immutable releases separately.
+
+The weekly dependency canary updates only compatible lockfile resolutions on an isolated Windows runner. It opens a draft dependency pull request only after the updated graph passes startup chaos and the same complete package/install/upgrade preflight as a release. Failure opens or updates one automation issue; recovery closes it.
 
 Publication triggers a separate post-release workflow that downloads the public assets, re-verifies every checksum and attestation, validates the evidence manifest against every downloaded asset, matches add-ons to the signed index, performs clean install plus latest-two-release upgrade/reinstall/rollback-protection drills, then uninstalls while preserving creator data and proves that reinstall retains state and recovery access. Machine-readable evidence is retained. A single issue is opened per failed tag and is closed automatically when a successful rerun proves recovery; the shared notification policy has a network-free dry-run mode and unit tests.
 

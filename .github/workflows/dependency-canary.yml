@@ -1,0 +1,106 @@
+name: Dependency update canary
+
+on:
+  schedule:
+    - cron: '41 11 * * 2'
+  workflow_dispatch:
+
+concurrency:
+  group: dependency-update-canary
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    permissions:
+      contents: write
+      pull-requests: write
+      attestations: read
+    runs-on: windows-latest
+    timeout-minutes: 45
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+    steps:
+      - name: Check out main without persisting credentials
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install the exact current dependency graph
+        run: npm ci
+      - name: Resolve compatible dependency updates into the lockfile only
+        shell: powershell
+        run: npm update --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Detect a meaningful lockfile update
+        id: changes
+        shell: powershell
+        run: |
+          git diff --quiet -- package-lock.json
+          if ($LASTEXITCODE -eq 0) { "changed=false" >> $env:GITHUB_OUTPUT } else { "changed=true" >> $env:GITHUB_OUTPUT }
+      - name: Install the canary dependency graph
+        if: steps.changes.outputs.changed == 'true'
+        run: npm ci
+      - name: Run isolated startup acceptance before release packaging
+        if: steps.changes.outputs.changed == 'true'
+        run: npm run test:startup-chaos
+      - name: Run the complete non-publishing release preflight
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: powershell
+        run: .\scripts\test-release-candidate.ps1 -AllowPublishedCurrentVersion
+      - name: Open one draft dependency PR only after the canary passes
+        if: steps.changes.outputs.changed == 'true'
+        id: pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        shell: powershell
+        run: |
+          $branch = "automation/dependency-canary-$env:RUN_ID"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b $branch
+          git add -- package-lock.json
+          git commit -m 'Update compatible dependencies after release canary'
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$branch"
+          $url = gh pr create --repo $env:REPOSITORY --base main --head $branch --draft --title 'Update compatible dependencies after release canary' --body "Compatible lockfile updates passed startup chaos and the complete non-publishing release preflight. Evidence: https://github.com/$env:REPOSITORY/actions/runs/$env:RUN_ID"
+          "url=$url" >> $env:GITHUB_OUTPUT
+      - name: Upload canary evidence
+        if: always() && steps.changes.outputs.changed == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: dependency-canary-${{ github.run_id }}
+          path: |
+            artifacts/startup-chaos/latest.json
+            artifacts/release-lifecycle/latest.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  notify:
+    needs: canary
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check out notification policy
+        uses: actions/checkout@v7
+      - name: Track one canary failure issue and close it after recovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.canary.result }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/manage-automation-issue.mjs --kind dependency-canary --result "$RESULT" --repository "$REPOSITORY" --run-url "$RUN_URL"

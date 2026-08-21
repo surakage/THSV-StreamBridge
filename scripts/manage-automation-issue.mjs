@@ -2,9 +2,9 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 export function decideAutomationIssue({ kind, result, tag = '', previousResult = '', openIssueNumber = '' }) {
-  if (!['release-preflight', 'post-release-smoke'].includes(kind)) throw new Error(`Unsupported automation issue kind: ${kind}`);
+  if (!['release-preflight', 'post-release-smoke', 'dependency-canary'].includes(kind)) throw new Error(`Unsupported automation issue kind: ${kind}`);
   if (!['success', 'failure', 'cancelled'].includes(result)) throw new Error(`Unsupported automation result: ${result}`);
-  const title = kind === 'release-preflight' ? '[automation] Release preflight has failed twice' : `[automation] Post-release smoke failed for ${tag}`;
+  const title = kind === 'release-preflight' ? '[automation] Release preflight has failed twice' : kind === 'dependency-canary' ? '[automation] Dependency-update canary failed' : `[automation] Post-release smoke failed for ${tag}`;
   if (kind === 'post-release-smoke' && !/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(tag)) throw new Error(`Invalid release tag: ${tag}`);
   if (result === 'success') return { action: openIssueNumber ? 'close' : 'none', title, issueNumber: openIssueNumber, reason: openIssueNumber ? 'recovered' : 'healthy-without-open-issue' };
   if (kind === 'release-preflight') {
@@ -22,7 +22,7 @@ async function main() {
   const runUrl = required(argumentsValue, 'run-url');
   const tag = argumentsValue.get('tag') ?? '';
   const dryRun = argumentsValue.has('dry-run');
-  const title = kind === 'release-preflight' ? '[automation] Release preflight has failed twice' : `[automation] Post-release smoke failed for ${tag}`;
+  const title = kind === 'release-preflight' ? '[automation] Release preflight has failed twice' : kind === 'dependency-canary' ? '[automation] Dependency-update canary failed' : `[automation] Post-release smoke failed for ${tag}`;
   const openIssueNumber = argumentsValue.get('open-issue-number') ?? (dryRun ? '' : gh(['issue', 'list', '--repo', repository, '--state', 'open', '--search', `${title} in:title`, '--json', 'number', '--jq', '.[0].number // empty']));
   const previousResult = argumentsValue.get('previous-result') ?? (kind === 'release-preflight' && !dryRun ? gh(['run', 'list', '--repo', repository, '--workflow', 'release-preflight.yml', '--event', 'schedule', '--status', 'completed', '--limit', '1', '--json', 'conclusion', '--jq', '.[0].conclusion // empty']) : '');
   const decision = decideAutomationIssue({ kind, result, tag, previousResult, openIssueNumber });
@@ -33,17 +33,20 @@ async function main() {
 function applyDecision(decision, context) {
   if (decision.action === 'none') return;
   if (decision.action === 'close') {
-    const message = context.kind === 'release-preflight' ? `The weekly non-publishing release preflight recovered successfully: ${context.runUrl}` : `Post-release verification recovered for ${context.tag}: ${context.runUrl}`;
+    const message = context.kind === 'release-preflight' ? `The weekly non-publishing release preflight recovered successfully: ${context.runUrl}` : context.kind === 'dependency-canary' ? `The dependency-update canary recovered successfully: ${context.runUrl}` : `Post-release verification recovered for ${context.tag}: ${context.runUrl}`;
     gh(['issue', 'close', decision.issueNumber, '--repo', context.repository, '--comment', message]);
     return;
   }
   if (decision.action === 'comment') {
-    gh(['issue', 'comment', decision.issueNumber, '--repo', context.repository, '--body', `Post-release verification failed again for ${context.tag}: ${context.runUrl}`]);
+    const message = context.kind === 'dependency-canary' ? `The dependency-update canary failed again: ${context.runUrl}` : `Post-release verification failed again for ${context.tag}: ${context.runUrl}`;
+    gh(['issue', 'comment', decision.issueNumber, '--repo', context.repository, '--body', message]);
     return;
   }
   const body = context.kind === 'release-preflight'
     ? `Two consecutive weekly non-publishing release preflights failed. Review the latest run: ${context.runUrl}`
-    : `Published asset verification, provenance, installation, recovery, or rollback protection failed for ${context.tag}. Review the run and its evidence: ${context.runUrl}`;
+    : context.kind === 'dependency-canary'
+      ? `A compatible dependency-lock update did not pass the complete non-publishing release preflight, so no dependency pull request was opened. Review the run: ${context.runUrl}`
+      : `Published asset verification, provenance, installation, recovery, or rollback protection failed for ${context.tag}. Review the run and its evidence: ${context.runUrl}`;
   gh(['issue', 'create', '--repo', context.repository, '--title', decision.title, '--body', body]);
 }
 

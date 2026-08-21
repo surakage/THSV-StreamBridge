@@ -45,6 +45,9 @@ jobs:
     environment:
       name: streambridge-release
       url: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+    env:
+      THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
+      THSV_WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v7
@@ -60,6 +63,15 @@ jobs:
         with:
           name: startup-chaos-${{ github.ref_name }}
           path: artifacts/startup-chaos
+      - name: Prepare optional Windows code-signing identity
+        shell: powershell
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64)) {
+            $certificatePath = Join-Path $env:RUNNER_TEMP 'streambridge-signing.pfx'
+            [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64))
+            "THSV_WINDOWS_SIGNING_PFX=$certificatePath" >> $env:GITHUB_ENV
+          }
+          "THSV_REQUIRE_VALID_RUNTIME_SIGNATURE=1" >> $env:GITHUB_ENV
       - name: Build and smoke-test the release candidate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -72,6 +84,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'SBOM generation failed.' }
           $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
           [System.IO.File]::WriteAllText("THSV-StreamBridge-${{ github.ref_name }}.cdx.json", $sbom, $utf8NoBom)
+      - name: Remove the temporary Windows signing identity
+        if: always()
+        shell: powershell
+        run: if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_PFX)) { Remove-Item -LiteralPath $env:THSV_WINDOWS_SIGNING_PFX -Force }
       - name: Resolve release asset paths
         id: assets
         shell: powershell

@@ -20,6 +20,7 @@ describe('GitHub workflow reliability', () => {
     expect(preflight).toContain('AllowPublishedCurrentVersion');
     expect(preflight).toContain('retention-days: 14');
     expect(preflight).toContain('test-release-candidate.ps1');
+    expect(await readFile('scripts/test-release-candidate.ps1', 'utf8')).toContain('recovery-bundle.tests.ps1');
     expect(preflight).toContain('notify-after-repeat-failure:');
     expect(preflight).toContain('manage-automation-issue.mjs');
     expect(preflight).not.toContain('gh release create');
@@ -54,5 +55,16 @@ describe('GitHub workflow reliability', () => {
     expect(workflow).toContain('manage-automation-issue.mjs');
     expect(await readFile('.github/workflows/release.yml', 'utf8')).toContain('new-release-evidence.ps1');
     expect(await readFile('.github/workflows/release.yml', 'utf8')).toContain('Attest release evidence');
+  });
+
+  it('opens compatible dependency updates only after the complete canary passes', async () => {
+    const workflow = await readFile('.github/workflows/dependency-canary.yml', 'utf8');
+    expect(workflow).toContain("cron: '41 11 * * 2'");
+    expect(workflow).toContain('npm update --package-lock-only --ignore-scripts');
+    expect(workflow).toContain('npm run test:startup-chaos');
+    expect(workflow).toContain('test-release-candidate.ps1 -AllowPublishedCurrentVersion');
+    expect(workflow.indexOf('test-release-candidate.ps1')).toBeLessThan(workflow.indexOf('gh pr create'));
+    expect(workflow).toContain('gh pr create --repo $env:REPOSITORY --base main --head $branch --draft');
+    expect(workflow).toContain('--kind dependency-canary');
   });
 });
