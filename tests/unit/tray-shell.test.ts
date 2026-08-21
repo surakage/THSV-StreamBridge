@@ -23,7 +23,13 @@ describe('native Windows tray shell', () => {
     expect(source).toContain('lastAcceptanceNotificationAt');
     expect(source).toContain("@('--view=diagnostics', '--focus=live-acceptance')");
     expect(source).toContain("Start-Launcher 'set-acceptance-reminder.mjs'");
-    expect(source).toContain('Snooze acceptance reminders for 24 hours');
+    expect(source).toContain("'Snooze acceptance reminders'");
+    expect(source).toContain("'For 1 hour'");
+    expect(source).toContain("'For 24 hours'");
+    expect(source).toContain("'For 7 days'");
+    expect(source).toContain("@('--hours=1')");
+    expect(source).toContain("@('--hours=24')");
+    expect(source).toContain("@('--hours=168')");
     expect(source).toContain('Resume acceptance reminders');
     expect(source).not.toContain('control-token');
     expect(source).not.toContain('Streamer.bot.ico');

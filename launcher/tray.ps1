@@ -124,14 +124,14 @@ function Update-Status {
             }
         }
         $acceptanceItem.Visible = $acceptanceState.visible
-        $snoozeAcceptanceItem.Visible = $acceptanceState.visible -and -not $acceptanceState.snoozed
+        $snoozeAcceptanceMenu.Visible = $acceptanceState.visible -and -not $acceptanceState.snoozed
         $resumeAcceptanceItem.Visible = $acceptanceState.visible -and $acceptanceState.snoozed
         if ($acceptanceState.snoozed) { $resumeAcceptanceItem.Text = "Resume acceptance reminders (snoozed until $($snoozedUntil.ToLocalTime().ToString('g')))" }
         $script:lastAcceptanceSignature = $acceptanceState.signature
     } catch {
         $detail = 'Bridge is offline'
         $acceptanceItem.Visible = $false
-        $snoozeAcceptanceItem.Visible = $false
+        $snoozeAcceptanceMenu.Visible = $false
         $resumeAcceptanceItem.Visible = $false
     }
     if ($null -ne $report -and $report.Outcome -eq 'in-progress') {
@@ -166,8 +166,14 @@ $statusItem.Enabled = $false
 $openWizardItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open Setup Wizard'
 $acceptanceItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Review live acceptance'
 $acceptanceItem.Visible = $false
-$snoozeAcceptanceItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Snooze acceptance reminders for 24 hours'
-$snoozeAcceptanceItem.Visible = $false
+$snoozeAcceptanceMenu = New-Object System.Windows.Forms.ToolStripMenuItem 'Snooze acceptance reminders'
+$snoozeAcceptanceMenu.Visible = $false
+$snoozeAcceptanceOneHourItem = New-Object System.Windows.Forms.ToolStripMenuItem 'For 1 hour'
+$snoozeAcceptanceOneDayItem = New-Object System.Windows.Forms.ToolStripMenuItem 'For 24 hours'
+$snoozeAcceptanceOneWeekItem = New-Object System.Windows.Forms.ToolStripMenuItem 'For 7 days'
+[void]$snoozeAcceptanceMenu.DropDownItems.Add($snoozeAcceptanceOneHourItem)
+[void]$snoozeAcceptanceMenu.DropDownItems.Add($snoozeAcceptanceOneDayItem)
+[void]$snoozeAcceptanceMenu.DropDownItems.Add($snoozeAcceptanceOneWeekItem)
 $resumeAcceptanceItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Resume acceptance reminders'
 $resumeAcceptanceItem.Visible = $false
 $startToolsItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Start streaming tools'
@@ -180,7 +186,7 @@ $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Exit tray shell'
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($openWizardItem)
 [void]$menu.Items.Add($acceptanceItem)
-[void]$menu.Items.Add($snoozeAcceptanceItem)
+[void]$menu.Items.Add($snoozeAcceptanceMenu)
 [void]$menu.Items.Add($resumeAcceptanceItem)
 [void]$menu.Items.Add($startToolsItem)
 [void]$menu.Items.Add($startBridgeItem)
@@ -200,7 +206,9 @@ $notify.Visible = $true
 $openWizard = { try { Start-Launcher 'open-wizard.mjs' } catch { Show-Balloon 'Could not open Setup Wizard' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } }
 $openWizardItem.Add_Click($openWizard)
 $acceptanceItem.Add_Click({ try { Start-Launcher 'open-wizard.mjs' @('--view=diagnostics', '--focus=live-acceptance') } catch { Show-Balloon 'Could not open live acceptance' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
-$snoozeAcceptanceItem.Add_Click({ try { Start-Launcher 'set-acceptance-reminder.mjs' @('--hours=24'); Start-Sleep -Milliseconds 300; Update-Status } catch { Show-Balloon 'Could not snooze reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
+$snoozeAcceptanceOneHourItem.Add_Click({ try { Start-Launcher 'set-acceptance-reminder.mjs' @('--hours=1'); Start-Sleep -Milliseconds 300; Update-Status } catch { Show-Balloon 'Could not snooze reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
+$snoozeAcceptanceOneDayItem.Add_Click({ try { Start-Launcher 'set-acceptance-reminder.mjs' @('--hours=24'); Start-Sleep -Milliseconds 300; Update-Status } catch { Show-Balloon 'Could not snooze reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
+$snoozeAcceptanceOneWeekItem.Add_Click({ try { Start-Launcher 'set-acceptance-reminder.mjs' @('--hours=168'); Start-Sleep -Milliseconds 300; Update-Status } catch { Show-Balloon 'Could not snooze reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $resumeAcceptanceItem.Add_Click({ try { Start-Launcher 'set-acceptance-reminder.mjs' @('--resume'); $script:lastAcceptanceNotificationAt = [DateTimeOffset]::MinValue; Start-Sleep -Milliseconds 300; Update-Status } catch { Show-Balloon 'Could not resume reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $notify.Add_DoubleClick($openWizard)
 $startToolsItem.Add_Click({ try { Start-Launcher 'start-streaming-tools.mjs' } catch { Show-Balloon 'Streaming tools did not start' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })

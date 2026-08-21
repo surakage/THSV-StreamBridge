@@ -22,6 +22,15 @@ function Assert-Checksum([string]$ArchivePath) {
     if ($expected -ne $actual) { throw "Published checksum mismatch for $(Split-Path -Leaf $ArchivePath)." }
 }
 
+function Expand-ReleaseRoot([string]$ArchivePath, [string]$DestinationPath) {
+    [System.IO.Directory]::CreateDirectory($DestinationPath) | Out-Null
+    Expand-Archive -LiteralPath $ArchivePath -DestinationPath $DestinationPath
+    if (Test-Path -LiteralPath (Join-Path $DestinationPath 'release-manifest.json')) { return $DestinationPath }
+    $roots = @(Get-ChildItem -LiteralPath $DestinationPath -Directory)
+    if ($roots.Count -ne 1) { throw "Published archive $(Split-Path -Leaf $ArchivePath) has an invalid root layout." }
+    return $roots[0].FullName
+}
+
 $version = $Tag.TrimStart('v')
 $archive = Join-Path $destinationPath "THSV-StreamBridge-$version.zip"
 $indexPath = Join-Path $destinationPath 'THSV-StreamBridge-AddOns-index.json'
@@ -46,9 +55,7 @@ foreach ($name in $actualAddOns) {
 
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) "thsv-published-smoke-$([Guid]::NewGuid())"
 try {
-    Expand-Archive -LiteralPath $archive -DestinationPath $testRoot
-    $roots = @(Get-ChildItem -LiteralPath $testRoot -Directory)
-    $source = if (Test-Path -LiteralPath (Join-Path $testRoot 'release-manifest.json')) { $testRoot } elseif ($roots.Count -eq 1) { $roots[0].FullName } else { throw 'Published archive has an invalid root layout.' }
+    $source = Expand-ReleaseRoot $archive (Join-Path $testRoot 'current-clean')
     $installRoot = Join-Path $testRoot 'installed'
     & (Join-Path $source 'runtime\node.exe') (Join-Path $source 'installer\install.mjs') --install-root $installRoot --no-start
     if ($LASTEXITCODE -ne 0) { throw 'Published archive clean installation failed.' }
@@ -57,7 +64,43 @@ try {
 } finally {
     if (Test-Path -LiteralPath $testRoot) { Remove-Item -LiteralPath $testRoot -Recurse -Force }
 }
-$evidence = [ordered]@{ tag = $Tag; releaseUrl = $release.url; coreChecksumVerified = $true; provenanceVerified = $true; addOnCount = $actualAddOns.Count; addOnIndexMatched = $true; cleanInstall = $version; verifiedAt = [DateTime]::UtcNow.ToString('o') }
+
+$previous = & (Join-Path $PSScriptRoot 'resolve-previous-release.ps1') -CurrentTag $Tag -Repository $Repository -Destination 'artifacts\published-release\previous' -AllowExistingCurrentRelease
+$drillRoot = Join-Path ([System.IO.Path]::GetTempPath()) "thsv-published-lifecycle-$([Guid]::NewGuid())"
+$creatorMarker = '{"preserved":true}'
+try {
+    $previousSource = Expand-ReleaseRoot $previous.archive (Join-Path $drillRoot 'previous-source')
+    $currentSource = Expand-ReleaseRoot $archive (Join-Path $drillRoot 'current-source')
+    $drillInstallRoot = Join-Path $drillRoot 'installed'
+    & (Join-Path $previousSource 'runtime\node.exe') (Join-Path $previousSource 'installer\install.mjs') --install-root $drillInstallRoot --no-start
+    if ($LASTEXITCODE -ne 0) { throw "Previous release $($previous.previousTag) installation failed." }
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+    try { $listener.Start(); $isolatedPort = ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port } finally { $listener.Stop() }
+    $configurationPath = Join-Path $drillInstallRoot 'data\configuration\bridge.local.json'
+    $configuration = Get-Content -Raw -LiteralPath $configurationPath | ConvertFrom-Json
+    $configuration.service.port = $isolatedPort
+    [System.IO.File]::WriteAllText($configurationPath, "$($configuration | ConvertTo-Json -Depth 20)`n", [System.Text.UTF8Encoding]::new($false))
+    $markerPath = Join-Path $drillInstallRoot 'data\state\post-release-smoke.json'
+    [System.IO.File]::WriteAllText($markerPath, $creatorMarker, [System.Text.UTF8Encoding]::new($false))
+    & (Join-Path $currentSource 'runtime\node.exe') (Join-Path $currentSource 'installer\install.mjs') --install-root $drillInstallRoot --no-start
+    if ($LASTEXITCODE -ne 0) { throw "Upgrade from $($previous.previousTag) to $Tag failed." }
+    $upgradedManifest = Get-Content -Raw -LiteralPath (Join-Path $drillInstallRoot 'data\runtime\install-manifest.json') | ConvertFrom-Json
+    if ($upgradedManifest.activeVersion -ne $version -or (Get-Content -Raw -LiteralPath $markerPath) -ne $creatorMarker) { throw 'Published upgrade did not preserve the expected version and creator data.' }
+    & (Join-Path $currentSource 'runtime\node.exe') (Join-Path $currentSource 'installer\install.mjs') --install-root $drillInstallRoot --no-start
+    if ($LASTEXITCODE -ne 0) { throw "Same-version reinstall of $Tag failed." }
+    $savedPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $downgradeOutput = & (Join-Path $previousSource 'runtime\node.exe') (Join-Path $previousSource 'installer\install.mjs') --install-root $drillInstallRoot --no-start 2>&1 | Out-String
+        $downgradeExit = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $savedPreference }
+    if ($downgradeExit -eq 0 -or $downgradeOutput -notmatch 'Refusing to downgrade') { throw 'Rollback protection did not reject the older published release.' }
+    $protectedManifest = Get-Content -Raw -LiteralPath (Join-Path $drillInstallRoot 'data\runtime\install-manifest.json') | ConvertFrom-Json
+    if ($protectedManifest.activeVersion -ne $version -or (Get-Content -Raw -LiteralPath $markerPath) -ne $creatorMarker) { throw 'Rollback-protection drill changed the active version or creator data.' }
+} finally {
+    if (Test-Path -LiteralPath $drillRoot) { Remove-Item -LiteralPath $drillRoot -Recurse -Force }
+}
+$evidence = [ordered]@{ tag = $Tag; previousTag = $previous.previousTag; releaseUrl = $release.url; coreChecksumVerified = $true; provenanceVerified = $true; addOnCount = $actualAddOns.Count; addOnIndexMatched = $true; cleanInstall = $version; upgradedFrom = $previous.previousTag.TrimStart('v'); upgradedTo = $version; reinstall = $version; rollbackProtectionVerified = $true; creatorDataPreserved = $true; verifiedAt = [DateTime]::UtcNow.ToString('o') }
 $evidencePath = Join-Path $destinationPath 'latest.json'
 [System.IO.File]::WriteAllText($evidencePath, "$($evidence | ConvertTo-Json -Depth 4)`n", [System.Text.UTF8Encoding]::new($false))
 [pscustomobject]$evidence

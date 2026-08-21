@@ -24,6 +24,8 @@ describe('GitHub workflow reliability', () => {
     expect(preflight).toContain('gh issue create');
     expect(preflight).not.toContain('gh release create');
     expect(release).toContain('test-release-candidate.ps1');
+    expect(release).toContain('environment:');
+    expect(release).toContain('name: streambridge-release');
   });
 
   it('verifies every published asset and a clean install after release publication', async () => {
@@ -36,5 +38,13 @@ describe('GitHub workflow reliability', () => {
     expect(script).toContain('Assert-Checksum');
     expect(script).toContain('install.mjs');
     expect(script).toContain('addOnIndexMatched = $true');
+    expect(script).toContain('resolve-previous-release.ps1');
+    expect(script).toContain('Same-version reinstall');
+    expect(script).toContain('Refusing to downgrade');
+    expect(script).toContain('rollbackProtectionVerified = $true');
+    expect(workflow).toContain('Open one failure issue per tag or close it after recovery');
+    expect(workflow).toContain('gh issue create');
+    expect(workflow).toContain('gh issue close');
+    expect(workflow).toContain('gh issue comment');
   });
 });

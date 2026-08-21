@@ -104,6 +104,8 @@ An add-on requesting `overlay.publish` receives a copyable `/overlay/addons/<mod
 
 ## Release pipeline
 
-Tagged releases build on a Windows GitHub Actions runner, install from the lockfile, run build/lint/typecheck/tests/config validation, create an npm CycloneDX SBOM, build the portable archive, attest its build provenance and SBOM, and publish the archive, checksum, and SBOM to a GitHub Release. Repository administrators should enable GitHub immutable releases before public v2 publication.
+Tagged releases first run startup-chaos acceptance, then wait at the `streambridge-release` GitHub environment before any release assets are built or published. Repository administrators must configure that environment with required creator reviewers and prevent administrators from bypassing its protection rules. After approval, a Windows GitHub Actions runner installs from the lockfile, runs build/lint/typecheck/tests/config validation, creates an npm CycloneDX SBOM, builds the portable archive, attests its build provenance and SBOM, and publishes the archive, checksum, add-ons, index, and SBOM to a GitHub Release. Repository administrators should also enable GitHub immutable releases.
+
+Publication triggers a separate post-release workflow that downloads the public assets, re-verifies every checksum and attestation, matches add-ons to the signed index, performs clean install plus latest-two-release upgrade/reinstall/rollback-protection drills, and retains machine-readable evidence. A single issue is opened per failed tag and is closed automatically when a successful rerun proves recovery.
 
 The archive is not a claim that every platform transport is production-complete. Review [integration assumptions](integration-assumptions.md) before using unverified high-impact events for financial, reward, or destructive automation.
