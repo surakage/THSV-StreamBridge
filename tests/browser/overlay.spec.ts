@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page, type Route } from '@playwright/test';
 
 declare global {
   interface Window {
@@ -173,6 +173,7 @@ test('wizard stays readable at a narrow width and remembers its selected theme',
   await page.locator('#token').fill(token);
   await page.locator('#login-form button').click();
   await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#connection-configuration')).toHaveText('Active');
   await expect(page.locator('[data-panel="overview"] > .page-header')).toBeVisible();
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
   await page.locator('[data-view="chat-overlay"]').click();
@@ -558,6 +559,22 @@ test('wizard shows only the selected platform events and exposes platform color 
   await expect(page.locator('#chat-event-template-editor [disabled]')).toHaveCount(0);
 });
 
+test('wizard skips the restart when staged settings already match the active configuration', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  await page.locator('#export-config').click();
+  await expect(page.locator('#transfer-state')).toContainText('currently committed settings');
+  await page.locator('#import-config').click();
+  await expect(page.locator('[data-global-commit]')).toBeVisible();
+  await page.locator('[data-global-commit]').click();
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'committed');
+  await expect(page.locator('#global-change-bar')).toContainText('Configuration already active');
+  await expect(page.locator('[data-global-restart]')).toHaveCount(0);
+  await expect(page.locator('#connection-configuration')).toHaveText('Active');
+});
+
 test('wizard automatically stages safe configuration imports and provides a real JSON download', async ({ page }) => {
   await page.goto('/wizard/');
   await page.locator('#token').fill(token);
@@ -579,6 +596,10 @@ test('wizard automatically stages safe configuration imports and provides a real
   expect(preview).not.toContain('controlToken');
   expect(preview).not.toContain('passwordEnv');
   expect(preview).not.toContain('streamerbot');
+  const exportedPlatforms = exported['platforms'] as Record<string, Record<string, unknown>>;
+  const twitchPlatform = exportedPlatforms['twitch'];
+  if (twitchPlatform === undefined) throw new Error('Expected the Twitch platform in the configuration export.');
+  const changedPreview = JSON.stringify({ ...exported, platforms: { ...exportedPlatforms, twitch: { ...twitchPlatform, enabled: twitchPlatform['enabled'] !== true } } });
 
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#download-config').click();
@@ -589,7 +610,7 @@ test('wizard automatically stages safe configuration imports and provides a real
   await page.locator('#import-file').setInputFiles({
     name: 'backup.json',
     mimeType: 'application/json',
-    buffer: Buffer.from(preview),
+    buffer: Buffer.from(changedPreview),
   });
   await expect(page.locator('#transfer-state')).toContainText('Loaded backup.json');
   await page.locator('#import-config').click();
@@ -597,10 +618,339 @@ test('wizard automatically stages safe configuration imports and provides a real
   await expect(page.locator('#transaction-state')).toContainText('Pending changes:');
   await expect(page.locator('#commit')).toBeEnabled();
   await expect(page.locator('#cancel')).toBeEnabled();
+  await expect(page.locator('#global-change-bar')).toBeVisible();
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'pending');
+  await expect(page.locator('#global-change-bar')).toContainText('Unsaved changes');
+  await expect(page.locator('#global-change-bar')).toContainText('Save with backup');
 
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  await expect(page.locator('[data-global-commit]')).toBeVisible();
+
+  let releaseDiscard = (): void => {};
+  let markDiscardIntercepted = (): void => {};
+  const discardIntercepted = new Promise<void>((resolve) => { markDiscardIntercepted = resolve; });
+  const holdDiscard = async (route: Route): Promise<void> => {
+    const release = new Promise<void>((resolve) => { releaseDiscard = resolve; });
+    markDiscardIntercepted();
+    await release;
+    await route.continue();
+  };
+  const discardPattern = '**/wizard/api/transactions/*/cancel';
+  await page.route(discardPattern, holdDiscard);
   await page.locator('#cancel').click();
+  await discardIntercepted;
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'discarding');
+  await expect(page.locator('#global-change-bar')).toContainText('Discarding');
+  await expect(page.locator('#global-change-bar')).toContainText('Saved settings are not being changed');
+  await expect(page.locator('[data-global-commit]')).toBeDisabled();
+  await expect(page.locator('#lock')).toBeDisabled();
+  releaseDiscard();
   await expect(page.locator('#transaction-state')).toHaveText('Draft cancelled; no configuration was changed.');
+  await page.unroute(discardPattern, holdDiscard);
   await expect(page.locator('#commit')).toBeDisabled();
+  await expect(page.locator('#global-change-bar')).toBeHidden();
+
+  await page.locator('#import-config').click();
+  await expect(page.locator('[data-global-commit]')).toBeVisible();
+  let releaseCommit = (): void => {};
+  let markCommitIntercepted = (): void => {};
+  const commitIntercepted = new Promise<void>((resolve) => { markCommitIntercepted = resolve; });
+  const holdCommit = async (route: Route): Promise<void> => {
+    const release = new Promise<void>((resolve) => { releaseCommit = resolve; });
+    markCommitIntercepted();
+    await release;
+    await route.continue();
+  };
+  const commitPattern = '**/wizard/api/transactions/*/commit';
+  await page.route(commitPattern, holdCommit);
+  await page.locator('[data-global-commit]').click();
+  await commitIntercepted;
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'saving');
+  await expect(page.locator('#global-change-bar')).toContainText('Saving safely');
+  await expect(page.locator('#global-change-bar')).toContainText('Creating a backup');
+  await expect(page.locator('[data-global-commit]')).toBeDisabled();
+  await expect(page.locator('[data-global-discard]')).toBeDisabled();
+  await expect(page.locator('#lock')).toBeDisabled();
+  await expect(page.locator('[data-panel="overview"]')).toHaveAttribute('aria-busy', 'true');
+  releaseCommit();
+  await expect(page.locator('#transaction-state')).toContainText('Saved with a local backup');
+  await page.unroute(commitPattern, holdCommit);
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'committed');
+  await expect(page.locator('#global-change-bar')).toContainText('Activate the new settings');
+  await expect(page.locator('#connection-configuration')).toHaveText('Restart needed');
+  await expect(page.locator('#connection-center-badge')).toHaveText('Restart needed');
+  await expect(page.locator('[data-global-restart]')).toHaveText('Restart safely');
+  await page.route('**/wizard/api/restart', (route) => route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ accepted: true, message: 'StreamBridge is restarting. A fresh unlocked Wizard window will open automatically.' }) }));
+  await page.locator('[data-global-restart]').click();
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'restarting');
+  await expect(page.locator('#global-change-bar')).toContainText('Activating your saved settings');
+});
+
+test('wizard clears an abandoned empty draft when it is unlocked again', async ({ page, request }) => {
+  const authorization = { authorization: `Bearer ${token}` };
+  const draftResponse = await request.post('/wizard/api/transactions', { headers: authorization });
+  expect(draftResponse.status()).toBe(201);
+  const draft = await draftResponse.json() as { id: string; stagedChanges: unknown[] };
+  expect(draft.stagedChanges).toHaveLength(0);
+
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#transaction-state')).toHaveText('Cleared an abandoned empty draft. No saved setting was changed.');
+  await expect(page.locator('#global-change-bar')).toBeHidden();
+  await expect(page.locator('#commit')).toBeDisabled();
+  await expect(page.locator('#cancel')).toBeDisabled();
+
+  await expect.poll(async()=> (await request.get('/wizard/api/overview', { headers: authorization })).status()).toBe(200);
+  const overviewResponse = await request.get('/wizard/api/overview', { headers: authorization });
+  const overviewText = await overviewResponse.text();
+  expect(overviewResponse.ok(), `Overview failed with ${String(overviewResponse.status())}: ${overviewText}`).toBe(true);
+  const overview = JSON.parse(overviewText) as { transactions: Array<{ id: string; status: string }> };
+  expect(overview.transactions).toContainEqual(expect.objectContaining({ id: draft.id, status: 'cancelled' }));
+  expect(overview.transactions.filter((transaction) => transaction.status === 'draft')).toHaveLength(0);
+});
+
+test('wizard restores a protected configuration draft after the page is reopened', async ({ page, request }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#website-companion-card')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Send current settings' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Review website draft' })).toBeHidden();
+
+  const authorization = { authorization: `Bearer ${token}` };
+  const overviewResponse = await request.get('/wizard/api/overview', { headers: authorization });
+  expect(overviewResponse.ok()).toBe(true);
+  const overview = await overviewResponse.json() as { configuration: {
+    platforms: Record<string, { enabled: boolean; inputEnabled: boolean; outputEnabled: boolean }>;
+    filters: { enabled: boolean; rules: unknown[] };
+    timedActions: { stateFile: string; definitions: unknown[] };
+    chatSettings: { brandLabel: string; maxChatMessages: number; showBots: boolean; chat: Record<string, unknown> };
+    alertSettings: { maxAlertQueue: number; alertDurationMs: number; overlayGapMs: number; showSimulated: boolean; alerts: Record<string, unknown> };
+  } };
+  const twitch = overview.configuration.platforms['twitch'];
+  if (twitch === undefined) throw new Error('Expected the Twitch platform in the Wizard overview.');
+  const draftResponse = await request.post('/wizard/api/transactions', { headers: authorization });
+  expect(draftResponse.status()).toBe(201);
+  const draft = await draftResponse.json() as { id: string };
+  const stagedResponse = await request.post(`/wizard/api/transactions/${draft.id}/stage`, {
+    headers: authorization,
+    data: { kind: 'platform', platform: 'twitch', enabled: !twitch.enabled, inputEnabled: twitch.inputEnabled, outputEnabled: twitch.outputEnabled },
+  });
+  expect(stagedResponse.ok()).toBe(true);
+  const recoveredRule = { id: 'recovered-draft-test', name: 'Recovered draft test rule', enabled: true, scope: 'display', moduleIds: [], platforms: [], actorTypes: [], target: 'message', match: { kind: 'contains', value: 'recovery-test', caseSensitive: false } };
+  const filtersResponse = await request.post(`/wizard/api/transactions/${draft.id}/stage`, {
+    headers: authorization,
+    data: { kind: 'filters', filters: { ...overview.configuration.filters, rules: [...overview.configuration.filters.rules, recoveredRule] } },
+  });
+  expect(filtersResponse.ok()).toBe(true);
+  const recoveredTimer = { id: 'recovered-draft-timer', name: 'Recovered draft timer', enabled: false, intervalMode: 'fixed', everyMinutes: 30, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' }, gates: { requireLive: true, platforms: [], scenes: [], activity: { minimumMessages: 0, windowMinutes: 5 } }, target: { provider: 'event-only' } };
+  const timerResponse = await request.post(`/wizard/api/transactions/${draft.id}/stage`, {
+    headers: authorization,
+    data: { kind: 'timed-actions', timedActions: { ...overview.configuration.timedActions, definitions: [...overview.configuration.timedActions.definitions, recoveredTimer] } },
+  });
+  expect(timerResponse.ok()).toBe(true);
+  const chatResponse = await request.post(`/wizard/api/transactions/${draft.id}/stage`, {
+    headers: authorization,
+    data: { kind: 'chat-overlay', chatSettings: { ...overview.configuration.chatSettings, brandLabel: 'Recovered Draft Brand' } },
+  });
+  expect(chatResponse.ok()).toBe(true);
+  const alertsResponse = await request.post(`/wizard/api/transactions/${draft.id}/stage`, {
+    headers: authorization,
+    data: { kind: 'alerts', alertSettings: { ...overview.configuration.alertSettings, showSimulated: !overview.configuration.alertSettings.showSimulated } },
+  });
+  expect(alertsResponse.ok()).toBe(true);
+
+  await page.reload();
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#transaction-state')).toContainText('Recovered pending changes from an earlier Wizard tab');
+  await expect(page.locator('#global-change-bar')).toBeVisible();
+  await expect(page.locator('#global-change-bar')).toContainText('use only one editing tab at a time');
+  await expect(page.locator('#global-change-bar')).toContainText('Twitch platform');
+  await expect(page.locator('[data-global-commit]')).toBeEnabled();
+  await page.locator('[data-review-panel="platforms"]').click();
+  await expect(page.locator('[data-panel="platforms"]')).toBeVisible();
+  await expect(page.locator('[data-platform="twitch"] input[data-flag="enabled"]')).toBeChecked({ checked: !twitch.enabled });
+  await page.locator('[data-review-panel="blockers"]').click();
+  await expect(page.locator('#blocker-tree')).toContainText('Recovered draft test rule');
+  await page.locator('[data-review-panel="timed-actions"]').click();
+  await expect(page.locator('#timed-action-tree')).toContainText('Recovered draft timer');
+  await page.locator('[data-review-panel="chat-overlay"]').click();
+  await expect(page.locator('#chat-overlay-form [name="brandLabel"]')).toHaveValue('Recovered Draft Brand');
+  await page.locator('[data-review-panel="alerts"]').click();
+  await expect(page.locator('#alert-global-form [name="showSimulated"]')).toBeChecked({ checked: !overview.configuration.alertSettings.showSimulated });
+
+  const exitWarningPromise = page.waitForEvent('dialog');
+  const guardedReloadPromise = page.reload();
+  const exitWarning = await exitWarningPromise;
+  expect(exitWarning.type()).toBe('beforeunload');
+  await exitWarning.accept();
+  await guardedReloadPromise;
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#transaction-state')).toContainText('Recovered pending changes from an earlier Wizard tab');
+
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    expect(dialog.message()).toContain('pending changes will stay protected');
+    await dialog.accept();
+  });
+  await page.locator('#lock').click();
+  await expect(page.locator('#login')).toBeVisible();
+  await expect(page.locator('#login-state')).toContainText('pending changes are still protected');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#transaction-state')).toContainText('Recovered pending changes from an earlier Wizard tab');
+
+  await page.locator('[data-global-discard]').click();
+  await expect(page.locator('#transaction-state')).toHaveText('Draft cancelled; no configuration was changed.');
+  await expect(page.locator('#global-change-bar')).toBeHidden();
+  await expect(page.locator('#commit')).toBeDisabled();
+});
+
+test('wizard removes a newly created empty draft when its first change is rejected', async ({ page, request }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  await page.locator('[data-view="platforms"]').click();
+
+  const enabledToggle = page.locator('[data-platform="twitch"] input[data-flag="enabled"]');
+  const originalEnabled = await enabledToggle.isChecked();
+  const stagePattern = '**/wizard/api/transactions/*/stage';
+  await page.route(stagePattern, (route) => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Rejected first change.' }) }));
+  await enabledToggle.click();
+
+  await expect(page.locator('#transaction-state')).toContainText('No pending draft was left behind');
+  await expect(enabledToggle).toBeChecked({ checked: originalEnabled });
+  await expect(page.locator('#global-change-bar')).toBeHidden();
+  await expect(page.locator('#commit')).toBeDisabled();
+  await expect(page.locator('#cancel')).toBeDisabled();
+  const overviewResponse = await request.get('/wizard/api/overview', { headers: { authorization: `Bearer ${token}` } });
+  expect(overviewResponse.ok()).toBe(true);
+  const overview = await overviewResponse.json() as { transactions: Array<{ status: string }> };
+  expect(overview.transactions.filter((transaction) => transaction.status === 'draft')).toHaveLength(0);
+  await page.unroute(stagePattern);
+});
+
+test('wizard restores the last server-confirmed draft after a staged change is rejected', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  await page.locator('[data-view="platforms"]').click();
+
+  const enabledToggle = page.locator('[data-platform="twitch"] input[data-flag="enabled"]');
+  const inputToggle = page.locator('[data-platform="twitch"] input[data-flag="inputEnabled"]');
+  const originalEnabled = await enabledToggle.isChecked();
+  const originalInput = await inputToggle.isChecked();
+  const stagePattern = '**/wizard/api/transactions/*/stage';
+  let releaseFirstStage = (): void => {};
+  let markFirstStageIntercepted = (): void => {};
+  const firstStageIntercepted = new Promise<void>((resolve) => { markFirstStageIntercepted = resolve; });
+  const holdFirstStage = async (route: Route): Promise<void> => {
+    const release = new Promise<void>((resolve) => { releaseFirstStage = resolve; });
+    markFirstStageIntercepted();
+    await release;
+    await route.continue();
+  };
+  await page.route(stagePattern, holdFirstStage);
+  await enabledToggle.click();
+  await firstStageIntercepted;
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'staging');
+  await expect(page.locator('#global-change-bar')).toContainText('Validating your settings');
+  await expect(page.locator('#lock')).toBeDisabled();
+  releaseFirstStage();
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'pending');
+  await expect(enabledToggle).toBeChecked({ checked: !originalEnabled });
+  await page.unroute(stagePattern, holdFirstStage);
+
+  let rejected = false;
+  let releaseRejectedStage = (): void => {};
+  let markStageIntercepted = (): void => {};
+  const stageIntercepted = new Promise<void>((resolve) => { markStageIntercepted = resolve; });
+  await page.route(stagePattern, async (route) => {
+    if (rejected) { await route.continue(); return; }
+    rejected = true;
+    const release = new Promise<void>((resolve) => { releaseRejectedStage = resolve; });
+    markStageIntercepted();
+    await release;
+    await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Rejected by the validation test.' }) });
+  });
+  await inputToggle.click();
+  await stageIntercepted;
+  await expect(page.locator('[data-panel="platforms"]')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#lock')).toBeDisabled();
+  await expect(page.locator('#global-change-bar')).toHaveAttribute('data-state', 'staging');
+  await expect(page.locator('[data-global-commit]')).toBeDisabled();
+  await expect(page.locator('[data-global-discard]')).toBeDisabled();
+  releaseRejectedStage();
+  await expect(page.locator('#transaction-state')).toContainText('That change was not staged');
+  await expect(page.locator('[data-panel="platforms"]')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('#transaction-state')).toContainText('last server-confirmed draft');
+  await expect(enabledToggle).toBeChecked({ checked: !originalEnabled });
+  await expect(inputToggle).toBeChecked({ checked: originalInput });
+  await expect(page.locator('#global-change-bar')).toContainText('Twitch platform');
+
+  await page.locator('[data-global-discard]').click();
+  await expect(page.locator('#global-change-bar')).toBeHidden();
+  await expect(enabledToggle).toBeChecked({ checked: originalEnabled });
+  await expect(inputToggle).toBeChecked({ checked: originalInput });
+});
+
+test('wizard keeps one protected draft when a second authenticated tab tries to edit', async ({ page, context, request }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill(token);
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+
+  const secondPage = await context.newPage();
+  await secondPage.goto('/wizard/');
+  await secondPage.locator('#token').fill(token);
+  await secondPage.locator('#login-form button').click();
+  await expect(secondPage.locator('#workspace')).toBeVisible();
+  const firstTabLease = await page.evaluate(() => sessionStorage.getItem('thsv.streambridge.wizard.tab.v1'));
+  const secondTabLease = await secondPage.evaluate(() => sessionStorage.getItem('thsv.streambridge.wizard.tab.v1'));
+  expect(secondTabLease).not.toBe(firstTabLease);
+
+  await page.locator('[data-view="platforms"]').click();
+  const firstEnabledToggle = page.locator('[data-platform="twitch"] input[data-flag="enabled"]');
+  const originalEnabled = await firstEnabledToggle.isChecked();
+  await firstEnabledToggle.click();
+  await expect(page.locator('#global-change-bar')).toContainText('Twitch platform');
+
+  await secondPage.locator('[data-view="platforms"]').click();
+  const secondEnabledToggle = secondPage.locator('[data-platform="twitch"] input[data-flag="enabled"]');
+  const secondInputToggle = secondPage.locator('[data-platform="twitch"] input[data-flag="inputEnabled"]');
+  const originalInput = await secondInputToggle.isChecked();
+  await secondInputToggle.click();
+
+  await expect(secondPage.locator('#transaction-state')).toContainText('Another browser tab already holds the configuration mutation lease');
+  await expect(secondPage.locator('#transaction-state')).toContainText('last server-confirmed draft');
+  await expect(secondEnabledToggle).toBeChecked({ checked: !originalEnabled });
+  await expect(secondInputToggle).toBeChecked({ checked: originalInput });
+  await expect(secondPage.locator('#global-change-bar')).toContainText('Twitch platform');
+
+  await secondEnabledToggle.click();
+  await expect(secondPage.locator('#transaction-state')).toContainText('Another browser tab owns this protected draft');
+  await expect(secondEnabledToggle).toBeChecked({ checked: !originalEnabled });
+
+  const overviewResponse = await request.get('/wizard/api/overview', { headers: { authorization: `Bearer ${token}` } });
+  expect(overviewResponse.ok()).toBe(true);
+  const overview = await overviewResponse.json() as { transactions: Array<{ status: string; stagedChanges: unknown[] }> };
+  const activeDrafts = overview.transactions.filter((transaction) => transaction.status === 'draft');
+  expect(activeDrafts).toHaveLength(1);
+  expect(activeDrafts[0]?.stagedChanges).toHaveLength(1);
+
+  await secondPage.close();
+  await page.locator('[data-global-discard]').click();
+  await expect(page.locator('#global-change-bar')).toBeHidden();
+  await expect(firstEnabledToggle).toBeChecked({ checked: originalEnabled });
 });
 
 test('chat remains bottom-aligned, bounded, crisp, and unclipped at 1920x1080', async ({ page, request }, testInfo) => {

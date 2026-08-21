@@ -17,7 +17,7 @@ StreamBridge never needs your platform passwords. Streamer.bot and TikFinity rem
 2. In Windows Explorer, right-click the ZIP, choose **Properties**, select **Unblock** when shown, and press **OK**.
 3. Extract the ZIP. Do not run files from the ZIP preview.
 4. Double-click **Install THSV StreamBridge.cmd** and leave the result window open until it reports success.
-5. Open **THSV StreamBridge Setup Wizard** from the Start menu or installed folder.
+5. Let the installer open the guided setup automatically. Later, reopen it from the tray icon, **THSV StreamBridge - Open Setup Wizard** in Streamer.bot, or **Open THSV Setup Wizard.cmd** in the installed folder.
 
 ## 3. Create one Streamer.bot import
 
@@ -61,6 +61,24 @@ Every core and add-on overlay shares StreamBridge's browser-overlay transport. D
 
 Get core chat and alerts working first. Then follow the [beginner add-on guide](addon-setup-for-beginners.md) and the specific guide for each add-on you install.
 
+## Saving Wizard changes
+
+When a page stages configuration, a persistent **Unsaved changes** bar appears at the bottom of every Wizard page. You do not need to remember to return to Overview. Review the affected sections and choose **Save with backup**. **Discard** removes only the protected draft; it does not undo settings that were already saved.
+
+If the Wizard tab closes or refreshes before you decide, it warns you when the browser allows it. The protected draft remains safe even if you continue: unlock the Wizard again and the draft is restored automatically, including the exact pending values in each affected editor. Locking the Wizard also preserves pending work and explains how to recover it. Select an affected-section chip in the bottom bar to review that editor directly, then save or discard the recovered work before editing more settings. Keep only one Wizard tab open for configuration changes. The Bridge refuses to create a competing draft, binds the protected draft to the tab that created it, and prevents another tab from editing, saving, or discarding that work.
+
+All StreamBridge configuration happens in the installed local Wizard. SlothBloom is the public home for downloads, release information, and setup documentation; it is not required to configure or run StreamBridge. Streamer.bot connections, provider credentials, local paths, logs, broadcast controls, and saved settings stay on your computer.
+
+If a setting or import fails validation, the Wizard restores every editor to the last server-confirmed draft. Earlier valid pending changes remain available, while the rejected value is removed, so the controls never imply that an invalid change will be saved. If the first attempted change is rejected, the Wizard also removes the empty draft automatically; there is nothing extra to discard.
+
+If a browser closes while the Wizard is still checking the very first change, reopening and unlocking the Wizard clears that abandoned empty draft automatically. It never clears a draft containing real pending changes; those are restored for review instead.
+
+While a change is being checked, the bottom bar says **Checking change** and briefly pauses configuration editors, Save, Discard, and Lock. Wait for the pending or error result before continuing; this prevents rapid clicks from creating overlapping draft operations.
+
+The same protection stays active while the bar says **Saving safely** or **Discarding**. Saving creates the backup and commits once; discarding removes only the protected draft. Other configuration controls return automatically after the operation reports its result.
+
+After saving, choose **Restart safely** in the same bar. StreamBridge confirms that every platform is offline, uses the installed launcher's guarded stop-and-start workflow, waits for the replacement service to become healthy, and opens a fresh unlocked Wizard window. The Overview connection check then reports **Configuration: Active** so you know the replacement process loaded the saved file. If you are live, the restart is refused and your saved settings remain safe for later.
+
 ## If something does not happen
 
 Check these in order:
@@ -73,4 +91,4 @@ Check these in order:
 6. The browser source shows its brief LIVE connection badge after a refresh.
 7. The test was not suppressed because it was simulated, duplicated, offline-only, or missing a stable provider ID.
 
-Use **Diagnostics** in the wizard before adding more triggers. Duplicate triggers usually make troubleshooting harder.
+Open **Test & finish** in the wizard and run the plain-language pre-stream check before adding more triggers. It checks the local Bridge, Streamer.bot delivery, enabled platforms, feature health, and read-only action inspection, then links directly to the setup page for anything incomplete. Raw diagnostics and the emergency queue reset remain collapsed under **Advanced diagnostics and emergency recovery**. Duplicate triggers usually make troubleshooting harder.

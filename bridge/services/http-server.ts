@@ -21,6 +21,10 @@ import { readCachedClip } from './clip-media-cache.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
 import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
+import { prepareSupportBundle, type SupportBundleResult, type SupportBundlePreview } from './support-bundle-service.js';
+import { LiveAcceptanceError } from './live-acceptance-service.js';
+import { ObsSourceInventoryError } from './obs-source-inventory-service.js';
+import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } from './pre-stream-report-service.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -62,6 +66,18 @@ function addOnOverlayModuleId(requestPath: string | undefined): string | undefin
   return /^\/overlay\/addons\/([a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+)$/u.exec(requestPath)?.[1];
 }
 
+function activeLivePlatforms(diagnostics: Readonly<Record<string, unknown>>): readonly unknown[] {
+  const timedActions = diagnostics['timedActions'];
+  const timedActionPlatforms = typeof timedActions === 'object' && timedActions !== null && !Array.isArray(timedActions) && Array.isArray((timedActions as Record<string, unknown>)['livePlatforms'])
+    ? (timedActions as Record<string, unknown>)['livePlatforms'] as unknown[] : [];
+  const mainFeatures = diagnostics['mainFeatures'];
+  const broadcastDirector = typeof mainFeatures === 'object' && mainFeatures !== null && !Array.isArray(mainFeatures)
+    ? (mainFeatures as Record<string, unknown>)['broadcastDirector'] : undefined;
+  const featurePlatforms = typeof broadcastDirector === 'object' && broadcastDirector !== null && !Array.isArray(broadcastDirector) && Array.isArray((broadcastDirector as Record<string, unknown>)['livePlatforms'])
+    ? (broadcastDirector as Record<string, unknown>)['livePlatforms'] as unknown[] : [];
+  return [...new Set([...timedActionPlatforms, ...featurePlatforms])];
+}
+
 export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
@@ -70,6 +86,7 @@ export class DiagnosticsServer {
   private readonly dockSessionToken = randomUUID();
   private readonly controlToken: string;
   private readonly wizardUnlockTickets = new Map<string, number>();
+  private readonly supportBundleSnapshots = new Map<string, { readonly tabId: string; readonly expiresAt: number; readonly bundle: SupportBundleResult; readonly preview: SupportBundlePreview }>();
   private dockWindowStartedAt = Date.now();
   private dockRequestsInWindow = 0;
   private dockRequestActive = false;
@@ -126,6 +143,11 @@ export class DiagnosticsServer {
   public get port(): number {
     const address = this.server?.address();
     return typeof address === 'object' && address !== null ? address.port : this.config.port;
+  }
+
+  private pruneSupportBundleSnapshots(): void {
+    const now = Date.now();
+    for (const [id, snapshot] of this.supportBundleSnapshots) if (snapshot.expiresAt <= now) this.supportBundleSnapshots.delete(id);
   }
 
   private async route(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -325,6 +347,12 @@ export class DiagnosticsServer {
         const body = await readBody(request, 512);
         return this.reply(response, 200, await this.wizard.startAllStreamingTools(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/restart' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (activeLivePlatforms(this.target.diagnostics()).length > 0) return this.reply(response, 409, { error: 'StreamBridge will not restart while a platform is live. Finish the stream, then use Restart safely again.' });
+        const body = await readBody(request, 512);
+        return this.reply(response, 202, await this.wizard.restartStreamBridge(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/shortcut' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, 512);
@@ -337,29 +365,29 @@ export class DiagnosticsServer {
       }
       if (request.method === 'POST' && request.url === '/wizard/api/transactions' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 201, await this.wizard.beginTransaction());
+        return this.reply(response, 201, await this.wizard.beginTransaction(wizardTabLease(request)));
       }
       const stageMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/stage$/u.exec(request.url ?? '') : null;
       if (stageMatch?.[1] !== undefined && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, this.wizard.stageTransaction(stageMatch[1], JSON.parse(body.text) as unknown));
+        return this.reply(response, 200, this.wizard.stageTransaction(stageMatch[1], JSON.parse(body.text) as unknown,wizardTabLease(request)));
       }
       const importMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/import$/u.exec(request.url ?? '') : null;
       if (importMatch?.[1] !== undefined && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, this.wizard.stageImport(importMatch[1], JSON.parse(body.text) as unknown));
+        return this.reply(response, 200, this.wizard.stageImport(importMatch[1], JSON.parse(body.text) as unknown,wizardTabLease(request)));
       }
       const commitMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/commit$/u.exec(request.url ?? '') : null;
       if (commitMatch?.[1] !== undefined && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 200, await this.wizard.commitTransaction(commitMatch[1]));
+        return this.reply(response, 200, await this.wizard.commitTransaction(commitMatch[1],wizardTabLease(request)));
       }
       const cancelMatch = request.method === 'POST' ? /^\/wizard\/api\/transactions\/([0-9a-f-]+)\/cancel$/u.exec(request.url ?? '') : null;
       if (cancelMatch?.[1] !== undefined && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 200, this.wizard.cancelTransaction(cancelMatch[1]));
+        return this.reply(response, 200, this.wizard.cancelTransaction(cancelMatch[1],wizardTabLease(request)));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/commands/sync' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -388,6 +416,76 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/wizard/api/diagnostics' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.diagnostics());
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/support-bundle' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        this.pruneSupportBundleSnapshots();
+        const previewId = typeof request.headers['x-thsv-support-preview'] === 'string' ? request.headers['x-thsv-support-preview'] : '';
+        const snapshot = this.supportBundleSnapshots.get(previewId);
+        if (snapshot === undefined || snapshot.expiresAt <= Date.now() || snapshot.tabId !== wizardTabLease(request)) return this.reply(response, 409, { error: 'Preview this support bundle in the current Wizard tab before downloading it.' });
+        this.supportBundleSnapshots.delete(previewId);
+        const bundle = snapshot.bundle;
+        response.statusCode = 200;
+        response.setHeader('content-type', 'application/zip');
+        response.setHeader('content-disposition', `attachment; filename="${bundle.filename}"`);
+        response.setHeader('content-length', String(bundle.bytes.byteLength));
+        response.end(bundle.bytes);
+        return;
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/support-bundle/preview' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        this.pruneSupportBundleSnapshots();
+        while (this.supportBundleSnapshots.size >= 8) this.supportBundleSnapshots.delete(this.supportBundleSnapshots.keys().next().value ?? '');
+        const prepared = await prepareSupportBundle(this.dataRoot, { health: this.target.health(), readiness: this.target.readiness(), diagnostics: this.target.diagnostics(), ...(this.overlayHub === undefined ? {} : { overlay: this.overlayHub.status() }) });
+        const previewId = randomUUID(); const expiresAt = Date.now() + 5 * 60_000;
+        this.supportBundleSnapshots.set(previewId, { tabId: wizardTabLease(request), expiresAt, ...prepared });
+        return this.reply(response, 200, { ...prepared.preview, previewId, expiresAt: new Date(expiresAt).toISOString() });
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/readiness' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const overlay = this.overlayHub?.status();
+        return this.reply(response, 200, { readiness: this.target.readiness(), launcher: await this.wizard.streamerBotLauncherStatus(), configuration: await this.wizard.configurationActivation(), provenance: this.wizard.provenance(), obsInventory: this.wizard.obsInventoryStatus(overlay), ...(overlay === undefined ? {} : { overlay }) });
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/pre-stream-report' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const report = await createPreStreamReport(this.dataRoot, { provenance: this.wizard.provenance(), readiness: this.target.readiness(), obsInventory: this.wizard.obsInventoryStatus(this.overlayHub?.status()), liveAcceptance: this.wizard.liveAcceptanceStatus() });
+        response.statusCode = 200;
+        response.setHeader('content-type', 'application/json; charset=utf-8');
+        response.setHeader('content-disposition', `attachment; filename="${report.filename}"`);
+        response.setHeader('content-length', String(report.bytes.byteLength));
+        response.end(report.bytes);
+        return;
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/pre-stream-report/compare' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const body = await readBody(request, Math.min(this.config.maxPayloadBytes, 512 * 1024)); const input = JSON.parse(body.text) as unknown;
+        if (typeof input !== 'object' || input === null || Array.isArray(input) || !('baseline' in input)) throw new PreStreamReportError('Choose an earlier sanitized pre-stream report to compare.');
+        const current = await createPreStreamReport(this.dataRoot, { provenance: this.wizard.provenance(), readiness: this.target.readiness(), obsInventory: this.wizard.obsInventoryStatus(this.overlayHub?.status()), liveAcceptance: this.wizard.liveAcceptanceStatus() });
+        return this.reply(response, 200, comparePreStreamReports((input as Record<string, unknown>)['baseline'], JSON.parse(new TextDecoder().decode(current.bytes)) as unknown));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/website-companion' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.websiteCompanionStatus());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/website-companion/pair' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.startWebsitePairing());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/website-companion/check' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.checkWebsitePairing());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/website-companion/publish' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.publishWebsiteConfiguration());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/website-companion/stage-draft' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.stageWebsiteConfigurationDraft(wizardTabLease(request)));
+      }
+      if (request.method === 'DELETE' && request.url === '/wizard/api/website-companion' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.disconnectWebsiteCompanion());
       }
       if (request.method === 'POST' && request.url === '/wizard/api/coordination/reset' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
@@ -492,6 +590,19 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, { acceptance: await this.wizard.listAddOnAcceptance() });
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/live-acceptance' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.liveAcceptanceStatus());
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/obs-source-inventory' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.obsInventoryStatus(this.overlayHub?.status()));
+      }
+      if (request.method === 'PUT' && request.url === '/wizard/api/obs-source-inventory' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, this.wizard.saveObsInventory(JSON.parse(body.text) as unknown, this.overlayHub?.status()));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/updates/check' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.checkForUpdates());
@@ -503,17 +614,7 @@ export class DiagnosticsServer {
       }
       if (request.method === 'POST' && request.url === '/wizard/api/updates/apply' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
-        const diagnostics = this.target.diagnostics();
-        const timedActions = diagnostics['timedActions'];
-        const livePlatforms = typeof timedActions === 'object' && timedActions !== null && !Array.isArray(timedActions) && Array.isArray((timedActions as Record<string, unknown>)['livePlatforms'])
-          ? (timedActions as Record<string, unknown>)['livePlatforms'] as unknown[]
-          : [];
-        const mainFeatures = diagnostics['mainFeatures'];
-        const broadcastDirector = typeof mainFeatures === 'object' && mainFeatures !== null && !Array.isArray(mainFeatures)
-          ? (mainFeatures as Record<string, unknown>)['broadcastDirector'] : undefined;
-        const featureLivePlatforms = typeof broadcastDirector === 'object' && broadcastDirector !== null && !Array.isArray(broadcastDirector) && Array.isArray((broadcastDirector as Record<string, unknown>)['livePlatforms'])
-          ? (broadcastDirector as Record<string, unknown>)['livePlatforms'] as unknown[] : [];
-        if (livePlatforms.length > 0 || featureLivePlatforms.length > 0) return this.reply(response, 409, { error: 'Finish the live stream before installing a StreamBridge update. Feature package updates may be prepared while live, but the Bridge itself will not restart on air.' });
+        if (activeLivePlatforms(this.target.diagnostics()).length > 0) return this.reply(response, 409, { error: 'Finish the live stream before installing a StreamBridge update. Feature package updates may be prepared while live, but the Bridge itself will not restart on air.' });
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 202, await this.wizard.applyReleaseUpdate(JSON.parse(body.text) as unknown));
       }
@@ -651,6 +752,12 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.saveAddOnAcceptance(decodeURIComponent(addOnAcceptanceMatch[1]), JSON.parse(body.text) as unknown));
       }
+      const liveAcceptanceMatch = request.method === 'PUT' ? /^\/wizard\/api\/live-acceptance\/([a-z][a-z0-9-]{2,80})$/u.exec(request.url ?? '') : null;
+      if (liveAcceptanceMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, this.wizard.confirmLiveAcceptance(liveAcceptanceMatch[1], JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/overlay-assets' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, Math.max(this.config.maxPayloadBytes, MAX_OVERLAY_VIDEO_PAYLOAD_BYTES));
@@ -739,6 +846,9 @@ export class DiagnosticsServer {
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardConfigurationError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof AddOnWizardError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof LiveAcceptanceError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof ObsSourceInventoryError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof PreStreamReportError) return this.reply(response, 400, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
       if (error instanceof UnknownTimedActionError) return this.reply(response, 409, { error: error.message });
@@ -1394,6 +1504,11 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }
+
+function wizardTabLease(request: IncomingMessage): string {
+  const value = request.headers['x-thsv-wizard-tab'];
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value) ? value.toLowerCase() : '';
+}
 
 async function readBody(request: IncomingMessage, maximumBytes: number): Promise<RequestBody> {
   const contentEncoding = (request.headers['content-encoding'] ?? 'identity').trim().toLowerCase();

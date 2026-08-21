@@ -1,6 +1,6 @@
 {
   "name": "@thsv/streambridge",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "private": true,
   "license": "MIT",
   "description": "A modular, local-first cross-platform livestream automation framework",
@@ -27,6 +27,7 @@
     "start": "node dist/apps/bridge-service.js",
     "test": "vitest run",
     "test:browser": "npm run build && playwright test",
+    "test:startup-chaos": "node tools/run-startup-chaos.mjs",
     "test:integration": "vitest run tests/integration",
     "test:unit": "vitest run tests/unit",
     "typecheck": "tsc --noEmit"

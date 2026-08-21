@@ -203,6 +203,7 @@ async function loadAddOns() {
       if (!/not found/iu.test(String(error?.message || error))) throw error;
     }
     state.addOns = result.addOns;
+    if (typeof setOverlaySetupInventory === 'function') setOverlaySetupInventory(state.addOns);
     state.addOnFeatureFamilies = Array.isArray(result.featureFamilies) ? result.featureFamilies : Array.isArray(runtime?.mainFeatures?.catalog) ? runtime.mainFeatures.catalog : [];
     state.featureMigrations = Array.isArray(result.featureMigrations) ? result.featureMigrations : [];
     state.addOnRuntime = runtime;

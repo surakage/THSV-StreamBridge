@@ -58,6 +58,31 @@ describe('Stage 3 wizard service', () => {
     expect(service.diagnostics()).toMatchObject({ documentedRequestsOnly: true, mutationRequestsSent: 0 });
   });
 
+  it('coalesces overlapping inspections into one Streamer.bot read pair', async () => {
+    let actionReads = 0;
+    let commandReads = 0;
+    let releaseActions: (() => void) | undefined;
+    let releaseCommands: (() => void) | undefined;
+    const actionsReady = new Promise<void>((resolve) => { releaseActions = resolve; });
+    const commandsReady = new Promise<void>((resolve) => { releaseCommands = resolve; });
+    const service = new WizardService({
+      inspectActions: async () => { actionReads += 1; await actionsReady; return []; },
+      inspectCommands: async () => { commandReads += 1; await commandsReady; return []; },
+      inspectionRequests: () => [],
+    });
+
+    const first = service.inspect();
+    const second = service.inspect();
+    const third = service.inspect();
+    expect(actionReads).toBe(1);
+    expect(commandReads).toBe(1);
+    releaseActions?.();
+    releaseCommands?.();
+    const results = await Promise.all([first, second, third]);
+    expect(results[1]).toBe(results[0]);
+    expect(results[2]).toBe(results[0]);
+  });
+
   it('marks only commands in the sync mirror as manageable', async () => {
     const service = new WizardService(inspector(), undefined, commandSyncStore(['creator-command']));
     const result = await service.inspect();
@@ -86,6 +111,7 @@ describe('Stage 3 wizard service', () => {
     // now-unused Stage 3 map and never reflected a real configuration-mode draft.
     const beforeStaging = await service.overview();
     expect(beforeStaging['transactions']).toMatchObject([{ id: draft.id, status: 'draft' }]);
+    expect(beforeStaging['configuration']).toMatchObject({ activation: { state: 'active', restartRequired: false } });
 
     const staged = service.stageTransaction(draft.id, { kind: 'platform', platform: 'twitch', enabled: true, inputEnabled: true, outputEnabled: false });
     // Before this fix, cancelTransaction()'s declared return type (`as unknown as

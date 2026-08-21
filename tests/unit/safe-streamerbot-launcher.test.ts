@@ -19,7 +19,24 @@ describe('safe Streamer.bot launcher', () => {
   it('serializes launches, waits for release, and never force-terminates unknown owners', async () => {
     const source = await readFile('tools/start-streamerbot-safely.mjs', 'utf8');
     expect(source).toContain('thsv-streamerbot-start-${String(port)}.lock');
+    expect(source).toContain('waiting for its result');
+    expect(source).toContain('await acquireLock(port, output)');
+    expect(source).toContain('did not finish within 100 seconds');
+    expect(source).toContain('streamerbot-${String(port)}-startup-circuit.json');
+    expect(source).toContain('THSV_STARTUP_RUN_ID');
+    expect(source).toContain('startupRunId');
+    expect(source).toContain('crash-loop protection is active');
+    expect(source).toContain("outcome: 'in-progress'");
+    expect(source).toContain("'waiting-for-websocket'");
     expect(source).toContain('waitForPortRelease');
+    expect(source).toContain('START_ATTEMPTS = 2');
+    expect(source).toContain('retrying once');
+    expect(source).toContain('StreamerBotStartupExitError');
+    expect(source).toContain('EXISTING_HEALTH_STABILITY_MS = 4_000');
+    expect(source).toContain('listenerRemainsHealthy');
+    expect(source).toContain('was already closing');
+    expect(source.indexOf('let repaired = false')).toBeLessThan(source.indexOf('if (listener !== undefined)'));
+    expect(source.match(/let repaired = false/g)).toHaveLength(1);
     expect(source).toContain('CloseMainWindow');
     expect(source).toContain('streamerbot-launcher.json');
     expect(source).toContain("value?.version === 1 || value?.version === 2");

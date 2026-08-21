@@ -11,6 +11,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { StreamerBotLauncherService } from '../../bridge/services/streamerbot-launcher-service.js';
 import { MAIN_FEATURE_FAMILIES } from '../../bridge/core/main-feature-registry.js';
+import { LiveAcceptanceService } from '../../bridge/services/live-acceptance-service.js';
+import { createHash } from 'node:crypto';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
@@ -22,9 +24,14 @@ describe('wizard HTTP surface', () => {
     const bridge = createTestBridge(config);
     const wizard = new WizardService(undefined);
     const applyRequests: unknown[] = [];
+    const restartRequests: unknown[] = [];
     wizard.applyReleaseUpdate = (input) => {
       applyRequests.push(input);
       return Promise.resolve({ accepted: true, version: '9.9.9', installRoot: 'C:\\THSV StreamBridge', message: 'Update helper started.' });
+    };
+    wizard.restartStreamBridge = (input) => {
+      restartRequests.push(input);
+      return Promise.resolve({ accepted: true, message: 'Restart helper started.' });
     };
     const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard);
     await bridge.start();
@@ -44,6 +51,25 @@ describe('wizard HTTP surface', () => {
     expect(response.status).toBe(409);
     expect(await response.text()).toContain('Finish the live stream before installing');
     expect(applyRequests).toHaveLength(0);
+    const restartResponse = await fetch(`${baseUrl}/wizard/api/restart`, { method: 'POST', headers, body: JSON.stringify({ approvedByCreator: true }) });
+    expect(restartResponse.status).toBe(409);
+    expect(await restartResponse.text()).toContain('will not restart while a platform is live');
+    expect(restartRequests).toHaveLength(0);
+  });
+
+  it('protects and accepts a creator-approved offline Bridge restart', async () => {
+    const config = await testConfig(); config.service.port = 0;
+    const bridge = createTestBridge(config); const wizard = new WizardService(undefined); const restartRequests: unknown[] = [];
+    wizard.restartStreamBridge = (input) => { restartRequests.push(input); return Promise.resolve({ accepted: true, message: 'Restart helper started.' }); };
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard);
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const baseUrl = `http://127.0.0.1:${String(server.port)}`; const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    expect((await fetch(`${baseUrl}/wizard/api/restart`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(401);
+    const accepted = await fetch(`${baseUrl}/wizard/api/restart`, { method: 'POST', headers, body: JSON.stringify({ approvedByCreator: true }) });
+    expect(accepted.status).toBe(202);
+    expect(await accepted.json()).toMatchObject({ accepted: true, message: 'Restart helper started.' });
+    expect(restartRequests).toHaveLength(1);
   });
 
   it('protects and persists the public safe Streamer.bot launcher selection', async () => {
@@ -58,7 +84,16 @@ describe('wizard HTTP surface', () => {
     stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`; const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
     expect((await fetch(`${baseUrl}/wizard/api/streamerbot-launcher`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/readiness`)).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/streamerbot-launcher`, { headers })).status).toBe(200);
+    const readiness = await fetch(`${baseUrl}/wizard/api/readiness`, { headers });
+    expect(readiness.status).toBe(200);
+    const readinessBody = await readiness.json() as { readiness: { status?: unknown }; launcher: { websocketPort?: unknown }; configuration: { state?: unknown; restartRequired?: unknown }; provenance: { version?: unknown }; obsInventory: { configured?: unknown } };
+    expect(typeof readinessBody.readiness.status).toBe('string');
+    expect(typeof readinessBody.launcher.websocketPort).toBe('number');
+    expect(readinessBody.configuration).toMatchObject({ state: 'unavailable', restartRequired: false });
+    expect(typeof readinessBody.provenance.version).toBe('string');
+    expect(readinessBody.obsInventory.configured).toBe(false);
     const denied = await fetch(`${baseUrl}/wizard/api/streamerbot-launcher/save`, { method: 'POST', headers, body: JSON.stringify({ executable, approvedByCreator: false }) });
     expect(denied.status).toBe(403);
     const saved = await fetch(`${baseUrl}/wizard/api/streamerbot-launcher/save`, { method: 'POST', headers, body: JSON.stringify({ executable, approvedByCreator: true }) });
@@ -102,13 +137,21 @@ describe('wizard HTTP surface', () => {
     const coordinationResets: Array<string | undefined> = [];
     (bridge as unknown as { resetAddOnCoordination(resource?: string): Readonly<Record<string, unknown>> }).resetAddOnCoordination = (resource) => { coordinationResets.push(resource); return { reset: true, resource: resource ?? 'all', cancelledActive: 0, cancelledQueued: 0, mediaSlotCleared: false }; };
     const addOns = new AddOnWizardService(join(root, 'packages'), join(root, 'state'));
-    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined, undefined, undefined, addOns));
+    const liveAcceptance = new LiveAcceptanceService(join(root, 'acceptance-state')); await liveAcceptance.start();
+    const wizard = new WizardService(undefined, undefined, undefined, addOns, undefined, undefined, undefined, undefined, undefined, undefined, liveAcceptance);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard, root);
     await bridge.start(); await server.start();
     stops.push(async () => { await server.stop(); await bridge.stop(); await rm(root, { recursive: true, force: true }); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
     expect((await fetch(`${baseUrl}/wizard/api/addons`)).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/addons/sample.missing/feature-migration`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ importData: true, enabled: true, approvedByCreator: true }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/addons/acceptance`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/live-acceptance`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/support-bundle`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/support-bundle/preview`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/obs-source-inventory`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/pre-stream-report`)).status).toBe(401);
+    expect((await fetch(`${baseUrl}/wizard/api/pre-stream-report/compare`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-foundation/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/viewer-foundation`)).status).toBe(401);
     expect((await fetch(`${baseUrl}/wizard/api/community-analytics/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'status' }) })).status).toBe(401);
@@ -153,6 +196,37 @@ describe('wizard HTTP surface', () => {
     const acceptance = await fetch(`${baseUrl}/wizard/api/addons/acceptance`, { headers });
     expect(acceptance.status).toBe(200);
     expect(await acceptance.json()).toEqual({ acceptance: {} });
+    const liveStatus = await fetch(`${baseUrl}/wizard/api/live-acceptance`, { headers });
+    expect(liveStatus.status).toBe(200);
+    const liveStatusBody = await liveStatus.json() as unknown;
+    const liveStatusRecord = liveStatusBody as { checks: Array<{ id: string }>; evidence: unknown[]; confirmations: Record<string, unknown> };
+    expect(liveStatusRecord.checks.some((check) => check.id === 'bridge-startup')).toBe(true);
+    expect(liveStatusRecord.evidence).toEqual([]);
+    expect(liveStatusRecord.confirmations).toEqual({});
+    const liveSaved = await fetch(`${baseUrl}/wizard/api/live-acceptance/bridge-startup`, { method: 'PUT', headers, body: JSON.stringify({ status: 'accepted', note: 'Startup paths passed locally.', approvedByCreator: true }) });
+    expect(liveSaved.status).toBe(200);
+    expect(await liveSaved.json() as unknown).toMatchObject({ checkId: 'bridge-startup', status: 'accepted' });
+    const bundlePreview = await fetch(`${baseUrl}/wizard/api/support-bundle/preview`, { headers });
+    expect(bundlePreview.status).toBe(200);
+    const bundlePreviewBody = await bundlePreview.json() as { files: Array<{ path: string }>; omittedCategories: string[]; previewId: string; sha256: string; archiveBytes: number };
+    expect(bundlePreviewBody.files.some((file) => file.path === 'README.txt')).toBe(true);
+    expect(bundlePreviewBody.omittedCategories).toContain('configuration files');
+    expect((await fetch(`${baseUrl}/wizard/api/support-bundle`, { headers })).status).toBe(409);
+    const bundle = await fetch(`${baseUrl}/wizard/api/support-bundle`, { headers: { ...headers, 'x-thsv-support-preview': bundlePreviewBody.previewId } });
+    expect(bundle.status).toBe(200);
+    expect(bundle.headers.get('content-type')).toBe('application/zip');
+    const bundleBytes = new Uint8Array(await bundle.arrayBuffer());
+    expect(bundleBytes.byteLength).toBe(bundlePreviewBody.archiveBytes);
+    expect(createHash('sha256').update(bundleBytes).digest('hex')).toBe(bundlePreviewBody.sha256);
+    expect((await fetch(`${baseUrl}/wizard/api/support-bundle`, { headers: { ...headers, 'x-thsv-support-preview': bundlePreviewBody.previewId } })).status).toBe(409);
+    const preStreamReport = await fetch(`${baseUrl}/wizard/api/pre-stream-report`, { headers });
+    expect(preStreamReport.status).toBe(200); expect(preStreamReport.headers.get('content-type')).toContain('application/json');
+    const preStreamReportBody: unknown = await preStreamReport.json();
+    expect(preStreamReportBody).toMatchObject({ schemaVersion: 1, build: { version: expect.any(String) as unknown }, obs: { configured: false }, acceptance: { confirmations: { 'bridge-startup': { status: 'accepted' } } } });
+    const comparison = await fetch(`${baseUrl}/wizard/api/pre-stream-report/compare`, { method: 'POST', headers, body: JSON.stringify({ baseline: preStreamReportBody }) });
+    expect(comparison.status).toBe(200); expect(await comparison.json() as unknown).toMatchObject({ changed: false, regressions: 0, unchanged: true });
+    const invalidComparison = await fetch(`${baseUrl}/wizard/api/pre-stream-report/compare`, { method: 'POST', headers, body: JSON.stringify({ baseline: { schemaVersion: 99 } }) });
+    expect(invalidComparison.status).toBe(400);
     const deniedReset = await fetch(`${baseUrl}/wizard/api/coordination/reset`, { method: 'POST', headers, body: JSON.stringify({ approvedByCreator: false }) });
     expect(deniedReset.status).toBe(403);
     const reset = await fetch(`${baseUrl}/wizard/api/coordination/reset`, { method: 'POST', headers, body: JSON.stringify({ approvedByCreator: true, resource: 'media.playback' }) });

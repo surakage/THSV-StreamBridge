@@ -180,8 +180,11 @@
   // same source alive across scenes; the bridge uses this ID to ensure that only the copy that
   // actually started a clip is allowed to report its completion.
   const rendererId = globalThis.crypto?.randomUUID?.() || `renderer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  let obsScene;
   let lastCompletionSequence = -1;
   let sendTransport = () => undefined;
+  let obsVisible = document.visibilityState !== 'hidden';
+  let obsActive;
   const mediaFadeMs = 750;
 
   function safeUrl(value) {
@@ -1281,9 +1284,22 @@
   function transportState(state) {
     status.textContent = state === 'live' ? 'LIVE' : 'OFFLINE';
     status.dataset.state = state;
-    if (state === 'live') sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.subscribe', moduleId, rendererId });
+    if (state === 'live') { sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.subscribe', moduleId, rendererId }); reportHostVisibility(); }
     else resetOverlaySurface();
   }
+
+  function reportHostVisibility() {
+    sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'host.visibility', moduleId, rendererId, host: window.obsstudio ? 'obs' : 'browser', surface: location.pathname, visible: window.obsstudio ? obsVisible : document.visibilityState !== 'hidden', ...(typeof obsActive === 'boolean' ? { active: obsActive } : {}), ...(typeof obsScene === 'string' ? { scene: obsScene } : {}) });
+  }
+
+  function refreshObsScene() { if (typeof window.obsstudio?.getCurrentScene === 'function') window.obsstudio.getCurrentScene((scene) => { if (typeof scene?.name === 'string') obsScene = scene.name; reportHostVisibility(); }); }
+
+  document.addEventListener('visibilitychange',()=>{if(!window.obsstudio)obsVisible=document.visibilityState!=='hidden';reportHostVisibility()});
+  addEventListener('obsSourceVisibleChanged',(event)=>{const value=event.detail?.visible??event.detail;if(typeof value==='boolean')obsVisible=value;reportHostVisibility()});
+  addEventListener('obsSourceActiveChanged',(event)=>{const value=event.detail?.active??event.detail;if(typeof value==='boolean')obsActive=value;reportHostVisibility()});
+  addEventListener('obsSceneChanged',(event)=>{const value=event.detail?.name??event.detail?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()});
+  refreshObsScene();
+  setInterval(reportHostVisibility,15_000);
 
   function resetOverlaySurface() {
     hideCard();
@@ -1330,6 +1346,7 @@
       });
       worker.port.start();
       addEventListener('pagehide', () => {
+        obsVisible=false;reportHostVisibility();
         sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.unsubscribe', moduleId, rendererId });
         worker.port.postMessage({ kind: 'disconnect' });
       }, { once: true });

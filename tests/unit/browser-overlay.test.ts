@@ -261,6 +261,17 @@ describe('Browser Overlay Hub contract', () => {
     hub.stop();
   });
 
+  it('records read-only OBS browser-source visibility without opening another connection', async () => {
+    const config = await testConfig();
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const socket = {} as WebSocket;
+    const receive = (hub as unknown as { receiveClientMessage(raw: string, socket?: WebSocket): void }).receiveClientMessage.bind(hub);
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'host.visibility', host: 'obs', rendererId: 'obs-alerts-1', surface: '/overlay/alerts:alerts', scene: 'Live - Village', visible: true, active: true }), socket);
+    receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'host.visibility', host: 'obs', rendererId: 'obs-addon-1', moduleId: 'sample.labels', surface: '/overlay/addons/sample.labels', visible: false }), socket);
+    expect(hub.status()).toMatchObject({ hostVisibility: { supported: true, visibleObsSources: 1, obsSources: [{ rendererId: 'obs-alerts-1', scene: 'Live - Village', visible: true, active: true }, { rendererId: 'obs-addon-1', moduleId: 'sample.labels', visible: false }] } });
+    hub.stop();
+  });
+
   it('replays active add-on media when an OBS browser source connects after play was published', async () => {
     const config = await testConfig();
     const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
@@ -447,6 +458,11 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain('textContent');
     expect(addOnHost).toContain("kind: 'addon.subscribe', moduleId, rendererId");
     expect(addOnHost).toContain("kind: 'addon.unsubscribe', moduleId, rendererId");
+    expect(source).toContain("kind: 'host.visibility'");
+    expect(addOnHost).toContain("kind: 'host.visibility'");
+    expect(source).toContain('getCurrentScene');
+    expect(addOnHost).toContain('obsSceneChanged');
+    expect(source).toContain("addEventListener('obsSourceVisibleChanged'");
     expect(source).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");
     expect(addOnHost).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");
     expect(worker).toContain('const candidate = new WebSocket');

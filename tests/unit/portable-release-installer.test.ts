@@ -48,11 +48,35 @@ function install(source: string, destination: string, ...extra: string[]): Retur
   return spawnSync(process.execPath, [join(source, 'installer', 'install.mjs'), '--install-root', destination, '--no-start', '--no-shortcuts', '--skip-acl', ...extra], { encoding: 'utf8', timeout: 60_000 });
 }
 
+function installWithHealthCheck(source: string, destination: string, ...extra: string[]): ReturnType<typeof spawnSync> {
+  return spawnSync(process.execPath, [join(source, 'installer', 'install.mjs'), '--install-root', destination, '--no-shortcuts', '--skip-acl', ...extra], { encoding: 'utf8', timeout: 60_000 });
+}
+
 function processOutput(result: ReturnType<typeof spawnSync>): string {
   return `${String(result.stdout)}\n${String(result.stderr)}`;
 }
 
 describe('portable Windows release installer', () => {
+  it.runIf(process.env['THSV_STARTUP_CHAOS'] === '1')('rolls back an isolated upgrade when the replacement exits before health', async () => {
+    if (process.platform !== 'win32') return;
+    const temporary = await mkdtemp(join(tmpdir(), 'thsv-chaos-rollback-'));
+    const source = join(temporary, 'release'); const destination = join(temporary, 'install');
+    try {
+      await writePortableRelease(source, '8.0.0', 'throw new Error("previous fixture is intentionally not started")');
+      const initial = install(source, destination);
+      expect(initial.status, processOutput(initial)).toBe(0);
+      await writePortableRelease(source, '8.1.0', 'process.exit(23)');
+      const failed = installWithHealthCheck(source, destination);
+      expect(failed.status).not.toBe(0);
+      expect(processOutput(failed)).toContain('failed its health check and was rolled back');
+      const record = JSON.parse(await readFile(join(destination, 'data', 'runtime', 'install-manifest.json'), 'utf8')) as Record<string, unknown>;
+      expect(record).toMatchObject({ activeVersion: '8.0.0', failedVersion: '8.1.0' });
+      expect(record['rolledBackAt']).toEqual(expect.any(String));
+      expect(await readFile(join(destination, 'app', '8.0.0', 'dist', 'apps', 'bridge-service.js'), 'utf8')).toContain('previous fixture');
+      await expect(stat(join(destination, 'app', '8.1.0'))).rejects.toThrow();
+    } finally { await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
+  }, 60_000);
+
   it('uses only the installation-private command-directory token when launching', async () => {
     const source = await readFile('launcher/start.mjs', 'utf8');
     expect(source).toContain("join(dataRoot, 'secrets', 'command-directory-publish-token.txt')");
@@ -63,6 +87,14 @@ describe('portable Windows release installer', () => {
     expect(source).toContain('maximumBytes = 5 * 1024 * 1024');
     expect(source).toContain('listeningPidForPort(port)');
     expect(source).toContain('not the StreamBridge process that was just started');
+    expect(source).toContain('healthyExistingProcess(baseUrl, config.service.port)');
+    expect(source).toContain("process.argv.includes('--restart')");
+    expect(source).toContain("'already-healthy'");
+    expect(source).toContain("'last-startup-report.json'");
+    expect(source).toContain("'startup-reports.jsonl'");
+    expect(source).toContain("'bridge-configuration'");
+    expect(source).toContain("'port-conflict'");
+    expect(source).toContain("'bridge-health-timeout'");
     expect(source.indexOf("child.once('spawn'")).toBeLessThan(source.indexOf('await writeFile(pidPath'));
   });
 
@@ -87,7 +119,8 @@ describe('portable Windows release installer', () => {
     expect(installedWizardLauncher.indexOf('launcher\\open-wizard.mjs')).toBeLessThan(installedWizardLauncher.indexOf('launcher\\start.mjs" --open-wizard'));
     const installedSecureOpener = await readFile(join(firstInstall, 'launcher', 'open-wizard.mjs'), 'utf8');
     expect(installedSecureOpener).toContain('/wizard/api/unlock-tickets');
-    expect(installedSecureOpener).toContain('/wizard/#unlock=${ticketResult.ticket}');
+    expect(installedSecureOpener).toContain("guidedWizard?'?guided=1':''");
+    expect(installedSecureOpener).toContain('#unlock=${ticketResult.ticket}');
     expect(processOutput(firstResult)).toContain(`Wizard recovery key saved to: ${join(firstInstall, 'THSV StreamBridge Recovery Key.txt')}`);
     expect(processOutput(firstResult)).toContain(`One-button Stream Deck target: ${join(firstInstall, 'Start THSV Streaming Tools.cmd')}`);
     expect(processOutput(firstResult)).toContain('One Streamer.bot import. Choose your features, download one .sb file, import it once');
@@ -150,8 +183,11 @@ describe('portable Windows release installer', () => {
     await expect(stat(join(firstInstall, 'addons', 'packages', 'thsv.community-analytics'))).rejects.toThrow();
     await expect(stat(join(firstInstall, 'addons', 'packages', 'thsv.kofi-donations'))).rejects.toThrow();
     await expect(stat(join(firstInstall, 'addons', 'state', 'thsv.legacy-addon', 'settings.json'))).rejects.toThrow();
-    const upgradedRecord = JSON.parse(await readFile(join(firstInstall, 'data', 'runtime', 'install-manifest.json'), 'utf8')) as { readonly activeVersion?: unknown; readonly previousVersion?: unknown };
+    const upgradedRecord = JSON.parse(await readFile(join(firstInstall, 'data', 'runtime', 'install-manifest.json'), 'utf8')) as { readonly activeVersion?: unknown; readonly previousVersion?: unknown; readonly buildFingerprint?: unknown; readonly releaseManifestSha256?: unknown; readonly fileCount?: unknown };
     expect(upgradedRecord).toMatchObject({ activeVersion: '2.1.0' });
+    expect(typeof upgradedRecord.fileCount).toBe('number');
+    expect(upgradedRecord.buildFingerprint).toMatch(/^[a-f0-9]{64}$/u);
+    expect(upgradedRecord.releaseManifestSha256).toMatch(/^[a-f0-9]{64}$/u);
     expect(upgradedRecord).not.toHaveProperty('previousVersion');
     await expect(stat(join(firstInstall, 'app', '2.0.0'))).rejects.toThrow();
 

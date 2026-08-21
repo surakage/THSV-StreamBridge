@@ -9,7 +9,7 @@ and Kick use their native Streamer.bot C# chat methods. TikTok uses TikFinity's 
 **This is the only THSV StreamBridge package that automatically posts messages to your live
 channel.** Select only platforms where you intend the configured messages to appear publicly.
 
-Import `THSV-StreamBridge-Timed-Message-Output-4.0.1.sb`, inspect Streamer.bot from the wizard,
+Import `THSV-StreamBridge-Timed-Message-Output-4.0.2.sb`, inspect Streamer.bot from the wizard,
 then choose **THSV StreamBridge - Send Timed Message** as the timer's execution action. Select
 one or more delivery-platform switches. The wizard's **Test saved** operation validates the full
 chain but never sends externally because simulated executions are suppressed by this action.
@@ -25,6 +25,8 @@ so `timedMessageDispatchedPlatforms` means the API call completed without throwi
 prove that a platform displayed the message.
 
 Timed messages preserve the historical bot-preferred behavior. The interactive dock explicitly
-passes `multiTimedUseBotAccount=false` and `multiTimedAllowAccountFallback=false`, so Twitch,
-YouTube, and Kick replies use the connected creator account and never silently fall back to the bot.
+passes `multiTimedUseBotAccount=false` and `multiTimedAllowAccountFallback=true`, so Twitch,
+YouTube, and Kick replies prefer the connected creator account and use the connected bot when the
+creator account cannot send. This prevents a locally accepted dock message from disappearing without
+a practical delivery attempt.
 TikTok uses the sender selected in TikFinity because its relay contract has no equivalent account flag.

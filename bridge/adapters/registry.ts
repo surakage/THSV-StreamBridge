@@ -28,6 +28,20 @@ export interface InputProviderCapabilities {
 
 export type InputProviderDeclaration = (platform: string) => InputProviderCapabilities;
 
+// Bump the matching value whenever a provider-facing adapter contract changes.
+// Live acceptance binds to these values so connector changes can invalidate the
+// affected paths even when the creator's configuration stays the same.
+export const ADAPTER_CONTRACT_VERSIONS: Readonly<Record<string, string>> = Object.freeze({
+  mock: '1',
+  'timed-actions': '2',
+  'tikfinity-streamerbot': '2',
+  'streamerbot-native': '3',
+  'streamerbot-addon-relay': '2',
+  'streamerbot-scene-relay': '2',
+  'streamerbot-streamlabs': '2',
+  streamerbot: '3',
+});
+
 interface RegisteredInputProvider {
   readonly factory: InputAdapterFactory;
   readonly declaration?: InputProviderDeclaration;

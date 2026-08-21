@@ -15,12 +15,14 @@ describe('Stage 4 wizard configuration gateway', () => {
     const sourceWithArchivedState = `${JSON.stringify(sourceObject, null, 2)}\n`;
     await writeFile(path, sourceWithArchivedState);
     const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    await expect(gateway.activationStatus()).resolves.toMatchObject({ state: 'active', restartRequired: false });
     const draft = await gateway.begin();
     await expect(gateway.begin()).rejects.toThrow('mutation lease');
     expect(() => gateway.stage(draft.id, { kind: 'platform', platform: 'twitch', enabled: 'yes' })).toThrow('Staged configuration change is invalid');
     gateway.stage(draft.id, { kind: 'platform', platform: 'twitch', enabled: true, inputEnabled: true, outputEnabled: false });
     const committed = await gateway.commit(draft.id);
     expect(committed.status).toBe('committed');
+    await expect(gateway.activationStatus()).resolves.toMatchObject({ state: 'restart-required', restartRequired: true });
     expect(committed.backupPath).toBeDefined();
     if (committed.backupPath === undefined) throw new Error('Commit did not return a backup path.');
     expect(await readFile(committed.backupPath, 'utf8')).toBe(sourceWithArchivedState);
@@ -32,6 +34,25 @@ describe('Stage 4 wizard configuration gateway', () => {
     expect(exported).not.toContain('passwordEnv');
     expect(exported).toContain('timedActions');
     expect(gateway.diagnostics()).toMatchObject({ mutationWrites: 1, rollbackWrites: 0, activeMutationLeases: 0 });
+    const restartedGateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups-after-restart'));
+    await expect(restartedGateway.activationStatus()).resolves.toMatchObject({ state: 'active', restartRequired: false });
+  });
+
+  it('binds an owned draft to the browser tab that created it', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-tab-lease-'));
+    const path = join(directory, 'bridge.json');
+    await writeFile(path, await readFile('config/bridge.example.json', 'utf8'));
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const owner = 'wizard-tab-owner';
+    const otherTab = 'different-wizard-tab';
+    const draft = await gateway.begin(owner);
+    const change = { kind: 'platform', platform: 'twitch', enabled: true, inputEnabled: true, outputEnabled: false };
+
+    expect(() => gateway.stage(draft.id, change, otherTab)).toThrow('Another browser tab owns this protected draft');
+    expect(() => gateway.cancel(draft.id, otherTab)).toThrow('Another browser tab owns this protected draft');
+    gateway.stage(draft.id, change, owner);
+    await expect(gateway.commit(draft.id, otherTab)).rejects.toThrow('Another browser tab owns this protected draft');
+    expect(gateway.cancel(draft.id, owner)).toMatchObject({ status: 'cancelled' });
   });
 
   it('stages timed-action CRUD data through the same validated transaction', async () => {
@@ -51,6 +72,20 @@ describe('Stage 4 wizard configuration gateway', () => {
     expect(staged.stagedChanges).toEqual([expect.objectContaining({ kind: 'timed-actions' })]);
     await gateway.commit(draft.id);
     expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ timedActions: { definitions: [expect.objectContaining({ id: 'socials' })] } });
+  });
+
+  it('does not request a restart when staged settings match the active file', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-noop-'));
+    const path = join(directory, 'bridge.json');
+    await writeFile(path, await readFile('config/bridge.example.json', 'utf8'));
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const snapshot = await gateway.snapshot() as { platforms: Record<string, { enabled: boolean; inputEnabled: boolean; outputEnabled: boolean }> };
+    const twitch = snapshot.platforms['twitch'];
+    if (twitch === undefined) throw new Error('Expected Twitch platform settings.');
+    const draft = await gateway.begin();
+    gateway.stage(draft.id, { kind: 'platform', platform: 'twitch', enabled: twitch.enabled, inputEnabled: twitch.inputEnabled, outputEnabled: twitch.outputEnabled });
+    await expect(gateway.commit(draft.id)).resolves.toMatchObject({ status: 'committed', restartRequired: false });
+    await expect(gateway.activationStatus()).resolves.toMatchObject({ state: 'active', restartRequired: false });
   });
 
   it('stages alert profiles through the same backup transaction and safe export', async () => {

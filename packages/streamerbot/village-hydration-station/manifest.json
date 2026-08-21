@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Village Hydration Station",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "author": "surakage",
   "description": "Creator hydration controls and optional broker-authorized Speaker.bot delivery.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -21,7 +21,7 @@
         }
       ],
       "source": "src/HydrationControl.cs",
-      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.2.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -39,7 +39,7 @@
         }
       ],
       "source": "src/HydrationControl.cs",
-      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.2.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -57,7 +57,7 @@
         }
       ],
       "source": "src/HydrationControl.cs",
-      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.2.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -75,7 +75,7 @@
         }
       ],
       "source": "src/HydrationControl.cs",
-      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.2.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -93,7 +93,7 @@
         }
       ],
       "source": "src/HydrationControl.cs",
-      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.2.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -105,7 +105,7 @@
       "name": "THSV Addon - Village Hydration Station - Speak",
       "group": "THSV Addon - Village Hydration Station",
       "source": "src/Speak.cs",
-      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Village-Hydration-Station-4.0.2.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

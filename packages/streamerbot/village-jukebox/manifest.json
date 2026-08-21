@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Village Jukebox",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "author": "surakage",
   "description": "Resolves YouTube song requests without exposing the creator's API key and settles accepted Twitch reward requests for Village Jukebox.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -17,7 +17,7 @@
         }
       ],
       "source": "src/ResolveYouTubeTrack.cs",
-      "importFile": "THSV-StreamBridge-Village-Jukebox-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Village-Jukebox-4.0.2.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [
@@ -33,7 +33,7 @@
       "name": "THSV Addon - Village Jukebox - Settle Twitch Reward",
       "group": "THSV Addon - Village Jukebox",
       "source": "src/SettleTwitchReward.cs",
-      "importFile": "THSV-StreamBridge-Village-Jukebox-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Village-Jukebox-4.0.2.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [

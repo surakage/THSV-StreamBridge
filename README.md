@@ -214,7 +214,7 @@ Browser Overlay Hub adds one local transparent browser source for Meld Studio, O
 - Loopback-only live WebSocket delivery and creator controls for duration, retention, bots, and simulated events
 - Independently movable Chat and Alerts browser sources that share one WebSocket when the host supports `SharedWorker`
 
-Use `http://127.0.0.1:8787/overlay/` for the combined canvas, add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources, or add `http://127.0.0.1:8787/overlay/chat/dock` as an interactive multichat dock. The dock can reply to one enabled platform or all enabled platforms through the existing Streamer.bot connection, using the connected creator account where Streamer.bot supports account selection. Chat appearance and ignored names are saved from the authenticated wizard. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). The same local overlay routes work as OBS Browser Sources, Meld Browser layers, and Streamlabs Desktop Browser Sources. Scene and streaming automation must use the matching OBS, Meld, or Streamlabs trigger in Streamer.bot; only the OBS/Aitum multi-output helper is OBS-specific.
+Use `http://127.0.0.1:8787/overlay/` for the combined canvas, add `http://127.0.0.1:8787/overlay/chat` and `http://127.0.0.1:8787/overlay/alerts` as independently movable Browser layers/sources, or add `http://127.0.0.1:8787/overlay/chat/dock` as an interactive multichat dock. The dock can reply to one enabled platform or all enabled platforms through the existing Streamer.bot connection. It prefers the connected creator account where Streamer.bot supports account selection and falls back to the connected bot account when needed. Chat appearance and ignored names are saved from the authenticated wizard. Follow the [Browser Overlay Hub guide](docs/browser-overlay.md). The same local overlay routes work as OBS Browser Sources, Meld Browser layers, and Streamlabs Desktop Browser Sources. Scene and streaming automation must use the matching OBS, Meld, or Streamlabs trigger in Streamer.bot; only the OBS/Aitum multi-output helper is OBS-specific.
 
 ## Viewer foundation and community insights
 
@@ -228,13 +228,13 @@ Streamer.bot inspection sends only documented `GetActions` and `GetCommands` req
 
 ## TikFinity intake
 
-The reviewed TikFinity-to-Streamer.bot intake relays TikTok chat, follows, gifts, 100-like milestones, and subscriptions. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.1.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
+The reviewed TikFinity-to-Streamer.bot intake relays TikTok chat, follows, gifts, 100-like milestones, and subscriptions. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.2.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
 
 TikFinity does not currently document a stable source-event ID or reliable simulator marker. Intake events therefore expose those limitations explicitly and default to simulated until live provenance is verified; do not use them for production progression or financial statistics yet.
 
 ## Native Streamer.bot platform intake
 
-Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.1.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
+Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.2.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
 
 The native intake also relays documented Twitch and YouTube emote ranges. StreamBridge locally matches BTTV for Twitch/YouTube, FrankerFaceZ for Twitch, and 7TV for Twitch/YouTube/Kick; unavailable catalogs and image failures preserve the original emote code as text.
 
@@ -268,6 +268,8 @@ To create creator-specific settings, copy `config/bridge.example.json` into `dat
 See [Getting started](docs/getting-started.md), [Main features](docs/main-features.md), [Channel rewards](docs/rewards.md), [milestone checklist](docs/milestones.md), [setup](docs/setup.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md), [testing](docs/testing.md), [security](docs/security.md), [troubleshooting](docs/troubleshooting.md), [Streamer.bot setup](docs/streamerbot-setup.md), [Browser Overlay Hub](docs/browser-overlay.md), and the [future project and add-on roadmap](docs/future-projects-and-addons.md).
 
 For a versioned archive, checksum verification, state-preserving upgrades, and uninstall instructions, use the [Installer and public release guide](docs/release.md).
+
+Reliability checks are available in **Test & finish**: version-bound live acceptance with exact invalidation reasons and periodic due dates, one-click expectations and creator-approved reconciliation from detected OBS scene/source reports, an exact snapshot preview before support-bundle download, exportable and locally comparable sanitized pre-stream reports, and the installed build fingerprint. Source maintainers can run `npm.cmd run test:startup-chaos` to exercise isolated early-exit, port-conflict, crash-loop, and installer-rollback scenarios. Tagged release packaging is gated on that harness plus clean-install, same-version repair, and previous-release upgrade tests against the actual built ZIP on Windows.
 
 Version 4 release: [THSV StreamBridge v4.0.1](https://github.com/surakage/THSV-StreamBridge/releases/tag/v4.0.1). Use the latest release page rather than an unverified source archive.
 

@@ -30,8 +30,8 @@ const livePlatforms = new Set();
 let operation = Promise.resolve();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chat Play Pack', version: '4.0.1',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.1', maximumTestedBridgeVersion: '4.0.1',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chat Play Pack', version: '4.0.2',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.2', maximumTestedBridgeVersion: '4.0.2',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline', OPEN_TDB_RESULT_EVENT, DICTIONARY_RESULT_EVENT],
   commandsProvided: [

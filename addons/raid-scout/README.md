@@ -30,9 +30,9 @@ The preferred tier can combine two lists:
 
 ## Install
 
-1. Import `THSV-StreamBridge-Raid-Scout-4.0.1.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Raid-Scout-4.0.2.sb` into Streamer.bot.
 2. Leave `THSV Addon - Raid Scout - Controller` and `THSV Addon - Raid Scout - Run Ending Ad` triggerless.
-3. Install `thsv.raid-scout-4.0.1.thsv-addon` through the StreamBridge wizard.
+3. Install `thsv.raid-scout-4.0.2.thsv-addon` through the StreamBridge wizard.
 4. Inspect Streamer.bot and approve the Raid Scout Controller and Run Ending Ad actions. If you enable automatic ending, choose OBS Studio, Meld Studio, or Streamlabs Desktop in the wizard and approve the matching stop action. OBS/Aitum users select the included Stop All OBS Streaming Outputs action; Meld and Streamlabs users select an action containing that application's native Stop Streaming sub-action.
 5. Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the one-press ending flow; Suggest and Confirm remain available for manual review.
 6. Open the add-on overlay URL as a private browser/OBS/Meld dock so you can review the suggestion.

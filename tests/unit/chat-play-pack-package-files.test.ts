@@ -22,14 +22,13 @@ describe('Chat Play Pack Streamer.bot package', () => {
     expect(source).not.toMatch(/viewerId|displayName|chatMessage|pointBalance/u);
   });
 
-  it('pins two triggerless broker actions and bundles the organized command set', async () => {
+  it('pins two triggerless broker actions while Bridge owns the command set', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/chat-play-pack/manifest.json', 'utf8')) as { actions: Array<{ id: string; references: string[]; excludeFromHistory: boolean; triggers?: unknown[] }>; commands: Array<{ name: string; command: string; enabled: boolean; sources: number }>; manualTriggerSetup: unknown[] };
     expect(manifest.actions).toHaveLength(2);
     expect(manifest.actions[0]?.id).toBe('d72d0873-8cbd-4dd5-a171-6b7122cd125e');
     expect(manifest.actions[1]?.id).toBe('08cf5035-09ce-45b7-bef5-c5f7081d17f6');
     for (const action of manifest.actions) { expect(action.excludeFromHistory).toBe(true); expect(action.triggers).toBeUndefined(); expect(action.references).not.toContain('C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll'); }
-    expect(manifest.commands.map((command) => command.name)).toEqual(['play','guess','answer','predict','coinflip','slots','roulette','rps','duel','accept','decline']);
-    expect(manifest.commands.every((command) => command.enabled && command.command === `!${command.name}` && command.sources === 2098177)).toBe(true);
+    expect(manifest.commands).toEqual([]);
     expect(manifest.manualTriggerSetup).toEqual([]);
   });
 
