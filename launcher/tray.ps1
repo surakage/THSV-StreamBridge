@@ -3,6 +3,7 @@ param([string]$InstallRoot = '')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+. (Join-Path $PSScriptRoot 'tray-status.ps1')
 Add-Type -Namespace Thsv.Native -Name IconHandle -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("user32.dll")]
 public static extern bool DestroyIcon(System.IntPtr handle);
@@ -22,10 +23,42 @@ $runtime = Join-Path $InstallRoot 'runtime\node.exe'
 $configPath = Join-Path $InstallRoot 'data\configuration\bridge.local.json'
 $logPath = Join-Path $InstallRoot 'data\logs\tray-shell.log'
 $startupReportPath = Join-Path $InstallRoot 'data\logs\last-startup-report.json'
+$trayPreferencesPath = Join-Path $InstallRoot 'data\state\tray-preferences.json'
 $script:lastReady = $null
 $script:lastDetail = 'Checking StreamBridge...'
 $script:lastReportTimestamp = $null
+$script:lastAcceptanceSignature = $null
+$script:lastAcceptanceNotificationAt = [DateTimeOffset]::MinValue
 $script:closing = $false
+
+function Read-AcceptanceSnoozedUntil {
+    try {
+        if (-not (Test-Path -LiteralPath $trayPreferencesPath -PathType Leaf)) { return [DateTimeOffset]::MinValue }
+        $raw = [System.IO.File]::ReadAllText($trayPreferencesPath)
+        if ($raw.Length -gt 4096) { return [DateTimeOffset]::MinValue }
+        $value = $raw | ConvertFrom-Json
+        $parsed = [DateTimeOffset]::MinValue
+        if ([DateTimeOffset]::TryParse([string]$value.acceptanceSnoozedUntil, [ref]$parsed)) { return $parsed.ToUniversalTime() }
+    } catch { }
+    return [DateTimeOffset]::MinValue
+}
+
+function Save-AcceptanceSnoozedUntil([DateTimeOffset]$Until) {
+    $directory = Split-Path -Parent $trayPreferencesPath
+    [System.IO.Directory]::CreateDirectory($directory) | Out-Null
+    $temporary = "$trayPreferencesPath.$([Guid]::NewGuid().ToString('N')).tmp"
+    $json = [ordered]@{ version = 1; acceptanceSnoozedUntil = $Until.ToUniversalTime().ToString('o') } | ConvertTo-Json
+    try {
+        [System.IO.File]::WriteAllText($temporary, "$json`n", [System.Text.UTF8Encoding]::new($false))
+        Move-Item -LiteralPath $temporary -Destination $trayPreferencesPath -Force
+    } finally {
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+    }
+}
+
+function Clear-AcceptanceSnooze {
+    if (Test-Path -LiteralPath $trayPreferencesPath -PathType Leaf) { Remove-Item -LiteralPath $trayPreferencesPath -Force }
+}
 
 function Write-TrayLog([string]$Message) {
     try {
@@ -110,8 +143,26 @@ function Update-Status {
         $response = Invoke-RestMethod -Uri "$(Read-ServiceUrl)/ready" -Method Get -TimeoutSec 2
         $ready = $response.ready -eq $true
         $detail = if ($ready) { 'Bridge is ready' } else { 'Bridge needs attention' }
+        $snoozedUntil = Read-AcceptanceSnoozedUntil
+        $acceptanceState = Get-AcceptanceTrayState -Acceptance $response.acceptance -PreviousSignature $script:lastAcceptanceSignature -PreviousNotificationAt $script:lastAcceptanceNotificationAt -ReminderSnoozedUntil $snoozedUntil
+        if ($acceptanceState.visible) {
+            $detail = "$detail - $($acceptanceState.attention) acceptance check$(if ($acceptanceState.attention -eq 1) { ' needs' } else { 's need' }) attention"
+            $acceptanceItem.Text = $acceptanceState.menuText
+            if ($acceptanceState.shouldNotify) {
+                Show-Balloon 'Live acceptance reminder' $acceptanceState.notificationText ([System.Windows.Forms.ToolTipIcon]::Warning)
+                $script:lastAcceptanceNotificationAt = [DateTimeOffset]::UtcNow
+            }
+        }
+        $acceptanceItem.Visible = $acceptanceState.visible
+        $snoozeAcceptanceItem.Visible = $acceptanceState.visible -and -not $acceptanceState.snoozed
+        $resumeAcceptanceItem.Visible = $acceptanceState.visible -and $acceptanceState.snoozed
+        if ($acceptanceState.snoozed) { $resumeAcceptanceItem.Text = "Resume acceptance reminders (snoozed until $($snoozedUntil.ToLocalTime().ToString('g')))" }
+        $script:lastAcceptanceSignature = $acceptanceState.signature
     } catch {
         $detail = 'Bridge is offline'
+        $acceptanceItem.Visible = $false
+        $snoozeAcceptanceItem.Visible = $false
+        $resumeAcceptanceItem.Visible = $false
     }
     if ($null -ne $report -and $report.Outcome -eq 'in-progress') {
         $phase = if ([string]::IsNullOrWhiteSpace($report.Phase)) { 'starting' } else { $report.Phase.Replace('-', ' ') }
@@ -143,6 +194,12 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $statusItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Checking StreamBridge...'
 $statusItem.Enabled = $false
 $openWizardItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open Setup Wizard'
+$acceptanceItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Review live acceptance'
+$acceptanceItem.Visible = $false
+$snoozeAcceptanceItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Snooze acceptance reminders for 24 hours'
+$snoozeAcceptanceItem.Visible = $false
+$resumeAcceptanceItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Resume acceptance reminders'
+$resumeAcceptanceItem.Visible = $false
 $startToolsItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Start streaming tools'
 $startBridgeItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Start or repair Bridge'
 $stopBridgeItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Stop Bridge'
@@ -152,6 +209,9 @@ $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Exit tray shell'
 [void]$menu.Items.Add($statusItem)
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($openWizardItem)
+[void]$menu.Items.Add($acceptanceItem)
+[void]$menu.Items.Add($snoozeAcceptanceItem)
+[void]$menu.Items.Add($resumeAcceptanceItem)
 [void]$menu.Items.Add($startToolsItem)
 [void]$menu.Items.Add($startBridgeItem)
 [void]$menu.Items.Add($stopBridgeItem)
@@ -169,6 +229,9 @@ $notify.Visible = $true
 
 $openWizard = { try { Start-Launcher 'open-wizard.mjs' } catch { Show-Balloon 'Could not open Setup Wizard' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } }
 $openWizardItem.Add_Click($openWizard)
+$acceptanceItem.Add_Click({ try { Start-Launcher 'open-wizard.mjs' @('--view=diagnostics', '--focus=live-acceptance') } catch { Show-Balloon 'Could not open live acceptance' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
+$snoozeAcceptanceItem.Add_Click({ try { Save-AcceptanceSnoozedUntil ([DateTimeOffset]::UtcNow.AddHours(24)); Update-Status } catch { Show-Balloon 'Could not snooze reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
+$resumeAcceptanceItem.Add_Click({ try { Clear-AcceptanceSnooze; $script:lastAcceptanceNotificationAt = [DateTimeOffset]::MinValue; Update-Status } catch { Show-Balloon 'Could not resume reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $notify.Add_DoubleClick($openWizard)
 $startToolsItem.Add_Click({ try { Start-Launcher 'start-streaming-tools.mjs' } catch { Show-Balloon 'Streaming tools did not start' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $startBridgeItem.Add_Click({ try { Start-Launcher 'start.mjs' @('--wait') } catch { Show-Balloon 'Bridge did not start' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })

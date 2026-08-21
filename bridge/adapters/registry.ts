@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { BridgeConfig, Capability, OutputConfig, PlatformConfig } from '../../schemas/config.js';
 import { PLATFORM_CAPABILITY_IDS, type PlatformCapabilityId, type PlatformCapabilityReport } from '../contracts/v2/capability.js';
 import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
@@ -28,19 +32,33 @@ export interface InputProviderCapabilities {
 
 export type InputProviderDeclaration = (platform: string) => InputProviderCapabilities;
 
-// Bump the matching value whenever a provider-facing adapter contract changes.
-// Live acceptance binds to these values so connector changes can invalidate the
-// affected paths even when the creator's configuration stays the same.
-export const ADAPTER_CONTRACT_VERSIONS: Readonly<Record<string, string>> = Object.freeze({
-  mock: '1',
-  'timed-actions': '2',
-  'tikfinity-streamerbot': '2',
-  'streamerbot-native': '3',
-  'streamerbot-addon-relay': '2',
-  'streamerbot-scene-relay': '2',
-  'streamerbot-streamlabs': '2',
-  streamerbot: '3',
+// Each provider is bound to the executable modules that define its external
+// behavior. Hashing those modules removes the manual "remember to bump a
+// number" release step while keeping unrelated provider acceptance current.
+const ADAPTER_CONTRACT_MODULES: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  mock: ['mock-adapter'],
+  'timed-actions': ['timed-actions-adapter'],
+  'tikfinity-streamerbot': ['tikfinity-adapter', 'streamerbot-event-relay', 'normalization'],
+  'streamerbot-native': ['streamerbot-native-adapter', 'streamerbot-event-relay', 'normalization'],
+  'streamerbot-addon-relay': ['streamerbot-addon-relay-adapter', 'streamerbot-event-relay', 'normalization'],
+  'streamerbot-scene-relay': ['streamerbot-scene-relay-adapter', 'streamerbot-event-relay', 'normalization'],
+  'streamerbot-streamlabs': ['streamerbot-streamlabs-adapter', 'streamerbot-event-relay', 'normalization'],
+  streamerbot: ['streamerbot-adapter', 'streamerbot-event-relay'],
 });
+
+export async function adapterContractFingerprints(): Promise<Readonly<Record<string, string>>> {
+  const directory = fileURLToPath(new URL('.', import.meta.url));
+  const extension = extname(fileURLToPath(import.meta.url));
+  const entries = await Promise.all(Object.entries(ADAPTER_CONTRACT_MODULES).map(async ([provider, modules]) => {
+    const hash = createHash('sha256');
+    for (const module of [...modules].sort()) {
+      const content = (await readFile(join(directory, `${module}${extension}`), 'utf8')).replaceAll('\r\n', '\n');
+      hash.update(`${module}\0${content}\0`);
+    }
+    return [provider, `sha256:${hash.digest('hex')}`] as const;
+  }));
+  return Object.freeze(Object.fromEntries(entries));
+}
 
 interface RegisteredInputProvider {
   readonly factory: InputAdapterFactory;

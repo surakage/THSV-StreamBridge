@@ -77,6 +77,9 @@ describe('public release scripts', () => {
 
   it('publishes every optional add-on as a separately verified release asset', async () => {
     const workflow = await readFile('.github/workflows/release.yml', 'utf8');
+    const candidate = await readFile('scripts/test-release-candidate.ps1', 'utf8');
+    const resolver = await readFile('scripts/resolve-previous-release.ps1', 'utf8');
+    const verifier = await readFile('scripts/verify-release-archive.ps1', 'utf8');
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip');
     expect(workflow).toContain('packages/THSV-StreamBridge-AddOn-*.zip');
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip.sha256');
@@ -86,9 +89,16 @@ describe('public release scripts', () => {
     expect(workflow).toContain('needs: startup-chaos');
     expect(workflow).toContain('npm run test:startup-chaos');
     expect(workflow).toContain('artifacts/startup-chaos/latest.json');
-    expect(workflow).toContain('release-archive.tests.ps1');
-    expect(workflow).toContain('gh release download');
-    expect(workflow).toContain('PreviousArchive');
+    expect(workflow).toContain('test-release-candidate.ps1');
+    expect(candidate).toContain('release-archive.tests.ps1');
+    expect(candidate).toContain('-PreviousArchive $previous.archive');
+    expect(candidate).toContain("artifacts\\release-lifecycle");
+    expect(candidate).toContain("'latest.json'");
+    expect(resolver).toContain('gh release download');
+    expect(resolver).toContain('already exists');
+    expect(resolver).toContain('.zip.sha256');
+    expect(verifier).toContain('[System.Security.Cryptography.SHA256]::Create()');
+    expect(verifier).toContain('gh attestation verify');
   });
 
   it('backs up add-ons and ships a verified approval-gated restore path', async () => {
@@ -243,7 +253,8 @@ describe('public release scripts', () => {
     expect(source).toContain('http://127.0.0.1:');
     expect(source).toContain("health?.service !== 'THSV StreamBridge'");
     expect(source).toContain("`${baseUrl}/wizard/api/unlock-tickets`");
-    expect(source).toContain("guidedWizard?'?guided=1':''");
+    expect(source).toContain("query.set('guided', '1')");
+    expect(source).toContain("requestedFocus !== 'live-acceptance'");
     expect(source).toContain('#unlock=${ticketResult.ticket}');
     expect(source).not.toContain('#unlock=${token}');
   });

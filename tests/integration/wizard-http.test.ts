@@ -206,6 +206,10 @@ describe('wizard HTTP surface', () => {
     const liveSaved = await fetch(`${baseUrl}/wizard/api/live-acceptance/bridge-startup`, { method: 'PUT', headers, body: JSON.stringify({ status: 'accepted', note: 'Startup paths passed locally.', approvedByCreator: true }) });
     expect(liveSaved.status).toBe(200);
     expect(await liveSaved.json() as unknown).toMatchObject({ checkId: 'bridge-startup', status: 'accepted' });
+    const publicReadiness = await fetch(`${baseUrl}/ready`);
+    const publicReadinessBody = await publicReadiness.json() as { acceptance: Record<string, unknown> };
+    expect(publicReadinessBody.acceptance).toMatchObject({ due: 0, dueSoon: 0, stale: 0, attention: 0 });
+    expect(JSON.stringify(publicReadinessBody)).not.toContain('Startup paths passed locally.');
     const bundlePreview = await fetch(`${baseUrl}/wizard/api/support-bundle/preview`, { headers });
     expect(bundlePreview.status).toBe(200);
     const bundlePreviewBody = await bundlePreview.json() as { files: Array<{ path: string }>; omittedCategories: string[]; previewId: string; sha256: string; archiveBytes: number };

@@ -4,6 +4,10 @@ on:
   push:
     tags: ['v*']
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   id-token: write
@@ -48,31 +52,11 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Build and validate release archive
-        shell: powershell
-        run: .\scripts\package-release.ps1
-      - name: Download the previous verified main release
-        id: previous
+      - name: Build and smoke-test the release candidate
         env:
           GH_TOKEN: ${{ github.token }}
         shell: powershell
-        run: |
-          $current = $env:GITHUB_REF_NAME
-          $releases = gh release list --exclude-drafts --limit 20 --json tagName | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0) { throw 'Could not list previous verified releases.' }
-          $previousTag = $releases | Where-Object { $_.tagName -ne $current } | Select-Object -First 1 -ExpandProperty tagName
-          if (-not $previousTag) { throw 'A previous verified release is required for the upgrade smoke test.' }
-          $version = $previousTag.TrimStart('v')
-          New-Item -ItemType Directory -Path artifacts\previous-release | Out-Null
-          gh release download $previousTag --pattern "THSV-StreamBridge-$version.zip" --dir artifacts\previous-release
-          if ($LASTEXITCODE -ne 0) { throw "Could not download the previous main release $previousTag." }
-          "archive=$((Resolve-Path -LiteralPath "artifacts\previous-release\THSV-StreamBridge-$version.zip").Path)" >> $env:GITHUB_OUTPUT
-      - name: Smoke-test the built archive through install, repair, and upgrade
-        shell: powershell
-        run: |
-          $archive = Get-ChildItem packages\THSV-StreamBridge-*.zip | Where-Object { $_.Name -notlike 'THSV-StreamBridge-AddOn-*' } | Select-Object -First 1
-          if ($null -eq $archive) { throw 'Release archive was not produced.' }
-          .\tests\windows\release-archive.tests.ps1 -CurrentArchive $archive.FullName -PreviousArchive '${{ steps.previous.outputs.archive }}'
+        run: .\scripts\test-release-candidate.ps1 -CurrentTag $env:GITHUB_REF_NAME
       - name: Generate production SBOM
         shell: powershell
         run: |

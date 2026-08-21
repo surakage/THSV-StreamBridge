@@ -6,7 +6,7 @@ Configure the shared prefix, aliases, and role policy in the bridge `commands` s
 
 ## Install
 
-1. Import `THSV-StreamBridge-Core-Receiver-4.0.2.sb` and `THSV-StreamBridge-Multi-Commands-4.0.2.sb`.
+1. Import `THSV-StreamBridge-Core-Receiver-4.0.3.sb` and `THSV-StreamBridge-Multi-Commands-4.0.3.sb`.
 2. Open `THSV StreamBridge - Receive Event`.
 3. Add **Core > Actions > Run Action** after the receiver C# sub-action.
 4. Select `THSV StreamBridge - Multi-Commands` and enable **Run Action Immediately**.

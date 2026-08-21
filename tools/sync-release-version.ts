@@ -11,6 +11,7 @@ await alignProductVersion();
 await alignReleaseDocumentation();
 await alignAddOns();
 await alignStreamerBotPackages();
+await import('./sync-streamerbot-imports.js');
 process.stdout.write(`Aligned THSV StreamBridge and all first-party packages to ${targetVersion}.\n`);
 
 async function alignRootPackage(): Promise<void> {

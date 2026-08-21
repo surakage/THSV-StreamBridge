@@ -1,10 +1,14 @@
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, URLSearchParams } from 'node:url';
 
 const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const guidedWizard = process.argv.includes('--guided');
+const requestedView = optionValue('--view');
+const requestedFocus = optionValue('--focus');
+if (requestedView !== undefined && requestedView !== 'diagnostics') throw new Error('The requested wizard view is not supported.');
+if (requestedFocus !== undefined && requestedFocus !== 'live-acceptance') throw new Error('The requested wizard focus is not supported.');
 const configPath = join(installRoot, 'data', 'configuration', 'bridge.local.json');
 const tokenPath = join(installRoot, 'data', 'secrets', 'control-token');
 const config = JSON.parse(stripUtf8Bom(await readFile(configPath, 'utf8')));
@@ -24,7 +28,11 @@ if (!ticketResponse.ok) throw new Error(`The local wizard could not create a sec
 const ticketResult = await ticketResponse.json();
 if (typeof ticketResult?.ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/u.test(ticketResult.ticket)) throw new Error('The local wizard returned an invalid unlock link.');
 
-const wizardUrl = `${baseUrl}/wizard/${guidedWizard?'?guided=1':''}#unlock=${ticketResult.ticket}`;
+const query = new URLSearchParams();
+if (guidedWizard) query.set('guided', '1');
+if (requestedView !== undefined) query.set('view', requestedView);
+if (requestedFocus !== undefined) query.set('focus', requestedFocus);
+const wizardUrl = `${baseUrl}/wizard/${query.size > 0 ? `?${query.toString()}` : ''}#unlock=${ticketResult.ticket}`;
 const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', wizardUrl], {
   detached: true,
   windowsHide: true,
@@ -34,3 +42,4 @@ opener.unref();
 process.stdout.write(`Opened and securely unlocked the setup wizard at ${baseUrl}/wizard/\n`);
 
 function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value; }
+function optionValue(name) { const prefix = `${name}=`; const value = process.argv.find((argument) => argument.startsWith(prefix)); return value?.slice(prefix.length); }

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 async function unlock(page: Page): Promise<void> {
   await page.goto('/wizard/');
@@ -38,6 +39,17 @@ test('normal Wizard openings show every management page even after an older guid
   await expect(page.getByRole('button', { name: 'Extensions', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Viewer Foundation', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Community Analytics', exact: true })).toBeVisible();
+});
+
+test('tray reminder deep links open and focus the live-acceptance checklist', async ({ page }) => {
+  await page.goto('/wizard/?view=diagnostics&focus=live-acceptance');
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+
+  await expect(page.locator('[data-panel="diagnostics"]')).toBeVisible();
+  await expect(page.locator('#live-acceptance-list')).toBeVisible();
+  await expect(page.locator('#live-acceptance-list select').first()).toBeFocused();
+  await expect(page).toHaveURL(/\/wizard\/$/u);
 });
 
 test('connection center explains a stopped Streamer.bot session and offers safe recovery', async ({ page }) => {
@@ -136,7 +148,10 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
     await page.route('**/wizard/api/live-acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ checks: [{ id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Confirm recovery.', requiresGenuineEvent: false, recheckAfterDays: 90 }, { id: 'provider-reconnect', label: 'Provider reconnect', guidance: 'Confirm reconnect.', requiresGenuineEvent: false, recheckAfterDays: 90 }], evidence: [], confirmations: { 'bridge-startup': { checkId: 'bridge-startup', status: 'due', due: true, dueAt: '2026-08-20T00:00:00.000Z', dueReason: 'Periodic live acceptance is due after 90 days.', note: 'Passed.', confirmedAt: '2026-05-22T00:00:00.000Z' }, 'provider-reconnect': { checkId: 'provider-reconnect', status: 'accepted', dueSoon: true, dueAt: '2026-08-30T00:00:00.000Z', dueSoonReason: 'Periodic live acceptance is due within 14 days.', note: 'Passed.', confirmedAt: '2026-06-01T00:00:00.000Z' } } }) }));
   await page.route('**/wizard/api/pre-stream-report', async (route) => await route.fulfill({ contentType: 'application/json', headers: { 'content-disposition': 'attachment; filename="THSV-StreamBridge-pre-stream-test.json"' }, body: JSON.stringify({ schemaVersion: 1, generatedAt: '2026-08-21T00:00:00.000Z', build: { version: '4.0.2' }, readiness: { ready: true } }) }));
   await page.route('**/wizard/api/pre-stream-report/compare', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ changed: true, regressions: 1, improvements: 0, unchanged: false, summary: '1 regression requires attention.', changes: [{ label: 'Bridge readiness', before: 'true', after: 'false', severity: 'regression' }] }) }));
-  await unlock(page); await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await unlock(page);
+  await expect(page.locator('#overview-acceptance')).toContainText('2 live checks need attention');
+  await expect(page.locator('#overview-acceptance')).toContainText('1 due, 1 due soon');
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
     await expect(page.locator('#live-acceptance-list')).toContainText('Periodic recheck due');
     await expect(page.locator('#live-acceptance-list')).toContainText('Recheck due soon');
   await page.getByText('Expected OBS sources by scene', { exact: true }).click();
@@ -304,7 +319,7 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Create & download one import' }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('THSV-StreamBridge-Universal-Setup-4.0.2.sb');
+  expect(download.suggestedFilename()).toBe(`THSV-StreamBridge-Universal-Setup-${STREAMBRIDGE_VERSION}.sb`);
   await expect(page.locator('#universal-import-state')).toContainText('Import this one file in Streamer.bot');
   await page.getByRole('button', { name: 'Review recommended triggers' }).click();
   await expect(page.locator('#universal-trigger-guide')).toHaveAttribute('open', '');

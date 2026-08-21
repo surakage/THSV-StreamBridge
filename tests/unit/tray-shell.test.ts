@@ -16,6 +16,15 @@ describe('native Windows tray shell', () => {
     expect(source).toContain('$timer.Interval = 5000');
     expect(source).toContain("$report.Outcome -eq 'in-progress'");
     expect(source).toContain('Starting tools - $phase');
+    expect(source).toContain('Get-AcceptanceTrayState -Acceptance $response.acceptance');
+    expect(source).toContain('Live acceptance reminder');
+    expect(source).toContain('Review live acceptance');
+    expect(source).toContain("tray-status.ps1");
+    expect(source).toContain('lastAcceptanceNotificationAt');
+    expect(source).toContain("@('--view=diagnostics', '--focus=live-acceptance')");
+    expect(source).toContain('tray-preferences.json');
+    expect(source).toContain('Snooze acceptance reminders for 24 hours');
+    expect(source).toContain('Resume acceptance reminders');
     expect(source).not.toContain('control-token');
     expect(source).not.toContain('Streamer.bot.ico');
   });

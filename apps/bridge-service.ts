@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { StreamBridge } from '../bridge/core/bridge.js';
-import { ADAPTER_CONTRACT_VERSIONS, createDefaultAdapterRegistry } from '../bridge/adapters/registry.js';
+import { adapterContractFingerprints, createDefaultAdapterRegistry } from '../bridge/adapters/registry.js';
 import { DiagnosticsServer } from '../bridge/services/http-server.js';
 import { loadConfigWithNotices } from '../bridge/services/config-loader.js';
 import { StructuredLogger } from '../bridge/services/logger.js';
@@ -29,6 +29,7 @@ import { CommandDirectoryResponder } from '../bridge/services/command-directory-
 import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
 import { StreamerBotLauncherService } from '../bridge/services/streamerbot-launcher-service.js';
 import { AutomaticUpdateMonitor } from '../bridge/services/automatic-update-monitor.js';
+import { coreAcceptanceFingerprints } from '../bridge/services/acceptance-fingerprints.js';
 import { StreamerBotUniversalImportService } from '../bridge/services/streamerbot-universal-import-service.js';
 import { WebsiteCompanionService } from '../bridge/services/website-companion-service.js';
 import { LiveAcceptanceService } from '../bridge/services/live-acceptance-service.js';
@@ -114,15 +115,27 @@ const automaticUpdates = new AutomaticUpdateMonitor({
   statePath: join(dataRoot, 'updates', 'automatic-update-status.json'),
 });
 const universalImports = new StreamerBotUniversalImportService();
-const triggerContractFingerprint = createHash('sha256').update(JSON.stringify(await universalImports.catalogue(installedAddOns))).digest('hex');
+const universalImportCatalogue = await universalImports.catalogue(installedAddOns);
+const triggerContractFingerprint = fingerprint(universalImportCatalogue);
 const configurationFingerprint = createHash('sha256').update(JSON.stringify(config)).digest('hex');
+const configurationSections = Object.fromEntries(Object.entries(config).map(([name, value]) => [name, fingerprint(value)]));
+const triggerPackages = Object.fromEntries(universalImportCatalogue.packages.map((item) => [item.folder, fingerprint(item)]));
+const adapterFingerprints = await adapterContractFingerprints();
+const componentFingerprints = await coreAcceptanceFingerprints();
 const liveAcceptance = new LiveAcceptanceService(join(dataRoot, 'state'), {
   coreVersion: STREAMBRIDGE_VERSION,
   coreContractVersion: CORE_CONTRACT_VERSION,
   buildFingerprint: buildProvenance.buildFingerprint,
   configurationFingerprint,
   triggerContractFingerprint,
-  adapters: Object.fromEntries([...new Set([...inputs.map((adapter) => adapter.config.adapter), ...outputs.map((adapter) => config.outputs[adapter.name]?.adapter).filter((value): value is string => value !== undefined)])].sort().map((id) => [id, ADAPTER_CONTRACT_VERSIONS[id] ?? 'unversioned'])),
+  adapters: Object.fromEntries([...new Set([...inputs.map((adapter) => adapter.config.adapter), ...outputs.map((adapter) => config.outputs[adapter.name]?.adapter).filter((value): value is string => value !== undefined)])].sort().map((id) => [id, adapterFingerprints[id] ?? 'unversioned'])),
+  adapterLegacyAliases: {
+    mock: ['1'], 'timed-actions': ['2'], 'tikfinity-streamerbot': ['2'], 'streamerbot-native': ['3'],
+    'streamerbot-addon-relay': ['2'], 'streamerbot-scene-relay': ['2'], 'streamerbot-streamlabs': ['2'], streamerbot: ['3'],
+  },
+  components: componentFingerprints,
+  configurationSections,
+  triggerPackages,
   addOns: Object.fromEntries(installedAddOns.map((addOn) => [addOn.moduleId, `${addOn.version}:${createHash('sha256').update(JSON.stringify(addOn.settings)).digest('hex')}`] as const).sort((left, right) => left[0].localeCompare(right[0]))),
 });
 await liveAcceptance.start();
@@ -233,4 +246,8 @@ async function resolveRuntimeConfigPath(): Promise<string> {
     await readFile('data/runtime/bridge.local.json', 'utf8');
     return 'data/runtime/bridge.local.json';
   } catch { return 'config/bridge.example.json'; }
+}
+
+function fingerprint(value: unknown): string {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }

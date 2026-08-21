@@ -80,6 +80,8 @@ describe('wizard launcher package', () => {
     expect(script).toContain('OBS source visibility');
     expect(script).toContain("fetch('/wizard/api/unlock'");
     expect(script).toContain("history.replaceState(null,'',`${location.pathname}${location.search}`)");
+    expect(script).toContain("requestedWizardFocus==='live-acceptance'");
+    expect(script).toContain("activatePanel('diagnostics')");
     expect(script).toContain("imageUrl:'/wizard/emote-preview.svg'");
     expect(styles).toContain('.preview-chat-emote');
     expect(emotePreview).toContain('Sample sloth emote');

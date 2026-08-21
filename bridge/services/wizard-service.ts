@@ -174,6 +174,10 @@ export class WizardService {
     return this.liveAcceptance.status();
   }
 
+  public liveAcceptanceAttentionSummary(): ReturnType<LiveAcceptanceService['attentionSummary']> | undefined {
+    return this.liveAcceptance?.attentionSummary();
+  }
+
   public confirmLiveAcceptance(checkId: string, input: unknown): LiveAcceptanceConfirmation {
     if (this.liveAcceptance === undefined) throw new WizardTransactionError(503, 'Live acceptance tracking is unavailable in this installation.');
     return this.liveAcceptance.confirm(checkId, input);

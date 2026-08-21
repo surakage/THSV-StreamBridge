@@ -1,0 +1,71 @@
+name: Release preflight
+
+on:
+  schedule:
+    - cron: '17 10 * * 1'
+  workflow_dispatch:
+    inputs:
+      current-tag:
+        description: Candidate tag (defaults to v plus package.json version)
+        required: false
+        type: string
+      previous-tag:
+        description: Verified release to exercise as the upgrade source (auto-detected when empty)
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      current-tag:
+        required: false
+        type: string
+      previous-tag:
+        required: false
+        type: string
+
+concurrency:
+  group: release-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  attestations: read
+
+jobs:
+  candidate:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out candidate source
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run startup-chaos acceptance
+        shell: powershell
+        run: npm run test:startup-chaos
+      - name: Run the same package, install, repair, and upgrade gate used by tag publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREFLIGHT_EVENT_NAME: ${{ github.event_name }}
+        shell: powershell
+        run: |
+          $arguments = @()
+          if ($env:PREFLIGHT_EVENT_NAME -eq 'schedule') { $arguments += '-AllowPublishedCurrentVersion' }
+          .\scripts\test-release-candidate.ps1 -CurrentTag '${{ inputs.current-tag }}' -PreviousTag '${{ inputs.previous-tag }}' @arguments
+      - name: Upload preflight evidence and candidate packages
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-preflight-${{ github.run_id }}
+          path: |
+            artifacts/startup-chaos/latest.json
+            artifacts/release-lifecycle/latest.json
+            packages/THSV-StreamBridge-*.zip
+            packages/THSV-StreamBridge-*.sha256
+            packages/THSV-StreamBridge-AddOns-index.json
+          if-no-files-found: warn
+          retention-days: 14

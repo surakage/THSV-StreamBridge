@@ -162,7 +162,8 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/ready') {
         this.guard.assertLoopback(request);
         const readiness = this.target.readiness();
-        return this.reply(response, readiness['ready'] === true ? 200 : 503, readiness);
+        const acceptance = this.wizard?.liveAcceptanceAttentionSummary();
+        return this.reply(response, readiness['ready'] === true ? 200 : 503, acceptance === undefined ? readiness : { ...readiness, acceptance });
       }
       if (request.method === 'GET' && request.url === '/diagnostics') {
         this.guard.assertLoopback(request);

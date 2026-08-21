@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { AdapterRegistry, createDefaultAdapterRegistry } from '../../bridge/adapters/registry.js';
+import { adapterContractFingerprints, AdapterRegistry, createDefaultAdapterRegistry } from '../../bridge/adapters/registry.js';
 import { MockAdapter } from '../../bridge/adapters/mock-adapter.js';
 import { platformConfig, silentLogger, testConfig } from '../helpers.js';
 import type { OutputAdapter } from '../../bridge/adapters/adapter.js';
 
 describe('AdapterRegistry', () => {
+  it('derives deterministic provider contract fingerprints from the responsible modules', async () => {
+    const first = await adapterContractFingerprints();
+    const second = await adapterContractFingerprints();
+    expect(second).toEqual(first);
+    expect(Object.keys(first).sort()).toEqual(['mock', 'streamerbot', 'streamerbot-addon-relay', 'streamerbot-native', 'streamerbot-scene-relay', 'streamerbot-streamlabs', 'tikfinity-streamerbot', 'timed-actions']);
+    for (const value of Object.values(first)) expect(value).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(first['streamerbot-native']).not.toBe(first['streamerbot-scene-relay']);
+  });
+
   it('creates a dynamically registered input adapter without core changes', () => {
     const registry = new AdapterRegistry().registerInput('plugin-provider', (name, config) => new MockAdapter(name, config));
     const [adapter] = registry.createInputs({ 'new-platform': { ...platformConfig(), adapter: 'plugin-provider' } });

@@ -16,6 +16,9 @@ export interface LiveAcceptanceCheck {
   readonly eventTypes?: readonly string[];
   readonly relevantAddOns?: readonly string[] | 'all';
   readonly relevantAdapters?: readonly string[] | 'all';
+  readonly relevantComponents?: readonly string[] | 'all';
+  readonly relevantConfiguration?: readonly string[] | 'all';
+  readonly relevantTriggers?: readonly string[] | 'all';
   readonly recheckAfterDays: number;
 }
 
@@ -26,6 +29,10 @@ export interface LiveAcceptanceBinding {
   readonly configurationFingerprint: string;
   readonly triggerContractFingerprint: string;
   readonly adapters: Readonly<Record<string, string>>;
+  readonly adapterLegacyAliases?: Readonly<Record<string, readonly string[]>>;
+  readonly components?: Readonly<Record<string, string>>;
+  readonly configurationSections?: Readonly<Record<string, string>>;
+  readonly triggerPackages?: Readonly<Record<string, string>>;
   readonly addOns: Readonly<Record<string, string>>;
 }
 
@@ -47,17 +54,25 @@ export interface LiveAcceptanceConfirmation {
   readonly binding?: Readonly<Record<string, unknown>>;
 }
 
+export interface LiveAcceptanceAttentionSummary {
+  readonly due: number;
+  readonly dueSoon: number;
+  readonly stale: number;
+  readonly attention: number;
+  readonly nextDueAt?: string;
+}
+
 const CHECKS: readonly LiveAcceptanceCheck[] = Object.freeze([
-  { id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Start while healthy, recover one unresponsive record, and confirm the final startup report has no readiness blockers.', requiresGenuineEvent: false, relevantAdapters: 'all', recheckAfterDays: 90 },
-  { id: 'twitch-chat', label: 'Twitch chat intake', guidance: 'Confirm one genuine message arrives exactly once with its expected identity and presentation.', requiresGenuineEvent: true, platforms: ['twitch'], eventTypes: ['chat.message'], relevantAdapters: ['streamerbot-native', 'streamerbot'], recheckAfterDays: 180 },
-  { id: 'kick-chat', label: 'Kick chat intake', guidance: 'Confirm one genuine message arrives exactly once with its stable identity.', requiresGenuineEvent: true, platforms: ['kick'], eventTypes: ['chat.message'], relevantAdapters: ['streamerbot-native', 'streamerbot'], recheckAfterDays: 180 },
-  { id: 'twitch-alert', label: 'Twitch alert path', guidance: 'Confirm one genuine follow, subscription, cheer, raid, or gift appears exactly once.', requiresGenuineEvent: true, platforms: ['twitch'], eventTypes: ['channel.follow', 'channel.subscription', 'channel.gift-subscription', 'engagement.cheer', 'channel.raid', 'engagement.gift'], relevantAdapters: ['streamerbot-native', 'streamerbot'], recheckAfterDays: 180 },
-  { id: 'kick-alert', label: 'Kick alert path', guidance: 'Confirm one genuine follow, subscription, reward, or gift appears exactly once.', requiresGenuineEvent: true, platforms: ['kick'], eventTypes: ['channel.follow', 'channel.subscription', 'channel.gift-subscription', 'engagement.gift', 'reward.redemption'], relevantAdapters: ['streamerbot-native', 'streamerbot'], recheckAfterDays: 180 },
-  { id: 'hydration-late-start', label: 'Village Hydration late start', guidance: 'Start StreamBridge after going live, redeem the configured hydration reward, and confirm render and speech without resetting another add-on.', requiresGenuineEvent: true, platforms: ['twitch', 'kick'], eventTypes: ['reward.redemption'], relevantAddOns: ['thsv.village-hydration-station'], relevantAdapters: ['streamerbot-native', 'streamerbot-addon-relay', 'streamerbot'], recheckAfterDays: 180 },
-  { id: 'countdown-scene', label: 'Countdown scene lifecycle', guidance: 'Confirm the exact program scene starts once, preview changes do not restart it, and leaving follows the saved stop behavior.', requiresGenuineEvent: false, relevantAddOns: ['thsv.starting-soon-countdown'], relevantAdapters: ['streamerbot-scene-relay', 'streamerbot'], recheckAfterDays: 180 },
-  { id: 'shared-overlay', label: 'Shared overlay placement', guidance: 'Confirm required shared sources are visible in each intended OBS program scene and independent lanes remain unblocked.', requiresGenuineEvent: false, relevantAddOns: 'all', recheckAfterDays: 90 },
-  { id: 'provider-reconnect', label: 'Provider disconnect and reconnect', guidance: 'Reconnect every enabled provider once with no replay storm, duplicate socket, or duplicate event.', requiresGenuineEvent: false, relevantAdapters: 'all', recheckAfterDays: 90 },
-  { id: 'persistence-restart', label: 'Coordination and persistence restart', guidance: 'Restart Streamer.bot and StreamBridge and confirm outbox, deduplication, private state, and counters recover.', requiresGenuineEvent: false, relevantAddOns: 'all', relevantAdapters: 'all', recheckAfterDays: 90 },
+  { id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Start while healthy, recover one unresponsive record, and confirm the final startup report has no readiness blockers.', requiresGenuineEvent: false, relevantAdapters: 'all', relevantComponents: ['startup'], relevantConfiguration: ['service', 'security', 'streamerbot'], relevantTriggers: ['bridge-launcher'], recheckAfterDays: 90 },
+  { id: 'twitch-chat', label: 'Twitch chat intake', guidance: 'Confirm one genuine message arrives exactly once with its expected identity and presentation.', requiresGenuineEvent: true, platforms: ['twitch'], eventTypes: ['chat.message'], relevantAdapters: ['streamerbot-native', 'streamerbot'], relevantComponents: ['delivery'], relevantConfiguration: ['platforms', 'outputs', 'streamerbot'], relevantTriggers: ['native-platform-intake', 'core-receiver', 'multi-chat'], recheckAfterDays: 180 },
+  { id: 'kick-chat', label: 'Kick chat intake', guidance: 'Confirm one genuine message arrives exactly once with its stable identity.', requiresGenuineEvent: true, platforms: ['kick'], eventTypes: ['chat.message'], relevantAdapters: ['streamerbot-native', 'streamerbot'], relevantComponents: ['delivery'], relevantConfiguration: ['platforms', 'outputs', 'streamerbot'], relevantTriggers: ['native-platform-intake', 'core-receiver', 'multi-chat'], recheckAfterDays: 180 },
+  { id: 'twitch-alert', label: 'Twitch alert path', guidance: 'Confirm one genuine follow, subscription, cheer, raid, or gift appears exactly once.', requiresGenuineEvent: true, platforms: ['twitch'], eventTypes: ['channel.follow', 'channel.subscription', 'channel.gift-subscription', 'engagement.cheer', 'channel.raid', 'engagement.gift'], relevantAdapters: ['streamerbot-native', 'streamerbot'], relevantComponents: ['delivery', 'overlay'], relevantConfiguration: ['platforms', 'outputs', 'streamerbot', 'browserOverlay'], relevantTriggers: ['native-platform-intake', 'core-receiver', 'multi-alerts'], recheckAfterDays: 180 },
+  { id: 'kick-alert', label: 'Kick alert path', guidance: 'Confirm one genuine follow, subscription, reward, or gift appears exactly once.', requiresGenuineEvent: true, platforms: ['kick'], eventTypes: ['channel.follow', 'channel.subscription', 'channel.gift-subscription', 'engagement.gift', 'reward.redemption'], relevantAdapters: ['streamerbot-native', 'streamerbot'], relevantComponents: ['delivery', 'overlay'], relevantConfiguration: ['platforms', 'outputs', 'streamerbot', 'browserOverlay'], relevantTriggers: ['native-platform-intake', 'core-receiver', 'multi-alerts'], recheckAfterDays: 180 },
+  { id: 'hydration-late-start', label: 'Village Hydration late start', guidance: 'Start StreamBridge after going live, redeem the configured hydration reward, and confirm render and speech without resetting another add-on.', requiresGenuineEvent: true, platforms: ['twitch', 'kick'], eventTypes: ['reward.redemption'], relevantAddOns: ['thsv.village-hydration-station'], relevantAdapters: ['streamerbot-native', 'streamerbot-addon-relay', 'streamerbot'], relevantComponents: ['delivery', 'overlay'], relevantConfiguration: ['platforms', 'outputs', 'streamerbot', 'browserOverlay'], relevantTriggers: ['native-platform-intake', 'core-receiver', 'village-hydration-station'], recheckAfterDays: 180 },
+  { id: 'countdown-scene', label: 'Countdown scene lifecycle', guidance: 'Confirm the exact program scene starts once, preview changes do not restart it, and leaving follows the saved stop behavior.', requiresGenuineEvent: false, relevantAddOns: ['thsv.starting-soon-countdown'], relevantAdapters: ['streamerbot-scene-relay', 'streamerbot'], relevantComponents: ['overlay'], relevantConfiguration: ['streamerbot', 'browserOverlay'], relevantTriggers: ['starting-soon-countdown'], recheckAfterDays: 180 },
+  { id: 'shared-overlay', label: 'Shared overlay placement', guidance: 'Confirm required shared sources are visible in each intended OBS program scene and independent lanes remain unblocked.', requiresGenuineEvent: false, relevantAddOns: 'all', relevantComponents: ['overlay'], relevantConfiguration: ['browserOverlay'], recheckAfterDays: 90 },
+  { id: 'provider-reconnect', label: 'Provider disconnect and reconnect', guidance: 'Reconnect every enabled provider once with no replay storm, duplicate socket, or duplicate event.', requiresGenuineEvent: false, relevantAdapters: 'all', relevantConfiguration: ['platforms', 'outputs', 'streamerbot'], relevantTriggers: ['native-platform-intake', 'core-receiver'], recheckAfterDays: 90 },
+  { id: 'persistence-restart', label: 'Coordination and persistence restart', guidance: 'Restart Streamer.bot and StreamBridge and confirm outbox, deduplication, private state, and counters recover.', requiresGenuineEvent: false, relevantAddOns: 'all', relevantAdapters: 'all', relevantComponents: ['persistence'], relevantConfiguration: ['deduplication', 'streamerbot'], relevantTriggers: ['bridge-launcher', 'core-receiver'], recheckAfterDays: 90 },
 ]);
 
 export class LiveAcceptanceService {
@@ -96,9 +111,14 @@ export class LiveAcceptanceService {
     for (const [id, confirmation] of Object.entries(this.confirmations)) {
       const check = CHECKS.find((candidate) => candidate.id === id);
       const expected = check === undefined ? undefined : this.bindingFingerprint(check);
-      const stale = confirmation.status === 'accepted' && expected !== undefined && confirmation.bindingFingerprint !== expected;
       const current = check === undefined ? undefined : this.relevantBinding(check);
-      const staleReasons = stale ? bindingChanges(confirmation.binding, current) : [];
+      const fingerprintChanged = confirmation.status === 'accepted' && expected !== undefined && confirmation.bindingFingerprint !== expected;
+      const staleReasons = fingerprintChanged ? bindingChanges(confirmation.binding, current, this.binding?.adapterLegacyAliases) : [];
+      const stale = fingerprintChanged && staleReasons.length > 0;
+      if (fingerprintChanged && !stale && current !== undefined) {
+        this.confirmations[id] = { ...confirmation, bindingFingerprint: expected, binding: current };
+        this.queueWrite();
+      }
       const dueAt = check === undefined || confirmation.status !== 'accepted' ? undefined : new Date(Date.parse(confirmation.confirmedAt) + check.recheckAfterDays * 86_400_000).toISOString();
       const due = !stale && dueAt !== undefined && Date.parse(dueAt) <= this.now();
       const dueSoon = !stale && !due && dueAt !== undefined && Date.parse(dueAt) - this.now() <= 14 * 86_400_000;
@@ -107,6 +127,16 @@ export class LiveAcceptanceService {
       else confirmations[id] = dueAt === undefined ? confirmation : { ...confirmation, dueAt, ...(dueSoon ? { dueSoon: true, dueSoonReason: 'Periodic live acceptance is due within 14 days.' } : {}) };
     }
     return { checks: CHECKS, evidence: [...this.evidence].reverse(), confirmations, binding: this.binding === undefined ? undefined : { coreVersion: this.binding.coreVersion, coreContractVersion: this.binding.coreContractVersion, buildFingerprint: this.binding.buildFingerprint } };
+  }
+
+  public attentionSummary(): LiveAcceptanceAttentionSummary {
+    const confirmations = this.status()['confirmations'] as Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    const values = Object.values(confirmations);
+    const due = values.filter((item) => item['status'] === 'due').length;
+    const dueSoon = values.filter((item) => item['dueSoon'] === true).length;
+    const stale = values.filter((item) => item['status'] === 'stale').length;
+    const dueDates = values.map((item) => item['dueAt']).filter((value): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value))).sort();
+    return { due, dueSoon, stale, attention: due + dueSoon + stale, ...(dueDates[0] === undefined ? {} : { nextDueAt: dueDates[0] }) };
   }
 
   public confirm(checkId: string, input: unknown): LiveAcceptanceConfirmation {
@@ -152,13 +182,15 @@ export class LiveAcceptanceService {
     if (this.binding === undefined) return undefined;
     const addOns = check.relevantAddOns === 'all' ? this.binding.addOns : Object.fromEntries((check.relevantAddOns ?? []).map((id) => [id, this.binding?.addOns[id] ?? 'not-installed']));
     const adapters = check.relevantAdapters === 'all' ? this.binding.adapters : Object.fromEntries((check.relevantAdapters ?? []).map((id) => [id, this.binding?.adapters[id] ?? 'not-enabled']));
+    const components = check.relevantComponents === 'all' ? (this.binding.components ?? {}) : Object.fromEntries((check.relevantComponents ?? []).map((id) => [id, this.binding?.components?.[id] ?? 'unversioned']));
+    const configurationSections = check.relevantConfiguration === 'all' ? (this.binding.configurationSections ?? {}) : Object.fromEntries((check.relevantConfiguration ?? []).map((id) => [id, this.binding?.configurationSections?.[id] ?? 'unversioned']));
+    const triggerPackages = check.relevantTriggers === 'all' ? (this.binding.triggerPackages ?? {}) : Object.fromEntries((check.relevantTriggers ?? []).map((id) => [id, this.binding?.triggerPackages?.[id] ?? 'not-installed']));
     return {
-      coreVersion: this.binding.coreVersion,
       coreContractVersion: this.binding.coreContractVersion,
-      buildFingerprint: this.binding.buildFingerprint,
-      configurationFingerprint: this.binding.configurationFingerprint,
-      triggerContractFingerprint: this.binding.triggerContractFingerprint,
       adapters,
+      components,
+      configurationSections,
+      triggerPackages,
       addOns,
     };
   }
@@ -183,19 +215,23 @@ function validConfirmation(value: unknown): LiveAcceptanceConfirmation | undefin
   return { checkId: item['checkId'], status: item['status'], ...(typeof item['evidenceId'] === 'string' ? { evidenceId: item['evidenceId'].slice(0, 400) } : {}), note: item['note'].slice(0, 300), confirmedAt: item['confirmedAt'].slice(0, 64), ...(bindingFingerprint === undefined ? {} : { bindingFingerprint, ...(typeof item['binding'] === 'object' && item['binding'] !== null && !Array.isArray(item['binding']) ? { binding: item['binding'] as Record<string, unknown> } : {}) }) };
 }
 
-function bindingChanges(previous: Readonly<Record<string, unknown>> | undefined, current: Readonly<Record<string, unknown>> | undefined): string[] {
+function bindingChanges(previous: Readonly<Record<string, unknown>> | undefined, current: Readonly<Record<string, unknown>> | undefined, adapterAliases: Readonly<Record<string, readonly string[]>> = {}): string[] {
   if (previous === undefined) return ['This acceptance predates version-bound evidence.'];
   if (current === undefined) return ['The current acceptance binding is unavailable.'];
   const changes: string[] = [];
-  compareText(changes, previous, current, 'coreVersion', 'StreamBridge version');
   compareText(changes, previous, current, 'coreContractVersion', 'Core contract version');
-  compareFingerprint(changes, previous, current, 'buildFingerprint', 'Installed build');
-  compareFingerprint(changes, previous, current, 'configurationFingerprint', 'StreamBridge configuration');
-  compareFingerprint(changes, previous, current, 'triggerContractFingerprint', 'Streamer.bot trigger catalogue');
+  compareFingerprintRecords(changes, previous, current, 'configurationSections', 'configurationFingerprint', 'configuration section');
+  compareFingerprintRecords(changes, previous, current, 'triggerPackages', 'triggerContractFingerprint', 'Streamer.bot package');
   const oldAdapters = isRecord(previous['adapters']) ? previous['adapters'] : {}; const newAdapters = isRecord(current['adapters']) ? current['adapters'] : {};
   for (const id of [...new Set([...Object.keys(oldAdapters), ...Object.keys(newAdapters)])].sort()) {
     const oldValue = typeof oldAdapters[id] === 'string' ? oldAdapters[id] : 'not-enabled'; const newValue = typeof newAdapters[id] === 'string' ? newAdapters[id] : 'not-enabled';
-    if (oldValue !== newValue) changes.push(`${id} adapter contract changed from ${oldValue} to ${newValue}.`);
+    if (oldValue !== newValue && !(adapterAliases[id] ?? []).includes(oldValue)) changes.push(`${id} adapter contract changed from ${oldValue} to ${newValue}.`);
+  }
+  const oldComponents = isRecord(previous['components']) ? previous['components'] : {}; const newComponents = isRecord(current['components']) ? current['components'] : {};
+  const compareComponents = isRecord(previous['components']) && !(Object.keys(oldComponents).length === 0 && typeof previous['buildFingerprint'] === 'string');
+  for (const id of (compareComponents ? [...new Set([...Object.keys(oldComponents), ...Object.keys(newComponents)])].sort() : [])) {
+    const oldValue = typeof oldComponents[id] === 'string' ? oldComponents[id] : 'unversioned'; const newValue = typeof newComponents[id] === 'string' ? newComponents[id] : 'unversioned';
+    if (oldValue !== newValue) changes.push(`${id} core component changed (${shortFingerprint(oldValue)} to ${shortFingerprint(newValue)}).`);
   }
   const oldAddOns = isRecord(previous['addOns']) ? previous['addOns'] : {}; const newAddOns = isRecord(current['addOns']) ? current['addOns'] : {};
   for (const id of [...new Set([...Object.keys(oldAddOns), ...Object.keys(newAddOns)])].sort()) {
@@ -210,14 +246,21 @@ function bindingChanges(previous: Readonly<Record<string, unknown>> | undefined,
       else changes.push(`${id} settings changed.`);
     }
   }
-  return changes.length > 0 ? changes : ['A relevant acceptance fingerprint changed.'];
+  return changes;
+}
+
+function compareFingerprintRecords(changes: string[], previous: Readonly<Record<string, unknown>>, current: Readonly<Record<string, unknown>>, key: string, legacyKey: string, label: string): void {
+  if (!isRecord(previous[key])) return;
+  const oldValues = previous[key]; const newValues = isRecord(current[key]) ? current[key] : {};
+  if (Object.keys(oldValues).length === 0 && typeof previous[legacyKey] === 'string') return;
+  for (const id of [...new Set([...Object.keys(oldValues), ...Object.keys(newValues)])].sort()) {
+    const oldValue = typeof oldValues[id] === 'string' ? oldValues[id] : 'unversioned'; const newValue = typeof newValues[id] === 'string' ? newValues[id] : 'unversioned';
+    if (oldValue !== newValue) changes.push(`${id} ${label} changed (${shortFingerprint(oldValue)} to ${shortFingerprint(newValue)}).`);
+  }
 }
 
 function compareText(changes: string[], previous: Readonly<Record<string, unknown>>, current: Readonly<Record<string, unknown>>, key: string, label: string): void {
   if (previous[key] !== current[key]) changes.push(`${label} changed from ${textValue(previous[key])} to ${textValue(current[key])}.`);
-}
-function compareFingerprint(changes: string[], previous: Readonly<Record<string, unknown>>, current: Readonly<Record<string, unknown>>, key: string, label: string): void {
-  if (previous[key] !== current[key]) changes.push(`${label} changed (${shortFingerprint(previous[key])} to ${shortFingerprint(current[key])}).`);
 }
 function shortFingerprint(value: unknown): string { return typeof value === 'string' ? value.slice(0, 12) : 'unknown'; }
 function textValue(value: unknown): string { return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : 'unknown'; }

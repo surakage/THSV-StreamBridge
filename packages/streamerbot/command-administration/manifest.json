@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Command Administration",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "author": "surakage",
   "description": "Creator-approved, documented-API-only enable/disable boundary for Streamer.bot commands, invoked live from the Stage 5 wizard.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
     "id": "04ca0087-578d-5c2e-9e06-249dc072e9f8",
     "sourceSubActionId": "88db0aac-0cea-5e8b-85d7-8a73fff502c6",
     "source": "src/ProcessCommandAdministration.cs",
-    "importFile": "THSV-StreamBridge-Command-Administration-4.0.2.sb"
+    "importFile": "THSV-StreamBridge-Command-Administration-4.0.3.sb"
   },
   "runtime": {
     "queue": "Default",
