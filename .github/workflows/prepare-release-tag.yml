@@ -21,6 +21,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: write
   contents: write
   pull-requests: read
 
@@ -62,4 +63,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git tag -a "$RELEASE_TAG" "$EXPECTED_MAIN_SHA" -m "THSV StreamBridge $RELEASE_TAG from merged PR #$merged_pr"
           git push origin "refs/tags/$RELEASE_TAG"
+          gh workflow run release.yml --repo "$REPOSITORY" --ref main -f "tag=$RELEASE_TAG"
           echo "Created $RELEASE_TAG at $EXPECTED_MAIN_SHA from merged PR #$merged_pr." >> "$GITHUB_STEP_SUMMARY"
