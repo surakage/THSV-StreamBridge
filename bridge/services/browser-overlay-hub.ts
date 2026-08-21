@@ -37,6 +37,17 @@ interface QueuedPresentation {
   readonly reject: (error: Error) => void;
 }
 
+interface OverlayHostVisibility {
+  readonly rendererId: string;
+  readonly host: 'obs' | 'browser';
+  readonly surface: string;
+  readonly moduleId?: string;
+  readonly visible: boolean;
+  readonly active?: boolean;
+  readonly scene?: string;
+  readonly reportedAt: string;
+}
+
 class OverlayPresentationCancelledError extends Error {}
 
 export class BrowserOverlayHub {
@@ -47,6 +58,7 @@ export class BrowserOverlayHub {
   private addOnLifecycleReports = 0;
   private readonly lifecycleListeners = new Map<string, Set<(event: AddOnOverlayLifecycleV2) => void>>();
   private readonly addOnSubscriptions = new Map<WebSocket, Map<string, Set<string>>>();
+  private readonly hostVisibility = new Map<WebSocket, Map<string, OverlayHostVisibility>>();
   private readonly activePlaybackIds = new Map<string, Map<string, number>>();
   private readonly activeMediaMessages = new Map<string, Map<string, ActiveMediaMessage>>();
   private readonly startedPlaybackIds = new Map<string, Set<string>>();
@@ -65,11 +77,12 @@ export class BrowserOverlayHub {
   public constructor(private readonly logger: Logger, private readonly config: BrowserOverlayConfig) {
     this.sockets.on('connection', (socket) => {
       this.addOnSubscriptions.set(socket, new Map());
+      this.hostVisibility.set(socket, new Map());
       socket.send(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'hub.ready', emittedAt: new Date().toISOString() }));
       this.replayActiveMedia(socket);
       this.replayRetainedLabels(socket);
       this.logger.info('Browser overlay client connected', { clients: this.sockets.clients.size });
-      socket.on('close', () => { this.addOnSubscriptions.delete(socket); this.logger.info('Browser overlay client disconnected', { clients: this.sockets.clients.size }); });
+      socket.on('close', () => { this.addOnSubscriptions.delete(socket); this.hostVisibility.delete(socket); this.logger.info('Browser overlay client disconnected', { clients: this.sockets.clients.size }); });
       socket.on('message', (data) => this.receiveClientMessage(rawDataText(data), socket));
     });
     this.mediaStartRetryTimer = setInterval(() => this.replayUnstartedMedia(), MEDIA_START_RETRY_MS);
@@ -177,7 +190,8 @@ export class BrowserOverlayHub {
     for (const subscriptions of this.addOnSubscriptions.values()) {
       for (const [moduleId, renderers] of subscriptions) addOnClients[moduleId] = (addOnClients[moduleId] ?? 0) + renderers.size;
     }
-    return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, published: this.published, addOnPublished: this.addOnPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationPolicy: MAIN_FEATURE_PRESENTATION_POLICY, presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
+    const visibility = [...this.hostVisibility.values()].flatMap((entries) => [...entries.values()]);
+    return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, hostVisibility: { supported: visibility.some((entry) => entry.host === 'obs'), obsSources: visibility.filter((entry) => entry.host === 'obs'), visibleObsSources: visibility.filter((entry) => entry.host === 'obs' && entry.visible).length }, published: this.published, addOnPublished: this.addOnPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationPolicy: MAIN_FEATURE_PRESENTATION_POLICY, presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
   }
   public clientConfig(): BrowserOverlayConfig { return { ...this.config }; }
 
@@ -189,6 +203,7 @@ export class BrowserOverlayHub {
     this.sockets.close();
     this.lifecycleListeners.clear();
     this.addOnSubscriptions.clear();
+    this.hostVisibility.clear();
     this.activePlaybackIds.clear();
     this.activeMediaMessages.clear();
     this.startedPlaybackIds.clear();
@@ -297,6 +312,16 @@ export class BrowserOverlayHub {
     try {
       const value = JSON.parse(raw) as Record<string, unknown>;
       if (value['contractVersion'] !== 'thsv-addon-overlay-v1') return;
+      if (value['kind'] === 'host.visibility' && socket !== undefined) {
+        const rendererId = value['rendererId']; const host = value['host']; const surface = value['surface']; const moduleId = value['moduleId']; const scene = value['scene'];
+        if (typeof rendererId !== 'string' || !RENDERER_ID.test(rendererId) || (host !== 'obs' && host !== 'browser') || typeof surface !== 'string' || surface.length < 1 || surface.length > 200 || typeof value['visible'] !== 'boolean') return;
+        if (moduleId !== undefined && (typeof moduleId !== 'string' || !MODULE_ID.test(moduleId))) return;
+        if (scene !== undefined && (typeof scene !== 'string' || scene.length < 1 || scene.length > 200)) return;
+        const reports = this.hostVisibility.get(socket) ?? new Map<string, OverlayHostVisibility>();
+        reports.set(rendererId, { rendererId, host, surface, ...(typeof moduleId === 'string' ? { moduleId } : {}), visible: value['visible'], ...(typeof value['active'] === 'boolean' ? { active: value['active'] } : {}), ...(typeof scene === 'string' ? { scene } : {}), reportedAt: new Date().toISOString() });
+        this.hostVisibility.set(socket, reports);
+        return;
+      }
       if ((value['kind'] === 'addon.subscribe' || value['kind'] === 'addon.unsubscribe') && socket !== undefined) {
         const moduleId = value['moduleId']; const rendererId = value['rendererId'];
         if (typeof moduleId !== 'string' || !MODULE_ID.test(moduleId) || typeof rendererId !== 'string' || !RENDERER_ID.test(rendererId)) return;

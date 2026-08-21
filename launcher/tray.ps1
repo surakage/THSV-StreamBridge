@@ -21,8 +21,10 @@ if (-not $createdNew) { exit 0 }
 $runtime = Join-Path $InstallRoot 'runtime\node.exe'
 $configPath = Join-Path $InstallRoot 'data\configuration\bridge.local.json'
 $logPath = Join-Path $InstallRoot 'data\logs\tray-shell.log'
+$startupReportPath = Join-Path $InstallRoot 'data\logs\last-startup-report.json'
 $script:lastReady = $null
 $script:lastDetail = 'Checking StreamBridge...'
+$script:lastReportTimestamp = $null
 $script:closing = $false
 
 function Write-TrayLog([string]$Message) {
@@ -85,9 +87,25 @@ function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolT
     $notify.ShowBalloonTip(4000)
 }
 
+function Read-StartupReport {
+    try {
+        if (-not (Test-Path -LiteralPath $startupReportPath -PathType Leaf)) { return $null }
+        $report = Get-Content -Raw -LiteralPath $startupReportPath | ConvertFrom-Json
+        if ([string]::IsNullOrWhiteSpace([string]$report.timestamp) -or [string]::IsNullOrWhiteSpace([string]$report.message)) { return $null }
+        return [pscustomobject]@{
+            Timestamp = [string]$report.timestamp
+            Outcome = [string]$report.outcome
+            Category = [string]$report.category
+            Phase = [string]$report.phase
+            Message = ([string]$report.message).Substring(0, [Math]::Min(220, ([string]$report.message).Length))
+        }
+    } catch { return $null }
+}
+
 function Update-Status {
     $ready = $false
     $detail = 'Bridge is offline'
+    $report = Read-StartupReport
     try {
         $response = Invoke-RestMethod -Uri "$(Read-ServiceUrl)/ready" -Method Get -TimeoutSec 2
         $ready = $response.ready -eq $true
@@ -95,18 +113,30 @@ function Update-Status {
     } catch {
         $detail = 'Bridge is offline'
     }
+    if ($null -ne $report -and $report.Outcome -eq 'in-progress') {
+        $phase = if ([string]::IsNullOrWhiteSpace($report.Phase)) { 'starting' } else { $report.Phase.Replace('-', ' ') }
+        $detail = "Starting tools - $phase"
+    } elseif (-not $ready -and $null -ne $report -and $report.Outcome -eq 'failed') {
+        $category = if ([string]::IsNullOrWhiteSpace($report.Category)) { 'startup error' } else { $report.Category }
+        $detail = "Bridge startup failed ($category)"
+    }
     $statusItem.Text = $detail
-    $notify.Text = "THSV StreamBridge - $detail"
+    $notify.Text = ("THSV StreamBridge - $detail").Substring(0, [Math]::Min(63, ("THSV StreamBridge - $detail").Length))
     if ($null -ne $script:lastReady -and $script:lastReady -ne $ready) {
         if ($ready) {
             Show-Balloon 'THSV StreamBridge is ready' 'The local Bridge passed its readiness check.' ([System.Windows.Forms.ToolTipIcon]::Info)
         } else {
-            Show-Balloon 'THSV StreamBridge needs attention' 'Open the Setup Wizard to review connection and diagnostics.' ([System.Windows.Forms.ToolTipIcon]::Warning)
+            $attention = if ($null -ne $report -and $report.Outcome -eq 'failed') { $report.Message } else { 'Open the Setup Wizard to review connection and diagnostics.' }
+            Show-Balloon 'THSV StreamBridge needs attention' $attention ([System.Windows.Forms.ToolTipIcon]::Warning)
         }
+    }
+    if ($null -ne $script:lastReportTimestamp -and $null -ne $report -and $script:lastReportTimestamp -ne $report.Timestamp -and $report.Outcome -eq 'failed') {
+        Show-Balloon 'THSV StreamBridge startup failed' $report.Message ([System.Windows.Forms.ToolTipIcon]::Error)
     }
     if ($script:lastDetail -ne $detail) { Write-TrayLog $detail }
     $script:lastReady = $ready
     $script:lastDetail = $detail
+    if ($null -ne $report) { $script:lastReportTimestamp = $report.Timestamp }
 }
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
@@ -148,7 +178,7 @@ $checkItem.Add_Click({ Update-Status })
 $exitItem.Add_Click({ $script:closing = $true; [System.Windows.Forms.Application]::Exit() })
 
 $timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 30000
+$timer.Interval = 5000
 $timer.Add_Tick({ Update-Status })
 $timer.Start()
 

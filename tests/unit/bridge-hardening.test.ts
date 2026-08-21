@@ -92,7 +92,11 @@ describe('StreamBridge hardening', () => {
     twitch.adapter = 'twitch-placeholder';
     const bridge = createTestBridge(config);
     await bridge.start();
-    expect(bridge.readiness()).toMatchObject({ ready: false, status: 'not-ready' });
+    expect(bridge.readiness()).toMatchObject({
+      ready: false,
+      status: 'not-ready',
+      blockers: [expect.objectContaining({ kind: 'adapter', name: 'twitch', state: 'degraded', recovery: expect.stringContaining('Reconnect') as string })],
+    });
     await bridge.stop();
   });
 

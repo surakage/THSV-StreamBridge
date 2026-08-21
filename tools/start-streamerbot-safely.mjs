@@ -1,5 +1,6 @@
 import { execFileSync, spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash, randomUUID } from 'node:crypto';
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL, URL } from 'node:url';
@@ -7,6 +8,9 @@ import { fileURLToPath, pathToFileURL, URL } from 'node:url';
 const DEFAULT_WEBSOCKET_PORT = 8081;
 const RELEASE_TIMEOUT_MS = 30_000;
 const START_TIMEOUT_MS = 45_000;
+const START_RETRY_DELAY_MS = 1_500;
+const START_ATTEMPTS = 2;
+const EXISTING_HEALTH_STABILITY_MS = 4_000;
 
 export function parseNetstatListeners(output, port = DEFAULT_WEBSOCKET_PORT) {
   const expected = `:${String(port)}`;
@@ -26,6 +30,8 @@ export function samePath(left, right) {
 }
 
 export async function startStreamerBotSafely({ executable, websocketPort, installRoot, checkOnly = false, save = false, output = process.stdout } = {}) {
+  const startupStartedAt = Date.now();
+  const startupRunId = validRunId(process.env['THSV_STARTUP_RUN_ID']) ?? randomUUID();
   if (process.platform !== 'win32') throw new Error('The safe Streamer.bot launcher is Windows-only.');
   const resolvedInstallRoot = installRoot === undefined ? undefined : resolve(installRoot);
   const port = websocketPort ?? resolveWebSocketPort(resolvedInstallRoot);
@@ -35,8 +41,11 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
     throw new Error(`Streamer.bot.exe was not found at ${exe}. Set THSV_STREAMERBOT_EXE or pass --exe.`);
   if (save && resolvedInstallRoot !== undefined) saveLauncherConfiguration(resolvedInstallRoot, exe, port);
 
-  const releaseLock = acquireLock(port);
+  const releaseLock = await acquireLock(port, output);
   try {
+    assertStreamerBotCircuitClosed(resolvedInstallRoot, port);
+    writeStreamerBotProgress(resolvedInstallRoot, startupStartedAt, startupRunId, checkOnly ? 'checking' : 'checking-existing', checkOnly ? 'Checking the existing Streamer.bot listener.' : 'Checking Streamer.bot processes and WebSocket ownership.');
+    let repaired = false;
     let processes = streamerBotProcesses().filter((item) => item.path && samePath(item.path, exe));
     let listener = portListener(port);
 
@@ -44,24 +53,41 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
       if (listener === undefined) throw new Error(`Port ${String(port)} is not listening.`);
       const owner = processDetails(listener.pid);
       if (owner?.path === undefined || !samePath(owner.path, exe)) throw portConflict(port, listener, owner);
+      if (!await listenerRemainsHealthy(port, listener.pid, EXISTING_HEALTH_STABILITY_MS))
+        throw new Error(`Streamer.bot stopped listening on port ${String(port)} during its stability check.`);
       output.write(`Streamer.bot is healthy on 127.0.0.1:${String(port)} (PID ${String(listener.pid)}).\n`);
+      clearStreamerBotCircuit(resolvedInstallRoot, port);
+      writeStreamerBotResult(resolvedInstallRoot, startupStartedAt, startupRunId, { outcome: 'ready', category: 'none', phase: 'complete', message: `Streamer.bot is healthy on 127.0.0.1:${String(port)}.`, pid: listener.pid, port });
       return { pid: listener.pid, repaired: false };
     }
 
     if (listener !== undefined) {
       const owner = processDetails(listener.pid);
       if (owner?.path !== undefined && samePath(owner.path, exe)) {
-        output.write(`Streamer.bot is already healthy on 127.0.0.1:${String(port)} (PID ${String(listener.pid)}).\n`);
-        return { pid: listener.pid, repaired: false };
+        output.write(`Confirming the existing Streamer.bot listener is stable on 127.0.0.1:${String(port)}...\n`);
+        if (await listenerRemainsHealthy(port, listener.pid, EXISTING_HEALTH_STABILITY_MS)) {
+          output.write(`Streamer.bot is already healthy on 127.0.0.1:${String(port)} (PID ${String(listener.pid)}).\n`);
+          clearStreamerBotCircuit(resolvedInstallRoot, port);
+          writeStreamerBotResult(resolvedInstallRoot, startupStartedAt, startupRunId, { outcome: 'already-healthy', category: 'none', phase: 'complete', message: `Streamer.bot is already healthy on 127.0.0.1:${String(port)}.`, pid: listener.pid, port });
+          return { pid: listener.pid, repaired: false };
+        }
+        repaired = true;
+        output.write('The existing Streamer.bot session was already closing. Waiting for it to release the port before starting a replacement...\n');
+        await waitForPortRelease(port, RELEASE_TIMEOUT_MS);
+        processes = streamerBotProcesses().filter((item) => item.path && samePath(item.path, exe));
+        listener = undefined;
       }
-      if (isAlive(listener.pid)) throw portConflict(port, listener, owner);
+      if (listener !== undefined && isAlive(listener.pid)) throw portConflict(port, listener, owner);
+      if (listener === undefined) {
+        // The matching listener closed during its stability check; continue into normal recovery.
+      } else {
       output.write(`Waiting for stale port ${String(port)} ownership from PID ${String(listener.pid)} to clear...\n`);
       await waitForPortRelease(port, RELEASE_TIMEOUT_MS);
       listener = portListener(port);
       if (listener !== undefined) throw portConflict(port, listener, processDetails(listener.pid));
+      }
     }
 
-    let repaired = false;
     if (processes.length > 0) {
       repaired = true;
       output.write('Streamer.bot is running without its WebSocket listener. Closing that incomplete session safely...\n');
@@ -73,21 +99,49 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
     listener = portListener(port);
     if (listener !== undefined) throw portConflict(port, listener, processDetails(listener.pid));
 
-    const child = spawn(exe, [], { cwd: dirname(exe), detached: true, stdio: 'ignore', windowsHide: false });
-    child.unref();
-    if (child.pid === undefined) throw new Error('Windows did not return a Streamer.bot process ID.');
-    output.write(`Starting Streamer.bot (PID ${String(child.pid)}) after confirming port ${String(port)} is free...\n`);
-    await waitUntil(() => {
-      if (!isAlive(child.pid)) throw new Error('Streamer.bot exited before its WebSocket server became ready.');
-      const current = portListener(port);
-      if (current === undefined) return false;
-      if (current.pid !== child.pid) throw portConflict(port, current, processDetails(current.pid));
-      return true;
-    }, START_TIMEOUT_MS, `Streamer.bot did not open 127.0.0.1:${String(port)} within 45 seconds.`);
-    output.write(`Streamer.bot is ready on 127.0.0.1:${String(port)} (PID ${String(child.pid)}).\n`);
-    return { pid: child.pid, repaired };
+    for (let attempt = 1; attempt <= START_ATTEMPTS; attempt += 1) {
+      writeStreamerBotProgress(resolvedInstallRoot, startupStartedAt, startupRunId, 'starting-streamerbot', `Starting Streamer.bot (attempt ${String(attempt)} of ${String(START_ATTEMPTS)}).`, { attempt, port });
+      const child = spawn(exe, [], { cwd: dirname(exe), detached: true, stdio: 'ignore', windowsHide: false });
+      child.unref();
+      if (child.pid === undefined) throw new Error('Windows did not return a Streamer.bot process ID.');
+      output.write(`Starting Streamer.bot (PID ${String(child.pid)}) after confirming port ${String(port)} is free...\n`);
+      try {
+        writeStreamerBotProgress(resolvedInstallRoot, startupStartedAt, startupRunId, 'waiting-for-websocket', `Waiting for Streamer.bot WebSocket port ${String(port)} (attempt ${String(attempt)} of ${String(START_ATTEMPTS)}).`, { attempt, pid: child.pid, port });
+        await waitUntil(() => {
+          if (!isAlive(child.pid)) throw new StreamerBotStartupExitError();
+          const current = portListener(port);
+          if (current === undefined) return false;
+          if (current.pid !== child.pid) throw portConflict(port, current, processDetails(current.pid));
+          return true;
+        }, START_TIMEOUT_MS, `Streamer.bot did not open 127.0.0.1:${String(port)} within 45 seconds.`);
+        output.write(`Streamer.bot is ready on 127.0.0.1:${String(port)} (PID ${String(child.pid)}).\n`);
+        clearStreamerBotCircuit(resolvedInstallRoot, port);
+        writeStreamerBotResult(resolvedInstallRoot, startupStartedAt, startupRunId, { outcome: repaired ? 'repaired' : 'ready', category: 'none', phase: 'complete', attempt, message: `Streamer.bot is ready on 127.0.0.1:${String(port)}.`, pid: child.pid, port });
+        return { pid: child.pid, repaired };
+      } catch (error) {
+        if (!(error instanceof StreamerBotStartupExitError) || attempt === START_ATTEMPTS) throw error;
+        repaired = true;
+        output.write('Streamer.bot exited during its first startup attempt. Waiting briefly, then retrying once...\n');
+        await waitForPortRelease(port, RELEASE_TIMEOUT_MS);
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, START_RETRY_DELAY_MS));
+      }
+    }
+    throw new Error('Streamer.bot did not reach ready state.');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const category = /crash-loop protection/iu.test(message) ? 'crash-loop-open' : isStreamerBotCrashFailure(error) ? 'streamerbot-crash' : /port/iu.test(message) ? 'port-conflict' : 'launcher-error';
+    if (category === 'streamerbot-crash') recordStreamerBotCircuitFailure(resolvedInstallRoot, port, message);
+    writeStreamerBotResult(resolvedInstallRoot, startupStartedAt, startupRunId, { outcome: 'failed', category, phase: 'failed', message, port });
+    throw error;
   } finally {
     releaseLock();
+  }
+}
+
+class StreamerBotStartupExitError extends Error {
+  constructor() {
+    super('Streamer.bot exited before its WebSocket server became ready. A retry was attempted; review the newest Streamer.bot log and Windows Application log for the underlying crash.');
+    this.name = 'StreamerBotStartupExitError';
   }
 }
 
@@ -182,6 +236,17 @@ async function waitForPortRelease(port, timeoutMs) {
   await waitUntil(() => portListener(port) === undefined, timeoutMs, `Port ${String(port)} did not release within ${String(timeoutMs / 1_000)} seconds.`);
 }
 
+async function listenerRemainsHealthy(port, pid, durationMs) {
+  const deadline = Date.now() + durationMs;
+  while (Date.now() < deadline) {
+    const listener = portListener(port);
+    if (listener?.pid !== pid || !isAlive(pid)) return false;
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
+  }
+  const listener = portListener(port);
+  return listener?.pid === pid && isAlive(pid);
+}
+
 async function waitUntil(predicate, timeoutMs, timeoutMessage) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -196,9 +261,104 @@ function portConflict(port, listener, owner) {
   return new Error(`Port ${String(port)} is already owned by ${identity}. It was not stopped. Close that application or change the Streamer.bot WebSocket port deliberately in both Streamer.bot and StreamBridge.`);
 }
 
-function acquireLock(port) {
+function isStreamerBotCrashFailure(error) {
+  if (error instanceof StreamerBotStartupExitError) return true;
+  const message = error instanceof Error ? error.message : String(error);
+  return /exited before|exited during|did not open 127\.0\.0\.1|stopped listening.*stability/iu.test(message);
+}
+
+function streamerBotCircuitPath(installRoot, port) {
+  return installRoot === undefined ? undefined : join(installRoot, 'data', 'runtime', `streamerbot-${String(port)}-startup-circuit.json`);
+}
+
+function assertStreamerBotCircuitClosed(installRoot, port) {
+  const state = readStreamerBotCircuit(installRoot, port);
+  const cutoff = Date.now() - 10 * 60_000;
+  const recent = state.failures.filter((failure) => Date.parse(failure.at) >= cutoff);
+  const last = recent.at(-1);
+  if (last === undefined) return;
+  const matching = recent.filter((failure) => failure.fingerprint === last.fingerprint);
+  if (matching.length < 3) return;
+  const retryAt = Date.parse(last.at) + 5 * 60_000;
+  if (retryAt <= Date.now()) return;
+  throw new Error(`Streamer.bot crash-loop protection is active after ${String(matching.length)} repeated startup failures. Automatic startup is paused until ${new Date(retryAt).toLocaleTimeString()}. Review the newest Streamer.bot log and Windows Application log before trying again.`);
+}
+
+function recordStreamerBotCircuitFailure(installRoot, port, message) {
+  const path = streamerBotCircuitPath(installRoot, port);
+  if (path === undefined) return;
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    const state = readStreamerBotCircuit(installRoot, port);
+    const cutoff = Date.now() - 10 * 60_000;
+    const fingerprint = createHash('sha256').update(message.replaceAll(/\d+/gu, '#')).digest('hex').slice(0, 24);
+    const failures = [...state.failures.filter((failure) => Date.parse(failure.at) >= cutoff), { at: new Date().toISOString(), fingerprint }].slice(-10);
+    writeJsonAtomicSync(path, { version: 1, failures });
+  } catch { /* Crash-loop history is best-effort and must not hide the original startup error. */ }
+}
+
+function clearStreamerBotCircuit(installRoot, port) {
+  const path = streamerBotCircuitPath(installRoot, port);
+  if (path === undefined) return;
+  try { rmSync(path, { force: true }); } catch { /* A healthy launch remains successful if cleanup is unavailable. */ }
+}
+
+function readStreamerBotCircuit(installRoot, port) {
+  const path = streamerBotCircuitPath(installRoot, port);
+  if (path === undefined) return { version: 1, failures: [] };
+  try {
+    const value = JSON.parse(readFileSync(path, 'utf8'));
+    const failures = Array.isArray(value?.failures) ? value.failures.filter((failure) => typeof failure?.at === 'string' && !Number.isNaN(Date.parse(failure.at)) && typeof failure?.fingerprint === 'string').map((failure) => ({ at: failure.at, fingerprint: failure.fingerprint.slice(0, 64) })) : [];
+    return { version: 1, failures };
+  } catch { return { version: 1, failures: [] }; }
+}
+
+function writeStreamerBotProgress(installRoot, startedAt, startupRunId, phase, message, details = {}) {
+  writeStreamerBotReport(installRoot, startedAt, startupRunId, { outcome: 'in-progress', category: 'none', phase, message, ...details }, false);
+}
+
+function writeStreamerBotResult(installRoot, startedAt, startupRunId, details) {
+  writeStreamerBotReport(installRoot, startedAt, startupRunId, details, true);
+}
+
+function writeStreamerBotReport(installRoot, startedAt, startupRunId, details, retainHistory) {
+  if (installRoot === undefined) return;
+  try {
+    const logsRoot = join(installRoot, 'data', 'logs');
+    mkdirSync(logsRoot, { recursive: true });
+    const report = { timestamp: new Date().toISOString(), startedAt: new Date(startedAt).toISOString(), startupRunId, launcher: 'streamerbot', requestedAction: 'start', durationMs: Date.now() - startedAt, ...details };
+    writeJsonAtomicSync(join(logsRoot, 'last-startup-report.json'), report);
+    if (retainHistory) {
+      const historyPath = join(logsRoot, 'startup-reports.jsonl');
+      rotateReportHistorySync(historyPath);
+      appendFileSync(historyPath, `${JSON.stringify(report)}\n`, 'utf8');
+    }
+  } catch { /* Startup reporting is diagnostic and must not change launch behavior. */ }
+}
+
+function validRunId(value) { return typeof value === 'string' && /^[0-9a-f-]{36}$/iu.test(value) ? value : undefined; }
+
+function writeJsonAtomicSync(path, value) {
+  const temporary = `${path}.${String(process.pid)}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  renameSync(temporary, path);
+}
+
+function rotateReportHistorySync(path, maximumBytes = 512 * 1024, retainedFiles = 3) {
+  if (!existsSync(path) || statSync(path).size < maximumBytes) return;
+  rmSync(`${path}.${String(retainedFiles)}`, { force: true });
+  for (let index = retainedFiles - 1; index >= 1; index -= 1) {
+    const source = `${path}.${String(index)}`;
+    if (existsSync(source)) renameSync(source, `${path}.${String(index + 1)}`);
+  }
+  renameSync(path, `${path}.1`);
+}
+
+async function acquireLock(port, output) {
   const lockPath = resolve(tmpdir(), `thsv-streamerbot-start-${String(port)}.lock`);
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const deadline = Date.now() + 100_000;
+  let waited = false;
+  while (Date.now() < deadline) {
     try {
       const handle = openSync(lockPath, 'wx', 0o600);
       writeFileSync(handle, `${String(process.pid)}\n`, { encoding: 'ascii' });
@@ -206,12 +366,20 @@ function acquireLock(port) {
       return () => { try { rmSync(lockPath, { force: true }); } catch { /* Best effort. */ } };
     } catch (error) {
       if (error?.code !== 'EEXIST') throw error;
-      const owner = Number(readFileSync(lockPath, 'ascii').trim());
-      if (Number.isInteger(owner) && owner > 0 && isAlive(owner)) throw new Error(`Another safe Streamer.bot launcher is already running (PID ${String(owner)}).`, { cause: error });
-      rmSync(lockPath, { force: true });
+      let owner;
+      try { owner = Number(readFileSync(lockPath, 'ascii').trim()); } catch { owner = undefined; }
+      if (Number.isInteger(owner) && owner > 0 && isAlive(owner)) {
+        if (!waited) output.write(`Another Streamer.bot startup is already running (PID ${String(owner)}); waiting for its result...\n`);
+        waited = true;
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
+        continue;
+      }
+      let currentOwner;
+      try { currentOwner = Number(readFileSync(lockPath, 'ascii').trim()); } catch { currentOwner = undefined; }
+      if (currentOwner === owner) rmSync(lockPath, { force: true });
     }
   }
-  throw new Error('Could not acquire the safe Streamer.bot startup lock.');
+  throw new Error('The existing Streamer.bot startup did not finish within 100 seconds.');
 }
 
 function argumentsFromCommandLine(values) {

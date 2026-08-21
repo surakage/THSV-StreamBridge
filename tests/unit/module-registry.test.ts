@@ -172,6 +172,7 @@ describe('ModuleRegistry', () => {
     await registry.start();
     expect(registry.ready()).toBe(false);
     expect(registry.statuses()[0]).toMatchObject({ moduleId: 'test.required', status: 'failed', message: 'required failure' });
+    expect(registry.readinessFailures()).toEqual([{ moduleId: 'test.required', status: 'failed', message: 'required failure' }]);
   });
 
   it('fails only an optional module when its dependency is absent', async () => {

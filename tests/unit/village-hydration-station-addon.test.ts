@@ -78,6 +78,17 @@ describe('Village Hydration Station add-on', () => {
     await hydration.stop(test.context);
   });
 
+  it('does not reconcile late live state from commands, unverified rewards, or a different reward', async () => {
+    const test = runtime({ twitchRewardId: 'hydrate-reward', viewerCommandPlatforms: ['twitch'], viewerGlobalCooldownMinutes: 0, viewerCooldownMinutes: 0 });
+    await hydration.start(test.context);
+    await hydration.onEvent(event('command.received', 'twitch', { command: 'hydrate', arguments: [] }), test.context);
+    await hydration.onEvent(event('reward.redemption', 'twitch', { rewardId: 'hydrate-reward', redemptionId: 'unverified', verifiedTransport: false }), test.context);
+    await hydration.onEvent(event('reward.redemption', 'twitch', { rewardId: 'different-reward', redemptionId: 'different', verifiedTransport: true }), test.context);
+    expect(test.state()).toMatchObject({ totalOunces: 0, remindersThisStream: 0, nextReminderAt: 0 });
+    expect(test.context.overlay.publish).toHaveBeenCalledTimes(1);
+    await hydration.stop(test.context);
+  });
+
   it('does not let delayed rewards or scheduled reminders revive hydration after offline', async () => {
     const test = runtime({ twitchRewardId: 'hydrate-reward', speakerEnabled: true, voiceAlias: 'Hydration' });
     await hydration.start(test.context);

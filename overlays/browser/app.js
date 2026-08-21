@@ -16,6 +16,11 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
   const dockMode = location.pathname.endsWith('/dock');
   const mode = location.pathname.startsWith('/overlay/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
   const requestedLayout = new URLSearchParams(location.search).get('layout');
+  const rendererId = globalThis.crypto?.randomUUID?.() || `renderer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  let sendTransport = () => {};
+  let obsVisible = document.visibilityState !== 'hidden';
+  let obsActive;
+  let obsScene;
   const platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab', streamlabs: '#e7c6ff', kofi: '#ffd0a8' };
   document.body.dataset.mode = mode;
   document.body.dataset.dock = dockMode ? 'true' : 'false';
@@ -127,7 +132,21 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     status.textContent = state === 'live' ? 'LIVE' : 'OFFLINE';
     status.dataset.state = state;
     if (state !== 'live') resetOverlaySurface();
+    else reportHostVisibility();
   }
+
+  function reportHostVisibility() {
+    sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'host.visibility', rendererId, host: window.obsstudio ? 'obs' : 'browser', surface: `${location.pathname}:${mode}`, visible: window.obsstudio ? obsVisible : document.visibilityState !== 'hidden', ...(typeof obsActive === 'boolean' ? { active: obsActive } : {}), ...(typeof obsScene === 'string' ? { scene: obsScene } : {}) });
+  }
+
+  function refreshObsScene() { if (typeof window.obsstudio?.getCurrentScene === 'function') window.obsstudio.getCurrentScene((scene) => { if (typeof scene?.name === 'string') obsScene = scene.name; reportHostVisibility(); }); }
+
+  document.addEventListener('visibilitychange',()=>{if(!window.obsstudio)obsVisible=document.visibilityState!=='hidden';reportHostVisibility()});
+  addEventListener('obsSourceVisibleChanged',(event)=>{const value=event.detail?.visible??event.detail;if(typeof value==='boolean')obsVisible=value;reportHostVisibility()});
+  addEventListener('obsSourceActiveChanged',(event)=>{const value=event.detail?.active??event.detail;if(typeof value==='boolean')obsActive=value;reportHostVisibility()});
+  addEventListener('obsSceneChanged',(event)=>{const value=event.detail?.name??event.detail?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()});
+  refreshObsScene();
+  setInterval(reportHostVisibility,15_000);
 
   function resetOverlaySurface() {
     chat.replaceChildren();
@@ -139,6 +158,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     resetOverlaySurface();
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(`${protocol}//${location.host}/overlay/events`);
+    sendTransport = (payload) => { if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload)); };
     let reconnectTimer;
     socket.addEventListener('open', () => transportStatus('live'));
     socket.addEventListener('message', (message) => {
@@ -156,12 +176,13 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     if ('SharedWorker' in window) {
       try {
         const worker = new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3');
+        sendTransport = (payload) => worker.port.postMessage({ kind: 'transport.send', payload });
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
           else receive(message.data);
         });
         worker.port.start();
-        addEventListener('pagehide', () => worker.port.postMessage({ kind: 'disconnect' }), { once: true });
+        addEventListener('pagehide', () => { obsVisible=false;reportHostVisibility();worker.port.postMessage({ kind: 'disconnect' }) }, { once: true });
         return;
       } catch { /* Isolated browser sources fall back to a direct connection. */ }
     }
@@ -543,7 +564,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
       const queued = result.deliveries.map((delivery) => delivery.platform).join(', ');
       dockMessage.value = '';
       dockSendStatus.dataset.state = 'success';
-      dockSendStatus.textContent = `Queued to ${queued}. Platform delivery is handled by Streamer.bot.`;
+      dockSendStatus.textContent = `Sent to Streamer.bot for ${queued}. Creator account preferred; connected bot fallback enabled.`;
       updateDockCharacterCount();
     } catch (error) {
       dockSendStatus.dataset.state = 'error';

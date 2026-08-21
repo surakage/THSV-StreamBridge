@@ -11,6 +11,11 @@ describe('native Windows tray shell', () => {
     expect(source).toContain("Start-Launcher 'stop.mjs'");
     expect(source).toContain('DestroyIcon');
     expect(source).toContain('[Thsv.Native.IconHandle]::DestroyIcon($handle)');
+    expect(source).toContain('last-startup-report.json');
+    expect(source).toContain('THSV StreamBridge startup failed');
+    expect(source).toContain('$timer.Interval = 5000');
+    expect(source).toContain("$report.Outcome -eq 'in-progress'");
+    expect(source).toContain('Starting tools - $phase');
     expect(source).not.toContain('control-token');
     expect(source).not.toContain('Streamer.bot.ico');
   });

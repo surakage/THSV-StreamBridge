@@ -24,6 +24,33 @@ export interface StreamerBotLauncherStatus {
   readonly installRoot: string;
   readonly streamDeckTarget: string;
   readonly optionalApps: Readonly<Record<OptionalApplication, OptionalApplicationStatus>>;
+  readonly lastStartupReport?: StartupReportSummary;
+}
+
+export interface StartupReportSummary {
+  readonly timestamp: string;
+  readonly startedAt?: string;
+  readonly startupRunId?: string;
+  readonly launcher: string;
+  readonly requestedAction: string;
+  readonly outcome: string;
+  readonly category: string;
+  readonly message: string;
+  readonly phase?: string;
+  readonly attempt?: number;
+  readonly durationMs?: number;
+  readonly readinessBlockers?: readonly StartupReadinessBlocker[];
+  readonly pid?: number;
+  readonly port?: number;
+  readonly version?: string;
+}
+
+export interface StartupReadinessBlocker {
+  readonly kind: string;
+  readonly name: string;
+  readonly state: string;
+  readonly message: string;
+  readonly recovery: string;
 }
 
 export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot';
@@ -70,7 +97,8 @@ export class StreamerBotLauncherService {
 
   public async status(): Promise<StreamerBotLauncherStatus> {
     const port = this.websocketPort();
-    const location = this.locationFields();
+    const lastStartupReport = await this.readLastStartupReport();
+    const location = { ...this.locationFields(), ...(lastStartupReport === undefined ? {} : { lastStartupReport }) };
     const optionalApps = await this.optionalApplicationStatuses();
     if (this.platform !== 'win32') return { ...location, optionalApps, supported: false, configured: false, executableExists: false, websocketPort: port, state: 'unsupported', message: 'Safe Streamer.bot launch is available on Windows only.' };
     const configuration = await this.readConfiguration();
@@ -165,7 +193,7 @@ export class StreamerBotLauncherService {
     const configuration = await this.readConfiguration();
     if (configuration === undefined) throw new Error('Select Streamer.bot.exe before using safe start.');
     const launcher = await this.launcherPath();
-    const result = await execFileAsync(process.execPath, [launcher, '--install-root', this.installRoot, '--exe', configuration.executable, '--port', String(this.websocketPort()), '--save'], { cwd: this.installRoot, windowsHide: true, timeout: 60_000, encoding: 'utf8' });
+    const result = await execFileAsync(process.execPath, [launcher, '--install-root', this.installRoot, '--exe', configuration.executable, '--port', String(this.websocketPort()), '--save'], { cwd: this.installRoot, windowsHide: true, timeout: 120_000, encoding: 'utf8' });
     return { status: await this.status(), output: `${result.stdout}${result.stderr}`.trim() };
   }
 
@@ -173,10 +201,27 @@ export class StreamerBotLauncherService {
     await this.requireConfiguration();
     const launcher = join(this.installRoot, 'launcher', 'start-streaming-tools.mjs');
     if (!await isFile(launcher)) throw new Error('The one-button streaming tools launcher is missing. Reinstall the current StreamBridge release.');
-    const result = await execFileAsync(process.execPath, [launcher], { cwd: this.installRoot, windowsHide: true, timeout: 90_000, encoding: 'utf8' });
+    const result = await execFileAsync(process.execPath, [launcher], { cwd: this.installRoot, windowsHide: true, timeout: 150_000, encoding: 'utf8' });
     this.optionalProcessCache = undefined;
     const output = `${result.stdout}${result.stderr}`.trim();
     return { status: await this.status(), output, warnings: parseOptionalStartupWarnings(output) };
+  }
+
+  public async restartStreamBridge(): Promise<{ readonly accepted: true; readonly helperProcessId: number; readonly message: string }> {
+    if (this.platform !== 'win32') throw new Error('Safe StreamBridge restart is available on Windows only.');
+    const launcher = join(this.installRoot, 'launcher', 'start.mjs');
+    if (!await isFile(launcher)) throw new Error('The StreamBridge restart launcher is missing. Reinstall the current StreamBridge release.');
+    const child = spawn(process.execPath, [launcher, '--restart', '--open-wizard'], { cwd: this.installRoot, detached: true, windowsHide: true, stdio: 'ignore' });
+    const helperProcessId = await new Promise<number>((resolveSpawn, rejectSpawn) => {
+      child.once('error', rejectSpawn);
+      child.once('spawn', () => {
+        child.removeListener('error', rejectSpawn);
+        if (child.pid === undefined) rejectSpawn(new Error('Windows did not return a process ID for the StreamBridge restart helper.'));
+        else resolveSpawn(child.pid);
+      });
+    });
+    child.unref();
+    return { accepted: true, helperProcessId, message: 'StreamBridge is restarting. This tab may briefly disconnect, and a fresh unlocked Wizard window will open automatically.' };
   }
 
   public async createDesktopShortcut(): Promise<{ readonly path: string; readonly status: StreamerBotLauncherStatus }> {
@@ -223,6 +268,35 @@ export class StreamerBotLauncherService {
       if (![1, 2].includes(value.version ?? 0) || typeof value.executable !== 'string') return undefined;
       return { version: 2, executable: value.executable, websocketPort: this.websocketPort(), optionalApps: validOptionalApplications(value.optionalApps), updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : new Date(0).toISOString() };
     } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT' || error instanceof SyntaxError) return undefined; throw error; }
+  }
+
+  private async readLastStartupReport(): Promise<StartupReportSummary | undefined> {
+    try {
+      const value = JSON.parse(await readFile(join(this.dataRoot, 'logs', 'last-startup-report.json'), 'utf8')) as Record<string, unknown>;
+      if (!isNonEmptyString(value['timestamp']) || Number.isNaN(Date.parse(value['timestamp']))
+        || !isNonEmptyString(value['launcher']) || !isNonEmptyString(value['requestedAction'])
+        || !isNonEmptyString(value['outcome']) || !isNonEmptyString(value['category']) || !isNonEmptyString(value['message'])) return undefined;
+      return {
+        timestamp: value['timestamp'],
+        launcher: value['launcher'].slice(0, 64),
+        requestedAction: value['requestedAction'].slice(0, 64),
+        outcome: value['outcome'].slice(0, 64),
+        category: value['category'].slice(0, 64),
+        message: value['message'].slice(0, 500),
+        ...(isNonEmptyString(value['startedAt']) && !Number.isNaN(Date.parse(value['startedAt'])) ? { startedAt: value['startedAt'] } : {}),
+        ...(isNonEmptyString(value['startupRunId']) && /^[0-9a-f-]{36}$/iu.test(value['startupRunId']) ? { startupRunId: value['startupRunId'] } : {}),
+        ...(isNonEmptyString(value['phase']) ? { phase: value['phase'].slice(0, 64) } : {}),
+        ...(isNonNegativeInteger(value['attempt']) ? { attempt: value['attempt'] } : {}),
+        ...(isNonNegativeInteger(value['durationMs']) ? { durationMs: value['durationMs'] } : {}),
+        ...(validReadinessBlockers(value['readinessBlockers']).length > 0 ? { readinessBlockers: validReadinessBlockers(value['readinessBlockers']) } : {}),
+        ...(isPositiveInteger(value['pid']) ? { pid: value['pid'] } : {}),
+        ...(isPositiveInteger(value['port']) && value['port'] <= 65_535 ? { port: value['port'] } : {}),
+        ...(isNonEmptyString(value['version']) ? { version: value['version'].slice(0, 64) } : {}),
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT' || error instanceof SyntaxError) return undefined;
+      throw error;
+    }
   }
 
   private async requireConfiguration(): Promise<LauncherConfiguration> {
@@ -299,6 +373,18 @@ export function parseOptionalStartupWarnings(output: string): readonly string[] 
 }
 
 function samePath(left: string, right: string): boolean { return resolve(left).toLocaleLowerCase('en-US') === resolve(right).toLocaleLowerCase('en-US'); }
+function isNonEmptyString(value: unknown): value is string { return typeof value === 'string' && value.trim().length > 0; }
+function isPositiveInteger(value: unknown): value is number { return typeof value === 'number' && Number.isInteger(value) && value > 0; }
+function isNonNegativeInteger(value: unknown): value is number { return typeof value === 'number' && Number.isInteger(value) && value >= 0; }
+function validReadinessBlockers(value: unknown): readonly StartupReadinessBlocker[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 20).flatMap((item) => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) return [];
+    const candidate = item as Record<string, unknown>;
+    if (![candidate['kind'], candidate['name'], candidate['state'], candidate['message'], candidate['recovery']].every(isNonEmptyString)) return [];
+    return [{ kind: String(candidate['kind']).slice(0, 32), name: String(candidate['name']).slice(0, 128), state: String(candidate['state']).slice(0, 64), message: String(candidate['message']).slice(0, 500), recovery: String(candidate['recovery']).slice(0, 500) }];
+  });
+}
 async function isFile(path: string): Promise<boolean> { try { return (await stat(path)).isFile(); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false; throw error; } }
 function listenerForPort(port: number): number | undefined {
   try {

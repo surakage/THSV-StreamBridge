@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Chat Play Pack",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "author": "surakage",
   "description": "Adds the organized Chat Play command set and optionally fetches bounded OpenTDB trivia and dictionary-backed Unscramble batches without sending viewer data.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Chat Play Pack - Fetch Trivia Questions",
       "group": "THSV Addon - Chat Play Pack",
       "source": "src/FetchTriviaQuestions.cs",
-      "importFile": "THSV-StreamBridge-Chat-Play-Pack-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Chat-Play-Pack-4.0.2.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [
@@ -26,7 +26,7 @@
       "name": "THSV Addon - Chat Play Pack - Fetch Unscramble Words",
       "group": "THSV Addon - Chat Play Pack",
       "source": "src/FetchUnscrambleWords.cs",
-      "importFile": "THSV-StreamBridge-Chat-Play-Pack-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Chat-Play-Pack-4.0.2.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [
@@ -37,156 +37,12 @@
       ]
     }
   ],
-  "commands": [
-    {
-      "id": "02c09f61-e474-4c4c-94a3-21c3aa6145d1",
-      "name": "play",
-      "command": "!play",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 1,
-      "userCooldown": 2,
-      "stableIdentitySeed": "chat-play:play"
-    },
-    {
-      "id": "ebe99788-0e43-472c-8432-1dd08da51580",
-      "name": "guess",
-      "command": "!guess",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:guess"
-    },
-    {
-      "id": "5cf25512-a0e8-4d8f-872e-1a7279c14e2c",
-      "name": "answer",
-      "command": "!answer",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:answer"
-    },
-    {
-      "id": "85280d53-953e-4435-aeb4-234272d9ab73",
-      "name": "predict",
-      "command": "!predict",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:predict"
-    },
-    {
-      "id": "9db9cb57-a35c-4dc6-80e9-2dd37ac996b4",
-      "name": "coinflip",
-      "command": "!coinflip",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:coinflip"
-    },
-    {
-      "id": "9d255724-2320-4788-80f0-97e8d091af32",
-      "name": "slots",
-      "command": "!slots",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:slots"
-    },
-    {
-      "id": "2c5370a5-6c8f-4ce4-bbc3-e9e9f0bb9da7",
-      "name": "roulette",
-      "command": "!roulette",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:roulette"
-    },
-    {
-      "id": "0d32f1b7-60a0-48fc-a9de-562a0432f5e0",
-      "name": "rps",
-      "command": "!rps",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:rps"
-    },
-    {
-      "id": "f9ceb393-8afe-44da-81f6-dc9fa065fc94",
-      "name": "duel",
-      "command": "!duel",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 2,
-      "stableIdentitySeed": "chat-play:duel"
-    },
-    {
-      "id": "2e8d269c-dc85-4383-8cc9-afa9b7b2bb03",
-      "name": "accept",
-      "command": "!accept",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:accept"
-    },
-    {
-      "id": "3b359149-b91c-4e54-9388-ac9f062b0438",
-      "name": "decline",
-      "command": "!decline",
-      "enabled": true,
-      "caseSensitive": false,
-      "sources": 2098177,
-      "ignoreBotAccount": true,
-      "ignoreInternal": true,
-      "globalCooldown": 0,
-      "userCooldown": 1,
-      "stableIdentitySeed": "chat-play:decline"
-    }
-  ],
+  "commands": [],
   "runtime": {
     "queue": "THSV Add-ons",
     "concurrent": true
   },
   "manualTriggerSetup": [],
-  "triggerSafety": "Fetch actions remain broker-dispatched and triggerless. Imported commands need no action triggers because the existing THSV platform intake actions already relay normalized public chat; TikTok uses the existing TikFinity intake.",
+  "triggerSafety": "Fetch actions remain broker-dispatched and triggerless. Chat Play commands are owned by StreamBridge and arrive through the existing normalized platform intakes; do not create duplicate Streamer.bot Command objects or triggers.",
   "verificationStatus": "Source and package structure tested; live OpenTDB, dictionary-provider, and chat acceptance remains creator-verified."
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Quote Vault",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "author": "surakage",
   "description": "Provides optional creator-triggered random-quote and library-statistics controls for the cross-platform Quote Vault add-on.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -12,7 +12,7 @@
       "name": "THSV Addon - Quote Vault - Random Quote",
       "group": "THSV Addon - Quote Vault",
       "source": "src/QuoteVaultControl.cs",
-      "importFile": "THSV-StreamBridge-Quote-Vault-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Quote-Vault-4.0.2.sb",
       "arguments": [
         {
           "name": "quoteVaultControlAction",
@@ -40,7 +40,7 @@
       "name": "THSV Addon - Quote Vault - Statistics",
       "group": "THSV Addon - Quote Vault",
       "source": "src/QuoteVaultControl.cs",
-      "importFile": "THSV-StreamBridge-Quote-Vault-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Quote-Vault-4.0.2.sb",
       "arguments": [
         {
           "name": "quoteVaultControlAction",
@@ -68,7 +68,7 @@
       "name": "THSV Addon - Quote Vault - Native Quote Sync",
       "group": "THSV Addon - Quote Vault",
       "source": "src/NativeQuoteSync.cs",
-      "importFile": "THSV-StreamBridge-Quote-Vault-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Quote-Vault-4.0.2.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

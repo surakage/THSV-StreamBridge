@@ -82,6 +82,13 @@ describe('public release scripts', () => {
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip.sha256');
     expect(workflow).toContain('packages/THSV-StreamBridge-AddOns-index.json');
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOns-index.json');
+    expect(workflow).toContain('startup-chaos:');
+    expect(workflow).toContain('needs: startup-chaos');
+    expect(workflow).toContain('npm run test:startup-chaos');
+    expect(workflow).toContain('artifacts/startup-chaos/latest.json');
+    expect(workflow).toContain('release-archive.tests.ps1');
+    expect(workflow).toContain('gh release download');
+    expect(workflow).toContain('PreviousArchive');
   });
 
   it('backs up add-ons and ships a verified approval-gated restore path', async () => {
@@ -208,6 +215,7 @@ describe('public release scripts', () => {
     const source = await readFile('installer/install.mjs', 'utf8');
     expect(source).not.toContain("copyFile(join(sourceRoot, 'installer', 'Install THSV StreamBridge.cmd')");
     expect(source).toContain('installation was cancelled before replacing application files');
+    expect(source).toContain("'--open-wizard', '--guided'");
   });
 
   it('packages a delayed verified-update helper for one-click offline upgrades', async () => {
@@ -235,8 +243,9 @@ describe('public release scripts', () => {
     expect(source).toContain('http://127.0.0.1:');
     expect(source).toContain("health?.service !== 'THSV StreamBridge'");
     expect(source).toContain("`${baseUrl}/wizard/api/unlock-tickets`");
-    expect(source).toContain("`${baseUrl}/wizard/#unlock=${ticketResult.ticket}`");
-    expect(source).not.toContain("`${baseUrl}/wizard/#unlock=${token}`");
+    expect(source).toContain("guidedWizard?'?guided=1':''");
+    expect(source).toContain('#unlock=${ticketResult.ticket}');
+    expect(source).not.toContain('#unlock=${token}');
   });
 
   it('does not discard development ownership markers before a spawned child is confirmed stopped', async () => {

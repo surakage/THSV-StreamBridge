@@ -31,6 +31,10 @@ import { REWARD_BLUEPRINTS, REWARD_PLATFORM_POLICY } from '../core/reward-bluepr
 import type { StreamerBotLauncherService } from './streamerbot-launcher-service.js';
 import type { AutomaticUpdateMonitor } from './automatic-update-monitor.js';
 import type { StreamerBotUniversalImportService, UniversalImportCatalogue, UniversalImportResult } from './streamerbot-universal-import-service.js';
+import { WebsiteCompanionError, type WebsiteCompanionService, type WebsiteCompanionStatus } from './website-companion-service.js';
+import type { LiveAcceptanceConfirmation, LiveAcceptanceService } from './live-acceptance-service.js';
+import type { BuildProvenance } from './build-provenance-service.js';
+import type { ObsSourceInventoryService } from './obs-source-inventory-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -146,6 +150,7 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
 export class WizardService {
   private readonly transactions = new Map<string, WizardTransaction>();
   private lastInspection: WizardInspection | undefined;
+  private inspectionInFlight: Promise<WizardInspection> | undefined;
   private lastCommandSync: CommandSyncResult | undefined;
 
   public constructor(
@@ -158,7 +163,81 @@ export class WizardService {
     private readonly streamerBotLauncher?: StreamerBotLauncherService,
     private readonly automaticUpdates?: AutomaticUpdateMonitor,
     private readonly universalImports?: StreamerBotUniversalImportService,
+    private readonly websiteCompanion?: WebsiteCompanionService,
+    private readonly liveAcceptance?: LiveAcceptanceService,
+    private readonly obsSourceInventory?: ObsSourceInventoryService,
+    private readonly buildProvenance?: BuildProvenance,
   ) {}
+
+  public liveAcceptanceStatus(): Readonly<Record<string, unknown>> {
+    if (this.liveAcceptance === undefined) throw new WizardTransactionError(503, 'Live acceptance tracking is unavailable in this installation.');
+    return this.liveAcceptance.status();
+  }
+
+  public confirmLiveAcceptance(checkId: string, input: unknown): LiveAcceptanceConfirmation {
+    if (this.liveAcceptance === undefined) throw new WizardTransactionError(503, 'Live acceptance tracking is unavailable in this installation.');
+    return this.liveAcceptance.confirm(checkId, input);
+  }
+
+  public obsInventoryStatus(overlay?: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+    if (this.obsSourceInventory === undefined) return { configured: false, ready: false, requiredCount: 0, readyRequiredCount: 0, sources: [] };
+    return this.obsSourceInventory.status(overlay);
+  }
+
+  public saveObsInventory(input: unknown, overlay?: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+    if (this.obsSourceInventory === undefined) throw new WizardTransactionError(503, 'Expected OBS source inventory is unavailable in this installation.');
+    this.obsSourceInventory.replace(input);
+    return this.obsSourceInventory.status(overlay);
+  }
+
+  public provenance(): Readonly<BuildProvenance> | Readonly<Record<string, unknown>> {
+    return this.buildProvenance ?? { version: STREAMBRIDGE_VERSION, coreContractVersion: CORE_CONTRACT_VERSION, installation: 'local-development' };
+  }
+
+  public async websiteCompanionStatus(): Promise<WebsiteCompanionStatus> {
+    if (this.websiteCompanion === undefined) throw new WizardTransactionError(503, 'Website pairing is unavailable in this installation. Repair or update StreamBridge.');
+    return this.websiteCompanion.status();
+  }
+
+  public async startWebsitePairing(): Promise<WebsiteCompanionStatus> {
+    if (this.websiteCompanion === undefined) throw new WizardTransactionError(503, 'Website pairing is unavailable in this installation. Repair or update StreamBridge.');
+    try { return await this.websiteCompanion.start(STREAMBRIDGE_VERSION); }
+    catch (error) { throw websiteCompanionWizardError(error); }
+  }
+
+  public async checkWebsitePairing(): Promise<WebsiteCompanionStatus> {
+    if (this.websiteCompanion === undefined) throw new WizardTransactionError(503, 'Website pairing is unavailable in this installation. Repair or update StreamBridge.');
+    try { return await this.websiteCompanion.check(); }
+    catch (error) { throw websiteCompanionWizardError(error); }
+  }
+
+  public async disconnectWebsiteCompanion(): Promise<WebsiteCompanionStatus> {
+    if (this.websiteCompanion === undefined) throw new WizardTransactionError(503, 'Website pairing is unavailable in this installation. Repair or update StreamBridge.');
+    try { return await this.websiteCompanion.disconnect(); }
+    catch (error) { throw websiteCompanionWizardError(error); }
+  }
+
+  public async publishWebsiteConfiguration(): Promise<Readonly<{ saved: true; savedAt: string }>> {
+    if (this.websiteCompanion === undefined) throw new WizardTransactionError(503, 'Website pairing is unavailable in this installation. Repair or update StreamBridge.');
+    if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration export is not available.');
+    try { return await this.websiteCompanion.pushConfiguration(await this.configuration.export()); }
+    catch (error) { throw websiteCompanionWizardError(error); }
+  }
+
+  public async stageWebsiteConfigurationDraft(leaseOwner = ''): Promise<WizardConfigurationDraft> {
+    if (this.websiteCompanion === undefined) throw new WizardTransactionError(503, 'Website pairing is unavailable in this installation. Repair or update StreamBridge.');
+    if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration mutations are not available.');
+    try {
+      const websiteDraft = await this.websiteCompanion.pullDraft();
+      if (websiteDraft === null) throw new WizardTransactionError(404, 'No website draft is waiting. Save a draft on SlothBloom, then try again.');
+      const localDraft = await this.configuration.begin(leaseOwner);
+      try { return this.configuration.stageImport(localDraft.id, websiteDraft.configuration, leaseOwner); }
+      catch (error) { this.configuration.cancel(localDraft.id, leaseOwner); throw error; }
+    } catch (error) {
+      if (error instanceof WizardTransactionError || error instanceof WizardConfigurationError) throw error;
+      throw websiteCompanionWizardError(error);
+    }
+  }
 
   public async streamerBotImportCatalogue(): Promise<UniversalImportCatalogue> {
     if (this.universalImports === undefined) throw new WizardTransactionError(503, 'Universal Streamer.bot import generation is unavailable in this installation. Repair or update StreamBridge.');
@@ -193,7 +272,22 @@ export class WizardService {
     };
   }
 
-  public async inspect(): Promise<WizardInspection> {
+  public async configurationActivation(): Promise<Readonly<{ state: string; restartRequired: boolean; activatedAt?: string }>> {
+    if (this.configuration === undefined) return { state: 'unavailable', restartRequired: false };
+    return this.configuration.activationStatus();
+  }
+
+  public inspect(): Promise<WizardInspection> {
+    if (this.inspectionInFlight !== undefined) return this.inspectionInFlight;
+    const pending = this.performInspection();
+    this.inspectionInFlight = pending;
+    void pending.finally(() => {
+      if (this.inspectionInFlight === pending) this.inspectionInFlight = undefined;
+    }).catch(() => {});
+    return pending;
+  }
+
+  private async performInspection(): Promise<WizardInspection> {
     if (this.inspector === undefined) {
       const result: WizardInspection = {
         inspectedAt: new Date().toISOString(), available: false, actions: [], commands: [], requests: [], error: 'Streamer.bot output is not configured.',
@@ -391,15 +485,15 @@ export class WizardService {
     }
   }
 
-  public async beginTransaction(): Promise<WizardTransaction | WizardConfigurationDraft> {
-    if (this.configuration !== undefined) return this.configuration.begin();
+  public async beginTransaction(leaseOwner = ''): Promise<WizardTransaction | WizardConfigurationDraft> {
+    if (this.configuration !== undefined) return this.configuration.begin(leaseOwner);
     const transaction: WizardTransaction = { id: randomUUID(), status: 'draft', createdAt: new Date().toISOString(), stagedChanges: [] };
     this.transactions.set(transaction.id, transaction);
     return transaction;
   }
 
-  public cancelTransaction(id: string): WizardTransaction | WizardConfigurationDraft {
-    if (this.configuration !== undefined) return this.configuration.cancel(id);
+  public cancelTransaction(id: string,leaseOwner = ''): WizardTransaction | WizardConfigurationDraft {
+    if (this.configuration !== undefined) return this.configuration.cancel(id,leaseOwner);
     const current = this.transactions.get(id);
     if (current === undefined) throw new WizardTransactionError(404, 'Wizard transaction was not found.');
     if (current.status === 'cancelled') return current;
@@ -408,19 +502,19 @@ export class WizardService {
     return cancelled;
   }
 
-  public stageTransaction(id: string, change: unknown): WizardConfigurationDraft {
+  public stageTransaction(id: string, change: unknown,leaseOwner = ''): WizardConfigurationDraft {
     if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration mutations are not available.');
-    return this.configuration.stage(id, change);
+    return this.configuration.stage(id, change,leaseOwner);
   }
 
-  public stageImport(id: string, input: unknown): WizardConfigurationDraft {
+  public stageImport(id: string, input: unknown,leaseOwner = ''): WizardConfigurationDraft {
     if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration mutations are not available.');
-    return this.configuration.stageImport(id, input);
+    return this.configuration.stageImport(id, input,leaseOwner);
   }
 
-  public async commitTransaction(id: string): Promise<WizardConfigurationDraft> {
+  public async commitTransaction(id: string,leaseOwner = ''): Promise<WizardConfigurationDraft> {
     if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration mutations are not available.');
-    return this.configuration.commit(id);
+    return this.configuration.commit(id,leaseOwner);
   }
 
   public async exportConfiguration(): Promise<WizardConfigurationExport> {
@@ -482,6 +576,12 @@ export class WizardService {
     approvedLauncherRequest(input);
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
     return this.streamerBotLauncher.startAllStreamingTools();
+  }
+
+  public async restartStreamBridge(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe StreamBridge restart is not configured.');
+    return this.streamerBotLauncher.restartStreamBridge();
   }
 
   public async createStreamerBotDesktopShortcut(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -696,8 +796,16 @@ export class WizardService {
       updates: { configured: this.updates !== undefined, addOnsConfigured: this.addOnUpdates !== undefined },
       automaticUpdates: this.automaticUpdates?.snapshot(),
       streamerBotLauncher: { configured: this.streamerBotLauncher !== undefined },
+      liveAcceptance: { configured: this.liveAcceptance !== undefined },
+      obsSourceInventory: { configured: this.obsSourceInventory !== undefined },
+      buildProvenance: this.provenance(),
     };
   }
+}
+
+function websiteCompanionWizardError(error: unknown): WizardTransactionError {
+  if (error instanceof WebsiteCompanionError) return new WizardTransactionError(error.statusCode, error.message);
+  return new WizardTransactionError(502, error instanceof Error ? error.message : 'The SlothBloom website companion did not return a valid response.');
 }
 
 export class WizardTransactionError extends Error {

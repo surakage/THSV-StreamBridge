@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Category Pilot",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "author": "surakage",
   "description": "Provides a privacy-bounded allowlisted Windows process probe and creator-controlled Apply/Dismiss actions for Category Pilot.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Category Pilot - Process Probe",
       "group": "THSV Addon - Category Pilot",
       "source": "src/ProcessProbe.cs",
-      "importFile": "THSV-StreamBridge-Category-Pilot-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Category-Pilot-4.0.2.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [
@@ -27,7 +27,7 @@
       "name": "THSV Addon - Category Pilot - Apply Suggestion",
       "group": "THSV Addon - Category Pilot",
       "source": "src/ControlSuggestion.cs",
-      "importFile": "THSV-StreamBridge-Category-Pilot-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Category-Pilot-4.0.2.sb",
       "arguments": [
         {
           "name": "categoryPilotControlAction",
@@ -49,7 +49,7 @@
       "name": "THSV Addon - Category Pilot - Dismiss Suggestion",
       "group": "THSV Addon - Category Pilot",
       "source": "src/ControlSuggestion.cs",
-      "importFile": "THSV-StreamBridge-Category-Pilot-4.0.1.sb",
+      "importFile": "THSV-StreamBridge-Category-Pilot-4.0.2.sb",
       "arguments": [
         {
           "name": "categoryPilotControlAction",

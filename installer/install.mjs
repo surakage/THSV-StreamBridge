@@ -11,9 +11,12 @@ const argumentsMap = parseArguments(process.argv.slice(2));
 const installRoot = safeInstallRoot(argumentsMap.get('install-root') ?? join(process.env.LOCALAPPDATA ?? process.env.USERPROFILE ?? '', PRODUCT));
 const startAfterInstall = !argumentsMap.has('no-start');
 const allowDowngrade = argumentsMap.has('allow-downgrade');
-const manifest = JSON.parse(await readFile(join(sourceRoot, 'release-manifest.json'), 'utf8'));
+const manifestRaw = await readFile(join(sourceRoot, 'release-manifest.json'), 'utf8');
+const manifest = JSON.parse(manifestRaw);
 validateManifest(manifest);
 await verifyRelease(sourceRoot, manifest);
+const releaseManifestSha256 = createHash('sha256').update(manifestRaw).digest('hex');
+const buildFingerprint = createHash('sha256').update(JSON.stringify(manifest.files.map((file) => [file.path, file.size, file.sha256]))).digest('hex');
 
 const dataRoot = join(installRoot, 'data');
 const runtimeDataRoot = join(dataRoot, 'runtime');
@@ -71,14 +74,20 @@ try {
     layoutVersion: 2,
     activeVersion: manifest.version,
     runtimeVersion: manifest.runtime.nodeVersion,
+    runtimeUpstreamSha256: manifest.runtime.upstreamSha256,
     installedAt: new Date().toISOString(),
     installRoot,
     canonicalDownload: manifest.canonicalDownload,
+    releaseCreatedAt: manifest.createdAt,
+    releaseManifestSha256,
+    buildFingerprint,
+    fileCount: manifest.files.length,
+    installerMode: 'verified-portable-release',
   };
   await writeJsonAtomic(recordPath, record);
 
   if (startAfterInstall) {
-    const result = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait', '--open-wizard'], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
+    const result = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait', '--open-wizard', '--guided'], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
     if (result.status !== 0) {
       throw new Error(`The new version failed its health check and was rolled back. ${result.error?.message || result.stderr || result.stdout}`.trim());
     }

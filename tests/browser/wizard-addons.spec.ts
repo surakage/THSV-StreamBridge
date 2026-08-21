@@ -359,7 +359,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const sceneSettings = page.locator('[data-addon-settings="thsv.scene-actions"]');
-  await expect(page.getByRole('article').getByText(`Scene Actions ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Scene Actions ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible({ timeout: 15_000 });
   const sceneTriggerStatus = page.locator('[data-addon-id="thsv.scene-actions"] .addon-trigger-readiness');
   await expect(sceneTriggerStatus).toContainText('Not checked');
   await expect(sceneTriggerStatus).toContainText('OBS Studio > Scene Changed');

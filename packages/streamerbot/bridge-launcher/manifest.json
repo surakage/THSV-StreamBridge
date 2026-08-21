@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Bridge Launcher",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "author": "surakage",
   "description": "Launches, stops, and monitors THSV StreamBridge with state-aware Streamer.bot toast notifications without exposing its control token.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -24,7 +24,7 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
       ],
       "source": "src/LaunchBridge.cs",
-      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.1.sb"
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.2.sb"
     },
     {
       "name": "THSV StreamBridge - Shutdown Bridge",
@@ -44,7 +44,7 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
       ],
       "source": "src/ShutdownBridge.cs",
-      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.1.sb"
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.2.sb"
     },
     {
       "name": "THSV StreamBridge - Check Connections",
@@ -65,7 +65,7 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll"
       ],
       "source": "src/CheckBridgeHealth.cs",
-      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.1.sb"
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.2.sb"
     },
     {
       "name": "THSV StreamBridge - Monitor Connections",
@@ -88,7 +88,7 @@
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "source": "src/CheckBridgeHealth.cs",
-      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.1.sb"
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.2.sb"
     }
   ],
   "runtime": {

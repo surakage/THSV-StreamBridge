@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const guidedWizard = process.argv.includes('--guided');
 const configPath = join(installRoot, 'data', 'configuration', 'bridge.local.json');
 const tokenPath = join(installRoot, 'data', 'secrets', 'control-token');
 const config = JSON.parse(stripUtf8Bom(await readFile(configPath, 'utf8')));
@@ -23,7 +24,8 @@ if (!ticketResponse.ok) throw new Error(`The local wizard could not create a sec
 const ticketResult = await ticketResponse.json();
 if (typeof ticketResult?.ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/u.test(ticketResult.ticket)) throw new Error('The local wizard returned an invalid unlock link.');
 
-const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', `${baseUrl}/wizard/#unlock=${ticketResult.ticket}`], {
+const wizardUrl = `${baseUrl}/wizard/${guidedWizard?'?guided=1':''}#unlock=${ticketResult.ticket}`;
+const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', wizardUrl], {
   detached: true,
   windowsHide: true,
   stdio: 'ignore',

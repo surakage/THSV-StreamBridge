@@ -138,6 +138,14 @@ export class ModuleRegistry {
     return [...this.states.values()].every((state) => !state.module.required || state.status === 'healthy');
   }
 
+  public readinessFailures(): readonly Readonly<{ moduleId: string; status: string; message: string }>[] {
+    return this.order.flatMap((moduleId) => {
+      const state = this.states.get(moduleId);
+      if (state === undefined || !state.module.required || state.status === 'healthy') return [];
+      return [{ moduleId, status: state.status, message: state.message ?? 'Required module is not healthy.' }];
+    });
+  }
+
   public statuses(): readonly ModuleHealthStatusV2[] {
     const checkedAt = new Date().toISOString();
     return this.order.map((moduleId) => {

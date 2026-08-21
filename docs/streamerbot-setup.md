@@ -12,7 +12,11 @@ Open **THSV Setup Wizard → Streamer.bot** and complete the **One Streamer.bot 
 4. Open the generated **Recommended trigger checklist** in the wizard. Attach only those triggers; leave internal receivers, controllers, projections, and delivery actions triggerless.
 5. Select **Inspect actions** and run harmless test triggers before going live.
 
-The generated package retains the canonical stable action, sub-action, argument, trigger, and command IDs from every selected package. Generating a newer matching package is therefore an upgrade path rather than a request to create parallel action groups. The individual imports below remain available for recovery and development.
+The generated package retains the canonical stable action, sub-action, argument, trigger, and command IDs from every selected package. Generating a newer matching package is therefore an upgrade path rather than a request to create parallel action groups.
+
+## Recovery and development reference
+
+Everything below this heading is an advanced repair reference. A normal installation should not import these packages individually or recreate the receiver chain by hand. Return to **One Streamer.bot import** for ordinary installation and upgrades.
 
 ## 1. Start the WebSocket server
 
@@ -27,8 +31,8 @@ If authentication is enabled, set the environment variable named by `streamerbot
 
 Import these first if you want Streamer.bot to start StreamBridge or open the wizard:
 
-- `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-4.0.1.sb`
-- `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-4.0.1.sb`
+- `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-4.0.2.sb`
+- `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-4.0.2.sb`
 
 Each lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave `%LOCALAPPDATA%\THSV StreamBridge` for the default installation, or edit that argument for a custom path. Do not edit the C# just to change the path.
 
@@ -40,11 +44,11 @@ For automatic connection warnings, create a one-minute Streamer.bot Timed Action
 
 Import:
 
-1. `packages\streamerbot\core-receiver\THSV-StreamBridge-Core-Receiver-4.0.1.sb`
-2. `packages\streamerbot\multi-chat\THSV-StreamBridge-Multi-Chat-4.0.1.sb`
-3. `packages\streamerbot\multi-commands\THSV-StreamBridge-Multi-Commands-4.0.1.sb`
-4. `packages\streamerbot\multi-alerts\THSV-StreamBridge-Multi-Alerts-4.0.1.sb`
-5. `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-4.0.1.sb`
+1. `packages\streamerbot\core-receiver\THSV-StreamBridge-Core-Receiver-4.0.2.sb`
+2. `packages\streamerbot\multi-chat\THSV-StreamBridge-Multi-Chat-4.0.2.sb`
+3. `packages\streamerbot\multi-commands\THSV-StreamBridge-Multi-Commands-4.0.2.sb`
+4. `packages\streamerbot\multi-alerts\THSV-StreamBridge-Multi-Alerts-4.0.2.sb`
+5. `packages\streamerbot\multi-timed-actions\THSV-StreamBridge-Multi-Timed-Actions-4.0.2.sb`
 
 The Core Receiver installs or upgrades `THSV StreamBridge - Receive Event` in the `THSV StreamBridge` group. Keep `streamerbot.actionAlias` set to that exact name unless you deliberately change both sides.
 
@@ -76,7 +80,7 @@ If retained for an event-only projection workflow, keep it triggerless.
 Import:
 
 ```text
-packages\streamerbot\timed-message-output\THSV-StreamBridge-Timed-Message-Output-4.0.1.sb
+packages\streamerbot\timed-message-output\THSV-StreamBridge-Timed-Message-Output-4.0.2.sb
 ```
 
 Keep `THSV StreamBridge - Send Timed Message` triggerless. Select it from the wizard only for shuffled timed-chat definitions. In the wizard, messages may be kept in one editing group or split into named groups for tidiness. Those groups are combined into one shared non-repeating list at runtime; each selected message is sent to every checked platform, applying the strictest selected platform character limit.
@@ -86,7 +90,7 @@ Keep `THSV StreamBridge - Send Timed Message` triggerless. Select it from the wi
 Import:
 
 ```text
-packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-4.0.1.sb
+packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-4.0.2.sb
 ```
 
 Review the custom C# and keep `THSV StreamBridge - Reward Administration` triggerless. Each live Twitch mutation requires separate wizard confirmation and approval. Kick mutations remain unavailable.
@@ -98,7 +102,7 @@ Core Receiver, Command Administration, Reward Administration, Timed Message Outp
 Import:
 
 ```text
-packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.1.sb
+packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.2.sb
 ```
 
 It installs one intake action per platform in separate Twitch, YouTube, and Kick groups. The `4.0.1` package preserves Streamer.bot's known `firstMessage` flag for features that distinguish a first-ever channel message, includes the current Kick Mass Gift Subscription argument contract, and relays documented native emote metadata.
@@ -121,7 +125,7 @@ Native Twitch and YouTube emotes render from Streamer.bot's structured ranges. S
 Import:
 
 ```text
-packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.1.sb
+packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.2.sb
 ```
 
 It installs:

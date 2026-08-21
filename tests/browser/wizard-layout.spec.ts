@@ -8,6 +8,151 @@ async function unlock(page: Page): Promise<void> {
   await expect(page.locator('#mode')).toContainText('Authenticated');
 }
 
+test('fresh installer opens a focused guided setup without exposing advanced tools', async ({ page }) => {
+  await page.goto('/wizard/?guided=1');
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+
+  await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'guided');
+  await expect(page.locator('#guided-setup-progress')).toHaveText('3 of 6 complete');
+  await expect(page.locator('.workspace > nav .nav:visible')).toHaveText([
+    'Start here', 'Platforms', 'Streamer.bot', 'Overlays', 'Included features', 'Test & finish', 'Lock',
+  ]);
+  await expect(page.getByRole('button', { name: 'Add-ons', exact: true })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Diagnostics', exact: true })).toBeHidden();
+
+  for (const checkbox of await page.locator('[data-setup-step] input[type="checkbox"]:not(:disabled)').all()) await checkbox.check();
+  await expect(page.locator('#guided-setup-progress')).toHaveText('6 of 6 complete');
+  await page.getByRole('button', { name: 'Finish setup' }).click();
+  await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'management');
+  await expect(page.getByRole('button', { name: 'Add-ons', exact: true })).toBeVisible();
+  await expect(page.locator('[data-view="diagnostics"]')).toHaveText('Diagnostics');
+});
+
+test('normal Wizard openings show every management page even after an older guided preference', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('thsv.streambridge.wizard.workspace-mode.v1', 'guided'));
+  await unlock(page);
+
+  await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'management');
+  await expect(page.getByRole('button', { name: 'Timed Actions', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Extensions', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Viewer Foundation', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Community Analytics', exact: true })).toBeVisible();
+});
+
+test('connection center explains a stopped Streamer.bot session and offers safe recovery', async ({ page }) => {
+  await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    readiness: {
+      status: 'not-ready', ready: false,
+      adapters: [
+        { name: 'twitch', state: 'connected' },
+        { name: 'youtube', state: 'disabled' },
+      ],
+      outputs: [{ name: 'streamerbot', state: 'reconnecting', lastError: 'connect ECONNREFUSED 127.0.0.1:8081' }],
+      modules: [{ moduleId: 'core.chat', status: 'healthy' }, { moduleId: 'core.alerts', status: 'healthy' }],
+    },
+    launcher: {
+      supported: true, configured: true, executable: 'C:\\Tools\\Streamer.bot.exe', executableExists: true,
+      websocketPort: 8081, state: 'stopped', message: 'Streamer.bot is configured but its WebSocket server is not currently listening.', optionalApps: {},
+    },
+    configuration: { state: 'active', restartRequired: false, activatedAt: '2026-08-18T12:00:00.000Z' },
+  }) }));
+  await unlock(page);
+
+  await expect(page.locator('#connection-center-badge')).toHaveText('Streamer.bot offline');
+  await expect(page.locator('#connection-center-summary')).toHaveText('StreamBridge is running, but Streamer.bot delivery is disconnected.');
+  await expect(page.locator('#connection-streamerbot-detail')).toContainText('port 8081');
+  await expect(page.getByRole('button', { name: 'Start Streamer.bot', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Open connection settings' }).click();
+  await expect(page.locator('[data-panel="streamerbot"]')).toBeVisible();
+});
+
+test('overlay setup assistant gives host-specific sources and remembers checked layers', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await unlock(page);
+  await page.getByRole('button', { name: 'Chat Overlay', exact: true }).click();
+
+  await expect(page.locator('#overlay-setup-assistant')).toBeVisible();
+  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toContainText('680 × 800');
+  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-alerts"]')).toContainText('1920 × 1080');
+  await expect(page.locator('#overlay-source-core-chat')).toHaveValue(/\/overlay\/chat$/u);
+  await expect(page.locator('#overlay-source-core-alerts')).toHaveValue(/\/overlay\/alerts$/u);
+  await expect(page.locator('#overlay-setup-state')).toContainText('Source checklist ready');
+  const sourceCount = await page.locator('#overlay-source-checklist [data-overlay-source]').count();
+  expect(sourceCount).toBeGreaterThanOrEqual(2);
+  await expect(page.locator('#overlay-setup-progress')).toHaveText(`0 of ${String(sourceCount)} checked`);
+
+  await page.getByLabel('Streaming app').selectOption('meld');
+  await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser or Web layer');
+  await page.locator('[data-overlay-source="core-chat"] [data-overlay-verified]').check();
+  await expect(page.locator('#overlay-setup-progress')).toHaveText(`1 of ${String(sourceCount)} checked`);
+
+  await page.reload();
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  await page.getByRole('button', { name: 'Chat Overlay', exact: true }).click();
+  await expect(page.getByLabel('Streaming app')).toHaveValue('meld');
+  await expect(page.locator('[data-overlay-source="core-chat"] [data-overlay-verified]')).toBeChecked();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+});
+
+test('pre-stream check requires healthy local evidence and explicit import confirmation', async ({ page }) => {
+  let inspectionCalls = 0;
+  await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    readiness: {
+      status: 'ready', ready: true,
+      adapters: [{ name: 'twitch', state: 'connected' }, { name: 'youtube', state: 'disabled' }],
+      outputs: [{ name: 'streamerbot', state: 'connected' }],
+      modules: [{ moduleId: 'core.chat', status: 'healthy' }, { moduleId: 'core.alerts', status: 'healthy' }],
+    },
+    launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} },
+  }) }));
+  await page.route('**/wizard/api/inspect', async (route) => {
+    inspectionCalls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      available: true, inspectedAt: '2026-08-18T12:00:00.000Z', requests: [{ method: 'GetActions' }, { method: 'GetCommands' }], actions: [], commands: [],
+    }) });
+  });
+  await unlock(page);
+  await expect.poll(() => inspectionCalls).toBe(1);
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Test & finish', exact: true })).toBeVisible();
+  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(8);
+  await expect(page.locator('#pre-stream-badge')).toHaveText('1 step left');
+  await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
+
+  await page.getByLabel(/I imported the Wizard-generated Streamer\.bot package/u).check();
+  await expect(page.locator('#pre-stream-badge')).toHaveText('Ready to stream');
+  await page.getByRole('button', { name: 'Overview', exact: true }).click();
+  await expect(page.locator('[data-setup-step="test"] input')).toBeChecked();
+});
+
+test('diagnostics explains periodic acceptance, OBS reconciliation, and report regressions', async ({ page }) => {
+  const obsInventory = { configured: true, ready: false, requiredCount: 1, readyRequiredCount: 0, sources: [{ id: 'alerts-main', label: 'Alerts', scene: 'Old Live', surface: '/overlay/alerts:alerts', minimumCount: 1, required: true, visibleCount: 0, ready: false }], discovered: [], reconciliations: [{ sourceId: 'alerts-main', label: 'Alerts', reason: 'Detected the same StreamBridge surface in scene “Live”.', suggested: { scene: 'Live', surface: '/overlay/alerts:alerts', connectedCount: 1, visibleCount: 1 } }] };
+  await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ readiness: { status: 'ready', ready: true, adapters: [], outputs: [], modules: [] }, launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} }, provenance: { version: '4.0.1', installation: 'verified-portable-release' }, obsInventory }) }));
+  await page.route('**/wizard/api/obs-source-inventory', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(obsInventory) }));
+    await page.route('**/wizard/api/live-acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ checks: [{ id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Confirm recovery.', requiresGenuineEvent: false, recheckAfterDays: 90 }, { id: 'provider-reconnect', label: 'Provider reconnect', guidance: 'Confirm reconnect.', requiresGenuineEvent: false, recheckAfterDays: 90 }], evidence: [], confirmations: { 'bridge-startup': { checkId: 'bridge-startup', status: 'due', due: true, dueAt: '2026-08-20T00:00:00.000Z', dueReason: 'Periodic live acceptance is due after 90 days.', note: 'Passed.', confirmedAt: '2026-05-22T00:00:00.000Z' }, 'provider-reconnect': { checkId: 'provider-reconnect', status: 'accepted', dueSoon: true, dueAt: '2026-08-30T00:00:00.000Z', dueSoonReason: 'Periodic live acceptance is due within 14 days.', note: 'Passed.', confirmedAt: '2026-06-01T00:00:00.000Z' } } }) }));
+  await page.route('**/wizard/api/pre-stream-report', async (route) => await route.fulfill({ contentType: 'application/json', headers: { 'content-disposition': 'attachment; filename="THSV-StreamBridge-pre-stream-test.json"' }, body: JSON.stringify({ schemaVersion: 1, generatedAt: '2026-08-21T00:00:00.000Z', build: { version: '4.0.2' }, readiness: { ready: true } }) }));
+  await page.route('**/wizard/api/pre-stream-report/compare', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ changed: true, regressions: 1, improvements: 0, unchanged: false, summary: '1 regression requires attention.', changes: [{ label: 'Bridge readiness', before: 'true', after: 'false', severity: 'regression' }] }) }));
+  await unlock(page); await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+    await expect(page.locator('#live-acceptance-list')).toContainText('Periodic recheck due');
+    await expect(page.locator('#live-acceptance-list')).toContainText('Recheck due soon');
+  await page.getByText('Expected OBS sources by scene', { exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
+  await page.locator('#pre-stream-baseline-file').setInputFiles({ name: 'earlier.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ schemaVersion: 1 })) });
+  await expect(page.locator('#pre-stream-comparison')).toContainText('1 regression requires attention.');
+  await expect(page.locator('#pre-stream-comparison')).toContainText('Bridge readiness');
+  await page.getByLabel('Keep up to five sanitized reports in this browser').check();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export sanitized pre-stream report' }).click();
+  await downloadPromise;
+  await expect(page.locator('#pre-stream-history')).toContainText('StreamBridge 4.0.2');
+  await page.getByRole('button', { name: 'Compare now' }).click();
+  await expect(page.locator('#pre-stream-comparison')).toContainText('baseline remains in optional local browser history');
+});
+
 test('wizard uses the wide canvas, keeps cards aligned, and confirms local controls', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await unlock(page);
@@ -43,7 +188,7 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
     ['Add-ons', 'addon-marketplace', 'Add-ons'],
     ['Blockers', 'blockers', 'Advanced scoped blockers'],
     ['Ownership', 'ownership', 'Ownership registry'],
-    ['Diagnostics', 'diagnostics', 'Wizard diagnostics'],
+    ['Diagnostics', 'diagnostics', 'Test & finish'],
   ] as const;
 
   for (const [label, panel, heading] of destinations) {
@@ -115,6 +260,10 @@ test('standard tablet and mobile widths keep every revised page inside the viewp
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Chat Overlay', exact: true }).click();
+  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+
   await page.getByRole('button', { name: 'Alerts', exact: true }).click();
   await page.getByText('Donation provider setup', { exact: true }).click();
   const donationBounds = await page.locator('#kofi-integration-content').evaluate((element) => {
@@ -155,7 +304,7 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Create & download one import' }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('THSV-StreamBridge-Universal-Setup-4.0.1.sb');
+  expect(download.suggestedFilename()).toBe('THSV-StreamBridge-Universal-Setup-4.0.2.sb');
   await expect(page.locator('#universal-import-state')).toContainText('Import this one file in Streamer.bot');
   await page.getByRole('button', { name: 'Review recommended triggers' }).click();
   await expect(page.locator('#universal-trigger-guide')).toHaveAttribute('open', '');

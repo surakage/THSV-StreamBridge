@@ -53,6 +53,7 @@ interface InternalDraft {
   public: WizardConfigurationDraft;
   sourceHash: string;
   candidate: Record<string, unknown>;
+  leaseOwner: string;
 }
 
 export interface WizardConfigurationExport {
@@ -66,8 +67,16 @@ export interface WizardConfigurationExport {
   readonly alertSettings: Pick<BridgeConfig['browserOverlay'], 'maxAlertQueue' | 'alertDurationMs' | 'overlayGapMs' | 'showSimulated' | 'alerts'>;
 }
 
+export interface WizardConfigurationActivation {
+  readonly state: 'active' | 'restart-required';
+  readonly restartRequired: boolean;
+  readonly activatedAt: string;
+}
+
 export class WizardConfigurationGateway {
   private readonly drafts = new Map<string, InternalDraft>();
+  private readonly activatedAt = new Date().toISOString();
+  private readonly activeConfigHash: Promise<string>;
   private mutationWrites = 0;
   private rollbackWrites = 0;
 
@@ -75,7 +84,9 @@ export class WizardConfigurationGateway {
     private readonly configPath: string,
     private readonly capabilitySource: (platforms: BridgeConfig['platforms']) => readonly PlatformCapabilityReport[],
     private readonly backupDirectory = resolve(dirname(configPath), '..', 'backups', 'wizard'),
-  ) {}
+  ) {
+    this.activeConfigHash = readFile(this.configPath, 'utf8').then((value) => configFingerprint(value));
+  }
 
   // Narrow accessor for Tier 2 command generation, which needs only the configured prefix to
   // build a Streamer.bot-native trigger phrase — not the full snapshot() shape.
@@ -89,6 +100,7 @@ export class WizardConfigurationGateway {
     return {
       configPath: resolve(this.configPath),
       restartRequiredAfterCommit: true,
+      activation: await this.activationStatus(),
       platforms: Object.fromEntries(Object.entries(config.platforms).map(([id, value]) => [id, {
         enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled, adapter: value.adapter,
       }])),
@@ -100,18 +112,24 @@ export class WizardConfigurationGateway {
     };
   }
 
-  public async begin(): Promise<WizardConfigurationDraft> {
+  public async activationStatus(): Promise<WizardConfigurationActivation> {
+    const [activeHash, currentRaw] = await Promise.all([this.activeConfigHash, readFile(this.configPath, 'utf8')]);
+    const restartRequired = configFingerprint(currentRaw) !== activeHash;
+    return { state: restartRequired ? 'restart-required' : 'active', restartRequired, activatedAt: this.activatedAt };
+  }
+
+  public async begin(leaseOwner = ''): Promise<WizardConfigurationDraft> {
     if ([...this.drafts.values()].some((draft) => draft.public.status === 'draft')) throw new WizardConfigurationError(409, 'Another browser tab already holds the configuration mutation lease. Cancel or commit it first.');
     const raw = await readFile(this.configPath, 'utf8');
     const candidate = parseObject(raw);
     bridgeConfigSchema.parse(candidate);
     const publicDraft: WizardConfigurationDraft = { id: randomUUID(), status: 'draft', createdAt: new Date().toISOString(), stagedChanges: [], restartRequired: true };
-    this.drafts.set(publicDraft.id, { public: publicDraft, sourceHash: hash(raw), candidate });
+    this.drafts.set(publicDraft.id, { public: publicDraft, sourceHash: hash(raw), candidate, leaseOwner });
     return publicDraft;
   }
 
-  public stage(id: string, input: unknown): WizardConfigurationDraft {
-    const draft = this.requireDraft(id);
+  public stage(id: string, input: unknown, leaseOwner = ''): WizardConfigurationDraft {
+    const draft = this.requireDraft(id,leaseOwner);
     const change = parseWithReadableError(wizardConfigurationChangeSchema, input, 'Staged configuration change');
     if (change.kind === 'platform') {
       const validated = bridgeConfigSchema.parse(draft.candidate);
@@ -135,16 +153,16 @@ export class WizardConfigurationGateway {
     return draft.public;
   }
 
-  public stageImport(id: string, input: unknown): WizardConfigurationDraft {
+  public stageImport(id: string, input: unknown, leaseOwner = ''): WizardConfigurationDraft {
     const imported = parseImport(input);
-    this.requireDraft(id);
+    this.requireDraft(id,leaseOwner);
     for (const [platform, flags] of Object.entries(imported.platforms)) {
-      this.stage(id, { kind: 'platform', platform, ...flags });
+      this.stage(id, { kind: 'platform', platform, ...flags },leaseOwner);
     }
-    let result = this.stage(id, { kind: 'filters', filters: imported.filters });
-    if (imported.timedActions !== undefined) result = this.stage(id, { kind: 'timed-actions', timedActions: imported.timedActions });
-    if (imported.chatSettings !== undefined) result = this.stage(id, { kind: 'chat-overlay', chatSettings: imported.chatSettings });
-    if (imported.alertSettings !== undefined) result = this.stage(id, { kind: 'alerts', alertSettings: imported.alertSettings });
+    let result = this.stage(id, { kind: 'filters', filters: imported.filters },leaseOwner);
+    if (imported.timedActions !== undefined) result = this.stage(id, { kind: 'timed-actions', timedActions: imported.timedActions },leaseOwner);
+    if (imported.chatSettings !== undefined) result = this.stage(id, { kind: 'chat-overlay', chatSettings: imported.chatSettings },leaseOwner);
+    if (imported.alertSettings !== undefined) result = this.stage(id, { kind: 'alerts', alertSettings: imported.alertSettings },leaseOwner);
     return result;
   }
 
@@ -160,26 +178,28 @@ export class WizardConfigurationGateway {
     };
   }
 
-  public cancel(id: string): WizardConfigurationDraft {
-    const draft = this.requireDraft(id);
+  public cancel(id: string,leaseOwner = ''): WizardConfigurationDraft {
+    const draft = this.requireDraft(id,leaseOwner);
     draft.public = { ...draft.public, status: 'cancelled', finishedAt: new Date().toISOString(), stagedChanges: [] };
     return draft.public;
   }
 
-  public async commit(id: string): Promise<WizardConfigurationDraft> {
-    const draft = this.requireDraft(id);
+  public async commit(id: string,leaseOwner = ''): Promise<WizardConfigurationDraft> {
+    const draft = this.requireDraft(id,leaseOwner);
     const currentRaw = await readFile(this.configPath, 'utf8');
     if (hash(currentRaw) !== draft.sourceHash) throw new WizardConfigurationError(409, 'Configuration changed after this draft began. No files were written; start a new draft.');
     if (draft.public.stagedChanges.length === 0) throw new WizardConfigurationError(400, 'The draft has no staged changes.');
     bridgeConfigSchema.parse(draft.candidate);
+    const candidateRaw = `${JSON.stringify(draft.candidate, null, 2)}\n`;
+    const restartRequired = configFingerprint(candidateRaw) !== configFingerprint(currentRaw);
     await mkdir(this.backupDirectory, { recursive: true });
     const backupPath = join(this.backupDirectory, `${new Date().toISOString().replace(/[:.]/gu, '-')}-${id}.json`);
     await writeFile(backupPath, currentRaw, { encoding: 'utf8', flag: 'wx' });
     try {
-      await writeAtomic(this.configPath, `${JSON.stringify(draft.candidate, null, 2)}\n`);
+      await writeAtomic(this.configPath, candidateRaw);
       this.mutationWrites += 1;
       await this.readConfig();
-      draft.public = { ...draft.public, status: 'committed', finishedAt: new Date().toISOString(), backupPath: resolve(backupPath) };
+      draft.public = { ...draft.public, status: 'committed', finishedAt: new Date().toISOString(), restartRequired, backupPath: resolve(backupPath) };
       return draft.public;
     } catch (error) {
       await writeAtomic(this.configPath, currentRaw);
@@ -198,10 +218,11 @@ export class WizardConfigurationGateway {
     };
   }
 
-  private requireDraft(id: string): InternalDraft {
+  private requireDraft(id: string,leaseOwner = ''): InternalDraft {
     const draft = this.drafts.get(id);
     if (draft === undefined) throw new WizardConfigurationError(404, 'Wizard transaction was not found.');
     if (draft.public.status !== 'draft') throw new WizardConfigurationError(409, `Wizard transaction is already ${draft.public.status}.`);
+    if(draft.leaseOwner!==''&&draft.leaseOwner!==leaseOwner)throw new WizardConfigurationError(409,'Another browser tab owns this protected draft. Return to that tab to edit, save, or discard it.');
     return draft;
   }
 
@@ -219,6 +240,7 @@ function parseImport(input: unknown): z.infer<typeof wizardConfigurationImportSc
 }
 
 function hash(value: string): string { return createHash('sha256').update(value).digest('hex'); }
+function configFingerprint(value: string): string { return hash(JSON.stringify(bridgeConfigSchema.parse(JSON.parse(stripUtf8Bom(value)) as unknown))); }
 
 function pickAlertSettings(config: BridgeConfig): WizardConfigurationExport['alertSettings'] {
   return {

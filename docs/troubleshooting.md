@@ -4,8 +4,9 @@ Start with these checks:
 
 1. Open `http://127.0.0.1:8787/health`.
 2. Open `http://127.0.0.1:8787/diagnostics`.
-3. Inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\service.stderr.log`.
-4. Confirm Streamer.bot's WebSocket server is running on `127.0.0.1:8080`.
+3. Inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\last-startup-report.json` for the latest classified launcher result.
+4. Inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\service.stderr.log` for service output from the corresponding launch.
+5. Confirm Streamer.bot's WebSocket server is running on the port saved in **Streamer.bot connection** (normally `127.0.0.1:8081`).
 
 ## Installer opens and closes or shows no result
 
@@ -27,7 +28,13 @@ To see the direct error in PowerShell:
 & "$env:LOCALAPPDATA\THSV StreamBridge\runtime\node.exe" "$env:LOCALAPPDATA\THSV StreamBridge\launcher\start.mjs" --open-wizard
 ```
 
-If that fails, inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\service.stderr.log`. Reinstalling the current core ZIP repairs application/runtime/launcher files while preserving creator data.
+If that fails, inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\last-startup-report.json`. It classifies Streamer.bot crashes, port conflicts, Bridge configuration failures, and Bridge health timeouts; bounded history is retained in `startup-reports.jsonl`. Then inspect `service.stderr.log` for the matching service details. Reinstalling the current core ZIP repairs application/runtime/launcher files while preserving creator data.
+
+A normal start is idempotent: when the recorded Bridge process owns the configured port and reports healthy, the launcher reuses it without interruption. Use `--restart` only when a deliberate restart is required:
+
+```powershell
+& "$env:LOCALAPPDATA\THSV StreamBridge\runtime\node.exe" "$env:LOCALAPPDATA\THSV StreamBridge\launcher\start.mjs" --restart --open-wizard
+```
 
 ## The wizard does not open
 
@@ -75,7 +82,7 @@ Check Streamer.bot Action History in this order:
 2. `THSV StreamBridge - Receive Event` should run once.
 3. The relevant `THSV StreamBridge - Multi-Chat` or `THSV StreamBridge - Multi-Alerts` child should run once.
 
-Attach platform triggers only to intake actions. Keep Core Receiver and all `Multi-*` actions triggerless; add the `Multi-*` actions as immediate **Run Action** children under Core Receiver. If the intake runs but no receiver follows, confirm the platform is enabled in the wizard and the Streamer.bot WebSocket URL matches `127.0.0.1:8080/`. See [Streamer.bot setup](streamerbot-setup.md).
+Attach platform triggers only to intake actions. Keep Core Receiver and all `Multi-*` actions triggerless; add the `Multi-*` actions as immediate **Run Action** children under Core Receiver. If the intake runs but no receiver follows, confirm the platform is enabled in the wizard and the Streamer.bot WebSocket URL matches the port saved in **Streamer.bot connection**. See [Streamer.bot setup](streamerbot-setup.md).
 
 ## Streamer.bot logs BTTV, FFZ, or 7TV channel errors
 
@@ -87,7 +94,15 @@ Update core first, then install the latest matching add-on ZIP from the same off
 
 ## Service exits during startup
 
-Start with the current local-day file under `data/logs/daily/THSV-StreamBridge-YYYY-MM-DD.txt`; it is the readable timeline of accepted events, add-on controller results, approved Streamer.bot action dispatches, outbound delivery destinations/results, warnings, and failures. Outbound message text is not retained; compare its UTF-8 byte count and diagnostic digest to distinguish repeated or unexpected sends without storing chat. For deeper detail, inspect `data/logs/service.stderr.log` and `data/logs/streambridge.log`. Run configuration validation and build directly for detailed errors. Tokens, passwords, authorization values, cookies, and registered installation secrets are redacted from both Bridge logs.
+The guarded launcher automatically retries one early Bridge exit or health timeout after confirming the port has released. It does not retry a configuration error or a port owned by another process. The wizard and tray show the active startup phase; the final report includes the attempt, duration, and exact readiness blockers with recovery actions. Three matching failures within ten minutes pause automatic retries for five minutes. Start with the latest classified result shown in the setup wizard or tray, or inspect `data/logs/last-startup-report.json` directly. Do not delete the circuit file merely to force another identical crash; review the referenced log, correct the cause, or wait for the bounded cooldown.
+
+Every coordinated startup has a `startupRunId`. Use the same ID to follow **Start all streaming tools**, Streamer.bot, and StreamBridge entries in `data/logs/startup-reports.jsonl`; history rotates automatically. **Export sanitized pre-stream report** combines that run ID with the build fingerprint, readiness, OBS expectations, and live-acceptance status without configuration values or provider evidence. **Compare with earlier report** checks a selected report against the current installed state, classifies tracked regressions and improvements, and does not store the selected file. Optionally enable **Keep up to five sanitized reports in this browser** for one-click comparisons; it is off by default, stays inside the browser profile, and has a clear-history control. In **Test & finish → Advanced diagnostics**, select **Preview support bundle** first. The preview builds and holds one exact byte snapshot for five minutes, lists every included filename, sanitized size, truncation, detected redactions, archive SHA-256, and categories that are always omitted. The reviewed snapshot is consumed when downloaded, so another download requires a fresh preview. The ZIP collects the current health/readiness snapshot, OBS visibility summary, bounded startup evidence, circuit state, and relevant redacted log tails while omitting configuration files, secrets, viewer data, raw provider payloads, and chat text.
+
+When an OBS overlay appears connected but not visible, run **Test & finish** and review **OBS source visibility**. The check uses OBS Browser Source scene, visibility, and active events over the existing overlay socket. Configure **Expected OBS sources by scene** when a particular surface must be visible in a named program scene; unsaved detected scene/surface pairs are offered as one-click expectations. If a saved expectation disappears but its surface is detected in a renamed scene, **Use detected replacement** offers an explicit local inventory update. The comparison is exact and can include an add-on module ID and minimum copy count. A hidden result means the source is loaded but is not currently shown by OBS; an unavailable result means no OBS-hosted StreamBridge browser source has reported yet. StreamBridge never changes OBS scenes or source settings.
+
+For repeatable startup recovery validation, run `npm.cmd run test:startup-chaos` from a source checkout. The harness uses isolated temporary installations to exercise one bounded early-exit retry, foreign port ownership, crash-loop protection, and transactional installer rollback. Its latest machine-readable result is written to `artifacts/startup-chaos/latest.json`; it never targets the active installation.
+
+Then inspect the current local-day file under `data/logs/daily/THSV-StreamBridge-YYYY-MM-DD.txt`; it is the readable timeline of accepted events, add-on controller results, approved Streamer.bot action dispatches, outbound delivery destinations/results, warnings, and failures. Outbound message text is not retained; compare its UTF-8 byte count and diagnostic digest to distinguish repeated or unexpected sends without storing chat. For deeper detail, inspect `data/logs/service.stderr.log` and `data/logs/streambridge.log`. Run configuration validation and build directly for detailed errors. Tokens, passwords, authorization values, cookies, and registered installation secrets are redacted from both Bridge logs.
 
 ## Stale PID file
 

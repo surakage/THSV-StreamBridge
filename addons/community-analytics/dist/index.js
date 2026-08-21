@@ -8,8 +8,8 @@ const COUNTERS = Object.freeze({
   'channel.raid': 'raids', 'reward.redemption': 'rewardRedemptions',
 });
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.community-analytics', name: 'Community Analytics', version: '4.0.1',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.1', maximumTestedBridgeVersion: '4.0.1',
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.community-analytics', name: 'Community Analytics', version: '4.0.2',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.2', maximumTestedBridgeVersion: '4.0.2',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['stream.online', 'stream.offline', ...Object.keys(COUNTERS)], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.community-analytics/', 'data/addons/.state/thsv.community-analytics/'],

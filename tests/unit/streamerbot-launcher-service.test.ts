@@ -12,6 +12,10 @@ afterEach(async () => {
 });
 
 describe('public Streamer.bot launcher configuration', () => {
+  it('uses the explicit restart switch only for creator-approved Bridge restarts', async () => {
+    const source = await readFile('bridge/services/streamerbot-launcher-service.ts', 'utf8');
+    expect(source).toContain("[launcher, '--restart', '--open-wizard']");
+  });
   it('extracts only explicit optional-app warning lines from successful launcher output', () => {
     expect(parseOptionalStartupWarnings('Streamer.bot is ready.\nOptional app warning: Speaker.bot exited during startup.\nEnabled core tools are ready.')).toEqual(['Speaker.bot exited during startup.']);
     expect(parseOptionalStartupWarnings('Streamer.bot and THSV StreamBridge are ready.')).toEqual([]);
@@ -34,6 +38,23 @@ describe('public Streamer.bot launcher configuration', () => {
     await expect(service.save(executable)).resolves.toMatchObject({ supported: false, configured: false, executableExists: false, state: 'unsupported' });
     await expect(service.choose()).rejects.toThrow('available on Windows only');
     expect(() => service.openInstallFolder()).toThrow('available on Windows only');
+  });
+
+  it('surfaces a validated latest startup report in launcher status', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-startup-report-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data');
+    await mkdir(join(dataRoot, 'logs'), { recursive: true });
+    await writeFile(join(dataRoot, 'logs', 'last-startup-report.json'), JSON.stringify({
+      timestamp: '2026-08-20T12:34:56.000Z', startedAt: '2026-08-20T12:34:50.000Z', startupRunId: '019fcfc8-0d74-7ed1-b71e-c8eb4df9f62d', launcher: 'streambridge', requestedAction: 'start', outcome: 'failed',
+      category: 'bridge-health-timeout', phase: 'waiting-for-health', attempt: 2, durationMs: 6_000, message: 'The Bridge did not become healthy.',
+      readinessBlockers: [{ kind: 'output', name: 'streamerbot', state: 'reconnecting', message: 'Not connected.', recovery: 'Start Streamer.bot.' }], pid: 42, port: 8787, version: '4.0.1', ignored: 'not exposed',
+    }));
+    const status = await new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'linux').status();
+    expect(status.lastStartupReport).toEqual({
+      timestamp: '2026-08-20T12:34:56.000Z', startedAt: '2026-08-20T12:34:50.000Z', startupRunId: '019fcfc8-0d74-7ed1-b71e-c8eb4df9f62d', launcher: 'streambridge', requestedAction: 'start', outcome: 'failed',
+      category: 'bridge-health-timeout', phase: 'waiting-for-health', attempt: 2, durationMs: 6_000, message: 'The Bridge did not become healthy.',
+      readinessBlockers: [{ kind: 'output', name: 'streamerbot', state: 'reconnecting', message: 'Not connected.', recovery: 'Start Streamer.bot.' }], pid: 42, port: 8787, version: '4.0.1',
+    });
   });
 
   it('migrates version 1 settings and keeps optional applications explicitly opt-in', async () => {
@@ -83,5 +104,22 @@ describe('public Streamer.bot launcher configuration', () => {
     const executable = join(root, 'portable', 'Streamer.bot.exe'); await mkdir(join(root, 'portable'), { recursive: true }); await writeFile(executable, 'test');
     const service = windowsLauncher(join(root, 'data')); await service.save(executable);
     await expect(service.startAllStreamingTools()).rejects.toThrow('one-button streaming tools launcher is missing');
+  });
+
+  it('starts the installed guarded launcher for a safe Bridge restart', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-restart-launcher-')); temporaryRoots.push(root);
+    const service = windowsLauncher(join(root, 'data'));
+    await expect(service.restartStreamBridge()).rejects.toThrow('restart launcher is missing');
+    await mkdir(join(root, 'launcher'), { recursive: true });
+    await writeFile(join(root, 'launcher', 'start.mjs'), 'process.exit(0);\n');
+    const result = await service.restartStreamBridge();
+    expect(result.accepted).toBe(true);
+    expect(Number.isInteger(result.helperProcessId)).toBe(true);
+    expect(result.message).toContain('fresh unlocked Wizard');
+    const deadline = Date.now() + 2_000;
+    while (Date.now() < deadline) {
+      try { process.kill(result.helperProcessId, 0); await new Promise((resolveDelay) => setTimeout(resolveDelay, 25)); }
+      catch { break; }
+    }
   });
 });

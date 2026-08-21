@@ -288,8 +288,17 @@ export class StreamBridge {
   public readiness(): Readonly<Record<string, unknown>> {
     const adapterStatuses = this.adapterStatuses();
     const blocking = adapterStatuses.filter((adapter) => adapter.state !== 'connected' && adapter.state !== 'disabled');
-    const ready = this.running && blocking.length === 0 && this.delivery.ready() && this.modules.ready();
-    return { status: ready ? 'ready' : 'not-ready', ready, adapters: adapterStatuses, outputs: this.delivery.statuses(), modules: this.modules.statuses() };
+    const outputStatuses = this.delivery.statuses();
+    const outputBlocking = outputStatuses.filter((output) => (output['state'] !== 'connected' && output['state'] !== 'disabled') || isDegradedOutput(output));
+    const moduleBlocking = this.modules.readinessFailures();
+    const blockers = [
+      ...(!this.running ? [{ kind: 'service', name: this.config.service.name, state: 'stopped', message: 'StreamBridge core is not running.', recovery: 'Start or repair StreamBridge.', action: { type: 'open-panel', target: 'streamerbot', label: 'Open connection recovery' } }] : []),
+      ...blocking.map((adapter) => ({ kind: 'adapter', name: adapter.name, state: adapter.state, message: adapter.lastError ?? 'Enabled platform adapter is not connected.', recovery: 'Reconnect this platform, then test connections again.', action: { type: 'open-panel', target: 'platforms', label: 'Open platform setup' } })),
+      ...outputBlocking.map((output) => ({ kind: 'output', name: recordString(output, 'name', 'output'), state: recordString(output, 'state', 'degraded'), message: outputError(output) ?? 'Enabled delivery output is not ready.', recovery: output['name'] === 'streamerbot' ? 'Start Streamer.bot and confirm its WebSocket server is enabled.' : 'Reconnect this output, then test connections again.', action: output['name'] === 'streamerbot' ? { type: 'start-streamerbot', target: 'streamerbot', label: 'Start Streamer.bot safely' } : { type: 'open-panel', target: 'diagnostics', label: 'Open diagnostics' } })),
+      ...moduleBlocking.map((module) => ({ kind: 'module', name: module.moduleId, state: module.status, message: module.message, recovery: 'Open Test & finish and repair or disable the affected required component.', action: { type: 'open-panel', target: 'addons', label: 'Open feature setup' } })),
+    ];
+    const ready = blockers.length === 0;
+    return { status: ready ? 'ready' : 'not-ready', ready, blockers, adapters: adapterStatuses, outputs: outputStatuses, modules: this.modules.statuses() };
   }
 
   public diagnostics(): Readonly<Record<string, unknown>> {
@@ -392,6 +401,24 @@ function controllerResultSummary(event: NormalizedEvent): Readonly<Record<string
     ...(typeof success === 'boolean' ? { success } : {}),
     ...(typeof error === 'string' ? { controllerError: error.slice(0, 500) } : {}),
   };
+}
+
+function isDegradedOutput(status: Readonly<Record<string, unknown>>): boolean {
+  const delivery = status['delivery'];
+  return typeof delivery === 'object' && delivery !== null && !Array.isArray(delivery) && (delivery as Record<string, unknown>)['degraded'] === true;
+}
+
+function outputError(status: Readonly<Record<string, unknown>>): string | undefined {
+  if (typeof status['lastError'] === 'string') return status['lastError'];
+  const delivery = status['delivery'];
+  if (typeof delivery !== 'object' || delivery === null || Array.isArray(delivery)) return undefined;
+  const error = (delivery as Record<string, unknown>)['lastError'];
+  return typeof error === 'string' ? error : undefined;
+}
+
+function recordString(value: Readonly<Record<string, unknown>>, key: string, fallback: string): string {
+  const candidate = value[key];
+  return typeof candidate === 'string' ? candidate : fallback;
 }
 
 function isIngestResult(value: unknown): value is IngestResult {
