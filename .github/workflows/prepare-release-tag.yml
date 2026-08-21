@@ -1,0 +1,65 @@
+name: Prepare release tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact release tag matching package.json, for example v4.0.3
+        required: true
+        type: string
+      expected-main-sha:
+        description: Full 40-character SHA currently at the tip of main
+        required: true
+        type: string
+      confirm-tag:
+        description: Repeat the exact tag to confirm creation
+        required: true
+        type: string
+
+concurrency:
+  group: prepare-release-tag
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: streambridge-tag
+      url: https://github.com/${{ github.repository }}/commit/${{ inputs.expected-main-sha }}
+    steps:
+      - name: Check out main with tags
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Verify exact merged main commit and create annotated tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          EXPECTED_MAIN_SHA: ${{ inputs.expected-main-sha }}
+          CONFIRM_TAG: ${{ inputs.confirm-tag }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then echo 'Invalid release tag.' >&2; exit 1; fi
+          if [[ ! "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]; then echo 'Expected main SHA must contain 40 lowercase hexadecimal characters.' >&2; exit 1; fi
+          if [[ "$CONFIRM_TAG" != "$RELEASE_TAG" ]]; then echo 'Tag confirmation does not match.' >&2; exit 1; fi
+          git fetch origin main --tags
+          actual_main_sha=$(git rev-parse origin/main)
+          if [[ "$actual_main_sha" != "$EXPECTED_MAIN_SHA" ]]; then echo "main moved: expected $EXPECTED_MAIN_SHA but found $actual_main_sha" >&2; exit 1; fi
+          package_version=$(node -p "require('./package.json').version")
+          if [[ "$RELEASE_TAG" != "v$package_version" ]]; then echo "Tag $RELEASE_TAG does not match package.json version $package_version." >&2; exit 1; fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then echo "Tag $RELEASE_TAG already exists." >&2; exit 1; fi
+          merged_pr=$(gh api -H 'Accept: application/vnd.github+json' "repos/$REPOSITORY/commits/$EXPECTED_MAIN_SHA/pulls" --jq '[.[] | select(.merged_at != null and .base.ref == "main")][0].number // empty')
+          if [[ -z "$merged_pr" ]]; then echo 'The exact main commit is not associated with a pull request merged into main.' >&2; exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "$RELEASE_TAG" "$EXPECTED_MAIN_SHA" -m "THSV StreamBridge $RELEASE_TAG from merged PR #$merged_pr"
+          git push origin "refs/tags/$RELEASE_TAG"
+          echo "Created $RELEASE_TAG at $EXPECTED_MAIN_SHA from merged PR #$merged_pr." >> "$GITHUB_STEP_SUMMARY"

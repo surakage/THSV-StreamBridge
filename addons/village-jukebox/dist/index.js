@@ -13,8 +13,8 @@ const FALLBACKS = Object.freeze({
   secondsBetweenTracks: 4, announceNowPlaying: true, volume: 0.7, backgroundColor: '#101820', accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast',
 });
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Jukebox', version: '4.0.2',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.2', maximumTestedBridgeVersion: '4.0.2',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Jukebox', version: '4.0.3',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.3', maximumTestedBridgeVersion: '4.0.3',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'addon.thsv.village-jukebox.track-resolved', 'stream.online', 'stream.offline'],
   commandsProvided: [

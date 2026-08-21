@@ -4,6 +4,10 @@ on:
   push:
     tags: ['v*']
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   id-token: write
@@ -38,6 +42,12 @@ jobs:
     needs: startup-chaos
     runs-on: windows-latest
     timeout-minutes: 30
+    environment:
+      name: streambridge-release
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+    env:
+      THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
+      THSV_WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v7
@@ -48,31 +58,25 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Build and validate release archive
+      - name: Download startup-chaos evidence
+        uses: actions/download-artifact@v7
+        with:
+          name: startup-chaos-${{ github.ref_name }}
+          path: artifacts/startup-chaos
+      - name: Prepare optional Windows code-signing identity
         shell: powershell
-        run: .\scripts\package-release.ps1
-      - name: Download the previous verified main release
-        id: previous
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64)) {
+            $certificatePath = Join-Path $env:RUNNER_TEMP 'streambridge-signing.pfx'
+            [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64))
+            "THSV_WINDOWS_SIGNING_PFX=$certificatePath" >> $env:GITHUB_ENV
+          }
+          "THSV_REQUIRE_VALID_RUNTIME_SIGNATURE=1" >> $env:GITHUB_ENV
+      - name: Build and smoke-test the release candidate
         env:
           GH_TOKEN: ${{ github.token }}
         shell: powershell
-        run: |
-          $current = $env:GITHUB_REF_NAME
-          $releases = gh release list --exclude-drafts --limit 20 --json tagName | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0) { throw 'Could not list previous verified releases.' }
-          $previousTag = $releases | Where-Object { $_.tagName -ne $current } | Select-Object -First 1 -ExpandProperty tagName
-          if (-not $previousTag) { throw 'A previous verified release is required for the upgrade smoke test.' }
-          $version = $previousTag.TrimStart('v')
-          New-Item -ItemType Directory -Path artifacts\previous-release | Out-Null
-          gh release download $previousTag --pattern "THSV-StreamBridge-$version.zip" --dir artifacts\previous-release
-          if ($LASTEXITCODE -ne 0) { throw "Could not download the previous main release $previousTag." }
-          "archive=$((Resolve-Path -LiteralPath "artifacts\previous-release\THSV-StreamBridge-$version.zip").Path)" >> $env:GITHUB_OUTPUT
-      - name: Smoke-test the built archive through install, repair, and upgrade
-        shell: powershell
-        run: |
-          $archive = Get-ChildItem packages\THSV-StreamBridge-*.zip | Where-Object { $_.Name -notlike 'THSV-StreamBridge-AddOn-*' } | Select-Object -First 1
-          if ($null -eq $archive) { throw 'Release archive was not produced.' }
-          .\tests\windows\release-archive.tests.ps1 -CurrentArchive $archive.FullName -PreviousArchive '${{ steps.previous.outputs.archive }}'
+        run: .\scripts\test-release-candidate.ps1 -CurrentTag $env:GITHUB_REF_NAME
       - name: Generate production SBOM
         shell: powershell
         run: |
@@ -80,6 +84,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'SBOM generation failed.' }
           $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
           [System.IO.File]::WriteAllText("THSV-StreamBridge-${{ github.ref_name }}.cdx.json", $sbom, $utf8NoBom)
+      - name: Remove the temporary Windows signing identity
+        if: always()
+        shell: powershell
+        run: if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_PFX)) { Remove-Item -LiteralPath $env:THSV_WINDOWS_SIGNING_PFX -Force }
       - name: Resolve release asset paths
         id: assets
         shell: powershell
@@ -102,6 +110,9 @@ jobs:
           }
           "archive=$($archive.FullName)" >> $env:GITHUB_OUTPUT
           "checksum=$($archive.FullName).sha256" >> $env:GITHUB_OUTPUT
+      - name: Generate release evidence manifest and checksum
+        shell: powershell
+        run: .\scripts\new-release-evidence.ps1 -Tag $env:GITHUB_REF_NAME -CommitSha $env:GITHUB_SHA -Repository $env:GITHUB_REPOSITORY -SbomPath "THSV-StreamBridge-$env:GITHUB_REF_NAME.cdx.json"
       - name: Attest release provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
@@ -114,6 +125,12 @@ jobs:
         with:
           subject-path: ${{ steps.assets.outputs.archive }}
           sbom-path: THSV-StreamBridge-${{ github.ref_name }}.cdx.json
+      - name: Attest release evidence
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            THSV-StreamBridge-${{ github.ref_name }}.release-evidence.json
+            THSV-StreamBridge-${{ github.ref_name }}.release-evidence.json.sha256
       - name: Publish immutable-ready GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -130,7 +147,7 @@ jobs:
           }
           if ($isPrerelease) { $releaseFlags += '--prerelease' }
           gh release create $env:GITHUB_REF_NAME @releaseFlags
-          $assets = @("${{ steps.assets.outputs.archive }}", "${{ steps.assets.outputs.checksum }}", "THSV-StreamBridge-$env:GITHUB_REF_NAME.cdx.json")
+          $assets = @("${{ steps.assets.outputs.archive }}", "${{ steps.assets.outputs.checksum }}", "THSV-StreamBridge-$env:GITHUB_REF_NAME.cdx.json", "THSV-StreamBridge-$env:GITHUB_REF_NAME.release-evidence.json", "THSV-StreamBridge-$env:GITHUB_REF_NAME.release-evidence.json.sha256")
           $assets += @(Get-ChildItem packages\THSV-StreamBridge-AddOn-*.zip, packages\THSV-StreamBridge-AddOn-*.zip.sha256 | ForEach-Object FullName)
           $assets += @(Get-ChildItem packages\THSV-StreamBridge-AddOns-index.json, packages\THSV-StreamBridge-AddOns-index.json.sha256 | ForEach-Object FullName)
           gh release upload $env:GITHUB_REF_NAME @assets

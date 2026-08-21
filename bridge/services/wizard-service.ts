@@ -35,6 +35,7 @@ import { WebsiteCompanionError, type WebsiteCompanionService, type WebsiteCompan
 import type { LiveAcceptanceConfirmation, LiveAcceptanceService } from './live-acceptance-service.js';
 import type { BuildProvenance } from './build-provenance-service.js';
 import type { ObsSourceInventoryService } from './obs-source-inventory-service.js';
+import type { ReleaseReadinessService } from './release-readiness-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -167,6 +168,7 @@ export class WizardService {
     private readonly liveAcceptance?: LiveAcceptanceService,
     private readonly obsSourceInventory?: ObsSourceInventoryService,
     private readonly buildProvenance?: BuildProvenance,
+    private readonly releaseReadiness?: ReleaseReadinessService,
   ) {}
 
   public liveAcceptanceStatus(): Readonly<Record<string, unknown>> {
@@ -174,9 +176,18 @@ export class WizardService {
     return this.liveAcceptance.status();
   }
 
+  public liveAcceptanceAttentionSummary(): ReturnType<LiveAcceptanceService['attentionSummary']> | undefined {
+    return this.liveAcceptance?.attentionSummary();
+  }
+
   public confirmLiveAcceptance(checkId: string, input: unknown): LiveAcceptanceConfirmation {
     if (this.liveAcceptance === undefined) throw new WizardTransactionError(503, 'Live acceptance tracking is unavailable in this installation.');
     return this.liveAcceptance.confirm(checkId, input);
+  }
+
+  public setLiveAcceptanceReminder(input: unknown): Readonly<Record<string, unknown>> {
+    if (this.liveAcceptance === undefined) throw new WizardTransactionError(503, 'Live acceptance tracking is unavailable in this installation.');
+    return this.liveAcceptance.setReminder(input);
   }
 
   public obsInventoryStatus(overlay?: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
@@ -192,6 +203,11 @@ export class WizardService {
 
   public provenance(): Readonly<BuildProvenance> | Readonly<Record<string, unknown>> {
     return this.buildProvenance ?? { version: STREAMBRIDGE_VERSION, coreContractVersion: CORE_CONTRACT_VERSION, installation: 'local-development' };
+  }
+
+  public async releaseReadinessStatus(refresh = false): Promise<Readonly<Record<string, unknown>>> {
+    if (this.releaseReadiness === undefined) throw new WizardTransactionError(503, 'Release readiness is unavailable in this installation.');
+    return this.releaseReadiness.status(refresh);
   }
 
   public async websiteCompanionStatus(): Promise<WebsiteCompanionStatus> {

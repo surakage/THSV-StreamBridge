@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.",
-  "changelog": "4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: renamed Creator Utility Pack and its internal module ID to Village Polls, retired the duplicate counter, simplified setup to two poll commands, and hardened empty-close and voter-limit behavior. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: removed the older in-memory giveaway in favor of Village Draw and retained bounded cross-platform counters and polls. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
+  "changelog": "4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: renamed Creator Utility Pack and its internal module ID to Village Polls, retired the duplicate counter, simplified setup to two poll commands, and hardened empty-close and voter-limit behavior. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: removed the older in-memory giveaway in favor of Village Draw and retained bounded cross-platform counters and polls. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,11 +22,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-polls",
     "name": "Village Polls",
-    "version": "4.0.2",
+    "version": "4.0.3",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.2",
-    "maximumTestedBridgeVersion": "4.0.2",
+    "minimumBridgeVersion": "4.0.3",
+    "maximumTestedBridgeVersion": "4.0.3",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -75,7 +75,7 @@
     {
       "path": "dist/index.js",
       "size": 18220,
-      "sha256": "4931b35a8c7595a91937389f002bce4d1291cace8381afae945af8f9434c7300"
+      "sha256": "f4b4c14472e9c60f5c85fcb967f32be6757e30a970408417884140e36bb8a64b"
     },
     {
       "path": "schemas/config.json",

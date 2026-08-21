@@ -243,7 +243,7 @@ try {
         'add-on-capabilities.md', 'add-on-development.md', 'addon-setup-for-beginners.md', 'architecture.md', 'automated-shoutouts.md', 'browser-overlay.md',
         'compatibility.md', 'complete-setup-guide.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
         'discord-chat-archive.md', 'future-projects-and-addons.md', 'getting-started.md', 'kofi-donations.md', 'module-system.md',
-        'main-features.md', 'product-scope.md', 'production-readiness.md', 'quote-vault.md', 'release-candidate-status.md', 'release.md', 'rewards.md', 'scene-actions.md', 'security.md', 'setup.md', 'setup-for-beginners.md',
+        'main-features.md', 'product-scope.md', 'production-readiness.md', 'quote-vault.md', 'recovery-bundles.md', 'release-candidate-status.md', 'release.md', 'rewards.md', 'scene-actions.md', 'security.md', 'setup.md', 'setup-for-beginners.md',
         'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
         'starting-soon-countdown.md', 'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md', 'version-3-migration.md', 'live-test-checklist.md', 'viewer-foundation.md'
     )
@@ -317,6 +317,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $repo 'installer\apply-update.mjs') -Destination $installerRoot
     Copy-Item -LiteralPath (Join-Path $repo 'installer\Install THSV StreamBridge.cmd') -Destination $installerRoot
     Copy-Item -Path (Join-Path $repo 'launcher\*') -Destination $launcherRoot -Recurse
+    Get-ChildItem -LiteralPath $launcherRoot -Filter '*.d.mts' -File -Recurse | Remove-Item -Force
     Copy-Item -LiteralPath (Join-Path $repo 'tools\start-streamerbot-safely.mjs') -Destination (Join-Path $launcherRoot 'start-streamerbot.mjs')
     Copy-Item -LiteralPath (Join-Path $repo 'Start THSV Streamer.bot Safely.cmd') -Destination $launcherRoot
     Copy-Item -LiteralPath (Join-Path $repo 'installer\Install THSV StreamBridge.cmd') -Destination (Join-Path $staging 'Install THSV StreamBridge.cmd')
@@ -367,6 +368,15 @@ try {
     Copy-Item -LiteralPath (Join-Path $repo 'docs\addons') -Destination (Join-Path $appRoot 'docs\addons') -Recurse
     Set-Content -LiteralPath (Join-Path $runtimeRoot 'node-version.txt') -Encoding ascii -Value "v$NodeVersion"
 
+    $signingArguments = @{ StagingRoot = $staging }
+    if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_PFX)) {
+        $signingArguments.CertificatePath = $env:THSV_WINDOWS_SIGNING_PFX
+        $signingArguments.CertificatePassword = [string]$env:THSV_WINDOWS_SIGNING_PASSWORD
+    }
+    if ($env:THSV_REQUIRE_VALID_RUNTIME_SIGNATURE -eq '1') { $signingArguments.RequireValidRuntime = $true }
+    $signing = & (Join-Path $repo 'scripts\sign-windows-release.ps1') @signingArguments
+    [System.IO.File]::WriteAllText((Join-Path $staging 'windows-signing.json'), ($signing | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
+
     @('archive','app\packages\streamerbot\viewer-progression','app\packages\streamerbot\companion-actions','app\packages\streamerbot\speaker-orchestration','app\overlays\browser\bloom-idle-sprite.png') | ForEach-Object {
         if (Test-Path -LiteralPath (Join-Path $staging $_)) { throw "Release staging contains archived add-on content: $_" }
     }
@@ -389,7 +399,8 @@ try {
         version = [string]$package.version
         createdAt = (Get-Date).ToUniversalTime().ToString('o')
         canonicalDownload = 'https://github.com/surakage/THSV-StreamBridge/releases'
-        runtime = [ordered]@{ nodeVersion = $NodeVersion; platform = 'win32'; arch = 'x64'; upstreamSha256 = $actualNodeHash }
+        runtime = [ordered]@{ nodeVersion = $NodeVersion; platform = 'win32'; arch = 'x64'; upstreamSha256 = $actualNodeHash; authenticodeStatus = $signing.runtime.status }
+        signing = $signing.firstParty
         files = $releaseFiles
     }
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)

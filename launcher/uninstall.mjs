@@ -22,7 +22,7 @@ if (stopResult.status !== 0) throw new Error(`StreamBridge could not be stopped 
 removeConvenienceShortcuts();
 // The public uninstall wrapper removes itself after this process exits. Deleting the
 // currently executing batch file here makes cmd.exe report a false failure on return.
-for (const entry of ['app', 'runtime', 'launcher', 'Install THSV StreamBridge.cmd', 'Start THSV StreamBridge.cmd', 'Start THSV Streamer.bot Safely.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Open THSV StreamBridge Tray.cmd']) await removeInstalledEntry(join(installRoot, entry));
+for (const entry of ['app', 'runtime', 'launcher', 'Install THSV StreamBridge.cmd', 'Start THSV StreamBridge.cmd', 'Start THSV Streamer.bot Safely.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Open THSV StreamBridge Tray.cmd', 'Create THSV Recovery Bundle.cmd', 'Restore THSV Recovery Bundle.cmd']) await removeInstalledEntry(join(installRoot, entry));
 if (deleteEverything) {
   if (!await removeInstalledEntry(installRoot)) throw new Error('Windows is holding installation data open. Nothing will be reported as fully deleted until every requested path is removed.');
   process.stdout.write('THSV StreamBridge and all creator data were removed.\n');

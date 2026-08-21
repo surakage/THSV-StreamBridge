@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.",
-  "changelog": "4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: private session/counter foundation, authenticated privacy administration, permission-gated projections, and local size-bounded session JSON plus pseudonymous viewer CSV reports.",
+  "changelog": "4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: private session/counter foundation, authenticated privacy administration, permission-gated projections, and local size-bounded session JSON plus pseudonymous viewer CSV reports.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.community-analytics",
     "name": "Community Analytics",
-    "version": "4.0.2",
+    "version": "4.0.3",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.2",
-    "maximumTestedBridgeVersion": "4.0.2",
+    "minimumBridgeVersion": "4.0.3",
+    "maximumTestedBridgeVersion": "4.0.3",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -77,7 +77,7 @@
     {
       "path": "dist/index.js",
       "size": 22407,
-      "sha256": "b8eb05f096c84521c9b37b2150a70f8b218446764175fccec079cb8aa6309cb9"
+      "sha256": "76be43283ee38979733a4dbcda7d8bbf1f0f73768ecfef99b6e9596bc69aefab"
     },
     {
       "path": "schemas/config.json",

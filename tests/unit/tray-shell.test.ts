@@ -16,8 +16,30 @@ describe('native Windows tray shell', () => {
     expect(source).toContain('$timer.Interval = 5000');
     expect(source).toContain("$report.Outcome -eq 'in-progress'");
     expect(source).toContain('Starting tools - $phase');
+    expect(source).toContain('Get-AcceptanceTrayState -Acceptance $response.acceptance');
+    expect(source).toContain('Live acceptance reminder');
+    expect(source).toContain('Review live acceptance');
+    expect(source).toContain("tray-status.ps1");
+    expect(source).toContain('lastAcceptanceNotificationAt');
+    expect(source).toContain("@('--view=diagnostics', '--focus=live-acceptance')");
+    expect(source).toContain("Start-Launcher 'set-acceptance-reminder.mjs'");
+    expect(source).toContain("'Snooze acceptance reminders'");
+    expect(source).toContain("'For 1 hour'");
+    expect(source).toContain("'For 24 hours'");
+    expect(source).toContain("'For 7 days'");
+    expect(source).toContain("@('--hours=1')");
+    expect(source).toContain("@('--hours=24')");
+    expect(source).toContain("@('--hours=168')");
+    expect(source).toContain('Resume acceptance reminders');
     expect(source).not.toContain('control-token');
     expect(source).not.toContain('Streamer.bot.ico');
+  });
+
+  it('uses the private authenticated helper for persistent reminder changes', async () => {
+    const helper = await readFile('launcher/set-acceptance-reminder.mjs', 'utf8');
+    expect(helper).toContain('/wizard/api/live-acceptance/reminders');
+    expect(helper).toContain('approvedByCreator: true');
+    expect(helper).toContain("[1, 24, 168]");
   });
 
   it('ships a hidden execution-policy-safe launcher', async () => {

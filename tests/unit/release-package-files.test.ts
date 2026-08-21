@@ -77,6 +77,9 @@ describe('public release scripts', () => {
 
   it('publishes every optional add-on as a separately verified release asset', async () => {
     const workflow = await readFile('.github/workflows/release.yml', 'utf8');
+    const candidate = await readFile('scripts/test-release-candidate.ps1', 'utf8');
+    const resolver = await readFile('scripts/resolve-previous-release.ps1', 'utf8');
+    const verifier = await readFile('scripts/verify-release-archive.ps1', 'utf8');
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip');
     expect(workflow).toContain('packages/THSV-StreamBridge-AddOn-*.zip');
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip.sha256');
@@ -86,9 +89,16 @@ describe('public release scripts', () => {
     expect(workflow).toContain('needs: startup-chaos');
     expect(workflow).toContain('npm run test:startup-chaos');
     expect(workflow).toContain('artifacts/startup-chaos/latest.json');
-    expect(workflow).toContain('release-archive.tests.ps1');
-    expect(workflow).toContain('gh release download');
-    expect(workflow).toContain('PreviousArchive');
+    expect(workflow).toContain('test-release-candidate.ps1');
+    expect(candidate).toContain('release-archive.tests.ps1');
+    expect(candidate).toContain('-PreviousArchive $previous.archive');
+    expect(candidate).toContain("artifacts\\release-lifecycle");
+    expect(candidate).toContain("'latest.json'");
+    expect(resolver).toContain('gh release download');
+    expect(resolver).toContain('already exists');
+    expect(resolver).toContain('.zip.sha256');
+    expect(verifier).toContain('[System.Security.Cryptography.SHA256]::Create()');
+    expect(verifier).toContain('gh attestation verify');
   });
 
   it('backs up add-ons and ships a verified approval-gated restore path', async () => {
@@ -101,6 +111,20 @@ describe('public release scripts', () => {
     expect(restore).toContain('[switch]$ApproveRestore');
     expect(restore.indexOf('Get-Sha256Hex $path')).toBeLessThan(restore.indexOf("& (Join-Path $repo 'scripts\\backup.ps1')"));
     expect(restore).toContain('.restore-rollback-');
+  });
+
+  it('ships an authenticated encrypted recovery bundle with an approval-gated transactional restore', async () => {
+    const recovery = await readFile('launcher/recovery-bundle.mjs', 'utf8');
+    expect(recovery).toContain("createCipheriv('aes-256-gcm'");
+    expect(recovery).toContain('scryptSync');
+    expect(recovery).toContain('explicit creator approval');
+    expect(recovery).toContain('.thsv-recovery-rollback-');
+    expect(recovery).toContain("'data/secrets'");
+    expect(recovery).not.toContain("options.get('passphrase')");
+    expect(await readFile('launcher/Create THSV Recovery Bundle.cmd', 'utf8')).toContain('-Mode Export');
+    expect(await readFile('launcher/Restore THSV Recovery Bundle.cmd', 'utf8')).toContain('-Mode Restore');
+    expect(await readFile('installer/install.mjs', 'utf8')).toContain('Create THSV Recovery Bundle.cmd');
+    expect(await readFile('scripts/package-release.ps1', 'utf8')).toContain("-Filter '*.d.mts'");
   });
 
   it('protects installer staging without relying on a PowerShell ACL module or unavailable static method', async () => {
@@ -243,7 +267,8 @@ describe('public release scripts', () => {
     expect(source).toContain('http://127.0.0.1:');
     expect(source).toContain("health?.service !== 'THSV StreamBridge'");
     expect(source).toContain("`${baseUrl}/wizard/api/unlock-tickets`");
-    expect(source).toContain("guidedWizard?'?guided=1':''");
+    expect(source).toContain("query.set('guided', '1')");
+    expect(source).toContain("requestedFocus !== 'live-acceptance'");
     expect(source).toContain('#unlock=${ticketResult.ticket}');
     expect(source).not.toContain('#unlock=${token}');
   });

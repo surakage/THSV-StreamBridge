@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 async function unlock(page: Page): Promise<void> {
   await page.goto('/wizard/');
@@ -38,6 +39,17 @@ test('normal Wizard openings show every management page even after an older guid
   await expect(page.getByRole('button', { name: 'Extensions', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Viewer Foundation', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Community Analytics', exact: true })).toBeVisible();
+});
+
+test('tray reminder deep links open and focus the live-acceptance checklist', async ({ page }) => {
+  await page.goto('/wizard/?view=diagnostics&focus=live-acceptance');
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+
+  await expect(page.locator('[data-panel="diagnostics"]')).toBeVisible();
+  await expect(page.locator('#live-acceptance-list')).toBeVisible();
+  await expect(page.locator('#live-acceptance-list select').first()).toBeFocused();
+  await expect(page).toHaveURL(/\/wizard\/$/u);
 });
 
 test('connection center explains a stopped Streamer.bot session and offers safe recovery', async ({ page }) => {
@@ -130,15 +142,25 @@ test('pre-stream check requires healthy local evidence and explicit import confi
 });
 
 test('diagnostics explains periodic acceptance, OBS reconciliation, and report regressions', async ({ page }) => {
+  let reminders = { notificationsSnoozed: false } as { notificationsSnoozed: boolean; snoozedUntil?: string };
   const obsInventory = { configured: true, ready: false, requiredCount: 1, readyRequiredCount: 0, sources: [{ id: 'alerts-main', label: 'Alerts', scene: 'Old Live', surface: '/overlay/alerts:alerts', minimumCount: 1, required: true, visibleCount: 0, ready: false }], discovered: [], reconciliations: [{ sourceId: 'alerts-main', label: 'Alerts', reason: 'Detected the same StreamBridge surface in scene “Live”.', suggested: { scene: 'Live', surface: '/overlay/alerts:alerts', connectedCount: 1, visibleCount: 1 } }] };
   await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ readiness: { status: 'ready', ready: true, adapters: [], outputs: [], modules: [] }, launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} }, provenance: { version: '4.0.1', installation: 'verified-portable-release' }, obsInventory }) }));
   await page.route('**/wizard/api/obs-source-inventory', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(obsInventory) }));
-    await page.route('**/wizard/api/live-acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ checks: [{ id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Confirm recovery.', requiresGenuineEvent: false, recheckAfterDays: 90 }, { id: 'provider-reconnect', label: 'Provider reconnect', guidance: 'Confirm reconnect.', requiresGenuineEvent: false, recheckAfterDays: 90 }], evidence: [], confirmations: { 'bridge-startup': { checkId: 'bridge-startup', status: 'due', due: true, dueAt: '2026-08-20T00:00:00.000Z', dueReason: 'Periodic live acceptance is due after 90 days.', note: 'Passed.', confirmedAt: '2026-05-22T00:00:00.000Z' }, 'provider-reconnect': { checkId: 'provider-reconnect', status: 'accepted', dueSoon: true, dueAt: '2026-08-30T00:00:00.000Z', dueSoonReason: 'Periodic live acceptance is due within 14 days.', note: 'Passed.', confirmedAt: '2026-06-01T00:00:00.000Z' } } }) }));
+    await page.route('**/wizard/api/live-acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ checks: [{ id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Confirm recovery.', requiresGenuineEvent: false, recheckAfterDays: 90 }, { id: 'provider-reconnect', label: 'Provider reconnect', guidance: 'Confirm reconnect.', requiresGenuineEvent: false, recheckAfterDays: 90 }], evidence: [], reminders, audit: [{ id: 'audit-1', checkId: 'bridge-startup', kind: 'binding-migrated', recordedAt: '2026-08-21T00:00:00.000Z', changes: ['Legacy acceptance binding migrated to scoped content fingerprints.'] }], confirmations: { 'bridge-startup': { checkId: 'bridge-startup', status: 'due', due: true, dueAt: '2026-08-20T00:00:00.000Z', dueReason: 'Periodic live acceptance is due after 90 days.', note: 'Passed.', confirmedAt: '2026-05-22T00:00:00.000Z' }, 'provider-reconnect': { checkId: 'provider-reconnect', status: 'accepted', dueSoon: true, dueAt: '2026-08-30T00:00:00.000Z', dueSoonReason: 'Periodic live acceptance is due within 14 days.', note: 'Passed.', confirmedAt: '2026-06-01T00:00:00.000Z' } } }) }));
+  await page.route('**/wizard/api/live-acceptance/reminders', async (route) => { const body = route.request().postDataJSON() as { action: string; hours?: number }; reminders = body.action === 'resume' ? { notificationsSnoozed: false } : { notificationsSnoozed: true, snoozedUntil: '2026-08-22T00:00:00.000Z' }; await route.fulfill({ contentType: 'application/json', body: JSON.stringify(reminders) }); });
   await page.route('**/wizard/api/pre-stream-report', async (route) => await route.fulfill({ contentType: 'application/json', headers: { 'content-disposition': 'attachment; filename="THSV-StreamBridge-pre-stream-test.json"' }, body: JSON.stringify({ schemaVersion: 1, generatedAt: '2026-08-21T00:00:00.000Z', build: { version: '4.0.2' }, readiness: { ready: true } }) }));
   await page.route('**/wizard/api/pre-stream-report/compare', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ changed: true, regressions: 1, improvements: 0, unchanged: false, summary: '1 regression requires attention.', changes: [{ label: 'Bridge readiness', before: 'true', after: 'false', severity: 'regression' }] }) }));
-  await unlock(page); await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await unlock(page);
+  await expect(page.locator('#overview-acceptance')).toContainText('2 live checks need attention');
+  await expect(page.locator('#overview-acceptance')).toContainText('1 due, 1 due soon');
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
     await expect(page.locator('#live-acceptance-list')).toContainText('Periodic recheck due');
     await expect(page.locator('#live-acceptance-list')).toContainText('Recheck due soon');
+  await expect(page.locator('#live-acceptance-audit')).toContainText('binding migrated');
+  await page.getByRole('button', { name: 'Snooze 1 hour' }).click();
+  await expect(page.locator('#live-acceptance-reminder-state')).toContainText('Snoozed until');
+  await page.getByRole('button', { name: 'Resume reminders' }).click();
+  await expect(page.locator('#live-acceptance-reminder-state')).toHaveText('Notifications are active.');
   await page.getByText('Expected OBS sources by scene', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
   await page.locator('#pre-stream-baseline-file').setInputFiles({ name: 'earlier.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ schemaVersion: 1 })) });
@@ -188,6 +210,7 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
     ['Add-ons', 'addon-marketplace', 'Add-ons'],
     ['Blockers', 'blockers', 'Advanced scoped blockers'],
     ['Ownership', 'ownership', 'Ownership registry'],
+    ['Release Readiness', 'release-readiness', 'Release readiness'],
     ['Diagnostics', 'diagnostics', 'Test & finish'],
   ] as const;
 
@@ -201,6 +224,29 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
     await expect(page.locator(`[data-panel="${panel}"] h2`)).toHaveText(heading);
     await expect(page.locator('[data-panel]:not(.hidden)')).toHaveCount(1);
   }
+});
+
+test('release readiness combines lifecycle, PR checks, post-release evidence, and protected approvals without publishing', async ({ page }) => {
+  await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-20T12:00:00.000Z', githubStatusSource: 'cache', usingCachedGitHubStatus: true, localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }, pullRequest: { available: false, message: 'Refresh GitHub status to inspect the open release-candidate PR.' }, checks: [], repositoryProtection: { available: false, message: 'Refresh GitHub status to audit repository controls.' }, releaseHandoff: { tag: 'v4.0.3', exactMainReady: false, instructions: 'Merge and refresh.' }, postReleaseSmoke: { available: false, message: 'Post-release verification begins automatically after publication.' }, summary: { lifecycleReady: true, checksGreen: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment.', 'Approve the protected streambridge-release environment deployment.'] }) }));
+  await page.route('**/wizard/api/release-readiness/refresh', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-21T12:00:00.000Z', githubStatusSource: 'live', usingCachedGitHubStatus: false, localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }, pullRequest: { available: true, number: 9, title: 'Prepare StreamBridge 4.0.3', url: 'https://github.com/surakage/THSV-StreamBridge/pull/9', branch: 'codex/release-4.0.3-seamless', sha: 'a'.repeat(40) }, checks: [{ name: 'windows', status: 'completed', conclusion: 'success' }], repositoryProtection: { available: true, mainProtected: true, immutableReleases: true, immutableEnforcedByOwner: false, activeRulesetCount: 1, rulesetsUrl: 'https://github.com/surakage/THSV-StreamBridge/settings/rules', immutableReleasesUrl: 'https://github.com/surakage/THSV-StreamBridge/settings/releases' }, releaseHandoff: { tag: 'v4.0.3', candidateSha: 'a'.repeat(40), expectedMainSha: 'a'.repeat(40), exactMainReady: true, instructions: 'Copy exact inputs.', tagWorkflowUrl: 'https://github.com/surakage/THSV-StreamBridge/actions/workflows/prepare-release-tag.yml', commitUrl: `https://github.com/surakage/THSV-StreamBridge/commit/${'a'.repeat(40)}` }, postReleaseSmoke: { available: true, tag: 'v4.0.3', previousTag: 'v4.0.2', conclusion: 'success', reinstall: '4.0.3', rollbackProtectionVerified: true, creatorDataPreserved: true, url: 'https://github.com/surakage/THSV-StreamBridge/actions/runs/91', evidenceUrl: 'https://github.com/surakage/THSV-StreamBridge/actions/runs/91#artifacts' }, summary: { lifecycleReady: true, checksGreen: true, postReleaseVerified: true, repositoryProtectionsReady: true, readyForCreatorReview: true }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment.', 'Approve the protected streambridge-release environment deployment.'] }) }));
+  await unlock(page);
+  await page.getByRole('button', { name: 'Release Readiness', exact: true }).click();
+  await expect(page.locator('#release-readiness-summary')).toContainText('Needs review');
+  await expect(page.locator('#release-readiness-state')).toContainText('last successful GitHub status');
+  await page.getByRole('button', { name: 'Refresh GitHub status' }).click();
+  await expect(page.locator('#release-readiness-checks')).toContainText('PR #9');
+  await expect(page.locator('#release-readiness-summary')).toContainText('Ready for creator');
+  await expect(page.locator('#release-readiness-summary')).toContainText('Verified');
+  await expect(page.locator('#release-readiness-summary')).toContainText('Repository protection');
+  await expect(page.locator('#release-readiness-handoff')).toContainText('Exact main confirmed');
+  await expect(page.locator('#release-readiness-handoff')).toContainText('a'.repeat(40));
+  await expect(page.locator('#release-readiness-protection')).toContainText('Immutable releases: true');
+  await expect(page.locator('#release-readiness-lifecycle')).toContainText('Encrypted recovery restored: true');
+  await expect(page.locator('#release-readiness-post-release')).toContainText('Rollback protection: true');
+  await expect(page.getByRole('link', { name: 'Download retained evidence' })).toHaveAttribute('href', /#artifacts$/u);
+  await expect(page.locator('#release-readiness-state')).toContainText('Live GitHub status checked');
+  await expect(page.locator('#release-readiness-approvals')).toContainText('protected streambridge-tag');
+  await expect(page.locator('#release-readiness-approvals')).toContainText('protected streambridge-release');
 });
 
 test('Viewer Foundation is a dedicated required Bridge integration', async ({ page }) => {
@@ -304,7 +350,7 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Create & download one import' }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('THSV-StreamBridge-Universal-Setup-4.0.2.sb');
+  expect(download.suggestedFilename()).toBe(`THSV-StreamBridge-Universal-Setup-${STREAMBRIDGE_VERSION}.sb`);
   await expect(page.locator('#universal-import-state')).toContainText('Import this one file in Streamer.bot');
   await page.getByRole('button', { name: 'Review recommended triggers' }).click();
   await expect(page.locator('#universal-trigger-guide')).toHaveAttribute('open', '');

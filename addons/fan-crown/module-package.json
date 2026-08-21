@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with bounded eligibility and a private monthly leaderboard.",
-  "changelog": "4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with fixed or multiplier price progression, a hard cost cap, current-holder and per-user cooldown rules, optional stream reset, local-calendar monthly rollover, points-spent ranking, reign tracking, editable chat messages, a styled hosted overlay card, and separate controller/reset Streamer.bot actions.",
+  "changelog": "4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with fixed or multiplier price progression, a hard cost cap, current-holder and per-user cooldown rules, optional stream reset, local-calendar monthly rollover, points-spent ranking, reign tracking, editable chat messages, a styled hosted overlay card, and separate controller/reset Streamer.bot actions.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -25,7 +25,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.fan-crown",
     "name": "Fan Crown",
-    "version": "4.0.2",
+    "version": "4.0.3",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [
@@ -68,8 +68,8 @@
         "description": "Confirms serialized crown captures, result-correlated reward administration, bounded pricing, and private monthly ranking state."
       }
     ],
-    "minimumBridgeVersion": "4.0.2",
-    "maximumTestedBridgeVersion": "4.0.2"
+    "minimumBridgeVersion": "4.0.3",
+    "maximumTestedBridgeVersion": "4.0.3"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -77,7 +77,7 @@
     {
       "path": "dist/index.js",
       "size": 32928,
-      "sha256": "3931e0c46ee1a3904522465a965d26cfdc8c7d2edc80130de6e9712797fcc562"
+      "sha256": "1e22b94e9fbb2bd29704a5d02b3c004167753d9e8becfed1c64197e13e77b67f"
     },
     {
       "path": "schemas/config.json",
@@ -92,7 +92,7 @@
     {
       "path": "README.md",
       "size": 2224,
-      "sha256": "a1c35c80a532fe357e9dd4014dbee4ebbf73dc4ae6a1724526f74c83cbe86e94"
+      "sha256": "ecbad49d32b736ffcb3444f10dc3d5a50cb74d2dd31f461e4d4e7b06625dd8f7"
     }
   ]
 }

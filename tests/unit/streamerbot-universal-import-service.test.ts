@@ -2,6 +2,7 @@ import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { StreamerBotUniversalImportService } from '../../bridge/services/streamerbot-universal-import-service.js';
 import type { WizardAddOnSummary } from '../../bridge/services/addon-wizard-service.js';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 function decode(contentBase64: string): { data: { actions: Array<{ id: string; name: string }>; commands: Array<{ id: string }> }; meta: { name: string } } {
   const bytes = Buffer.from(contentBase64, 'base64');
@@ -12,7 +13,7 @@ function decode(contentBase64: string): { data: { actions: Array<{ id: string; n
 describe('Streamer.bot universal import service', () => {
   it('lists required framework packages, selectable extensions, and unavailable optional add-ons', async () => {
     const catalogue = await new StreamerBotUniversalImportService().catalogue([]);
-    expect(catalogue.bridgeVersion).toBe('4.0.2');
+    expect(catalogue.bridgeVersion).toBe(STREAMBRIDGE_VERSION);
     expect(catalogue.packages.filter((item) => item.required)).toHaveLength(12);
     expect(catalogue.packages.find((item) => item.folder === 'raid-scout')).toMatchObject({ kind: 'extension', available: true });
     expect(catalogue.packages.find((item) => item.folder === 'subathon-timer')).toMatchObject({ kind: 'addon', available: false });

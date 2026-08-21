@@ -162,7 +162,8 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/ready') {
         this.guard.assertLoopback(request);
         const readiness = this.target.readiness();
-        return this.reply(response, readiness['ready'] === true ? 200 : 503, readiness);
+        const acceptance = this.wizard?.liveAcceptanceAttentionSummary();
+        return this.reply(response, readiness['ready'] === true ? 200 : 503, acceptance === undefined ? readiness : { ...readiness, acceptance });
       }
       if (request.method === 'GET' && request.url === '/diagnostics') {
         this.guard.assertLoopback(request);
@@ -593,6 +594,19 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/wizard/api/live-acceptance' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.liveAcceptanceStatus());
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/release-readiness' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.releaseReadinessStatus(false));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/release-readiness/refresh' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.releaseReadinessStatus(true));
+      }
+      if (request.method === 'PUT' && request.url === '/wizard/api/live-acceptance/reminders' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, this.wizard.setLiveAcceptanceReminder(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'GET' && request.url === '/wizard/api/obs-source-inventory' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);

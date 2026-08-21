@@ -12,7 +12,7 @@ async function writePortableRelease(root: string, version: string, marker: strin
   await copyFile('installer/install.mjs', join(root, 'installer', 'install.mjs'));
   await copyFile('installer/apply-update.mjs', join(root, 'installer', 'apply-update.mjs'));
   await copyFile('installer/Install THSV StreamBridge.cmd', join(root, 'installer', 'Install THSV StreamBridge.cmd'));
-  for (const name of ['start.mjs', 'start-streaming-tools.mjs', 'stop.mjs', 'open-wizard.mjs', 'uninstall.mjs', 'tray.ps1', 'Start THSV StreamBridge.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Open THSV StreamBridge Tray.cmd', 'Uninstall THSV StreamBridge.cmd']) await copyFile(join('launcher', name), join(root, 'launcher', name));
+  for (const name of ['start.mjs', 'start-streaming-tools.mjs', 'stop.mjs', 'open-wizard.mjs', 'set-acceptance-reminder.mjs', 'recovery-bundle.mjs', 'recovery-bundle.ps1', 'uninstall.mjs', 'tray.ps1', 'tray-status.ps1', 'Start THSV StreamBridge.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Open THSV StreamBridge Tray.cmd', 'Create THSV Recovery Bundle.cmd', 'Restore THSV Recovery Bundle.cmd', 'Uninstall THSV StreamBridge.cmd']) await copyFile(join('launcher', name), join(root, 'launcher', name));
   await copyFile('tools/start-streamerbot-safely.mjs', join(root, 'launcher', 'start-streamerbot.mjs'));
   await copyFile('Start THSV Streamer.bot Safely.cmd', join(root, 'launcher', 'Start THSV Streamer.bot Safely.cmd'));
   await copyFile(process.execPath, join(root, 'runtime', 'node.exe'));
@@ -27,8 +27,8 @@ async function writePortableRelease(root: string, version: string, marker: strin
   }));
   const paths = [
     'installer/install.mjs', 'installer/apply-update.mjs', 'installer/Install THSV StreamBridge.cmd',
-    'launcher/start.mjs', 'launcher/start-streaming-tools.mjs', 'launcher/stop.mjs', 'launcher/open-wizard.mjs', 'launcher/uninstall.mjs', 'launcher/tray.ps1', 'launcher/start-streamerbot.mjs',
-    'launcher/Start THSV StreamBridge.cmd', 'launcher/Start THSV Streamer.bot Safely.cmd', 'launcher/Start THSV Streaming Tools.cmd', 'launcher/Stop THSV StreamBridge.cmd', 'launcher/Open THSV Setup Wizard.cmd', 'launcher/Open THSV StreamBridge Tray.cmd', 'launcher/Uninstall THSV StreamBridge.cmd',
+    'launcher/start.mjs', 'launcher/start-streaming-tools.mjs', 'launcher/stop.mjs', 'launcher/open-wizard.mjs', 'launcher/set-acceptance-reminder.mjs', 'launcher/recovery-bundle.mjs', 'launcher/recovery-bundle.ps1', 'launcher/uninstall.mjs', 'launcher/tray.ps1', 'launcher/tray-status.ps1', 'launcher/start-streamerbot.mjs',
+    'launcher/Start THSV StreamBridge.cmd', 'launcher/Start THSV Streamer.bot Safely.cmd', 'launcher/Start THSV Streaming Tools.cmd', 'launcher/Stop THSV StreamBridge.cmd', 'launcher/Open THSV Setup Wizard.cmd', 'launcher/Open THSV StreamBridge Tray.cmd', 'launcher/Create THSV Recovery Bundle.cmd', 'launcher/Restore THSV Recovery Bundle.cmd', 'launcher/Uninstall THSV StreamBridge.cmd',
     'runtime/node.exe', 'runtime/NODE-LICENSE.txt', 'runtime/node-version.txt',
     'app/dist/apps/bridge-service.js', 'app/config/bridge.example.json',
   ];
@@ -119,7 +119,7 @@ describe('portable Windows release installer', () => {
     expect(installedWizardLauncher.indexOf('launcher\\open-wizard.mjs')).toBeLessThan(installedWizardLauncher.indexOf('launcher\\start.mjs" --open-wizard'));
     const installedSecureOpener = await readFile(join(firstInstall, 'launcher', 'open-wizard.mjs'), 'utf8');
     expect(installedSecureOpener).toContain('/wizard/api/unlock-tickets');
-    expect(installedSecureOpener).toContain("guidedWizard?'?guided=1':''");
+    expect(installedSecureOpener).toContain("query.set('guided', '1')");
     expect(installedSecureOpener).toContain('#unlock=${ticketResult.ticket}');
     expect(processOutput(firstResult)).toContain(`Wizard recovery key saved to: ${join(firstInstall, 'THSV StreamBridge Recovery Key.txt')}`);
     expect(processOutput(firstResult)).toContain(`One-button Stream Deck target: ${join(firstInstall, 'Start THSV Streaming Tools.cmd')}`);

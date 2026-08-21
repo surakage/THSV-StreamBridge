@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Free Game Check",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "author": "surakage",
   "description": "Fetches bounded public giveaways and optionally delivers verified entries to Discord.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Free Game Check - Refresh",
       "group": "THSV Addon - Free Game Check",
       "source": "src/RefreshGames.cs",
-      "importFile": "THSV-StreamBridge-Free-Game-Check-4.0.2.sb",
+      "importFile": "THSV-StreamBridge-Free-Game-Check-4.0.3.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [
@@ -28,7 +28,7 @@
       "name": "THSV Addon - Free Game Check - Discord Deliver",
       "group": "THSV Addon - Free Game Check",
       "source": "src/DeliverDiscord.cs",
-      "importFile": "THSV-StreamBridge-Free-Game-Check-4.0.2.sb",
+      "importFile": "THSV-StreamBridge-Free-Game-Check-4.0.3.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "arguments": [
@@ -53,7 +53,7 @@
       "name": "THSV Addon - Free Game Check - Settle Twitch Reward",
       "group": "THSV Addon - Free Game Check",
       "source": "src/SettleReward.cs",
-      "importFile": "THSV-StreamBridge-Free-Game-Check-4.0.2.sb",
+      "importFile": "THSV-StreamBridge-Free-Game-Check-4.0.3.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
       "references": [
