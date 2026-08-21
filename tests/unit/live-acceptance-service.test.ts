@@ -128,6 +128,7 @@ describe('LiveAcceptanceService', () => {
     expect(restarted.attentionSummary()).toMatchObject({ notificationsSnoozed: true, snoozedUntil: '2026-08-22T12:00:00.000Z' });
     expect(restarted.setReminder({ action: 'resume', approvedByCreator: true })).toEqual({ notificationsSnoozed: false });
     expect(() => restarted.setReminder({ action: 'snooze', hours: 48, approvedByCreator: true })).toThrow(LiveAcceptanceError);
+    await restarted.flush();
     now += 25 * 3_600_000;
   });
 });

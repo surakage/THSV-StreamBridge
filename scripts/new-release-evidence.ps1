@@ -46,7 +46,7 @@ if (@($assetFiles | Where-Object Name -Like 'THSV-StreamBridge-AddOn-*.zip').Cou
 $assets = @($assetFiles | Sort-Object Name | ForEach-Object { [ordered]@{ name = $_.Name; size = $_.Length; sha256 = Get-Sha256 $_.FullName } })
 $lifecycle = Get-Content -Raw -LiteralPath $lifecycleFullPath | ConvertFrom-Json
 $startup = Get-Content -Raw -LiteralPath $startupFullPath | ConvertFrom-Json
-if ($lifecycle.currentTag -ne $Tag -or $lifecycle.creatorDataPreserved -ne $true -or $lifecycle.encryptedRecoveryBundleVerified -ne $true) { throw 'Lifecycle evidence does not match the release tag, creator-data, or encrypted-recovery requirement.' }
+if ($lifecycle.currentTag -ne $Tag -or $lifecycle.creatorDataPreserved -ne $true -or $lifecycle.encryptedRecoveryBundleVerified -ne $true -or $lifecycle.recoveryFreshProfileRestored -ne $true) { throw 'Lifecycle evidence does not match the release tag, creator-data, encrypted-recovery, or fresh-profile restore requirement.' }
 if ($startup.passed -ne $true -or $startup.isolated -ne $true -or @($startup.scenarios).Count -eq 0) { throw 'Startup-chaos evidence is not an isolated successful acceptance run.' }
 $manifest = [ordered]@{
     schemaVersion = 1

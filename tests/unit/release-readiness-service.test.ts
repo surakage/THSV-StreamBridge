@@ -10,7 +10,7 @@ afterEach(async () => { vi.restoreAllMocks(); for (const root of roots.splice(0)
 describe('ReleaseReadinessService', () => {
   it('combines lifecycle evidence with public PR checks without repository mutation', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-release-readiness-')); roots.push(root); const evidence = join(root, 'latest.json'); const published = join(root, 'published.json'); const cache = join(root, 'cache.json');
-    await writeFile(evidence, JSON.stringify({ currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }), 'utf8');
+    await writeFile(evidence, JSON.stringify({ currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true, recoveryFreshProfileRestored: true }), 'utf8');
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(JSON.stringify([{ number: 9, title: 'Prepare StreamBridge 4.0.3', html_url: 'https://github.test/pr/9', head: { ref: 'codex/release-4.0.3-seamless', sha: 'abc' } }])))
       .mockResolvedValueOnce(new Response(JSON.stringify({ workflow_runs: [{ id: 91, name: 'Post-release smoke', display_title: 'v4.0.3 published', head_branch: 'v4.0.3', html_url: 'https://github.test/actions/91', artifacts_url: 'https://api.github.test/actions/91/artifacts', status: 'completed', conclusion: 'success', created_at: '2026-08-21T12:00:00Z', updated_at: '2026-08-21T12:05:00Z' }] })))

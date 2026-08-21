@@ -41,6 +41,7 @@ try {
         upgradedTo = $lifecycle.upgradedTo
         creatorDataPreserved = $lifecycle.creatorDataPreserved
         encryptedRecoveryBundleVerified = $recovery.encrypted -eq $true -and $recovery.verifiedBeforeRestore -eq $true
+        recoveryFreshProfileRestored = $recovery.freshProfileRestore
         recoveryCreatorDataRestored = $recovery.creatorDataRestored
         recoveryAddOnStateRestored = $recovery.addOnStateRestored
         recoveryKeyRefreshed = $recovery.recoveryKeyRefreshed

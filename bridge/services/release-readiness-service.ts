@@ -22,7 +22,7 @@ export class ReleaseReadinessService {
     if (refresh && (this.remote === undefined || Date.now() - this.checkedAt > 60_000)) await this.refreshRemote();
     const checks = Array.isArray(this.remote?.['checks']) ? this.remote['checks'] : [];
     const checksGreen = checks.length > 0 && checks.every((item) => isRecord(item) && item['conclusion'] === 'success');
-    const lifecycleReady = lifecycle !== undefined && lifecycle['currentTag'] === `v${this.version}` && lifecycle['previousChecksumVerified'] === true && lifecycle['previousProvenanceVerified'] === true && lifecycle['creatorDataPreserved'] === true && lifecycle['encryptedRecoveryBundleVerified'] === true;
+    const lifecycleReady = lifecycle !== undefined && lifecycle['currentTag'] === `v${this.version}` && lifecycle['previousChecksumVerified'] === true && lifecycle['previousProvenanceVerified'] === true && lifecycle['creatorDataPreserved'] === true && lifecycle['encryptedRecoveryBundleVerified'] === true && lifecycle['recoveryFreshProfileRestored'] === true;
     const localSmokeMatches = localPublishedSmoke?.['tag'] === `v${this.version}`;
     const postReleaseSmoke = localSmokeMatches
       ? { available: true, source: 'local-evidence', evidenceAvailable: true, ...localPublishedSmoke }

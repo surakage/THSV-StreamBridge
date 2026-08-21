@@ -17,3 +17,5 @@ To recover onto a verified installation:
 Restore never follows symbolic links, rejects absolute and parent-traversal paths, caps file count and size, verifies every plaintext SHA-256 before replacement, and rolls back replaced roots if activation fails. A successful restore records `data/backups/recovery-restore-latest.json` without storing the passphrase.
 
 Losing the passphrase makes the encrypted bundle unrecoverable. Store the bundle and passphrase separately, and never display either on stream.
+
+The non-publishing release preflight proves portability with two disposable installations: it exports marked creator and add-on state from a source profile, transfers the encrypted bundle to a separate fresh profile, restores it there, and records the result in `artifacts/release-lifecycle/latest.json`.
