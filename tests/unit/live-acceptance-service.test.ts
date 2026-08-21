@@ -48,7 +48,7 @@ describe('LiveAcceptanceService', () => {
 
   it('marks accepted checks due on their documented periodic schedule', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-live-due-')); roots.push(root); let now = Date.parse('2026-01-01T00:00:00.000Z');
-    const service = new LiveAcceptanceService(root, undefined, () => now); await service.start(); service.confirm('bridge-startup', { status: 'accepted', note: 'Startup recovery passed.', approvedByCreator: true });
+    const service = new LiveAcceptanceService(root, undefined, () => now); await service.start(); service.confirm('bridge-startup', { status: 'accepted', note: 'Startup recovery passed.', approvedByCreator: true }); await service.flush();
     expect((service.status().confirmations as Record<string, { status: string; dueAt: string }>)['bridge-startup']).toMatchObject({ status: 'accepted', dueAt: '2026-04-01T00:00:00.000Z' });
     now = Date.parse('2026-04-01T00:00:00.000Z');
     expect((service.status().confirmations as Record<string, { status: string; due: boolean; dueReason: string }>)['bridge-startup']).toMatchObject({ status: 'due', due: true, dueReason: 'Periodic live acceptance is due after 90 days.' });
