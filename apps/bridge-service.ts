@@ -156,7 +156,7 @@ const wizard = new WizardService(
   liveAcceptance,
   obsSourceInventory,
   buildProvenance,
-  new ReleaseReadinessService(STREAMBRIDGE_VERSION, resolve('artifacts', 'release-lifecycle', 'latest.json'), resolve('artifacts', 'published-release', 'latest.json')),
+  new ReleaseReadinessService(STREAMBRIDGE_VERSION, resolve('artifacts', 'release-lifecycle', 'latest.json'), resolve('artifacts', 'published-release', 'latest.json'), join(dataRoot, 'state', 'release-readiness-github.json')),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => {

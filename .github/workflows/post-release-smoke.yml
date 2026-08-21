@@ -46,6 +46,10 @@ jobs:
       contents: read
       issues: write
     steps:
+      - name: Check out notification policy
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
       - name: Open one failure issue per tag or close it after recovery
         env:
           GH_TOKEN: ${{ github.token }}
@@ -53,18 +57,4 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
           REPOSITORY: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        shell: bash
-        run: |
-          title="[automation] Post-release smoke failed for $RELEASE_TAG"
-          issue=$(gh issue list --repo "$REPOSITORY" --state open --search "$title in:title" --json number --jq '.[0].number // empty')
-          if [[ "$RESULT" == 'success' ]]; then
-            if [[ -n "$issue" ]]; then
-              gh issue close "$issue" --repo "$REPOSITORY" --comment "Post-release verification recovered for $RELEASE_TAG: $RUN_URL"
-            fi
-            exit 0
-          fi
-          if [[ -n "$issue" ]]; then
-            gh issue comment "$issue" --repo "$REPOSITORY" --body "Post-release verification failed again for $RELEASE_TAG: $RUN_URL"
-            exit 0
-          fi
-          gh issue create --repo "$REPOSITORY" --title "$title" --body "Published asset verification, provenance, installation, or rollback protection failed for $RELEASE_TAG. Review the run and its evidence: $RUN_URL"
+        run: node scripts/manage-automation-issue.mjs --kind post-release-smoke --result "$RESULT" --tag "$RELEASE_TAG" --repository "$REPOSITORY" --run-url "$RUN_URL"

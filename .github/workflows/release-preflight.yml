@@ -77,22 +77,12 @@ jobs:
     if: ${{ always() && github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Check out notification policy
+        uses: actions/checkout@v7
       - name: Notify only after two consecutive scheduled failures
         env:
           GH_TOKEN: ${{ github.token }}
           CURRENT_RESULT: ${{ needs.candidate.result }}
           REPOSITORY: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        shell: bash
-        run: |
-          title='[automation] Release preflight has failed twice'
-          open_issue=$(gh issue list --repo "$REPOSITORY" --state open --search "$title in:title" --json number --jq '.[0].number // empty')
-          if [[ "$CURRENT_RESULT" == 'success' ]]; then
-            if [[ -n "$open_issue" ]]; then
-              gh issue close "$open_issue" --repo "$REPOSITORY" --comment "The weekly non-publishing release preflight recovered successfully: $RUN_URL"
-            fi
-            exit 0
-          fi
-          previous=$(gh run list --repo "$REPOSITORY" --workflow release-preflight.yml --event schedule --status completed --limit 1 --json conclusion --jq '.[0].conclusion // empty')
-          if [[ "$previous" != 'failure' || -n "$open_issue" ]]; then exit 0; fi
-          gh issue create --repo "$REPOSITORY" --title "$title" --body "Two consecutive weekly non-publishing release preflights failed. Review the latest run: $RUN_URL"
+        run: node scripts/manage-automation-issue.mjs --kind release-preflight --result "$CURRENT_RESULT" --repository "$REPOSITORY" --run-url "$RUN_URL"

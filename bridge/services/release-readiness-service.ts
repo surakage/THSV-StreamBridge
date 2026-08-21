@@ -1,4 +1,6 @@
-import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 
 interface PullRecord { readonly number: number; readonly title: string; readonly html_url: string; readonly head: { readonly ref: string; readonly sha: string } }
 interface CheckRecord { readonly name: string; readonly status: string; readonly conclusion: string | null; readonly details_url: string }
@@ -7,10 +9,13 @@ interface WorkflowRunRecord { readonly id: number; readonly name: string; readon
 export class ReleaseReadinessService {
   private remote: Readonly<Record<string, unknown>> | undefined;
   private checkedAt = 0;
+  private cacheLoaded = false;
+  private githubStatusSource: 'unavailable' | 'cache' | 'live' = 'unavailable';
 
-  public constructor(private readonly version: string, private readonly lifecycleEvidencePath: string, private readonly publishedEvidencePath: string, private readonly repository = 'surakage/THSV-StreamBridge', private readonly fetcher: typeof fetch = fetch) {}
+  public constructor(private readonly version: string, private readonly lifecycleEvidencePath: string, private readonly publishedEvidencePath: string, private readonly remoteCachePath: string, private readonly repository = 'surakage/THSV-StreamBridge', private readonly fetcher: typeof fetch = fetch) {}
 
   public async status(refresh = false): Promise<Readonly<Record<string, unknown>>> {
+    await this.loadRemoteCache();
     const [lifecycle, localPublishedSmoke] = await Promise.all([this.readEvidence(this.lifecycleEvidencePath), this.readEvidence(this.publishedEvidencePath)]);
     if (refresh && (this.remote === undefined || Date.now() - this.checkedAt > 60_000)) await this.refreshRemote();
     const checks = Array.isArray(this.remote?.['checks']) ? this.remote['checks'] : [];
@@ -31,7 +36,9 @@ export class ReleaseReadinessService {
       checks,
       postReleaseSmoke,
       summary: { lifecycleReady, checksGreen, postReleaseVerified, readyForCreatorReview: lifecycleReady && checksGreen },
-      remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve creation of the version tag.', 'Approve the protected streambridge-release environment deployment that publishes the GitHub release and assets.'],
+      githubStatusSource: this.githubStatusSource,
+      usingCachedGitHubStatus: this.githubStatusSource === 'cache',
+      remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment that creates the exact version tag.', 'Approve the protected streambridge-release environment deployment that publishes the GitHub release and assets.'],
       ...(this.remote?.['checkedAt'] === undefined ? {} : { checkedAt: this.remote['checkedAt'] }),
       ...(this.remote?.['error'] === undefined ? {} : { error: this.remote['error'] }),
     };
@@ -60,12 +67,36 @@ export class ReleaseReadinessService {
       const postReleaseSmoke = smokeRun === undefined
         ? { available: false, message: `No post-release smoke workflow run was found for ${tag}.` }
         : { available: true, source: 'github-actions', tag, runId: smokeRun.id, status: smokeRun.status, conclusion: smokeRun.conclusion, url: smokeRun.html_url, evidenceUrl: `${smokeRun.html_url}#artifacts`, artifactsApiUrl: smokeRun.artifacts_url, createdAt: smokeRun.created_at, updatedAt: smokeRun.updated_at };
-      if (pull === undefined) { this.remote = { checkedAt, pullRequest: { available: false, message: `No open ${this.version} pull request was found.` }, checks: [], postReleaseSmoke }; return; }
+      if (pull === undefined) { await this.storeLiveRemote({ checkedAt, pullRequest: { available: false, message: `No open ${this.version} pull request was found.` }, checks: [], postReleaseSmoke }); return; }
       const checksResponse = await this.fetcher(`https://api.github.com/repos/${this.repository}/commits/${pull.head.sha}/check-runs`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'THSV-StreamBridge' }, signal: AbortSignal.timeout(5_000) });
       if (!checksResponse.ok) throw new Error(`GitHub check lookup returned ${String(checksResponse.status)}.`);
       const body = await checksResponse.json() as { check_runs?: CheckRecord[] };
-      this.remote = { checkedAt, pullRequest: { available: true, number: pull.number, title: pull.title, url: pull.html_url, branch: pull.head.ref }, checks: (body.check_runs ?? []).map((item) => ({ name: item.name, status: item.status, conclusion: item.conclusion, url: item.details_url })), postReleaseSmoke };
-    } catch (error) { this.remote = { checkedAt, error: error instanceof Error ? error.message : String(error), checks: [] }; }
+      await this.storeLiveRemote({ checkedAt, pullRequest: { available: true, number: pull.number, title: pull.title, url: pull.html_url, branch: pull.head.ref }, checks: (body.check_runs ?? []).map((item) => ({ name: item.name, status: item.status, conclusion: item.conclusion, url: item.details_url })), postReleaseSmoke });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (this.remote === undefined) { this.remote = { checkedAt, error: message, checks: [] }; this.githubStatusSource = 'unavailable'; }
+      else { this.remote = { ...this.remote, error: `Live GitHub refresh failed; showing the last successful result. ${message}`, liveRefreshFailed: true }; this.githubStatusSource = 'cache'; }
+    }
+  }
+
+  private async loadRemoteCache(): Promise<void> {
+    if (this.cacheLoaded) return;
+    this.cacheLoaded = true;
+    try {
+      const value: unknown = JSON.parse(await readFile(this.remoteCachePath, 'utf8'));
+      if (!isRecord(value) || value['schemaVersion'] !== 1 || value['version'] !== this.version || !isRecord(value['remote'])) return;
+      this.remote = value['remote'];
+      this.githubStatusSource = 'cache';
+    } catch { /* A first run or invalid cache simply starts without GitHub status. */ }
+  }
+
+  private async storeLiveRemote(value: Readonly<Record<string, unknown>>): Promise<void> {
+    this.remote = value;
+    this.githubStatusSource = 'live';
+    const temporary = `${this.remoteCachePath}.${randomUUID()}.tmp`;
+    await mkdir(dirname(this.remoteCachePath), { recursive: true });
+    await writeFile(temporary, `${JSON.stringify({ schemaVersion: 1, version: this.version, cachedAt: new Date().toISOString(), remote: value }, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, this.remoteCachePath);
   }
 }
 

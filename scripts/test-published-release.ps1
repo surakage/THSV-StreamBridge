@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$Tag,
     [string]$Repository = $(if ([string]::IsNullOrWhiteSpace($env:GITHUB_REPOSITORY)) { 'surakage/THSV-StreamBridge' } else { $env:GITHUB_REPOSITORY }),
-    [string]$Destination = 'artifacts\published-release'
+    [string]$Destination = 'artifacts\published-release',
+    [switch]$AllowLegacyEvidence
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,11 +15,18 @@ if ($LASTEXITCODE -ne 0 -or $release.tagName -ne $Tag -or $release.isDraft -eq $
 gh release download $Tag --repo $Repository --dir $destinationPath --clobber
 if ($LASTEXITCODE -ne 0) { throw "Could not download published assets for $Tag." }
 
+function Get-Sha256([string]$PathValue) {
+    $stream = [System.IO.File]::OpenRead($PathValue)
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try { return ([System.BitConverter]::ToString($sha256.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+    finally { $sha256.Dispose(); $stream.Dispose() }
+}
+
 function Assert-Checksum([string]$ArchivePath) {
     $checksumPath = "$ArchivePath.sha256"
     if (-not (Test-Path -LiteralPath $checksumPath -PathType Leaf)) { throw "Missing checksum for $(Split-Path -Leaf $ArchivePath)." }
     $expected = ((Get-Content -Raw -LiteralPath $checksumPath).Trim() -split '\s+')[0].ToUpperInvariant()
-    $actual = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToUpperInvariant()
+    $actual = (Get-Sha256 $ArchivePath).ToUpperInvariant()
     if ($expected -ne $actual) { throw "Published checksum mismatch for $(Split-Path -Leaf $ArchivePath)." }
 }
 
@@ -32,6 +40,27 @@ function Expand-ReleaseRoot([string]$ArchivePath, [string]$DestinationPath) {
 }
 
 $version = $Tag.TrimStart('v')
+$releaseEvidencePath = Join-Path $destinationPath "THSV-StreamBridge-$Tag.release-evidence.json"
+$releaseEvidenceVerified = $false
+if (Test-Path -LiteralPath $releaseEvidencePath -PathType Leaf) {
+    Assert-Checksum $releaseEvidencePath
+    gh attestation verify $releaseEvidencePath --repo $Repository | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Published release-evidence provenance verification failed.' }
+    gh attestation verify "$releaseEvidencePath.sha256" --repo $Repository | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Published release-evidence checksum provenance verification failed.' }
+    $releaseEvidence = Get-Content -Raw -LiteralPath $releaseEvidencePath | ConvertFrom-Json
+    if ($releaseEvidence.schemaVersion -ne 1 -or $releaseEvidence.product -ne 'THSV StreamBridge' -or $releaseEvidence.tag -ne $Tag -or $releaseEvidence.repository -ne $Repository) { throw 'Published release-evidence identity is invalid.' }
+    foreach ($asset in @($releaseEvidence.assets)) {
+        $name = [string]$asset.name
+        if ([string]::IsNullOrWhiteSpace($name) -or [System.IO.Path]::GetFileName($name) -ne $name -or [string]$asset.sha256 -notmatch '^[a-f0-9]{64}$') { throw 'Published release-evidence contains an invalid asset record.' }
+        $assetPath = Join-Path $destinationPath $name
+        if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) { throw "Release-evidence asset is missing: $name" }
+        $assetInfo = Get-Item -LiteralPath $assetPath
+        $assetHash = Get-Sha256 $assetPath
+        if ($assetInfo.Length -ne [long]$asset.size -or $assetHash -ne [string]$asset.sha256) { throw "Release-evidence asset mismatch: $name" }
+    }
+    $releaseEvidenceVerified = $true
+} elseif (-not $AllowLegacyEvidence) { throw "Published release evidence is missing for $Tag." }
 $archive = Join-Path $destinationPath "THSV-StreamBridge-$version.zip"
 $indexPath = Join-Path $destinationPath 'THSV-StreamBridge-AddOns-index.json'
 if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw 'Published core archive is missing.' }
@@ -82,6 +111,9 @@ try {
     [System.IO.File]::WriteAllText($configurationPath, "$($configuration | ConvertTo-Json -Depth 20)`n", [System.Text.UTF8Encoding]::new($false))
     $markerPath = Join-Path $drillInstallRoot 'data\state\post-release-smoke.json'
     [System.IO.File]::WriteAllText($markerPath, $creatorMarker, [System.Text.UTF8Encoding]::new($false))
+    $addOnMarkerPath = Join-Path $drillInstallRoot 'addons\state\post-release-smoke\recovery.json'
+    [System.IO.Directory]::CreateDirectory((Split-Path -Parent $addOnMarkerPath)) | Out-Null
+    [System.IO.File]::WriteAllText($addOnMarkerPath, $creatorMarker, [System.Text.UTF8Encoding]::new($false))
     & (Join-Path $currentSource 'runtime\node.exe') (Join-Path $currentSource 'installer\install.mjs') --install-root $drillInstallRoot --no-start
     if ($LASTEXITCODE -ne 0) { throw "Upgrade from $($previous.previousTag) to $Tag failed." }
     $upgradedManifest = Get-Content -Raw -LiteralPath (Join-Path $drillInstallRoot 'data\runtime\install-manifest.json') | ConvertFrom-Json
@@ -97,10 +129,24 @@ try {
     if ($downgradeExit -eq 0 -or $downgradeOutput -notmatch 'Refusing to downgrade') { throw 'Rollback protection did not reject the older published release.' }
     $protectedManifest = Get-Content -Raw -LiteralPath (Join-Path $drillInstallRoot 'data\runtime\install-manifest.json') | ConvertFrom-Json
     if ($protectedManifest.activeVersion -ne $version -or (Get-Content -Raw -LiteralPath $markerPath) -ne $creatorMarker) { throw 'Rollback-protection drill changed the active version or creator data.' }
+    $recoveryKeyPath = Join-Path $drillInstallRoot 'THSV StreamBridge Recovery Key.txt'
+    $recoveryKeyBefore = Get-Content -Raw -LiteralPath $recoveryKeyPath
+    $controlTokenBefore = [regex]::Match($recoveryKeyBefore, '(?m)^Control token: (.+)$').Groups[1].Value.Trim()
+    if ([string]::IsNullOrWhiteSpace($controlTokenBefore)) { throw 'Recovery key did not contain a control token before uninstall.' }
+    & (Join-Path $currentSource 'runtime\node.exe') (Join-Path $drillInstallRoot 'launcher\uninstall.mjs') --install-root $drillInstallRoot
+    if ($LASTEXITCODE -ne 0) { throw 'Preserve-data uninstall failed.' }
+    foreach ($removedPath in @('app', 'runtime', 'launcher')) { if (Test-Path -LiteralPath (Join-Path $drillInstallRoot $removedPath)) { throw "Uninstall left release-owned $removedPath files behind." } }
+    if ((Get-Content -Raw -LiteralPath $markerPath) -ne $creatorMarker -or (Get-Content -Raw -LiteralPath $addOnMarkerPath) -ne $creatorMarker -or (Get-Content -Raw -LiteralPath $recoveryKeyPath) -ne $recoveryKeyBefore) { throw 'Preserve-data uninstall changed creator state, add-on state, or the recovery key.' }
+    & (Join-Path $currentSource 'runtime\node.exe') (Join-Path $currentSource 'installer\install.mjs') --install-root $drillInstallRoot --no-start
+    if ($LASTEXITCODE -ne 0) { throw "Reinstall after preserve-data uninstall failed for $Tag." }
+    $reinstalledManifest = Get-Content -Raw -LiteralPath (Join-Path $drillInstallRoot 'data\runtime\install-manifest.json') | ConvertFrom-Json
+    $recoveryKeyAfter = Get-Content -Raw -LiteralPath $recoveryKeyPath
+    $controlTokenAfter = [regex]::Match($recoveryKeyAfter, '(?m)^Control token: (.+)$').Groups[1].Value.Trim()
+    if ($reinstalledManifest.activeVersion -ne $version -or $controlTokenAfter -ne $controlTokenBefore -or (Get-Content -Raw -LiteralPath $markerPath) -ne $creatorMarker -or (Get-Content -Raw -LiteralPath $addOnMarkerPath) -ne $creatorMarker) { throw 'Reinstall did not restore the release while preserving creator state and recovery access.' }
 } finally {
     if (Test-Path -LiteralPath $drillRoot) { Remove-Item -LiteralPath $drillRoot -Recurse -Force }
 }
-$evidence = [ordered]@{ tag = $Tag; previousTag = $previous.previousTag; releaseUrl = $release.url; coreChecksumVerified = $true; provenanceVerified = $true; addOnCount = $actualAddOns.Count; addOnIndexMatched = $true; cleanInstall = $version; upgradedFrom = $previous.previousTag.TrimStart('v'); upgradedTo = $version; reinstall = $version; rollbackProtectionVerified = $true; creatorDataPreserved = $true; verifiedAt = [DateTime]::UtcNow.ToString('o') }
-$evidencePath = Join-Path $destinationPath 'latest.json'
-[System.IO.File]::WriteAllText($evidencePath, "$($evidence | ConvertTo-Json -Depth 4)`n", [System.Text.UTF8Encoding]::new($false))
+$evidence = [ordered]@{ tag = $Tag; previousTag = $previous.previousTag; releaseUrl = $release.url; releaseEvidenceVerified = $releaseEvidenceVerified; coreChecksumVerified = $true; provenanceVerified = $true; addOnCount = $actualAddOns.Count; addOnIndexMatched = $true; cleanInstall = $version; upgradedFrom = $previous.previousTag.TrimStart('v'); upgradedTo = $version; reinstall = $version; rollbackProtectionVerified = $true; creatorDataPreserved = $true; uninstallPreservedCreatorData = $true; reinstallAfterUninstall = $version; recoveryKeyVerified = $true; verifiedAt = [DateTime]::UtcNow.ToString('o') }
+$resultEvidencePath = Join-Path $destinationPath 'latest.json'
+[System.IO.File]::WriteAllText($resultEvidencePath, "$($evidence | ConvertTo-Json -Depth 4)`n", [System.Text.UTF8Encoding]::new($false))
 [pscustomobject]$evidence

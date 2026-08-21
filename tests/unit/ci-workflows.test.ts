@@ -13,6 +13,7 @@ describe('GitHub workflow reliability', () => {
   it('offers a non-publishing reusable and manual release preflight', async () => {
     const preflight = await readFile('.github/workflows/release-preflight.yml', 'utf8');
     const release = await readFile('.github/workflows/release.yml', 'utf8');
+    const tag = await readFile('.github/workflows/prepare-release-tag.yml', 'utf8');
     expect(preflight).toContain('workflow_dispatch:');
     expect(preflight).toContain('workflow_call:');
     expect(preflight).toContain("cron: '17 10 * * 1'");
@@ -20,12 +21,16 @@ describe('GitHub workflow reliability', () => {
     expect(preflight).toContain('retention-days: 14');
     expect(preflight).toContain('test-release-candidate.ps1');
     expect(preflight).toContain('notify-after-repeat-failure:');
-    expect(preflight).toContain("previous\" != 'failure'");
-    expect(preflight).toContain('gh issue create');
+    expect(preflight).toContain('manage-automation-issue.mjs');
     expect(preflight).not.toContain('gh release create');
     expect(release).toContain('test-release-candidate.ps1');
     expect(release).toContain('environment:');
     expect(release).toContain('name: streambridge-release');
+    expect(tag).toContain('name: streambridge-tag');
+    expect(tag).toContain('expected-main-sha');
+    expect(tag).toContain('git rev-parse origin/main');
+    expect(tag).toContain('commits/$EXPECTED_MAIN_SHA/pulls');
+    expect(tag).toContain('git tag -a');
   });
 
   it('verifies every published asset and a clean install after release publication', async () => {
@@ -42,9 +47,12 @@ describe('GitHub workflow reliability', () => {
     expect(script).toContain('Same-version reinstall');
     expect(script).toContain('Refusing to downgrade');
     expect(script).toContain('rollbackProtectionVerified = $true');
-    expect(workflow).toContain('Open one failure issue per tag or close it after recovery');
-    expect(workflow).toContain('gh issue create');
-    expect(workflow).toContain('gh issue close');
-    expect(workflow).toContain('gh issue comment');
+    expect(script).toContain('releaseEvidenceVerified');
+    expect(script).toContain('uninstall.mjs');
+    expect(script).toContain('reinstallAfterUninstall = $version');
+    expect(script).toContain('recoveryKeyVerified = $true');
+    expect(workflow).toContain('manage-automation-issue.mjs');
+    expect(await readFile('.github/workflows/release.yml', 'utf8')).toContain('new-release-evidence.ps1');
+    expect(await readFile('.github/workflows/release.yml', 'utf8')).toContain('Attest release evidence');
   });
 });
