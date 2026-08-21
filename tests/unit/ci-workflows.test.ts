@@ -57,6 +57,18 @@ describe('GitHub workflow reliability', () => {
     expect(await readFile('.github/workflows/release.yml', 'utf8')).toContain('Attest release evidence');
   });
 
+  it('dispatches the release explicitly after the protected tag workflow', async () => {
+    const prepareTag = await readFile('.github/workflows/prepare-release-tag.yml', 'utf8');
+    const release = await readFile('.github/workflows/release.yml', 'utf8');
+    expect(prepareTag).toContain('actions: write');
+    expect(prepareTag).toContain('gh workflow run release.yml');
+    expect(release).toContain('workflow_dispatch:');
+    expect(release).toContain('group: release-${{ inputs.tag || github.ref_name }}');
+    expect(release).toContain('RELEASE_TAG: ${{ inputs.tag || github.ref_name }}');
+    expect(release).toContain('ref: ${{ env.RELEASE_TAG }}');
+    expect(release).toContain('-CommitSha $env:RELEASE_COMMIT_SHA');
+  });
+
   it('opens compatible dependency updates only after the complete canary passes', async () => {
     const workflow = await readFile('.github/workflows/dependency-canary.yml', 'utf8');
     expect(workflow).toContain("cron: '41 11 * * 2'");
