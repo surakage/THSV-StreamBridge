@@ -67,6 +67,7 @@ describe('GitHub workflow reliability', () => {
     expect(release).toContain('RELEASE_TAG: ${{ inputs.tag || github.ref_name }}');
     expect(release).toContain('ref: ${{ env.RELEASE_TAG }}');
     expect(release).toContain('-CommitSha $env:RELEASE_COMMIT_SHA');
+    expect(release).toContain('gh workflow run post-release-smoke.yml');
   });
 
   it('opens compatible dependency updates only after the complete canary passes', async () => {

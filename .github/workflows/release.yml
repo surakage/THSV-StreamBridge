@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: write
   contents: write
   id-token: write
   attestations: write
@@ -184,3 +185,4 @@ jobs:
           } else {
             gh release edit $env:RELEASE_TAG --draft=false --latest
           }
+          gh workflow run post-release-smoke.yml --repo $env:GITHUB_REPOSITORY --ref main -f "tag=$env:RELEASE_TAG"
