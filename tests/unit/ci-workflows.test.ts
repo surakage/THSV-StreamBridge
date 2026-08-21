@@ -61,6 +61,7 @@ describe('GitHub workflow reliability', () => {
     const workflow = await readFile('.github/workflows/dependency-canary.yml', 'utf8');
     expect(workflow).toContain("cron: '41 11 * * 2'");
     expect(workflow).toContain('npm update --package-lock-only --ignore-scripts');
+    expect(workflow).toMatch(/git diff --quiet -- package-lock\.json[\s\S]*?changed=true[\s\S]*?exit 0/u);
     expect(workflow).toContain('npm run test:startup-chaos');
     expect(workflow).toContain('test-release-candidate.ps1 -AllowPublishedCurrentVersion');
     expect(workflow.indexOf('test-release-candidate.ps1')).toBeLessThan(workflow.indexOf('gh pr create'));
