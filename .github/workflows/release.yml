@@ -58,7 +58,9 @@ jobs:
         shell: powershell
         run: |
           $current = $env:GITHUB_REF_NAME
-          $previousTag = gh release list --exclude-drafts --limit 20 --json tagName --jq ".[] | select(.tagName != `"$current`") | .tagName" | Select-Object -First 1
+          $releases = gh release list --exclude-drafts --limit 20 --json tagName | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list previous verified releases.' }
+          $previousTag = $releases | Where-Object { $_.tagName -ne $current } | Select-Object -First 1 -ExpandProperty tagName
           if (-not $previousTag) { throw 'A previous verified release is required for the upgrade smoke test.' }
           $version = $previousTag.TrimStart('v')
           New-Item -ItemType Directory -Path artifacts\previous-release | Out-Null
