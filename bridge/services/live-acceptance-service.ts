@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import type { NormalizedEvent } from '../../schemas/event.js';
 
 const MAXIMUM_EVIDENCE = 100;
+const MAXIMUM_AUDIT = 100;
 const MAXIMUM_FILE_BYTES = 128 * 1024;
 const CHECK_ID = /^[a-z][a-z0-9-]{2,80}$/u;
 
@@ -60,6 +61,17 @@ export interface LiveAcceptanceAttentionSummary {
   readonly stale: number;
   readonly attention: number;
   readonly nextDueAt?: string;
+  readonly notificationsSnoozed: boolean;
+  readonly snoozedUntil?: string;
+}
+
+export interface LiveAcceptanceAuditEntry {
+  readonly id: string;
+  readonly checkId: string;
+  readonly kind: 'creator-confirmed' | 'binding-migrated' | 'binding-changed';
+  readonly recordedAt: string;
+  readonly changes: readonly string[];
+  readonly bindingFingerprint?: string;
 }
 
 const CHECKS: readonly LiveAcceptanceCheck[] = Object.freeze([
@@ -79,6 +91,8 @@ export class LiveAcceptanceService {
   private readonly path: string;
   private evidence: LiveAcceptanceEvidence[] = [];
   private confirmations: Record<string, LiveAcceptanceConfirmation> = {};
+  private audit: LiveAcceptanceAuditEntry[] = [];
+  private reminderSnoozedUntil: string | undefined;
   private writes: Promise<void> = Promise.resolve();
 
   public constructor(stateRoot: string, private readonly binding?: LiveAcceptanceBinding, private readonly now: () => number = Date.now) { this.path = join(stateRoot, 'live-acceptance.json'); }
@@ -89,6 +103,8 @@ export class LiveAcceptanceService {
       if (Buffer.byteLength(raw) > MAXIMUM_FILE_BYTES) return;
       const value = JSON.parse(raw) as Record<string, unknown>;
       if (Array.isArray(value['evidence'])) this.evidence = value['evidence'].flatMap(validEvidence).slice(-MAXIMUM_EVIDENCE);
+      if (Array.isArray(value['audit'])) this.audit = value['audit'].flatMap(validAudit).slice(-MAXIMUM_AUDIT);
+      if (typeof value['reminderSnoozedUntil'] === 'string' && Number.isFinite(Date.parse(value['reminderSnoozedUntil']))) this.reminderSnoozedUntil = new Date(value['reminderSnoozedUntil']).toISOString();
       if (typeof value['confirmations'] === 'object' && value['confirmations'] !== null && !Array.isArray(value['confirmations'])) {
         for (const [id, item] of Object.entries(value['confirmations'] as Record<string, unknown>)) {
           const confirmation = validConfirmation(item);
@@ -117,6 +133,11 @@ export class LiveAcceptanceService {
       const stale = fingerprintChanged && staleReasons.length > 0;
       if (fingerprintChanged && !stale && current !== undefined) {
         this.confirmations[id] = { ...confirmation, bindingFingerprint: expected, binding: current };
+        this.recordAudit(id, 'binding-migrated', ['Legacy acceptance binding migrated to scoped content fingerprints.'], expected);
+        this.queueWrite();
+      }
+      if (stale && !this.audit.some((entry) => entry.kind === 'binding-changed' && entry.checkId === id && entry.bindingFingerprint === expected)) {
+        this.recordAudit(id, 'binding-changed', staleReasons, expected);
         this.queueWrite();
       }
       const dueAt = check === undefined || confirmation.status !== 'accepted' ? undefined : new Date(Date.parse(confirmation.confirmedAt) + check.recheckAfterDays * 86_400_000).toISOString();
@@ -126,7 +147,7 @@ export class LiveAcceptanceService {
       else if (due) confirmations[id] = { ...confirmation, status: 'due', due: true, dueAt, dueReason: `Periodic live acceptance is due after ${String(check?.recheckAfterDays)} days.` };
       else confirmations[id] = dueAt === undefined ? confirmation : { ...confirmation, dueAt, ...(dueSoon ? { dueSoon: true, dueSoonReason: 'Periodic live acceptance is due within 14 days.' } : {}) };
     }
-    return { checks: CHECKS, evidence: [...this.evidence].reverse(), confirmations, binding: this.binding === undefined ? undefined : { coreVersion: this.binding.coreVersion, coreContractVersion: this.binding.coreContractVersion, buildFingerprint: this.binding.buildFingerprint } };
+    return { checks: CHECKS, evidence: [...this.evidence].reverse(), confirmations, reminders: this.reminderStatus(), audit: [...this.audit].reverse(), binding: this.binding === undefined ? undefined : { coreVersion: this.binding.coreVersion, coreContractVersion: this.binding.coreContractVersion, buildFingerprint: this.binding.buildFingerprint } };
   }
 
   public attentionSummary(): LiveAcceptanceAttentionSummary {
@@ -136,7 +157,20 @@ export class LiveAcceptanceService {
     const dueSoon = values.filter((item) => item['dueSoon'] === true).length;
     const stale = values.filter((item) => item['status'] === 'stale').length;
     const dueDates = values.map((item) => item['dueAt']).filter((value): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value))).sort();
-    return { due, dueSoon, stale, attention: due + dueSoon + stale, ...(dueDates[0] === undefined ? {} : { nextDueAt: dueDates[0] }) };
+    const reminders = this.reminderStatus();
+    return { due, dueSoon, stale, attention: due + dueSoon + stale, notificationsSnoozed: reminders.notificationsSnoozed, ...(reminders.snoozedUntil === undefined ? {} : { snoozedUntil: reminders.snoozedUntil }), ...(dueDates[0] === undefined ? {} : { nextDueAt: dueDates[0] }) };
+  }
+
+  public setReminder(input: unknown): Readonly<Record<string, unknown>> {
+    if (!isRecord(input) || input['approvedByCreator'] !== true) throw new LiveAcceptanceError(403, 'Changing reminder snooze requires explicit creator approval.');
+    if (input['action'] === 'resume') this.reminderSnoozedUntil = undefined;
+    else {
+      const hours = input['hours'];
+      if (input['action'] !== 'snooze' || (hours !== 1 && hours !== 24 && hours !== 168)) throw new LiveAcceptanceError(400, 'Choose a 1-hour, 24-hour, or 7-day reminder snooze.');
+      this.reminderSnoozedUntil = new Date(this.now() + hours * 3_600_000).toISOString();
+    }
+    this.queueWrite();
+    return this.reminderStatus();
   }
 
   public confirm(checkId: string, input: unknown): LiveAcceptanceConfirmation {
@@ -156,6 +190,7 @@ export class LiveAcceptanceService {
     const bindingFingerprint = this.bindingFingerprint(check); const binding = this.relevantBinding(check);
     const confirmation: LiveAcceptanceConfirmation = { checkId, status, ...(evidence === undefined ? {} : { evidenceId: evidence.id }), note, confirmedAt: new Date(this.now()).toISOString(), ...(bindingFingerprint === undefined || binding === undefined ? {} : { bindingFingerprint, binding }) };
     this.confirmations[checkId] = confirmation;
+    this.recordAudit(checkId, 'creator-confirmed', [`Creator set this check to ${status}.`], bindingFingerprint);
     this.queueWrite();
     return confirmation;
   }
@@ -164,7 +199,7 @@ export class LiveAcceptanceService {
 
   private queueWrite(): void {
     this.writes = this.writes.then(async () => {
-      const encoded = `${JSON.stringify({ version: 1, evidence: this.evidence, confirmations: this.confirmations }, null, 2)}\n`;
+      const encoded = `${JSON.stringify({ version: 2, evidence: this.evidence, confirmations: this.confirmations, audit: this.audit, ...(this.reminderSnoozedUntil === undefined ? {} : { reminderSnoozedUntil: this.reminderSnoozedUntil }) }, null, 2)}\n`;
       if (Buffer.byteLength(encoded) > MAXIMUM_FILE_BYTES) throw new Error('Live acceptance evidence exceeds its storage limit.');
       await mkdir(dirname(this.path), { recursive: true, mode: 0o700 });
       const temporary = `${this.path}.${randomUUID()}.tmp`;
@@ -194,6 +229,16 @@ export class LiveAcceptanceService {
       addOns,
     };
   }
+
+  private reminderStatus(): Readonly<{ notificationsSnoozed: boolean; snoozedUntil?: string }> {
+    const snoozedUntil = this.reminderSnoozedUntil;
+    if (snoozedUntil !== undefined && Date.parse(snoozedUntil) > this.now()) return { notificationsSnoozed: true, snoozedUntil };
+    return { notificationsSnoozed: false };
+  }
+
+  private recordAudit(checkId: string, kind: LiveAcceptanceAuditEntry['kind'], changes: readonly string[], bindingFingerprint?: string): void {
+    this.audit = [...this.audit, { id: randomUUID(), checkId, kind, recordedAt: new Date(this.now()).toISOString(), changes: changes.map((item) => item.slice(0, 240)).slice(0, 20), ...(bindingFingerprint === undefined ? {} : { bindingFingerprint }) }].slice(-MAXIMUM_AUDIT);
+  }
 }
 
 export class LiveAcceptanceError extends Error {
@@ -213,6 +258,12 @@ function validConfirmation(value: unknown): LiveAcceptanceConfirmation | undefin
   if (typeof item['checkId'] !== 'string' || (item['status'] !== 'pending' && item['status'] !== 'accepted') || typeof item['note'] !== 'string' || typeof item['confirmedAt'] !== 'string') return undefined;
   const bindingFingerprint = typeof item['bindingFingerprint'] === 'string' && /^[a-f0-9]{64}$/u.test(item['bindingFingerprint']) ? item['bindingFingerprint'] : undefined;
   return { checkId: item['checkId'], status: item['status'], ...(typeof item['evidenceId'] === 'string' ? { evidenceId: item['evidenceId'].slice(0, 400) } : {}), note: item['note'].slice(0, 300), confirmedAt: item['confirmedAt'].slice(0, 64), ...(bindingFingerprint === undefined ? {} : { bindingFingerprint, ...(typeof item['binding'] === 'object' && item['binding'] !== null && !Array.isArray(item['binding']) ? { binding: item['binding'] as Record<string, unknown> } : {}) }) };
+}
+
+function validAudit(value: unknown): LiveAcceptanceAuditEntry[] {
+  if (!isRecord(value) || typeof value['id'] !== 'string' || typeof value['checkId'] !== 'string' || typeof value['recordedAt'] !== 'string' || !Array.isArray(value['changes'])) return [];
+  const kind = value['kind']; if (kind !== 'creator-confirmed' && kind !== 'binding-migrated' && kind !== 'binding-changed') return [];
+  return [{ id: value['id'].slice(0, 80), checkId: value['checkId'].slice(0, 80), kind, recordedAt: value['recordedAt'].slice(0, 64), changes: value['changes'].filter((item): item is string => typeof item === 'string').map((item) => item.slice(0, 240)).slice(0, 20), ...(typeof value['bindingFingerprint'] === 'string' ? { bindingFingerprint: value['bindingFingerprint'].slice(0, 64) } : {}) }];
 }
 
 function bindingChanges(previous: Readonly<Record<string, unknown>> | undefined, current: Readonly<Record<string, unknown>> | undefined, adapterAliases: Readonly<Record<string, readonly string[]>> = {}): string[] {

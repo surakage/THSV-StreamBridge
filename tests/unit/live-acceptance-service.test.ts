@@ -17,6 +17,7 @@ describe('LiveAcceptanceService', () => {
     expect((first.status().confirmations as Record<string, { status: string }>)['countdown-scene']?.status).toBe('accepted');
     const changed = new LiveAcceptanceService(root, { ...base, addOns: { 'thsv.starting-soon-countdown': '1.1.0' } }); await changed.start();
     expect((changed.status().confirmations as Record<string, { status: string; stale: boolean; staleReasons: string[] }>)['countdown-scene']).toMatchObject({ status: 'stale', stale: true, staleReasons: ['thsv.starting-soon-countdown version changed from 1.0.0 to 1.1.0.'] });
+    await changed.flush();
   });
 
   it('explains configuration, trigger, component, and add-on settings changes without exposing settings', async () => {
@@ -27,6 +28,7 @@ describe('LiveAcceptanceService', () => {
     const confirmation = (changed.status().confirmations as Record<string, { staleReasons: string[] }>)['countdown-scene'];
     expect(confirmation?.staleReasons).toEqual(expect.arrayContaining(['streamerbot configuration section changed (bbbbbbbbbbbb to ffffffffffff).', 'starting-soon-countdown Streamer.bot package changed (cccccccccccc to 111111111111).', 'overlay core component changed (sha256:99999 to sha256:88888).', 'thsv.starting-soon-countdown settings changed.']));
     expect(confirmation?.staleReasons).not.toContain('Installed build changed (aaaaaaaaaaaa to eeeeeeeeeeee).');
+    await changed.flush();
   });
 
   it('migrates legacy numeric adapter bindings without forcing a one-time recheck', async () => {
@@ -57,6 +59,7 @@ describe('LiveAcceptanceService', () => {
     const confirmations = changed.status().confirmations as Record<string, { status: string }>;
     expect(confirmations['countdown-scene']?.status).toBe('stale');
     expect(confirmations['shared-overlay']?.status).toBe('accepted');
+    await changed.flush();
   });
 
   it('keeps acceptance current across unrelated version and build changes but invalidates the relevant core component', async () => {
@@ -67,6 +70,7 @@ describe('LiveAcceptanceService', () => {
     expect((unrelatedBuild.status().confirmations as Record<string, { status: string }>)['shared-overlay']?.status).toBe('accepted');
     const overlayChanged = new LiveAcceptanceService(root, { ...base, components: { ...base.components, overlay: `sha256:${'4'.repeat(64)}` } }); await overlayChanged.start();
     expect((overlayChanged.status().confirmations as Record<string, { staleReasons: string[] }>)['shared-overlay']?.staleReasons).toContain('overlay core component changed (sha256:11111 to sha256:44444).');
+    await overlayChanged.flush();
   });
 
   it('captures genuine upstream IDs without viewer or message content and requires creator confirmation', async () => {
@@ -107,5 +111,23 @@ describe('LiveAcceptanceService', () => {
     const changed = new LiveAcceptanceService(root, { ...base, adapters: { ...base.adapters, 'timed-actions': '3' } }, () => now); await changed.start();
     expect((changed.status().confirmations as Record<string, { staleReasons: string[] }>)['provider-reconnect']?.staleReasons).toContain('timed-actions adapter contract changed from 2 to 3.');
     expect((changed.status().confirmations as Record<string, { status: string }>)['countdown-scene']?.status).toBe('accepted');
+    await changed.flush();
+  });
+
+  it('persists creator reminder choices and a privacy-safe acceptance audit', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-live-reminders-')); roots.push(root); let now = Date.parse('2026-08-21T12:00:00.000Z');
+    const service = new LiveAcceptanceService(root, undefined, () => now); await service.start();
+    service.confirm('bridge-startup', { status: 'accepted', note: 'A private operational note.', approvedByCreator: true });
+    expect(service.setReminder({ action: 'snooze', hours: 24, approvedByCreator: true })).toMatchObject({ notificationsSnoozed: true, snoozedUntil: '2026-08-22T12:00:00.000Z' });
+    await service.flush();
+    const restarted = new LiveAcceptanceService(root, undefined, () => now); await restarted.start();
+    const status = restarted.status() as { reminders: Record<string, unknown>; audit: Array<{ kind: string; changes: string[] }> };
+    expect(status.reminders).toMatchObject({ notificationsSnoozed: true });
+    expect(status.audit[0]).toMatchObject({ kind: 'creator-confirmed', changes: ['Creator set this check to accepted.'] });
+    expect(JSON.stringify(status.audit)).not.toContain('private operational note');
+    expect(restarted.attentionSummary()).toMatchObject({ notificationsSnoozed: true, snoozedUntil: '2026-08-22T12:00:00.000Z' });
+    expect(restarted.setReminder({ action: 'resume', approvedByCreator: true })).toEqual({ notificationsSnoozed: false });
+    expect(() => restarted.setReminder({ action: 'snooze', hours: 48, approvedByCreator: true })).toThrow(LiveAcceptanceError);
+    now += 25 * 3_600_000;
   });
 });

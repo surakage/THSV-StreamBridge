@@ -1,0 +1,39 @@
+name: Post-release smoke
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  attestations: read
+
+jobs:
+  published-assets:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the published tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - name: Download, verify, and install published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        shell: powershell
+        run: .\scripts\test-published-release.ps1 -Tag $env:RELEASE_TAG
+      - name: Upload post-release evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: post-release-smoke-${{ github.run_id }}
+          path: artifacts/published-release/latest.json
+          if-no-files-found: error
+          retention-days: 30

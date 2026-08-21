@@ -35,6 +35,7 @@ import { WebsiteCompanionService } from '../bridge/services/website-companion-se
 import { LiveAcceptanceService } from '../bridge/services/live-acceptance-service.js';
 import { readBuildProvenance } from '../bridge/services/build-provenance-service.js';
 import { ObsSourceInventoryService } from '../bridge/services/obs-source-inventory-service.js';
+import { ReleaseReadinessService } from '../bridge/services/release-readiness-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -155,6 +156,7 @@ const wizard = new WizardService(
   liveAcceptance,
   obsSourceInventory,
   buildProvenance,
+  new ReleaseReadinessService(STREAMBRIDGE_VERSION, resolve('artifacts', 'release-lifecycle', 'latest.json')),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => {

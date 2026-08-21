@@ -203,12 +203,15 @@ describe('wizard HTTP surface', () => {
     expect(liveStatusRecord.checks.some((check) => check.id === 'bridge-startup')).toBe(true);
     expect(liveStatusRecord.evidence).toEqual([]);
     expect(liveStatusRecord.confirmations).toEqual({});
+    const reminderSaved = await fetch(`${baseUrl}/wizard/api/live-acceptance/reminders`, { method: 'PUT', headers, body: JSON.stringify({ action: 'snooze', hours: 1, approvedByCreator: true }) });
+    expect(reminderSaved.status).toBe(200);
+    expect(await reminderSaved.json()).toMatchObject({ notificationsSnoozed: true });
     const liveSaved = await fetch(`${baseUrl}/wizard/api/live-acceptance/bridge-startup`, { method: 'PUT', headers, body: JSON.stringify({ status: 'accepted', note: 'Startup paths passed locally.', approvedByCreator: true }) });
     expect(liveSaved.status).toBe(200);
     expect(await liveSaved.json() as unknown).toMatchObject({ checkId: 'bridge-startup', status: 'accepted' });
     const publicReadiness = await fetch(`${baseUrl}/ready`);
     const publicReadinessBody = await publicReadiness.json() as { acceptance: Record<string, unknown> };
-    expect(publicReadinessBody.acceptance).toMatchObject({ due: 0, dueSoon: 0, stale: 0, attention: 0 });
+    expect(publicReadinessBody.acceptance).toMatchObject({ due: 0, dueSoon: 0, stale: 0, attention: 0, notificationsSnoozed: true });
     expect(JSON.stringify(publicReadinessBody)).not.toContain('Startup paths passed locally.');
     const bundlePreview = await fetch(`${baseUrl}/wizard/api/support-bundle/preview`, { headers });
     expect(bundlePreview.status).toBe(200);

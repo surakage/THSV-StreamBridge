@@ -19,7 +19,22 @@ describe('GitHub workflow reliability', () => {
     expect(preflight).toContain('AllowPublishedCurrentVersion');
     expect(preflight).toContain('retention-days: 14');
     expect(preflight).toContain('test-release-candidate.ps1');
+    expect(preflight).toContain('notify-after-repeat-failure:');
+    expect(preflight).toContain("previous\" != 'failure'");
+    expect(preflight).toContain('gh issue create');
     expect(preflight).not.toContain('gh release create');
     expect(release).toContain('test-release-candidate.ps1');
+  });
+
+  it('verifies every published asset and a clean install after release publication', async () => {
+    const workflow = await readFile('.github/workflows/post-release-smoke.yml', 'utf8');
+    const script = await readFile('scripts/test-published-release.ps1', 'utf8');
+    expect(workflow).toContain('types: [published]');
+    expect(workflow).toContain('test-published-release.ps1');
+    expect(script).toContain('gh release download');
+    expect(script).toContain('gh attestation verify');
+    expect(script).toContain('Assert-Checksum');
+    expect(script).toContain('install.mjs');
+    expect(script).toContain('addOnIndexMatched = $true');
   });
 });

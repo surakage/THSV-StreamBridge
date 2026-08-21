@@ -22,11 +22,18 @@ describe('native Windows tray shell', () => {
     expect(source).toContain("tray-status.ps1");
     expect(source).toContain('lastAcceptanceNotificationAt');
     expect(source).toContain("@('--view=diagnostics', '--focus=live-acceptance')");
-    expect(source).toContain('tray-preferences.json');
+    expect(source).toContain("Start-Launcher 'set-acceptance-reminder.mjs'");
     expect(source).toContain('Snooze acceptance reminders for 24 hours');
     expect(source).toContain('Resume acceptance reminders');
     expect(source).not.toContain('control-token');
     expect(source).not.toContain('Streamer.bot.ico');
+  });
+
+  it('uses the private authenticated helper for persistent reminder changes', async () => {
+    const helper = await readFile('launcher/set-acceptance-reminder.mjs', 'utf8');
+    expect(helper).toContain('/wizard/api/live-acceptance/reminders');
+    expect(helper).toContain('approvedByCreator: true');
+    expect(helper).toContain("[1, 24, 168]");
   });
 
   it('ships a hidden execution-policy-safe launcher', async () => {

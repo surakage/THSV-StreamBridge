@@ -142,10 +142,12 @@ test('pre-stream check requires healthy local evidence and explicit import confi
 });
 
 test('diagnostics explains periodic acceptance, OBS reconciliation, and report regressions', async ({ page }) => {
+  let reminders = { notificationsSnoozed: false } as { notificationsSnoozed: boolean; snoozedUntil?: string };
   const obsInventory = { configured: true, ready: false, requiredCount: 1, readyRequiredCount: 0, sources: [{ id: 'alerts-main', label: 'Alerts', scene: 'Old Live', surface: '/overlay/alerts:alerts', minimumCount: 1, required: true, visibleCount: 0, ready: false }], discovered: [], reconciliations: [{ sourceId: 'alerts-main', label: 'Alerts', reason: 'Detected the same StreamBridge surface in scene “Live”.', suggested: { scene: 'Live', surface: '/overlay/alerts:alerts', connectedCount: 1, visibleCount: 1 } }] };
   await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ readiness: { status: 'ready', ready: true, adapters: [], outputs: [], modules: [] }, launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} }, provenance: { version: '4.0.1', installation: 'verified-portable-release' }, obsInventory }) }));
   await page.route('**/wizard/api/obs-source-inventory', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(obsInventory) }));
-    await page.route('**/wizard/api/live-acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ checks: [{ id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Confirm recovery.', requiresGenuineEvent: false, recheckAfterDays: 90 }, { id: 'provider-reconnect', label: 'Provider reconnect', guidance: 'Confirm reconnect.', requiresGenuineEvent: false, recheckAfterDays: 90 }], evidence: [], confirmations: { 'bridge-startup': { checkId: 'bridge-startup', status: 'due', due: true, dueAt: '2026-08-20T00:00:00.000Z', dueReason: 'Periodic live acceptance is due after 90 days.', note: 'Passed.', confirmedAt: '2026-05-22T00:00:00.000Z' }, 'provider-reconnect': { checkId: 'provider-reconnect', status: 'accepted', dueSoon: true, dueAt: '2026-08-30T00:00:00.000Z', dueSoonReason: 'Periodic live acceptance is due within 14 days.', note: 'Passed.', confirmedAt: '2026-06-01T00:00:00.000Z' } } }) }));
+    await page.route('**/wizard/api/live-acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ checks: [{ id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Confirm recovery.', requiresGenuineEvent: false, recheckAfterDays: 90 }, { id: 'provider-reconnect', label: 'Provider reconnect', guidance: 'Confirm reconnect.', requiresGenuineEvent: false, recheckAfterDays: 90 }], evidence: [], reminders, audit: [{ id: 'audit-1', checkId: 'bridge-startup', kind: 'binding-migrated', recordedAt: '2026-08-21T00:00:00.000Z', changes: ['Legacy acceptance binding migrated to scoped content fingerprints.'] }], confirmations: { 'bridge-startup': { checkId: 'bridge-startup', status: 'due', due: true, dueAt: '2026-08-20T00:00:00.000Z', dueReason: 'Periodic live acceptance is due after 90 days.', note: 'Passed.', confirmedAt: '2026-05-22T00:00:00.000Z' }, 'provider-reconnect': { checkId: 'provider-reconnect', status: 'accepted', dueSoon: true, dueAt: '2026-08-30T00:00:00.000Z', dueSoonReason: 'Periodic live acceptance is due within 14 days.', note: 'Passed.', confirmedAt: '2026-06-01T00:00:00.000Z' } } }) }));
+  await page.route('**/wizard/api/live-acceptance/reminders', async (route) => { const body = route.request().postDataJSON() as { action: string; hours?: number }; reminders = body.action === 'resume' ? { notificationsSnoozed: false } : { notificationsSnoozed: true, snoozedUntil: '2026-08-22T00:00:00.000Z' }; await route.fulfill({ contentType: 'application/json', body: JSON.stringify(reminders) }); });
   await page.route('**/wizard/api/pre-stream-report', async (route) => await route.fulfill({ contentType: 'application/json', headers: { 'content-disposition': 'attachment; filename="THSV-StreamBridge-pre-stream-test.json"' }, body: JSON.stringify({ schemaVersion: 1, generatedAt: '2026-08-21T00:00:00.000Z', build: { version: '4.0.2' }, readiness: { ready: true } }) }));
   await page.route('**/wizard/api/pre-stream-report/compare', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ changed: true, regressions: 1, improvements: 0, unchanged: false, summary: '1 regression requires attention.', changes: [{ label: 'Bridge readiness', before: 'true', after: 'false', severity: 'regression' }] }) }));
   await unlock(page);
@@ -154,6 +156,11 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
     await expect(page.locator('#live-acceptance-list')).toContainText('Periodic recheck due');
     await expect(page.locator('#live-acceptance-list')).toContainText('Recheck due soon');
+  await expect(page.locator('#live-acceptance-audit')).toContainText('binding migrated');
+  await page.getByRole('button', { name: 'Snooze 1 hour' }).click();
+  await expect(page.locator('#live-acceptance-reminder-state')).toContainText('Snoozed until');
+  await page.getByRole('button', { name: 'Resume reminders' }).click();
+  await expect(page.locator('#live-acceptance-reminder-state')).toHaveText('Notifications are active.');
   await page.getByText('Expected OBS sources by scene', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
   await page.locator('#pre-stream-baseline-file').setInputFiles({ name: 'earlier.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ schemaVersion: 1 })) });
@@ -203,6 +210,7 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
     ['Add-ons', 'addon-marketplace', 'Add-ons'],
     ['Blockers', 'blockers', 'Advanced scoped blockers'],
     ['Ownership', 'ownership', 'Ownership registry'],
+    ['Release Readiness', 'release-readiness', 'Release readiness'],
     ['Diagnostics', 'diagnostics', 'Test & finish'],
   ] as const;
 
@@ -216,6 +224,18 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
     await expect(page.locator(`[data-panel="${panel}"] h2`)).toHaveText(heading);
     await expect(page.locator('[data-panel]:not(.hidden)')).toHaveCount(1);
   }
+});
+
+test('release readiness combines lifecycle evidence, PR checks, and remaining approvals without publishing', async ({ page }) => {
+  await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true }, pullRequest: { available: false, message: 'Refresh GitHub status to inspect the open release-candidate PR.' }, checks: [], summary: { lifecycleReady: true, checksGreen: false, readyForCreatorReview: false }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve creation of the version tag.', 'Approve publication of the GitHub release and assets.'] }) }));
+  await page.route('**/wizard/api/release-readiness/refresh', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-21T12:00:00.000Z', localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true }, pullRequest: { available: true, number: 9, title: 'Prepare StreamBridge 4.0.3', url: 'https://github.com/surakage/THSV-StreamBridge/pull/9', branch: 'codex/release-4.0.3-seamless' }, checks: [{ name: 'windows', status: 'completed', conclusion: 'success' }], summary: { lifecycleReady: true, checksGreen: true, readyForCreatorReview: true }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve creation of the version tag.', 'Approve publication of the GitHub release and assets.'] }) }));
+  await unlock(page);
+  await page.getByRole('button', { name: 'Release Readiness', exact: true }).click();
+  await expect(page.locator('#release-readiness-summary')).toContainText('Needs review');
+  await page.getByRole('button', { name: 'Refresh GitHub status' }).click();
+  await expect(page.locator('#release-readiness-checks')).toContainText('PR #9');
+  await expect(page.locator('#release-readiness-summary')).toContainText('Ready for creator');
+  await expect(page.locator('#release-readiness-approvals')).toContainText('Approve publication');
 });
 
 test('Viewer Foundation is a dedicated required Bridge integration', async ({ page }) => {
