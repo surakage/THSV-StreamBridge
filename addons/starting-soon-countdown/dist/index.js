@@ -3,17 +3,18 @@
 const MODULE_ID = 'thsv.starting-soon-countdown';
 const CONTROL_EVENT = 'addon.thsv.starting-soon-countdown.control';
 const SCENE_EVENT = 'stream.scene-changed';
+const SCENE_SNAPSHOT_EVENT = 'system.scene-catalog';
 const CONTROL_ACTIONS = Object.freeze(['start', 'stop', 'pause', 'resume', 'reset', 'complete', 'set-and-start']);
 
 const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: MODULE_ID,
   name: 'Stream Launch Countdown',
-  version: '4.0.3',
+  version: '4.0.4',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.3', maximumTestedBridgeVersion: '4.0.3',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.4', maximumTestedBridgeVersion: '4.0.4',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [CONTROL_EVENT, SCENE_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  eventSubscriptions: [CONTROL_EVENT, SCENE_EVENT, SCENE_SNAPSHOT_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Install and enable the add-on, then configure the duration, exact program-scene name, completion message, optional tone, and overlay style.',
@@ -278,7 +279,9 @@ async function applyControl(control, context) {
 
 async function handleSceneChanged(event, context) {
   const settings = settingsFor(context);
-  if (sceneShouldStart(event.payload?.sceneName, settings.automaticSceneNames)) {
+  const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
+  if (!cleanText(sceneName, 256)) return;
+  if (sceneShouldStart(sceneName, settings.automaticSceneNames)) {
     await applyControl({ action: 'start', seconds: 0 }, context);
   } else if (settings.stopOutsideAutomaticScenes !== false) {
     await applyControl({ action: 'stop', seconds: 0 }, context);
@@ -303,7 +306,7 @@ export default {
   async stop(context) { stopped = true; cancelTimers(context); await operation; },
   async onEvent(event, context) {
     if (!settingsFor(context).enabled) return;
-    if (event.eventType === SCENE_EVENT) { await serialize(() => handleSceneChanged(event, context)); return; }
+    if (event.eventType === SCENE_EVENT || event.eventType === SCENE_SNAPSHOT_EVENT) { await serialize(() => handleSceneChanged(event, context)); return; }
     const control = controlPayload(event); if (control) await serialize(() => applyControl(control, context));
   },
 };

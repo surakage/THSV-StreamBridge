@@ -14,7 +14,8 @@ describe('Streamer.bot universal import service', () => {
   it('lists required framework packages, selectable extensions, and unavailable optional add-ons', async () => {
     const catalogue = await new StreamerBotUniversalImportService().catalogue([]);
     expect(catalogue.bridgeVersion).toBe(STREAMBRIDGE_VERSION);
-    expect(catalogue.packages.filter((item) => item.required)).toHaveLength(12);
+    expect(catalogue.packages.filter((item) => item.required)).toHaveLength(13);
+    expect(catalogue.packages.find((item) => item.folder === 'scene-catalog')).toMatchObject({ kind: 'core', required: true, available: true });
     expect(catalogue.packages.find((item) => item.folder === 'raid-scout')).toMatchObject({ kind: 'extension', available: true });
     expect(catalogue.packages.find((item) => item.folder === 'subathon-timer')).toMatchObject({ kind: 'addon', available: false });
     expect(catalogue.packages.find((item) => item.folder === 'native-platform-intake')?.triggerRecommendations).toContain('Twitch: Chat > Message');
@@ -43,12 +44,12 @@ describe('Streamer.bot universal import service', () => {
       .filter((item) => item.kind === 'addon' && item.moduleId !== undefined)
       .map((item) => ({ moduleId: item.moduleId, health: 'installed', enabled: true }) as WizardAddOnSummary);
     const catalogue = await service.catalogue(installedAddOns);
-    expect(catalogue.packages).toHaveLength(41);
+    expect(catalogue.packages).toHaveLength(42);
     expect(catalogue.packages.filter((item) => item.kind === 'addon').every((item) => item.available && item.enabled)).toBe(true);
 
     const result = await service.build(catalogue.packages.map((item) => item.folder), installedAddOns);
     const decoded = decode(result.contentBase64);
-    expect(result.packageFolders).toHaveLength(41);
+    expect(result.packageFolders).toHaveLength(42);
     expect(new Set(decoded.data.actions.map((action) => action.id)).size).toBe(decoded.data.actions.length);
     expect(new Set(decoded.data.commands.map((command) => command.id)).size).toBe(decoded.data.commands.length);
   });

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Scene Catalog",
+  "version": "4.0.4",
+  "author": "surakage",
+  "description": "Reads available broadcast scenes for the authenticated StreamBridge setup wizard without changing the active scene.",
+  "minimumStreamerBotVersion": "1.0.7",
+  "action": {
+    "name": "THSV StreamBridge - Refresh Scene Catalog",
+    "group": "THSV StreamBridge",
+    "id": "76bc0f01-c3b5-5a6b-b692-f5aa89d8d803",
+    "sourceSubActionId": "63a3d91d-64cf-5d56-aa56-6c93f2780401",
+    "arguments": [],
+    "references": [
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+      ".\\Newtonsoft.Json.dll"
+    ],
+    "source": "src/RefreshSceneCatalog.cs",
+    "importFile": "THSV-StreamBridge-Scene-Catalog-4.0.4.sb"
+  },
+  "runtime": {
+    "queue": "THSV StreamBridge",
+    "concurrent": true
+  },
+  "editableArguments": [
+    "sceneCatalogProvider",
+    "sceneCatalogConnectionIndex"
+  ],
+  "safety": "Read-only: uses OBS GetSceneList and WebSocket broadcast only; never changes the active scene. Streamlabs Desktop and Meld Studio use observed scene-change history because their Streamer.bot APIs do not expose full scene enumeration."
+}

@@ -268,6 +268,22 @@ describe('bridge configuration', () => {
     expect(repaired.browserOverlay.alerts.profiles.streamlabs?.donation?.titleTemplate).toBe('\ud83d\udd25 {actor} donated {amount} {currency} \u00b7 LET\'S GO!');
   });
 
+  it('repairs repeatedly encoded decorations from older saved alert profiles', async () => {
+    const config = await testConfig();
+    const input = structuredClone(config);
+    const profile = (titleTemplate: string) => ({
+      enabled: true, titleTemplate,
+      sound: { mode: 'none' as const, volume: 0.35 },
+      card: { backgroundColor: '#171120', fontFamily: 'system' as const, layout: 'classic' as const, mediaPlacement: 'behind' as const, transition: 'slide-vertical' as const },
+      aggregation: { mode: 'none' as const, windowMs: 5_000 },
+    });
+    input.browserOverlay.alerts.profiles.tiktok = { gift: profile('\u00c3\u00a2\u00c5\u201c\u00c2\u00a8 {actor} sent {quantity} {itemName} \u00c3\u00a2\u00e2\u201a\u00ac\u00e2\u20ac thank you!') };
+    input.browserOverlay.alerts.profiles.kofi = { donation: profile('\u00c3\u00b0\u00c5\u00b8\u00e2\u20ac\u00c2\u00a5 {actor} donated {amount} {currency} \u00c3\u201a\u00c2\u00b7 LET\'S GO!') };
+    const repaired = bridgeConfigSchema.parse(input);
+    expect(repaired.browserOverlay.alerts.profiles.tiktok?.gift?.titleTemplate).toBe('\u2728 {actor} sent {quantity} {itemName} \u2014 thank you!');
+    expect(repaired.browserOverlay.alerts.profiles.kofi?.donation?.titleTemplate).toBe('\ud83d\udd25 {actor} donated {amount} {currency} \u00b7 LET\'S GO!');
+  });
+
   it('migrates legacy grouped chat events into separate platform events', async () => {
     const config = await testConfig();
     const input = structuredClone(config) as unknown as Record<string, unknown>;

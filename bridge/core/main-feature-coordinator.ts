@@ -14,6 +14,18 @@ type ModuleHealth = Readonly<{ readonly moduleId?: unknown; readonly status?: un
 export class MainFeatureCoordinator {
   private readonly livePlatforms = new Set<string>();
   private currentScene = '';
+  private currentSceneProvider = '';
+  private currentSceneObservedAt = '';
+  private currentSceneSource: 'change' | 'snapshot' = 'change';
+  private lastOnlineAt = '';
+  private lastOfflineAt = '';
+  private firstUnmatchedActivityAt = '';
+  private lastUnmatchedActivityAt = '';
+  private readonly chatByPlatform = new Map<string, { messages: number; lastActivityAt: string }>();
+  private adUpcomingEvents = 0;
+  private adStartedEvents = 0;
+  private lastAdUpcomingAt = '';
+  private lastAdStartedAt = '';
   private adState: 'idle' | 'upcoming' | 'active' = 'idle';
   private adEndsAt = 0;
   private nextAdAt = '';
@@ -48,9 +60,13 @@ export class MainFeatureCoordinator {
     if (event.eventType === 'stream.online') {
       if (this.livePlatforms.size === 0) this.resetSessionActivity();
       this.livePlatforms.add(event.platform);
+      this.lastOnlineAt = event.receivedAt;
+      this.firstUnmatchedActivityAt = '';
+      this.lastUnmatchedActivityAt = '';
       if (this.raidState === 'complete' || this.raidState === 'failed') this.resetEndingState();
       return;
     }
+    if (isStrongLiveActivity(event.eventType)) this.observeUnmatchedLiveActivity(event.receivedAt);
     if (event.eventType === 'reward.redemption') {
       this.rewardRedemptions += 1;
       this.lastRewardComponent = 'core.rewards';
@@ -58,6 +74,9 @@ export class MainFeatureCoordinator {
     }
     if (event.eventType === 'chat.message') {
       this.chatMessagesObserved += 1;
+      const platform = bounded(event.platform, 64) || 'unknown';
+      const current = this.chatByPlatform.get(platform) ?? { messages: 0, lastActivityAt: '' };
+      this.chatByPlatform.set(platform, { messages: current.messages + 1, lastActivityAt: event.receivedAt });
       this.lastMessagingComponent = 'core.chat';
       this.lastMessagingActivityAt = event.receivedAt;
     }
@@ -79,25 +98,41 @@ export class MainFeatureCoordinator {
     this.observeExtensionActivity(addOnModuleId, payload, event.receivedAt, 'voiceLanguage', VOICE_LANGUAGE_COMPONENTS);
     if (event.eventType === 'stream.offline') {
       this.livePlatforms.delete(event.platform);
+      this.lastOfflineAt = event.receivedAt;
       if (this.livePlatforms.size === 0) {
         this.adState = 'idle'; this.adEndsAt = 0; this.nextAdAt = '';
+        this.firstUnmatchedActivityAt = ''; this.lastUnmatchedActivityAt = '';
         if (this.raidState !== 'failed') this.raidState = 'complete';
       }
       return;
     }
     if (event.eventType === 'stream.scene-changed') {
       this.currentScene = bounded(payload['sceneName'], 160);
+      this.currentSceneProvider = bounded(payload['provider'], 40);
+      this.currentSceneObservedAt = event.receivedAt;
+      this.currentSceneSource = 'change';
+      return;
+    }
+    if (event.eventType === 'system.scene-catalog') {
+      const currentScene = bounded(payload['currentScene'], 160);
+      if (currentScene === '') return;
+      this.currentScene = currentScene;
+      this.currentSceneProvider = bounded(payload['provider'], 40);
+      this.currentSceneObservedAt = event.receivedAt;
+      this.currentSceneSource = 'snapshot';
       return;
     }
     if (event.eventType === 'addon.thsv.ad-break-companion.upcoming') {
       this.adState = 'upcoming';
       this.nextAdAt = bounded(payload['nextAdAt'], 80);
+      this.adUpcomingEvents += 1; this.lastAdUpcomingAt = event.receivedAt;
       return;
     }
     if (event.eventType === 'addon.thsv.ad-break-companion.started') {
       const durationMs = positiveNumber(payload['adLengthMs']) || positiveNumber(payload['adLength']) * 1_000;
       const startedAt = Date.parse(event.receivedAt);
       this.adState = 'active'; this.adEndsAt = (Number.isFinite(startedAt) ? startedAt : Date.now()) + Math.min(durationMs || 180_000, 600_000);
+      this.adStartedEvents += 1; this.lastAdStartedAt = event.receivedAt;
       return;
     }
     if (event.eventType === 'addon.thsv.raid-scout.control') {
@@ -146,13 +181,20 @@ export class MainFeatureCoordinator {
     const play = components(PLAY_COMPONENTS, moduleStatuses);
     const voiceLanguage = components(VOICE_LANGUAGE_COMPONENTS, moduleStatuses);
     const stage = this.livePlatforms.size === 0 ? 'offline' : ['selecting', 'selected', 'raiding'].includes(this.raidState) ? 'ending' : 'live';
+    const lifecycleStatus = this.livePlatforms.size > 0 ? 'live' : this.hasRecentUnmatchedActivity(now) ? 'missing-live-signal' : 'idle';
     return Object.freeze({
       contractVersion: '1.0.0',
       privacy: 'Operational counts and component health only; no viewer identity, message text, reward text, clip identity, or credentials.',
       catalog: MAIN_FEATURE_FAMILIES,
       broadcastDirector: Object.freeze({
         status: broadcast.status, stage, livePlatforms: [...this.livePlatforms].sort(), currentScene: this.currentScene,
-        ad: Object.freeze({ state: this.adState, nextAdAt: this.nextAdAt, endsAt: this.adEndsAt > 0 ? new Date(this.adEndsAt).toISOString() : '' }),
+        lifecycle: Object.freeze({
+          status: lifecycleStatus, lastOnlineAt: this.lastOnlineAt, lastOfflineAt: this.lastOfflineAt,
+          firstUnmatchedActivityAt: this.firstUnmatchedActivityAt, lastUnmatchedActivityAt: this.lastUnmatchedActivityAt,
+          guidance: lifecycleStatus === 'missing-live-signal' ? 'Live activity is arriving, but no Stream Online event was received. Attach Twitch Channel > Stream Online and Stream Offline to THSV Twitch - Intake in Streamer.bot.' : '',
+        }),
+        scene: Object.freeze({ name: this.currentScene, provider: this.currentSceneProvider, observedAt: this.currentSceneObservedAt, source: this.currentSceneSource }),
+        ad: Object.freeze({ state: this.adState, nextAdAt: this.nextAdAt, endsAt: this.adEndsAt > 0 ? new Date(this.adEndsAt).toISOString() : '', upcomingEvents: this.adUpcomingEvents, startedEvents: this.adStartedEvents, lastUpcomingAt: this.lastAdUpcomingAt, lastStartedAt: this.lastAdStartedAt }),
         raid: Object.freeze({ state: this.raidState, operation: this.raidOperation, error: this.raidError }),
         components: broadcast.items,
       }),
@@ -168,6 +210,7 @@ export class MainFeatureCoordinator {
       }),
       communityMessaging: Object.freeze({
         status: messaging.status, sessionActive: this.livePlatforms.size > 0, messagesObserved: this.chatMessagesObserved, operations: this.messagingOperations,
+        platforms: Object.fromEntries([...this.chatByPlatform.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([platform, activity]) => [platform, Object.freeze({ ...activity })])),
         failures: this.messagingFailures, lastComponent: this.lastMessagingComponent, lastActivityAt: this.lastMessagingActivityAt,
         outboundPending: pendingRequestCount(capabilityDiagnostics, 'outboundRequests', MESSAGING_COMPONENTS),
         capabilityFailures: capabilityFailureCount(capabilityDiagnostics, MESSAGING_COMPONENTS), components: messaging.items,
@@ -183,7 +226,21 @@ export class MainFeatureCoordinator {
   private resetSessionActivity(): void {
     this.rewardRedemptions = 0; this.rewardOperations = 0; this.rewardFailures = 0; this.lastRewardComponent = ''; this.lastRewardActivityAt = '';
     this.chatMessagesObserved = 0; this.messagingOperations = 0; this.messagingFailures = 0; this.lastMessagingComponent = ''; this.lastMessagingActivityAt = '';
+    this.chatByPlatform.clear();
+    this.adUpcomingEvents = 0; this.adStartedEvents = 0; this.lastAdUpcomingAt = ''; this.lastAdStartedAt = '';
     this.extensionActivity.clear();
+  }
+
+  private observeUnmatchedLiveActivity(receivedAt: string): void {
+    if (this.livePlatforms.size > 0) return;
+    if (this.firstUnmatchedActivityAt === '') this.firstUnmatchedActivityAt = receivedAt;
+    this.lastUnmatchedActivityAt = receivedAt;
+  }
+
+  private hasRecentUnmatchedActivity(now: number): boolean {
+    if (this.lastUnmatchedActivityAt === '') return false;
+    const observedAt = Date.parse(this.lastUnmatchedActivityAt);
+    return Number.isFinite(observedAt) && observedAt <= now && now - observedAt <= 6 * 60 * 60_000;
   }
 
   private observeExtensionActivity(moduleId: string, payload: Readonly<Record<string, unknown>>, receivedAt: string, key: string, components: readonly string[]): void {
@@ -246,6 +303,19 @@ function moduleIdFromEventType(eventType: string): string {
 
 function failedResult(payload: Readonly<Record<string, unknown>>): boolean {
   return payload['success'] === false || payload['succeeded'] === false || payload['status'] === 'failed';
+}
+
+function isStrongLiveActivity(eventType: string): boolean {
+  return eventType === 'chat.message'
+    || eventType === 'reward.redemption'
+    || eventType.startsWith('engagement.')
+    || eventType === 'channel.follow'
+    || eventType === 'channel.subscription'
+    || eventType === 'channel.membership'
+    || eventType === 'channel.gift-subscription'
+    || eventType === 'addon.thsv.ad-break-companion.upcoming'
+    || eventType === 'addon.thsv.ad-break-companion.started'
+    || eventType === 'addon.thsv.live-beacon.broadcast-control';
 }
 
 function capabilityFailureCount(diagnostics: Readonly<Record<string, unknown>>, moduleIds: readonly string[]): number {

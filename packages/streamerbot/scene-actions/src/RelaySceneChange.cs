@@ -47,15 +47,15 @@ public class CPHInline
     private bool TryReadScene(out string provider, out string sceneName, out string oldSceneName, out string connectionId, out string connectionName, out string error)
     {
         provider = ""; sceneName = ""; oldSceneName = ""; connectionId = ""; connectionName = ""; error = "";
-        string obsScene = Read("obs.sceneName");
-        string streamlabsScene = Read("sd.sceneName");
-        string meldScene = Read("meldStudio.sceneName");
+        string obsScene = ReadScene("obs.sceneName");
+        string streamlabsScene = ReadScene("sd.sceneName");
+        string meldScene = ReadScene("meldStudio.sceneName");
         int matches = (obsScene.Length > 0 ? 1 : 0) + (streamlabsScene.Length > 0 ? 1 : 0) + (meldScene.Length > 0 ? 1 : 0);
         if (matches != 1) { error = matches == 0 ? "No supported Scene Changed trigger arguments were found." : "Arguments from more than one scene provider were found."; return false; }
 
         if (obsScene.Length > 0)
         {
-            provider = "obs"; sceneName = obsScene; oldSceneName = Read("obs.oldSceneName");
+            provider = "obs"; sceneName = obsScene; oldSceneName = ReadScene("obs.oldSceneName");
             connectionId = Read("obs.id"); connectionName = Read("obs.name"); return true;
         }
         if (streamlabsScene.Length > 0)
@@ -63,7 +63,7 @@ public class CPHInline
             provider = "streamlabs"; sceneName = streamlabsScene;
             connectionId = Read("sd.id"); connectionName = Read("sd.name"); return true;
         }
-        provider = "meld"; sceneName = meldScene; oldSceneName = Read("meldStudio.oldSceneName");
+        provider = "meld"; sceneName = meldScene; oldSceneName = ReadScene("meldStudio.oldSceneName");
         connectionId = Read("meldStudio.id"); connectionName = Read("meldStudio.name"); return true;
     }
 
@@ -71,6 +71,16 @@ public class CPHInline
     {
         string value;
         return CPH.TryGetArg<string>(name, out value) ? Clean(value, MaximumTextLength) : "";
+    }
+
+    private string ReadScene(string name)
+    {
+        string value;
+        if (!CPH.TryGetArg<string>(name, out value) || String.IsNullOrWhiteSpace(value)) return "";
+        char[] source = value.ToCharArray();
+        for (int index = 0; index < source.Length; index++) if (Char.IsControl(source[index])) source[index] = ' ';
+        string cleaned = new string(source).Trim();
+        return cleaned.Length <= MaximumTextLength ? cleaned : cleaned.Substring(0, MaximumTextLength);
     }
 
     private bool ReadBool(string name)

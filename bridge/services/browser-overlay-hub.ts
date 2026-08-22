@@ -18,6 +18,7 @@ const MIN_MEDIA_REPLAY_TTL_MS = 120_000;
 const MAX_MEDIA_REPLAY_TTL_MS = 7_200_000;
 const MEDIA_START_RETRY_MS = 2_000;
 const MAXIMUM_PRESENTATION_DURATION_MS = 600_000;
+const HOST_VISIBILITY_TTL_MS = 180_000;
 
 interface ActiveMediaMessage {
   readonly playbackId: string;
@@ -66,6 +67,7 @@ export class BrowserOverlayHub {
   private readonly retainedLabelMessages = new Map<string, string>();
   private readonly presentationQueue: QueuedPresentation[] = [];
   private readonly livePlatforms = new Set<string>();
+  private offlineResetIssued = false;
   private activePresentation: QueuedPresentation | undefined;
   private presentationTimer: NodeJS.Timeout | undefined;
   private readonly mediaStartRetryTimer: NodeJS.Timeout;
@@ -97,10 +99,14 @@ export class BrowserOverlayHub {
   }
 
   public publish(event: NormalizedEvent): void {
-    if (!event.metadata.simulated && event.eventType === 'stream.online') this.livePlatforms.add(event.platform);
+    if (!event.metadata.simulated && event.eventType === 'stream.online') {
+      this.livePlatforms.add(event.platform); this.offlineResetIssued = false;
+    }
     else if (!event.metadata.simulated && event.eventType === 'stream.offline') {
       this.livePlatforms.delete(event.platform);
-      if (this.livePlatforms.size === 0) this.resetSurfaces('stream-offline');
+      if (this.livePlatforms.size === 0 && !this.offlineResetIssued) {
+        this.offlineResetIssued = true; this.resetSurfaces('stream-offline');
+      }
     }
     if (!this.config.enabled || (!this.config.showSimulated && event.metadata.simulated) || (!this.config.showBots && event.eventType === 'chat.message' && event.user?.actorType === 'bot')) return;
     if (event.eventType === 'chat.message' && ignoredChatActor(event, this.config.chat.ignoredNames)) return;
@@ -185,7 +191,8 @@ export class BrowserOverlayHub {
     return () => { listeners.delete(listener); if (listeners.size === 0) this.lifecycleListeners.delete(moduleId); };
   }
 
-  public status(): Readonly<Record<string, unknown>> {
+  public status(now = Date.now()): Readonly<Record<string, unknown>> {
+    this.pruneHostVisibility(now);
     const addOnClients: Record<string, number> = {};
     for (const subscriptions of this.addOnSubscriptions.values()) {
       for (const [moduleId, renderers] of subscriptions) addOnClients[moduleId] = (addOnClients[moduleId] ?? 0) + renderers.size;
@@ -194,6 +201,18 @@ export class BrowserOverlayHub {
     return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, hostVisibility: { supported: visibility.some((entry) => entry.host === 'obs'), obsSources: visibility.filter((entry) => entry.host === 'obs'), visibleObsSources: visibility.filter((entry) => entry.host === 'obs' && entry.visible).length }, published: this.published, addOnPublished: this.addOnPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationPolicy: MAIN_FEATURE_PRESENTATION_POLICY, presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
   }
   public clientConfig(): BrowserOverlayConfig { return { ...this.config }; }
+
+  public recoverLiveSession(platforms: readonly string[]): void {
+    this.livePlatforms.clear();
+    for (const platform of platforms) if (/^[a-z][a-z0-9-]{1,30}$/u.test(platform)) this.livePlatforms.add(platform);
+    this.offlineResetIssued = false;
+  }
+
+  public endRecoveredLiveSession(): void {
+    this.livePlatforms.clear();
+    if (this.offlineResetIssued) return;
+    this.offlineResetIssued = true; this.resetSurfaces('stream-offline');
+  }
 
   public stop(): void {
     clearInterval(this.mediaStartRetryTimer);
@@ -210,6 +229,7 @@ export class BrowserOverlayHub {
     this.playbackOwners.clear();
     this.retainedLabelMessages.clear();
     this.livePlatforms.clear();
+    this.offlineResetIssued = false;
     if (this.presentationTimer !== undefined) clearTimeout(this.presentationTimer);
     this.presentationTimer = undefined; this.activePresentation = undefined;
     for (const entry of this.presentationQueue.splice(0)) entry.reject(new OverlayPresentationCancelledError('Overlay presentation queue stopped.'));
@@ -304,6 +324,15 @@ export class BrowserOverlayHub {
       const owners = this.playbackOwners.get(moduleId);
       for (const playbackId of owners?.keys() ?? []) if (!messages.has(playbackId)) owners?.delete(playbackId);
       if (owners?.size === 0) this.playbackOwners.delete(moduleId);
+    }
+  }
+
+  private pruneHostVisibility(now: number): void {
+    for (const entries of this.hostVisibility.values()) {
+      for (const [rendererId, report] of entries) {
+        const reportedAt = Date.parse(report.reportedAt);
+        if (!Number.isFinite(reportedAt) || now - reportedAt > HOST_VISIBILITY_TTL_MS) entries.delete(rendererId);
+      }
     }
   }
 

@@ -83,12 +83,29 @@ describe('MainFeatureCoordinator', () => {
     coordinator.observe(event('addon.thsv.discord-chat-archive.delivery-received', { succeeded: false, error: 'webhook secret' }));
     coordinator.observe(event('addon.thsv.chat-guard.moderation-result', { success: true, userId: 'private-user-id' }));
     const snapshot = coordinator.snapshot(modules, { outboundRequests: { 'thsv.discord-chat-archive': { pending: 1 } }, modules: { 'thsv.chat-guard': { failed: 3 } } });
-    expect(snapshot['communityMessaging']).toMatchObject({ status: 'healthy', messagesObserved: 1, operations: 3, failures: 1, outboundPending: 1, capabilityFailures: 3, lastComponent: 'thsv.chat-guard' });
+    expect(snapshot['communityMessaging']).toMatchObject({ status: 'healthy', messagesObserved: 1, platforms: { youtube: { messages: 1, lastActivityAt: '2026-08-15T12:00:00.000Z' } }, operations: 3, failures: 1, outboundPending: 1, capabilityFailures: 3, lastComponent: 'thsv.chat-guard' });
     const serialized = JSON.stringify(snapshot['communityMessaging']);
     expect(serialized).not.toContain('private chat contents');
     expect(serialized).not.toContain('PrivateCreator');
     expect(serialized).not.toContain('webhook secret');
     expect(serialized).not.toContain('private-user-id');
+  });
+
+  it('surfaces missing lifecycle triggers and accepts a read-only current-scene snapshot', () => {
+    const coordinator = new MainFeatureCoordinator();
+    coordinator.observe(event('system.scene-catalog', { provider: 'obs', currentScene: 'BRB' }, 'system', '2026-08-15T12:00:00.000Z'));
+    coordinator.observe(event('chat.message', { message: 'not retained' }, 'tiktok', '2026-08-15T12:00:01.000Z'));
+    coordinator.observe(event('addon.thsv.ad-break-companion.upcoming', {}, 'system', '2026-08-15T12:00:02.000Z'));
+    const snapshot = coordinator.snapshot(modules, {}, Date.parse('2026-08-15T12:00:03.000Z'));
+    expect(snapshot['broadcastDirector']).toMatchObject({
+      currentScene: 'BRB',
+      scene: { name: 'BRB', provider: 'obs', source: 'snapshot' },
+      lifecycle: { status: 'missing-live-signal', firstUnmatchedActivityAt: '2026-08-15T12:00:01.000Z', lastUnmatchedActivityAt: '2026-08-15T12:00:02.000Z' },
+      ad: { upcomingEvents: 1, startedEvents: 0 },
+    });
+    expect(JSON.stringify(snapshot)).not.toContain('not retained');
+    coordinator.observe(event('stream.online', {}, 'twitch', '2026-08-15T12:00:04.000Z'));
+    expect(coordinator.snapshot(modules, {}, Date.parse('2026-08-15T12:00:05.000Z'))['broadcastDirector']).toMatchObject({ lifecycle: { status: 'live' }, livePlatforms: ['twitch'] });
   });
 
   it('starts fresh Community Rewards and Messaging session counters on the next live cycle', () => {

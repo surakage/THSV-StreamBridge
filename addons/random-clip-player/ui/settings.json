@@ -54,5 +54,5 @@
       "fields": []
     }
   ],
-  "fields": {}
+  "fields": { "automaticSceneNames": { "control": "scene-list", "fullRow": true } }
 }

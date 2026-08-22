@@ -15,7 +15,7 @@
   ],
   "fields": {
     "autoStartProvider": { "labels": { "obs": "OBS Studio", "meld": "Meld Studio", "streamlabs": "Streamlabs Desktop" }, "visibleWhen": { "field": "autoStartSceneEnabled", "equals": true } },
-    "autoStartSceneName": { "visibleWhen": { "field": "autoStartSceneEnabled", "equals": true } },
+    "autoStartSceneName": { "control": "scene-name", "providerField": "autoStartProvider", "visibleWhen": { "field": "autoStartSceneEnabled", "equals": true } },
     "preferredChannels": { "visibleWhen": { "field": "usePreferred", "equals": true } },
     "maximumPreferredLookups": { "visibleWhen": { "field": "usePreferred", "equals": true } },
     "viewerSuggestionRewardId": { "visibleWhen": { "field": "viewerSuggestionsEnabled", "equals": true } },

@@ -26,7 +26,7 @@ guess here would be worse than shipping nothing. It can be added once confirmed.
 
 ## Install
 
-1. Import `THSV-StreamBridge-Command-Administration-4.0.3.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Command-Administration-4.0.4.sb` into Streamer.bot.
 2. Keep the imported action triggerless — it is invoked directly by the bridge over the
    authenticated Streamer.bot WebSocket connection, the same way the Core Receiver action is,
    not chained as a child of another action.

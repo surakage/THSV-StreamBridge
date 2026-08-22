@@ -6,11 +6,15 @@ describe('one-button streaming tools launcher', () => {
     const source = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
     expect(source).toContain("join(launcherRoot, 'tray.ps1')");
     expect(source).toContain('THSV StreamBridge Tray is available.');
-    const streamerBotStart = source.indexOf("runLauncher(join(launcherRoot, 'start-streamerbot.mjs')");
+    const streamerBotStart = source.indexOf('await startStreamerBotWithBridgeRecovery()');
     const speakerBotStart = source.indexOf("startOptionalApplication('speakerbot'");
     const bridgeCheck = source.indexOf('if (await bridgeReady(baseUrl))');
     const broadcastAppsStart = source.indexOf("for (const application of ['obs', 'meld', 'streamlabs'])");
     expect(streamerBotStart).toBeGreaterThan(-1);
+    expect(source).toContain('startStreamerBotWithBridgeRecovery');
+    expect(source).toContain("runLauncher(join(launcherRoot, 'stop.mjs')");
+    expect(source).toContain('left a stale listener behind');
+    expect(source).toContain('STREAMERBOT_STALE_LISTENER_RECOVERY_MS');
     expect(streamerBotStart).toBeLessThan(speakerBotStart);
     expect(speakerBotStart).toBeLessThan(bridgeCheck);
     expect(bridgeCheck).toBeLessThan(broadcastAppsStart);
@@ -39,6 +43,7 @@ describe('one-button streaming tools launcher', () => {
     expect(source).toContain("'last-startup-report.json'");
     expect(source).toContain("'streamerbot-crash'");
     expect(source).toContain("'port-conflict'");
+    expect(source).toContain('did not release');
     expect(source).toContain("'bridge-configuration'");
     expect(source).toContain("'bridge-health-timeout'");
     expect(source).not.toContain('taskkill');

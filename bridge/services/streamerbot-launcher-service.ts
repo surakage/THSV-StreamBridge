@@ -112,6 +112,17 @@ export class StreamerBotLauncherService {
     return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: true, websocketPort: port, state: 'port-conflict', processId: listener, portOwnerName: owner?.name ?? 'Unknown process', message: `Port ${String(port)} belongs to ${owner?.name ?? 'another process'} (PID ${String(listener)}). It will not be stopped automatically.` };
   }
 
+  /** Returns the local Streamer.bot action database selected by the creator. */
+  public async actionsPath(): Promise<string | undefined> {
+    const configuration = await this.readConfiguration();
+    return configuration === undefined ? undefined : join(dirname(configuration.executable), 'data', 'actions.json');
+  }
+
+  public async isRunning(): Promise<boolean> {
+    const status = await this.status();
+    return status.state === 'ready' || status.state === 'port-conflict';
+  }
+
   public async detect(): Promise<{ readonly candidates: readonly StreamerBotLauncherCandidate[]; readonly optionalCandidates: readonly OptionalApplicationCandidate[]; readonly status: StreamerBotLauncherStatus }> {
     this.optionalProcessCache = undefined;
     const candidates = new Map<string, StreamerBotLauncherCandidate>();

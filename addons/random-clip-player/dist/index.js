@@ -75,21 +75,21 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '4.0.3',
+  version: '4.0.4',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.3', maximumTestedBridgeVersion: '4.0.3',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.4', maximumTestedBridgeVersion: '4.0.4',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [GET_CLIPS_EVENT, SHARED_CLIPS_EVENT, GET_CLIP_DOWNLOAD_EVENT, CONTROL_EVENT, 'stream.scene-changed'],
+  eventSubscriptions: [GET_CLIPS_EVENT, SHARED_CLIPS_EVENT, GET_CLIP_DOWNLOAD_EVENT, CONTROL_EVENT, 'stream.scene-changed', 'system.scene-catalog'],
   commandsProvided: [],
   actionsProvided: [],
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.3.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.4.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
     'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
@@ -377,7 +377,7 @@ export default {
       if (event.eventType === GET_CLIPS_EVENT || event.eventType === SHARED_CLIPS_EVENT) return handleClipsReceived(event, context);
       if (event.eventType === GET_CLIP_DOWNLOAD_EVENT) return handleClipDownloadReceived(event, context);
       if (event.eventType === CONTROL_EVENT) return handleControl(event, context);
-      if (event.eventType === 'stream.scene-changed') return handleSceneChanged(event, context);
+      if (event.eventType === 'stream.scene-changed' || event.eventType === 'system.scene-catalog') return handleSceneChanged(event, context);
     });
   },
 };
@@ -390,7 +390,9 @@ async function handleSceneChanged(event, context) {
   if (event.metadata?.simulated === true) return;
   const settings = readSettings(context);
   if (settings.automaticSceneNames.length === 0) return;
-  const enabled = sceneShouldPlay(event.payload?.sceneName, settings.automaticSceneNames);
+  const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
+  if (!normalizedSceneName(sceneName)) return;
+  const enabled = sceneShouldPlay(sceneName, settings.automaticSceneNames);
   if (enabled || settings.stopOutsideAutomaticScenes) await setPlaybackEnabled(enabled, context);
 }
 

@@ -1,4 +1,4 @@
-import { readFile, mkdtemp } from 'node:fs/promises';
+import { readFile, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -13,6 +13,16 @@ const defaultTimerPolicy = { intervalMode: 'fixed' as const, gates: { requireLiv
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Multi-Timed Actions', () => {
+  it('recovers a verified mid-live session without fabricating a platform event', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-08-22T14:00:00.000Z');
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-timed-recovery-'));
+    const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{ ...defaultTimerPolicy, id: 'recovered', name: 'Recovered', enabled: true, everyMinutes: 5, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'fixed' }, gates: { ...defaultTimerPolicy.gates, requireLive: true, platforms: ['twitch'] } }] };
+    const adapter = new TimedActionsAdapter('timers', platform, config); await adapter.start({ logger: silentLogger, emit: async () => ({ accepted: true }) });
+    const status = await adapter.recoverLiveSession(['twitch'], '2026-08-22T13:55:00.000Z');
+    expect(status).toMatchObject({ active: true, paused: false, startedAt: '2026-08-22T13:55:00.000Z', livePlatforms: ['twitch'], armedTimers: 1 });
+    await adapter.stop();
+  });
+
   it('bounds retained chat activity while preserving the maximum documented gate count', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'thsv-timed-bounded-'));
     const config: TimedActionsConfig = { stateFile: join(directory, 'state.json'), definitions: [{
@@ -168,6 +178,26 @@ describe('Multi-Timed Actions', () => {
     await adapter.test('testable');
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({ eventType: 'system.timed', metadata: { simulated: true } });
+    await adapter.stop();
+  });
+
+  it('does not persist a pending shuffle choice for a simulated test and clears legacy pending choices on stop', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'streambridge-test-pending-'));
+    const stateFile = join(directory, 'state.json');
+    await writeFile(stateFile, JSON.stringify({
+      session: { active: false, paused: false, startedAt: '', livePlatforms: [] },
+      timers: { shuffle: { pending: { scheduledAt: '2026-08-22T18:14:14.477Z', index: 0 }, platformBags: { twitch: { remaining: [0, 1], cycle: 1, pending: { scheduledAt: '2026-08-22T18:14:14.477Z', index: 1 } } } } },
+    }));
+    const config: TimedActionsConfig = { stateFile, definitions: [{
+      ...defaultTimerPolicy, id: 'shuffle', name: 'Shuffle', enabled: false, everyMinutes: 10, missedRunPolicy: 'skip', payload: {}, selection: { mode: 'shuffle-container', messages: ['One', 'Two'] },
+    }] };
+    const adapter = new TimedActionsAdapter('timers', platform, config, () => 0);
+    await adapter.start({ logger: silentLogger, emit: async () => ({ accepted: true }) });
+    await adapter.test('shuffle');
+    await adapter.control('stop');
+    const saved = JSON.parse(await readFile(stateFile, 'utf8')) as { timers: { shuffle: { pending?: unknown; platformBags?: { twitch?: { pending?: unknown } } } } };
+    expect(saved.timers.shuffle.pending).toBeUndefined();
+    expect(saved.timers.shuffle.platformBags?.twitch?.pending).toBeUndefined();
     await adapter.stop();
   });
 

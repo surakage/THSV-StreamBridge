@@ -88,12 +88,13 @@ describe('wizard HTTP surface', () => {
     expect((await fetch(`${baseUrl}/wizard/api/streamerbot-launcher`, { headers })).status).toBe(200);
     const readiness = await fetch(`${baseUrl}/wizard/api/readiness`, { headers });
     expect(readiness.status).toBe(200);
-    const readinessBody = await readiness.json() as { readiness: { status?: unknown }; launcher: { websocketPort?: unknown }; configuration: { state?: unknown; restartRequired?: unknown }; provenance: { version?: unknown }; obsInventory: { configured?: unknown } };
+    const readinessBody = await readiness.json() as { readiness: { status?: unknown }; launcher: { websocketPort?: unknown }; configuration: { state?: unknown; restartRequired?: unknown }; provenance: { version?: unknown }; obsInventory: { configured?: unknown }; mainFeatures?: { broadcastDirector?: { lifecycle?: { status?: unknown } } } };
     expect(typeof readinessBody.readiness.status).toBe('string');
     expect(typeof readinessBody.launcher.websocketPort).toBe('number');
     expect(readinessBody.configuration).toMatchObject({ state: 'unavailable', restartRequired: false });
     expect(typeof readinessBody.provenance.version).toBe('string');
     expect(readinessBody.obsInventory.configured).toBe(false);
+    expect(readinessBody.mainFeatures?.broadcastDirector?.lifecycle?.status).toBe('idle');
     const denied = await fetch(`${baseUrl}/wizard/api/streamerbot-launcher/save`, { method: 'POST', headers, body: JSON.stringify({ executable, approvedByCreator: false }) });
     expect(denied.status).toBe(403);
     const saved = await fetch(`${baseUrl}/wizard/api/streamerbot-launcher/save`, { method: 'POST', headers, body: JSON.stringify({ executable, approvedByCreator: true }) });

@@ -10,6 +10,7 @@
     { "id": "setup", "title": "6. Optional manual controls", "description": "Import the separate Streamer.bot package when you want creator hotkeys, Stream Deck buttons, or a completion action.", "notice": "Scene matching is handled directly by StreamBridge, so do not attach OBS, Meld, or Streamlabs scene triggers to Start or Stop. Relay normalized Scene Changed from the app you use. Start resumes an in-progress timer without resetting it. Set & Start uses its editable countdownSeconds argument for a one-off duration. Complete Now previews the completion message and tone without switching scenes.", "fields": [] }
   ],
   "fields": {
+    "automaticSceneNames": { "control": "scene-list", "fullRow": true },
     "completionTone": { "labels": { "none": "No sound", "soft-chime": "Soft chime", "digital-pop": "Digital pop", "celebration": "Celebration" } },
     "toneVolume": { "visibleWhen": { "field": "completionTone", "notEquals": "none" } },
     "completionActionDelaySeconds": { "visibleWhen": { "field": "runCompletionAction", "equals": true } },
