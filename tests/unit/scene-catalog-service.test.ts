@@ -35,5 +35,6 @@ describe('SceneCatalogService', () => {
     const result = await service.refresh({ provider: 'obs', connectionIndex: 0 });
     expect(result).toMatchObject({ source: 'direct-websocket', status: { providers: { obs: { source: 'direct-websocket', scenes: ['BRB', 'Live'] } } } });
     expect(fallback).not.toHaveBeenCalled();
+    await service.flush();
   });
 });
