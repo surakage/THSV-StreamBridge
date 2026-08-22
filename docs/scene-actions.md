@@ -20,10 +20,13 @@ The package does not manufacture trigger export records because Streamer.bot doe
 
 ## Wizard setup
 
-1. Open Streamer.bot in the wizard and refresh the action inspection.
-2. Under Scene Actions, approve only the actions the add-on may dispatch.
-3. Edit or remove the five starter mappings. Choose a provider, exact scene name, optional connection name, target action, and optional delay.
-4. Save settings, save action grants, and restart StreamBridge.
+1. Import the current universal Streamer.bot package. It includes the read-only `THSV StreamBridge - Refresh Scene Catalog` action.
+2. Open Streamer.bot in the wizard and refresh the action inspection.
+3. Under Scene Actions, approve only the actions the add-on may dispatch.
+4. Edit or remove the five starter mappings. Choose a provider, select a detected exact scene name or type a custom name, then choose the optional connection name, target action, and delay.
+5. Save settings, save action grants, and restart StreamBridge.
+
+The same scene picker is available for Stream Launch Countdown, Random Clip Player, and Raid Scout. OBS supplies a complete scene list through the read-only `GetSceneList` request. Streamlabs Desktop and Meld Studio do not expose equivalent full-list methods through Streamer.bot, so the wizard learns their exact names from genuine Scene Changed events. The Refresh button never switches a scene, and manual entry always remains available.
 
 Starter mappings initially target the imported Starting Soon, Just Chatting, Gameplay, Be Right Back, and Ending Soon actions. Their C# blocks are intentionally empty; add normal Streamer.bot sub-actions or replace the block. They can be renamed safely.
 
@@ -33,6 +36,6 @@ Starter mappings initially target the imported Starting Soon, Just Chatting, Gam
 - Repeated copies of the same scene event are suppressed for 1.5 seconds by default.
 - A sliding action-rate window prevents scene-action loops from running indefinitely.
 - At most ten matching mappings run for one event, while the capability broker separately enforces approved IDs, concurrency, and per-minute action limits.
-- Only timestamps, mapping keys, and loop counters are stored. Streaming-app credentials and scene payloads are never retained.
+- The local catalog stores only bounded scene names, connection labels, and timestamps needed for wizard suggestions. Streaming-app credentials and other scene payload data are never retained.
 
 Official variable references: [OBS Studio Scene Changed](https://docs.streamer.bot/api/triggers/obs-studio/scene-changed), [Streamlabs Desktop Scene Changed](https://docs.streamer.bot/api/triggers/streamlabs-desktop/scene-changed), and [Meld Studio Scene Changed](https://docs.streamer.bot/api/triggers/meld-studio/scene-changed).

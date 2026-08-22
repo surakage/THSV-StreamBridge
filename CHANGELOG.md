@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.4] - 2026-08-22
+
+- Added direct OBS scene discovery and continuous broadcast-state monitoring so the wizard can populate scene selectors and recover or close live sessions when platform lifecycle events are missing.
+- Added Streamer.bot trigger assurance, native scene relay hardening, and clearer wizard diagnostics for incomplete, disabled, duplicated, or version-unavailable triggers.
+- Made Starting Soon Countdown and Random Clip Player recover from mid-live startup and scene-state drift without restarting healthy playback.
+- Added Raid Scout clip embed and alternate-clip fallbacks when Twitch returns no direct playable download URL.
+- Made lifecycle transitions idempotent, reset overlay surfaces once after the final offline transition, and clear stale simulated timed-action selections on test or stop.
+- Regenerated and indexed all 42 Streamer.bot packages at 4.0.4 and expanded automated live-reliability, wizard, launcher, scene, and trigger coverage.
+
 ## [4.0.1] - 2026-08-17
 
 - Removed persistent application rollback copies: after the replacement version passes its health check, the installer keeps only the active application version.

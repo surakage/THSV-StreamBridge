@@ -8,6 +8,7 @@ const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const launcherRoot = join(installRoot, 'launcher');
 const launchLockPath = join(installRoot, 'data', 'runtime', 'streaming-tools.launch.lock');
 const OPTIONAL_STARTUP_GRACE_MS = 1_500;
+const STREAMERBOT_STALE_LISTENER_RECOVERY_MS = 2_000;
 const startupStartedAt = Date.now();
 const startupRunId = randomUUID();
 let currentPhase = 'initializing';
@@ -36,7 +37,7 @@ async function startStreamingTools() {
   optionalWarnings.push(...await startTrayShell());
 
   await writeStartupProgress('starting-streamerbot', 'Checking Streamer.bot and its configured WebSocket port.');
-  runLauncher(join(launcherRoot, 'start-streamerbot.mjs'), ['--install-root', installRoot], 110_000);
+  await startStreamerBotWithBridgeRecovery();
   await writeStartupProgress('starting-speakerbot', 'Starting Speaker.bot when it is enabled.');
   optionalWarnings.push(...await startOptionalApplication('speakerbot', launcherConfig));
 
@@ -66,6 +67,23 @@ async function startStreamingTools() {
     durationMs: Date.now() - startupStartedAt,
     port: config.service.port,
   }).catch(reportWarning);
+}
+
+async function startStreamerBotWithBridgeRecovery() {
+  const streamerBotLauncher = join(launcherRoot, 'start-streamerbot.mjs');
+  try {
+    runLauncher(streamerBotLauncher, ['--install-root', installRoot], 110_000);
+    return;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/stale port \d+ ownership|port \d+ did not release/iu.test(message)) throw error;
+  }
+
+  process.stdout.write('A closed Streamer.bot session left a stale listener behind. Stopping the existing Bridge connection once, then retrying safely...\n');
+  try { runLauncher(join(launcherRoot, 'stop.mjs'), [], 25_000); }
+  catch { /* The bounded retry below remains authoritative if shutdown was already in progress. */ }
+  await new Promise((resolveDelay) => setTimeout(resolveDelay, STREAMERBOT_STALE_LISTENER_RECOVERY_MS));
+  runLauncher(streamerBotLauncher, ['--install-root', installRoot], 110_000);
 }
 
 async function acquireLaunchLock() {
@@ -248,7 +266,7 @@ async function rotateReportHistory(path, maximumBytes = 512 * 1024, retainedFile
 
 function classifyStartupFailure(message) {
   if (/Streamer\.bot.*(?:exited|crash|unavailable)|ECONNREFUSED.*8081/iu.test(message)) return 'streamerbot-crash';
-  if (/port.*(?:owned|conflict|already in use)|address already in use|EADDRINUSE/iu.test(message)) return 'port-conflict';
+  if (/port.*(?:owned|conflict|already in use|did not release)|stale port|address already in use|EADDRINUSE/iu.test(message)) return 'port-conflict';
   if (/configur(?:ation|ed)|invalid.*(?:input|key)|JSON|Unexpected token/iu.test(message)) return 'bridge-configuration';
   if (/healthy|health check|startup|exited during startup/iu.test(message)) return 'bridge-health-timeout';
   return 'launcher-error';

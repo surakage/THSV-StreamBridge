@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -8,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 const roots: string[] = [];
 afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
 const executable = process.platform === 'win32' ? 'powershell.exe' : 'pwsh';
+const packageVersion = (JSON.parse(readFileSync('package.json', 'utf8')) as { version: string }).version;
 const policy = process.platform === 'win32' ? ['-ExecutionPolicy', 'Bypass'] : [];
 function runScript(script: string, args: string[]) { return spawnSync(executable, ['-NoProfile', '-NonInteractive', ...policy, '-File', script, ...args], { encoding: 'utf8' }); }
 
@@ -48,7 +50,7 @@ describe('release preflight scripts', () => {
   it('rejects a candidate tag that differs from package.json', () => {
     const result = runScript('scripts/test-release-candidate.ps1', ['-CurrentTag', 'v9.9.9', '-SkipPackaging']);
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('does not match package.json version 4.0.3');
+    expect(result.stderr).toContain(`does not match package.json version ${packageVersion}`);
   });
 
   it('verifies the exact named SHA-256 and rejects tampered bytes offline', async () => {

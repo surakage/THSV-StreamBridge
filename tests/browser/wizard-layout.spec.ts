@@ -131,7 +131,7 @@ test('pre-stream check requires healthy local evidence and explicit import confi
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Test & finish', exact: true })).toBeVisible();
-  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(8);
+  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(10);
   await expect(page.locator('#pre-stream-badge')).toHaveText('1 step left');
   await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
 
@@ -343,8 +343,8 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   await unlock(page);
   await page.getByRole('button', { name: 'Streamer.bot', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'One Streamer.bot import' })).toBeVisible();
-  await expect(page.locator('[data-import-kind="core"] input')).toHaveCount(12);
-  await expect(page.locator('[data-import-kind="core"] input:checked')).toHaveCount(12);
+  await expect(page.locator('[data-import-kind="core"] input')).toHaveCount(13);
+  await expect(page.locator('[data-import-kind="core"] input:checked')).toHaveCount(13);
   await expect(page.locator('[data-import-kind="addon"] input')).toHaveCount(7);
   expect(await page.locator('[data-import-kind="addon"] input:disabled').count()).toBeGreaterThan(0);
   const downloadPromise = page.waitForEvent('download');

@@ -191,10 +191,12 @@ async function loadAddOns() {
   marketplaceStatus?.setAttribute('aria-busy', 'true');
   if (marketplaceStatus) marketplaceStatus.textContent = 'Verifying optional add-ons...';
   try {
-    const [result, runtime] = await Promise.all([
+    const [result, runtime, sceneCatalog] = await Promise.all([
       api('/wizard/api/addons'),
       fetchAddOnRuntimeDiagnostics(),
+      api('/wizard/api/scene-catalog').catch(() => null),
     ]);
+    state.sceneCatalog = sceneCatalog;
     let acceptanceResult = { acceptance: {} };
     try { acceptanceResult = await api('/wizard/api/addons/acceptance'); }
     catch (error) {
@@ -220,6 +222,7 @@ async function loadAddOns() {
     if (state.selectedAddOnId && !state.addOns.some((addOn) => addOn.moduleId === state.selectedAddOnId)) state.selectedAddOnId = '';
     if (!state.selectedAddOnId && state.addOns.length) state.selectedAddOnId = state.addOns[0].moduleId;
     renderAddOns();
+    void refreshSceneCatalogOnOpen();
     renderDiscoveredAddOns();
     renderTrustedPublishers();
     const pending = state.addOnRestartRequiredIds.size;
@@ -424,6 +427,8 @@ function renderAddOnField(name, schema, value, ui = {}) {
   const fullRow = type === 'array' || schema.format === 'multiline' || ui.fullRow === true;
   const wrapper = (content) => `<div class="addon-setting ${fullRow ? 'full-row' : ''}${visualTarget ? ' overlay-visual-setting' : ''}"${visualTarget ? ` data-overlay-visual-target="${safe(visualTarget)}"` : ''}${addOnVisibilityAttributes(ui)}>${content}${visualHelp}</div>`;
   if (ui.control === 'scene-mappings') return wrapper(renderSceneMappingEditor(name, value, help));
+  if (ui.control === 'scene-list') return wrapper(renderSceneListPicker(name, label, value, help));
+  if (ui.control === 'scene-name') return wrapper(renderSceneNamePicker(name, label, value, help, ui));
   if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this add-on's action-grants section.</small></label>`);
   if (type === 'array' && Array.isArray(schema.items?.enum)) {
     const selected = new Set(Array.isArray(value) ? value : []);
@@ -436,6 +441,59 @@ function renderAddOnField(name, schema, value, ui = {}) {
   if (schema.format === 'multiline') return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="${safe(Number.isInteger(ui.rows) ? ui.rows : 4)}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 2000)}">${safe(value ?? '')}</textarea>${help}</label>`);
   if (schema.format === 'color') return wrapper(`<label>${label}<input name="${safe(name)}" type="color" value="${safe(value || '#6f42c1')}">${help}</label>`);
   return wrapper(`<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 500)}">${help}</label>`);
+}
+
+async function refreshSceneCatalogOnOpen() {
+  if (state.sceneCatalogRefreshRequested || state.sceneCatalog?.refreshAvailable !== true) return;
+  state.sceneCatalogRefreshRequested = true;
+  try {
+    await api('/wizard/api/scene-catalog/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'obs', connectionIndex: 0 }) });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    state.sceneCatalog = await api('/wizard/api/scene-catalog'); populateSceneCatalogControls(document);
+  } catch { /* Existing observations and manual entry remain available. */ }
+}
+
+const sceneProviderLabels = { obs: 'OBS Studio', streamlabs: 'Streamlabs Desktop', meld: 'Meld Studio' };
+function catalogScenes(provider) { return Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []; }
+function catalogSceneOptions(provider) { const scenes = catalogScenes(provider); return `<option value="">${scenes.length ? 'Choose a detected scene…' : 'No scenes detected yet'}</option>${scenes.map((scene) => `<option value="${safe(scene)}">${safe(scene)}</option>`).join('')}`; }
+function sceneProviderOptions(selected = 'obs') { return Object.entries(sceneProviderLabels).map(([provider, label]) => `<option value="${provider}" ${provider === selected ? 'selected' : ''}>${label}</option>`).join(''); }
+function renderSceneListPicker(name, label, value, help) {
+  return `<fieldset class="scene-catalog-picker" data-scene-list-picker><legend>${label}</legend><textarea name="${safe(name)}" rows="4" data-addon-string-list="true" placeholder="One exact scene name per line">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>${help}<div class="scene-catalog-controls"><label>Broadcast app<select data-scene-catalog-provider>${sceneProviderOptions()}</select></label><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs')}</select></label><button type="button" class="ghost compact" data-add-catalog-scene>Add scene</button><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></div><small data-scene-catalog-status>Manual entry stays available. OBS supports a full read-only refresh; Meld and Streamlabs learn exact names as scene changes are observed.</small></fieldset>`;
+}
+function renderSceneNamePicker(name, label, value, help, ui) {
+  const listId = `scene-catalog-${String(name).replace(/[^a-z0-9_-]/giu, '-')}`;
+  return `<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" list="${safe(listId)}" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"><datalist id="${safe(listId)}" data-scene-catalog-list>${catalogScenes('obs').map((scene) => `<option value="${safe(scene)}"></option>`).join('')}</datalist>${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>Choose a detected exact name or keep typing a custom one.</small></label>`;
+}
+function providerForSceneInput(input) {
+  const form = input.closest('form'); const providerField = input.dataset.providerField;
+  return (providerField && form?.elements.namedItem(providerField)?.value) || input.closest('[data-scene-mapping-row]')?.querySelector('[data-scene-mapping-field="provider"]')?.value || 'obs';
+}
+function populateSceneCatalogControls(root = document) {
+  root.querySelectorAll('[data-scene-list-picker]').forEach((picker) => { const provider = picker.querySelector('[data-scene-catalog-provider]').value; picker.querySelector('[data-scene-catalog-select]').innerHTML = catalogSceneOptions(provider); });
+  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const list = input.parentElement.querySelector('[data-scene-catalog-list]'); if (list) list.innerHTML = catalogScenes(providerForSceneInput(input)).map((scene) => `<option value="${safe(scene)}"></option>`).join(''); });
+}
+async function refreshSceneCatalog(button) {
+  const picker = button.closest('[data-scene-list-picker]'); const input = button.closest('label')?.querySelector('[data-scene-name-input]');
+  const provider = picker?.querySelector('[data-scene-catalog-provider]')?.value || (input ? providerForSceneInput(input) : 'obs');
+  const status = button.closest('.addon-setting, [data-scene-mapping-row]')?.querySelector('[data-scene-catalog-status]');
+  button.disabled = true; if (status) status.textContent = `Requesting ${sceneProviderLabels[provider]} scenes without changing the active scene…`;
+  try {
+    await api('/wizard/api/scene-catalog/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider, connectionIndex: 0 }) });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    state.sceneCatalog = await api('/wizard/api/scene-catalog'); populateSceneCatalogControls(button.closest('form') || document);
+    const count = catalogScenes(provider).length; if (status) status.textContent = `${count} exact ${sceneProviderLabels[provider]} scene name${count === 1 ? '' : 's'} available. Manual entry remains available.`;
+  } catch (error) { if (status) status.textContent = `${error.message} Previously detected scenes and manual entry are unchanged.`; }
+  finally { button.disabled = false; }
+}
+function attachSceneCatalogPickers(form) {
+  form.querySelectorAll('[data-scene-catalog-provider]:not([data-scene-catalog-attached])').forEach((select) => { select.dataset.sceneCatalogAttached = 'true'; select.addEventListener('change', () => populateSceneCatalogControls(form)); });
+  form.querySelectorAll('[data-refresh-scene-catalog]:not([data-scene-catalog-attached])').forEach((button) => { button.dataset.sceneCatalogAttached = 'true'; button.addEventListener('click', () => refreshSceneCatalog(button)); });
+  form.querySelectorAll('[data-add-catalog-scene]:not([data-scene-catalog-attached])').forEach((button) => { button.dataset.sceneCatalogAttached = 'true'; button.addEventListener('click', () => {
+    const picker = button.closest('[data-scene-list-picker]'); const selected = picker.querySelector('[data-scene-catalog-select]').value; const textarea = picker.querySelector('textarea'); if (!selected) return;
+    const values = textarea.value.split(/\r?\n/u).map((entry) => entry.trim()).filter(Boolean); if (!values.includes(selected)) textarea.value = [...values, selected].join('\n'); textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  }); });
+  if (form.dataset.sceneCatalogChangeAttached !== 'true') { form.dataset.sceneCatalogChangeAttached = 'true'; form.addEventListener('change', (event) => { if (event.target.matches('[data-scene-mapping-field="provider"]') || form.querySelector(`[data-provider-field="${CSS.escape(event.target.name || '')}"]`)) populateSceneCatalogControls(form); }); }
+  populateSceneCatalogControls(form);
 }
 
 function addOnVisualSettingTarget(name, schema = {}) {
@@ -539,7 +597,7 @@ function inspectedActionOptions(selectedId = '') {
 function renderSceneMappingRow(mapping = {}) {
   const provider = ['obs', 'streamlabs', 'meld'].includes(mapping.provider) ? mapping.provider : 'obs'; const delay = Number.isInteger(mapping.delaySeconds) ? Math.min(60, Math.max(0, mapping.delaySeconds)) : 0;
   const id = typeof mapping.id === 'string' && mapping.id ? mapping.id : `scene-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-  return `<article class="scene-mapping-row" data-scene-mapping-row data-scene-mapping-id="${safe(id)}"><div class="title-row"><label class="addon-toggle"><span><strong>Mapping enabled</strong></span><input type="checkbox" role="switch" data-scene-mapping-field="enabled" ${mapping.enabled !== false ? 'checked' : ''}><i aria-hidden="true"></i></label><button type="button" class="danger ghost" data-remove-scene-mapping>Remove</button></div><div class="scene-mapping-grid"><label>Provider<select data-scene-mapping-field="provider"><option value="obs" ${provider === 'obs' ? 'selected' : ''}>OBS Studio</option><option value="streamlabs" ${provider === 'streamlabs' ? 'selected' : ''}>Streamlabs Desktop</option><option value="meld" ${provider === 'meld' ? 'selected' : ''}>Meld Studio</option></select></label><label>Exact scene name<input type="text" maxlength="256" required data-scene-mapping-field="sceneName" value="${safe(mapping.sceneName || '')}" placeholder="Starting Soon"></label><label>Connection name (optional)<input type="text" maxlength="256" data-scene-mapping-field="connectionName" value="${safe(mapping.connectionName || '')}" placeholder="Any connection"></label><label>Wait before action (seconds)<input type="number" min="0" max="60" step="1" data-scene-mapping-field="delaySeconds" value="${safe(delay)}"></label><label class="full-row">Streamer.bot target action<select required data-scene-mapping-field="actionId">${sceneActionOptions(mapping.actionId || '')}</select><small>Approve this same action in the section below before restarting StreamBridge.</small></label></div></article>`;
+  return `<article class="scene-mapping-row" data-scene-mapping-row data-scene-mapping-id="${safe(id)}"><div class="title-row"><label class="addon-toggle"><span><strong>Mapping enabled</strong></span><input type="checkbox" role="switch" data-scene-mapping-field="enabled" ${mapping.enabled !== false ? 'checked' : ''}><i aria-hidden="true"></i></label><button type="button" class="danger ghost" data-remove-scene-mapping>Remove</button></div><div class="scene-mapping-grid"><label>Provider<select data-scene-mapping-field="provider"><option value="obs" ${provider === 'obs' ? 'selected' : ''}>OBS Studio</option><option value="streamlabs" ${provider === 'streamlabs' ? 'selected' : ''}>Streamlabs Desktop</option><option value="meld" ${provider === 'meld' ? 'selected' : ''}>Meld Studio</option></select></label><label>Exact scene name<input type="text" maxlength="256" required data-scene-mapping-field="sceneName" data-scene-name-input value="${safe(mapping.sceneName || '')}" placeholder="Starting Soon" list="scene-mapping-catalog-${safe(id)}"><datalist id="scene-mapping-catalog-${safe(id)}" data-scene-catalog-list>${catalogScenes(provider).map((scene) => `<option value="${safe(scene)}"></option>`).join('')}</datalist><span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>Choose a detected exact name or keep typing a custom one.</small></label><label>Connection name (optional)<input type="text" maxlength="256" data-scene-mapping-field="connectionName" value="${safe(mapping.connectionName || '')}" placeholder="Any connection"></label><label>Wait before action (seconds)<input type="number" min="0" max="60" step="1" data-scene-mapping-field="delaySeconds" value="${safe(delay)}"></label><label class="full-row">Streamer.bot target action<select required data-scene-mapping-field="actionId">${sceneActionOptions(mapping.actionId || '')}</select><small>Approve this same action in the section below before restarting StreamBridge.</small></label></div></article>`;
 }
 
 function renderSceneMappingEditor(name, value, help) {
@@ -555,7 +613,7 @@ function syncSceneMappingEditor(editor) {
 
 function attachSceneMappingEditor(editor) {
   editor.addEventListener('input', () => syncSceneMappingEditor(editor)); editor.addEventListener('change', () => syncSceneMappingEditor(editor));
-  editor.querySelector('[data-add-scene-mapping]').addEventListener('click', () => { const list = editor.querySelector('[data-scene-mapping-list]'); if (list.children.length >= 50) { byId('addon-state').textContent = 'Scene Actions supports at most 50 mappings.'; return; } list.insertAdjacentHTML('beforeend', renderSceneMappingRow()); syncSceneMappingEditor(editor); });
+  editor.querySelector('[data-add-scene-mapping]').addEventListener('click', () => { const list = editor.querySelector('[data-scene-mapping-list]'); if (list.children.length >= 50) { byId('addon-state').textContent = 'Scene Actions supports at most 50 mappings.'; return; } list.insertAdjacentHTML('beforeend', renderSceneMappingRow()); attachSceneCatalogPickers(editor.closest('form')); syncSceneMappingEditor(editor); });
   editor.addEventListener('click', (event) => { const button = event.target.closest('[data-remove-scene-mapping]'); if (!button) return; button.closest('[data-scene-mapping-row]').remove(); syncSceneMappingEditor(editor); });
 }
 
@@ -1107,6 +1165,7 @@ function renderAddOns() {
       form.querySelectorAll('.addon-settings-section').forEach((section) => { section.open = open; });
     }));
     updateAddOnFieldVisibility(form);
+    attachSceneCatalogPickers(form);
     scheduleAddOnOverlayDraftPreview(form, true);
   });
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);

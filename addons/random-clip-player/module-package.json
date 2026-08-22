@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.",
-  "changelog": "4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.4.0: adds a fixed four-second end fade and transition buffer, keeps shuffle-without-repeats before refetching the configured pool, and adds creator-triggered Streamer.bot Enable/Disable actions for scene automation. 1.3.0: playback now remains retryable until the matching overlay reports it started, stale responses and lifecycle IDs cannot cancel or advance the active clip, loading time no longer shortens playback, and creators can configure mute and volume. 1.2.0: replaced the fixed rotation-interval timer with playback-completion-driven scheduling -- the next clip is requested a short configurable pause after the current one actually finishes. The clip list refreshes only when the whole rotation pool has been played through. 1.1.0: settings now take effect and newly created Twitch clips enter rotation after a pool refresh. 1.0.0: initial version.",
+  "changelog": "4.0.4: aligned with THSV StreamBridge 4.0.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: aligned with the stable THSV StreamBridge 2.5.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: aligned with the stable THSV StreamBridge 2.5.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: aligned with the stable THSV StreamBridge 2.5.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: aligned with the stable THSV StreamBridge 2.4.2 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.1: aligned with the stable THSV StreamBridge 2.4.1 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.4.0: adds a fixed four-second end fade and transition buffer, keeps shuffle-without-repeats before refetching the configured pool, and adds creator-triggered Streamer.bot Enable/Disable actions for scene automation. 1.3.0: playback now remains retryable until the matching overlay reports it started, stale responses and lifecycle IDs cannot cancel or advance the active clip, loading time no longer shortens playback, and creators can configure mute and volume. 1.2.0: replaced the fixed rotation-interval timer with playback-completion-driven scheduling -- the next clip is requested a short configurable pause after the current one actually finishes. The clip list refreshes only when the whole rotation pool has been played through. 1.1.0: settings now take effect and newly created Twitch clips enter rotation after a pool refresh. 1.0.0: initial version.",
   "permissions": [
     "streamerbot.run-approved-action",
     "overlay.publish",
@@ -24,7 +24,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.random-clip-player",
     "name": "Random Clip Player",
-    "version": "4.0.3",
+    "version": "4.0.4",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -35,7 +35,8 @@
       "addon.thsv.clip-library-cache.snapshot",
       "addon.thsv.random-clip-player.clip-download-received",
       "addon.thsv.random-clip-player.control",
-      "stream.scene-changed"
+      "stream.scene-changed",
+      "system.scene-catalog"
     ],
     "commandsProvided": [],
     "actionsProvided": [],
@@ -45,7 +46,7 @@
       "data/addons/.state/thsv.random-clip-player/"
     ],
     "installationSteps": [
-      "Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.3.sb into Streamer.bot.",
+      "Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.4.sb into Streamer.bot.",
       "In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: \"Get Clips\" and \"Get Clip Download\". Neither fetch action has a chat/event trigger by design.",
       "Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.",
       "Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes."
@@ -81,15 +82,15 @@
         "description": "Confirms the add-on can request clips and receive Streamer.bot relay events."
       }
     ],
-    "minimumBridgeVersion": "4.0.3",
-    "maximumTestedBridgeVersion": "4.0.3"
+    "minimumBridgeVersion": "4.0.4",
+    "maximumTestedBridgeVersion": "4.0.4"
   },
   "entrypoint": "dist/index.js",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 25320,
-      "sha256": "5a201117b32e64a15a3bfb47e9b028b5756d88288da6b1045c31d2cd944bc63b"
+      "size": 25499,
+      "sha256": "cddcd053182708b99320cdd3692186408d4ab50d042f24bf28f8b16f556e8079"
     },
     {
       "path": "schemas/config.json",
@@ -103,8 +104,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 2572,
-      "sha256": "fc57b2cca96f59b3b2c50f8e3a0c7ba746105342d01a06d1b34f64aa37589263"
+      "size": 2641,
+      "sha256": "e293e32fc4acd6c42f58b205665a985d7faf6dd4bd7074a6e6880a974a58cc2d"
     }
   ],
   "settingsUi": "ui/settings.json"

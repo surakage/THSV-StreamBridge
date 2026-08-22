@@ -36,6 +36,8 @@ import type { LiveAcceptanceConfirmation, LiveAcceptanceService } from './live-a
 import type { BuildProvenance } from './build-provenance-service.js';
 import type { ObsSourceInventoryService } from './obs-source-inventory-service.js';
 import type { ReleaseReadinessService } from './release-readiness-service.js';
+import type { SceneCatalogService } from './scene-catalog-service.js';
+import type { StreamerBotTriggerAssuranceService } from './streamerbot-trigger-assurance-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -146,6 +148,7 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
   { kind: 'action', id: 'c1d3a9e2-0f4b-4b78-91c2-7a65d8e309f1', name: 'THSV StreamBridge - Reward Administration', packageId: 'reward-administration' },
   { kind: 'action', id: 'f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2', name: 'THSV StreamBridge - Launch Bridge', packageId: 'bridge-launcher' },
   { kind: 'action', id: '8d8e3667-fd96-510f-b2ae-a8affe5b789a', name: 'THSV StreamBridge - Shutdown Bridge', packageId: 'bridge-launcher' },
+  { kind: 'action', id: '76bc0f01-c3b5-5a6b-b692-f5aa89d8d803', name: 'THSV StreamBridge - Refresh Scene Catalog', packageId: 'scene-catalog' },
 ];
 
 export class WizardService {
@@ -169,7 +172,27 @@ export class WizardService {
     private readonly obsSourceInventory?: ObsSourceInventoryService,
     private readonly buildProvenance?: BuildProvenance,
     private readonly releaseReadiness?: ReleaseReadinessService,
+    private readonly sceneCatalog?: SceneCatalogService,
+    private readonly triggerAssurance?: StreamerBotTriggerAssuranceService,
   ) {}
+
+  public async triggerAssuranceStatus(): Promise<Readonly<Record<string, unknown>>> {
+    return this.triggerAssurance?.status() ?? { available: false, ready: false, canSave: false, error: 'Trigger assurance is unavailable in this installation.' };
+  }
+
+  public async reconcileStreamerBotTriggers(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.triggerAssurance === undefined) throw new WizardTransactionError(503, 'Trigger assurance is unavailable in this installation.');
+    return await this.triggerAssurance.reconcile(input);
+  }
+
+  public async streamerBotTriggerBackups(): Promise<Readonly<Record<string, unknown>>> {
+    return this.triggerAssurance?.backups() ?? { backups: [] };
+  }
+
+  public async restoreStreamerBotTriggerBackup(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.triggerAssurance === undefined) throw new WizardTransactionError(503, 'Trigger assurance is unavailable in this installation.');
+    return await this.triggerAssurance.restore(input);
+  }
 
   public liveAcceptanceStatus(): Readonly<Record<string, unknown>> {
     if (this.liveAcceptance === undefined) throw new WizardTransactionError(503, 'Live acceptance tracking is unavailable in this installation.');
@@ -199,6 +222,15 @@ export class WizardService {
     if (this.obsSourceInventory === undefined) throw new WizardTransactionError(503, 'Expected OBS source inventory is unavailable in this installation.');
     this.obsSourceInventory.replace(input);
     return this.obsSourceInventory.status(overlay);
+  }
+
+  public sceneCatalogStatus(): Readonly<Record<string, unknown>> {
+    return this.sceneCatalog?.status() ?? { version: 1, refreshAvailable: false, providers: { obs: { scenes: [], connections: [] }, streamlabs: { scenes: [], connections: [] }, meld: { scenes: [], connections: [] } } };
+  }
+
+  public async refreshSceneCatalog(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.sceneCatalog === undefined) throw new WizardTransactionError(503, 'Scene catalog is unavailable in this installation.');
+    return this.sceneCatalog.refresh(input);
   }
 
   public provenance(): Readonly<BuildProvenance> | Readonly<Record<string, unknown>> {

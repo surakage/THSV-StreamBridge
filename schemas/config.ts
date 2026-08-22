@@ -207,9 +207,18 @@ function decodeWindows1252Utf8(value: string): string | undefined {
 }
 
 export function repairCommonMojibake(value: string): string {
+  // Some older wizard saves passed the original UTF-8 text through Windows-1252 more than
+  // once, then lost the final byte marker from the em dash. Repair those exact, known alert
+  // decorations before attempting the strict whole-string decoder below. Keeping this list
+  // explicit avoids guessing at ordinary international text.
+  const knownRepeatedEncodingRepairs = value
+    .replaceAll('\u00c3\u00a2\u00c5\u201c\u00c2\u00a8', '\u2728')
+    .replaceAll('\u00c3\u00a2\u00e2\u201a\u00ac\u00e2\u20ac', '\u2014')
+    .replaceAll('\u00c3\u00b0\u00c5\u00b8\u00e2\u20ac\u00c2\u00a5', '\ud83d\udd25')
+    .replaceAll('\u00c3\u201a\u00c2\u00b7', '\u00b7');
   // Accept a strict Windows-1252-to-UTF-8 repair only when it reduces suspicious byte markers.
   // This fixes provider text such as emoji and punctuation without changing ordinary Unicode.
-  let repaired = value;
+  let repaired = knownRepeatedEncodingRepairs;
   for (let pass = 0; pass < 2; pass += 1) {
     const decoded = decodeWindows1252Utf8(repaired);
     if (decoded === undefined || mojibakeScore(decoded) >= mojibakeScore(repaired)) break;

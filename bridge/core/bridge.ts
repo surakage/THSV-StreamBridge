@@ -56,6 +56,7 @@ export class StreamBridge {
   private readonly filters: EventFilterEngine;
   private effectiveCommands: EffectiveCommandsResult;
   private readonly livePlatforms = new Set<string>();
+  private readonly lifecycleState = new Map<string, 'online' | 'offline'>();
   private readonly mainFeatures = new MainFeatureCoordinator();
   private running = false;
   private startedAt: string | undefined;
@@ -164,6 +165,22 @@ export class StreamBridge {
     return this.timedActions.control(operation);
   }
 
+  public async recoverLiveSession(platforms: readonly string[], startedAt?: string): Promise<Readonly<Record<string, unknown>>> {
+    if (this.timedActions === undefined) throw new Error('Timed actions adapter is not configured');
+    const status = await this.timedActions.recoverLiveSession(platforms, startedAt);
+    this.syncLivePlatformsFromTimedActions();
+    this.mainFeatures.restoreLivePlatforms(status['livePlatforms'] as readonly unknown[]);
+    return { ...status, recovered: true, source: 'verified-broadcast-status', syntheticPlatformEvent: false };
+  }
+
+  public async endRecoveredLiveSession(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.timedActions === undefined) throw new Error('Timed actions adapter is not configured');
+    const status = await this.timedActions.control('stop');
+    this.livePlatforms.clear();
+    this.mainFeatures.restoreLivePlatforms([]);
+    return { ...status, recovered: true, source: 'verified-broadcast-status', syntheticPlatformEvent: false };
+  }
+
   public async testTimedAction(id: string): Promise<Readonly<Record<string, unknown>>> {
     if (this.timedActions === undefined) throw new Error('Timed actions adapter is not configured');
     return this.timedActions.test(id);
@@ -177,6 +194,13 @@ export class StreamBridge {
     const validatedEvent = withoutCallerControlledMetadata(parsed.data, this.config.security.preserveRawPayloads);
     if (this.deduplicator.isDuplicate(validatedEvent)) {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
+      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
+    }
+    const lifecycleState = validatedEvent.metadata.simulated ? undefined : lifecycleStateFor(validatedEvent.eventType);
+    if (lifecycleState !== undefined && this.lifecycleState.get(validatedEvent.platform) === lifecycleState) {
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      await this.dependencies.deduplicationStore.flush();
+      this.logger.debug('Redundant lifecycle state ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
     try {
@@ -232,6 +256,7 @@ export class StreamBridge {
     }
     try {
       const outputs = await this.publishEvents(events, initialFilterDecision);
+      if (lifecycleState !== undefined) this.lifecycleState.set(validatedEvent.platform, lifecycleState);
       this.mainFeatures.observe(validatedEvent);
       const lastEvent = events.at(-1);
       if (lastEvent === undefined) throw new Error('No accepted event was produced');
@@ -423,6 +448,12 @@ function recordString(value: Readonly<Record<string, unknown>>, key: string, fal
 
 function isIngestResult(value: unknown): value is IngestResult {
   return value !== null && typeof value === 'object' && (value as Record<string, unknown>)['accepted'] === true && typeof (value as Record<string, unknown>)['eventId'] === 'string';
+}
+
+function lifecycleStateFor(eventType: string): 'online' | 'offline' | undefined {
+  if (eventType === 'stream.online') return 'online';
+  if (eventType === 'stream.offline') return 'offline';
+  return undefined;
 }
 
 function withoutCallerControlledMetadata(event: NormalizedEvent, preserveRawPayload: boolean): NormalizedEvent {

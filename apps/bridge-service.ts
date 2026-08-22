@@ -36,6 +36,10 @@ import { LiveAcceptanceService } from '../bridge/services/live-acceptance-servic
 import { readBuildProvenance } from '../bridge/services/build-provenance-service.js';
 import { ObsSourceInventoryService } from '../bridge/services/obs-source-inventory-service.js';
 import { ReleaseReadinessService } from '../bridge/services/release-readiness-service.js';
+import { SceneCatalogService, SCENE_CATALOG_ACTION_ID } from '../bridge/services/scene-catalog-service.js';
+import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerbot-trigger-assurance-service.js';
+import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
+import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -58,6 +62,7 @@ const controlToken = await resolveControlToken(config.security.controlTokenEnv, 
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
 const enabledPlatformIds = new Set(Object.entries(config.platforms).filter(([, platform]) => platform.enabled && platform.inputEnabled).map(([platformId]) => platformId));
+const liveRecoveryPlatformIds = [...enabledPlatformIds].filter((platform) => ['twitch', 'youtube', 'kick', 'tiktok'].includes(platform));
 const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
@@ -142,6 +147,33 @@ const liveAcceptance = new LiveAcceptanceService(join(dataRoot, 'state'), {
 await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
+const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
+const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
+  query: () => obsDirectSceneClient.isStreaming(),
+  onStarted: async () => {
+    await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
+    overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
+  },
+  onStopped: async () => {
+    await activeBridge.endRecoveredLiveSession();
+    overlayHub.endRecoveredLiveSession();
+  },
+  logger,
+});
+const sceneCatalog = new SceneCatalogService(
+  join(dataRoot, 'state'),
+  streamerBotInspector === undefined ? undefined : async (provider, connectionIndex) => { await streamerBotInspector.runApprovedAction(SCENE_CATALOG_ACTION_ID, { sceneCatalogProvider: provider, sceneCatalogConnectionIndex: connectionIndex }); },
+  async (provider) => provider === 'obs' ? await obsDirectSceneClient.getSceneList() : undefined,
+);
+await sceneCatalog.start();
+const streamerBotLauncher = new StreamerBotLauncherService(dataRoot, config.streamerbot.url);
+const triggerAssurance = new StreamerBotTriggerAssuranceService({
+  packageRoot: resolve('packages', 'streamerbot'),
+  stateRoot: join(dataRoot, 'state'),
+  actionsPath: () => streamerBotLauncher.actionsPath(),
+  streamerBotRunning: () => streamerBotLauncher.isRunning(),
+  moduleStatus: () => modules.statuses(),
+});
 const wizard = new WizardService(
   streamerBotInspector,
   new WizardConfigurationGateway(configPath, (platforms) => registry.capabilityReports(platforms)),
@@ -149,7 +181,7 @@ const wizard = new WizardService(
   addOnWizard,
   releaseUpdates,
   addOnUpdates,
-  new StreamerBotLauncherService(dataRoot, config.streamerbot.url),
+  streamerBotLauncher,
   automaticUpdates,
   universalImports,
   new WebsiteCompanionService(join(dataRoot, 'private', 'website-companion.json'), process.env['THSV_WEBSITE_COMPANION_URL'] ?? 'https://www.slothbloom.com'),
@@ -157,8 +189,17 @@ const wizard = new WizardService(
   obsSourceInventory,
   buildProvenance,
   new ReleaseReadinessService(STREAMBRIDGE_VERSION, resolve('artifacts', 'release-lifecycle', 'latest.json'), resolve('artifacts', 'published-release', 'latest.json'), join(dataRoot, 'state', 'release-readiness-github.json')),
+  sceneCatalog,
+  triggerAssurance,
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
+activeBridge.subscribe((event) => sceneCatalog.observe(event));
+activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
+activeBridge.subscribe(async (event) => {
+  if (event.metadata.simulated || event.eventType !== 'addon.thsv.live-beacon.broadcast-control' || event.payload['action'] !== 'online') return;
+  await activeBridge.recoverLiveSession(liveRecoveryPlatformIds, typeof event.payload['startedAt'] === 'string' ? event.payload['startedAt'] : event.receivedAt);
+  overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
+});
 activeBridge.subscribe((event) => {
   if (event.eventType !== 'chat.message') {
     overlayHub.publish(event);
@@ -195,12 +236,14 @@ async function shutdown(signal: string): Promise<void> {
   stopping = true;
   if (commandDirectoryRefreshTimer !== undefined) clearInterval(commandDirectoryRefreshTimer);
   automaticUpdates.stop();
+  obsBroadcastMonitor.stop();
   logger.info('Shutdown requested', { signal });
   try {
     await server.stop();
     await activeBridge.stop();
     await liveAcceptance.flush();
     await obsSourceInventory.flush();
+    await sceneCatalog.flush();
     await logger.flush();
     process.exitCode = 0;
   } catch (error) {
@@ -224,7 +267,13 @@ process.once('unhandledRejection', (error) => { logger.error('Unhandled rejectio
 
 try {
   await activeBridge.start();
+  await obsBroadcastMonitor.start();
   await server.start();
+  if (streamerBotInspector !== undefined) {
+    await sceneCatalog.refresh({ provider: 'obs', connectionIndex: 0 })
+      .then(() => logger.info('Initial OBS scene snapshot requested', { provider: 'obs', connectionIndex: 0 }))
+      .catch((error: unknown) => logger.warn('Initial OBS scene snapshot was unavailable; observed scene changes remain active', { error }));
+  }
   automaticUpdates.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
   await refreshCommandDirectory();

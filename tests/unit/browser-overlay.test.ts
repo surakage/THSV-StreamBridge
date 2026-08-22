@@ -123,10 +123,24 @@ describe('Browser Overlay Hub contract', () => {
 
       hub.publish(lifecycle('stream.offline', 'youtube', 'youtube'));
       expect(broadcast.mock.calls.map(([message]) => JSON.parse(message) as { kind?: string; reason?: string })).toContainEqual(expect.objectContaining({ kind: 'overlay.reset', reason: 'stream-offline' }));
+      hub.publish(lifecycle('stream.offline', 'youtube', 'youtube-duplicate'));
+      expect(broadcast.mock.calls.map(([message]) => JSON.parse(message) as { kind?: string }).filter((message) => message.kind === 'overlay.reset')).toHaveLength(1);
       expect(hub.status()).toMatchObject({ livePlatforms: [], retainedLabelSnapshots: 0, presentationQueue: { active: null, queued: [] } });
       expect((hub as unknown as { activeMediaMessages: Map<string, unknown> }).activeMediaMessages.size).toBe(0);
       hub.stop();
     } finally { vi.useRealTimers(); }
+  });
+
+  it('recovers and ends OBS-verified sessions once even when platform offline events are missing', async () => {
+    const config = await testConfig();
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const broadcast = vi.spyOn(hub as unknown as { broadcast(message: string): void }, 'broadcast');
+    hub.recoverLiveSession(['twitch', 'youtube', 'kick', 'tiktok']);
+    expect(hub.status()).toMatchObject({ livePlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] });
+    hub.endRecoveredLiveSession(); hub.endRecoveredLiveSession();
+    expect(hub.status()).toMatchObject({ livePlatforms: [] });
+    expect(broadcast.mock.calls.map(([message]) => JSON.parse(message) as { kind?: string }).filter((message) => message.kind === 'overlay.reset')).toHaveLength(1);
+    hub.stop();
   });
 
   it('accepts queued add-on presentations immediately while serializing their dispatch with a configured gap', async () => {
@@ -269,6 +283,8 @@ describe('Browser Overlay Hub contract', () => {
     receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'host.visibility', host: 'obs', rendererId: 'obs-alerts-1', surface: '/overlay/alerts:alerts', scene: 'Live - Village', visible: true, active: true }), socket);
     receive(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'host.visibility', host: 'obs', rendererId: 'obs-addon-1', moduleId: 'sample.labels', surface: '/overlay/addons/sample.labels', visible: false }), socket);
     expect(hub.status()).toMatchObject({ hostVisibility: { supported: true, visibleObsSources: 1, obsSources: [{ rendererId: 'obs-alerts-1', scene: 'Live - Village', visible: true, active: true }, { rendererId: 'obs-addon-1', moduleId: 'sample.labels', visible: false }] } });
+    const future = Date.now() + 180_001;
+    expect(hub.status(future)).toMatchObject({ hostVisibility: { supported: false, visibleObsSources: 0, obsSources: [] } });
     hub.stop();
   });
 

@@ -102,7 +102,8 @@ export class TimedActionsAdapter extends ManagedAdapter {
       await this.persist();
       for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
     } else if (operation === 'stop') {
-      this.clearTimers(); this.livePlatforms.clear(); this.stateData.session = { active: false, paused: false, startedAt: '', livePlatforms: [] }; await this.persist();
+      this.clearTimers(); this.livePlatforms.clear(); this.clearPendingSelections();
+      this.stateData.session = { active: false, paused: false, startedAt: '', livePlatforms: [] }; await this.persist();
     } else if (operation === 'pause' && this.stateData.session.active && !this.stateData.session.paused) {
       this.clearTimers(); this.stateData.session.paused = true; this.stateData.session.pausedAt = new Date().toISOString(); await this.persist();
     } else if (operation === 'resume' && this.stateData.session.active && this.stateData.session.paused) {
@@ -115,6 +116,20 @@ export class TimedActionsAdapter extends ManagedAdapter {
       this.stateData.session.paused = false; delete this.stateData.session.pausedAt; await this.persist();
       for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
     }
+    return this.controlStatus();
+  }
+
+  /** Arms a real session from a verified broadcast-app status query without inventing a platform event. */
+  public async recoverLiveSession(platforms: readonly string[], startedAt = new Date().toISOString()): Promise<Readonly<Record<string, unknown>>> {
+    if (this.stateData.session.active && !this.stateData.session.paused) return this.controlStatus();
+    this.clearTimers(); this.livePlatforms.clear();
+    for (const platform of platforms) if (/^[a-z][a-z0-9-]{1,30}$/u.test(platform)) this.livePlatforms.add(platform);
+    if (this.livePlatforms.size === 0) this.livePlatforms.add(OPERATOR_ACTIVE_SESSION_PLATFORM);
+    this.stateData.session = { active: true, paused: false, startedAt: Number.isFinite(Date.parse(startedAt)) ? new Date(startedAt).toISOString() : new Date().toISOString(), livePlatforms: [...this.livePlatforms] };
+    for (const timer of Object.values(this.stateData.timers)) { delete timer.lastScheduledAt; delete timer.nextScheduledAt; delete timer.nextIntervalMinutes; delete timer.occurrence; delete timer.pending; }
+    await this.persist();
+    for (const definition of this.timedActions.definitions) if (definition.enabled) await this.plan(definition);
+    this.context?.logger.info('Timed action session recovered from verified broadcast status', { livePlatforms: [...this.livePlatforms], startedAt: this.stateData.session.startedAt });
     return this.controlStatus();
   }
 
@@ -225,7 +240,7 @@ export class TimedActionsAdapter extends ManagedAdapter {
 
   private async emitDefinition(definition: TimedActionDefinition, scheduledAt: string, occurrence: number, missedRuns: number, simulated: boolean): Promise<void> {
     if (this.context === undefined) throw new Error('Timed actions adapter is not running');
-    const selection = await this.select(definition, scheduledAt);
+    const selection = await this.select(definition, scheduledAt, simulated);
     const firedAt = new Date().toISOString();
     const event = buildNormalizedEvent({
       eventType: 'system.timed', platform: 'system', adapter: this.name, sourceEventName: simulated ? 'timed-action.test' : 'timed-action.fired', sourceEventId: `${definition.id}:${scheduledAt}:${simulated ? 'test' : 'live'}`,
@@ -288,9 +303,9 @@ export class TimedActionsAdapter extends ManagedAdapter {
     this.chatActivityHead = 0;
   }
 
-  private async select(definition: TimedActionDefinition, scheduledAt: string): Promise<Selection> {
+  private async select(definition: TimedActionDefinition, scheduledAt: string, simulated: boolean): Promise<Selection> {
     if (definition.selection.mode === 'fixed') return { mode: 'fixed', message: '', messages: {}, cycle: 0, position: 0, size: 0 };
-    if (definition.selection.mode === 'platform-shuffle') return this.selectPlatformMessages(definition, scheduledAt);
+    if (definition.selection.mode === 'platform-shuffle') return this.selectPlatformMessages(definition, scheduledAt, simulated);
     const timer = this.timerState(definition.id); const messages = definition.selection.messages;
     if (timer.remaining === undefined || timer.remaining.length === 0) {
       timer.remaining = messages.map((_, index) => index); timer.cycle = (timer.cycle ?? 0) + 1;
@@ -299,12 +314,12 @@ export class TimedActionsAdapter extends ManagedAdapter {
     if (!timer.remaining.includes(index)) {
       const candidates = timer.remaining.length > 1 && timer.lastSelected !== undefined ? timer.remaining.filter((item) => item !== timer.lastSelected) : timer.remaining;
       index = candidates[Math.min(candidates.length - 1, Math.floor(this.random() * candidates.length))] ?? timer.remaining[0] ?? 0;
-      timer.pending = { scheduledAt, index }; await this.persist();
+      if (!simulated) { timer.pending = { scheduledAt, index }; await this.persist(); }
     }
     return { mode: 'shuffle-container', message: messages[index] ?? '', messages: {}, index, cycle: timer.cycle ?? 1, position: messages.length - timer.remaining.length + 1, size: messages.length };
   }
 
-  private async selectPlatformMessages(definition: TimedActionDefinition, scheduledAt: string): Promise<Selection> {
+  private async selectPlatformMessages(definition: TimedActionDefinition, scheduledAt: string, simulated: boolean): Promise<Selection> {
     if (definition.selection.mode !== 'platform-shuffle') throw new Error('Platform message selection requires platform-shuffle mode.');
     const timer = this.timerState(definition.id); timer.platformBags ??= {};
     const selectedMessages: Record<string, string> = {}; const platformIndexes: Record<string, number> = {};
@@ -317,16 +332,22 @@ export class TimedActionsAdapter extends ManagedAdapter {
       if (!bag.remaining.includes(index)) {
         const candidates = bag.remaining.length > 1 && bag.lastSelected !== undefined ? bag.remaining.filter((candidate) => candidate !== bag.lastSelected) : bag.remaining;
         index = candidates[Math.min(candidates.length - 1, Math.floor(this.random() * candidates.length))] ?? bag.remaining[0] ?? 0;
-        bag.pending = { scheduledAt, index };
+        if (!simulated) bag.pending = { scheduledAt, index };
       }
       selectedMessages[platform] = messages[index] ?? ''; platformIndexes[platform] = index;
       if (firstSize === 0) { firstCycle = bag.cycle; firstPosition = messages.length - bag.remaining.length + 1; firstSize = messages.length; }
     }
-    await this.persist();
+    if (!simulated) await this.persist();
     return { mode: 'platform-shuffle', message: Object.values(selectedMessages)[0] ?? '', messages: selectedMessages, platformIndexes, cycle: firstCycle, position: firstPosition, size: firstSize };
   }
 
   private timerState(id: string): TimerState { return this.stateData.timers[id] ??= {}; }
+  private clearPendingSelections(): void {
+    for (const timer of Object.values(this.stateData.timers)) {
+      delete timer.pending;
+      for (const bag of Object.values(timer.platformBags ?? {})) delete bag.pending;
+    }
+  }
   private async persist(): Promise<void> { this.writeChain = this.writeChain.then(() => writeJsonAtomic(this.timedActions.stateFile, this.stateData)); await this.writeChain; }
 }
 

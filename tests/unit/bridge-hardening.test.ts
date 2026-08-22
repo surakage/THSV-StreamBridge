@@ -84,6 +84,18 @@ describe('StreamBridge hardening', () => {
     await bridge.stop();
   });
 
+  it('ignores a repeated lifecycle state even when the provider assigns a new event ID', async () => {
+    const bridge = createTestBridge(await testConfig());
+    const published: string[] = []; bridge.subscribe((event) => { published.push(event.eventId); });
+    await bridge.start();
+    const source = await fixture();
+    const first = { ...source, eventId: 'youtube-offline-1', eventType: 'stream.offline' as const, platform: 'youtube', user: undefined, source: { ...source.source, eventId: 'youtube-offline-source-1' }, payload: {}, metadata: { ...source.metadata, simulated: false } };
+    await expect(bridge.ingest(first)).resolves.toMatchObject({ duplicate: false });
+    await expect(bridge.ingest({ ...first, eventId: 'youtube-offline-2', source: { ...first.source, eventId: 'youtube-offline-source-2' } })).resolves.toMatchObject({ duplicate: true, deliveryStatus: 'duplicate-ignored' });
+    expect(published).toEqual(['youtube-offline-1']);
+    await bridge.stop();
+  });
+
   it('marks readiness false for an enabled placeholder adapter', async () => {
     const config = await testConfig();
     const twitch = config.platforms['twitch'];

@@ -19,6 +19,21 @@ const sceneRelaySchema = z.object({
   oldSceneName: z.string().max(256).default(''),
 }).strict();
 
+const sceneCatalogRelaySchema = z.object({
+  type: z.literal('thsv.scene-catalog'),
+  version: z.literal('1.0.0'),
+  provider: z.enum(['obs', 'streamlabs', 'meld']),
+  relayId: z.string().min(1).max(256),
+  receivedAt: z.iso.datetime({ offset: true }),
+  connectionIndex: z.number().int().min(0).max(15).default(0),
+  connectionId: z.string().max(256).default(''),
+  connectionName: z.string().max(256).default(''),
+  currentScene: z.string().max(256).default(''),
+  scenes: z.array(z.string().min(1).max(256)).max(256),
+  complete: z.boolean(),
+  error: z.string().max(512).default(''),
+}).strict();
+
 export class StreamerBotSceneRelayAdapter extends ManagedAdapter {
   private unsubscribe: (() => void) | undefined;
   private context: AdapterContext | undefined;
@@ -43,9 +58,9 @@ export class StreamerBotSceneRelayAdapter extends ManagedAdapter {
 
   private async receive(message: Readonly<Record<string, unknown>>): Promise<void> {
     const context = this.context;
-    if (message['type'] !== 'thsv.scene' || context === undefined) return;
+    if ((message['type'] !== 'thsv.scene' && message['type'] !== 'thsv.scene-catalog') || context === undefined) return;
     try {
-      const event = normalizeStreamerBotSceneRelay(message);
+      const event = message['type'] === 'thsv.scene-catalog' ? normalizeStreamerBotSceneCatalogRelay(message) : normalizeStreamerBotSceneRelay(message);
       const result = await context.emit(event, Buffer.byteLength(JSON.stringify(message)));
       this.lastEventAt = new Date().toISOString();
       this.lastError = undefined;
@@ -57,12 +72,41 @@ export class StreamerBotSceneRelayAdapter extends ManagedAdapter {
   }
 }
 
+export function normalizeStreamerBotSceneCatalogRelay(input: unknown): NormalizedEvent {
+  const relay = sceneCatalogRelaySchema.parse(input);
+  const connectionId = clean(relay.connectionId);
+  const connectionName = clean(relay.connectionName);
+  const currentScene = cleanSceneName(relay.currentScene);
+  const error = clean(relay.error);
+  const scenes = [...new Set(relay.scenes.map(cleanSceneName).filter(Boolean))];
+  return {
+    schemaVersion: '1.0.0',
+    eventId: boundedEventId(`streamerbot-scene-catalog-${relay.provider}-`, relay.relayId),
+    eventType: 'system.scene-catalog',
+    platform: 'system',
+    source: { adapter: 'streamerbot-scene-relay', eventId: relay.relayId, eventName: 'SceneCatalog' },
+    receivedAt: relay.receivedAt,
+    channel: { ...(connectionId === '' ? {} : { id: connectionId }), name: connectionName || relay.provider },
+    payload: {
+      provider: relay.provider,
+      connectionIndex: relay.connectionIndex,
+      scenes,
+      complete: relay.complete,
+      ...(connectionId === '' ? {} : { connectionId }),
+      ...(connectionName === '' ? {} : { connectionName }),
+      ...(currentScene === '' ? {} : { currentScene }),
+      ...(error === '' ? {} : { error }),
+    },
+    metadata: { simulated: false },
+  };
+}
+
 export function normalizeStreamerBotSceneRelay(input: unknown): NormalizedEvent {
   const relay = sceneRelaySchema.parse(input);
   const connectionId = clean(relay.connectionId);
   const connectionName = clean(relay.connectionName);
-  const sceneName = clean(relay.sceneName);
-  const oldSceneName = clean(relay.oldSceneName);
+  const sceneName = cleanSceneName(relay.sceneName);
+  const oldSceneName = cleanSceneName(relay.oldSceneName);
   if (sceneName === '') throw new Error('Scene relay requires a non-empty scene name.');
   return {
     schemaVersion: '1.0.0',
@@ -89,3 +133,4 @@ function boundedEventId(prefix: string, value: string): string {
 }
 
 function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim(); }
+function cleanSceneName(value: string): string { return value.replace(/[\p{Cc}]/gu, ' ').trim(); }

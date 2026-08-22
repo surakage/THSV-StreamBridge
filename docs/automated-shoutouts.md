@@ -43,10 +43,10 @@ Streamer.bot does not currently document an arbitrary-channel native shoutout fo
 
 ## Setup
 
-1. Download and extract `THSV-StreamBridge-AddOn-Automated-Shoutouts-1.1.0.zip`, then install its `THSV-Automated-Shoutouts-4.0.3.thsv-addon` through the authenticated wizard and enable it.
+1. Download and extract `THSV-StreamBridge-AddOn-Automated-Shoutouts-1.1.0.zip`, then install its `THSV-Automated-Shoutouts-4.0.4.thsv-addon` through the authenticated wizard and enable it.
 2. Review the settings. Keep daily welcomes disabled until the timezone, safety mode, editable bot list, spam phrases, and blocked domains match the channel. `Balanced` is the recommended starting point; use Allowlist only when every welcomed account must be preapproved.
 3. For manual use, choose **Manual command name** in the add-on settings. Automated Shoutouts registers that moderator-only command and its recommended `!so` alias through the existing chat intakes after save and restart. Do not create a duplicate Command Sync definition or Streamer.bot Command object.
-4. Import `Streamer.bot/THSV-StreamBridge-Automated-Shoutouts-4.0.3.sb` from the extracted add-on bundle. The native platform intake remains a core import supplied by the main StreamBridge download. Do not attach triggers to the Automated Shoutouts actions. Approve `Lookup Twitch Creator` whenever Twitch triggers are enabled. Approve `Twitch Native Shoutout` only when the Twitch mode is `native` or `both`. Visual cards are rendered by StreamBridge and never retrieve clips.
+4. Import `Streamer.bot/THSV-StreamBridge-Automated-Shoutouts-4.0.4.sb` from the extracted add-on bundle. The native platform intake remains a core import supplied by the main StreamBridge download. Do not attach triggers to the Automated Shoutouts actions. Approve `Lookup Twitch Creator` whenever Twitch triggers are enabled. Approve `Twitch Native Shoutout` only when the Twitch mode is `native` or `both`. Visual cards are rendered by StreamBridge and never retrieve clips.
 5. For TikTok output, enable **Allow Streamer.bot to push messages to TikFinity** in TikFinity's Chatbot settings.
 6. Optionally add the concise **Shoutouts** source, `http://127.0.0.1:8787/overlay/shoutouts`, to OBS, Meld, or Streamlabs and use **Send preview card** in the wizard. The previous module-ID URL remains supported for existing scenes.
 

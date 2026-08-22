@@ -16,6 +16,7 @@ describe('Stream Launch Countdown add-on contract', () => {
     const setupText = modulePackage.manifest.installationSteps.join(' ');
 
     expect(modulePackage.manifest.eventSubscriptions).toContain('stream.scene-changed');
+    expect(modulePackage.manifest.eventSubscriptions).toContain('system.scene-catalog');
     expect(schema.properties).toHaveProperty('automaticSceneNames');
     expect(schema.properties).toHaveProperty('stopOutsideAutomaticScenes');
     expect(JSON.stringify(settingsUi)).toContain('automaticSceneNames');

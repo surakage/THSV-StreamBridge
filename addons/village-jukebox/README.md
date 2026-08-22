@@ -5,7 +5,7 @@ Village Jukebox is the THSV-native, YouTube-first song-request add-on. It accept
 ## Setup
 
 1. Install and enable Viewer Foundation when any request platform charges points.
-2. Import `THSV-StreamBridge-Village-Jukebox-4.0.3.sb` into Streamer.bot.
+2. Import `THSV-StreamBridge-Village-Jukebox-4.0.4.sb` into Streamer.bot.
 3. Open **THSV Addon - Village Jukebox - Resolve YouTube Track** and replace the `villageJukeboxYouTubeApiKey` Set Argument value with your private YouTube Data API key. Leave the action triggerless.
 4. Approve **Resolve YouTube Track** and **Settle Twitch Reward** in the wizard. The reward helper is needed only for Twitch reward requests.
 5. Choose the Jukebox command names in the wizard. They register automatically through the existing platform chat intakes after restart.

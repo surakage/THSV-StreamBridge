@@ -42,6 +42,7 @@ describe('Multi-Alerts contract', () => {
     expect(normalizeAlertPlainText('Village Roll Call \u00c2')).toBe('Village Roll Call');
     expect(normalizeAlertPlainText('\u00f0\u0178\u201c\u0081 Stream Ending')).toBe('📁 Stream Ending');
     expect(normalizeAlertPlainText('  Thanks\n\t🦥 世界\u0000  ')).toBe('Thanks 🦥 世界');
+    expect(normalizeAlertPlainText('\u00c3\u00a2\u00c5\u201c\u00c2\u00a8 Gift \u00c3\u00a2\u00e2\u201a\u00ac\u00e2\u20ac thank you!')).toBe('✨ Gift — thank you!');
     expect(projectMultiAlert(withPayload('engagement.super-chat', {
       amount: '1.00', currency: 'USD', message: '<script>alert(1)</script> 🦥',
     }))?.message).toBe('<script>alert(1)</script> 🦥');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeStreamerBotSceneRelay } from '../../bridge/adapters/streamerbot-scene-relay-adapter.js';
+import { normalizeStreamerBotSceneCatalogRelay, normalizeStreamerBotSceneRelay } from '../../bridge/adapters/streamerbot-scene-relay-adapter.js';
 
 function relay(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return { type: 'thsv.scene', version: '1.0.0', provider: 'obs', sourceEventType: 'ObsSceneChanged', relayId: 'scene-1', receivedAt: '2026-07-22T12:00:00.000Z', simulated: false, connectionId: 'obs-main', connectionName: 'OBS', sceneName: 'Starting Soon', oldSceneName: 'Gameplay', ...overrides };
@@ -28,5 +28,10 @@ describe('Streamer.bot scene relay adapter', () => {
 
   it('hashes an oversized composed event identity', () => {
     expect(normalizeStreamerBotSceneRelay(relay({ relayId: 'x'.repeat(256) })).eventId).toMatch(/^streamerbot-scene-obs-sha256-[a-f0-9]{64}$/u);
+  });
+
+  it('normalizes a bounded read-only scene catalog while preserving exact Unicode names', () => {
+    const event = normalizeStreamerBotSceneCatalogRelay({ type: 'thsv.scene-catalog', version: '1.0.0', provider: 'obs', relayId: 'catalog-1', receivedAt: '2026-08-22T12:00:00.000Z', connectionIndex: 0, connectionId: '0', connectionName: 'OBS Main', currentScene: 'BRB 🦥', scenes: ['Starting Soon ✨', 'BRB 🦥', 'BRB 🦥'], complete: true, error: '' });
+    expect(event).toMatchObject({ eventType: 'system.scene-catalog', payload: { provider: 'obs', scenes: ['Starting Soon ✨', 'BRB 🦥'], currentScene: 'BRB 🦥', complete: true } });
   });
 });

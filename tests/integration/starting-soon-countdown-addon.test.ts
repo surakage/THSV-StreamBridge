@@ -32,8 +32,11 @@ describe('Stream Launch Countdown installed add-on', () => {
     const registry = new ModuleRegistry([{ ...module, capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: [] } }], silentLogger, 5_000, broker);
     const statePath = join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json');
     await registry.start();
-    await registry.publish(control('set-and-start', { seconds: 90 }));
+    await registry.publish({ ...control('scene-snapshot'), eventType: 'system.scene-catalog', payload: { provider: 'obs', currentScene: 'Starting Soon', scenes: ['Starting Soon'] } });
     let state = JSON.parse(await readFile(statePath, 'utf8')) as { remainingSeconds: number; maximumSeconds: number; running: boolean; visible: boolean };
+    expect(state).toMatchObject({ running: true, visible: true });
+    await registry.publish(control('set-and-start', { seconds: 90 }));
+    state = JSON.parse(await readFile(statePath, 'utf8')) as typeof state;
     expect(state).toMatchObject({ remainingSeconds: 90, maximumSeconds: 90, running: true, visible: true });
     await registry.publish(control('pause'));
     state = JSON.parse(await readFile(statePath, 'utf8')) as typeof state;

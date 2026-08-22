@@ -24,6 +24,8 @@ import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
 import { prepareSupportBundle, type SupportBundleResult, type SupportBundlePreview } from './support-bundle-service.js';
 import { LiveAcceptanceError } from './live-acceptance-service.js';
 import { ObsSourceInventoryError } from './obs-source-inventory-service.js';
+import { SceneCatalogError } from './scene-catalog-service.js';
+import { TriggerAssuranceError } from './streamerbot-trigger-assurance-service.js';
 import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } from './pre-stream-report-service.js';
 
 export interface DiagnosticsTarget {
@@ -418,6 +420,45 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.diagnostics());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/streamerbot/triggers' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.triggerAssuranceStatus());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot/triggers/reconcile' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.reconcileStreamerBotTriggers(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/streamerbot/triggers/backups' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.streamerBotTriggerBackups());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot/triggers/restore' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 2048);
+        return this.reply(response, 200, await this.wizard.restoreStreamerBotTriggerBackup(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/test-all-integrations' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const diagnostics = this.target.diagnostics();
+        const readiness = this.target.readiness();
+        const triggerAssurance = await this.wizard.triggerAssuranceStatus();
+        const sceneCatalog = this.wizard.sceneCatalogStatus();
+        const overlay = this.overlayHub?.status() ?? {};
+        const checks = [
+          { id: 'bridge', ready: readiness['ready'] === true, detail: readiness['ready'] === true ? 'Core readiness passed.' : 'Core readiness has blockers.' },
+          { id: 'triggers', ready: triggerAssurance['ready'] === true, detail: triggerAssurance['connectionExplanation'] ?? triggerAssurance['error'] ?? 'Trigger contract inspected.' },
+          { id: 'timers', ready: typeof diagnostics['timedActions'] === 'object' && diagnostics['timedActions'] !== null, detail: 'Timed-action projection is loaded; no live timer or chat output was fired.' },
+          { id: 'modules', ready: Array.isArray(diagnostics['modules']), detail: 'Feature module health was read without invoking provider actions.' },
+          { id: 'scenes', ready: typeof sceneCatalog['providers'] === 'object', detail: 'Scene catalogs were read only; no scene was changed.' },
+          { id: 'overlays', ready: typeof overlay === 'object', detail: 'Overlay hub state was inspected without publishing a visible alert.' },
+        ];
+        return this.reply(response, 200, {
+          testedAt: new Date().toISOString(), safe: true, mutationPolicy: 'suppressed',
+          suppressed: ['real chat sends', 'Discord sends', 'OBS/Meld/Streamlabs scene changes', 'provider lifecycle events', 'visible alert publication'],
+          ready: checks.every((check) => check.ready), checks,
+        });
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/support-bundle' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         this.pruneSupportBundleSnapshots();
@@ -445,7 +486,9 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/wizard/api/readiness' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         const overlay = this.overlayHub?.status();
-        return this.reply(response, 200, { readiness: this.target.readiness(), launcher: await this.wizard.streamerBotLauncherStatus(), configuration: await this.wizard.configurationActivation(), provenance: this.wizard.provenance(), obsInventory: this.wizard.obsInventoryStatus(overlay), ...(overlay === undefined ? {} : { overlay }) });
+        const diagnostics = this.target.diagnostics();
+        const mainFeatures = diagnostics['mainFeatures'];
+        return this.reply(response, 200, { readiness: this.target.readiness(), launcher: await this.wizard.streamerBotLauncherStatus(), configuration: await this.wizard.configurationActivation(), provenance: this.wizard.provenance(), obsInventory: this.wizard.obsInventoryStatus(overlay), ...(typeof mainFeatures === 'object' && mainFeatures !== null && !Array.isArray(mainFeatures) ? { mainFeatures } : {}), ...(overlay === undefined ? {} : { overlay }) });
       }
       if (request.method === 'GET' && request.url === '/wizard/api/pre-stream-report' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -616,6 +659,15 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, this.wizard.saveObsInventory(JSON.parse(body.text) as unknown, this.overlayHub?.status()));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/scene-catalog' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.sceneCatalogStatus());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/scene-catalog/refresh' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 202, await this.wizard.refreshSceneCatalog(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/updates/check' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -862,6 +914,8 @@ export class DiagnosticsServer {
       if (error instanceof AddOnWizardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof LiveAcceptanceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ObsSourceInventoryError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof SceneCatalogError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof TriggerAssuranceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof PreStreamReportError) return this.reply(response, 400, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
