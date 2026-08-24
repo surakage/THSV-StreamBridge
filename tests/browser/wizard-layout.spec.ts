@@ -41,6 +41,21 @@ test('normal Wizard openings show every management page even after an older guid
   await expect(page.getByRole('button', { name: 'Community Analytics', exact: true })).toBeVisible();
 });
 
+test('diagnostics exposes the seamless operations center and its safety boundaries', async ({ page }) => {
+  await page.route('**/wizard/api/operations/drift', async (route) => await route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ issues: [], components: [], repairable: false }),
+  }));
+  await unlock(page);
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Live confidence center' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Run safe rehearsal' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Back up and repair' })).toBeDisabled();
+  await expect(page.locator('#operational-timeline-list')).toBeVisible();
+  await expect(page.locator('#post-stream-report')).toBeVisible();
+  await expect(page.locator('#operations-state')).toContainText(/Health (?:ready|needs attention).*installed-state.*redacted events retained/iu);
+});
+
 test('tray reminder deep links open and focus the live-acceptance checklist', async ({ page }) => {
   await page.goto('/wizard/?view=diagnostics&focus=live-acceptance');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');

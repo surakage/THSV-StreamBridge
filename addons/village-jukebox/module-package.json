@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.",
-  "changelog": "4.0.4: aligned with THSV StreamBridge 4.0.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
+  "changelog": "4.0.5: aligned with THSV StreamBridge 4.0.5, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.4: aligned with THSV StreamBridge 4.0.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-jukebox",
     "name": "Village Jukebox",
-    "version": "4.0.4",
+    "version": "4.0.5",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.4",
-    "maximumTestedBridgeVersion": "4.0.4",
+    "minimumBridgeVersion": "4.0.5",
+    "maximumTestedBridgeVersion": "4.0.5",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -107,7 +107,7 @@
     {
       "path": "dist/index.js",
       "size": 31907,
-      "sha256": "b5225d06f5faa538b51e636fccae39de3e31db543d5c41e66f5c42420bd35672"
+      "sha256": "77dfa1ca76248da75431d600045f026b537eef61ea6ec2641076c31f57c27d90"
     },
     {
       "path": "schemas/config.json",
@@ -122,7 +122,7 @@
     {
       "path": "README.md",
       "size": 2848,
-      "sha256": "7e9130db86473f3dbe840667579fefcac5d56c2d70be7b3af7d1b033e6c2c81b"
+      "sha256": "46438d962b9fbf08b3a3f9e0ca1519d1b175485d913cbdf234129714bd783f5d"
     }
   ]
 }

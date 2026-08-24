@@ -409,6 +409,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .overlay-editor-note span{color:var(--accent);font-size:1rem}
 .scene-mapping-editor{display:grid;gap:1rem}.scene-mapping-editor>p{margin:0}.scene-mapping-row{border:1px solid var(--border);border-radius:.8rem;padding:1rem;background:var(--panel);display:grid;gap:.8rem}.scene-mapping-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.scene-mapping-grid .full-row{grid-column:1/-1}.scene-mapping-row .title-row{align-items:center}.scene-mapping-row .addon-toggle{margin:0}
 .scene-catalog-picker{display:grid;gap:10px}.scene-catalog-picker textarea{width:100%}.scene-catalog-controls{display:grid;grid-template-columns:minmax(150px,.7fr) minmax(220px,1fr) auto auto;align-items:end;gap:9px}.scene-catalog-controls label{margin:0}.scene-catalog-controls button{margin:0;white-space:nowrap}
+.operations-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.operations-grid>section{min-width:0;border:1px solid var(--border);border-radius:.8rem;padding:1rem;background:var(--panel);display:grid;align-content:start;gap:.75rem}.operations-grid>section:nth-last-child(-n+2){grid-column:1/-1}.operations-grid h4{margin:0}.operations-grid .item small{overflow-wrap:anywhere}
 .addon-toggle small{pointer-events:none}
 .addon-choice-field{min-width:0;margin:0;border:0;padding:0}
 .addon-choice-field legend{padding:0 0 8px;font-weight:800}
@@ -448,7 +449,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .compact-toggle{display:flex!important;grid-template-columns:auto auto!important;align-items:center;gap:7px!important;white-space:nowrap;font-size:.82rem}.compact-toggle input{width:auto;margin:0}
 @media(max-width:760px){.streamerbot-path-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.optional-launcher-apps{grid-template-columns:1fr}.optional-launcher-heading{align-items:center}}
-@media(max-width:760px){.addon-settings-grid{grid-template-columns:1fr}.addon-setting.full-row{grid-column:auto}.addon-choice-grid{grid-template-columns:1fr 1fr}.scene-mapping-grid,.scene-catalog-controls{grid-template-columns:1fr}.scene-mapping-grid .full-row{grid-column:auto}.scene-catalog-controls button{width:100%}.overlay-editor-heading{flex-direction:column}.overlay-editor-heading>.status-chip{max-width:none}.overlay-editor-frame-shell,.overlay-live-editor.is-portrait .overlay-editor-frame-shell{min-height:280px;aspect-ratio:4/3}}
+@media(max-width:760px){.addon-settings-grid{grid-template-columns:1fr}.addon-setting.full-row{grid-column:auto}.addon-choice-grid{grid-template-columns:1fr 1fr}.scene-mapping-grid,.scene-catalog-controls,.operations-grid{grid-template-columns:1fr}.scene-mapping-grid .full-row,.operations-grid>section:nth-last-child(-n+2){grid-column:auto}.scene-catalog-controls button{width:100%}.overlay-editor-heading{flex-direction:column}.overlay-editor-heading>.status-chip{max-width:none}.overlay-editor-frame-shell,.overlay-live-editor.is-portrait .overlay-editor-frame-shell{min-height:280px;aspect-ratio:4/3}}
 @media(max-width:480px){.addon-choice-grid{grid-template-columns:1fr}.addon-settings-save button{width:100%}}
 
 /* ---------- Batch/message sub-lists (timed actions, command sync) ---------- */

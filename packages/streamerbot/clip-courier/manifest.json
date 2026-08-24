@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Clip Courier",
-  "version": "4.0.4",
+  "version": "4.0.5",
   "author": "surakage",
   "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the current stream to Discord.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -12,7 +12,7 @@
       "name": "THSV Addon - Clip Courier - Create Clip",
       "group": "THSV Addon - Clip Courier",
       "source": "src/CreateClip.cs",
-      "importFile": "THSV-StreamBridge-Clip-Courier-4.0.4.sb",
+      "importFile": "THSV-StreamBridge-Clip-Courier-4.0.5.sb",
       "arguments": [
         {
           "name": "clipCourierDurationSeconds",
@@ -35,7 +35,7 @@
       "name": "THSV Addon - Clip Courier - Deliver",
       "group": "THSV Addon - Clip Courier",
       "source": "src/DeliverDiscord.cs",
-      "importFile": "THSV-StreamBridge-Clip-Courier-4.0.4.sb",
+      "importFile": "THSV-StreamBridge-Clip-Courier-4.0.5.sb",
       "arguments": [
         {
           "name": "clipCourierWebhookUrl",

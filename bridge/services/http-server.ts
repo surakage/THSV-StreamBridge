@@ -27,6 +27,7 @@ import { ObsSourceInventoryError } from './obs-source-inventory-service.js';
 import { SceneCatalogError } from './scene-catalog-service.js';
 import { TriggerAssuranceError } from './streamerbot-trigger-assurance-service.js';
 import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } from './pre-stream-report-service.js';
+import { OperationalReliabilityError } from './operational-reliability-service.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -440,24 +441,40 @@ export class DiagnosticsServer {
       }
       if (request.method === 'POST' && request.url === '/wizard/api/test-all-integrations' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        const diagnostics = this.target.diagnostics();
-        const readiness = this.target.readiness();
-        const triggerAssurance = await this.wizard.triggerAssuranceStatus();
-        const sceneCatalog = this.wizard.sceneCatalogStatus();
-        const overlay = this.overlayHub?.status() ?? {};
-        const checks = [
-          { id: 'bridge', ready: readiness['ready'] === true, detail: readiness['ready'] === true ? 'Core readiness passed.' : 'Core readiness has blockers.' },
-          { id: 'triggers', ready: triggerAssurance['ready'] === true, detail: triggerAssurance['connectionExplanation'] ?? triggerAssurance['error'] ?? 'Trigger contract inspected.' },
-          { id: 'timers', ready: typeof diagnostics['timedActions'] === 'object' && diagnostics['timedActions'] !== null, detail: 'Timed-action projection is loaded; no live timer or chat output was fired.' },
-          { id: 'modules', ready: Array.isArray(diagnostics['modules']), detail: 'Feature module health was read without invoking provider actions.' },
-          { id: 'scenes', ready: typeof sceneCatalog['providers'] === 'object', detail: 'Scene catalogs were read only; no scene was changed.' },
-          { id: 'overlays', ready: typeof overlay === 'object', detail: 'Overlay hub state was inspected without publishing a visible alert.' },
-        ];
-        return this.reply(response, 200, {
-          testedAt: new Date().toISOString(), safe: true, mutationPolicy: 'suppressed',
-          suppressed: ['real chat sends', 'Discord sends', 'OBS/Meld/Streamlabs scene changes', 'provider lifecycle events', 'visible alert publication'],
-          ready: checks.every((check) => check.ready), checks,
-        });
+        const result = await this.wizard.runOperationalRehearsal();
+        return this.reply(response, 200, { ...result, testedAt: result['rehearsedAt'], checks: result['steps'] });
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/operations/health' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.operationalHealth());
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/operations/drift' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.installedStateDrift());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/operations/repair' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.repairInstalledState(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/operations/rehearsal' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.runOperationalRehearsal());
+      }
+      if (request.method === 'GET' && request.url?.startsWith('/wizard/api/operations/timeline') === true && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const limit = Number(new URL(request.url, 'http://127.0.0.1').searchParams.get('limit') ?? '100');
+        return this.reply(response, 200, this.wizard.operationalTimeline(Number.isSafeInteger(limit) ? limit : 100));
+      }
+      const timelineReplayMatch = request.method === 'POST' ? /^\/wizard\/api\/operations\/timeline\/([^/]+)\/replay$/u.exec(request.url ?? '') : null;
+      if (timelineReplayMatch?.[1] !== undefined && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, this.wizard.replayOperationalTimelineEvent(decodeURIComponent(timelineReplayMatch[1]), JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/operations/post-stream-report' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.latestPostStreamReport());
       }
       if (request.method === 'GET' && request.url === '/wizard/api/support-bundle' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -916,6 +933,7 @@ export class DiagnosticsServer {
       if (error instanceof ObsSourceInventoryError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof SceneCatalogError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof TriggerAssuranceError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof OperationalReliabilityError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof PreStreamReportError) return this.reply(response, 400, { error: error.message });
       if (error instanceof PayloadTooLargeError) return this.reply(response, 413, { error: error.message });
       if (error instanceof InvalidEventError) return this.reply(response, 400, { error: error.message, details: error.details });
