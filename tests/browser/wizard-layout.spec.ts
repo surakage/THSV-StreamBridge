@@ -53,7 +53,7 @@ test('diagnostics exposes the seamless operations center and its safety boundari
   await expect(page.getByRole('button', { name: 'Back up and repair' })).toBeDisabled();
   await expect(page.locator('#operational-timeline-list')).toBeVisible();
   await expect(page.locator('#post-stream-report')).toBeVisible();
-  await expect(page.locator('#operations-state')).toContainText(/Health (?:ready|blocked).*installed-state.*redacted events retained/iu);
+  await expect(page.locator('#operations-state')).toContainText(/Health (?:ready|needs attention).*installed-state.*redacted events retained/iu);
 });
 
 test('tray reminder deep links open and focus the live-acceptance checklist', async ({ page }) => {
