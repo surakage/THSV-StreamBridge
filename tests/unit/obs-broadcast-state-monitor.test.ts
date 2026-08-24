@@ -20,4 +20,16 @@ describe('OBS broadcast state monitor', () => {
     expect(onStopped).toHaveBeenCalledTimes(1);
     monitor.stop();
   });
+
+  it('exposes bounded recovery evidence and clears failures after the next successful sample', async () => {
+    vi.useFakeTimers();
+    let fail = true;
+    const monitor = new ObsBroadcastStateMonitor({ query: async () => { if (fail) throw new Error('OBS unavailable'); return false; }, onStarted: async () => undefined, onStopped: async () => undefined, logger: silentLogger, intervalMs: 1_000 });
+    await monitor.start();
+    expect(monitor.status()).toMatchObject({ state: 'error', attempts: 1, lastError: 'OBS unavailable' });
+    fail = false; await vi.advanceTimersByTimeAsync(1_000);
+    expect(monitor.status()).toMatchObject({ state: 'inactive', attempts: 0 });
+    expect(monitor.status()).not.toHaveProperty('lastError');
+    monitor.stop();
+  });
 });

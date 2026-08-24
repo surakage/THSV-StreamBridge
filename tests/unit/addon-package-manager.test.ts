@@ -3,10 +3,12 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { installAddOnPackage, listInstalledAddOnPackages, removeAddOnPackage, setAddOnApprovedActionIds, verifyAddOnPackage } from '../../bridge/services/addon-package-manager.js';
-import { loadInstalledAddOns } from '../../bridge/core/installed-modules.js';
+import { zipSync } from 'fflate';
+import { installAddOnPackage, listInstalledAddOnPackages, removeAddOnPackage, setAddOnApprovedActionIds, setAddOnPackageEnabled, verifyAddOnPackage } from '../../bridge/services/addon-package-manager.js';
+import { loadInstalledAddOns, synchronizeBundledExtensionPackages } from '../../bridge/core/installed-modules.js';
 import { filterLoadableAddOns } from '../../bridge/core/installed-modules.js';
 import type { FrameworkModule } from '../../bridge/core/module-registry.js';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 import { silentLogger } from '../helpers.js';
 
 const temporary: string[] = [];
@@ -183,6 +185,28 @@ describe('Stage 9 add-on packages', () => {
     await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([
       expect.objectContaining({ moduleId: 'sample.no-op', health: 'installed' }),
     ]);
+  });
+
+  it('synchronizes an already-installed managed extension from the core bundle while preserving its enabled state', async () => {
+    const root = await workspace(); const addOns = join(root, 'addons'); const state = join(root, 'state'); const bundled = join(root, 'bundled');
+    await installAddOnPackage('addons/ad-break-companion', addOns, true, { stateRoot: state });
+    await setAddOnPackageEnabled('thsv.ad-break-companion', addOns, false, true);
+    const installedRecordPath = join(addOns, 'thsv.ad-break-companion', 'installed-package.json');
+    const installedRecord = JSON.parse(await readFile(installedRecordPath, 'utf8')) as Record<string, unknown>;
+    installedRecord['version'] = '4.0.3';
+    await writeFile(installedRecordPath, `${JSON.stringify(installedRecord, null, 2)}\n`);
+    const installedDescriptorPath = join(addOns, 'thsv.ad-break-companion', 'module-package.json');
+    const installedDescriptor = JSON.parse(await readFile(installedDescriptorPath, 'utf8')) as { manifest: Record<string, unknown> };
+    installedDescriptor.manifest['version'] = '4.0.3'; installedDescriptor.manifest['maximumTestedBridgeVersion'] = '4.0.3';
+    await writeFile(installedDescriptorPath, `${JSON.stringify(installedDescriptor, null, 2)}\n`);
+
+    const verified = await verifyAddOnPackage('addons/ad-break-companion'); const entries: Record<string, Uint8Array> = {};
+    for (const path of ['module-package.json', ...verified.descriptor.files.map((file) => file.path)]) entries[path] = new Uint8Array(await readFile(join(verified.root, ...path.split('/'))));
+    await mkdir(bundled, { recursive: true });
+    await writeFile(join(bundled, 'thsv.ad-break-companion.thsv-addon'), zipSync(entries, { level: 9 }));
+    await synchronizeBundledExtensionPackages(addOns, state, bundled, new Set(['thsv.ad-break-companion']), silentLogger);
+
+    await expect(listInstalledAddOnPackages(addOns)).resolves.toEqual([expect.objectContaining({ moduleId: 'thsv.ad-break-companion', version: STREAMBRIDGE_VERSION, enabled: false, health: 'installed' })]);
   });
 
   it('re-verifies the creator-private staging copy before any add-on code can execute', async () => {

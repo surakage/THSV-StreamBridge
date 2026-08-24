@@ -12,7 +12,7 @@ Fan Crown uses a Twitch reward, a Kick reward, and Viewer Foundation point comma
 
 ## Install
 
-1. Import `THSV-StreamBridge-Fan-Crown-4.0.4.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Fan-Crown-4.0.5.sb` into Streamer.bot.
 2. Leave `THSV Addon - Fan Crown - Controller` triggerless.
 3. Keep Twitch and Kick Reward Redemption on their existing intake actions.
 4. Install Fan Crown and Viewer Foundation through the StreamBridge wizard.

@@ -38,6 +38,7 @@ import type { ObsSourceInventoryService } from './obs-source-inventory-service.j
 import type { ReleaseReadinessService } from './release-readiness-service.js';
 import type { SceneCatalogService } from './scene-catalog-service.js';
 import type { StreamerBotTriggerAssuranceService } from './streamerbot-trigger-assurance-service.js';
+import type { OperationalReliabilityService } from './operational-reliability-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -174,7 +175,40 @@ export class WizardService {
     private readonly releaseReadiness?: ReleaseReadinessService,
     private readonly sceneCatalog?: SceneCatalogService,
     private readonly triggerAssurance?: StreamerBotTriggerAssuranceService,
+    private readonly operationalReliability?: OperationalReliabilityService,
   ) {}
+
+  public async installedStateDrift(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.operationalReliability === undefined) throw new WizardTransactionError(503, 'Installed-state drift inspection is unavailable in this installation.');
+    return this.operationalReliability.driftStatus();
+  }
+
+  public async repairInstalledState(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.operationalReliability === undefined) throw new WizardTransactionError(503, 'Installed-state repair is unavailable in this installation.');
+    return this.operationalReliability.repair(input);
+  }
+
+  public async runOperationalRehearsal(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.operationalReliability === undefined) throw new WizardTransactionError(503, 'Operational rehearsal is unavailable in this installation.');
+    return this.operationalReliability.rehearsal();
+  }
+
+  public operationalHealth(): Readonly<Record<string, unknown>> {
+    return this.operationalReliability?.healthStatus() ?? { available: false, ready: false, error: 'Operational health is unavailable in this installation.' };
+  }
+
+  public operationalTimeline(limit?: number): Readonly<Record<string, unknown>> {
+    return this.operationalReliability?.timelineStatus(limit) ?? { retainedMinutes: 30, redacted: true, total: 0, events: [] };
+  }
+
+  public replayOperationalTimelineEvent(eventId: string, input: unknown): Readonly<Record<string, unknown>> {
+    if (this.operationalReliability === undefined) throw new WizardTransactionError(503, 'Operational timeline replay is unavailable in this installation.');
+    return this.operationalReliability.replay(eventId, input);
+  }
+
+  public latestPostStreamReport(): Readonly<Record<string, unknown>> {
+    return this.operationalReliability?.latestReport() ?? { available: false, message: 'Post-stream reports are unavailable in this installation.' };
+  }
 
   public async triggerAssuranceStatus(): Promise<Readonly<Record<string, unknown>>> {
     return this.triggerAssurance?.status() ?? { available: false, ready: false, canSave: false, error: 'Trigger assurance is unavailable in this installation.' };

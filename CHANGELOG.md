@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.0.5] - 2026-08-23
+
+- Added the Live Confidence Center with configuration-drift checks, dry-run replay, readiness rehearsal, redacted operational timelines, recovery evidence, and post-stream reports.
+- Added continuous OBS interruption evidence and recovery tracking so scene or broadcast-state instability is visible without exposing creator secrets or chat content.
+- Automatically synchronize already-installed, core-managed extension packages during a Bridge upgrade while preserving enabled choices, action grants, private settings, and module state.
+- Kept extension migration bounded: upgrades do not reinstall creator-removed components or alter optional add-on selections.
+- Regenerated and indexed all 42 Streamer.bot packages at 4.0.5 and expanded operational reliability, upgrade-migration, wizard, browser, and packaging coverage.
+
 ## [4.0.4] - 2026-08-22
 
 - Added direct OBS scene discovery and continuous broadcast-state monitoring so the wizard can populate scene selectors and recover or close live sessions when platform lifecycle events are missing.

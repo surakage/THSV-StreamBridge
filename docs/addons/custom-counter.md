@@ -9,8 +9,8 @@ Provides multiple bounded persistent creator counters, collision-safe moderator 
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Custom-Counter-4.0.1.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Custom-Counter-4.0.4.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Custom-Counter-4.0.4.sb` in Streamer.bot.
+2. In **Setup Wizard > Add-ons**, install `THSV-Custom-Counter-4.0.5.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Custom-Counter-4.0.5.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps

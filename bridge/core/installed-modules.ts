@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Logger } from '../services/logger.js';
 import type { PlatformCapabilityId } from '../contracts/v2/capability.js';
-import { safeChild, supersededInstalledPackageDirectories, validateInstalledActionIds, verifyAddOnPackage } from '../services/addon-package-manager.js';
+import { inspectAddOnArchive, installAddOnArchive, safeChild, supersededInstalledPackageDirectories, validateInstalledActionIds, verifyAddOnPackage } from '../services/addon-package-manager.js';
 import { validateSettings } from '../services/addon-wizard-service.js';
 import { createBuiltinModules } from './builtin-modules.js';
 import { ModuleRegistry, type FrameworkModule } from './module-registry.js';
@@ -12,6 +12,7 @@ import { VIEWER_FOUNDATION_MODULE_ID, VIEWER_FOUNDATION_PERMISSIONS, viewerFound
 import { COMMUNITY_ANALYTICS_MODULE_ID, COMMUNITY_ANALYTICS_PERMISSIONS, communityAnalyticsIntegrationRoot } from './community-analytics-integration.js';
 import { KOFI_DONATIONS_MODULE_ID, KOFI_DONATIONS_PERMISSIONS, kofiDonationsIntegrationRoot } from './kofi-donations-integration.js';
 import { isBuiltInIntegrationModuleId } from './built-in-integrations.js';
+import { MAIN_FEATURE_FAMILIES } from './main-feature-registry.js';
 
 const MAXIMUM_SETTINGS_BYTES = 65_536;
 
@@ -158,6 +159,27 @@ export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger, ad
   return modules;
 }
 
+export async function synchronizeBundledExtensionPackages(packagesRoot: string, stateRoot: string, bundledRoot: string, managedModuleIds: ReadonlySet<string>, logger: Logger): Promise<void> {
+  let directories;
+  try { directories = await readdir(resolve(packagesRoot), { withFileTypes: true }); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
+  for (const directory of directories.filter((entry) => entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'inbox')) {
+    try {
+      const record = JSON.parse(await readFile(join(packagesRoot, directory.name, 'installed-package.json'), 'utf8')) as { moduleId?: unknown; version?: unknown };
+      if (typeof record.moduleId !== 'string' || typeof record.version !== 'string' || !managedModuleIds.has(record.moduleId)) continue;
+      const archive = new Uint8Array(await readFile(join(bundledRoot, `${record.moduleId}.thsv-addon`)));
+      const bundled = await inspectAddOnArchive(archive, packagesRoot);
+      if (bundled.manifest.moduleId !== record.moduleId) throw new Error(`Bundled extension identity mismatch for ${record.moduleId}.`);
+      if (bundled.manifest.version === record.version) continue;
+      await installAddOnArchive(archive, packagesRoot, true, {}, { stateRoot });
+      logger.info('Bundled extension upgraded with StreamBridge core', { moduleId: record.moduleId, fromVersion: record.version, toVersion: bundled.manifest.version });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+      logger.error('Bundled extension could not be synchronized; its installed copy remains isolated', { directory: directory.name, error });
+    }
+  }
+}
+
 export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candidates: readonly FrameworkModule[], logger: Logger, availableCapabilities?: ReadonlySet<PlatformCapabilityId>): readonly FrameworkModule[] {
   const coreIds = new Set(builtins.map((module) => module.manifest.moduleId));
   const unique = new Map<string, FrameworkModule>();
@@ -218,6 +240,8 @@ export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candi
 
 export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker, addOnStateRoot?: string): Promise<ModuleRegistry> {
   const stateRoot = addOnStateRoot ?? join(addOnsRoot, '.state');
+  const managedModuleIds = new Set(MAIN_FEATURE_FAMILIES.flatMap((family) => family.modules));
+  await synchronizeBundledExtensionPackages(addOnsRoot, stateRoot, resolve('packages', 'extensions'), managedModuleIds, logger);
   const builtins = [...createBuiltinModules(), await createViewerFoundationIntegration(stateRoot), await createCommunityAnalyticsIntegration(stateRoot), await createKofiDonationsIntegration(stateRoot)];
   const installed = await loadInstalledAddOns(addOnsRoot, logger, stateRoot);
   return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger, availableCapabilities)], logger, 5_000, broker);

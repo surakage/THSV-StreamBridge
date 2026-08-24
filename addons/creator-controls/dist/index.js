@@ -8,8 +8,8 @@ const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick']);
 const pendingRequests = new Map();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.creator-controls', name: 'Creator Controls', version: '4.0.4',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.4', maximumTestedBridgeVersion: '4.0.4', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.creator-controls', name: 'Creator Controls', version: '4.0.5',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.5', maximumTestedBridgeVersion: '4.0.5', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: [CONTROL_EVENT, RESULT_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.creator-controls/', 'data/addons/.state/thsv.creator-controls/'],
   installationSteps: ['Import the bundled Creator Controls Streamer.bot package.', 'Turn on the add-on and edit only the stream profiles you plan to use.', 'Approve only its triggerless Provider Controller action in the wizard.', 'Connect Apply Profile 1, 2, or 3 to your matching creator-controlled scene trigger, hotkey, or deck button.'],

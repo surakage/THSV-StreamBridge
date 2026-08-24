@@ -40,6 +40,7 @@ import { SceneCatalogService, SCENE_CATALOG_ACTION_ID } from '../bridge/services
 import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerbot-trigger-assurance-service.js';
 import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
+import { OperationalReliabilityService } from '../bridge/services/operational-reliability-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -148,18 +149,6 @@ await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
 const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
-const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
-  query: () => obsDirectSceneClient.isStreaming(),
-  onStarted: async () => {
-    await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
-    overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
-  },
-  onStopped: async () => {
-    await activeBridge.endRecoveredLiveSession();
-    overlayHub.endRecoveredLiveSession();
-  },
-  logger,
-});
 const sceneCatalog = new SceneCatalogService(
   join(dataRoot, 'state'),
   streamerBotInspector === undefined ? undefined : async (provider, connectionIndex) => { await streamerBotInspector.runApprovedAction(SCENE_CATALOG_ACTION_ID, { sceneCatalogProvider: provider, sceneCatalogConnectionIndex: connectionIndex }); },
@@ -173,6 +162,36 @@ const triggerAssurance = new StreamerBotTriggerAssuranceService({
   actionsPath: () => streamerBotLauncher.actionsPath(),
   streamerBotRunning: () => streamerBotLauncher.isRunning(),
   moduleStatus: () => modules.statuses(),
+});
+const operationalReliability = new OperationalReliabilityService({
+  dataRoot,
+  expectedVersion: STREAMBRIDGE_VERSION,
+  packageRoot: resolve('.'),
+  streamerBotPackageRoot: resolve('packages', 'streamerbot'),
+  logger,
+  diagnostics: () => activeBridge.diagnostics(),
+  readiness: () => activeBridge.readiness(),
+  triggerStatus: () => triggerAssurance.status(),
+  reconcileTriggers: (input) => triggerAssurance.reconcile(input),
+  sceneStatus: () => sceneCatalog.status(),
+  refreshObsScenes: () => sceneCatalog.refresh({ provider: 'obs', connectionIndex: 0 }),
+  overlayStatus: () => overlayHub.status(),
+  broadcastStatus: () => obsBroadcastMonitor.status(),
+  listAddOns: async () => (await addOnWizard.list()).map((addOn) => ({ moduleId: addOn.moduleId, version: addOn.version })),
+});
+const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
+  query: () => obsDirectSceneClient.isStreaming(),
+  onStarted: async () => {
+    await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
+    overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
+    operationalReliability.recoverLiveSession(liveRecoveryPlatformIds);
+  },
+  onStopped: async () => {
+    await activeBridge.endRecoveredLiveSession();
+    overlayHub.endRecoveredLiveSession();
+    await operationalReliability.endRecoveredLiveSession();
+  },
+  logger,
 });
 const wizard = new WizardService(
   streamerBotInspector,
@@ -191,14 +210,17 @@ const wizard = new WizardService(
   new ReleaseReadinessService(STREAMBRIDGE_VERSION, resolve('artifacts', 'release-lifecycle', 'latest.json'), resolve('artifacts', 'published-release', 'latest.json'), join(dataRoot, 'state', 'release-readiness-github.json')),
   sceneCatalog,
   triggerAssurance,
+  operationalReliability,
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
+activeBridge.subscribe((event) => operationalReliability.observe(event));
 activeBridge.subscribe(async (event) => {
   if (event.metadata.simulated || event.eventType !== 'addon.thsv.live-beacon.broadcast-control' || event.payload['action'] !== 'online') return;
   await activeBridge.recoverLiveSession(liveRecoveryPlatformIds, typeof event.payload['startedAt'] === 'string' ? event.payload['startedAt'] : event.receivedAt);
   overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
+  operationalReliability.recoverLiveSession(liveRecoveryPlatformIds, typeof event.payload['startedAt'] === 'string' ? event.payload['startedAt'] : event.receivedAt);
 });
 activeBridge.subscribe((event) => {
   if (event.eventType !== 'chat.message') {
@@ -240,6 +262,7 @@ async function shutdown(signal: string): Promise<void> {
   logger.info('Shutdown requested', { signal });
   try {
     await server.stop();
+    await operationalReliability.stop();
     await activeBridge.stop();
     await liveAcceptance.flush();
     await obsSourceInventory.flush();
@@ -268,6 +291,7 @@ process.once('unhandledRejection', (error) => { logger.error('Unhandled rejectio
 try {
   await activeBridge.start();
   await obsBroadcastMonitor.start();
+  await operationalReliability.start();
   await server.start();
   if (streamerBotInspector !== undefined) {
     await sceneCatalog.refresh({ provider: 'obs', connectionIndex: 0 })
