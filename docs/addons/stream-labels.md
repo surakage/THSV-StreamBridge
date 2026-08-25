@@ -9,7 +9,7 @@ Projects equivalent Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events 
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Stream-Labels-4.0.1.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Stream-Labels-4.0.5.thsv-addon` and review its permissions.
+2. In **Setup Wizard > Add-ons**, install `THSV-Stream-Labels-4.0.6.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
