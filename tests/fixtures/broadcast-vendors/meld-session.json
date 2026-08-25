@@ -1,0 +1,6 @@
+{
+  "meld": {
+    "signals": [["sessionChanged", 4]],
+    "properties": [[1, "session", [1, 4], {"items": {"starting": {"type": "scene", "index": 0, "name": "Starting Soon", "current": false}, "live": {"type": "scene", "index": 1, "name": "Live", "current": true}}}]]
+  }
+}

@@ -8,10 +8,17 @@ const temporaryRoots: string[] = [];
 const windowsLauncher = (dataRoot: string): StreamerBotLauncherService => new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32');
 
 afterEach(async () => {
-  for (const root of temporaryRoots.splice(0)) await rm(root, { recursive: true, force: true });
+  for (const root of temporaryRoots.splice(0)) await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 });
 
 describe('public Streamer.bot launcher configuration', () => {
+  it('keeps a bounded redacted tray notification history for the Wizard', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-tray-history-')); temporaryRoots.push(root); const service = windowsLauncher(join(root, 'data'));
+    await expect(service.recordTrayNotification({ title: 'No approval', summary: 'ignored' })).rejects.toThrow('Explicit creator approval');
+    const history = await service.recordTrayNotification({ category: 'startup', title: 'Startup needs attention', summary: 'See C:\\Users\\creator\\secret.log token=do-not-store', kind: 'warning', approvedByCreator: true }) as { entries: Array<{ summary: string; category: string }> };
+    expect(history.entries[0]).toMatchObject({ category: 'startup' }); expect(history.entries[0]?.summary).not.toContain('do-not-store'); expect(history.entries[0]?.summary).not.toContain('C:\\Users');
+    await expect(service.trayNotificationHistory()).resolves.toMatchObject({ entries: [{ category: 'startup' }] });
+  });
   it('uses the explicit restart switch only for creator-approved Bridge restarts', async () => {
     const source = await readFile('bridge/services/streamerbot-launcher-service.ts', 'utf8');
     expect(source).toContain("[launcher, '--restart', '--open-wizard']");
@@ -99,11 +106,71 @@ describe('public Streamer.bot launcher configuration', () => {
     await expect(service.setOptionalApplicationEnabled('speakerbot', true)).rejects.toThrow('Choose Speaker.bot');
   });
 
+  it('refuses to create a shortcut when an enabled exact executable has moved', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-shortcut-path-review-')); temporaryRoots.push(root);
+    const streamerBot = join(root, 'portable', 'Streamer.bot.exe'); const obs = join(root, 'obs64.exe');
+    await mkdir(join(root, 'portable'), { recursive: true });
+    await Promise.all([writeFile(streamerBot, 'streamerbot'), writeFile(obs, 'obs')]);
+    const service = windowsLauncher(join(root, 'data'));
+    await service.save(streamerBot);
+    await service.saveOptionalApplication('obs', obs, true);
+    await rm(obs);
+    await expect(service.createDesktopShortcut()).rejects.toThrow('OBS Studio is enabled, but its saved executable is missing');
+  });
+
+  it('refuses to create a shortcut when the exact Streamer.bot executable has moved', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-shortcut-streamerbot-review-')); temporaryRoots.push(root);
+    const streamerBot = join(root, 'portable', 'Streamer.bot.exe');
+    await mkdir(join(root, 'portable'), { recursive: true });
+    await writeFile(streamerBot, 'streamerbot');
+    const service = windowsLauncher(join(root, 'data'));
+    await service.save(streamerBot);
+    await rm(streamerBot);
+    await expect(service.createDesktopShortcut()).rejects.toThrow('saved Streamer.bot executable is missing or invalid');
+  });
+
   it('requires the installed one-button launcher before starting the complete tool set', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-start-all-missing-')); temporaryRoots.push(root);
     const executable = join(root, 'portable', 'Streamer.bot.exe'); await mkdir(join(root, 'portable'), { recursive: true }); await writeFile(executable, 'test');
     const service = windowsLauncher(join(root, 'data')); await service.save(executable);
     await expect(service.startAllStreamingTools()).rejects.toThrow('one-button streaming tools launcher is missing');
+  });
+
+  it('reports a mutation-free path and launcher preflight without starting applications', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-launcher-preflight-')); temporaryRoots.push(root);
+    const executable = join(root, 'portable', 'Streamer.bot.exe'); await mkdir(join(root, 'portable'), { recursive: true }); await writeFile(executable, 'test');
+    const service = windowsLauncher(join(root, 'data')); await service.save(executable);
+    const result = await service.preflight();
+    expect(result).toMatchObject({ mutationFree: true, ready: false, launcher: { configured: true, executableExists: true } });
+    const checks = result['checks'] as Readonly<Record<string, unknown>>[];
+    expect(checks.find((check) => check['id'] === 'streamerbot-path')).toMatchObject({ label: 'Exact Streamer.bot path', ready: true });
+    expect(checks.find((check) => check['id'] === 'launcher-start-streaming-tools.mjs')).toMatchObject({ label: 'all-tools launcher', ready: false });
+  });
+
+  it('offers a moved portable install from only the adjacent saved folder and does not save it automatically', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-nearby-path-repair-')); temporaryRoots.push(root);
+    const previous = join(root, 'installs', 'v1', 'Streamer.bot.exe'); const replacement = join(root, 'installs', 'v2', 'Streamer.bot.exe');
+    await mkdir(join(root, 'installs', 'v1'), { recursive: true }); await writeFile(previous, 'old');
+    const service = windowsLauncher(join(root, 'data')); await service.save(previous); await rm(previous);
+    await mkdir(join(root, 'installs', 'v2'), { recursive: true }); await writeFile(replacement, 'new');
+    const detected = await service.detect();
+    expect(detected.candidates.some((candidate) => candidate.source === 'near-saved-location' && candidate.executable.toLocaleLowerCase('en-US') === replacement.toLocaleLowerCase('en-US'))).toBe(true);
+    expect(detected.status).toMatchObject({ state: 'missing', executable: previous });
+  });
+
+  it('surfaces optional application circuit pauses separately from process state', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-optional-circuit-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data'); const executable = join(root, 'portable', 'Streamer.bot.exe'); const obs = join(root, 'obs64.exe');
+    await mkdir(join(root, 'portable'), { recursive: true }); await mkdir(join(dataRoot, 'runtime'), { recursive: true }); await Promise.all([writeFile(executable, 'test'), writeFile(obs, 'test')]);
+    const service = windowsLauncher(dataRoot); await service.save(executable); await service.saveOptionalApplication('obs', obs, true);
+    const now = new Date().toISOString(); await writeFile(join(dataRoot, 'runtime', 'optional-app-startup-circuit.json'), JSON.stringify({ version: 1, applications: { obs: { failures: [{ at: now }, { at: now }, { at: now }], openUntil: new Date(Date.now() + 60_000).toISOString() } } }));
+    const status = await service.status();
+    expect(status.optionalApps.obs.recentStartupFailures).toBe(3);
+    expect(status.optionalApps.obs.circuitOpenUntil).toEqual(expect.any(String));
+    expect(status.optionalApps.obs.message).toContain('automatic startup is paused');
+    const reset = await service.resetOptionalApplicationCircuit('obs');
+    expect(reset.optionalApps.obs.circuitOpenUntil).toBeUndefined();
+    expect(JSON.parse(await readFile(join(dataRoot, 'runtime', 'optional-app-startup-circuit.json'), 'utf8'))).toMatchObject({ version: 1, applications: {} });
   });
 
   it('starts the installed guarded launcher for a safe Bridge restart', async () => {

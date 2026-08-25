@@ -5,6 +5,7 @@ import type { NormalizedEvent } from '../../schemas/event.js';
 import type { DirectSceneSnapshot } from './obs-direct-scene-client.js';
 
 export type SceneProvider = 'obs' | 'streamlabs' | 'meld';
+export interface ActiveDirectSceneConnection { readonly id: string; readonly provider: SceneProvider }
 
 interface SceneConnectionState {
   readonly id: string;
@@ -99,6 +100,27 @@ export class SceneCatalogService {
   }
 
   public async flush(): Promise<void> { await this.writes; }
+
+  public acceptDirectSnapshot(provider: SceneProvider, snapshot: DirectSceneSnapshot): void {
+    const withoutRedundantObserved = this.state[provider].connections.filter((connection) => connection.source !== 'observed');
+    if (withoutRedundantObserved.length !== this.state[provider].connections.length) this.state = { ...this.state, [provider]: { connections: withoutRedundantObserved } };
+    this.replaceConnection(provider, { id: snapshot.connectionId, name: snapshot.connectionName, scenes: uniqueSorted(snapshot.scenes), ...(snapshot.currentScene === undefined ? {} : { currentScene: snapshot.currentScene }), complete: true, updatedAt: new Date().toISOString(), source: 'direct-websocket' });
+  }
+
+  public reconcileActiveDirectConnections(active: readonly ActiveDirectSceneConnection[]): Readonly<Record<string, unknown>> {
+    const ids = new Set(active.map((connection) => `${connection.provider}:${connection.id}`));
+    let pruned = 0;
+    const next = Object.fromEntries(PROVIDERS.map((provider) => {
+      const connections = this.state[provider].connections.filter((connection) => {
+        const retain = connection.source !== 'direct-websocket' || ids.has(`${provider}:${connection.id}`);
+        if (!retain) pruned += 1;
+        return retain;
+      });
+      return [provider, { connections }];
+    })) as unknown as SceneCatalogState;
+    if (pruned > 0) { this.state = next; this.queueWrite(); }
+    return { pruned, activeDirectConnections: active.length, status: this.status() };
+  }
 
   private observeSceneChange(event: NormalizedEvent): void {
     const provider = event.payload['provider'];

@@ -1,8 +1,8 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL, URL } from 'node:url';
 
 const DEFAULT_WEBSOCKET_PORT = 8081;
@@ -11,6 +11,9 @@ const START_TIMEOUT_MS = 45_000;
 const START_RETRY_DELAY_MS = 1_500;
 const START_ATTEMPTS = 2;
 const EXISTING_HEALTH_STABILITY_MS = 4_000;
+const STREAMERBOT_LOCK_STALE_MS = 130_000;
+const STREAMERBOT_LOCK_HEARTBEAT_MS = 5_000;
+const MAXIMUM_LAUNCHER_CONFIGURATION_BYTES = 256 * 1024;
 
 export function parseNetstatListeners(output, port = DEFAULT_WEBSOCKET_PORT) {
   const expected = `:${String(port)}`;
@@ -36,7 +39,9 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
   const resolvedInstallRoot = installRoot === undefined ? undefined : resolve(installRoot);
   const port = websocketPort ?? resolveWebSocketPort(resolvedInstallRoot);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error(`Invalid Streamer.bot WebSocket port: ${String(port)}.`);
-  const exe = resolve(executable ?? resolveStreamerBotExecutable(resolvedInstallRoot));
+  const selectedExecutable = executable ?? resolveStreamerBotExecutable(resolvedInstallRoot);
+  if (!isAbsolute(selectedExecutable)) throw new Error('The saved Streamer.bot executable path is not absolute. Open the StreamBridge Setup Wizard and select the exact Streamer.bot.exe again.');
+  const exe = resolve(selectedExecutable);
   if (!existsSync(exe) || basename(exe).toLocaleLowerCase('en-US') !== 'streamer.bot.exe')
     throw new Error(`Streamer.bot.exe was not found at ${exe}. Set THSV_STREAMERBOT_EXE or pass --exe.`);
   if (save && resolvedInstallRoot !== undefined) saveLauncherConfiguration(resolvedInstallRoot, exe, port);
@@ -148,8 +153,12 @@ class StreamerBotStartupExitError extends Error {
 function resolveStreamerBotExecutable(installRoot) {
   const configured = process.env['THSV_STREAMERBOT_EXE']?.trim();
   if (configured) return configured;
-  const saved = installRoot === undefined ? undefined : readLauncherConfiguration(installRoot)?.executable;
-  if (saved && existsSync(saved)) return saved;
+  const savedConfiguration = installRoot === undefined ? undefined : readLauncherConfiguration(installRoot);
+  if (savedConfiguration !== undefined) {
+    const saved = savedConfiguration.executable.trim();
+    if (!isAbsolute(saved) || basename(saved).toLocaleLowerCase('en-US') !== 'streamer.bot.exe' || !existsSync(saved)) throw new Error(`The saved Streamer.bot executable is missing or invalid: ${saved || '(empty path)'}. Automatic fallback is disabled so another installation cannot be opened accidentally. Open the StreamBridge Setup Wizard and select the exact Streamer.bot.exe again.`);
+    return saved;
+  }
   const running = streamerBotProcesses().map((item) => item.path).find((path) => path && existsSync(path));
   if (running) return running;
   const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -166,10 +175,16 @@ function resolveStreamerBotExecutable(installRoot) {
 
 function launcherConfigurationPath(installRoot) { return join(installRoot, 'data', 'configuration', 'streamerbot-launcher.json'); }
 function readLauncherConfiguration(installRoot) {
+  const path = launcherConfigurationPath(installRoot);
+  if (!existsSync(path)) return undefined;
   try {
-    const value = JSON.parse(readFileSync(launcherConfigurationPath(installRoot), 'utf8'));
-    return (value?.version === 1 || value?.version === 2) && typeof value.executable === 'string' ? value : undefined;
-  } catch { return undefined; }
+    if (statSync(path).size > MAXIMUM_LAUNCHER_CONFIGURATION_BYTES) throw new Error('file exceeds 256 KB');
+    const value = JSON.parse(readFileSync(path, 'utf8'));
+    if ((value?.version !== 1 && value?.version !== 2) || typeof value.executable !== 'string') throw new Error('required launcher fields are invalid');
+    return value;
+  } catch (error) {
+    throw new Error(`The saved streaming-tool configuration is damaged (${error instanceof Error ? error.message : String(error)}). Open the StreamBridge Setup Wizard and select the exact executable paths again.`, { cause: error });
+  }
 }
 function saveLauncherConfiguration(installRoot, executable, websocketPort) {
   const path = launcherConfigurationPath(installRoot);
@@ -357,29 +372,70 @@ function rotateReportHistorySync(path, maximumBytes = 512 * 1024, retainedFiles 
 async function acquireLock(port, output) {
   const lockPath = resolve(tmpdir(), `thsv-streamerbot-start-${String(port)}.lock`);
   const deadline = Date.now() + 100_000;
+  const lockRecord = `${JSON.stringify({ version: 1, pid: process.pid, createdAt: new Date().toISOString() })}\n`;
   let waited = false;
   while (Date.now() < deadline) {
     try {
       const handle = openSync(lockPath, 'wx', 0o600);
-      writeFileSync(handle, `${String(process.pid)}\n`, { encoding: 'ascii' });
+      writeFileSync(handle, lockRecord, { encoding: 'utf8' });
       closeSync(handle);
-      return () => { try { rmSync(lockPath, { force: true }); } catch { /* Best effort. */ } };
+      const heartbeat = setInterval(() => refreshOwnedLock(lockPath, lockRecord), STREAMERBOT_LOCK_HEARTBEAT_MS);
+      heartbeat.unref();
+      return () => {
+        clearInterval(heartbeat);
+        try { if (readFileSync(lockPath, 'utf8') === lockRecord) rmSync(lockPath, { force: true }); }
+        catch { /* The lock was already released or replaced. */ }
+      };
     } catch (error) {
       if (error?.code !== 'EEXIST') throw error;
-      let owner;
-      try { owner = Number(readFileSync(lockPath, 'ascii').trim()); } catch { owner = undefined; }
-      if (Number.isInteger(owner) && owner > 0 && isAlive(owner)) {
-        if (!waited) output.write(`Another Streamer.bot startup is already running (PID ${String(owner)}); waiting for its result...\n`);
+      let snapshot;
+      try { snapshot = readFileSync(lockPath, 'utf8'); } catch { snapshot = undefined; }
+      const owner = parseLockOwner(snapshot, lockPath);
+      const ownerIdentity = owner === undefined ? undefined : streamerBotLockOwnerMatches(owner.pid);
+      if (owner !== undefined && isAlive(owner.pid) && ownerIdentity !== false && Date.now() - owner.createdAtMs <= STREAMERBOT_LOCK_STALE_MS) {
+        if (!waited) output.write(`Another Streamer.bot startup is already running (PID ${String(owner.pid)}); waiting for its result...\n`);
         waited = true;
         await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
         continue;
       }
-      let currentOwner;
-      try { currentOwner = Number(readFileSync(lockPath, 'ascii').trim()); } catch { currentOwner = undefined; }
-      if (currentOwner === owner) rmSync(lockPath, { force: true });
+      let currentSnapshot;
+      try { currentSnapshot = readFileSync(lockPath, 'utf8'); } catch { currentSnapshot = undefined; }
+      if (currentSnapshot === snapshot) {
+        rmSync(lockPath, { force: true });
+        if (owner !== undefined && isAlive(owner.pid)) output.write(`Recovered an expired Streamer.bot startup lock owned by PID ${String(owner.pid)}.\n`);
+      }
     }
   }
   throw new Error('The existing Streamer.bot startup did not finish within 100 seconds.');
+}
+
+function parseLockOwner(raw, path) {
+  if (typeof raw !== 'string' || raw.trim().length === 0) return undefined;
+  try {
+    const value = JSON.parse(raw);
+    const createdAtMs = Date.parse(value?.createdAt);
+    return Number.isInteger(value?.pid) && value.pid > 0 && Number.isFinite(createdAtMs) ? { pid: value.pid, createdAtMs: Math.max(createdAtMs, statSync(path).mtimeMs) } : undefined;
+  } catch {
+    const pid = Number(raw.trim());
+    if (!Number.isInteger(pid) || pid <= 0) return undefined;
+    try { return { pid, createdAtMs: statSync(path).mtimeMs }; } catch { return undefined; }
+  }
+}
+
+function refreshOwnedLock(path, lockRecord) {
+  try {
+    if (readFileSync(path, 'utf8') !== lockRecord) return;
+    const now = new Date();
+    utimesSync(path, now, now);
+  } catch { /* The lock was released or replaced. */ }
+}
+
+function streamerBotLockOwnerMatches(pid) {
+  try {
+    const command = `(Get-CimInstance Win32_Process -Filter 'ProcessId = ${String(pid)}' -ErrorAction Stop).CommandLine`;
+    const commandLine = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 5_000 }).trim().toLocaleLowerCase('en-US');
+    return commandLine.includes('start-streamerbot');
+  } catch { return undefined; }
 }
 
 function argumentsFromCommandLine(values) {

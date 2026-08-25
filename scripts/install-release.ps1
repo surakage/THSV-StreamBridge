@@ -143,6 +143,23 @@ if (Test-Path -LiteralPath $existingRecordPath -PathType Leaf) {
 
 Assert-ManifestFiles $source $manifest
 
+# Layout-v2 portable releases own their versioned app/runtime/launcher transaction in
+# installer/install.mjs. Delegate before the legacy flat-layout staging path so there is
+# exactly one rollback implementation and the PowerShell entry point cannot misplace files.
+if ([int]$manifest.layoutVersion -eq 2) {
+    $portableNode = Join-Path $source 'runtime\node.exe'
+    $portableInstaller = Join-Path $source 'installer\install.mjs'
+    if (-not (Test-Path -LiteralPath $portableNode -PathType Leaf) -or -not (Test-Path -LiteralPath $portableInstaller -PathType Leaf)) {
+        throw 'Layout-v2 release is missing its verified runtime or installer.'
+    }
+    $portableArguments = @($portableInstaller, '--install-root', $destination)
+    if (-not $StartBridge) { $portableArguments += '--no-start' }
+    if ($AllowDowngrade) { $portableArguments += '--allow-downgrade' }
+    & $portableNode @portableArguments
+    if ($LASTEXITCODE -ne 0) { throw "Layout-v2 portable installer failed with exit code $LASTEXITCODE." }
+    return
+}
+
 $parent = Split-Path -Parent $destination
 New-Item -ItemType Directory -Path $parent -Force | Out-Null
 $stage = Join-Path $parent ('.thsv-streambridge-install-' + [guid]::NewGuid().ToString('N'))

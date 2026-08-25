@@ -1,14 +1,21 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { appendFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { appendFile, mkdir, readFile, rename, rm, stat, utimes, writeFile } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const launcherRoot = join(installRoot, 'launcher');
 const launchLockPath = join(installRoot, 'data', 'runtime', 'streaming-tools.launch.lock');
+const optionalCircuitPath = join(installRoot, 'data', 'runtime', 'optional-app-startup-circuit.json');
 const OPTIONAL_STARTUP_GRACE_MS = 1_500;
 const STREAMERBOT_STALE_LISTENER_RECOVERY_MS = 2_000;
+const LAUNCH_LOCK_STALE_MS = 140_000;
+const LAUNCH_LOCK_HEARTBEAT_MS = 5_000;
+const MAXIMUM_CONFIGURATION_BYTES = 256 * 1024;
+const OPTIONAL_CIRCUIT_WINDOW_MS = 10 * 60_000;
+const OPTIONAL_CIRCUIT_OPEN_MS = 15 * 60_000;
+const OPTIONAL_CIRCUIT_FAILURES = 3;
 const startupStartedAt = Date.now();
 const startupRunId = randomUUID();
 let currentPhase = 'initializing';
@@ -29,10 +36,11 @@ async function main() {
 
 async function startStreamingTools() {
   await writeStartupProgress('preflight', 'Validating the saved streaming-tool configuration.');
-  const config = JSON.parse(await readFile(join(installRoot, 'data', 'configuration', 'bridge.local.json'), 'utf8'));
+  const config = await readJsonConfiguration(join(installRoot, 'data', 'configuration', 'bridge.local.json'), 'StreamBridge');
   if (!Number.isInteger(config.service?.port) || config.service.port < 1 || config.service.port > 65_535) throw new Error('The configured StreamBridge service port is invalid.');
   const baseUrl = `http://127.0.0.1:${String(config.service.port)}`;
   const launcherConfig = await readLauncherConfiguration();
+  await validateCoreLauncherConfiguration(launcherConfig);
   const optionalWarnings = [];
   optionalWarnings.push(...await startTrayShell());
 
@@ -91,22 +99,66 @@ async function acquireLaunchLock() {
   let waited = false;
   while (Date.now() < deadline) {
     try {
-      await writeFile(launchLockPath, `${String(process.pid)}\n`, { flag: 'wx', encoding: 'ascii', mode: 0o600 });
-      return async () => { await rm(launchLockPath, { force: true }); };
+      const ownedLock = `${JSON.stringify({ version: 1, pid: process.pid, createdAt: Date.now() })}\n`;
+      await writeFile(launchLockPath, ownedLock, { flag: 'wx', encoding: 'utf8', mode: 0o600 });
+      const heartbeat = setInterval(() => void refreshOwnedLaunchLock(ownedLock), LAUNCH_LOCK_HEARTBEAT_MS);
+      heartbeat.unref();
+      return async () => {
+        clearInterval(heartbeat);
+        const current = await readFile(launchLockPath, 'utf8').catch(() => undefined);
+        if (current === ownedLock) await rm(launchLockPath, { force: true });
+      };
     } catch (error) {
       if (error?.code !== 'EEXIST') throw error;
-      const owner = Number((await readFile(launchLockPath, 'ascii').catch(() => '')).trim());
-      if (Number.isInteger(owner) && owner > 0 && isAlive(owner)) {
-        if (!waited) process.stdout.write(`Another all-tools startup is already running (PID ${String(owner)}); waiting for its result...\n`);
+      const snapshot = await readFile(launchLockPath, 'utf8').catch(() => '');
+      const owner = await parseLaunchLockOwner(snapshot);
+      const ownerIdentity = owner === undefined ? undefined : launchLockOwnerMatches(owner.pid);
+      if (owner !== undefined && !owner.stale && isAlive(owner.pid) && ownerIdentity !== false) {
+        if (!waited) process.stdout.write(`Another all-tools startup is already running (PID ${String(owner.pid)}); waiting for its result...\n`);
         waited = true;
         await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
         continue;
       }
-      const currentOwner = Number((await readFile(launchLockPath, 'ascii').catch(() => '')).trim());
-      if (currentOwner === owner) await rm(launchLockPath, { force: true });
+      const current = await readFile(launchLockPath, 'utf8').catch(() => undefined);
+      if (current === snapshot) {
+        if (owner?.stale && isAlive(owner.pid)) process.stdout.write(`Recovering an expired all-tools startup lock whose PID ${String(owner.pid)} has been reused or stopped responding.\n`);
+        await rm(launchLockPath, { force: true });
+      }
     }
   }
   throw new Error('The existing all-tools startup did not finish within 110 seconds.');
+}
+
+async function parseLaunchLockOwner(raw) {
+  const value = raw.trim();
+  if (value.length === 0) return undefined;
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed?.version === 1 && Number.isInteger(parsed.pid) && parsed.pid > 0 && Number.isFinite(parsed.createdAt)) {
+      const modifiedAt = await stat(launchLockPath).then((entry) => entry.mtimeMs).catch(() => parsed.createdAt);
+      return { pid: parsed.pid, stale: Date.now() - Math.max(parsed.createdAt, modifiedAt) > LAUNCH_LOCK_STALE_MS };
+    }
+  } catch { /* Legacy numeric locks are handled below. */ }
+  const legacyPid = Number(value);
+  if (!Number.isInteger(legacyPid) || legacyPid <= 0) return undefined;
+  const modifiedAt = await stat(launchLockPath).then((entry) => entry.mtimeMs).catch(() => 0);
+  return { pid: legacyPid, stale: modifiedAt <= 0 || Date.now() - modifiedAt > LAUNCH_LOCK_STALE_MS };
+}
+
+async function refreshOwnedLaunchLock(ownedLock) {
+  const current = await readFile(launchLockPath, 'utf8').catch(() => undefined);
+  if (current !== ownedLock) return;
+  const now = new Date();
+  await utimes(launchLockPath, now, now).catch(() => undefined);
+}
+
+function launchLockOwnerMatches(pid) {
+  if (process.platform !== 'win32') return undefined;
+  try {
+    const command = `(Get-CimInstance Win32_Process -Filter 'ProcessId = ${String(pid)}' -ErrorAction Stop).CommandLine`;
+    const commandLine = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 5_000 }).trim().toLocaleLowerCase('en-US');
+    return commandLine.includes('start-streaming-tools.mjs');
+  } catch { return undefined; }
 }
 
 function runLauncher(script, argumentsValue, timeout) {
@@ -146,37 +198,124 @@ function readinessBlockerSummary(blockers) {
 }
 
 async function readLauncherConfiguration() {
-  try { return JSON.parse(await readFile(join(installRoot, 'data', 'configuration', 'streamerbot-launcher.json'), 'utf8')); }
-  catch { return undefined; }
+  const path = join(installRoot, 'data', 'configuration', 'streamerbot-launcher.json');
+  if (!await pathExists(path)) return undefined;
+  return readJsonConfiguration(path, 'streaming-tool launcher');
+}
+
+async function readJsonConfiguration(path, label) {
+  let details;
+  try { details = await stat(path); }
+  catch (error) {
+    if (error?.code === 'ENOENT') throw new Error(`The ${label} configuration is missing. Open the Setup Wizard and save it again.`, { cause: error });
+    throw error;
+  }
+  if (!details.isFile()) throw new Error(`The ${label} configuration is not a regular file. Open the Setup Wizard and save it again.`);
+  if (details.size > MAXIMUM_CONFIGURATION_BYTES) throw new Error(`The ${label} configuration is unexpectedly large. Open the Setup Wizard and save it again.`);
+  try {
+    const value = JSON.parse(await readFile(path, 'utf8'));
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error('not an object');
+    return value;
+  } catch (error) {
+    if (error instanceof SyntaxError || error?.message === 'not an object') throw new Error(`The ${label} configuration is damaged. Open the Setup Wizard and save it again.`, { cause: error });
+    throw error;
+  }
+}
+
+async function validateCoreLauncherConfiguration(configuration) {
+  if (configuration === undefined) return;
+  if ((configuration.version !== 1 && configuration.version !== 2) || typeof configuration.executable !== 'string') {
+    throw new Error('The streaming-tool launcher configuration is invalid. Open the Setup Wizard and save the Streamer.bot path again.');
+  }
+  const executable = configuration.executable.trim();
+  if (!isAbsolute(executable) || basename(executable).toLocaleLowerCase('en-US') !== 'streamer.bot.exe' || !await isFile(executable)) {
+    throw new Error('The saved Streamer.bot executable is missing or invalid. Open the Setup Wizard and select the exact Streamer.bot.exe again; automatic fallback is disabled.');
+  }
 }
 
 async function startOptionalApplication(application, launcherConfig) {
   const warnings = [];
   const definitions = {
-    obs: { label: 'OBS Studio', processNames: ['obs64'] },
-    meld: { label: 'Meld Studio', processNames: ['Meld', 'Meld Studio'] },
-    streamlabs: { label: 'Streamlabs Desktop', processNames: ['Streamlabs Desktop', 'slobs-client'] },
-    speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'] },
+    obs: { label: 'OBS Studio', processNames: ['obs64'], executableNames: ['obs64.exe'] },
+    meld: { label: 'Meld Studio', processNames: ['Meld', 'Meld Studio'], executableNames: ['meld.exe', 'meld studio.exe'] },
+    streamlabs: { label: 'Streamlabs Desktop', processNames: ['Streamlabs Desktop', 'slobs-client'], executableNames: ['streamlabs desktop.exe', 'slobs-client.exe'] },
+    speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'], executableNames: ['speaker.bot.exe'] },
   };
   const definition = definitions[application];
   const saved = launcherConfig?.optionalApps?.[application];
   if (saved?.enabled !== true) return warnings;
-  if (typeof saved.executable !== 'string' || !await isFile(saved.executable)) return [`${definition.label} was enabled but its saved executable is missing.`];
-  if (processIsRunning(definition.processNames)) {
-    process.stdout.write(`${definition.label} is already running.\n`);
+  const executable = typeof saved.executable === 'string' ? saved.executable.trim() : '';
+  const executableName = basename(executable).toLocaleLowerCase('en-US');
+  if (!isAbsolute(executable) || !definition.executableNames.includes(executableName) || !await isFile(executable)) {
+    return [`${definition.label} was enabled but its saved executable is missing or invalid. Reselect it in the Setup Wizard; core tools will continue safely.`];
+  }
+  const circuit = await optionalApplicationCircuit(application);
+  if (circuit.open) return [`${definition.label} automatic startup is temporarily paused after ${String(circuit.failureCount)} recent failures. Try it manually, then use the Wizard preflight after ${new Date(circuit.openUntil).toLocaleTimeString()}.`];
+  const existingProcesses = processesNamed(definition.processNames);
+  const selectedProcess = existingProcesses.find((candidate) => typeof candidate.path === 'string' && samePath(candidate.path, executable));
+  if (selectedProcess !== undefined) {
+    process.stdout.write(`${definition.label} is already running from the saved executable (PID ${String(selectedProcess.pid)}).\n`);
     return warnings;
   }
+  const otherInstallations = existingProcesses.filter((candidate) => typeof candidate.path === 'string' && !samePath(candidate.path, executable));
+  if (otherInstallations.length > 0) process.stdout.write(`A different ${definition.label} installation is running. Starting the exact saved executable: ${executable}\n`);
   let pid;
   try {
-    pid = await launchDetached(saved.executable);
+    pid = await launchDetached(executable);
     process.stdout.write(`Started optional app: ${definition.label}.\n`);
   } catch (error) {
+    await recordOptionalApplicationFailure(application, error instanceof Error ? error.message : String(error));
     return [`${definition.label} could not start (${error instanceof Error ? error.message : String(error)}).`];
   }
   process.stdout.write(`Allowing ${definition.label} to initialize before continuing.\n`);
   await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
-  if (!isAlive(pid)) warnings.push(`${definition.label} exited during startup; continuing with Streamer.bot and StreamBridge.`);
+  const selectedNowRunning = processesNamed(definition.processNames).some((candidate) => typeof candidate.path === 'string' && samePath(candidate.path, executable));
+  if (!isAlive(pid) && !selectedNowRunning) {
+    await recordOptionalApplicationFailure(application, 'The process exited during its startup grace period.');
+    const detail = otherInstallations.length > 0 ? ` A different installation remains open; reselect the intended executable in the Wizard if ${definition.label} is single-instance.` : '';
+    warnings.push(`${definition.label} exited during startup; continuing with Streamer.bot and StreamBridge.${detail}`);
+  } else await clearOptionalApplicationFailures(application);
   return warnings;
+}
+
+async function optionalApplicationCircuit(application) {
+  const state = await readOptionalCircuitState();
+  const entry = state.applications[application];
+  const cutoff = Date.now() - OPTIONAL_CIRCUIT_WINDOW_MS;
+  const failures = Array.isArray(entry?.failures) ? entry.failures.filter((failure) => Number.isFinite(Date.parse(failure.at)) && Date.parse(failure.at) >= cutoff) : [];
+  const openUntil = typeof entry?.openUntil === 'string' && Number.isFinite(Date.parse(entry.openUntil)) ? Date.parse(entry.openUntil) : 0;
+  return { open: failures.length >= OPTIONAL_CIRCUIT_FAILURES && openUntil > Date.now(), failureCount: failures.length, openUntil };
+}
+
+async function recordOptionalApplicationFailure(application, message) {
+  const state = await readOptionalCircuitState();
+  const cutoff = Date.now() - OPTIONAL_CIRCUIT_WINDOW_MS;
+  const prior = Array.isArray(state.applications[application]?.failures) ? state.applications[application].failures : [];
+  const failures = [...prior.filter((failure) => Number.isFinite(Date.parse(failure.at)) && Date.parse(failure.at) >= cutoff), { at: new Date().toISOString(), message: String(message).slice(0, 300) }].slice(-OPTIONAL_CIRCUIT_FAILURES);
+  const openUntil = failures.length >= OPTIONAL_CIRCUIT_FAILURES ? new Date(Date.now() + OPTIONAL_CIRCUIT_OPEN_MS).toISOString() : undefined;
+  await writeOptionalCircuitState({ ...state, applications: { ...state.applications, [application]: { failures, ...(openUntil === undefined ? {} : { openUntil }) } } });
+}
+
+async function clearOptionalApplicationFailures(application) {
+  const state = await readOptionalCircuitState();
+  if (state.applications[application] === undefined) return;
+  const applications = Object.fromEntries(Object.entries(state.applications).filter(([name]) => name !== application));
+  await writeOptionalCircuitState({ ...state, applications });
+}
+
+async function readOptionalCircuitState() {
+  try {
+    if ((await stat(optionalCircuitPath)).size > 64 * 1024) return { version: 1, applications: {} };
+    const value = JSON.parse(await readFile(optionalCircuitPath, 'utf8'));
+    return value?.version === 1 && value.applications !== null && typeof value.applications === 'object' && !Array.isArray(value.applications) ? value : { version: 1, applications: {} };
+  } catch (error) { if (error?.code !== 'ENOENT' && !(error instanceof SyntaxError)) process.stderr.write(`Warning: optional-app circuit state could not be read (${error instanceof Error ? error.message : String(error)}).\n`); return { version: 1, applications: {} }; }
+}
+
+async function writeOptionalCircuitState(state) {
+  await mkdir(dirname(optionalCircuitPath), { recursive: true });
+  const temporary = `${optionalCircuitPath}.${randomUUID()}.tmp`;
+  await writeFile(temporary, `${JSON.stringify({ version: 1, applications: state.applications }, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  await rename(temporary, optionalCircuitPath);
 }
 
 function startTrayShell() {
@@ -214,18 +353,30 @@ function isAlive(pid) {
   catch { return false; }
 }
 
-function processIsRunning(names) {
-  if (process.platform !== 'win32') return false;
+function processesNamed(names) {
+  if (process.platform !== 'win32') return [];
   try {
     const escaped = names.map((name) => `'${name.replaceAll("'", "''")}'`).join(',');
-    const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `@(${escaped}|ForEach-Object{Get-Process -Name $_ -ErrorAction SilentlyContinue}).Count`], { encoding: 'utf8', windowsHide: true, timeout: 5_000 });
-    return Number(output.trim()) > 0;
-  } catch { return false; }
+    const command = `@(${escaped}|ForEach-Object{Get-Process -Name $_ -ErrorAction SilentlyContinue}|Sort-Object Id -Unique|ForEach-Object{[pscustomobject]@{pid=$_.Id;name=$_.ProcessName;path=$_.Path}})|ConvertTo-Json -Compress`;
+    const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 5_000 }).trim();
+    if (!output) return [];
+    const value = JSON.parse(output);
+    return Array.isArray(value) ? value : [value];
+  } catch { return []; }
+}
+
+function samePath(left, right) {
+  return resolve(left).toLocaleLowerCase('en-US') === resolve(right).toLocaleLowerCase('en-US');
 }
 
 async function isFile(path) {
   try { return (await stat(path)).isFile(); }
   catch { return false; }
+}
+
+async function pathExists(path) {
+  try { await stat(path); return true; }
+  catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
 }
 
 async function writeStartupReport(details) {

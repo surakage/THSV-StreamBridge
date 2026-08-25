@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
@@ -63,12 +64,12 @@ test('tray reminder deep links open and focus the live-acceptance checklist', as
 
   await expect(page.locator('[data-panel="diagnostics"]')).toBeVisible();
   await expect(page.locator('#live-acceptance-list')).toBeVisible();
-  await expect(page.locator('#live-acceptance-list select').first()).toBeFocused();
+  await expect(page.locator('#live-acceptance-list select').first()).toBeFocused({ timeout: 10_000 });
   await expect(page).toHaveURL(/\/wizard\/$/u);
 });
 
 test('connection center explains a stopped Streamer.bot session and offers safe recovery', async ({ page }) => {
-  await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+  const stoppedReadiness = {
     readiness: {
       status: 'not-ready', ready: false,
       adapters: [
@@ -83,7 +84,9 @@ test('connection center explains a stopped Streamer.bot session and offers safe 
       websocketPort: 8081, state: 'stopped', message: 'Streamer.bot is configured but its WebSocket server is not currently listening.', optionalApps: {},
     },
     configuration: { state: 'active', restartRequired: false, activatedAt: '2026-08-18T12:00:00.000Z' },
-  }) }));
+  };
+  await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(stoppedReadiness) }));
+  await page.route('**/wizard/api/preflight', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...stoppedReadiness, ready: false, obsInventory: { configured: false, ready: true, sources: [], discovered: [], reconciliations: [] } }) }));
   await unlock(page);
 
   await expect(page.locator('#connection-center-badge')).toHaveText('Streamer.bot offline');
@@ -92,6 +95,54 @@ test('connection center explains a stopped Streamer.bot session and offers safe 
   await expect(page.getByRole('button', { name: 'Start Streamer.bot', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Open connection settings' }).click();
   await expect(page.locator('[data-panel="streamerbot"]')).toBeVisible();
+});
+
+test('direct scene profiles stay secret and identify native versus fallback tests', async ({ page }) => {
+  const profile = { id: '11111111-1111-4111-8111-111111111111', name: 'OBS Portrait', provider: 'obs', url: 'ws://127.0.0.1:4456', enabled: true, hasCredential: true, credentialVerifiedAt: '2026-08-25T12:00:00.000Z', rotationReminderDays: 90, credentialReminderDue: false, latencyWarningMs: 1500 };
+  await page.route('**/wizard/api/broadcast-connections/discover', async (route) => { const input = route.request().postDataJSON() as { provider?: string; port?: number }; const custom = input.port !== undefined; await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ mutationFree: true, scope: custom ? 'single-explicit-loopback-port' : 'documented-loopback-defaults-only', candidates: [{ provider: input.provider ?? 'obs', url: custom ? `ws://127.0.0.1:${String(input.port)}` : 'ws://127.0.0.1:4455', listening: true, profileConfigured: false, application: { configured: true, running: true, processId: 44 } }] }) }); });
+  await page.route('**/wizard/api/broadcast-connections/acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ mutationFree: true, results: [{ provider: 'obs', outcome: 'passed', executable: 'obs64.exe', processId: 44, latencyMs: 12, message: 'Direct OBS WebSocket connected.' }, { provider: 'meld', outcome: 'not-installed', message: 'Meld is not selected.' }], history: { receiptCount: 2, comparison: { regressions: [], summary: 'No installed-app acceptance regressions detected.' } } }) }));
+  await page.route('**/wizard/api/broadcast-connections/import/validate', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ valid: true, connections: [{ id: profile.id, name: profile.name, provider: profile.provider, url: profile.url, enabled: true, credentialRequired: true, credentialStatus: 'reentry-required' }] }) }));
+  await page.route('**/wizard/api/broadcast-connections/import', async (route) => {
+    const body = route.request().postDataJSON() as { credentials?: Record<string, string> };
+    expect(body.credentials?.[profile.id]).toBe('replacement-secret');
+    return await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ supported: true, credentialProtection: 'windows-dpapi-current-user', connections: [profile], runtime: { subscriptionsActive: true, attention: { level: 'ready' }, connections: [{ ...profile, state: 'connected' }], events: [] } }) });
+  });
+  await page.route('**/wizard/api/broadcast-connections', async (route) => {
+    if (route.request().url().endsWith('/export')) return await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ format: 'thsv-broadcast-connections-metadata-v1', exportedAt: '2026-08-25T12:00:00.000Z', connections: [{ ...profile, credentialRequired: true }] }) });
+    if (route.request().method() === 'GET') return await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ supported: true, credentialProtection: 'windows-dpapi-current-user', connections: [profile], runtime: { subscriptionsActive: true, connections: [{ ...profile, state: 'connected', reconnectCount: 0, lastLatencyMs: 18 }], events: [{ timestamp: '2026-08-25T12:00:00.000Z', connectionId: profile.id, connectionName: profile.name, provider: 'obs', type: 'connected', latencyMs: 18, sceneCount: 4 }] } }) });
+    return await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ supported: true, credentialProtection: 'windows-dpapi-current-user', connections: [profile], runtime: { subscriptionsActive: true, connections: [{ ...profile, state: 'connected' }], events: [] } }) });
+  });
+  await page.route('**/wizard/api/broadcast-connections/test', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ available: true, transport: 'direct-websocket', message: 'Direct OBS WebSocket connected and returned 4 scene(s).' }) }));
+  await page.route('**/wizard/api/broadcast-connections/export', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ format: 'thsv-broadcast-connections-metadata-v1', exportedAt: '2026-08-25T12:00:00.000Z', secretPolicy: 'Credentials are never exported.', connections: [{ id: profile.id, name: profile.name, provider: profile.provider, url: profile.url, enabled: true, credentialRequired: true }] }) }));
+  await unlock(page);
+  await page.getByRole('button', { name: 'Streamer.bot', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Direct scene connections' })).toBeVisible();
+  await expect(page.locator('#direct-provider-guidance')).toContainText('Tools → WebSocket Server Settings');
+  await expect(page.locator('#direct-connection-list')).toContainText('credential verified');
+  await expect(page.locator('#direct-connection-list')).not.toContainText(/password|token-value/iu);
+  await expect(page.locator('#direct-connection-events')).toContainText('18 ms');
+  await page.getByRole('button', { name: 'Discover local endpoints' }).click();
+  await expect(page.locator('#direct-connection-discovery')).toContainText('exact configured process PID 44');
+  await page.getByRole('button', { name: 'Prefill only' }).click();
+  await expect(page.locator('#direct-connection-form input[name="url"]')).toHaveValue('ws://127.0.0.1:4455');
+  await page.locator('#custom-direct-discovery-form input[name="port"]').fill('4457');
+  await page.getByRole('button', { name: 'Check this one port' }).click();
+  await expect(page.locator('#direct-connection-discovery')).toContainText('ws://127.0.0.1:4457');
+  await page.getByRole('button', { name: 'Run installed-app acceptance' }).click();
+  await expect(page.locator('#broadcast-vendor-acceptance')).toContainText('obs64.exe · PID 44');
+  await page.getByRole('button', { name: 'Test direct' }).click();
+  await expect(page.locator('#direct-connections-state')).toContainText('Native direct connection');
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.locator('#direct-connection-form input[name="credential"]')).toHaveValue('');
+  await expect(page.locator('#direct-connection-form select[name="rotationReminderDays"]')).toHaveValue('90');
+  await expect(page.locator('#direct-connection-form input[name="latencyWarningMs"]')).toHaveValue('1500');
+  const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export profile names and URLs' }).click(); const download = await downloadPromise; const exported = await readFile(await download.path(), 'utf8'); expect(exported).toContain('thsv-broadcast-connections-metadata-v1'); expect(exported).not.toContain('token-value'); expect(exported).not.toContain('never-plain');
+  await page.locator('#direct-connections-import-file').setInputFiles({ name: 'connections.json', mimeType: 'application/json', buffer: Buffer.from(exported) });
+  await expect(page.locator('#direct-connections-import-form')).toBeVisible();
+  await page.locator(`[data-import-credential="${profile.id}"]`).fill('replacement-secret');
+  await page.locator('#direct-connections-import-form input[name="approvedByCreator"]').check();
+  await page.getByRole('button', { name: 'Protect and import profiles' }).click();
+  await expect(page.locator('#direct-connections-import-form')).toBeHidden();
 });
 
 test('overlay setup assistant gives host-specific sources and remembers checked layers', async ({ page }) => {
@@ -125,6 +176,17 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
 
 test('pre-stream check requires healthy local evidence and explicit import confirmation', async ({ page }) => {
   let inspectionCalls = 0;
+  await page.route('**/wizard/api/preflight', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    ready: true,
+    readiness: {
+      status: 'ready', ready: true,
+      adapters: [{ name: 'twitch', state: 'connected' }, { name: 'youtube', state: 'disabled' }],
+      outputs: [{ name: 'streamerbot', state: 'connected' }],
+      modules: [{ moduleId: 'core.chat', status: 'healthy' }, { moduleId: 'core.alerts', status: 'healthy' }],
+    },
+    launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} },
+    launcherPreflight: { ready: true, checks: [] }, broadcastAutomation: {}, obsInventory: { configured: false, ready: true, sources: [], discovered: [], reconciliations: [] },
+  }) }));
   await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
     readiness: {
       status: 'ready', ready: true,
@@ -160,6 +222,7 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   let reminders = { notificationsSnoozed: false } as { notificationsSnoozed: boolean; snoozedUntil?: string };
   const obsInventory = { configured: true, ready: false, requiredCount: 1, readyRequiredCount: 0, sources: [{ id: 'alerts-main', label: 'Alerts', scene: 'Old Live', surface: '/overlay/alerts:alerts', minimumCount: 1, required: true, visibleCount: 0, ready: false }], discovered: [], reconciliations: [{ sourceId: 'alerts-main', label: 'Alerts', reason: 'Detected the same StreamBridge surface in scene “Live”.', suggested: { scene: 'Live', surface: '/overlay/alerts:alerts', connectedCount: 1, visibleCount: 1 } }] };
   await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ readiness: { status: 'ready', ready: true, adapters: [], outputs: [], modules: [] }, launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} }, provenance: { version: '4.0.1', installation: 'verified-portable-release' }, obsInventory }) }));
+  await page.route('**/wizard/api/preflight', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ready: false, readiness: { status: 'ready', ready: true, adapters: [], outputs: [], modules: [] }, launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} }, provenance: { version: '4.0.1', installation: 'verified-portable-release' }, obsInventory }) }));
   await page.route('**/wizard/api/obs-source-inventory', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(obsInventory) }));
     await page.route('**/wizard/api/live-acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ checks: [{ id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Confirm recovery.', requiresGenuineEvent: false, recheckAfterDays: 90 }, { id: 'provider-reconnect', label: 'Provider reconnect', guidance: 'Confirm reconnect.', requiresGenuineEvent: false, recheckAfterDays: 90 }], evidence: [], reminders, audit: [{ id: 'audit-1', checkId: 'bridge-startup', kind: 'binding-migrated', recordedAt: '2026-08-21T00:00:00.000Z', changes: ['Legacy acceptance binding migrated to scoped content fingerprints.'] }], confirmations: { 'bridge-startup': { checkId: 'bridge-startup', status: 'due', due: true, dueAt: '2026-08-20T00:00:00.000Z', dueReason: 'Periodic live acceptance is due after 90 days.', note: 'Passed.', confirmedAt: '2026-05-22T00:00:00.000Z' }, 'provider-reconnect': { checkId: 'provider-reconnect', status: 'accepted', dueSoon: true, dueAt: '2026-08-30T00:00:00.000Z', dueSoonReason: 'Periodic live acceptance is due within 14 days.', note: 'Passed.', confirmedAt: '2026-06-01T00:00:00.000Z' } } }) }));
   await page.route('**/wizard/api/live-acceptance/reminders', async (route) => { const body = route.request().postDataJSON() as { action: string; hours?: number }; reminders = body.action === 'resume' ? { notificationsSnoozed: false } : { notificationsSnoozed: true, snoozedUntil: '2026-08-22T00:00:00.000Z' }; await route.fulfill({ contentType: 'application/json', body: JSON.stringify(reminders) }); });

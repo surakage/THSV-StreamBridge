@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { basename } from 'node:path';
 import type {
   StreamerBotActionSummary,
   StreamerBotCommandSummary,
@@ -39,6 +40,9 @@ import type { ReleaseReadinessService } from './release-readiness-service.js';
 import type { SceneCatalogService } from './scene-catalog-service.js';
 import type { StreamerBotTriggerAssuranceService } from './streamerbot-trigger-assurance-service.js';
 import type { OperationalReliabilityService } from './operational-reliability-service.js';
+import type { BroadcastConnectionVaultService } from './broadcast-connection-vault-service.js';
+import { DirectSceneConnectionError, type DirectSceneConnectionManager } from './direct-scene-connection-manager.js';
+import type { ScheduledReliabilityPreflightService } from './scheduled-reliability-preflight-service.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -176,6 +180,9 @@ export class WizardService {
     private readonly sceneCatalog?: SceneCatalogService,
     private readonly triggerAssurance?: StreamerBotTriggerAssuranceService,
     private readonly operationalReliability?: OperationalReliabilityService,
+    private readonly broadcastConnections?: BroadcastConnectionVaultService,
+    private readonly directSceneConnections?: DirectSceneConnectionManager,
+    private readonly scheduledReliabilityPreflight?: ScheduledReliabilityPreflightService,
   ) {}
 
   public async installedStateDrift(): Promise<Readonly<Record<string, unknown>>> {
@@ -191,6 +198,35 @@ export class WizardService {
   public async runOperationalRehearsal(): Promise<Readonly<Record<string, unknown>>> {
     if (this.operationalReliability === undefined) throw new WizardTransactionError(503, 'Operational rehearsal is unavailable in this installation.');
     return this.operationalReliability.rehearsal();
+  }
+
+  public async streamingToolsPreflight(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Streaming-tool preflight is unavailable in this installation.');
+    const [launcher, rehearsal, configurationBackups] = await Promise.all([
+      this.streamerBotLauncher.preflight(),
+      this.operationalReliability?.rehearsal() ?? Promise.resolve({ available: false, ready: false, steps: [] }),
+      this.configuration?.backups() ?? Promise.resolve({ backups: [] }),
+    ]);
+    const sceneCatalog = this.sceneCatalogStatus();
+    const launcherStatus = launcher['launcher'] as Readonly<Record<string, unknown>>;
+    const optionalApps = launcherStatus['optionalApps'] as Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined;
+    const providers = sceneCatalog['providers'] as Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined;
+    const broadcastAutomation = Object.fromEntries(['obs', 'meld', 'streamlabs'].map((provider) => {
+      const application = optionalApps?.[provider] ?? {};
+      const catalog = providers?.[provider] ?? {};
+      const connections = Array.isArray(catalog['connections']) ? catalog['connections'] as Readonly<Record<string, unknown>>[] : [];
+      const automationReady = connections.some((connection) => connection['complete'] === true && typeof connection['error'] !== 'string' && typeof connection['updatedAt'] === 'string' && Date.now() - Date.parse(connection['updatedAt']) <= 5 * 60_000);
+      const enabled = application['enabled'] === true;
+      const running = application['running'] === true;
+      return [provider, { enabled, running, automationReady, ready: !enabled || running && automationReady, sceneCount: Array.isArray(catalog['scenes']) ? catalog['scenes'].length : 0, source: catalog['source'] ?? 'unavailable', updatedAt: catalog['updatedAt'], detail: !enabled ? 'Automatic startup is off; automation readiness is optional.' : !running ? 'The selected application is not running.' : automationReady ? 'The application is running and its scene automation channel reported within five minutes.' : 'The application is running, but no complete scene automation response was received within five minutes.' }];
+    }));
+    const requiredBroadcastReady = Object.values(broadcastAutomation).every((value) => (value as Readonly<Record<string, unknown>>)['ready'] === true);
+    const broadcastConnectionGate = (this.directSceneConnections?.status()['strictGate'] ?? { enabled: false, ready: true }) as Readonly<Record<string, unknown>>;
+    return { generatedAt: new Date().toISOString(), mutationFree: true, ready: launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true, launcher, rehearsal, configurationBackups, sceneCatalog, broadcastAutomation, broadcastConnectionGate };
+  }
+
+  public async launcherSupportSnapshot(): Promise<Readonly<Record<string, unknown>>> {
+    return this.streamerBotLauncher?.supportSnapshot() ?? { available: false };
   }
 
   public operationalHealth(): Readonly<Record<string, unknown>> {
@@ -265,6 +301,111 @@ export class WizardService {
   public async refreshSceneCatalog(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.sceneCatalog === undefined) throw new WizardTransactionError(503, 'Scene catalog is unavailable in this installation.');
     return this.sceneCatalog.refresh(input);
+  }
+
+  public broadcastConnectionStatus(): Readonly<Record<string, unknown>> {
+    if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false };
+    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] } };
+  }
+
+  public broadcastConnectionMetadataExport(): Readonly<Record<string, unknown>> {
+    if (this.broadcastConnections === undefined) throw new WizardTransactionError(503, 'Secure direct broadcast connections are unavailable in this installation.');
+    return this.broadcastConnections.exportMetadata();
+  }
+
+  public validateBroadcastConnectionMetadataImport(input: unknown): Readonly<Record<string, unknown>> {
+    if (this.broadcastConnections === undefined) throw new WizardTransactionError(503, 'Secure direct broadcast connections are unavailable in this installation.');
+    return this.broadcastConnections.validateMetadataImport(input);
+  }
+
+  public async importBroadcastConnectionMetadata(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.broadcastConnections === undefined || this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Secure direct broadcast connections are unavailable in this installation.');
+    await this.broadcastConnections.importMetadata(request);
+    await this.directSceneConnections.reload();
+    this.sceneCatalog?.reconcileActiveDirectConnections(await this.directSceneConnections.activeProfiles());
+    return this.broadcastConnectionStatus();
+  }
+
+  public async saveBroadcastConnection(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.broadcastConnections === undefined || this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Secure direct broadcast connections are unavailable in this installation.');
+    const candidate = await this.broadcastConnections.candidate(request);
+    const saveTest = candidate.enabled ? await this.directSceneConnections.testCandidate(candidate) : { available: true, skipped: true, message: 'Connection testing was skipped because this profile is disabled.' };
+    if (saveTest['available'] !== true) throw new DirectSceneConnectionError(400, `The proposed connection was not saved. ${typeof saveTest['message'] === 'string' ? saveTest['message'] : 'Its native test failed.'}`);
+    await this.broadcastConnections.save({ ...request, id: candidate.id }, candidate.hasCredential && saveTest['skipped'] !== true ? new Date().toISOString() : undefined);
+    await this.directSceneConnections.reload();
+    this.sceneCatalog?.reconcileActiveDirectConnections(await this.directSceneConnections.activeProfiles());
+    return { ...this.broadcastConnectionStatus(), saveTest };
+  }
+
+  public async removeBroadcastConnection(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.broadcastConnections === undefined || this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Secure direct broadcast connections are unavailable in this installation.');
+    await this.broadcastConnections.remove(request);
+    await this.directSceneConnections.reload();
+    this.sceneCatalog?.reconcileActiveDirectConnections(await this.directSceneConnections.activeProfiles());
+    return this.broadcastConnectionStatus();
+  }
+
+  public async testBroadcastConnection(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Direct broadcast connection testing is unavailable in this installation.');
+    return this.directSceneConnections.test(input);
+  }
+
+  public async discoverBroadcastConnections(input?: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Direct broadcast endpoint discovery is unavailable in this installation.');
+    return await this.directSceneConnections.discover(input);
+  }
+
+  public async broadcastConnectionAssistant(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Broadcast connection conflict assistance is unavailable in this installation.');
+    return await this.directSceneConnections.conflictAssistant();
+  }
+  public async suggestBroadcastConnectionPorts(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Unused-port suggestions are unavailable in this installation.'); return await this.directSceneConnections.suggestUnusedPorts(input); }
+
+  public async approveBroadcastAcceptanceBaseline(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Broadcast acceptance baselines are unavailable in this installation.');
+    return await this.directSceneConnections.approveAcceptanceBaseline(request);
+  }
+
+  public async saveBroadcastReliabilityPolicy(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.broadcastConnections === undefined) throw new WizardTransactionError(503, 'Broadcast reliability policy is unavailable in this installation.');
+    await this.broadcastConnections.saveReliabilityPolicy(request);
+    return this.broadcastConnectionStatus();
+  }
+
+  public async setBroadcastConnectionMaintenance(input: unknown): Promise<Readonly<Record<string, unknown>>> { const request = approvedLauncherRequest(input); if (this.broadcastConnections === undefined || this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Connection maintenance controls are unavailable in this installation.'); await this.broadcastConnections.setMaintenance(request); await this.directSceneConnections.reload(); return this.broadcastConnectionStatus(); }
+  public async cloneBroadcastConnection(input: unknown): Promise<Readonly<Record<string, unknown>>> { const request = approvedLauncherRequest(input); if (this.broadcastConnections === undefined || this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Guided profile cloning is unavailable in this installation.'); await this.broadcastConnections.cloneProfile(request); await this.directSceneConnections.reload(); this.sceneCatalog?.reconcileActiveDirectConnections(await this.directSceneConnections.activeProfiles()); return this.broadcastConnectionStatus(); }
+  public scheduledReliabilityPreflightStatus(): Readonly<Record<string, unknown>> { return this.scheduledReliabilityPreflight?.status() ?? { schedule: { enabled: false, usualStreamTime: '19:00', leadMinutes: 30, daysOfWeek: [0, 1, 2, 3, 4, 5, 6] }, history: [], mutationFree: true, available: false }; }
+  public async saveScheduledReliabilityPreflight(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.scheduledReliabilityPreflight === undefined) throw new WizardTransactionError(503, 'Scheduled reliability preflight is unavailable in this installation.'); return await this.scheduledReliabilityPreflight.save(input); }
+  public async runScheduledReliabilityPreflightNow(): Promise<Readonly<Record<string, unknown>>> { if (this.scheduledReliabilityPreflight === undefined) throw new WizardTransactionError(503, 'Scheduled reliability preflight is unavailable in this installation.'); return await this.scheduledReliabilityPreflight.runNow(); }
+
+  public async broadcastReliabilityReport(format: 'json' | 'csv'): Promise<Readonly<Record<string, unknown>>> { const status = this.broadcastConnectionStatus(); const runtime = status['runtime'] as Readonly<Record<string, unknown>> | undefined; const profiles = Array.isArray(runtime?.['connections']) ? runtime['connections'] as Readonly<Record<string, unknown>>[] : []; const acceptance = runtime?.['acceptance'] as Readonly<Record<string, unknown>> | undefined; const latest = acceptance?.['latest'] as Readonly<Record<string, unknown>> | undefined; const results = Array.isArray(latest?.['results']) ? latest['results'] as Readonly<Record<string, unknown>>[] : []; const snapshot = await this.directSceneConnections?.captureReliabilitySnapshot() ?? { comparison: { available: false, summary: 'Reliability history is unavailable.' } }; const report = { format: 'thsv-broadcast-reliability-report-v1', generatedAt: new Date().toISOString(), redacted: true, strictGate: runtime?.['strictGate'], comparison: snapshot['comparison'], profiles: profiles.map((profile) => ({ name: profile['name'], provider: profile['provider'], state: profile['state'], maintenanceUntil: profile['maintenanceUntil'], reconnectCount: profile['reconnectCount'], lastLatencyMs: profile['lastLatencyMs'], reliability: profile['reliability'] })), acceptance: { checkedAt: latest?.['checkedAt'], results: results.map((result) => ({ provider: result['provider'], outcome: result['outcome'], sceneCount: result['sceneCount'], latencyMs: result['latencyMs'] })) } }; const content = format === 'json' ? `${JSON.stringify(report, null, 2)}\n` : reliabilityCsv(report.profiles); return { filename: `thsv-broadcast-reliability-${new Date().toISOString().replaceAll(/[:.]/gu, '-')}.${format}`, mimeType: format === 'json' ? 'application/json' : 'text/csv', contentBase64: Buffer.from(content, 'utf8').toString('base64'), redacted: true, comparison: snapshot['comparison'] }; }
+
+  public broadcastReliabilityHistory(): Readonly<Record<string, unknown>> { return this.directSceneConnections?.reliabilityHistory() ?? { redacted: true, snapshotCount: 0, snapshots: [] }; }
+
+  public async trayNotificationHistory(): Promise<Readonly<Record<string, unknown>>> { return await this.streamerBotLauncher?.trayNotificationHistory() ?? { entries: [] }; }
+  public async recordTrayNotification(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Tray notification history is unavailable in this installation.');
+    return await this.streamerBotLauncher.recordTrayNotification(request);
+  }
+
+  public async acceptInstalledBroadcastVendors(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.directSceneConnections === undefined || this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Installed broadcast vendor acceptance is unavailable in this installation.');
+    const launcher = await this.streamerBotLauncher.status(); const profiles = await this.directSceneConnections.activeProfiles(); const results: Readonly<Record<string, unknown>>[] = [];
+    for (const provider of ['obs', 'meld', 'streamlabs'] as const) {
+      const application = launcher.optionalApps[provider]; const selected = profiles.filter((profile) => profile.provider === provider);
+      if (!application.configured || !application.executableExists) { results.push({ provider, outcome: 'not-installed', message: `${application.label} has no valid executable selected.` }); continue; }
+      if (!application.running) { results.push({ provider, outcome: application.state === 'different-installation-running' ? 'different-installation-running' : 'not-running', expectedExecutable: application.executable === undefined ? undefined : basename(application.executable), differentInstallationProcessId: application.differentInstallationProcessId, message: application.message }); continue; }
+      if (selected.length === 0) { results.push({ provider, outcome: 'no-profile', processId: application.processId, message: `${application.label} is running, but no enabled native profile is available.` }); continue; }
+      const tested = await this.directSceneConnections.test({ provider, connectionIndex: 0 }); results.push({ provider, outcome: tested['available'] === true ? 'passed' : 'failed', processId: application.processId, executable: application.executable === undefined ? undefined : basename(application.executable), sceneCount: tested['sceneCount'], latencyMs: tested['latencyMs'], message: tested['message'] });
+    }
+    const history = await this.directSceneConnections.recordAcceptance(results);
+    return { checkedAt: new Date().toISOString(), mutationFree: true, results, history };
   }
 
   public provenance(): Readonly<BuildProvenance> | Readonly<Record<string, unknown>> {
@@ -604,6 +745,16 @@ export class WizardService {
     return this.configuration.export();
   }
 
+  public async configurationBackups(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration backups are unavailable.');
+    return this.configuration.backups();
+  }
+
+  public async restoreConfigurationBackup(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration restore is unavailable.');
+    return this.configuration.restoreBackup(input);
+  }
+
   public async streamerBotLauncherStatus(): Promise<Readonly<Record<string, unknown>>> {
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
     return { ...await this.streamerBotLauncher.status() };
@@ -646,6 +797,12 @@ export class WizardService {
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
     if (typeof request['enabled'] !== 'boolean') throw new WizardTransactionError(400, 'enabled must be true or false.');
     return { ...await this.streamerBotLauncher.setOptionalApplicationEnabled(optionalStreamingApplication(request['application']), request['enabled']) };
+  }
+
+  public async resetOptionalStreamingApplicationCircuit(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const request = approvedLauncherRequest(input);
+    if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
+    return { ...await this.streamerBotLauncher.resetOptionalApplicationCircuit(optionalStreamingApplication(request['application'])) };
   }
 
   public async startStreamerBotSafely(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -824,6 +981,16 @@ export class WizardService {
     return this.addOns.install(input);
   }
 
+  public async previewAddOnRecovery(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on recovery is not configured.');
+    return this.addOns.recoveryPreview(input);
+  }
+
+  public async recoverMissingAddOns(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on recovery is not configured.');
+    return this.addOns.recoverMissing(input);
+  }
+
   public async setAddOnEnabled(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.setEnabled(moduleId, input);
@@ -918,6 +1085,8 @@ function optionalStreamingApplication(value: unknown): 'obs' | 'meld' | 'streaml
   if (value !== 'obs' && value !== 'meld' && value !== 'streamlabs' && value !== 'speakerbot') throw new WizardTransactionError(400, 'application must be obs, meld, streamlabs, or speakerbot.');
   return value;
 }
+
+function reliabilityCsv(profiles: readonly Readonly<Record<string, unknown>>[]): string { const quote = (value: unknown): string => { const text = typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''; return `"${text.replaceAll('"', '""')}"`; }; const rows = profiles.map((profile) => { const reliability = profile['reliability'] as Readonly<Record<string, unknown>> | undefined; return [profile['name'], profile['provider'], profile['state'], profile['maintenanceUntil'], profile['reconnectCount'], profile['lastLatencyMs'], reliability?.['score'], reliability?.['label'], Array.isArray(reliability?.['factors']) ? reliability['factors'].join('; ') : ''].map(quote).join(','); }); return `name,provider,state,maintenance_until,reconnects,last_latency_ms,reliability_score,reliability_label,factors\n${rows.join('\n')}\n`; }
 
 function parseCommandVerificationEntry(value: unknown): CommandVerificationEntryInput {
   if (typeof value !== 'object' || value === null) throw new InvalidCommandDesignError('Each entry in commands must be a JSON object.');

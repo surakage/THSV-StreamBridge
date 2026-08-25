@@ -91,6 +91,7 @@ try {
     if (result.status !== 0) {
       throw new Error(`The new version failed its health check and was rolled back. ${result.error?.message || result.stderr || result.stdout}`.trim());
     }
+    await runInstalledWizardSmoke(installRoot, manifest.version);
   }
 
   removeLegacyConvenienceShortcuts(installRoot);
@@ -139,6 +140,30 @@ function launchTrayShell(root) {
   ], { cwd: root, detached: true, windowsHide: true, stdio: 'ignore' });
   child.once('error', (error) => process.stderr.write(`Warning: the notification-area shell could not start (${error.message}).\n`));
   child.unref();
+}
+
+async function runInstalledWizardSmoke(root, expectedVersion) {
+  const config = JSON.parse(await readFile(join(root, 'data', 'configuration', 'bridge.local.json'), 'utf8'));
+  const port = Number(config?.service?.port);
+  const configuredTokenPath = String(config?.security?.controlTokenFile ?? '');
+  if (!Number.isInteger(port) || port < 1 || port > 65_535 || configuredTokenPath === '') throw new Error('Installed-Wizard smoke could not resolve the local service configuration.');
+  const tokenPath = isAbsolute(configuredTokenPath) ? configuredTokenPath : join(root, configuredTokenPath);
+  const controlToken = (await readFile(tokenPath, 'utf8')).trim();
+  const base = `http://127.0.0.1:${String(port)}`;
+  const authenticated = { authorization: `Bearer ${controlToken}` };
+  const ticketResponse = await fetch(`${base}/wizard/api/unlock-tickets`, { method: 'POST', headers: authenticated, signal: AbortSignal.timeout(5_000) });
+  if (!ticketResponse.ok) throw new Error(`Installed-Wizard smoke could not create a one-time ticket (${String(ticketResponse.status)}).`);
+  const ticket = (await ticketResponse.json())?.ticket;
+  const unlockResponse = await fetch(`${base}/wizard/api/unlock`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ticket }), signal: AbortSignal.timeout(5_000) });
+  if (!unlockResponse.ok) throw new Error(`Installed-Wizard smoke could not redeem its one-time ticket (${String(unlockResponse.status)}).`);
+  const temporaryToken = (await unlockResponse.json())?.controlToken;
+  if (typeof temporaryToken !== 'string' || temporaryToken !== controlToken) throw new Error('Installed-Wizard smoke received an invalid local unlock response.');
+  const overviewResponse = await fetch(`${base}/wizard/api/overview`, { headers: { authorization: `Bearer ${temporaryToken}` }, signal: AbortSignal.timeout(5_000) });
+  if (!overviewResponse.ok) throw new Error(`Installed-Wizard smoke could not load the authenticated overview (${String(overviewResponse.status)}).`);
+  const overview = await overviewResponse.json();
+  const reportedVersion = overview?.provenance?.version ?? overview?.version;
+  if (reportedVersion !== expectedVersion) throw new Error(`Installed-Wizard smoke expected ${expectedVersion} but the running Wizard reported ${String(reportedVersion ?? 'no version')}.`);
+  await writeJsonAtomic(join(root, 'data', 'state', 'installed-wizard-smoke.json'), { schemaVersion: 1, checkedAt: new Date().toISOString(), version: expectedVersion, ready: true, oneTimeTicketRedeemed: true, authenticatedOverviewLoaded: true });
 }
 
 async function prepareCreatorData(root, destination, version) {

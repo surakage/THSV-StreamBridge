@@ -37,4 +37,17 @@ describe('SceneCatalogService', () => {
     expect(fallback).not.toHaveBeenCalled();
     await service.flush();
   });
+
+  it('removes redundant observations and inactive direct profiles without touching fallback inventories', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-scene-prune-')); roots.push(root);
+    const service = new SceneCatalogService(root); await service.start();
+    service.observe(normalizeStreamerBotSceneRelay({ type: 'thsv.scene', version: '1.0.0', provider: 'obs', sourceEventType: 'OBSSceneChanged', relayId: 'one', receivedAt: '2026-08-22T10:00:00.000Z', simulated: false, connectionId: 'observed', connectionName: 'OBS observed', sceneName: 'Live' }));
+    service.acceptDirectSnapshot('obs', { connectionId: 'active', connectionName: 'OBS active', scenes: ['Live', 'BRB'] });
+    service.acceptDirectSnapshot('obs', { connectionId: 'retired', connectionName: 'OBS retired', scenes: ['Old'] });
+    service.observe(normalizeStreamerBotSceneCatalogRelay({ type: 'thsv.scene-catalog', version: '1.0.0', provider: 'obs', relayId: 'two', receivedAt: '2026-08-22T10:01:00.000Z', connectionIndex: 0, connectionId: 'fallback', connectionName: 'OBS fallback', scenes: ['Fallback'], complete: true, error: '' }));
+    expect(service.reconcileActiveDirectConnections([{ id: 'active', provider: 'obs' }])).toMatchObject({ pruned: 1, activeDirectConnections: 1 });
+    const connections = ((service.status()['providers'] as Record<string, { connections: Array<{ id: string }> }>).obs?.connections ?? []).map((connection) => connection.id);
+    expect(connections).toEqual(['active', 'fallback']);
+    await service.flush();
+  });
 });

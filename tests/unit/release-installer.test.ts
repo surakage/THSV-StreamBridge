@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -25,6 +25,15 @@ async function writeRelease(source: string, version: string, appText: string): P
   await writeFile(join(source, 'release-manifest.json'), JSON.stringify({ product: 'THSV StreamBridge', version, files }));
 }
 
+async function writeLayout2DelegationRelease(source: string): Promise<void> {
+  await mkdir(join(source, 'scripts'), { recursive: true }); await mkdir(join(source, 'runtime'), { recursive: true }); await mkdir(join(source, 'installer'), { recursive: true });
+  await copyFile('scripts/install-release.ps1', join(source, 'scripts', 'install-release.ps1')); await copyFile(process.execPath, join(source, 'runtime', 'node.exe'));
+  await writeFile(join(source, 'installer', 'install.mjs'), "import{mkdir,writeFile}from'node:fs/promises';import{join}from'node:path';const i=process.argv.indexOf('--install-root');const root=process.argv[i+1];await mkdir(root,{recursive:true});await writeFile(join(root,'delegated.json'),JSON.stringify({arguments:process.argv.slice(2)}));\n");
+  const paths = ['scripts/install-release.ps1', 'runtime/node.exe', 'installer/install.mjs']; const files: ReleaseEntry[] = [];
+  for (const path of paths) { const bytes = await readFile(join(source, path)); files.push({ path, size: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }); }
+  await writeFile(join(source, 'release-manifest.json'), JSON.stringify({ product: 'THSV StreamBridge', layoutVersion: 2, version: '4.0.5', files }));
+}
+
 function runPowerShell(script: string, args: string[]): string {
   const result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, ...args], { encoding: 'utf8', timeout: 20_000 });
   if (result.status !== 0) throw new Error(`PowerShell failed (${String(result.status)}):\n${result.stdout}\n${result.stderr}`);
@@ -32,6 +41,21 @@ function runPowerShell(script: string, args: string[]): string {
 }
 
 describe('Windows release installer', () => {
+  it('delegates layout-v2 archives to their single verified portable installer', async () => {
+    if (process.platform !== 'win32') return;
+    const temp = await mkdtemp(join(tmpdir(), 'thsv-release-layout2-')); const source = join(temp, 'source'); const install = join(temp, 'install');
+    try {
+      await writeLayout2DelegationRelease(source);
+      runPowerShell(join(source, 'scripts', 'install-release.ps1'), ['-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall']);
+      const result = JSON.parse(await readFile(join(install, 'delegated.json'), 'utf8')) as { arguments: string[] };
+      const installRootIndex = result.arguments.indexOf('--install-root');
+      expect(result.arguments).toContain('--no-start');
+      expect(installRootIndex).toBeGreaterThanOrEqual(0);
+      expect((await realpath(result.arguments[installRootIndex + 1] as string)).toLocaleLowerCase('en-US')).toBe((await realpath(install)).toLocaleLowerCase('en-US'));
+    }
+    finally { await rm(temp, { recursive: true, force: true }); }
+  }, 30_000);
+
   it('verifies, installs, upgrades with data preservation, and uninstalls safely', async () => {
     if (process.platform !== 'win32') return;
     const temp = await mkdtemp(join(tmpdir(), 'thsv-release-'));

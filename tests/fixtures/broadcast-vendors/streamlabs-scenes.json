@@ -1,0 +1,4 @@
+{
+  "scenes": [{"id": "starting", "name": "Starting Soon"}, {"id": "live", "name": "Live"}],
+  "activeSceneId": "live"
+}
