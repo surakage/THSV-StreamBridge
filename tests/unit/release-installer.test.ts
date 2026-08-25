@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -44,7 +44,15 @@ describe('Windows release installer', () => {
   it('delegates layout-v2 archives to their single verified portable installer', async () => {
     if (process.platform !== 'win32') return;
     const temp = await mkdtemp(join(tmpdir(), 'thsv-release-layout2-')); const source = join(temp, 'source'); const install = join(temp, 'install');
-    try { await writeLayout2DelegationRelease(source); runPowerShell(join(source, 'scripts', 'install-release.ps1'), ['-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall']); const result = JSON.parse(await readFile(join(install, 'delegated.json'), 'utf8')) as { arguments: string[] }; expect(result.arguments).toContain('--no-start'); expect(result.arguments).toContain(install); }
+    try {
+      await writeLayout2DelegationRelease(source);
+      runPowerShell(join(source, 'scripts', 'install-release.ps1'), ['-SourceRoot', source, '-InstallRoot', install, '-SkipDependencyInstall']);
+      const result = JSON.parse(await readFile(join(install, 'delegated.json'), 'utf8')) as { arguments: string[] };
+      const installRootIndex = result.arguments.indexOf('--install-root');
+      expect(result.arguments).toContain('--no-start');
+      expect(installRootIndex).toBeGreaterThanOrEqual(0);
+      expect((await realpath(result.arguments[installRootIndex + 1] as string)).toLocaleLowerCase('en-US')).toBe((await realpath(install)).toLocaleLowerCase('en-US'));
+    }
     finally { await rm(temp, { recursive: true, force: true }); }
   }, 30_000);
 
