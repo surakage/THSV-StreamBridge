@@ -69,7 +69,7 @@ test('tray reminder deep links open and focus the live-acceptance checklist', as
 });
 
 test('connection center explains a stopped Streamer.bot session and offers safe recovery', async ({ page }) => {
-  await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+  const stoppedReadiness = {
     readiness: {
       status: 'not-ready', ready: false,
       adapters: [
@@ -84,7 +84,9 @@ test('connection center explains a stopped Streamer.bot session and offers safe 
       websocketPort: 8081, state: 'stopped', message: 'Streamer.bot is configured but its WebSocket server is not currently listening.', optionalApps: {},
     },
     configuration: { state: 'active', restartRequired: false, activatedAt: '2026-08-18T12:00:00.000Z' },
-  }) }));
+  };
+  await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(stoppedReadiness) }));
+  await page.route('**/wizard/api/preflight', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...stoppedReadiness, ready: false, obsInventory: { configured: false, ready: true, sources: [], discovered: [], reconciliations: [] } }) }));
   await unlock(page);
 
   await expect(page.locator('#connection-center-badge')).toHaveText('Streamer.bot offline');
@@ -220,6 +222,7 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   let reminders = { notificationsSnoozed: false } as { notificationsSnoozed: boolean; snoozedUntil?: string };
   const obsInventory = { configured: true, ready: false, requiredCount: 1, readyRequiredCount: 0, sources: [{ id: 'alerts-main', label: 'Alerts', scene: 'Old Live', surface: '/overlay/alerts:alerts', minimumCount: 1, required: true, visibleCount: 0, ready: false }], discovered: [], reconciliations: [{ sourceId: 'alerts-main', label: 'Alerts', reason: 'Detected the same StreamBridge surface in scene “Live”.', suggested: { scene: 'Live', surface: '/overlay/alerts:alerts', connectedCount: 1, visibleCount: 1 } }] };
   await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ readiness: { status: 'ready', ready: true, adapters: [], outputs: [], modules: [] }, launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} }, provenance: { version: '4.0.1', installation: 'verified-portable-release' }, obsInventory }) }));
+  await page.route('**/wizard/api/preflight', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ready: false, readiness: { status: 'ready', ready: true, adapters: [], outputs: [], modules: [] }, launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} }, provenance: { version: '4.0.1', installation: 'verified-portable-release' }, obsInventory }) }));
   await page.route('**/wizard/api/obs-source-inventory', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(obsInventory) }));
     await page.route('**/wizard/api/live-acceptance', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ checks: [{ id: 'bridge-startup', label: 'Bridge startup and recovery', guidance: 'Confirm recovery.', requiresGenuineEvent: false, recheckAfterDays: 90 }, { id: 'provider-reconnect', label: 'Provider reconnect', guidance: 'Confirm reconnect.', requiresGenuineEvent: false, recheckAfterDays: 90 }], evidence: [], reminders, audit: [{ id: 'audit-1', checkId: 'bridge-startup', kind: 'binding-migrated', recordedAt: '2026-08-21T00:00:00.000Z', changes: ['Legacy acceptance binding migrated to scoped content fingerprints.'] }], confirmations: { 'bridge-startup': { checkId: 'bridge-startup', status: 'due', due: true, dueAt: '2026-08-20T00:00:00.000Z', dueReason: 'Periodic live acceptance is due after 90 days.', note: 'Passed.', confirmedAt: '2026-05-22T00:00:00.000Z' }, 'provider-reconnect': { checkId: 'provider-reconnect', status: 'accepted', dueSoon: true, dueAt: '2026-08-30T00:00:00.000Z', dueSoonReason: 'Periodic live acceptance is due within 14 days.', note: 'Passed.', confirmedAt: '2026-06-01T00:00:00.000Z' } } }) }));
   await page.route('**/wizard/api/live-acceptance/reminders', async (route) => { const body = route.request().postDataJSON() as { action: string; hours?: number }; reminders = body.action === 'resume' ? { notificationsSnoozed: false } : { notificationsSnoozed: true, snoozedUntil: '2026-08-22T00:00:00.000Z' }; await route.fulfill({ contentType: 'application/json', body: JSON.stringify(reminders) }); });
