@@ -9,16 +9,30 @@ export interface DirectSceneSnapshot {
 }
 
 export class ObsDirectSceneClient {
-  public constructor(private readonly url = 'ws://127.0.0.1:4455', private readonly password = '', private readonly timeoutMs = 4_000) {}
+  public constructor(private readonly url = 'ws://127.0.0.1:4455', private readonly password = '', private readonly timeoutMs = 4_000, private readonly connectionId = url, private readonly connectionName = 'OBS WebSocket (direct)') {}
 
   public async getSceneList(): Promise<DirectSceneSnapshot> {
     const responseData = await this.request('GetSceneList');
     const scenes = Array.isArray(responseData['scenes']) ? responseData['scenes'].flatMap((scene) => { const name = string(record(scene)['sceneName']).trim(); return name === '' ? [] : [name]; }) : [];
     const currentScene = string(responseData['currentProgramSceneName']).trim();
-    return { connectionId: this.url, connectionName: 'OBS WebSocket (direct)', scenes, ...(currentScene === '' ? {} : { currentScene }) };
+    return { connectionId: this.connectionId, connectionName: this.connectionName, scenes, ...(currentScene === '' ? {} : { currentScene }) };
   }
 
   public async isStreaming(): Promise<boolean> { return (await this.request('GetStreamStatus'))['outputActive'] === true; }
+
+  public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
+    const socket = new WebSocket(this.url, { maxPayload: 256 * 1024 });
+    const deadline = AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]);
+    const hello = await nextMessage(socket, deadline, 0); const authentication = record(record(hello['d'])['authentication']);
+    const identify: Record<string, unknown> = { rpcVersion: 1, eventSubscriptions: 4 };
+    if (Object.keys(authentication).length > 0) { if (this.password === '') throw new Error('OBS WebSocket requires a password.'); identify['authentication'] = obsAuthentication(this.password, string(authentication['salt']), string(authentication['challenge'])); }
+    socket.send(JSON.stringify({ op: 1, d: identify })); await nextMessage(socket, deadline, 2);
+    let timer: NodeJS.Timeout | undefined;
+    const onMessage = (raw: WebSocket.RawData): void => { try { const value = JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : Buffer.from(raw as ArrayBuffer).toString('utf8')) as unknown; if (!isRecord(value) || value['op'] !== 5) return; const eventType = string(record(value['d'])['eventType']); if (!['SceneCreated', 'SceneRemoved', 'SceneNameChanged', 'CurrentProgramSceneChanged', 'SceneListChanged'].includes(eventType)) return; if (timer !== undefined) clearTimeout(timer); timer = setTimeout(onChange, 100); timer.unref(); } catch { /* Ignore malformed provider events. */ } };
+    socket.on('message', onMessage);
+    try { await waitUntilClosed(socket, signal, 'OBS'); }
+    finally { if (timer !== undefined) clearTimeout(timer); socket.off('message', onMessage); if (socket.readyState < WebSocket.CLOSING) socket.close(1000, 'Scene subscription stopped'); }
+  }
 
   private async request(requestType: 'GetSceneList' | 'GetStreamStatus'): Promise<Record<string, unknown>> {
     const socket = new WebSocket(this.url, { maxPayload: 256 * 1024 });
@@ -65,3 +79,12 @@ async function nextMessage(socket: WebSocket, signal: AbortSignal, op: number, r
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function record(value: unknown): Record<string, unknown> { return isRecord(value) ? value : {}; }
 function string(value: unknown): string { return typeof value === 'string' ? value : ''; }
+
+async function waitUntilClosed(socket: WebSocket, signal: AbortSignal, label: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = (): void => { socket.off('close', onClose); socket.off('error', onError); signal.removeEventListener('abort', onAbort); };
+    const onClose = (): void => { cleanup(); resolve(); }; const onError = (error: Error): void => { cleanup(); reject(error); }; const onAbort = (): void => { cleanup(); resolve(); };
+    socket.once('close', onClose); socket.once('error', onError); signal.addEventListener('abort', onAbort, { once: true });
+  });
+  if (signal.aborted && socket.readyState < WebSocket.CLOSING) socket.close(1000, `${label} subscription stopped`);
+}

@@ -73,10 +73,10 @@ test('wizard presents the safe Streamer.bot launcher as a guided connection work
   await expect(page.getByRole('button', { name: 'Choose Streamer.bot.exe' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start all streaming tools' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start Streamer.bot only' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Optional one-button apps' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Exact programs for one-button startup' })).toBeVisible();
   await expect(page.getByLabel('OBS executable')).toBeVisible();
   await expect(page.getByLabel('Speaker.bot executable')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Create one-button desktop shortcut' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Review paths & create desktop shortcut' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open installed folder' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Copy Stream Deck target' })).toBeVisible();
   await expect(page.getByLabel('Stream Deck one-button target')).toHaveAttribute('readonly', '');
@@ -722,6 +722,7 @@ test('wizard restores a protected configuration draft after the page is reopened
   await expect(page.getByRole('button', { name: 'Review website draft' })).toBeHidden();
 
   const authorization = { authorization: `Bearer ${token}` };
+  await expect.poll(async () => (await request.get('/wizard/api/overview', { headers: authorization })).status()).toBe(200);
   const overviewResponse = await request.get('/wizard/api/overview', { headers: authorization });
   expect(overviewResponse.ok()).toBe(true);
   const overview = await overviewResponse.json() as { configuration: {

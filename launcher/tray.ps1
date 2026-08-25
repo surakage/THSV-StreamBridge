@@ -28,6 +28,12 @@ $script:lastDetail = 'Checking StreamBridge...'
 $script:lastReportTimestamp = $null
 $script:lastAcceptanceSignature = $null
 $script:lastAcceptanceNotificationAt = [DateTimeOffset]::MinValue
+$script:lastBroadcastProcessSignature = $null
+$script:lastBroadcastLatencySignature = $null
+$script:lastBroadcastReliabilitySignature = $null
+$script:lastScheduledPreflightSignature = $null
+$script:lastBalloonView = 'diagnostics'
+$script:lastBalloonFocus = 'connection-center-title'
 $script:closing = $false
 
 function Write-TrayLog([string]$Message) {
@@ -74,6 +80,14 @@ function Read-ServiceUrl {
     return "http://127.0.0.1:$port"
 }
 
+function Read-ControlToken {
+    $config = Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
+    $tokenPath = [string]$config.security.controlTokenFile
+    if ([string]::IsNullOrWhiteSpace($tokenPath)) { throw 'The local control-token path is unavailable.' }
+    if (-not [System.IO.Path]::IsPathRooted($tokenPath)) { $tokenPath = Join-Path $InstallRoot $tokenPath }
+    return (Get-Content -Raw -LiteralPath $tokenPath).Trim()
+}
+
 function Start-Launcher([string]$ScriptName, [string[]]$Arguments = @()) {
     if (-not (Test-Path -LiteralPath $runtime -PathType Leaf)) { throw 'The bundled StreamBridge runtime is missing.' }
     $scriptPath = Join-Path $InstallRoot "launcher\$ScriptName"
@@ -83,11 +97,27 @@ function Start-Launcher([string]$ScriptName, [string[]]$Arguments = @()) {
     Start-Process -FilePath $runtime -ArgumentList $argumentText -WorkingDirectory $InstallRoot -WindowStyle Hidden | Out-Null
 }
 
-function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolTipIcon]$Kind) {
+function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolTipIcon]$Kind, [string]$Category = 'readiness') {
+    $target = switch ($Category) {
+        'acceptance' { @('diagnostics', 'live-acceptance') }
+        'process-binding' { @('diagnostics', 'direct-connections-title') }
+        'latency' { @('diagnostics', 'direct-connections-title') }
+        'reliability' { @('diagnostics', 'direct-connections-title') }
+        'preflight' { @('diagnostics', 'scheduled-reliability-preflight') }
+        'startup' { @('streamerbot', 'streamerbot-launcher-state') }
+        default { @('diagnostics', 'connection-center-title') }
+    }
+    $script:lastBalloonView = $target[0]
+    $script:lastBalloonFocus = $target[1]
     $notify.BalloonTipTitle = $Title
     $notify.BalloonTipText = $Text
     $notify.BalloonTipIcon = $Kind
     $notify.ShowBalloonTip(4000)
+    try {
+        $kindName = if ($Kind -eq [System.Windows.Forms.ToolTipIcon]::Error) { 'error' } elseif ($Kind -eq [System.Windows.Forms.ToolTipIcon]::Warning) { 'warning' } else { 'info' }
+        $body = @{ category = $Category; title = $Title; summary = $Text; kind = $kindName; approvedByCreator = $true } | ConvertTo-Json -Compress
+        Invoke-RestMethod -Uri "$(Read-ServiceUrl)/wizard/api/tray-notifications" -Method Post -Headers @{ Authorization = "Bearer $(Read-ControlToken)" } -ContentType 'application/json' -Body $body -TimeoutSec 2 | Out-Null
+    } catch { }
 }
 
 function Read-StartupReport {
@@ -119,7 +149,7 @@ function Update-Status {
             $detail = "$detail - $($acceptanceState.attention) acceptance check$(if ($acceptanceState.attention -eq 1) { ' needs' } else { 's need' }) attention"
             $acceptanceItem.Text = $acceptanceState.menuText
             if ($acceptanceState.shouldNotify) {
-                Show-Balloon 'Live acceptance reminder' $acceptanceState.notificationText ([System.Windows.Forms.ToolTipIcon]::Warning)
+                Show-Balloon 'Live acceptance reminder' $acceptanceState.notificationText ([System.Windows.Forms.ToolTipIcon]::Warning) 'acceptance'
                 $script:lastAcceptanceNotificationAt = [DateTimeOffset]::UtcNow
             }
         }
@@ -128,6 +158,39 @@ function Update-Status {
         $resumeAcceptanceItem.Visible = $acceptanceState.visible -and $acceptanceState.snoozed
         if ($acceptanceState.snoozed) { $resumeAcceptanceItem.Text = "Resume acceptance reminders (snoozed until $($snoozedUntil.ToLocalTime().ToString('g')))" }
         $script:lastAcceptanceSignature = $acceptanceState.signature
+        $broadcast = Invoke-RestMethod -Uri "$(Read-ServiceUrl)/wizard/api/broadcast-connections" -Method Get -Headers @{ Authorization = "Bearer $(Read-ControlToken)" } -TimeoutSec 2
+        $notification = $broadcast.runtime.notification
+        $processSignature = [string]$notification.processSignature
+        $latencySignature = [string]$notification.latencySignature
+        $reliabilitySignature = [string]$notification.reliabilitySignature
+        if ($null -ne $script:lastBroadcastProcessSignature -and $script:lastBroadcastProcessSignature -ne $processSignature -and -not [string]::IsNullOrWhiteSpace($processSignature)) {
+            $count = @($notification.processBindings).Count
+            Show-Balloon 'Broadcast process binding changed' "$count exact native connection process binding$(if ($count -eq 1) { ' is' } else { 's are' }) active. Open the Wizard to review." ([System.Windows.Forms.ToolTipIcon]::Info) 'process-binding'
+        }
+        if ($null -ne $script:lastBroadcastLatencySignature -and $script:lastBroadcastLatencySignature -ne $latencySignature -and -not [string]::IsNullOrWhiteSpace($latencySignature)) {
+            $breaches = @($notification.latencyBreaches)
+            $worst = $breaches | Sort-Object observedMs -Descending | Select-Object -First 1
+            Show-Balloon 'Broadcast connection latency' "$($breaches.Count) native connection$(if ($breaches.Count -eq 1) { ' crossed' } else { 's crossed' }) its configured threshold. Highest observed: $($worst.observedMs) ms." ([System.Windows.Forms.ToolTipIcon]::Warning) 'latency'
+        }
+        if ($null -ne $script:lastBroadcastReliabilitySignature -and $script:lastBroadcastReliabilitySignature -ne $reliabilitySignature -and -not [string]::IsNullOrWhiteSpace($reliabilitySignature)) {
+            $breaches = @($notification.reliabilityBreaches); $worst = $breaches | Sort-Object score | Select-Object -First 1
+            Show-Balloon 'Sustained broadcast reliability warning' "$($breaches.Count) connection$(if ($breaches.Count -eq 1) { ' has' } else { 's have' }) remained degraded long enough to alert. Lowest score: $($worst.score)/100." ([System.Windows.Forms.ToolTipIcon]::Warning) 'reliability'
+        }
+        $script:lastBroadcastProcessSignature = $processSignature
+        $script:lastBroadcastLatencySignature = $latencySignature
+        $script:lastBroadcastReliabilitySignature = $reliabilitySignature
+        $credentialReminders = @($broadcast.connections | Where-Object { $_.credentialReminderDue -eq $true }).Count
+        if ($credentialReminders -gt 0) { $detail = "$detail - $credentialReminders credential recheck$(if ($credentialReminders -eq 1) { '' } else { 's' }) due" }
+        try {
+            $scheduled = Invoke-RestMethod -Uri "$(Read-ServiceUrl)/wizard/api/broadcast-reliability/schedule" -Method Get -Headers @{ Authorization = "Bearer $(Read-ControlToken)" } -TimeoutSec 2
+            $latestPreflight = @($scheduled.history | Select-Object -First 1)
+            $preflightSignature = if ($latestPreflight.Count -eq 1) { [string]$latestPreflight[0].ranAt } else { '' }
+            if ($null -ne $script:lastScheduledPreflightSignature -and $script:lastScheduledPreflightSignature -ne $preflightSignature -and -not [string]::IsNullOrWhiteSpace($preflightSignature) -and $latestPreflight[0].ready -ne $true) {
+                $summary = if ([string]::IsNullOrWhiteSpace([string]$latestPreflight[0].summary)) { 'The scheduled dry-run found one or more readiness checks that need review.' } else { [string]$latestPreflight[0].summary }
+                Show-Balloon 'Scheduled preflight needs attention' $summary ([System.Windows.Forms.ToolTipIcon]::Warning) 'preflight'
+            }
+            $script:lastScheduledPreflightSignature = $preflightSignature
+        } catch { }
     } catch {
         $detail = 'Bridge is offline'
         $acceptanceItem.Visible = $false
@@ -152,7 +215,7 @@ function Update-Status {
         }
     }
     if ($null -ne $script:lastReportTimestamp -and $null -ne $report -and $script:lastReportTimestamp -ne $report.Timestamp -and $report.Outcome -eq 'failed') {
-        Show-Balloon 'THSV StreamBridge startup failed' $report.Message ([System.Windows.Forms.ToolTipIcon]::Error)
+        Show-Balloon 'THSV StreamBridge startup failed' $report.Message ([System.Windows.Forms.ToolTipIcon]::Error) 'startup'
     }
     if ($script:lastDetail -ne $detail) { Write-TrayLog $detail }
     $script:lastReady = $ready
@@ -202,6 +265,10 @@ $notify.Icon = New-VillageIcon
 $notify.Text = 'THSV StreamBridge - Checking status'
 $notify.ContextMenuStrip = $menu
 $notify.Visible = $true
+$notify.Add_BalloonTipClicked({
+    try { Start-Launcher 'open-wizard.mjs' @("--view=$($script:lastBalloonView)", "--focus=$($script:lastBalloonFocus)") }
+    catch { Write-TrayLog "Could not open notification target: $($_.Exception.Message)" }
+})
 
 $openWizard = { try { Start-Launcher 'open-wizard.mjs' } catch { Show-Balloon 'Could not open Setup Wizard' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } }
 $openWizardItem.Add_Click($openWizard)

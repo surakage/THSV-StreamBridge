@@ -441,6 +441,8 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 @media(max-width:900px){.fresh-install-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.universal-import-options{grid-template-columns:1fr}}
 @media(max-width:560px){.fresh-install-steps{grid-template-columns:1fr}.universal-import-toolbar>span{width:100%;margin-left:0}.universal-import-option{grid-template-columns:auto minmax(0,1fr)}.universal-import-option-meta{grid-column:2}}
 .streamerbot-launcher-card .item{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.direct-connections-card{display:grid;gap:13px}.direct-connections-card .filter-form{grid-template-columns:repeat(2,minmax(0,1fr))}.direct-connections-card .full-row,.direct-connections-card .button-row{grid-column:1/-1}.direct-connections-card .item{align-items:center}.direct-connections-card .item>.button-row{grid-column:auto;margin:0}
+.import-credential-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.55fr);gap:12px}.import-credential-row label{margin:0}
 .streamerbot-path-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
 .optional-launcher-apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding-top:4px}
 .optional-launcher-apps>div{grid-column:1/-1}.optional-launcher-apps h4,.optional-launcher-apps p{margin:0}.optional-launcher-apps p{color:var(--muted);margin-top:4px}
@@ -449,7 +451,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .compact-toggle{display:flex!important;grid-template-columns:auto auto!important;align-items:center;gap:7px!important;white-space:nowrap;font-size:.82rem}.compact-toggle input{width:auto;margin:0}
 @media(max-width:760px){.streamerbot-path-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.optional-launcher-apps{grid-template-columns:1fr}.optional-launcher-heading{align-items:center}}
-@media(max-width:760px){.addon-settings-grid{grid-template-columns:1fr}.addon-setting.full-row{grid-column:auto}.addon-choice-grid{grid-template-columns:1fr 1fr}.scene-mapping-grid,.scene-catalog-controls,.operations-grid{grid-template-columns:1fr}.scene-mapping-grid .full-row,.operations-grid>section:nth-last-child(-n+2){grid-column:auto}.scene-catalog-controls button{width:100%}.overlay-editor-heading{flex-direction:column}.overlay-editor-heading>.status-chip{max-width:none}.overlay-editor-frame-shell,.overlay-live-editor.is-portrait .overlay-editor-frame-shell{min-height:280px;aspect-ratio:4/3}}
+@media(max-width:760px){.addon-settings-grid{grid-template-columns:1fr}.addon-setting.full-row{grid-column:auto}.addon-choice-grid{grid-template-columns:1fr 1fr}.scene-mapping-grid,.scene-catalog-controls,.operations-grid,.direct-connections-card .filter-form,.import-credential-row{grid-template-columns:1fr}.scene-mapping-grid .full-row,.operations-grid>section:nth-last-child(-n+2){grid-column:auto}.scene-catalog-controls button{width:100%}.overlay-editor-heading{flex-direction:column}.overlay-editor-heading>.status-chip{max-width:none}.overlay-editor-frame-shell,.overlay-live-editor.is-portrait .overlay-editor-frame-shell{min-height:280px;aspect-ratio:4/3}}
 @media(max-width:480px){.addon-choice-grid{grid-template-columns:1fr}.addon-settings-save button{width:100%}}
 
 /* ---------- Batch/message sub-lists (timed actions, command sync) ---------- */

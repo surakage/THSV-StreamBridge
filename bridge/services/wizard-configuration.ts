@@ -1,10 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { basename, dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
 import { alertPresentationSchema, bridgeConfigSchema, chatOverlaySchema, filtersSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
 import type { PlatformCapabilityReport } from '../contracts/v2/capability.js';
 import { stripUtf8Bom } from './config-loader.js';
+
+const BACKUP_RETENTION_DAYS = 90;
+const BACKUP_RETENTION_FILES = 40;
+const BACKUP_RETENTION_BYTES = 32 * 1024 * 1024;
+const BACKUP_MINIMUM_KEPT = 5;
 
 const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('platform'), platform: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/), enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict(),
@@ -71,6 +76,12 @@ export interface WizardConfigurationActivation {
   readonly state: 'active' | 'restart-required';
   readonly restartRequired: boolean;
   readonly activatedAt: string;
+}
+
+export interface WizardConfigurationBackup {
+  readonly filename: string;
+  readonly createdAt: string;
+  readonly bytes: number;
 }
 
 export class WizardConfigurationGateway {
@@ -178,6 +189,61 @@ export class WizardConfigurationGateway {
     };
   }
 
+  public async backups(): Promise<{ readonly backups: readonly WizardConfigurationBackup[]; readonly retention: Readonly<Record<string, number>> }> {
+    try {
+      const pruned = await this.pruneBackups();
+      const candidates = (await readdir(this.backupDirectory)).filter(validBackupFilename);
+      const backups = (await Promise.all(candidates.map(async (filename): Promise<WizardConfigurationBackup | undefined> => {
+        const path = join(this.backupDirectory, filename);
+        try {
+          const details = await stat(path);
+          if (!details.isFile() || details.size > 2 * 1024 * 1024) return undefined;
+          bridgeConfigSchema.parse(JSON.parse(stripUtf8Bom(await readFile(path, 'utf8'))) as unknown);
+          return { filename, createdAt: details.mtime.toISOString(), bytes: details.size };
+        } catch { return undefined; }
+      }))).filter((entry): entry is WizardConfigurationBackup => entry !== undefined).sort((left, right) => right.createdAt.localeCompare(left.createdAt)).slice(0, BACKUP_RETENTION_FILES);
+      return { backups, retention: { maximumAgeDays: BACKUP_RETENTION_DAYS, maximumFiles: BACKUP_RETENTION_FILES, maximumBytes: BACKUP_RETENTION_BYTES, minimumKept: BACKUP_MINIMUM_KEPT, pruned } };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { backups: [], retention: { maximumAgeDays: BACKUP_RETENTION_DAYS, maximumFiles: BACKUP_RETENTION_FILES, maximumBytes: BACKUP_RETENTION_BYTES, minimumKept: BACKUP_MINIMUM_KEPT, pruned: 0 } };
+      throw error;
+    }
+  }
+
+  public async restoreBackup(input: unknown): Promise<{ readonly restored: true; readonly restoredFrom: string; readonly rollbackBackup: string; readonly restartRequired: true }> {
+    if (input === null || typeof input !== 'object' || Array.isArray(input)) throw new WizardConfigurationError(400, 'Backup restore request must be an object.');
+    const request = input as Record<string, unknown>;
+    if (request['approvedByCreator'] !== true) throw new WizardConfigurationError(403, 'Restoring a configuration backup requires explicit creator approval.');
+    if (typeof request['filename'] !== 'string' || !validBackupFilename(request['filename']) || basename(request['filename']) !== request['filename']) throw new WizardConfigurationError(400, 'Choose a listed configuration backup.');
+    if ([...this.drafts.values()].some((draft) => draft.public.status === 'draft')) throw new WizardConfigurationError(409, 'Save or discard the pending configuration draft before restoring a backup.');
+    const sourcePath = join(this.backupDirectory, request['filename']);
+    let sourceRaw: string;
+    try {
+      const details = await stat(sourcePath);
+      if (!details.isFile() || details.size > 2 * 1024 * 1024) throw new WizardConfigurationError(400, 'The selected configuration backup is invalid or too large.');
+      sourceRaw = await readFile(sourcePath, 'utf8');
+      bridgeConfigSchema.parse(JSON.parse(stripUtf8Bom(sourceRaw)) as unknown);
+    } catch (error) {
+      if (error instanceof WizardConfigurationError) throw error;
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new WizardConfigurationError(404, 'The selected configuration backup no longer exists. Refresh the backup list.');
+      throw new WizardConfigurationError(400, 'The selected configuration backup is damaged and was not restored.');
+    }
+    const currentRaw = await readFile(this.configPath, 'utf8');
+    await mkdir(this.backupDirectory, { recursive: true });
+    const rollbackPath = join(this.backupDirectory, `${timestampForFilename()}-before-restore-${randomUUID()}.json`);
+    await writeFile(rollbackPath, currentRaw, { encoding: 'utf8', flag: 'wx' });
+    try {
+      await writeAtomic(this.configPath, sourceRaw.endsWith('\n') ? sourceRaw : `${sourceRaw}\n`);
+      await this.readConfig();
+      this.mutationWrites += 1;
+      await this.pruneBackups();
+      return { restored: true, restoredFrom: request['filename'], rollbackBackup: basename(rollbackPath), restartRequired: true };
+    } catch {
+      await writeAtomic(this.configPath, currentRaw);
+      this.rollbackWrites += 1;
+      throw new WizardConfigurationError(500, 'Configuration restore failed and the pre-restore rollback backup was restored.');
+    }
+  }
+
   public cancel(id: string,leaseOwner = ''): WizardConfigurationDraft {
     const draft = this.requireDraft(id,leaseOwner);
     draft.public = { ...draft.public, status: 'cancelled', finishedAt: new Date().toISOString(), stagedChanges: [] };
@@ -193,12 +259,13 @@ export class WizardConfigurationGateway {
     const candidateRaw = `${JSON.stringify(draft.candidate, null, 2)}\n`;
     const restartRequired = configFingerprint(candidateRaw) !== configFingerprint(currentRaw);
     await mkdir(this.backupDirectory, { recursive: true });
-    const backupPath = join(this.backupDirectory, `${new Date().toISOString().replace(/[:.]/gu, '-')}-${id}.json`);
+    const backupPath = join(this.backupDirectory, `${timestampForFilename()}-${id}.json`);
     await writeFile(backupPath, currentRaw, { encoding: 'utf8', flag: 'wx' });
     try {
       await writeAtomic(this.configPath, candidateRaw);
       this.mutationWrites += 1;
       await this.readConfig();
+      await this.pruneBackups();
       draft.public = { ...draft.public, status: 'committed', finishedAt: new Date().toISOString(), restartRequired, backupPath: resolve(backupPath) };
       return draft.public;
     } catch (error) {
@@ -216,6 +283,26 @@ export class WizardConfigurationGateway {
       activeMutationLeases: [...this.drafts.values()].filter((draft) => draft.public.status === 'draft').length,
       transactions: [...this.drafts.values()].map((draft) => draft.public),
     };
+  }
+
+  private async pruneBackups(): Promise<number> {
+    let names: string[];
+    try { names = (await readdir(this.backupDirectory)).filter(validBackupFilename); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return 0; throw error; }
+    const ranked = (await Promise.all(names.map(async (filename) => {
+      const details = await stat(join(this.backupDirectory, filename));
+      return { filename, bytes: details.isFile() ? details.size : Number.MAX_SAFE_INTEGER, modifiedAt: details.mtimeMs, isFile: details.isFile() };
+    }))).sort((left, right) => right.modifiedAt - left.modifiedAt);
+    const cutoff = Date.now() - BACKUP_RETENTION_DAYS * 24 * 60 * 60_000;
+    let keptFiles = 0; let keptBytes = 0; let pruned = 0;
+    for (const entry of ranked) {
+      const protectedNewest = entry.isFile && keptFiles < BACKUP_MINIMUM_KEPT;
+      const withinLimits = entry.isFile && entry.modifiedAt >= cutoff && keptFiles < BACKUP_RETENTION_FILES && keptBytes + entry.bytes <= BACKUP_RETENTION_BYTES;
+      if (protectedNewest || withinLimits) { keptFiles += 1; keptBytes += entry.bytes; continue; }
+      await rm(join(this.backupDirectory, entry.filename), { force: true });
+      pruned += 1;
+    }
+    return pruned;
   }
 
   private requireDraft(id: string,leaseOwner = ''): InternalDraft {
@@ -240,6 +327,8 @@ function parseImport(input: unknown): z.infer<typeof wizardConfigurationImportSc
 }
 
 function hash(value: string): string { return createHash('sha256').update(value).digest('hex'); }
+function timestampForFilename(): string { return new Date().toISOString().replace(/[:.]/gu, '-'); }
+function validBackupFilename(value: string): boolean { return /^\d{4}-\d{2}-\d{2}T[0-9Z-]+-(?:before-restore-)?[0-9a-f-]{36}\.json$/iu.test(value); }
 function configFingerprint(value: string): string { return hash(JSON.stringify(bridgeConfigSchema.parse(JSON.parse(stripUtf8Bom(value)) as unknown))); }
 
 function pickAlertSettings(config: BridgeConfig): WizardConfigurationExport['alertSettings'] {

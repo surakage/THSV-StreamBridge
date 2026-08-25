@@ -39,7 +39,17 @@ describe('safe Streamer.bot launcher', () => {
     expect(source.match(/let repaired = false/g)).toHaveLength(1);
     expect(source).toContain('CloseMainWindow');
     expect(source).toContain('streamerbot-launcher.json');
-    expect(source).toContain("value?.version === 1 || value?.version === 2");
+    expect(source).toContain('value?.version !== 1 && value?.version !== 2');
+    expect(source).toContain('Automatic fallback is disabled');
+    expect(source).toContain('MAXIMUM_LAUNCHER_CONFIGURATION_BYTES');
+    expect(source).toContain('STREAMERBOT_LOCK_STALE_MS = 130_000');
+    expect(source).toContain('createdAt: new Date().toISOString()');
+    expect(source).toContain('Recovered an expired Streamer.bot startup lock');
+    expect(source).toContain("readFileSync(lockPath, 'utf8') === lockRecord");
+    expect(source).toContain('STREAMERBOT_LOCK_HEARTBEAT_MS = 5_000');
+    expect(source).toContain('refreshOwnedLock');
+    expect(source).toContain('streamerBotLockOwnerMatches');
+    expect(source).toContain('Get-CimInstance Win32_Process');
     expect(source).toContain('optionalApps');
     expect(source).toContain('version: 2');
     expect(source).toContain("bridge.streamerbot?.url");

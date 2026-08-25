@@ -12,6 +12,7 @@ import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
 import { createInstalledModuleRegistry } from '../bridge/core/installed-modules.js';
 import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
+import { ScheduledReliabilityPreflightService } from '../bridge/services/scheduled-reliability-preflight-service.js';
 import { WizardConfigurationGateway } from '../bridge/services/wizard-configuration.js';
 import { FileCommandSyncStore } from '../bridge/services/command-sync-store.js';
 import type { PlatformCapabilityId } from '../bridge/contracts/v2/capability.js';
@@ -41,6 +42,8 @@ import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerb
 import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
 import { OperationalReliabilityService } from '../bridge/services/operational-reliability-service.js';
+import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } from '../bridge/services/broadcast-connection-vault-service.js';
+import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-connection-manager.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -62,6 +65,7 @@ const deduplicationStore = config.deduplication.persistAcrossRestarts
 const controlToken = await resolveControlToken(config.security.controlTokenEnv, config.security.controlTokenFile);
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
+logger.addSensitiveValue(process.env['THSV_STREAMLABS_REMOTE_TOKEN']);
 const enabledPlatformIds = new Set(Object.entries(config.platforms).filter(([, platform]) => platform.enabled && platform.inputEnabled).map(([platformId]) => platformId));
 const liveRecoveryPlatformIds = [...enabledPlatformIds].filter((platform) => ['twitch', 'youtube', 'kick', 'tiktok'].includes(platform));
 const capabilityReports = registry.capabilityReports(config.platforms);
@@ -149,13 +153,23 @@ await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
 const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
+const streamerBotLauncher = new StreamerBotLauncherService(dataRoot, config.streamerbot.url);
+const broadcastConnectionVault = new BroadcastConnectionVaultService(dataRoot);
+await broadcastConnectionVault.start();
+const environmentConnections: ResolvedBroadcastConnection[] = [
+  { id: '00000000-0000-4000-8000-000000000001', name: 'OBS default', provider: 'obs', url: process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', enabled: true, hasCredential: (process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '') !== '', credential: process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '' },
+  ...((process.env['THSV_MELD_WEBSOCKET_URL'] ?? '') === '' ? [] : [{ id: '00000000-0000-4000-8000-000000000002', name: 'Meld Studio environment', provider: 'meld' as const, url: process.env['THSV_MELD_WEBSOCKET_URL'] ?? '', enabled: true, hasCredential: false, credential: '' }]),
+  ...((process.env['THSV_STREAMLABS_REMOTE_TOKEN'] ?? '') === '' ? [] : [{ id: '00000000-0000-4000-8000-000000000003', name: 'Streamlabs Desktop default', provider: 'streamlabs' as const, url: process.env['THSV_STREAMLABS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:59650/api/websocket', enabled: true, hasCredential: true, credential: process.env['THSV_STREAMLABS_REMOTE_TOKEN'] ?? '' }]),
+];
+const directSceneConnections = new DirectSceneConnectionManager(broadcastConnectionVault, environmentConnections, undefined, join(dataRoot, 'state', 'broadcast-connection-events.json'), async (profile) => await streamerBotLauncher.endpointApplicationStatus(profile.provider, profile.url));
 const sceneCatalog = new SceneCatalogService(
   join(dataRoot, 'state'),
   streamerBotInspector === undefined ? undefined : async (provider, connectionIndex) => { await streamerBotInspector.runApprovedAction(SCENE_CATALOG_ACTION_ID, { sceneCatalogProvider: provider, sceneCatalogConnectionIndex: connectionIndex }); },
-  async (provider) => provider === 'obs' ? await obsDirectSceneClient.getSceneList() : undefined,
+  (provider, connectionIndex) => directSceneConnections.refresh(provider, connectionIndex),
 );
 await sceneCatalog.start();
-const streamerBotLauncher = new StreamerBotLauncherService(dataRoot, config.streamerbot.url);
+await directSceneConnections.start((provider, snapshot) => sceneCatalog.acceptDirectSnapshot(provider, snapshot));
+sceneCatalog.reconcileActiveDirectConnections(await directSceneConnections.activeProfiles());
 const triggerAssurance = new StreamerBotTriggerAssuranceService({
   packageRoot: resolve('packages', 'streamerbot'),
   stateRoot: join(dataRoot, 'state'),
@@ -193,7 +207,8 @@ const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
   },
   logger,
 });
-const wizard = new WizardService(
+const scheduledReliabilityPreflight: ScheduledReliabilityPreflightService = new ScheduledReliabilityPreflightService(join(dataRoot, 'state'), async (): Promise<Readonly<Record<string, unknown>>> => await wizard.streamingToolsPreflight());
+const wizard: WizardService = new WizardService(
   streamerBotInspector,
   new WizardConfigurationGateway(configPath, (platforms) => registry.capabilityReports(platforms)),
   new FileCommandSyncStore(join(dataRoot, 'state', 'command-sync.json'), logger),
@@ -211,6 +226,9 @@ const wizard = new WizardService(
   sceneCatalog,
   triggerAssurance,
   operationalReliability,
+  broadcastConnectionVault,
+  directSceneConnections,
+  scheduledReliabilityPreflight,
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
@@ -258,6 +276,7 @@ async function shutdown(signal: string): Promise<void> {
   stopping = true;
   if (commandDirectoryRefreshTimer !== undefined) clearInterval(commandDirectoryRefreshTimer);
   automaticUpdates.stop();
+  scheduledReliabilityPreflight.stop();
   obsBroadcastMonitor.stop();
   logger.info('Shutdown requested', { signal });
   try {
@@ -266,6 +285,7 @@ async function shutdown(signal: string): Promise<void> {
     await activeBridge.stop();
     await liveAcceptance.flush();
     await obsSourceInventory.flush();
+    await directSceneConnections.stop();
     await sceneCatalog.flush();
     await logger.flush();
     process.exitCode = 0;
@@ -292,12 +312,11 @@ try {
   await activeBridge.start();
   await obsBroadcastMonitor.start();
   await operationalReliability.start();
+  await scheduledReliabilityPreflight.start();
   await server.start();
-  if (streamerBotInspector !== undefined) {
-    await sceneCatalog.refresh({ provider: 'obs', connectionIndex: 0 })
-      .then(() => logger.info('Initial OBS scene snapshot requested', { provider: 'obs', connectionIndex: 0 }))
-      .catch((error: unknown) => logger.warn('Initial OBS scene snapshot was unavailable; observed scene changes remain active', { error }));
-  }
+  for (const provider of ['obs', 'meld', 'streamlabs'] as const) await sceneCatalog.refresh({ provider, connectionIndex: 0 })
+    .then((result) => logger.info('Initial scene snapshot requested', { provider, connectionIndex: 0, source: result['source'] }))
+    .catch((error: unknown) => logger.warn('Initial scene snapshot was unavailable; observed scene changes remain active', { provider, error }));
   automaticUpdates.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
   await refreshCommandDirectory();

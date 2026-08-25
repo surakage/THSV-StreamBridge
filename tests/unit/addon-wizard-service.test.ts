@@ -133,6 +133,24 @@ describe('wizard add-on management', () => {
     await expect(service.viewerFoundation()).resolves.toMatchObject({ moduleId: 'thsv.viewer-foundation', integration: true, required: true, enabled: true });
   });
 
+  it('previews missing add-on recovery without mutation and restores verified settings only after approval', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-addon-recovery-')); temporary.push(root);
+    const packages = join(root, 'addons', 'packages'); const state = join(root, 'addons', 'state'); const inbox = join(root, 'inbox'); const bundled = join(root, 'bundled');
+    const moduleId = 'sample.status-card'; const backupRoot = join(root, 'data', 'backups', 'codex-hot-update-20260810-025520');
+    await mkdir(bundled, { recursive: true }); await mkdir(join(backupRoot, 'addons-packages', moduleId), { recursive: true }); await mkdir(join(backupRoot, 'addons-state', moduleId), { recursive: true });
+    await writeFile(join(bundled, `${moduleId}.thsv-addon`), declarativeArchive());
+    await writeFile(join(backupRoot, 'addons-packages', moduleId, 'installed-package.json'), JSON.stringify({ moduleId, version: '0.9.0', enabled: false }));
+    await writeFile(join(backupRoot, 'addons-state', moduleId, 'settings.json'), '{"label":"Recovered card","interval":15,"enabled":true,"color":"green","labels":["saved"]}\n');
+    const service = new AddOnWizardService(packages, state, inbox, bundled);
+
+    await expect(service.recoveryPreview({ moduleIds: [moduleId] })).resolves.toMatchObject({ mutationFree: true, candidates: [{ moduleId, installed: false, recoverable: true, previousVersion: '0.9.0', previousEnabled: false, settingsSource: 'backup', settingsPreserved: true }] });
+    await expect(service.recoveryPreview({ restorePreviousEnabled: true })).resolves.toMatchObject({ mutationFree: true, candidates: [] });
+    await expect(service.list()).resolves.toEqual([]);
+    await expect(service.recoverMissing({ moduleIds: [moduleId], approvedByCreator: false })).rejects.toThrow('explicit creator approval');
+    await expect(service.recoverMissing({ moduleIds: [moduleId], approvedByCreator: true })).resolves.toMatchObject({ recovered: [moduleId], restartRequired: true });
+    await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId, enabled: false, settings: expect.objectContaining({ label: 'Recovered card' }) as unknown })]);
+  });
+
   it('keeps Viewer Foundation settings in the existing private state while excluding the legacy package from add-ons', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-viewer-foundation-integration-')); temporary.push(root);
     const packages = join(root, 'packages'); const state = join(root, 'state');

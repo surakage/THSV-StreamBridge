@@ -21,10 +21,12 @@ import { readCachedClip } from './clip-media-cache.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
 import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
-import { prepareSupportBundle, type SupportBundleResult, type SupportBundlePreview } from './support-bundle-service.js';
+import { prepareSupportBundle, readSanitizedWindowsApplicationEvents, type SupportBundleResult, type SupportBundlePreview } from './support-bundle-service.js';
 import { LiveAcceptanceError } from './live-acceptance-service.js';
 import { ObsSourceInventoryError } from './obs-source-inventory-service.js';
 import { SceneCatalogError } from './scene-catalog-service.js';
+import { BroadcastConnectionVaultError } from './broadcast-connection-vault-service.js';
+import { DirectSceneConnectionError } from './direct-scene-connection-manager.js';
 import { TriggerAssuranceError } from './streamerbot-trigger-assurance-service.js';
 import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } from './pre-stream-report-service.js';
 import { OperationalReliabilityError } from './operational-reliability-service.js';
@@ -341,6 +343,11 @@ export class DiagnosticsServer {
         const body = await readBody(request, 512);
         return this.reply(response, 200, await this.wizard.enableOptionalStreamingApplication(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/optional/circuit/reset' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.resetOptionalStreamingApplicationCircuit(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/start' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, 512);
@@ -444,6 +451,13 @@ export class DiagnosticsServer {
         const result = await this.wizard.runOperationalRehearsal();
         return this.reply(response, 200, { ...result, testedAt: result['rehearsedAt'], checks: result['steps'] });
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/preflight' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const tools = await this.wizard.streamingToolsPreflight();
+        const launcherPreflight = tools['launcher'] as Readonly<Record<string, unknown>>;
+        const diagnostics = this.target.diagnostics(); const mainFeatures = diagnostics['mainFeatures'];
+        return this.reply(response, 200, { ...tools, launcherPreflight, launcher: launcherPreflight['launcher'], readiness: this.target.readiness(), configuration: await this.wizard.configurationActivation(), provenance: this.wizard.provenance(), obsInventory: this.wizard.obsInventoryStatus(this.overlayHub?.status()), ...(typeof mainFeatures === 'object' && mainFeatures !== null && !Array.isArray(mainFeatures) ? { mainFeatures } : {}), ...(this.overlayHub === undefined ? {} : { overlay: this.overlayHub.status() }) });
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/operations/health' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.operationalHealth());
@@ -495,7 +509,12 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         this.pruneSupportBundleSnapshots();
         while (this.supportBundleSnapshots.size >= 8) this.supportBundleSnapshots.delete(this.supportBundleSnapshots.keys().next().value ?? '');
-        const prepared = await prepareSupportBundle(this.dataRoot, { health: this.target.health(), readiness: this.target.readiness(), diagnostics: this.target.diagnostics(), ...(this.overlayHub === undefined ? {} : { overlay: this.overlayHub.status() }) });
+        const [toolsResult, launcherResult, configurationResult, eventLogResult] = await Promise.allSettled([this.wizard.streamingToolsPreflight(), this.wizard.launcherSupportSnapshot(), this.wizard.exportConfiguration(), readSanitizedWindowsApplicationEvents()]);
+        const broadcastAutomation = toolsResult.status === 'fulfilled' ? toolsResult.value['broadcastAutomation'] as Readonly<Record<string, unknown>> : undefined;
+        const launcher = launcherResult.status === 'fulfilled' ? launcherResult.value : undefined;
+        const safeConfiguration = configurationResult.status === 'fulfilled' ? configurationResult.value : undefined;
+        const windowsApplicationEvents = eventLogResult.status === 'fulfilled' ? eventLogResult.value : undefined;
+        const prepared = await prepareSupportBundle(this.dataRoot, { health: this.target.health(), readiness: this.target.readiness(), diagnostics: this.target.diagnostics(), broadcastConnections: this.wizard.broadcastConnectionStatus(), ...(launcher === undefined ? {} : { launcher }), ...(broadcastAutomation === undefined ? {} : { broadcastAutomation }), ...(safeConfiguration === undefined ? {} : { safeConfiguration }), ...(windowsApplicationEvents === undefined ? {} : { windowsApplicationEvents }), ...(this.overlayHub === undefined ? {} : { overlay: this.overlayHub.status() }) });
         const previewId = randomUUID(); const expiresAt = Date.now() + 5 * 60_000;
         this.supportBundleSnapshots.set(previewId, { tabId: wizardTabLease(request), expiresAt, ...prepared });
         return this.reply(response, 200, { ...prepared.preview, previewId, expiresAt: new Date(expiresAt).toISOString() });
@@ -643,6 +662,15 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.exportConfiguration());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/configuration/backups' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.configurationBackups());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/configuration/backups/restore' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 2_048);
+        return this.reply(response, 200, await this.wizard.restoreConfigurationBackup(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/addons' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), featureFamilies: MAIN_FEATURE_FAMILIES, featureMigrations: await this.wizard.listFeatureMigrations(), discovered: await this.wizard.discoverAddOns(), trustedPublishers: await this.wizard.listTrustedAddOnPublishers() });
@@ -685,6 +713,92 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         const body = await readBody(request, 1024);
         return this.reply(response, 202, await this.wizard.refreshSceneCatalog(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/broadcast-connections' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.broadcastConnectionStatus());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/discover' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const body = await readBody(request, 256);
+        return this.reply(response, 200, await this.wizard.discoverBroadcastConnections(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/acceptance' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.acceptInstalledBroadcastVendors());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/acceptance/baseline' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true); const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.approveBroadcastAcceptanceBaseline(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/broadcast-connections/assistant' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.broadcastConnectionAssistant());
+      }
+      if (request.method === 'PUT' && request.url === '/wizard/api/broadcast-connections/policy' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true); const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.wizard.saveBroadcastReliabilityPolicy(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/maintenance' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true); const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.setBroadcastConnectionMaintenance(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/clone' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true); const body = await readBody(request, 2048);
+        return this.reply(response, 200, await this.wizard.cloneBroadcastConnection(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/ports/suggest' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false); const body = await readBody(request, 256);
+        return this.reply(response, 200, await this.wizard.suggestBroadcastConnectionPorts(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'GET' && request.url?.startsWith('/wizard/api/broadcast-connections/reliability-report') === true && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false); const format = new URL(request.url, 'http://127.0.0.1').searchParams.get('format');
+        if (format !== 'json' && format !== 'csv') return this.reply(response, 400, { error: 'format must be json or csv.' });
+        return this.reply(response, 200, await this.wizard.broadcastReliabilityReport(format));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/broadcast-connections/reliability-history' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.broadcastReliabilityHistory());
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/broadcast-reliability/schedule' && this.wizard !== undefined) { release = this.guard.acquire(request, false); return this.reply(response, 200, this.wizard.scheduledReliabilityPreflightStatus()); }
+      if (request.method === 'PUT' && request.url === '/wizard/api/broadcast-reliability/schedule' && this.wizard !== undefined) { release = this.guard.acquire(request, true); const body = await readBody(request, 1024); return this.reply(response, 200, await this.wizard.saveScheduledReliabilityPreflight(JSON.parse(body.text) as unknown)); }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-reliability/schedule/run' && this.wizard !== undefined) { release = this.guard.acquire(request, false); return this.reply(response, 200, await this.wizard.runScheduledReliabilityPreflightNow()); }
+      if (request.method === 'GET' && request.url === '/wizard/api/tray-notifications' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.trayNotificationHistory());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/tray-notifications' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true); const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.recordTrayNotification(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/broadcast-connections/export' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.broadcastConnectionMetadataExport());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/import/validate' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, this.wizard.validateBroadcastConnectionMetadataImport(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/import' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.wizard.importBroadcastConnectionMetadata(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'PUT' && request.url === '/wizard/api/broadcast-connections' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4096);
+        return this.reply(response, 200, await this.wizard.saveBroadcastConnection(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'DELETE' && request.url === '/wizard/api/broadcast-connections' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.removeBroadcastConnection(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/test' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.testBroadcastConnection(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/updates/check' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -749,6 +863,16 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, Math.max(this.config.maxPayloadBytes, 10_000_000));
         return this.reply(response, 201, await this.wizard.installAddOn(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/recovery/preview' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const body = await readBody(request, 2048);
+        return this.reply(response, 200, await this.wizard.previewAddOnRecovery(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/recovery/apply' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 2048);
+        return this.reply(response, 200, await this.wizard.recoverMissingAddOns(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/addons/install-discovered' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
@@ -932,6 +1056,8 @@ export class DiagnosticsServer {
       if (error instanceof LiveAcceptanceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ObsSourceInventoryError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof SceneCatalogError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof BroadcastConnectionVaultError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof DirectSceneConnectionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof TriggerAssuranceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof OperationalReliabilityError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof PreStreamReportError) return this.reply(response, 400, { error: error.message });

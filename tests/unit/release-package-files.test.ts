@@ -134,6 +134,9 @@ describe('public release scripts', () => {
     expect(installer).toContain("'*S-1-5-32-544:(OI)(CI)F'");
     expect(installer).not.toContain('Set-Acl');
     expect(installer).not.toContain('[System.IO.Directory]::SetAccessControl');
+    expect(installer).toContain('if ([int]$manifest.layoutVersion -eq 2)');
+    expect(installer).toContain("Join-Path $source 'installer\\install.mjs'");
+    expect(installer).toContain("$portableArguments += '--no-start'");
   });
 
   it('verifies before private staging and preserves creator data in versioned installations', async () => {
@@ -156,6 +159,12 @@ describe('public release scripts', () => {
     expect(source).not.toContain('previousVersion:');
     expect(source).toContain("new Set([manifest.version])");
     expect(source).toContain('failed its health check and was rolled back');
+    expect(source).toContain('runInstalledWizardSmoke(installRoot, manifest.version)');
+    expect(source).toContain('/wizard/api/unlock-tickets');
+    expect(source).toContain('/wizard/api/unlock');
+    expect(source).toContain('/wizard/api/overview');
+    expect(source).toContain("'installed-wizard-smoke.json'");
+    expect(source.indexOf('await runInstalledWizardSmoke')).toBeLessThan(source.indexOf('cleanup is best-effort'));
     expect(source.indexOf('await rollbackDirectories(moved)')).toBeLessThan(source.indexOf("const recovery = spawnSync(join(runtimeTarget, 'node.exe')"));
     expect(source).toContain('cleanup is best-effort');
     expect(source).toContain('compareVersions');

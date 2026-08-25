@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -136,5 +136,43 @@ describe('Stage 4 wizard configuration gateway', () => {
     await expect(gateway.commit(draft.id)).rejects.toBeInstanceOf(WizardConfigurationError);
     expect(await readFile(path, 'utf8')).toBe(`${source}\n`);
     expect(gateway.diagnostics()).toMatchObject({ mutationWrites: 0, rollbackWrites: 0 });
+  });
+
+  it('lists only validated backups and restores one with an approval-gated rollback copy', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-restore-'));
+    const path = join(directory, 'bridge.json'); const backupDirectory = join(directory, 'backups');
+    const source = await readFile('config/bridge.example.json', 'utf8');
+    await writeFile(path, source);
+    const gateway = new WizardConfigurationGateway(path, () => [], backupDirectory);
+    const current = (await gateway.snapshot() as { platforms: Record<string, { enabled: boolean; inputEnabled: boolean; outputEnabled: boolean }> }).platforms['twitch'];
+    if (current === undefined) throw new Error('Expected Twitch settings.');
+    const draft = await gateway.begin();
+    gateway.stage(draft.id, { kind: 'platform', platform: 'twitch', enabled: !current.enabled, inputEnabled: current.inputEnabled, outputEnabled: current.outputEnabled });
+    await gateway.commit(draft.id);
+    const backups = await gateway.backups();
+    expect(backups.backups).toHaveLength(1);
+    const filename = backups.backups[0]?.filename;
+    if (filename === undefined) throw new Error('Expected a validated backup.');
+    await expect(gateway.restoreBackup({ filename })).rejects.toThrow('explicit creator approval');
+    await expect(gateway.restoreBackup({ filename, approvedByCreator: true })).resolves.toMatchObject({ restored: true, restoredFrom: filename, restartRequired: true });
+    expect(await readFile(path, 'utf8')).toBe(source.endsWith('\n') ? source : `${source}\n`);
+    expect((await gateway.backups()).backups).toHaveLength(2);
+    expect(gateway.diagnostics()).toMatchObject({ mutationWrites: 2, rollbackWrites: 0 });
+  });
+
+  it('prunes expired configuration backups while preserving the five newest recovery points', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-retention-'));
+    const path = join(directory, 'bridge.json'); const backupDirectory = join(directory, 'backups');
+    const source = await readFile('config/bridge.example.json', 'utf8');
+    await writeFile(path, source); await mkdir(backupDirectory, { recursive: true });
+    const old = new Date(Date.now() - 120 * 24 * 60 * 60_000);
+    for (let index = 0; index < 7; index += 1) {
+      const filename = `2026-01-0${String(index + 1)}T00-00-00-000Z-00000000-0000-4000-8000-00000000000${String(index)}.json`;
+      const backupPath = join(backupDirectory, filename); await writeFile(backupPath, source); await utimes(backupPath, old, new Date(old.getTime() + index));
+    }
+    const gateway = new WizardConfigurationGateway(path, () => [], backupDirectory);
+    const result = await gateway.backups();
+    expect(result.backups).toHaveLength(5);
+    expect(result.retention).toMatchObject({ maximumAgeDays: 90, maximumFiles: 40, minimumKept: 5, pruned: 2 });
   });
 });

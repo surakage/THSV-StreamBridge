@@ -31,7 +31,15 @@ describe('native Windows tray shell', () => {
     expect(source).toContain("@('--hours=24')");
     expect(source).toContain("@('--hours=168')");
     expect(source).toContain('Resume acceptance reminders');
-    expect(source).not.toContain('control-token');
+    expect(source).toContain('function Read-ControlToken');
+    expect(source).toContain('/wizard/api/broadcast-connections');
+    expect(source).toContain('Broadcast process binding changed');
+    expect(source).toContain('Broadcast connection latency');
+    expect(source).toContain('Add_BalloonTipClicked');
+    expect(source).toContain("'scheduled-reliability-preflight'");
+    expect(source).toContain("'direct-connections-title'");
+    expect(source).toContain('credentialReminderDue');
+    expect(source).not.toMatch(/[A-Za-z0-9_-]{43}/u);
     expect(source).not.toContain('Streamer.bot.ico');
   });
 

@@ -27,6 +27,7 @@
     "start": "node dist/apps/bridge-service.js",
     "test": "vitest run",
     "test:browser": "npm run build && playwright test",
+    "test:broadcast-vendors": "node tools/accept-broadcast-vendors.mjs",
     "test:startup-chaos": "node tools/run-startup-chaos.mjs",
     "test:integration": "vitest run tests/integration",
     "test:unit": "vitest run tests/unit",
