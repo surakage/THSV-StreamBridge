@@ -639,7 +639,16 @@ async function nearbyExecutableCandidates(savedPath: string | undefined, executa
   const parent = dirname(savedPath); const siblingRoot = dirname(parent);
   try {
     const entries = (await readdir(siblingRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory()).slice(0, 64);
-    return entries.flatMap((entry) => executableNames.map((name) => join(siblingRoot, entry.name, name)));
+    const expectedNames = new Set(executableNames.map((name) => name.toLocaleLowerCase('en-US')));
+    const candidates = await Promise.all(entries.map(async (entry) => {
+      const directory = join(siblingRoot, entry.name);
+      try {
+        return (await readdir(directory, { withFileTypes: true }))
+          .filter((item) => item.isFile() && expectedNames.has(item.name.toLocaleLowerCase('en-US')))
+          .map((item) => join(directory, item.name));
+      } catch { return []; }
+    }));
+    return candidates.flat();
   } catch { return []; }
 }
 
