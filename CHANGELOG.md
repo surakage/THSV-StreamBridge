@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.0.6] - 2026-08-25
+
+- Added encrypted, exact-process-bound native WebSocket profiles for OBS, Meld, and Streamlabs, including safe discovery, scene selection, conflict detection, maintenance windows, reliability scoring, and acceptance history.
+- Hardened one-button startup against missing or moved executable paths, stale listeners, overlapping launches, crash loops, and optional-app failures without stopping healthy tools.
+- Added scheduled mutation-free preflight, configuration drift detection, protected repair and rollback, trigger assurance, sanitized support timelines, and post-stream reports.
+- Made installed extension recovery restore every previously enabled verified bundled component while preserving creator settings, action grants, paths, secrets, and state.
+- Regenerated and indexed all 42 Streamer.bot packages at 4.0.6 and expanded Linux, Windows, lifecycle, installer, startup-chaos, browser, and protected-release coverage.
+
 ## [4.0.5] - 2026-08-23
 
 - Added the Live Confidence Center with configuration-drift checks, dry-run replay, readiness rehearsal, redacted operational timelines, recovery evidence, and post-stream reports.

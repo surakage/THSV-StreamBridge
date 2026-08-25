@@ -1,6 +1,6 @@
 # THSV StreamBridge - Translate
 
-Import `THSV-StreamBridge-User-Translate-4.0.5.sb`, compile the one action with the references in `manifest.json`, and approve `THSV Addon - Translate - Translate Text` for `thsv.user-translate` in the wizard.
+Import `THSV-StreamBridge-User-Translate-4.0.6.sb`, compile the one action with the references in `manifest.json`, and approve `THSV Addon - Translate - Translate Text` for `thsv.user-translate` in the wizard.
 
 Do not attach a trigger. The StreamBridge capability broker dispatches the action for both manual and automatic modes.
 

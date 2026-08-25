@@ -13,7 +13,7 @@ Selected public messages become Discord records and are retained according to th
 ## Install
 
 1. Download and extract the matching Discord Chat Archive add-on ZIP from the same official GitHub Release as core.
-2. In Streamer.bot, import `THSV-StreamBridge-Discord-Chat-Archive-4.0.5.sb` from the ZIP's `Streamer.bot` folder.
+2. In Streamer.bot, import `THSV-StreamBridge-Discord-Chat-Archive-4.0.6.sb` from the ZIP's `Streamer.bot` folder.
 3. Accept the custom C# warning only after verifying the release source.
 4. Open `THSV Addon - Discord Chat Archive - Deliver`.
 5. Replace the `discordArchiveWebhookUrl` Set Argument placeholder with the new private webhook URL.
