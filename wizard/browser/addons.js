@@ -209,7 +209,7 @@ async function loadAddOns() {
     state.addOnFeatureFamilies = Array.isArray(result.featureFamilies) ? result.featureFamilies : Array.isArray(runtime?.mainFeatures?.catalog) ? runtime.mainFeatures.catalog : [];
     state.featureMigrations = Array.isArray(result.featureMigrations) ? result.featureMigrations : [];
     state.addOnRuntime = runtime;
-    syncAddOnRestartState(runtime?.startedAt);
+    const activatedModuleIds = syncAddOnRestartState(runtime?.startedAt);
     state.discoveredAddOns = result.discovered || [];
     state.trustedAddOnPublishers = result.trustedPublishers || [];
     state.addOnAcceptance = acceptanceResult.acceptance || {};
@@ -232,6 +232,7 @@ async function loadAddOns() {
     const installedAddOnCount = state.addOns.length - extensionCount;
     status.textContent = `${counted(state.addOnFeatureFamilies.length, 'built-in extension group')} use ${counted(extensionCount, 'installed component package')}. ${counted(installedAddOnCount, 'optional add-on')} installed; ${counted(state.discoveredAddOns.length, 'package')} awaiting review. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending component change')}.` : ''}`;
     if (marketplaceStatus) marketplaceStatus.textContent = `${counted(installedAddOnCount, 'optional add-on')} installed; ${counted(state.discoveredAddOns.length, 'package')} awaiting review. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending package change')}.` : ''}`;
+    if (activatedModuleIds.length > 0) void verifyActivatedAddOnChanges(activatedModuleIds);
   } catch (error) {
     state.addOns = [];
     state.addOnFeatureFamilies = [];
@@ -264,9 +265,22 @@ function syncAddOnRestartState(startedAt) {
   if (pending.startedAt && startedAt && pending.startedAt !== startedAt) {
     sessionStorage.removeItem(ADD_ON_RESTART_STORAGE_KEY);
     state.addOnRestartRequiredIds = new Set();
-    return;
+    return pending.moduleIds;
   }
   state.addOnRestartRequiredIds = new Set(pending.moduleIds);
+  return [];
+}
+
+async function verifyActivatedAddOnChanges(moduleIds) {
+  try {
+    const result = await api('/wizard/api/preflight');
+    const actionIssues = (result.addOnActionReadiness?.actions || []).filter((item) => moduleIds.includes(item.moduleId) && !item.ready);
+    const sceneIssues = (result.sceneConfiguration?.checks || []).filter((item) => moduleIds.includes(item.moduleId) && !item.ready);
+    const ready = actionIssues.length === 0 && sceneIssues.length === 0;
+    reportAddOnFeedback(ready
+      ? `Applied and verified ${moduleIds.length} changed feature${moduleIds.length === 1 ? '' : 's'} without sending visible overlay, chat, raid, ad, or broadcast commands.`
+      : `Changes are active, but verification found ${actionIssues.length} action issue${actionIssues.length === 1 ? '' : 's'} and ${sceneIssues.length} scene issue${sceneIssues.length === 1 ? '' : 's'}. Open Test & finish before streaming.`, ready ? 'success' : 'warning');
+  } catch (error) { reportAddOnFeedback(`Changes are active, but the post-restart verification could not finish: ${error.message}`, 'warning'); }
 }
 
 function markAddOnRestartRequired(moduleId) {
@@ -275,6 +289,12 @@ function markAddOnRestartRequired(moduleId) {
     startedAt: state.addOnRuntime?.startedAt || readAddOnRestartState().startedAt || '',
     moduleIds: [...state.addOnRestartRequiredIds],
   }));
+}
+
+function renderPendingAddOnChanges() {
+  if (state.addOnRestartRequiredIds.size === 0) return '';
+  const affected = [...state.addOnRestartRequiredIds].map((moduleId) => state.addOns.find((item) => item.moduleId === moduleId)?.name || moduleId);
+  return `<section class="notice addon-pending-activation" role="status"><strong>Restart required</strong><p>Saved changes are waiting for: ${affected.map(safe).join(', ')}. The active runtime and your current settings stay unchanged until an offline restart.</p><button type="button" data-apply-addon-changes>Apply changes and verify</button></section>`;
 }
 
 function reportAddOnFeedback(message, kind = 'success', button) {
@@ -434,7 +454,10 @@ function renderAddOnField(name, schema, value, ui = {}) {
     const selected = new Set(Array.isArray(value) ? value : []);
     return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid">${schema.items.enum.map((entry) => `<label class="addon-choice"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
   }
-  if (Array.isArray(schema.enum)) return wrapper(`<label>${label}<select name="${safe(name)}">${schema.enum.map((entry) => `<option value="${safe(entry)}" ${entry === value ? 'selected' : ''}>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</option>`).join('')}</select>${help}</label>`);
+  if (Array.isArray(schema.enum)) {
+    const entries = ['autoStartProvider', 'endBroadcastProvider'].includes(name) ? schema.enum.filter((entry) => enabledSceneProviders(value).includes(entry)) : schema.enum;
+    return wrapper(`<label>${label}<select name="${safe(name)}">${entries.map((entry) => `<option value="${safe(entry)}" ${entry === value ? 'selected' : ''}>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</option>`).join('')}</select>${help}</label>`);
+  }
   if (type === 'boolean') return wrapper(`<label class="addon-toggle"><span><strong>${label}</strong>${help}</span><input name="${safe(name)}" type="checkbox" role="switch" ${value === true ? 'checked' : ''}><i aria-hidden="true"></i></label>`);
   if (type === 'number' || type === 'integer') return wrapper(`<label>${label}<input name="${safe(name)}" type="number" ${type === 'integer' ? 'step="1"' : 'step="any"'} value="${safe(value ?? '')}" ${Number.isFinite(schema.minimum) ? `min="${safe(schema.minimum)}"` : ''} ${Number.isFinite(schema.maximum) ? `max="${safe(schema.maximum)}"` : ''}>${help}</label>`);
   if (type === 'array') return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="${safe(Number.isInteger(ui.rows) ? ui.rows : 4)}" data-addon-string-list="true" placeholder="One item per line">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>${help}<small>Enter one item per line. Empty and duplicate entries are rejected.</small></label>`);
@@ -455,14 +478,18 @@ async function refreshSceneCatalogOnOpen() {
 
 const sceneProviderLabels = { obs: 'OBS Studio', streamlabs: 'Streamlabs Desktop', meld: 'Meld Studio' };
 function catalogScenes(provider) { return Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []; }
-function catalogSceneOptions(provider) { const scenes = catalogScenes(provider); return `<option value="">${scenes.length ? 'Choose a detected scene…' : 'No scenes detected yet'}</option>${scenes.map((scene) => `<option value="${safe(scene)}">${safe(scene)}</option>`).join('')}`; }
-function sceneProviderOptions(selected = 'obs') { return Object.entries(sceneProviderLabels).map(([provider, label]) => `<option value="${provider}" ${provider === selected ? 'selected' : ''}>${label}</option>`).join(''); }
+function catalogSceneOptions(provider, selected = '') { const scenes = catalogScenes(provider); return `<option value="">${scenes.length ? 'Choose a detected scene…' : 'No scenes detected yet'}</option>${scenes.map((scene) => `<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}`; }
+function enabledSceneProviders(selected = '') {
+  const enabled = new Set(['obs', selected]);
+  for (const connection of state.broadcastConnections?.connections || []) if (connection.enabled === true) enabled.add(connection.provider);
+  return [...enabled].filter((provider) => sceneProviderLabels[provider]);
+}
+function sceneProviderOptions(selected = 'obs') { return enabledSceneProviders(selected).map((provider) => `<option value="${provider}" ${provider === selected ? 'selected' : ''}>${sceneProviderLabels[provider]}</option>`).join(''); }
 function renderSceneListPicker(name, label, value, help) {
   return `<fieldset class="scene-catalog-picker" data-scene-list-picker><legend>${label}</legend><textarea name="${safe(name)}" rows="4" data-addon-string-list="true" placeholder="One exact scene name per line">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>${help}<div class="scene-catalog-controls"><label>Broadcast app<select data-scene-catalog-provider>${sceneProviderOptions()}</select></label><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs')}</select></label><button type="button" class="ghost compact" data-add-catalog-scene>Add scene</button><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></div><small data-scene-catalog-status>Manual entry stays available. OBS supports a full read-only refresh; Meld and Streamlabs learn exact names as scene changes are observed.</small></fieldset>`;
 }
 function renderSceneNamePicker(name, label, value, help, ui) {
-  const listId = `scene-catalog-${String(name).replace(/[^a-z0-9_-]/giu, '-')}`;
-  return `<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" list="${safe(listId)}" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"><datalist id="${safe(listId)}" data-scene-catalog-list>${catalogScenes('obs').map((scene) => `<option value="${safe(scene)}"></option>`).join('')}</datalist>${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>Choose a detected exact name or keep typing a custom one.</small></label>`;
+  return `<fieldset class="scene-name-picker" data-scene-name-picker><legend>${label}</legend><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs', value ?? '')}</select></label><label>Exact scene name<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"></label>${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>Select a detected exact name above, or keep the manual value for a scene that has not been observed yet.</small></fieldset>`;
 }
 function providerForSceneInput(input) {
   const form = input.closest('form'); const providerField = input.dataset.providerField;
@@ -470,7 +497,7 @@ function providerForSceneInput(input) {
 }
 function populateSceneCatalogControls(root = document) {
   root.querySelectorAll('[data-scene-list-picker]').forEach((picker) => { const provider = picker.querySelector('[data-scene-catalog-provider]').value; picker.querySelector('[data-scene-catalog-select]').innerHTML = catalogSceneOptions(provider); });
-  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const list = input.parentElement.querySelector('[data-scene-catalog-list]'); if (list) list.innerHTML = catalogScenes(providerForSceneInput(input)).map((scene) => `<option value="${safe(scene)}"></option>`).join(''); });
+  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const picker = input.closest('[data-scene-name-picker]'); const select = picker?.querySelector('[data-scene-catalog-select]'); if (select) select.innerHTML = catalogSceneOptions(providerForSceneInput(input), input.value); });
 }
 async function refreshSceneCatalog(button) {
   const picker = button.closest('[data-scene-list-picker]'); const input = button.closest('label')?.querySelector('[data-scene-name-input]');
@@ -487,6 +514,7 @@ async function refreshSceneCatalog(button) {
 }
 function attachSceneCatalogPickers(form) {
   form.querySelectorAll('[data-scene-catalog-provider]:not([data-scene-catalog-attached])').forEach((select) => { select.dataset.sceneCatalogAttached = 'true'; select.addEventListener('change', () => populateSceneCatalogControls(form)); });
+  form.querySelectorAll('[data-scene-name-picker] [data-scene-catalog-select]:not([data-scene-catalog-attached])').forEach((select) => { select.dataset.sceneCatalogAttached = 'true'; select.addEventListener('change', () => { const input = select.closest('[data-scene-name-picker]')?.querySelector('[data-scene-name-input]'); if (!input || !select.value) return; input.value = select.value; input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); }); });
   form.querySelectorAll('[data-refresh-scene-catalog]:not([data-scene-catalog-attached])').forEach((button) => { button.dataset.sceneCatalogAttached = 'true'; button.addEventListener('click', () => refreshSceneCatalog(button)); });
   form.querySelectorAll('[data-add-catalog-scene]:not([data-scene-catalog-attached])').forEach((button) => { button.dataset.sceneCatalogAttached = 'true'; button.addEventListener('click', () => {
     const picker = button.closest('[data-scene-list-picker]'); const selected = picker.querySelector('[data-scene-catalog-select]').value; const textarea = picker.querySelector('textarea'); if (!selected) return;
@@ -1097,7 +1125,7 @@ function renderAddOns() {
   const list = byId('addon-list');
   const marketplaceList = byId('addon-marketplace-list');
   if (!state.addOns.length) {
-    list.innerHTML = renderMainFeatureHub() + (marketplaceList ? '' : renderInstalledAddOnCatalog()) + '<p class="notice">No extension component packages are installed. Core chat, commands, alerts, timers, and rewards continue to work.</p>';
+    list.innerHTML = renderPendingAddOnChanges() + renderMainFeatureHub() + (marketplaceList ? '' : renderInstalledAddOnCatalog()) + '<p class="notice">No extension component packages are installed. Core chat, commands, alerts, timers, and rewards continue to work.</p>';
     if (marketplaceList) marketplaceList.innerHTML = renderInstalledAddOnCatalog();
     document.querySelectorAll('[data-feature-migration]').forEach((form) => form.addEventListener('submit', applyFeatureMigration));
     document.querySelectorAll('[data-toggle-feature-family]').forEach((button) => button.addEventListener('click', toggleFeatureFamily));
@@ -1140,8 +1168,8 @@ function renderAddOns() {
   }).join('');
   const selectedArea = `<section class="selected-package-area ${selectedIsExtension ? 'selected-extension-area' : 'selected-addon-area'}"><div class="catalog-heading"><div><p class="addon-kicker">${selectedIsExtension ? 'Built-in extension settings' : 'Optional add-on settings'}</p><h3>${selectedIsExtension ? safe(selectedFeature.name) : 'Manage installed add-on'}</h3></div></div>${selector}${selectedCard}</section>`;
   const addOnArea = renderInstalledAddOnCatalog(selected) + (selectedIsExtension ? '' : selectedArea);
-  list.innerHTML = renderMainFeatureHub() + (selectedIsExtension ? selectedArea : '') + (marketplaceList ? '' : addOnArea);
-  if (marketplaceList) marketplaceList.innerHTML = addOnArea;
+  list.innerHTML = renderPendingAddOnChanges() + renderMainFeatureHub() + (selectedIsExtension ? selectedArea : '') + (marketplaceList ? '' : addOnArea);
+  if (marketplaceList) marketplaceList.innerHTML = renderPendingAddOnChanges() + addOnArea;
   // Saving settings and other add-on operations rebuild this subtree. Restore both open and
   // closed choices immediately so sections never flash or return to their package defaults.
   restoreDisclosureStates(list);
@@ -1175,6 +1203,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-add-recommended-addon-actions]').forEach((button) => button.addEventListener('click', addRecommendedAddOnActions));
   document.querySelectorAll('[data-remove-addon-action]').forEach((button) => button.addEventListener('click', removeAddOnActionDraft));
   document.querySelectorAll('[data-save-addon-action-grants]').forEach((button) => button.addEventListener('click', saveAddOnActionGrants));
+  document.querySelectorAll('[data-apply-addon-changes]').forEach((button) => button.addEventListener('click', () => restartStreamBridge(button)));
   document.querySelectorAll('[data-copy-addon-overlay]').forEach((button) => button.addEventListener('click', copyAddOnOverlayUrl));
   document.querySelectorAll('[data-preview-addon-overlay]').forEach((button) => button.addEventListener('click', previewAddOnOverlay));
   document.querySelectorAll('[data-hide-addon-overlay]').forEach((button) => button.addEventListener('click', hideAddOnOverlayPreview));
@@ -2253,7 +2282,12 @@ async function saveAddOnActionGrants(event) {
   const button = event.currentTarget;
   const id = button.dataset.saveAddonActionGrants;
   const actionIds = state.addOnActionDrafts[id] || [];
-  if (!confirm(`Allow ${id} to dispatch exactly ${actionIds.length} approved Streamer.bot action(s)? This takes effect after StreamBridge restarts.`)) return;
+  let live = false;
+  try { live = Boolean((await api('/wizard/api/operations/health')).activeSession); } catch { /* Restart remains offline-gated by the service. */ }
+  const warning = live
+    ? `You are currently live. Save ${actionIds.length} approved action grant(s) for ${id}? The active Bridge will not change, and Apply changes and verify will remain blocked until every platform is offline.`
+    : `Allow ${id} to dispatch exactly ${actionIds.length} approved Streamer.bot action(s)? This takes effect after StreamBridge restarts.`;
+  if (!confirm(warning)) return;
     try {
       await api(`/wizard/api/addons/${encodeURIComponent(id)}/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds, approvedByCreator: true }) });
       markAddOnRestartRequired(id);

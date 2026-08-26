@@ -191,6 +191,7 @@ const operationalReliability = new OperationalReliabilityService({
   refreshObsScenes: () => sceneCatalog.refresh({ provider: 'obs', connectionIndex: 0 }),
   overlayStatus: () => overlayHub.status(),
   broadcastStatus: () => obsBroadcastMonitor.status(),
+  capabilityStatus: () => capabilityBroker.diagnostics(),
   listAddOns: async () => (await addOnWizard.list()).map((addOn) => ({ moduleId: addOn.moduleId, version: addOn.version })),
 });
 const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
@@ -229,6 +230,7 @@ const wizard: WizardService = new WizardService(
   broadcastConnectionVault,
   directSceneConnections,
   scheduledReliabilityPreflight,
+  () => overlayHub.status(),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));

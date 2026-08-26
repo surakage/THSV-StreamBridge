@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - First Five",
-  "version": "4.0.6",
+  "version": "4.0.7",
   "author": "surakage",
   "description": "Provides one triggerless reward controller and one optional manual reset action for the First Five Twitch channel-points add-on.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,21 +11,23 @@
       "name": "THSV Addon - First Five - Controller",
       "group": "THSV Addon - First Five",
       "source": "src/FirstFiveController.cs",
-      "importFile": "THSV-StreamBridge-First-Five-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-First-Five-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
-      ]
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
     },
     {
       "id": "8183b790-0f3b-4827-986b-0ffb47361e38",
       "name": "THSV Addon - First Five - Reset",
       "group": "THSV Addon - First Five",
       "source": "src/ResetFirstFive.cs",
-      "importFile": "THSV-StreamBridge-First-Five-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-First-Five-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

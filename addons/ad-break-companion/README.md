@@ -7,7 +7,7 @@ It does not start, snooze, schedule, or cancel ads. It displays only the timing 
 ## Setup
 
 1. Install and enable the add-on in the local wizard.
-2. Import `THSV-StreamBridge-Ad-Break-Companion-4.0.6.sb` from the add-on ZIP.
+2. Import `THSV-StreamBridge-Ad-Break-Companion-4.0.7.sb` from the add-on ZIP.
 3. In Streamer.bot, attach **Twitch > Ads > Upcoming Ad** to **THSV Addon - Ad Break Companion - Upcoming Ad Intake**.
 4. Attach **Twitch > Ads > Ad Run** to **THSV Addon - Ad Break Companion - Ad Run Intake**.
 5. Keep **Preview Upcoming**, **Preview Active**, and **Clear Display** triggerless. Run both previews manually while sizing the browser source.

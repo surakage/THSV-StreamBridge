@@ -28,6 +28,8 @@ export interface StreamerBotPackageActionInput {
   /** Hide high-frequency internal broker actions from Streamer.bot's Pending and History views. */
   readonly excludeFromHistory?: boolean;
   readonly excludeFromPending?: boolean;
+  readonly brokerDispatched?: boolean;
+  readonly mustRemainTriggerless?: boolean;
   // Used only when id/sourceSubActionId are not pinned. Callers with a single action should
   // pass the same seed a legacy single-action manifest used (`manifest.name`) so an existing
   // package's already-pinned IDs remain reproducible if it ever drops its explicit pins.

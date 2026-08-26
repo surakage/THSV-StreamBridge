@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Automated Shoutouts",
-  "version": "4.0.6",
+  "version": "4.0.7",
   "author": "surakage",
   "description": "Looks up Twitch creator profiles and optionally sends native shoutouts for the Automated Shoutouts add-on. Visual cards are rendered by StreamBridge.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,9 +11,11 @@
       "name": "THSV Addon - Automated Shoutouts - Lookup Twitch Creator",
       "group": "THSV Addon - Automated Shoutouts",
       "source": "src/LookupTwitchCreator.cs",
-      "importFile": "THSV-StreamBridge-Automated-Shoutouts-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Automated-Shoutouts-4.0.7.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true,
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -26,11 +28,13 @@
       "name": "THSV Addon - Automated Shoutouts - Twitch Native Shoutout",
       "group": "THSV Addon - Automated Shoutouts",
       "source": "src/TwitchNativeShoutout.cs",
-      "importFile": "THSV-StreamBridge-Automated-Shoutouts-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Automated-Shoutouts-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
-      ]
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
     }
   ],
   "runtime": {

@@ -306,6 +306,13 @@ describe('Multi-Timed Actions', () => {
     await adapter.start({ logger: silentLogger, emit: (event) => { events.push(event as NormalizedEvent); return Promise.resolve({ accepted: true }); } });
     await adapter.control('start'); await vi.advanceTimersByTimeAsync(60 * 60_000); await vi.waitFor(() => expect(events).toHaveLength(1));
     expect(events[0]?.payload['scheduledAt']).toBe('2026-03-08T08:30:00.000Z');
+    const canary = adapter.controlStatus()['scheduleCanary'] as { ready: boolean; clock: string; definitions: Array<{ id: string; lastFiredAt?: string; projections: unknown[] }> };
+    expect(canary.ready).toBe(true); expect(canary.clock).toContain('daylight-saving');
+    expect(canary.definitions).toMatchObject([{ id: 'dst-safe', lastFiredAt: '2026-03-08T08:30:00.000Z', projections: [
+      { sequence: 1, expectedAt: '2026-03-08T09:30:00.000Z' },
+      { sequence: 2, expectedAt: '2026-03-08T10:30:00.000Z' },
+      { sequence: 3, expectedAt: '2026-03-08T11:30:00.000Z' },
+    ] }]);
     await adapter.control('stop'); await adapter.stop();
   });
 

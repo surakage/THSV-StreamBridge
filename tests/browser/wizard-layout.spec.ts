@@ -208,9 +208,13 @@ test('pre-stream check requires healthy local evidence and explicit import confi
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Test & finish', exact: true })).toBeVisible();
-  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(10);
+  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(14);
   await expect(page.locator('#pre-stream-badge')).toHaveText('1 step left');
   await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
+  await expect(page.locator('#pre-stream-grid')).toContainText('Add-on action grants');
+  await expect(page.locator('#pre-stream-grid')).toContainText('Critical overlay connections');
+  await expect(page.locator('#pre-stream-grid')).toContainText('Timed-action schedule canary');
+  await expect(page.locator('#pre-stream-grid')).toContainText('Configured broadcast scenes');
 
   await page.getByLabel(/I imported the Wizard-generated Streamer\.bot package/u).check();
   await expect(page.locator('#pre-stream-badge')).toHaveText('Ready to stream');

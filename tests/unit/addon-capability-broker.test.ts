@@ -23,6 +23,20 @@ async function stateRoot(): Promise<string> {
 }
 
 describe('AddOnCapabilityBroker', () => {
+  it('consolidates repeated capability denials into one incident and records recovery', async () => {
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const broker = new AddOnCapabilityBroker(logger, await stateRoot(), { runStreamerBotAction: async () => undefined });
+    const denied = broker.contextFor({ moduleId: 'sample.incident', permissions: [], approvedActionIds: [] });
+    await expect(denied.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toBeInstanceOf(CapabilityDeniedError);
+    await expect(denied.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toBeInstanceOf(CapabilityDeniedError);
+    expect(logger.warn).toHaveBeenCalledOnce();
+    expect(broker.diagnostics()).toMatchObject({ incidents: [{ moduleId: 'sample.incident', count: 2, active: true }] });
+    const recovered = broker.contextFor({ moduleId: 'sample.incident', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [ACTION_ONE] });
+    await recovered.streamerbot.runApprovedAction(ACTION_ONE);
+    expect(logger.info).toHaveBeenCalledWith('Add-on capability incident recovered', expect.objectContaining({ count: 2 }));
+    expect(broker.diagnostics()).toMatchObject({ incidents: [{ moduleId: 'sample.incident', count: 2, active: false }] });
+  });
+
   it('requires media.cache permission and forwards only Twitch CDN requests', async () => {
     const cache = vi.fn(async (moduleId: string, request: { sourceUrl: string }, signal: AbortSignal) => { void moduleId; void request; void signal; return { url: '/overlay/cache/a.mp4', cacheHit: false, bytes: 100, expiresAt: '2026-08-01T12:00:00.000Z' }; });
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { cacheClipMedia: cache });

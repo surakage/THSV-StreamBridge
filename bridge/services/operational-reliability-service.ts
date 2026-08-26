@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from './atomic-state.js';
@@ -21,6 +21,7 @@ export interface OperationalReliabilityOptions {
   readonly overlayStatus?: () => Readonly<JsonRecord>;
   readonly broadcastStatus?: () => Readonly<JsonRecord>;
   readonly listAddOns?: () => Promise<readonly Readonly<JsonRecord>[]>;
+  readonly capabilityStatus?: () => Readonly<JsonRecord>;
   readonly sampleIntervalMs?: number;
   readonly now?: () => Date;
 }
@@ -44,6 +45,8 @@ interface ActiveSession {
   readonly counts: Map<string, number>;
   readonly failures: string[];
   readonly expectedSignals: Set<string>;
+  readonly capabilityTotals: Map<string, { denied: number; failed: number }>;
+  capabilityBaseline: Map<string, { denied: number; failed: number }>;
 }
 
 interface RecoveryState {
@@ -58,6 +61,7 @@ const TIMELINE_LIMIT = 600;
 const TIMELINE_RETENTION_MS = 30 * 60_000;
 const MAXIMUM_RECOVERY_ATTEMPTS = 5;
 const MAXIMUM_RECOVERY_DELAY_MS = 60_000;
+const SESSION_JOURNAL_DEBOUNCE_MS = 1_500;
 const EXPECTED_LIVE_SIGNALS = Object.freeze([
   'stream.online',
   'stream.offline',
@@ -73,6 +77,8 @@ export class OperationalReliabilityService {
   private activeSession: ActiveSession | undefined;
   private latestReportValue: Readonly<JsonRecord> | undefined;
   private writes: Promise<void> = Promise.resolve();
+  private sessionWriteTimer: NodeJS.Timeout | undefined;
+  private sessionWriteDirty = false;
   private timer: NodeJS.Timeout | undefined;
   private sampling = false;
   private lastHealth: Readonly<JsonRecord> | undefined;
@@ -81,7 +87,7 @@ export class OperationalReliabilityService {
   public constructor(private readonly options: OperationalReliabilityOptions) {}
 
   public async start(): Promise<void> {
-    await Promise.all([this.loadTimeline(), this.loadLatestReport()]);
+    await Promise.all([this.loadTimeline(), this.loadLatestReport(), this.loadActiveSession()]);
     await this.sample();
     this.timer = setInterval(() => void this.sample(), this.options.sampleIntervalMs ?? 10_000);
     this.timer.unref();
@@ -90,7 +96,6 @@ export class OperationalReliabilityService {
   public async stop(): Promise<void> {
     if (this.timer !== undefined) clearInterval(this.timer);
     this.timer = undefined;
-    if (this.activeSession !== undefined) await this.finishSession('bridge-shutdown');
     await this.flush();
   }
 
@@ -105,6 +110,7 @@ export class OperationalReliabilityService {
     if (this.activeSession === undefined) this.activeSession = newSession(startedAt ?? this.now().toISOString(), 'verified-broadcast-status');
     for (const platform of platforms) this.activeSession.platforms.add(platform);
     this.activeSession.expectedSignals.add('stream.online');
+    this.queueSessionWrite();
   }
 
   public async endRecoveredLiveSession(): Promise<void> {
@@ -166,6 +172,7 @@ export class OperationalReliabilityService {
     const overlay = this.options.overlayStatus?.() ?? {};
     const modules = recordArray(diagnostics['modules']);
     const timed = recordValue(diagnostics['timedActions']);
+    const timedActionCanary = recordValue(timed?.['scheduleCanary']) ?? { ready: timed !== undefined, enabledDefinitions: 0, definitions: [] };
     const steps = [
       check('bridge-ready', readiness['ready'] === true, readiness['ready'] === true ? 'Core readiness passed.' : `${String(recordArray(readiness['blockers']).length)} readiness blocker(s) remain.`),
       check('streamerbot-triggers', triggers['ready'] === true, stringValue(triggers['connectionExplanation']) ?? stringValue(triggers['error']) ?? 'Trigger contract inspected.'),
@@ -173,7 +180,7 @@ export class OperationalReliabilityService {
       check('countdown-overlay', moduleReady(modules, 'thsv.starting-soon-countdown'), moduleDetail(modules, 'thsv.starting-soon-countdown')),
       check('ad-overlay', moduleReady(modules, 'thsv.ad-break-companion'), moduleDetail(modules, 'thsv.ad-break-companion')),
       check('chat-and-alert-overlays', Object.keys(overlay).length > 0, 'Overlay hub status was inspected without publishing a visible event.'),
-      check('timed-actions', timed !== undefined, timed === undefined ? 'Timed-action controller is unavailable.' : 'Timed-action state and pending selections are readable.'),
+      check('timed-actions', timed !== undefined && timedActionCanary['ready'] === true, timed === undefined ? 'Timed-action controller is unavailable.' : timedActionCanary['ready'] === true ? 'Timed-action state and next three projected executions are readable.' : 'Timed-action schedule projection is incomplete.'),
       check('random-clip', moduleReady(modules, 'thsv.random-clip-player'), moduleDetail(modules, 'thsv.random-clip-player')),
       check('raid-scout', moduleReady(modules, 'thsv.raid-scout'), moduleDetail(modules, 'thsv.raid-scout')),
       check('offline-cleanup', recordValue(diagnostics['mainFeatures']) !== undefined, 'Lifecycle coordinator state is available for final-offline cleanup.'),
@@ -181,6 +188,7 @@ export class OperationalReliabilityService {
     return {
       rehearsedAt: this.now().toISOString(), safe: true, mutationPolicy: 'dry-run', ready: steps.every((step) => step['ready'] === true), steps,
       suppressed: ['real chat and Discord sends', 'provider lifecycle mutation', 'scene changes', 'visible alerts', 'raids and ads', 'timer advancement'],
+      timedActionCanary,
       sequence: ['preflight', 'go-live recovery', 'countdown', 'chat and alerts', 'timed actions', 'BRB/scene mapping', 'clips', 'ads', 'Raid Scout', 'final offline cleanup'],
     };
   }
@@ -208,7 +216,10 @@ export class OperationalReliabilityService {
     return this.latestReportValue ?? { available: false, message: 'No completed live session report is available yet.' };
   }
 
-  public async flush(): Promise<void> { await this.writes; }
+  public async flush(): Promise<void> {
+    this.flushPendingSessionWrite();
+    await this.writes;
+  }
 
   private async sample(): Promise<void> {
     if (this.sampling) return;
@@ -272,28 +283,71 @@ export class OperationalReliabilityService {
     if (event.eventType === 'stream.offline') {
       session.platforms.delete(event.platform);
       if (session.platforms.size === 0) void this.finishSession('final-provider-offline');
-    }
+    } else this.queueSessionWrite();
   }
 
   private async finishSession(reason: string): Promise<void> {
+    if (this.sessionWriteTimer !== undefined) clearTimeout(this.sessionWriteTimer);
+    this.sessionWriteTimer = undefined;
+    this.sessionWriteDirty = false;
+    await this.writes;
     const session = this.activeSession;
     if (session === undefined) return;
+    this.captureCapabilityDeltas(session);
     this.activeSession = undefined;
     const endedAt = this.now().toISOString();
     const counts = Object.fromEntries([...session.counts.entries()].sort(([a], [b]) => a.localeCompare(b)));
     const signals = EXPECTED_LIVE_SIGNALS.map((id) => ({ id, observed: session.expectedSignals.has(id) }));
+    const capabilityIncidents = [...session.capabilityTotals.entries()].flatMap(([moduleId, totals]) => totals.denied + totals.failed > 0 ? [{ moduleId, denied: totals.denied, failed: totals.failed, count: totals.denied + totals.failed }] : []);
+    const operationalFailures = capabilityIncidents.map((incident) => `${incident.moduleId}: ${String(incident.denied)} capability denial(s), ${String(incident.failed)} dispatch/capability failure(s)`);
     const report = {
-      schemaVersion: 1, available: true, completed: reason !== 'bridge-shutdown', sessionId: session.id, startedAt: session.startedAt, endedAt, reason, source: session.source,
+      schemaVersion: 2, available: true, completed: true, sessionId: session.id, startedAt: session.startedAt, endedAt, reason, source: session.source,
       durationSeconds: Math.max(0, Math.round((Date.parse(endedAt) - Date.parse(session.startedAt)) / 1000)), counts,
-      failures: session.failures.slice(-50), expectedSignals: signals, summary: {
+      failures: [...session.failures, ...operationalFailures].slice(-50), operationalIncidents: capabilityIncidents, expectedSignals: signals, summary: {
         eventCount: [...session.counts.values()].reduce((total, value) => total + value, 0),
-        failureCount: session.failures.length, observedSignals: signals.filter((item) => item.observed).length, expectedSignalCount: signals.length,
+        failureCount: session.failures.length + operationalFailures.length, capabilityDenialCount: capabilityIncidents.reduce((total, item) => total + item.denied, 0), capabilityFailureCount: capabilityIncidents.reduce((total, item) => total + item.failed, 0), observedSignals: signals.filter((item) => item.observed).length, expectedSignalCount: signals.length,
       },
       privacy: { chatTextRetained: false, viewerIdentityRetained: false, rawPayloadRetained: false },
     };
     this.latestReportValue = report;
     await writeJsonAtomic(this.latestReportPath(), report);
     await writeJsonAtomic(join(this.options.dataRoot, 'reports', 'post-stream', `${safeTimestamp(endedAt)}-${session.id}.json`), report);
+    await rm(this.activeSessionPath(), { force: true });
+  }
+
+  private captureCapabilityDeltas(session: ActiveSession): void {
+    const current = capabilityCounts(this.options.capabilityStatus?.());
+    for (const [moduleId, counts] of current) {
+      const baseline = session.capabilityBaseline.get(moduleId) ?? { denied: 0, failed: 0 };
+      const total = session.capabilityTotals.get(moduleId) ?? { denied: 0, failed: 0 };
+      session.capabilityTotals.set(moduleId, { denied: total.denied + Math.max(0, counts.denied - baseline.denied), failed: total.failed + Math.max(0, counts.failed - baseline.failed) });
+    }
+    session.capabilityBaseline = current;
+  }
+
+  private async persistActiveSession(): Promise<void> {
+    const session = this.activeSession;
+    if (session === undefined) return;
+    this.captureCapabilityDeltas(session);
+    await writeJsonAtomic(this.activeSessionPath(), serializeSession(session));
+  }
+
+  private queueSessionWrite(): void {
+    this.sessionWriteDirty = true;
+    if (this.sessionWriteTimer !== undefined) return;
+    this.sessionWriteTimer = setTimeout(() => {
+      this.sessionWriteTimer = undefined;
+      this.flushPendingSessionWrite();
+    }, SESSION_JOURNAL_DEBOUNCE_MS);
+    this.sessionWriteTimer.unref();
+  }
+
+  private flushPendingSessionWrite(): void {
+    if (this.sessionWriteTimer !== undefined) clearTimeout(this.sessionWriteTimer);
+    this.sessionWriteTimer = undefined;
+    if (!this.sessionWriteDirty || this.activeSession === undefined) return;
+    this.sessionWriteDirty = false;
+    this.writes = this.writes.then(() => this.persistActiveSession()).catch((error: unknown) => { this.options.logger.warn('Active stream session persistence failed', { error }); });
   }
 
   private queueTimelineWrite(): void {
@@ -312,8 +366,19 @@ export class OperationalReliabilityService {
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') this.options.logger.warn('Post-stream report could not be restored', { error }); }
   }
 
+  private async loadActiveSession(): Promise<void> {
+    try {
+      const value = JSON.parse(await readFile(this.activeSessionPath(), 'utf8')) as unknown;
+      if (!isRecord(value) || typeof value['startedAt'] !== 'string' || Date.now() - Date.parse(value['startedAt']) > 24 * 60 * 60_000) { await rm(this.activeSessionPath(), { force: true }); return; }
+      this.activeSession = restoreSession(value);
+      this.activeSession.capabilityBaseline = capabilityCounts(this.options.capabilityStatus?.());
+      this.options.logger.info('Recovered active stream session journal after Bridge restart', { sessionId: this.activeSession.id, startedAt: this.activeSession.startedAt });
+    } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') this.options.logger.warn('Active stream session journal could not be restored', { error }); }
+  }
+
   private timelinePath(): string { return join(this.options.dataRoot, 'state', 'operational-timeline.json'); }
   private latestReportPath(): string { return join(this.options.dataRoot, 'reports', 'post-stream', 'latest.json'); }
+  private activeSessionPath(): string { return join(this.options.dataRoot, 'state', 'active-stream-session.json'); }
   private now(): Date { return this.options.now?.() ?? new Date(); }
 }
 
@@ -332,8 +397,34 @@ function redactEvent(event: NormalizedEvent): TimelineEntry {
 }
 
 function newSession(startedAt: string, source: ActiveSession['source']): ActiveSession {
-  return { id: safeTimestamp(startedAt), startedAt, source, platforms: new Set(), counts: new Map(), failures: [], expectedSignals: new Set() };
+  return { id: safeTimestamp(startedAt), startedAt, source, platforms: new Set(), counts: new Map(), failures: [], expectedSignals: new Set(), capabilityTotals: new Map(), capabilityBaseline: new Map() };
 }
+function serializeSession(session: ActiveSession): JsonRecord {
+  return {
+    schemaVersion: 1, id: session.id, startedAt: session.startedAt, source: session.source, platforms: [...session.platforms], counts: Object.fromEntries(session.counts),
+    failures: session.failures.slice(-50), expectedSignals: [...session.expectedSignals], capabilityTotals: Object.fromEntries(session.capabilityTotals),
+  };
+}
+function restoreSession(value: JsonRecord): ActiveSession {
+  const source = value['source'] === 'verified-broadcast-status' ? 'verified-broadcast-status' : 'provider-events';
+  const session = newSession(String(value['startedAt']), source);
+  const id = typeof value['id'] === 'string' ? value['id'] : session.id;
+  const counts = recordValue(value['counts']);
+  const capabilityTotals = recordValue(value['capabilityTotals']);
+  return {
+    ...session, id,
+    platforms: new Set(Array.isArray(value['platforms']) ? value['platforms'].filter((item): item is string => typeof item === 'string') : []),
+    counts: new Map(counts === undefined ? [] : Object.entries(counts).flatMap(([key, count]) => typeof count === 'number' && Number.isFinite(count) && count >= 0 ? [[key, Math.floor(count)] as const] : [])),
+    failures: Array.isArray(value['failures']) ? value['failures'].filter((item): item is string => typeof item === 'string').slice(-50) : [],
+    expectedSignals: new Set(Array.isArray(value['expectedSignals']) ? value['expectedSignals'].filter((item): item is string => typeof item === 'string') : []),
+    capabilityTotals: new Map(capabilityTotals === undefined ? [] : Object.entries(capabilityTotals).flatMap(([moduleId, raw]) => { const item = recordValue(raw); return item === undefined ? [] : [[moduleId, { denied: numericCount(item['denied']), failed: numericCount(item['failed']) }] as const]; })),
+  };
+}
+function capabilityCounts(status: Readonly<JsonRecord> | undefined): Map<string, { denied: number; failed: number }> {
+  const modules = recordValue(status?.['modules']);
+  return new Map(modules === undefined ? [] : Object.entries(modules).flatMap(([moduleId, raw]) => { const item = recordValue(raw); return item === undefined ? [] : [[moduleId, { denied: numericCount(item['denied']), failed: numericCount(item['failed']) }] as const]; }));
+}
+function numericCount(value: unknown): number { return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0; }
 function sessionSnapshot(session: ActiveSession): JsonRecord { return { id: session.id, startedAt: session.startedAt, source: session.source, platforms: [...session.platforms].sort(), eventCount: [...session.counts.values()].reduce((total, value) => total + value, 0), failureCount: session.failures.length }; }
 function safeTimestamp(value: string): string { return value.replace(/[^0-9TZ-]/gu, '-'); }
 function pruneTimeline(values: readonly TimelineEntry[], now: number): TimelineEntry[] { return values.filter((entry) => now - Date.parse(entry.receivedAt) <= TIMELINE_RETENTION_MS).slice(-TIMELINE_LIMIT); }

@@ -6,8 +6,8 @@ const STARTED_EVENT = `${MODULE_ID.replace(/^thsv\./u, 'addon.thsv.')}.started`;
 const CONTROL_EVENT = `${MODULE_ID.replace(/^thsv\./u, 'addon.thsv.')}.control`;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Ad Break Companion', version: '4.0.6',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.6', maximumTestedBridgeVersion: '4.0.6',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Ad Break Companion', version: '4.0.7',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.7', maximumTestedBridgeVersion: '4.0.7',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [UPCOMING_EVENT, STARTED_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],

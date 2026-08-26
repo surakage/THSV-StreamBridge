@@ -1000,6 +1000,7 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
         release = this.guard.acquire(request, false);
+        if (activeLivePlatforms(this.target.diagnostics()).length > 0) return this.reply(response, 409, { error: 'StreamBridge will not shut down while a platform is live. Finish the stream before stopping or replacing the Bridge.' });
         this.reply(response, 202, { accepted: true });
         setImmediate(this.requestShutdown);
         return;

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Voice Relay",
-  "version": "4.0.6",
+  "version": "4.0.7",
   "author": "surakage",
   "description": "Broker-authorized Speaker.bot delivery and creator queue controls.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,12 +11,14 @@
       "name": "THSV Addon - Voice Relay - Speak",
       "group": "THSV Addon - Voice Relay",
       "source": "src/Speak.cs",
-      "importFile": "THSV-StreamBridge-Voice-Relay-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Voice-Relay-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll"
-      ]
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
     },
     {
       "id": "51ac94ac-a06e-402d-a850-6c0fb6a9f9bc",
@@ -29,7 +31,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Voice-Relay-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Voice-Relay-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -48,7 +50,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Voice-Relay-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Voice-Relay-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -67,7 +69,7 @@
         }
       ],
       "source": "src/Control.cs",
-      "importFile": "THSV-StreamBridge-Voice-Relay-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Voice-Relay-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

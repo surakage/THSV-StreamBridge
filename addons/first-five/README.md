@@ -12,6 +12,6 @@ First Five uses five Twitch rewards, five Kick rewards, and one Viewer Foundatio
 
 Keep **Skip Reward Queue disabled** on all five Twitch rewards. First Five can safely accept a valid already-fulfilled redemption, but Twitch cannot refund an already-fulfilled repeat or out-of-order redemption. Kick has no documented enable, disable, rename, fulfill, or refund methods, so all five Kick rewards remain creator-managed and invalid Kick claims cannot be returned.
 
-Import `packages/streamerbot/first-five/THSV-StreamBridge-First-Five-4.0.6.sb`. Keep **THSV Addon - First Five - Controller** triggerless and approve only that stable action ID. Create `!firstfive` with no generated response for YouTube and TikTok. The optional Reset action may be attached to a deck button or hotkey.
+Import `packages/streamerbot/first-five/THSV-StreamBridge-First-Five-4.0.7.sb`. Keep **THSV Addon - First Five - Controller** triggerless and approve only that stable action ID. Create `!firstfive` with no generated response for YouTube and TikTok. The optional Reset action may be attached to a deck button or hotkey.
 
 The add-on uses one atomic private state record. It does not use SlothCoins, hard-coded filesystem paths, or separate leaderboard files.

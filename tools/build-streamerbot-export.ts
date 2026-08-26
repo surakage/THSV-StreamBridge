@@ -27,6 +27,8 @@ interface ExportAction {
     readonly arguments?: readonly ExportArgument[];
     readonly excludeFromHistory?: boolean;
     readonly excludeFromPending?: boolean;
+    readonly brokerDispatched?: boolean;
+    readonly mustRemainTriggerless?: boolean;
     readonly triggers?: readonly ExportTrigger[];
 }
 
@@ -75,6 +77,8 @@ const encoded = buildStreamerBotPackage(
     ...(action.references === undefined ? {} : { references: action.references }),
     ...(action.excludeFromHistory === undefined ? {} : { excludeFromHistory: action.excludeFromHistory }),
     ...(action.excludeFromPending === undefined ? {} : { excludeFromPending: action.excludeFromPending }),
+    ...(action.brokerDispatched === undefined ? {} : { brokerDispatched: action.brokerDispatched }),
+    ...(action.mustRemainTriggerless === undefined ? {} : { mustRemainTriggerless: action.mustRemainTriggerless }),
     ...(action.triggers === undefined ? {} : { triggers: action.triggers.map((trigger) => ({
       commandId: trigger.commandId,
       ...(trigger.id === undefined ? {} : { id: trigger.id }),

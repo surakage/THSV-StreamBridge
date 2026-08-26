@@ -145,6 +145,7 @@ test('wizard installs and configures add-ons without injecting package code', as
   await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-card-status')).toContainText('Restart required');
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-runtime-summary')).toContainText('restart StreamBridge');
+  await expect(page.getByRole('button', { name: 'Apply changes and verify' })).toBeVisible();
   await page.evaluate(`(() => {
     const nextStart = new Date(Date.parse(state.addOnRuntime.startedAt) + 1000).toISOString();
     syncAddOnRestartState(nextStart);
@@ -416,6 +417,15 @@ test('wizard installs and configures add-ons without injecting package code', as
   await expect(raidScoutSettings.getByLabel('Raid confirmation mode')).toHaveValue('required');
   await expect(raidScoutSettings.getByLabel('Show each search phase on the Raid Scout overlay')).toBeChecked();
   await expect(raidScoutSettings.getByLabel('Play one random clip before starting the confirmed raid')).not.toBeChecked();
+  await expect(raidScoutSettings.getByLabel('Ending-scene broadcast app').locator('option')).toHaveText(['OBS Studio']);
+  await page.evaluate(`state.broadcastConnections = { connections: [{ provider: 'meld', enabled: true }, { provider: 'streamlabs', enabled: true }] }; state.sceneCatalog = { refreshAvailable: true, providers: { obs: { scenes: ['📁 Stream Ending', '🎞 Ending Soon'] }, meld: { scenes: [] }, streamlabs: { scenes: [] } } }; renderAddOns();`);
+  const renderedRaidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
+  await renderedRaidScoutSettings.getByLabel('Start Raid Scout on an ending scene').check();
+  const endingScenePicker = renderedRaidScoutSettings.locator('[data-scene-name-picker]');
+  await expect(endingScenePicker.getByLabel('Detected scene')).toBeVisible();
+  await expect(endingScenePicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', '📁 Stream Ending', '🎞 Ending Soon']);
+  await endingScenePicker.getByLabel('Detected scene').selectOption('📁 Stream Ending');
+  await expect(endingScenePicker.getByLabel('Exact scene name')).toHaveValue('📁 Stream Ending');
   await raidScoutSettings.locator('summary').filter({ hasText: 'Where to search' }).click();
   await expect(raidScoutSettings.getByLabel('Search preferred channels')).toBeChecked();
   await raidScoutSettings.locator('summary').filter({ hasText: 'Preferred channels' }).click();
