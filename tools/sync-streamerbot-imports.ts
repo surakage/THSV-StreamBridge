@@ -34,8 +34,9 @@ for (const directory of packageDirectories) {
     packageRoot,
   ], { cwd: root, windowsHide: true, maxBuffer: 4 * 1024 * 1024 });
 
-  const manifestBytes = await readFile(manifestPath);
-  const manifest = JSON.parse(manifestBytes.toString('utf8')) as StreamerBotManifest;
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as StreamerBotManifest;
+  const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  await writeFileWithRetry(manifestPath, manifestBytes);
   const importFiles = [...new Set([
     ...(manifest.action === undefined ? [] : [manifest.action.importFile]),
     ...(manifest.actions ?? []).map((action) => action.importFile),
@@ -71,11 +72,24 @@ const index = {
   policy: 'Canonical imports are regenerated from reviewed package source before every release build.',
   packages: records,
 };
-await writeFile(join(packagesRoot, 'import-index.json'), `${JSON.stringify(index, null, 2)}\n`, 'utf8');
+await writeFileWithRetry(join(packagesRoot, 'import-index.json'), `${JSON.stringify(index, null, 2)}\n`);
 process.stdout.write(`Regenerated and indexed ${String(records.length)} Streamer.bot import package(s).\n`);
 
 function sha256(value: Uint8Array): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+async function writeFileWithRetry(path: string, contents: string | Uint8Array): Promise<void> {
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      await writeFile(path, contents);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (!['EBUSY', 'EPERM', 'UNKNOWN'].includes(code ?? '') || attempt === 5) throw error;
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, attempt * 100));
+    }
+  }
 }
 
 async function isFile(path: string): Promise<boolean> {

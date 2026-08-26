@@ -105,8 +105,21 @@ const encoded = buildStreamerBotPackage(
 const importFile = actions[0]?.importFile;
 if (importFile === undefined) throw new Error('Manifest has no import file.');
 const outputPath = safePackagePath(packageDirectory, importFile);
-await writeFile(outputPath, encoded);
+await writeGeneratedImport(outputPath, encoded);
 console.log(`Created ${outputPath}`);
+
+async function writeGeneratedImport(path: string, contents: string): Promise<void> {
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      await writeFile(path, contents);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (!['EBUSY', 'EPERM', 'UNKNOWN'].includes(code ?? '') || attempt === 5) throw error;
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, attempt * 100));
+    }
+  }
+}
 
 function safePackagePath(root: string, relativePath: string): string {
   if (relativePath.length === 0 || relativePath.includes('\\') || relativePath.startsWith('/') || /^[A-Za-z]:/u.test(relativePath)) throw new Error(`Package path is unsafe: ${relativePath}`);
