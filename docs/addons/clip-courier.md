@@ -9,8 +9,8 @@ Creates Twitch clips from !clip and optionally publishes other clips made during
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Clip-Courier-4.0.1.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Courier-4.0.7.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Clip-Courier-4.0.7.sb` in Streamer.bot.
+2. In **Setup Wizard > Add-ons**, install `THSV-Clip-Courier-4.0.8.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Clip-Courier-4.0.8.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps

@@ -133,6 +133,13 @@ export class StreamerBotLauncherService {
     return configuration === undefined ? undefined : join(dirname(configuration.executable), 'data', 'actions.json');
   }
 
+  /** Returns the selected executable's Windows file version without launching it. */
+  public async version(): Promise<string | undefined> {
+    const configuration = await this.readConfiguration();
+    if (configuration === undefined || !await isFile(configuration.executable)) return undefined;
+    return Object.values(applicationVersions([configuration.executable]))[0];
+  }
+
   public async isRunning(): Promise<boolean> {
     const status = await this.status();
     return status.state === 'ready' || status.state === 'port-conflict';

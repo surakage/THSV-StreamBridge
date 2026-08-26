@@ -174,6 +174,7 @@ const triggerAssurance = new StreamerBotTriggerAssuranceService({
   packageRoot: resolve('packages', 'streamerbot'),
   stateRoot: join(dataRoot, 'state'),
   actionsPath: () => streamerBotLauncher.actionsPath(),
+  streamerBotVersion: () => streamerBotLauncher.version(),
   streamerBotRunning: () => streamerBotLauncher.isRunning(),
   moduleStatus: () => modules.statuses(),
 });

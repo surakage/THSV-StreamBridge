@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import type { WizardAddOnSummary } from './addon-wizard-service.js';
+import { STREAMERBOT_TRIGGER_REGISTRY_107 } from '../contracts/streamerbot-trigger-contract-registry.js';
 
 interface ImportIndexRecord {
   readonly folder: string;
@@ -55,6 +56,7 @@ export interface UniversalImportPackageSummary {
 export interface UniversalImportCatalogue {
   readonly bridgeVersion: string;
   readonly minimumStreamerBotVersion: string;
+  readonly triggerContractVersion: string;
   readonly packages: readonly UniversalImportPackageSummary[];
 }
 
@@ -66,6 +68,7 @@ export interface UniversalImportResult {
   readonly actionCount: number;
   readonly commandCount: number;
   readonly minimumStreamerBotVersion: string;
+  readonly triggerContractVersion: string;
   readonly triggerRecommendations: readonly { readonly package: string; readonly recommendations: readonly string[]; readonly safety?: string }[];
 }
 
@@ -98,6 +101,7 @@ export class StreamerBotUniversalImportService {
     return {
       bridgeVersion: index.bridgeVersion,
       minimumStreamerBotVersion: highestVersion(index.packages.map((record) => record.minimumStreamerBotVersion)),
+      triggerContractVersion: STREAMERBOT_TRIGGER_REGISTRY_107.version,
       packages,
     };
   }
@@ -154,6 +158,7 @@ export class StreamerBotUniversalImportService {
       actionCount: actions.length,
       commandCount: commands.length,
       minimumStreamerBotVersion,
+      triggerContractVersion: STREAMERBOT_TRIGGER_REGISTRY_107.version,
       triggerRecommendations: recommendationRecords.map(({ record, manifest }) => ({
         package: record.name,
         recommendations: flattenTriggerSetup(manifest.manualTriggerSetup),

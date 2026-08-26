@@ -174,8 +174,9 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 });
 
-test('pre-stream check requires healthy local evidence and explicit import confirmation', async ({ page }) => {
+test('pre-stream check requires healthy local evidence and an automatically verified trigger contract', async ({ page }) => {
   let inspectionCalls = 0;
+  let triggersReady = false;
   await page.route('**/wizard/api/preflight', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
     ready: true,
     readiness: {
@@ -203,6 +204,13 @@ test('pre-stream check requires healthy local evidence and explicit import confi
       available: true, inspectedAt: '2026-08-18T12:00:00.000Z', requests: [{ method: 'GetActions' }, { method: 'GetCommands' }], actions: [], commands: [],
     }) });
   });
+  await page.route('**/wizard/api/streamerbot/triggers', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    available: true, ready: triggersReady, canSave: !triggersReady, streamerBotVersion: '1.0.7', supportedStreamerBotVersion: '1.0.7', versionCompatible: true,
+    actions: [], issues: { missingActions: [], disabledActions: [], missingTriggers: triggersReady ? [] : [{ actionName: 'THSV Twitch - Intake', type: 133 }], duplicateEnabledTriggers: [] },
+    repairPlan: triggersReady ? { repairable: true, total: 0 } : { repairable: true, total: 1, created: 1, reenabled: 0, disabledDuplicates: 0, enabledActions: 0 },
+    connectionExplanation: triggersReady ? 'All supported trigger contracts are installed once and enabled.' : 'One supported trigger is missing.',
+    versionAliases: { aliases: {}, unavailable: {} }, moduleState: [], activity: {},
+  }) }));
   await unlock(page);
   await expect.poll(() => inspectionCalls).toBe(1);
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
@@ -216,7 +224,10 @@ test('pre-stream check requires healthy local evidence and explicit import confi
   await expect(page.locator('#pre-stream-grid')).toContainText('Timed-action schedule canary');
   await expect(page.locator('#pre-stream-grid')).toContainText('Configured broadcast scenes');
 
-  await page.getByLabel(/I imported the Wizard-generated Streamer\.bot package/u).check();
+  await expect(page.getByLabel(/current Streamer\.bot package and trigger contract are verified/u)).not.toBeChecked();
+  await expect(page.getByLabel(/current Streamer\.bot package and trigger contract are verified/u)).toBeDisabled();
+  triggersReady = true;
+  await page.getByRole('button', { name: 'Run pre-stream check' }).click();
   await expect(page.locator('#pre-stream-badge')).toHaveText('Ready to stream');
   await page.getByRole('button', { name: 'Overview', exact: true }).click();
   await expect(page.locator('[data-setup-step="test"] input')).toBeChecked();
@@ -433,9 +444,42 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   await page.getByRole('button', { name: 'Create & download one import' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe(`THSV-StreamBridge-Universal-Setup-${STREAMBRIDGE_VERSION}.sb`);
-  await expect(page.locator('#universal-import-state')).toContainText('Import this one file in Streamer.bot');
-  await page.getByRole('button', { name: 'Review recommended triggers' }).click();
+  await expect(page.locator('#universal-import-state')).toContainText('Import it, save Streamer.bot, then verify here');
+  await expect(page.getByRole('button', { name: 'I finished importing — verify now' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Review trigger contract' }).click();
   await expect(page.locator('#universal-trigger-guide')).toHaveAttribute('open', '');
   await expect(page.locator('#universal-trigger-list')).toContainText('Native Platform Intake');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test('universal import recovery previews, repairs, restarts, and verifies the trigger contract', async ({ page }) => {
+  let ready = false;
+  const triggerStatus = (): Record<string, unknown> => ({
+    available: true, ready, canSave: !ready, streamerBotVersion: '1.0.7', supportedStreamerBotVersion: '1.0.7', versionCompatible: true,
+    actions: [], versionAliases: { aliases: {}, unavailable: {} }, activity: {}, moduleState: [],
+    issues: { missingActions: [], disabledActions: [], missingTriggers: ready ? [] : Array.from({ length: 29 }, (_, type) => ({ actionName: 'THSV Intake', type })), duplicateEnabledTriggers: [] },
+    repairPlan: ready ? { repairable: true, total: 0, created: 0, reenabled: 0, disabledDuplicates: 0, enabledActions: 0 } : { repairable: true, total: 29, created: 29, reenabled: 0, disabledDuplicates: 0, enabledActions: 0 },
+    connectionExplanation: ready ? 'All supported trigger contracts are installed once and enabled.' : '29 supported triggers are missing.',
+  });
+  await page.route('**/wizard/api/streamerbot/triggers', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(triggerStatus()) }));
+  await page.route('**/wizard/api/streamerbot/triggers/reconcile', async (route) => {
+    expect(route.request().postDataJSON()).toMatchObject({ approvedByCreator: true });
+    ready = true;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ reconciled: true, changed: 29, changes: { repairable: true, total: 29, created: 29, reenabled: 0, disabledDuplicates: 0, enabledActions: 0 }, backup: { integrity: 'verified' }, status: triggerStatus() }) });
+  });
+  await page.route('**/wizard/api/streamerbot/triggers/backups', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ backups: [] }) }));
+  await page.route('**/wizard/api/streamerbot-launcher/start', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ output: 'Streamer.bot is ready.', status: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} } }) }));
+  await page.route('**/wizard/api/test-all-integrations', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ready: true, checks: [], suppressed: [] }) }));
+  page.on('dialog', (dialog) => void dialog.accept());
+  await unlock(page);
+  await page.getByRole('button', { name: 'Streamer.bot', exact: true }).click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Create & download one import' }).click();
+  await downloadPromise;
+  await page.getByRole('button', { name: 'I finished importing — verify now' }).click();
+  await expect(page.locator('#universal-import-recovery')).toContainText('29 previewed changes');
+  await expect(page.getByRole('button', { name: 'Back up, repair, restart & verify' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Back up, repair, restart & verify' }).click();
+  await expect(page.locator('#universal-import-state')).toContainText('Recovered 29 items');
+  await expect(page.locator('#universal-import-recovery')).toContainText('Import and trigger contract are ready');
 });

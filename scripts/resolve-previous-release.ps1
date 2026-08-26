@@ -19,8 +19,11 @@ if ($CurrentTag -notmatch '^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw "Inval
 if ($PreviousTag -eq $CurrentTag) { throw 'The previous release must differ from the current candidate.' }
 
 if ([string]::IsNullOrWhiteSpace($ReleaseListPath)) {
-    $releaseJson = gh release list --repo $Repository --exclude-drafts --limit 100 --json tagName,isPrerelease
-    if ($LASTEXITCODE -ne 0) { throw 'Could not list previous verified releases.' }
+    $releaseJson = gh release list --repo $Repository --exclude-drafts --limit 100 --json tagName,isPrerelease 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        $releaseJson = & node (Join-Path $PSScriptRoot 'public-github-release.mjs') list $Repository
+        if ($LASTEXITCODE -ne 0) { throw 'Could not list previous verified releases through either the GitHub CLI or the public GitHub API.' }
+    }
 } else {
     $releaseJson = Get-Content -Raw -LiteralPath $ReleaseListPath
 }
@@ -46,8 +49,11 @@ if ($ResolveOnly) {
 
 $destinationPath = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $Destination))
 [System.IO.Directory]::CreateDirectory($destinationPath) | Out-Null
-gh release download $PreviousTag --repo $Repository --pattern "THSV-StreamBridge-$version.zip" --pattern "THSV-StreamBridge-$version.zip.sha256" --dir $destinationPath --clobber
-if ($LASTEXITCODE -ne 0) { throw "Could not download the previous main release $PreviousTag." }
+gh release download $PreviousTag --repo $Repository --pattern "THSV-StreamBridge-$version.zip" --pattern "THSV-StreamBridge-$version.zip.sha256" --dir $destinationPath --clobber 2>$null
+if ($LASTEXITCODE -ne 0) {
+    & node (Join-Path $PSScriptRoot 'public-github-release.mjs') download $Repository $PreviousTag $destinationPath "THSV-StreamBridge-$version.zip" "THSV-StreamBridge-$version.zip.sha256"
+    if ($LASTEXITCODE -ne 0) { throw "Could not download the previous main release $PreviousTag through either the GitHub CLI or the public GitHub API." }
+}
 $archive = Join-Path $destinationPath "THSV-StreamBridge-$version.zip"
 $checksum = "$archive.sha256"
 if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw "The downloaded release archive is missing: $archive" }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { StreamerBotUniversalImportService } from '../../bridge/services/streamerbot-universal-import-service.js';
 import type { WizardAddOnSummary } from '../../bridge/services/addon-wizard-service.js';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
+import { STREAMERBOT_TRIGGER_REGISTRY_107 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 
 function decode(contentBase64: string): { data: { actions: Array<{ id: string; name: string }>; commands: Array<{ id: string }> }; meta: { name: string } } {
   const bytes = Buffer.from(contentBase64, 'base64');
@@ -14,6 +15,7 @@ describe('Streamer.bot universal import service', () => {
   it('lists required framework packages, selectable extensions, and unavailable optional add-ons', async () => {
     const catalogue = await new StreamerBotUniversalImportService().catalogue([]);
     expect(catalogue.bridgeVersion).toBe(STREAMBRIDGE_VERSION);
+    expect(catalogue.triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_107.version);
     expect(catalogue.packages.filter((item) => item.required)).toHaveLength(13);
     expect(catalogue.packages.find((item) => item.folder === 'scene-catalog')).toMatchObject({ kind: 'core', required: true, available: true });
     expect(catalogue.packages.find((item) => item.folder === 'raid-scout')).toMatchObject({ kind: 'extension', available: true });
@@ -26,6 +28,7 @@ describe('Streamer.bot universal import service', () => {
     const decoded = decode(result.contentBase64);
     expect(result.packageFolders).toContain('core-receiver');
     expect(result.packageFolders).toContain('raid-scout');
+    expect(result.triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_107.version);
     expect(decoded.meta.name).toBe('THSV StreamBridge - Universal Setup');
     expect(decoded.data.actions).toContainEqual(expect.objectContaining({ id: '143fce1d-c5b0-4108-b766-ee2d0249e2d4', name: 'THSV StreamBridge - Receive Event' }));
     expect(decoded.data.actions).toContainEqual(expect.objectContaining({ id: 'e924f0ad-36c1-4687-8c05-c39466d06963', name: 'THSV Addon - Raid Scout - Suggest' }));
