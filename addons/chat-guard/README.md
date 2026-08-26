@@ -6,7 +6,7 @@ Chat Guard is a disabled-by-default public-chat safety add-on for Twitch, YouTub
 
 1. In the wizard, turn on **safe observation** and select the public-chat platforms you use.
 2. Optionally add obvious blocked words or website hostnames. The supplied spam limits are suitable for a first test.
-3. Save, restart StreamBridge, and import `THSV-StreamBridge-Chat-Guard-4.0.6.sb` into Streamer.bot. Do not attach platform chat triggers to its actions.
+3. Save, restart StreamBridge, and import `THSV-StreamBridge-Chat-Guard-4.0.7.sb` into Streamer.bot. Do not attach platform chat triggers to its actions.
 4. Paste a harmless sample into **Test current rules safely**. Observation and testing cannot moderate anyone.
 5. Stop here if reports are all you need. For automatic moderation, approve only **THSV Addon - Chat Guard - Moderate**, turn on both automatic-action switches, and start with **Warn**.
 

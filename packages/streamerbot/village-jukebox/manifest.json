@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Village Jukebox",
-  "version": "4.0.6",
+  "version": "4.0.7",
   "author": "surakage",
   "description": "Resolves YouTube song requests without exposing the creator's API key and settles accepted Twitch reward requests for Village Jukebox.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -17,9 +17,11 @@
         }
       ],
       "source": "src/ResolveYouTubeTrack.cs",
-      "importFile": "THSV-StreamBridge-Village-Jukebox-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Village-Jukebox-4.0.7.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true,
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -33,9 +35,11 @@
       "name": "THSV Addon - Village Jukebox - Settle Twitch Reward",
       "group": "THSV Addon - Village Jukebox",
       "source": "src/SettleTwitchReward.cs",
-      "importFile": "THSV-StreamBridge-Village-Jukebox-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Village-Jukebox-4.0.7.sb",
       "excludeFromHistory": true,
       "excludeFromPending": true,
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true,
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

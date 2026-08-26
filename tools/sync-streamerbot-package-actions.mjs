@@ -32,7 +32,7 @@ const exported = JSON.parse(gunzipSync(packageBytes.subarray(4)).toString('utf8'
 assert.ok(Array.isArray(exported?.data?.actions) && exported.data.actions.length > 0, 'Streamer.bot package contains no actions');
 
 const protectedFields = [
-  'triggers', 'queue', 'enabled', 'excludeFromHistory', 'excludeFromPending',
+  'triggers', 'queue', 'enabled', 'excludeFromHistory', 'excludeFromPending', 'brokerDispatched', 'mustRemainTriggerless',
   'alwaysRun', 'randomAction', 'concurrent', 'collapsedGroups',
 ];
 const report = [];

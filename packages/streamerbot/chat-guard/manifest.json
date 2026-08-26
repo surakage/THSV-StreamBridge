@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Chat Guard",
-  "version": "4.0.6",
+  "version": "4.0.7",
   "author": "surakage",
   "description": "Provides Chat Guard's triggerless moderation controller and a disabled-by-default moderator command for adding trusted stable viewer IDs.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,14 +11,16 @@
       "name": "THSV Addon - Chat Guard - Moderate",
       "group": "THSV Addon - Chat Guard",
       "source": "src/Moderate.cs",
-      "importFile": "THSV-StreamBridge-Chat-Guard-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Chat-Guard-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
-      ]
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
     },
     {
       "id": "7a44a6d4-6624-4c21-8ad8-e639bcc18813",
@@ -26,7 +28,7 @@
       "name": "THSV Addon - Chat Guard - Trust Viewer",
       "group": "THSV Addon - Chat Guard",
       "source": "src/TrustViewer.cs",
-      "importFile": "THSV-StreamBridge-Chat-Guard-4.0.6.sb",
+      "importFile": "THSV-StreamBridge-Chat-Guard-4.0.7.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

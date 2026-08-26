@@ -75,9 +75,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '4.0.6',
+  version: '4.0.7',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.6', maximumTestedBridgeVersion: '4.0.6',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.7', maximumTestedBridgeVersion: '4.0.7',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
@@ -89,7 +89,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.6.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.7.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
     'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
@@ -144,6 +144,9 @@ function sanitizeState(raw) {
     pendingClipId: typeof value.pendingClipId === 'string' ? value.pendingClipId : undefined,
     pendingPlaybackId: typeof value.pendingPlaybackId === 'string' ? value.pendingPlaybackId : undefined,
     playbackEnabled: value.playbackEnabled === true,
+    permissionPaused: value.permissionPaused === true,
+    pauseReason: typeof value.pauseReason === 'string' ? value.pauseReason.slice(0, 300) : undefined,
+    pausedAt: typeof value.pausedAt === 'string' ? value.pausedAt : undefined,
   };
 }
 
@@ -151,11 +154,13 @@ function sanitizeState(raw) {
 // present with an undefined value (as sanitizeState's own shape always has for an absent
 // pendingClipId) fails that validation. This strips such keys before every write.
 function toJsonState(state) {
-  const { pendingClipId, pendingPlaybackId, ...rest } = state;
+  const { pendingClipId, pendingPlaybackId, pauseReason, pausedAt, ...rest } = state;
   return {
     ...rest,
     ...(pendingClipId === undefined ? {} : { pendingClipId }),
     ...(pendingPlaybackId === undefined ? {} : { pendingPlaybackId }),
+    ...(pauseReason === undefined ? {} : { pauseReason }),
+    ...(pausedAt === undefined ? {} : { pausedAt }),
   };
 }
 
@@ -182,6 +187,20 @@ function armSafetyNet(context, task) {
 function armConnectionRetry(context, task) {
   if (safetyTaskId !== undefined) context.schedule.cancel(safetyTaskId);
   safetyTaskId = context.schedule.after(CONNECTION_RETRY_MS, () => serialize(task));
+}
+
+function isPermanentCapabilityError(error) {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return error?.name === 'CapabilityDeniedError' || /not (?:granted|approved)|capability denied/iu.test(message);
+}
+
+async function pauseForPermission(context, error) {
+  disarmSafetyNet(context);
+  cancelNextTask(context);
+  const state = sanitizeState(await context.state.read());
+  const pauseReason = error instanceof Error ? error.message : String(error ?? 'Required Streamer.bot action permission is missing.');
+  await context.state.write(toJsonState({ ...state, pendingClipId: undefined, pendingPlaybackId: undefined, permissionPaused: true, pauseReason, pausedAt: new Date().toISOString() }));
+  try { await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }); } catch { /* Optional overlay may be closed. */ }
 }
 
 function disarmSafetyNet(context) {
@@ -219,7 +238,10 @@ async function requestClipList(context) {
     // Arm before dispatch so an unusually fast relay response cannot race with timer setup.
     armSafetyNet(context, () => requestClipList(context));
     try { await context.streamerbot.runApprovedAction(GET_CLIPS_ACTION_ID, { clipCount: settings.clipCount }); }
-    catch { armConnectionRetry(context, () => requestClipList(context)); }
+    catch (error) {
+      if (isPermanentCapabilityError(error)) await pauseForPermission(context, error);
+      else armConnectionRetry(context, () => requestClipList(context));
+    }
   }));
 }
 
@@ -229,7 +251,10 @@ async function requestClipDownload(context, clipId) {
   if (!state.playbackEnabled || suspendedByMediaSlot || state.pendingClipId !== clipId) return;
   armSafetyNet(context, () => requestClipDownload(context, clipId));
   try { await context.streamerbot.runApprovedAction(GET_CLIP_DOWNLOAD_ACTION_ID, { clipId }); }
-  catch { armConnectionRetry(context, () => requestClipDownload(context, clipId)); }
+  catch (error) {
+    if (isPermanentCapabilityError(error)) await pauseForPermission(context, error);
+    else armConnectionRetry(context, () => requestClipDownload(context, clipId));
+  }
 }
 
 // The single entry point for "what should happen now": called on first start, after a fresh clip
@@ -353,7 +378,7 @@ export default {
     // start merely because StreamBridge restarted; only the creator-controlled Enable action may
     // begin a new session. Preserve the rotation bag, but clear stale in-flight playback state.
     const state = sanitizeState(await context.state.read());
-    await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false }));
+    await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false, permissionPaused: false }));
     try { await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }); } catch { /* Optional overlay may be closed. */ }
   },
   async stop(context) {
@@ -366,7 +391,7 @@ export default {
     mediaSlotUnsubscribe = undefined;
     await operation.catch(() => undefined);
     const state = sanitizeState(await context.state.read().catch(() => ({})));
-    await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false })).catch(() => undefined);
+    await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false, permissionPaused: false })).catch(() => undefined);
     await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }).catch(() => undefined);
     operation = Promise.resolve();
     suspendedByMediaSlot = false;
@@ -399,15 +424,15 @@ async function handleSceneChanged(event, context) {
 async function handleControl(event, context) {
   if (typeof event.payload?.enabled !== 'boolean') return;
   const state = sanitizeState(await context.state.read());
-  if (event.payload.enabled === state.playbackEnabled) return;
+  if (event.payload.enabled === state.playbackEnabled && !state.permissionPaused) return;
   disarmSafetyNet(context);
   cancelNextTask(context);
   if (!event.payload.enabled) {
-    await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false }));
+    await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false, permissionPaused: false }));
     try { await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }); } catch { /* Optional overlay may be closed. */ }
     return;
   }
-  await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: true }));
+  await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: true, permissionPaused: false }));
   if (suspendedByMediaSlot) return;
   await requestNextClip(context);
 }

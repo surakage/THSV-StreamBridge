@@ -181,10 +181,13 @@ async function stopExisting(url) {
     await rm(pidPath, { force: true });
     return;
   }
+  let shutdownResponse;
   try {
     const token = (await readFile(tokenPath, 'utf8')).trim();
-    await fetch(`${url}/shutdown`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5_000) });
+    shutdownResponse = await fetch(`${url}/shutdown`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5_000) });
   } catch { /* The verified installed process is force-closed below if graceful shutdown fails. */ }
+  if (shutdownResponse?.status === 409) throw new Error('StreamBridge is protecting an active live session. Finish the stream before restarting or replacing the Bridge.');
+  if (shutdownResponse !== undefined && !shutdownResponse.ok) throw new Error(`Authenticated StreamBridge shutdown was rejected (${String(shutdownResponse.status)}).`);
   const deadline = Date.now() + 6_000;
   while (Date.now() < deadline && isAlive(existingPid)) await delay(100);
   if (isAlive(existingPid) && isOurRuntimeProcess(existingPid)) process.kill(existingPid, 'SIGTERM');

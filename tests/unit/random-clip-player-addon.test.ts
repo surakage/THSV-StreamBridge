@@ -92,5 +92,8 @@ describe('Random Clip Player - shared video coordination', () => {
     expect(runtime).toContain('fade: true');
     expect(runtime).toContain('context.mediaCache.fetch');
     expect(runtime).toContain('maximumBytes: settings.cacheMaximumFileMb * 1_048_576');
+    expect(runtime).toContain('isPermanentCapabilityError');
+    expect(runtime).toContain('pauseForPermission');
+    expect(runtime).toContain('permissionPaused: true');
   });
 });

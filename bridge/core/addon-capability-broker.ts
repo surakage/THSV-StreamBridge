@@ -158,6 +158,15 @@ interface CoordinationLease {
   readonly timer: NodeJS.Timeout;
 }
 interface CoordinationListener { readonly grant: ActiveModuleCapabilityGrant; readonly listener: (snapshot: AddOnCoordinationSnapshotV2) => void | Promise<void> }
+interface CapabilityIncident {
+  readonly moduleId: string;
+  readonly permission: AddOnPermissionV2;
+  readonly operation: string;
+  readonly firstAt: string;
+  lastAt: string;
+  count: number;
+  recoveredAt?: string;
+}
 
 export class CapabilityDeniedError extends Error {
   public constructor(public readonly moduleId: string, public readonly permission: AddOnPermissionV2, message: string) {
@@ -167,6 +176,7 @@ export class CapabilityDeniedError extends Error {
 
 export class AddOnCapabilityBroker {
   private readonly audits = new Map<string, CapabilityAudit>();
+  private readonly capabilityIncidents = new Map<string, CapabilityIncident>();
   private readonly scheduled = new Map<string, ScheduledEntry>();
   private readonly actionActivity = new Map<string, ActionActivity>();
   private readonly overlaySubscriptions = new Map<string, Set<() => void>>();
@@ -288,6 +298,7 @@ export class AddOnCapabilityBroker {
       coordination: Object.fromEntries([...new Set([...this.coordinationQueues.keys(), ...[...this.coordinationLeases.values()].map((lease) => lease.entry.request.resource)])].map((resource) => [resource, this.coordinationSnapshot(resource)])),
       limits: { maximumJsonBytes: MAXIMUM_JSON_BYTES, maximumRecordKeys: MAXIMUM_RECORD_KEYS, maximumArguments: MAXIMUM_ARGUMENTS, minimumDelayMs: MINIMUM_DELAY_MS, maximumDelayMs: MAXIMUM_DELAY_MS, maximumTimersPerModule: MAXIMUM_TIMERS_PER_MODULE, taskTimeoutMs: TASK_TIMEOUT_MS, maximumPendingActionsPerModule: MAXIMUM_PENDING_ACTIONS_PER_MODULE, maximumActionsPerMinute: MAXIMUM_ACTIONS_PER_MINUTE, maximumOutboundRequestsPerMinute: MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE, maximumProviderEventsPerMinute: MAXIMUM_PROVIDER_EVENTS_PER_MINUTE },
       modules: Object.fromEntries([...this.audits.entries()].map(([moduleId, audit]) => [moduleId, { ...audit }])),
+      incidents: [...this.capabilityIncidents.values()].map((incident) => ({ ...incident, active: incident.recoveredAt === undefined })),
     };
   }
 
@@ -883,13 +894,30 @@ export class AddOnCapabilityBroker {
   private isActive(grant: ActiveModuleCapabilityGrant): boolean { return this.generations.get(grant.moduleId) === grant.generation; }
 
   private deny(moduleId: string, permission: AddOnPermissionV2, operation: string, message: string): never {
-    this.record(moduleId, operation, 'denied'); this.logger.warn('Add-on capability denied', { moduleId, permission, operation });
+    this.record(moduleId, operation, 'denied');
+    const key = `${moduleId}\u0000${operation}`;
+    const now = new Date().toISOString();
+    const current = this.capabilityIncidents.get(key);
+    if (current === undefined || current.recoveredAt !== undefined || current.permission !== permission) {
+      this.capabilityIncidents.set(key, { moduleId, permission, operation, firstAt: now, lastAt: now, count: 1 });
+      this.logger.warn('Add-on capability denied; repeated attempts will be consolidated', { moduleId, permission, operation });
+    } else {
+      current.count += 1;
+      current.lastAt = now;
+    }
     throw new CapabilityDeniedError(moduleId, permission, message);
   }
 
   private record(moduleId: string, operation: string, result: 'granted' | 'denied' | 'failed'): void {
     const audit = this.audits.get(moduleId) ?? { granted: 0, denied: 0, failed: 0 };
     audit[result] += 1; audit.lastOperation = operation; audit.lastResult = result; audit.lastAt = new Date().toISOString(); this.audits.set(moduleId, audit);
+    if (result === 'granted') {
+      const incident = this.capabilityIncidents.get(`${moduleId}\u0000${operation}`);
+      if (incident !== undefined && incident.recoveredAt === undefined) {
+        incident.recoveredAt = audit.lastAt;
+        this.logger.info('Add-on capability incident recovered', { moduleId, permission: incident.permission, operation, count: incident.count, firstAt: incident.firstAt, lastAt: incident.lastAt, recoveredAt: incident.recoveredAt });
+      }
+    }
   }
 }
 

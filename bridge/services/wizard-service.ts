@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { basename } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { basename, resolve } from 'node:path';
 import type {
   StreamerBotActionSummary,
   StreamerBotCommandSummary,
@@ -183,6 +184,7 @@ export class WizardService {
     private readonly broadcastConnections?: BroadcastConnectionVaultService,
     private readonly directSceneConnections?: DirectSceneConnectionManager,
     private readonly scheduledReliabilityPreflight?: ScheduledReliabilityPreflightService,
+    private readonly overlayStatus?: () => Readonly<Record<string, unknown>>,
   ) {}
 
   public async installedStateDrift(): Promise<Readonly<Record<string, unknown>>> {
@@ -202,10 +204,12 @@ export class WizardService {
 
   public async streamingToolsPreflight(): Promise<Readonly<Record<string, unknown>>> {
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Streaming-tool preflight is unavailable in this installation.');
-    const [launcher, rehearsal, configurationBackups] = await Promise.all([
+    const [launcher, rehearsal, configurationBackups, inspection, installedAddOns] = await Promise.all([
       this.streamerBotLauncher.preflight(),
       this.operationalReliability?.rehearsal() ?? Promise.resolve({ available: false, ready: false, steps: [] }),
       this.configuration?.backups() ?? Promise.resolve({ backups: [] }),
+      this.inspect(),
+      this.addOns?.list() ?? Promise.resolve([]),
     ]);
     const sceneCatalog = this.sceneCatalogStatus();
     const launcherStatus = launcher['launcher'] as Readonly<Record<string, unknown>>;
@@ -222,7 +226,16 @@ export class WizardService {
     }));
     const requiredBroadcastReady = Object.values(broadcastAutomation).every((value) => (value as Readonly<Record<string, unknown>>)['ready'] === true);
     const broadcastConnectionGate = (this.directSceneConnections?.status()['strictGate'] ?? { enabled: false, ready: true }) as Readonly<Record<string, unknown>>;
-    return { generatedAt: new Date().toISOString(), mutationFree: true, ready: launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true, launcher, rehearsal, configurationBackups, sceneCatalog, broadcastAutomation, broadcastConnectionGate };
+    const addOnActionReadiness = await inspectAddOnActionReadiness(installedAddOns, inspection.actions, inspection.available);
+    const sceneConfiguration = inspectSceneConfiguration(installedAddOns, sceneCatalog, broadcastAutomation);
+    const criticalOverlays = inspectCriticalOverlayReadiness(installedAddOns, this.overlayStatus?.() ?? {});
+    const timedActionCanary = inspectTimedActionCanary(rehearsal, inspection.actions, inspection.available);
+    const endingFlow = endingFlowChecklist(installedAddOns, addOnActionReadiness, sceneConfiguration);
+    return {
+      generatedAt: new Date().toISOString(), mutationFree: true,
+      ready: launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true,
+      launcher, rehearsal, configurationBackups, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, endingFlow,
+    };
   }
 
   public async launcherSupportSnapshot(): Promise<Readonly<Record<string, unknown>>> {
@@ -1060,6 +1073,117 @@ function websiteCompanionWizardError(error: unknown): WizardTransactionError {
 export class WizardTransactionError extends Error {
   public constructor(public readonly statusCode: number, message: string) { super(message); }
 }
+
+export async function inspectAddOnActionReadiness(addOns: readonly WizardAddOnSummary[], actions: readonly (StreamerBotActionSummary & { readonly owned?: boolean })[], inspectionAvailable: boolean): Promise<Readonly<Record<string, unknown>>> {
+  const results: Record<string, unknown>[] = [];
+  for (const addOn of addOns.filter((item) => item.enabled && item.health === 'installed' && item.permissions.includes('streamerbot.run-approved-action'))) {
+    let manifest: Record<string, unknown> | undefined;
+    try { manifest = JSON.parse(await readFile(resolve('packages', 'streamerbot', addOn.moduleId.replace(/^thsv\./u, ''), 'manifest.json'), 'utf8')) as Record<string, unknown>; }
+    catch { /* An add-on without a bundled Streamer.bot package has no fixed action contract. */ }
+    const expected = Array.isArray(manifest?.['actions']) ? (manifest['actions'] as unknown[]).filter(isRecordValue).filter((action) => action['brokerDispatched'] === true) : [];
+    for (const contract of expected) {
+      const actionId = typeof contract['id'] === 'string' ? contract['id'] : '';
+      const installed = actions.find((action) => action.id === actionId);
+      const approved = addOn.approvedActionIds.includes(actionId);
+      const mustRemainTriggerless = contract['mustRemainTriggerless'] === true;
+      const triggerless = installed?.triggerCount === 0;
+      const ready = inspectionAvailable && installed !== undefined && installed.enabled && approved && (!mustRemainTriggerless || triggerless);
+      results.push({ moduleId: addOn.moduleId, actionId, name: contract['name'], ready, installed: installed !== undefined, enabled: installed?.enabled === true, approved, triggerless, triggerCount: installed?.triggerCount, brokerDispatched: true, mustRemainTriggerless,
+        issue: !inspectionAvailable ? 'Streamer.bot action inspection is unavailable.' : installed === undefined ? 'Action is not installed.' : !installed.enabled ? 'Action is disabled.' : !approved ? 'Action is not approved for this add-on.' : mustRemainTriggerless && !triggerless ? installed.triggerCount === undefined ? 'Streamer.bot did not report a trigger count.' : 'Broker-dispatched action must remain triggerless.' : undefined });
+    }
+  }
+  return { checkedAt: new Date().toISOString(), inspectionAvailable, ready: results.length === 0 || inspectionAvailable && results.every((item) => item['ready'] === true), requiredCount: results.length, readyCount: results.filter((item) => item['ready'] === true).length, actions: results };
+}
+
+export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[], sceneCatalog: Readonly<Record<string, unknown>>, broadcastAutomation: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+  const providers = isRecordValue(sceneCatalog['providers']) ? sceneCatalog['providers'] : {};
+  const enabledProviders = new Set(Object.entries(broadcastAutomation).filter(([, value]) => !isRecordValue(value) || value['enabled'] === true || value['automationReady'] === true).map(([provider]) => provider));
+  if (enabledProviders.size === 0) enabledProviders.add('obs');
+  const sceneSets = new Map<string, Set<string>>();
+  const providerHealth = new Map<string, { fresh: boolean; complete: boolean; updatedAt?: string; ageSeconds?: number; issue?: string }>();
+  const maximumAgeMs = 15 * 60_000;
+  for (const [provider, raw] of Object.entries(providers)) {
+    const record = isRecordValue(raw) ? raw : {};
+    sceneSets.set(provider, new Set((Array.isArray(record['scenes']) ? record['scenes'] : []).flatMap((scene) => typeof scene === 'string' ? [normalizeScene(scene)] : [])));
+    const updatedAt = typeof record['updatedAt'] === 'string' ? record['updatedAt'] : undefined;
+    const parsed = updatedAt === undefined ? Number.NaN : Date.parse(updatedAt);
+    const ageMs = Number.isFinite(parsed) ? Math.max(0, Date.now() - parsed) : Number.POSITIVE_INFINITY;
+    const connections = Array.isArray(record['connections']) ? record['connections'].filter(isRecordValue) : [];
+    const complete = record['complete'] === true && connections.length > 0 && connections.every((connection) => connection['complete'] === true && typeof connection['error'] !== 'string');
+    const fresh = complete && ageMs <= maximumAgeMs;
+    providerHealth.set(provider, { fresh, complete, ...(updatedAt === undefined ? {} : { updatedAt }), ...(Number.isFinite(ageMs) ? { ageSeconds: Math.round(ageMs / 1_000) } : {}), ...(complete && fresh ? {} : { issue: !complete ? 'Scene catalogue is incomplete or contains a connection error.' : 'Scene catalogue is older than 15 minutes; refresh it before going live.' }) });
+  }
+  const checks: Record<string, unknown>[] = [];
+  for (const addOn of addOns.filter((item) => item.enabled && item.health === 'installed')) {
+    const configured = Array.isArray(addOn.settings['automaticSceneNames']) ? addOn.settings['automaticSceneNames'].filter((scene): scene is string => typeof scene === 'string' && scene.trim().length > 0) : [];
+    for (const sceneName of configured) {
+      const matches = [...enabledProviders].filter((provider) => providerHealth.get(provider)?.fresh === true && sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true);
+      const staleMatches = [...enabledProviders].filter((provider) => sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true && providerHealth.get(provider)?.fresh !== true);
+      checks.push({ moduleId: addOn.moduleId, setting: 'automaticSceneNames', sceneName, providers: matches, staleProviders: staleMatches, ready: matches.length > 0, issue: matches.length > 0 ? undefined : staleMatches.length > 0 ? 'Exact scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact scene was not found in any enabled broadcast-app catalogue.' });
+    }
+    if (addOn.moduleId === 'thsv.raid-scout' && addOn.settings['autoStartSceneEnabled'] === true) {
+      const provider = typeof addOn.settings['autoStartProvider'] === 'string' ? addOn.settings['autoStartProvider'] : 'obs';
+      const sceneName = typeof addOn.settings['autoStartSceneName'] === 'string' ? addOn.settings['autoStartSceneName'] : '';
+      const exists = sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true;
+      const ready = enabledProviders.has(provider) && providerHealth.get(provider)?.fresh === true && exists;
+      checks.push({ moduleId: addOn.moduleId, setting: 'autoStartSceneName', provider, sceneName, ready, issue: ready ? undefined : !enabledProviders.has(provider) ? 'The selected ending-scene app is not enabled.' : exists ? 'Exact ending scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact ending scene was not found in the selected app catalogue.' });
+    }
+  }
+  return { ready: checks.every((item) => item['ready'] === true), maximumCatalogAgeMinutes: 15, enabledProviders: [...enabledProviders], providers: Object.fromEntries(providerHealth), checks };
+}
+
+export function inspectCriticalOverlayReadiness(addOns: readonly WizardAddOnSummary[], overlay: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+  const clientCounts = isRecordValue(overlay['addOnClients']) ? overlay['addOnClients'] : {};
+  const requiresOverlay = (addOn: WizardAddOnSummary): boolean => {
+    if (!addOn.enabled || addOn.health !== 'installed') return false;
+    if (addOn.moduleId === 'thsv.starting-soon-countdown') return addOn.settings['enabled'] !== false && addOn.settings['showOverlay'] !== false;
+    if (addOn.moduleId === 'thsv.ad-break-companion') return true;
+    if (addOn.moduleId === 'thsv.random-clip-player') return Array.isArray(addOn.settings['automaticSceneNames']) && addOn.settings['automaticSceneNames'].length > 0;
+    if (addOn.moduleId === 'thsv.raid-scout') return addOn.settings['showSearchProgress'] !== false || addOn.settings['showSuggestionCard'] !== false || addOn.settings['showConfirmedCard'] !== false;
+    return false;
+  };
+  const checks = addOns.filter(requiresOverlay).map((addOn) => {
+    const rawClients = clientCounts[addOn.moduleId];
+    const clients = typeof rawClients === 'number' ? rawClients : 0;
+    return { moduleId: addOn.moduleId, ready: overlay['enabled'] === true && clients > 0, clients, issue: overlay['enabled'] !== true ? 'Browser overlays are disabled in StreamBridge.' : clients < 1 ? 'Enabled critical overlay has no connected browser source.' : undefined };
+  });
+  return { ready: checks.every((check) => check.ready), requiredCount: checks.length, connectedCount: checks.filter((check) => check.ready).length, checks };
+}
+
+export function inspectTimedActionCanary(rehearsal: Readonly<Record<string, unknown>>, actions: readonly StreamerBotActionSummary[], inspectionAvailable: boolean): Readonly<Record<string, unknown>> {
+  const raw = isRecordValue(rehearsal['timedActionCanary']) ? rehearsal['timedActionCanary'] : { ready: false, definitions: [] };
+  const definitions = (Array.isArray(raw['definitions']) ? raw['definitions'] : []).filter(isRecordValue).map((definition) => {
+    const target = isRecordValue(definition['target']) ? definition['target'] : {};
+    if (target['provider'] !== 'run-existing-action') return { ...definition, targetReady: true };
+    const actionId = typeof target['actionId'] === 'string' ? target['actionId'] : '';
+    const installed = actions.find((action) => action.id === actionId);
+    const targetReady = target['creatorApproved'] === true && inspectionAvailable && installed?.enabled === true;
+    return { ...definition, targetReady, targetInstalled: installed !== undefined, targetEnabled: installed?.enabled === true, issue: target['creatorApproved'] !== true ? 'Timed action target is not creator-approved.' : !inspectionAvailable ? 'Streamer.bot action inspection is unavailable.' : installed === undefined ? 'Timed action target is not installed.' : !installed.enabled ? 'Timed action target is disabled.' : undefined };
+  });
+  return { ...raw, ready: raw['ready'] === true && definitions.every((definition) => definition['targetReady']), inspectionAvailable, definitions };
+}
+
+function endingFlowChecklist(addOns: readonly WizardAddOnSummary[], actionReadiness: Readonly<Record<string, unknown>>, sceneConfiguration: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+  const raidScout = addOns.find((item) => item.moduleId === 'thsv.raid-scout' && item.enabled);
+  if (raidScout === undefined) return { applicable: false, ready: true, steps: [] };
+  const actions = Array.isArray(actionReadiness['actions']) ? actionReadiness['actions'].filter(isRecordValue).filter((item) => item['moduleId'] === raidScout.moduleId) : [];
+  const sceneChecks = Array.isArray(sceneConfiguration['checks']) ? sceneConfiguration['checks'].filter(isRecordValue).filter((item) => item['moduleId'] === raidScout.moduleId && item['setting'] === 'autoStartSceneName') : [];
+  const settings = raidScout.settings;
+  const stopEnabled = settings['endBroadcastAfterRaid'] === true;
+  const steps = [
+    { id: 'ending-scene', ready: settings['autoStartSceneEnabled'] !== true || sceneChecks.every((item) => item['ready'] === true), detail: 'Ending scene is selected from the active app catalogue.' },
+    { id: 'raid-search', ready: actions.some((item) => item['ready'] === true), detail: 'Raid Scout controller is installed, enabled, approved, and triggerless.' },
+    { id: 'ending-ad', ready: settings['endBroadcastTiming'] !== 'after-ad' || actions.some((item) => item['name'] === 'THSV Addon - Raid Scout - Run Ending Ad' && item['ready'] === true), detail: 'Ending ad controller is ready when after-ad mode is selected.' },
+    { id: 'clip-preview', ready: settings['previewClipBeforeRaid'] !== true || actions.every((item) => item['ready'] === true), detail: 'Raid clip preview uses the approved controller path.' },
+    { id: 'raid-attempt', ready: actions.some((item) => item['ready'] === true), detail: 'Confirmed raid dispatch path is ready.' },
+    { id: 'outputs-stopped', ready: !stopEnabled || typeof settings['endBroadcastActionId'] === 'string' && raidScout.approvedActionIds.includes(settings['endBroadcastActionId']), detail: 'Automatic broadcast stop remains separately approved.' },
+    { id: 'offline-cleanup', ready: true, detail: 'Final offline cleanup is lifecycle-managed and included in the safe rehearsal.' },
+  ];
+  return { applicable: true, ready: steps.every((step) => step.ready), steps };
+}
+
+function normalizeScene(value: string): string { return value.trim().toLocaleLowerCase('en-US'); }
+function isRecordValue(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 
 export { WizardConfigurationError };
 

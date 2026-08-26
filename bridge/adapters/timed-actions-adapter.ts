@@ -8,6 +8,8 @@ import { writeJsonAtomic } from '../services/atomic-state.js';
 
 interface TimerState {
   lastScheduledAt?: string;
+  lastFiredAt?: string;
+  lastMissedRuns?: number;
   nextScheduledAt?: string;
   nextIntervalMinutes?: number;
   occurrence?: number;
@@ -133,7 +135,15 @@ export class TimedActionsAdapter extends ManagedAdapter {
     return this.controlStatus();
   }
 
-  public controlStatus(): Readonly<Record<string, unknown>> { return { ...this.stateData.session, livePlatforms: [...this.livePlatforms], armedTimers: this.timers.size, activityEntries: this.chatActivity.length - this.chatActivityHead }; }
+  public controlStatus(): Readonly<Record<string, unknown>> {
+    return {
+      ...this.stateData.session,
+      livePlatforms: [...this.livePlatforms],
+      armedTimers: this.timers.size,
+      activityEntries: this.chatActivity.length - this.chatActivityHead,
+      scheduleCanary: this.scheduleCanary(),
+    };
+  }
   public observe(event: NormalizedEvent): void {
     if ((event.eventType === 'stream.online' || event.eventType === 'stream.offline') && !event.metadata.simulated) {
       this.livePlatforms.delete(LEGACY_ACTIVE_SESSION_PLATFORM);
@@ -228,7 +238,7 @@ export class TimedActionsAdapter extends ManagedAdapter {
     }
     try {
       await this.emitDefinition(definition, scheduledAt, occurrence, missedRuns, false);
-      const timer = this.timerState(definition.id); timer.lastScheduledAt = scheduledAt; timer.occurrence = occurrence;
+      const timer = this.timerState(definition.id); timer.lastScheduledAt = scheduledAt; timer.lastFiredAt = new Date().toISOString(); timer.lastMissedRuns = missedRuns; timer.occurrence = occurrence;
       delete timer.nextScheduledAt; delete timer.nextIntervalMinutes;
       await this.persist(); await this.plan(definition);
     } catch (error) {
@@ -272,6 +282,64 @@ export class TimedActionsAdapter extends ManagedAdapter {
     const minimum = definition.minimumMinutes ?? definition.everyMinutes;
     const maximum = definition.maximumMinutes ?? minimum;
     return minimum + Math.floor(Math.min(1, Math.max(0, this.random())) * (maximum - minimum + 1));
+  }
+
+  private scheduleCanary(): Readonly<Record<string, unknown>> {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const definitions = this.timedActions.definitions.filter((definition) => definition.enabled).map((definition) => {
+      const timer = this.stateData.timers[definition.id] ?? {};
+      const firstDelay = definition.firstRunAfterMinutes ?? (definition.intervalMode === 'random' ? definition.minimumMinutes ?? definition.everyMinutes : definition.everyMinutes);
+      const projections: Record<string, unknown>[] = [];
+      if (this.stateData.session.active && !this.stateData.session.paused) {
+        if (definition.intervalMode === 'fixed') {
+          const intervalMs = definition.everyMinutes * 60_000;
+          let due = timer.nextScheduledAt === undefined
+            ? Date.parse(timer.lastScheduledAt ?? this.stateData.session.startedAt) + (timer.lastScheduledAt === undefined ? firstDelay : definition.everyMinutes) * 60_000
+            : Date.parse(timer.nextScheduledAt);
+          if (definition.missedRunPolicy === 'skip') while (due <= Date.now()) due += intervalMs;
+          for (let index = 0; index < 3; index += 1) {
+            const expected = due + index * intervalMs;
+            projections.push({ sequence: index + 1, expectedAt: new Date(expected).toISOString(), overdue: expected <= Date.now() });
+          }
+        } else {
+          const minimum = definition.minimumMinutes ?? definition.everyMinutes;
+          const maximum = definition.maximumMinutes ?? minimum;
+          const firstRun = definition.firstRunAfterMinutes;
+          let earliest = timer.nextScheduledAt === undefined ? Date.parse(this.stateData.session.startedAt) + (firstRun ?? minimum) * 60_000 : Date.parse(timer.nextScheduledAt);
+          let latest = timer.nextScheduledAt === undefined ? Date.parse(this.stateData.session.startedAt) + (firstRun ?? maximum) * 60_000 : earliest;
+          for (let index = 0; index < 3; index += 1) {
+            projections.push({ sequence: index + 1, earliestAt: new Date(earliest).toISOString(), latestAt: new Date(latest).toISOString(), exact: earliest === latest });
+            earliest += minimum * 60_000; latest += maximum * 60_000;
+          }
+        }
+      } else {
+        for (let index = 0; index < 3; index += 1) {
+          if (definition.intervalMode === 'fixed') projections.push({ sequence: index + 1, afterSessionStartMinutes: firstDelay + index * definition.everyMinutes });
+          else {
+            const minimum = definition.minimumMinutes ?? definition.everyMinutes;
+            const maximum = definition.maximumMinutes ?? minimum;
+            const firstMinimum = definition.firstRunAfterMinutes ?? minimum;
+            const firstMaximum = definition.firstRunAfterMinutes ?? maximum;
+            projections.push({ sequence: index + 1, earliestAfterSessionStartMinutes: firstMinimum + index * minimum, latestAfterSessionStartMinutes: firstMaximum + index * maximum });
+          }
+        }
+      }
+      return {
+        id: definition.id,
+        name: definition.name,
+        intervalMode: definition.intervalMode,
+        sessionState: !this.stateData.session.active ? 'waiting-for-live-session' : this.stateData.session.paused ? 'paused' : 'active',
+        missedRunPolicy: definition.missedRunPolicy,
+        lastScheduledAt: timer.lastScheduledAt,
+        lastFiredAt: timer.lastFiredAt,
+        lastMissedRuns: timer.lastMissedRuns ?? 0,
+        target: definition.target.provider === 'run-existing-action'
+          ? { provider: definition.target.provider, actionId: definition.target.actionId, actionName: definition.target.actionName, creatorApproved: definition.target.approvedByCreator }
+          : { provider: definition.target.provider },
+        projections,
+      };
+    });
+    return { ready: definitions.length === 0 || definitions.every((definition) => (definition['projections'] as unknown[]).length === 3), timeZone, clock: 'UTC instants; immune to daylight-saving clock changes', enabledDefinitions: definitions.length, definitions };
   }
 
   private gateReason(definition: TimedActionDefinition): string | undefined {

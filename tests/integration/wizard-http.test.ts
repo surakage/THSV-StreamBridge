@@ -25,6 +25,7 @@ describe('wizard HTTP surface', () => {
     const wizard = new WizardService(undefined);
     const applyRequests: unknown[] = [];
     const restartRequests: unknown[] = [];
+    const shutdownRequests: unknown[] = [];
     wizard.applyReleaseUpdate = (input) => {
       applyRequests.push(input);
       return Promise.resolve({ accepted: true, version: '9.9.9', installRoot: 'C:\\THSV StreamBridge', message: 'Update helper started.' });
@@ -33,7 +34,7 @@ describe('wizard HTTP surface', () => {
       restartRequests.push(input);
       return Promise.resolve({ accepted: true, message: 'Restart helper started.' });
     };
-    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard);
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, () => shutdownRequests.push(true), undefined, wizard);
     await bridge.start();
     await server.start();
     stops.push(async () => { await server.stop(); await bridge.stop(); });
@@ -55,6 +56,11 @@ describe('wizard HTTP surface', () => {
     expect(restartResponse.status).toBe(409);
     expect(await restartResponse.text()).toContain('will not restart while a platform is live');
     expect(restartRequests).toHaveLength(0);
+    const shutdownResponse = await fetch(`${baseUrl}/shutdown`, { method: 'POST', headers });
+    expect(shutdownResponse.status).toBe(409);
+    expect(await shutdownResponse.text()).toContain('will not shut down while a platform is live');
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(shutdownRequests).toHaveLength(0);
   });
 
   it('protects and accepts a creator-approved offline Bridge restart', async () => {
