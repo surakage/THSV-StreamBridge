@@ -8,7 +8,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'scripts/*.mjs', 'tools/dev.mjs', 'tools/run-startup-chaos.mjs', 'tools/accept-broadcast-vendors.mjs', 'tools/import-streamerbot-quotes.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'] },
+        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'scripts/*.mjs', 'tests/windows/*.mjs', 'tools/dev.mjs', 'tools/run-startup-chaos.mjs', 'tools/accept-broadcast-vendors.mjs', 'tools/import-streamerbot-quotes.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -19,7 +19,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'scripts/**/*.mjs', 'tools/dev.mjs', 'tools/run-startup-chaos.mjs', 'tools/accept-broadcast-vendors.mjs', 'tools/import-streamerbot-quotes.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'],
+    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'scripts/**/*.mjs', 'tests/windows/**/*.mjs', 'tools/dev.mjs', 'tools/run-startup-chaos.mjs', 'tools/accept-broadcast-vendors.mjs', 'tools/import-streamerbot-quotes.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       ...tseslint.configs.disableTypeChecked.languageOptions,

@@ -46,7 +46,7 @@
 
 Third-party platform and output providers must still be explicitly registered by trusted application composition code. The framework does not dynamically execute arbitrary packages named by untrusted configuration.
 
-Streamer.bot compatibility is verified one stable release at a time. The installed C# actions must be recompiled and the focused live QA matrix rerun after a host upgrade. Historical alpha and beta evidence remains useful provenance, but all current package manifests now use `1.0.5` stable as their installation floor.
+Streamer.bot compatibility is verified one stable release at a time. The installed C# actions must be recompiled and the focused live QA matrix rerun after a host upgrade. Historical alpha and beta evidence remains useful provenance, but all current package manifests use `1.0.7` stable as their installation floor. Automated trigger repair is intentionally narrower: it writes only when the selected executable reports the exactly validated `1.0.7` schema. A later host remains inspection-only until its actions schema and trigger defaults complete the compatibility gate.
 
 Speaker.bot executes speech decisions made by Streamer.bot; it does not decide whether a message may speak. The Milestone 6 package denies raw actor names, item names, tiers, and alert messages by default and requires a creator-authored template or explicit creator-side approval before text reaches TTS.
 

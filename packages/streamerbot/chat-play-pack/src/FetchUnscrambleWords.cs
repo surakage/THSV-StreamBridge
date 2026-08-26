@@ -79,7 +79,7 @@ public class CPHInline
     private JArray RequestArray(string url, int timeoutSeconds)
     {
         var request = (HttpWebRequest)WebRequest.Create(url); request.Method = "GET"; request.Accept = "application/json";
-        request.UserAgent = "THSV-StreamBridge-Chat-Play/4.0.7"; request.Timeout = timeoutSeconds * 1000; request.ReadWriteTimeout = timeoutSeconds * 1000;
+        request.UserAgent = "THSV-StreamBridge-Chat-Play/4.0.8"; request.Timeout = timeoutSeconds * 1000; request.ReadWriteTimeout = timeoutSeconds * 1000;
         using (var response = (HttpWebResponse)request.GetResponse())
         using (var stream = response.GetResponseStream())
         using (var reader = new StreamReader(stream, Encoding.UTF8, true, 1024, false))

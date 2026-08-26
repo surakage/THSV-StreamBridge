@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.0.8] - 2026-08-26
+
+- Added one versioned Streamer.bot 1.0.7 trigger registry shared by universal import generation, trigger assurance, repair, documentation-facing wizard output, and automated tests.
+- Added guided post-import verification and recovery: inspect the saved actions, preview exact changes, create a verified backup, repair while Streamer.bot is closed, restart safely, and run the suppressed integration rehearsal.
+- Replaced manual import confirmation with authoritative installed trigger evidence in pre-stream readiness.
+- Hardened trigger repair with version and schema guards, missing-action re-import guidance, type-aware duplicate prevention, transient Windows write retries, post-write validation, automatic rollback, and SHA-256 backup metadata.
+- Bounded trigger rollback storage to the newest 20 verified backups and pruned their matching integrity sidecars together.
+- Added a packaged Windows release gate covering the 29-trigger import-loss scenario, 10/10/9 restoration, action-body preservation, post-restart readiness, and verified rollback.
+- Added a reusable isolated upgrade rehearsal that fingerprints copied creator configuration, secrets, private integration state, and add-on state before and after installation without touching the active installation.
+- Made protected previous-release resolution fall back to GitHub's public release and attestation APIs when the local GitHub CLI login is unavailable, while retaining checksum and offline cryptographic provenance verification.
+- Regenerated and aligned all 42 first-party Streamer.bot packages and first-party add-ons for 4.0.8.
+
+## [4.0.7] - 2026-08-26
+
+- Added durable, privacy-safe stream-session evidence spanning Bridge restarts, including countdown, live, chat, timed-action, ad, clip, raid, ending, capability-denial, and dispatch-failure results.
+- Expanded mutation-free pre-stream checks across installed actions, creator grants, exact OBS/Meld/Streamlabs scenes, browser sources, timed actions, and the complete Raid Scout ending flow.
+- Added detected-scene selectors, offline-only apply-and-verify recovery, and safer handling for permanent action-grant denials.
+- Preserved wizard settings, executable selections, protected credentials, add-on state, action grants, triggers, and Streamer.bot action identities during upgrades.
+- Regenerated all 42 Streamer.bot packages and gated the release with 1,189 passing unit/integration tests and the complete 61-case browser suite.
+
 ## [4.0.6] - 2026-08-25
 
 - Added encrypted, exact-process-bound native WebSocket profiles for OBS, Meld, and Streamlabs, including safe discovery, scene selection, conflict detection, maintenance windows, reliability scoring, and acceptance history.

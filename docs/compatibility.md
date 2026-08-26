@@ -9,13 +9,13 @@ This matrix records supported versions separately from locally recorded acceptan
 | Windows | Windows 10 or later | Required for the supported installer and PowerShell lifecycle |
 | Node.js | 22.22.2 or later | Required for source development; public packages bundle the tested runtime |
 | Windows PowerShell | 5.1 or later | Required for release install, upgrade, verification, and uninstall |
-| Streamer.bot | Minimum and recommended `1.0.7` stable; installed host version must be verified locally | All regenerated THSV package manifests declare stable 1.0.7. It carries the Custom Channel Rewards crash fix and restores expected authenticated and anonymous update checks. Source and automated compatibility checks cover the EventSub chat migration; repeat the focused live matrix after upgrading the creator host before recording provider acceptance. |
+| Streamer.bot | Minimum and recommended `1.0.7` stable; installed host version must be verified locally | All regenerated THSV package manifests declare stable 1.0.7. Automated trigger repair is write-enabled only for the exactly validated 1.0.7 actions schema; later versions remain inspection-only until separately accepted. Source and automated compatibility checks cover the EventSub chat migration; repeat the focused live matrix after upgrading the creator host before recording provider acceptance. |
 | Speaker.bot | `0.1.7` | Live transport/dry-run verified; playback completion acknowledgement is unavailable |
 | Meld Studio | `0.10.3.1` | Live Browser Source verification for Chat, Alerts, and Companion-compatible routes |
 | OBS Studio | Exact accepted build was not recorded | Live standards-based Browser Source verification completed July 16, 2026 |
 | Streamlabs Desktop | Exact build not separately tested | Compatibility accepted through the same Browser Source contract after OBS verification |
 
-Do not infer a future version range from one verified build. Current packages use stable 1.0.7 as their common installation floor. After upgrading, compile every installed THSV C# action, repeat relay tests, verify Action History fields, and then update the live-verification record. Re-import the regenerated 3.5.0 packages when replacing an older baseline export.
+Do not infer a future version range from one verified build. Current packages use stable 1.0.7 as their common installation floor, while the rollback-protected trigger reconciler requires the exact tested 1.0.7 schema before writing. After upgrading Streamer.bot, compile every installed THSV C# action, repeat relay tests, verify Action History fields, validate the saved actions schema, and then update the live-verification record. Re-import the current versioned packages when replacing an older baseline export.
 
 See [Streamer.bot 1.0.7 stable adoption](streamerbot-1.0.7-stable.md) for the current hotfix impact and focused acceptance checklist. The [1.0.6](streamerbot-1.0.6-stable.md), [1.0.5 stable](streamerbot-1.0.5-stable.md), [beta.5](streamerbot-1.0.5-beta.5.md), and [beta.2](streamerbot-1.0.5-beta.2.md) records remain historical evidence rather than current install guidance.
 

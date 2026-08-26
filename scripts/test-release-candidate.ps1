@@ -27,6 +27,9 @@ try {
     $recoveryOutput = & (Join-Path $repositoryRoot 'tests\windows\recovery-bundle.tests.ps1') -CurrentArchive $archive.FullName
     if ($LASTEXITCODE -ne 0) { throw 'Encrypted recovery bundle export and restore testing failed.' }
     $recovery = $recoveryOutput | Select-Object -Last 1 | ConvertFrom-Json
+    $triggerRecoveryOutput = & (Join-Path $repositoryRoot 'tests\windows\streamerbot-trigger-recovery.tests.ps1') -CurrentArchive $archive.FullName
+    if ($LASTEXITCODE -ne 0) { throw 'Packaged Streamer.bot trigger recovery lifecycle failed.' }
+    $triggerRecovery = $triggerRecoveryOutput | Select-Object -Last 1 | ConvertFrom-Json
     $evidenceDirectory = Join-Path $repositoryRoot 'artifacts\release-lifecycle'
     [System.IO.Directory]::CreateDirectory($evidenceDirectory) | Out-Null
     $evidencePath = Join-Path $evidenceDirectory 'latest.json'
@@ -45,6 +48,11 @@ try {
         recoveryCreatorDataRestored = $recovery.creatorDataRestored
         recoveryAddOnStateRestored = $recovery.addOnStateRestored
         recoveryKeyRefreshed = $recovery.recoveryKeyRefreshed
+        triggerRecoveryDetectedMissing = $triggerRecovery.detectedMissingTriggers
+        triggerRecoveryRepaired = $triggerRecovery.repairedTriggers
+        triggerRecoveryActionBodiesPreserved = $triggerRecovery.actionBodiesPreserved
+        triggerRecoveryPostRestartReady = $triggerRecovery.postRepairRestartReady
+        triggerRecoveryRollbackVerified = $triggerRecovery.verifiedRollback
     }
     [System.IO.File]::WriteAllText($evidencePath, "$($evidence | ConvertTo-Json -Depth 4)`n", [System.Text.UTF8Encoding]::new($false))
 

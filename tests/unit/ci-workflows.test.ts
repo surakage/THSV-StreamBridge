@@ -21,6 +21,7 @@ describe('GitHub workflow reliability', () => {
     expect(preflight).toContain('retention-days: 14');
     expect(preflight).toContain('test-release-candidate.ps1');
     expect(await readFile('scripts/test-release-candidate.ps1', 'utf8')).toContain('recovery-bundle.tests.ps1');
+    expect(await readFile('scripts/test-release-candidate.ps1', 'utf8')).toContain('streamerbot-trigger-recovery.tests.ps1');
     expect(preflight).toContain('notify-after-repeat-failure:');
     expect(preflight).toContain('manage-automation-issue.mjs');
     expect(preflight).not.toContain('gh release create');

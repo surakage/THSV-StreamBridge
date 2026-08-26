@@ -4,7 +4,7 @@ Scene Actions runs creator-approved Streamer.bot actions when OBS Studio, Stream
 
 ## Setup
 
-1. Import `THSV-StreamBridge-Scene-Actions-4.0.7.sb` into Streamer.bot.
+1. Import `THSV-StreamBridge-Scene-Actions-4.0.8.sb` into Streamer.bot.
 2. Add the documented Scene Changed triggers to `THSV Scene Actions - Intake` (the import deliberately does not invent undocumented trigger IDs).
 3. In the StreamBridge wizard, refresh Streamer.bot actions.
 4. Approve only the target actions Scene Actions may run.
