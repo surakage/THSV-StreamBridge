@@ -164,8 +164,15 @@ describe('public release scripts', () => {
     expect(source).toContain('/wizard/api/unlock');
     expect(source).toContain('/wizard/api/overview');
     expect(source).toContain("'installed-wizard-smoke.json'");
+    expect(source).toContain("'last-upgrade-readiness.json'");
+    expect(source).toContain('/wizard/api/preflight');
+    expect(source).toContain('/wizard/api/streamerbot/import-catalogue');
+    expect(source).toContain('/wizard/api/streamerbot/triggers');
+    expect(source).toContain('/wizard/api/pre-stream-report');
+    expect(source).toContain('authenticatedPreflightLoaded');
     expect(source.indexOf('await runInstalledWizardSmoke')).toBeLessThan(source.indexOf('cleanup is best-effort'));
     expect(source.indexOf('await rollbackDirectories(moved)')).toBeLessThan(source.indexOf("const recovery = spawnSync(join(runtimeTarget, 'node.exe')"));
+    expect(source.indexOf('await stopInstalledBridge(installRoot).catch')).toBeLessThan(source.indexOf('await rollbackDirectories(moved)'));
     expect(source).toContain('cleanup is best-effort');
     expect(source).toContain('compareVersions');
     expect(source).toContain('Refusing to downgrade ${PRODUCT}');

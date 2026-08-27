@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ReleaseUpdateService } from '../../bridge/services/release-update-service.js';
+import { manualDispatchResolvesTagCommit, ReleaseUpdateService } from '../../bridge/services/release-update-service.js';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -159,5 +159,14 @@ describe('ReleaseUpdateService', () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  it('accepts manual release provenance only when it resolves the exact repository tag commit', () => {
+    const commit = 'a'.repeat(40);
+    const buildDefinition = { resolvedDependencies: [{ uri: 'git+https://github.com/surakage/THSV-StreamBridge@refs/heads/main', digest: { gitCommit: commit } }] };
+    expect(manualDispatchResolvesTagCommit(buildDefinition, 'surakage/THSV-StreamBridge', commit)).toBe(true);
+    expect(manualDispatchResolvesTagCommit(buildDefinition, 'surakage/THSV-StreamBridge', 'b'.repeat(40))).toBe(false);
+    expect(manualDispatchResolvesTagCommit(buildDefinition, 'attacker/THSV-StreamBridge', commit)).toBe(false);
+    expect(manualDispatchResolvesTagCommit({ resolvedDependencies: [] }, 'surakage/THSV-StreamBridge', commit)).toBe(false);
   });
 });

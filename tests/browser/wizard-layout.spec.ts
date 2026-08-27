@@ -177,8 +177,9 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
 test('pre-stream check requires healthy local evidence and an automatically verified trigger contract', async ({ page }) => {
   let inspectionCalls = 0;
   let triggersReady = false;
+  let speakerRunning = false;
   await page.route('**/wizard/api/preflight', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
-    ready: true,
+    ready: speakerRunning,
     readiness: {
       status: 'ready', ready: true,
       adapters: [{ name: 'twitch', state: 'connected' }, { name: 'youtube', state: 'disabled' }],
@@ -187,7 +188,9 @@ test('pre-stream check requires healthy local evidence and an automatically veri
     },
     launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} },
     launcherPreflight: { ready: true, checks: [] }, broadcastAutomation: {}, obsInventory: { configured: false, ready: true, sources: [], discovered: [], reconciliations: [] },
+    speakerBotReadiness: { required: true, ready: speakerRunning, configured: true, enabled: true, running: speakerRunning, modules: ['thsv.voice-relay'], detail: speakerRunning ? 'Speaker.bot is running for every enabled voice feature.' : 'An enabled voice feature requires Speaker.bot to be running.' },
   }) }));
+  await page.route('**/wizard/api/streamerbot-launcher/start-all', async (route) => { speakerRunning = true; await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ output: 'Required tools started.', warnings: [], status: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: { speakerbot: { configured: true, enabled: true, running: true } } } }) }); });
   await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
     readiness: {
       status: 'ready', ready: true,
@@ -216,13 +219,16 @@ test('pre-stream check requires healthy local evidence and an automatically veri
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Test & finish', exact: true })).toBeVisible();
-  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(14);
-  await expect(page.locator('#pre-stream-badge')).toHaveText('1 step left');
+  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(15);
+  await expect(page.locator('#pre-stream-badge')).toHaveText('2 steps left');
   await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
   await expect(page.locator('#pre-stream-grid')).toContainText('Add-on action grants');
   await expect(page.locator('#pre-stream-grid')).toContainText('Critical overlay connections');
   await expect(page.locator('#pre-stream-grid')).toContainText('Timed-action schedule canary');
   await expect(page.locator('#pre-stream-grid')).toContainText('Configured broadcast scenes');
+  await page.getByRole('button', { name: 'Start required tools' }).click();
+  await expect(page.locator('#pre-stream-grid')).toContainText('Speaker.bot is running for every enabled voice feature.');
+  await expect(page.locator('#pre-stream-badge')).toHaveText('1 step left');
 
   await expect(page.getByLabel(/current Streamer\.bot package and trigger contract are verified/u)).not.toBeChecked();
   await expect(page.getByLabel(/current Streamer\.bot package and trigger contract are verified/u)).toBeDisabled();
@@ -481,5 +487,5 @@ test('universal import recovery previews, repairs, restarts, and verifies the tr
   await expect(page.getByRole('button', { name: 'Back up, repair, restart & verify' })).toBeEnabled();
   await page.getByRole('button', { name: 'Back up, repair, restart & verify' }).click();
   await expect(page.locator('#universal-import-state')).toContainText('Recovered 29 items');
-  await expect(page.locator('#universal-import-recovery')).toContainText('Import and trigger contract are ready');
+  await expect(page.locator('#universal-import-recovery')).toContainText('Import, triggers, and add-on approvals are ready');
 });

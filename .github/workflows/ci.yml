@@ -59,6 +59,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: .\tests\windows\lifecycle.tests.ps1
+      - name: Windows real stale-socket acceptance
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: node .\tests\windows\streamerbot-stale-socket.tests.mjs
 
   browser:
     runs-on: ubuntu-latest
