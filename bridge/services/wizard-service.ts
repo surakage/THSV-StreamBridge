@@ -230,11 +230,12 @@ export class WizardService {
     const sceneConfiguration = inspectSceneConfiguration(installedAddOns, sceneCatalog, broadcastAutomation);
     const criticalOverlays = inspectCriticalOverlayReadiness(installedAddOns, this.overlayStatus?.() ?? {});
     const timedActionCanary = inspectTimedActionCanary(rehearsal, inspection.actions, inspection.available);
+    const speakerBotReadiness = inspectSpeakerBotReadiness(installedAddOns, optionalApps?.['speakerbot']);
     const endingFlow = endingFlowChecklist(installedAddOns, addOnActionReadiness, sceneConfiguration);
     return {
       generatedAt: new Date().toISOString(), mutationFree: true,
-      ready: launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true,
-      launcher, rehearsal, configurationBackups, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, endingFlow,
+      ready: launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true && speakerBotReadiness.ready === true,
+      launcher, rehearsal, configurationBackups, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, speakerBotReadiness, endingFlow,
     };
   }
 
@@ -1019,6 +1020,37 @@ export class WizardService {
     return this.addOns.setApprovedActions(moduleId, input);
   }
 
+  public async reconcileAddOnActionGrants(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
+    if (!isRecordValue(input) || input['approvedByCreator'] !== true) throw new WizardTransactionError(403, 'Recovering add-on action approvals requires explicit creator approval.');
+    const [installedAddOns, inspection] = await Promise.all([this.addOns.list(), this.inspect()]);
+    const readiness = await inspectAddOnActionReadiness(installedAddOns, inspection.actions, inspection.available);
+    const missing = (Array.isArray(readiness['actions']) ? readiness['actions'] : []).filter(isRecordValue).filter((action) =>
+      action['issue'] === 'Action is not approved for this add-on.' && action['installed'] === true && action['enabled'] === true && action['brokerDispatched'] === true && action['mustRemainTriggerless'] === true && action['triggerless'] === true,
+    );
+    const plans = [...new Set(missing.map((action) => action['moduleId']).filter((moduleId): moduleId is string => typeof moduleId === 'string'))].map((moduleId) => {
+      const addOn = installedAddOns.find((candidate) => candidate.moduleId === moduleId);
+      if (addOn === undefined) throw new WizardTransactionError(409, `The ${moduleId} add-on changed during recovery. Refresh and try again.`);
+      const addedActionIds = missing.filter((action) => action['moduleId'] === moduleId).map((action) => action['actionId']).filter((actionId): actionId is string => typeof actionId === 'string');
+      return { moduleId, before: [...addOn.approvedActionIds], actionIds: [...new Set([...addOn.approvedActionIds, ...addedActionIds])], addedActionIds };
+    });
+    const changed: typeof plans = [];
+    try {
+      for (const plan of plans) {
+        await this.addOns.setApprovedActions(plan.moduleId, { actionIds: plan.actionIds, approvedByCreator: true });
+        changed.push(plan);
+      }
+    } catch (error) {
+      const rollbackErrors: string[] = [];
+      for (const plan of changed.toReversed()) {
+        try { await this.addOns.setApprovedActions(plan.moduleId, { actionIds: plan.before, approvedByCreator: true }); }
+        catch (rollbackError) { rollbackErrors.push(`${plan.moduleId}: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`); }
+      }
+      throw new WizardTransactionError(502, `Add-on action approval recovery failed and ${rollbackErrors.length === 0 ? 'all changes were rolled back' : `rollback needs attention (${rollbackErrors.join('; ')})`}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return { recovered: true, changedModules: plans.length, changedActions: plans.reduce((total, plan) => total + plan.addedActionIds.length, 0), restartRequired: plans.length > 0, modules: plans.map(({ moduleId, addedActionIds }) => ({ moduleId, addedActionIds })) };
+  }
+
   public async removeAddOn(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
     return this.addOns.remove(moduleId, input);
@@ -1093,6 +1125,21 @@ export async function inspectAddOnActionReadiness(addOns: readonly WizardAddOnSu
     }
   }
   return { checkedAt: new Date().toISOString(), inspectionAvailable, ready: results.length === 0 || inspectionAvailable && results.every((item) => item['ready'] === true), requiredCount: results.length, readyCount: results.filter((item) => item['ready'] === true).length, actions: results };
+}
+
+export function inspectSpeakerBotReadiness(addOns: readonly WizardAddOnSummary[], application?: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+  const modules = addOns.filter((addOn) => addOn.enabled && addOn.health === 'installed' && (
+    addOn.moduleId === 'thsv.voice-relay' || addOn.moduleId === 'thsv.village-hydration-station' && addOn.settings['speakerEnabled'] === true
+  )).map((addOn) => addOn.moduleId);
+  const required = modules.length > 0;
+  const configured = application?.['configured'] === true;
+  const enabled = application?.['enabled'] === true;
+  const running = application?.['running'] === true;
+  const ready = !required || configured && enabled && running;
+  return {
+    required, ready, configured, enabled, running, modules,
+    detail: !required ? 'No enabled feature currently requires Speaker.bot.' : !configured ? 'An enabled voice feature requires a selected Speaker.bot executable.' : !enabled ? 'An enabled voice feature requires Speaker.bot automatic startup.' : !running ? 'An enabled voice feature requires Speaker.bot to be running.' : 'Speaker.bot is running for every enabled voice feature.',
+  };
 }
 
 export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[], sceneCatalog: Readonly<Record<string, unknown>>, broadcastAutomation: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {

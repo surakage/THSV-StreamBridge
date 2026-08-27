@@ -29,6 +29,7 @@
     "test:browser": "npm run build && playwright test",
     "test:broadcast-vendors": "node tools/accept-broadcast-vendors.mjs",
     "test:startup-chaos": "node tools/run-startup-chaos.mjs",
+    "test:local-install-rehearsal": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-local-installation-rehearsal.ps1",
     "test:integration": "vitest run tests/integration",
     "test:unit": "vitest run tests/unit",
     "typecheck": "tsc --noEmit"

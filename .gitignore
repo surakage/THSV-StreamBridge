@@ -44,6 +44,7 @@ Thumbs.db
 Desktop.ini
 
 # Packages and release artifacts
+/artifacts/
 *.zip
 *.zip.sha256
 *.thsv-addon

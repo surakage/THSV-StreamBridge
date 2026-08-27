@@ -318,6 +318,7 @@ export class ReleaseUpdateService {
 export async function verifyGitHubArtifactProvenance(artifact: Uint8Array, options: GitHubProvenanceOptions): Promise<ProvenanceVerification> {
   const request = options.request ?? fetch;
   await mkdir(join(options.cacheRoot, '.sigstore-tuf'), { recursive: true });
+  const tagCommit = await resolveGitHubTagCommit(request, options.repository, options.version, options.userAgentVersion);
   const response = await request(`https://api.github.com/repos/${options.repository}/attestations/sha256:${options.sha256}?predicate_type=provenance&per_page=20`, {
     headers: { accept: 'application/vnd.github+json', 'user-agent': `THSV-StreamBridge/${options.userAgentVersion}`, 'x-github-api-version': '2026-03-10' },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -326,7 +327,6 @@ export async function verifyGitHubArtifactProvenance(artifact: Uint8Array, optio
   const listing = await response.json() as unknown;
   const entries = attestationEntries(listing);
   if (entries.length === 0) throw new Error('GitHub did not publish build provenance for this archive.');
-  const workflow = `https://github.com/${options.repository}/.github/workflows/release.yml@refs/tags/v${options.version}`;
   let lastError: unknown;
   for (const entry of entries) {
     try {
@@ -340,13 +340,14 @@ export async function verifyGitHubArtifactProvenance(artifact: Uint8Array, optio
         ? new Uint8Array(uncompress(encoded, MAXIMUM_ATTESTATION_BYTES))
         : encoded;
       const bundle = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(decoded)) as Bundle;
+      const workflowRef = verifyStatement(bundle, options.archiveName, options.sha256, options.repository, options.version, tagCommit);
+      const workflow = `https://github.com/${options.repository}/.github/workflows/release.yml@${workflowRef}`;
       await verify(bundle, {
         certificateIssuer: 'https://token.actions.githubusercontent.com',
         certificateIdentityURI: `^${escapeRegExp(workflow)}$`,
         timeout: REQUEST_TIMEOUT_MS,
         tufCachePath: join(options.cacheRoot, '.sigstore-tuf'),
       });
-      verifyStatement(bundle, options.archiveName, options.sha256, options.repository, options.version);
       return { repository: options.repository, workflow };
     } catch (error) {
       lastError = error;
@@ -416,7 +417,7 @@ function attestationEntries(value: unknown): readonly string[] {
   });
 }
 
-function verifyStatement(bundle: Bundle, archiveName: string, sha256: string, repository: string, version: string): void {
+function verifyStatement(bundle: Bundle, archiveName: string, sha256: string, repository: string, version: string, tagCommit: string): string {
   const envelope = bundle.dsseEnvelope;
   if (envelope === undefined) throw new Error('The GitHub provenance bundle does not contain a DSSE statement.');
   const statement = JSON.parse(Buffer.from(envelope.payload, 'base64').toString('utf8')) as unknown;
@@ -436,10 +437,46 @@ function verifyStatement(bundle: Bundle, archiveName: string, sha256: string, re
   const workflow = typeof externalParameters === 'object' && externalParameters !== null && !Array.isArray(externalParameters) ? (externalParameters as Record<string, unknown>)['workflow'] : undefined;
   if (typeof workflow !== 'object' || workflow === null || Array.isArray(workflow)) throw new Error('The GitHub provenance statement is missing its workflow identity.');
   const workflowRecord = workflow as Record<string, unknown>;
-  if (workflowRecord['repository'] !== `https://github.com/${repository}` || workflowRecord['path'] !== '.github/workflows/release.yml' || workflowRecord['ref'] !== `refs/tags/v${version}`) {
-    throw new Error('The GitHub provenance statement was not produced by the expected tagged release workflow.');
+  const workflowRef = workflowRecord['ref'];
+  if (workflowRecord['repository'] !== `https://github.com/${repository}` || workflowRecord['path'] !== '.github/workflows/release.yml' || (workflowRef !== `refs/tags/v${version}` && workflowRef !== 'refs/heads/main')) throw new Error('The GitHub provenance statement was not produced by the expected release workflow.');
+  if (workflowRef === 'refs/heads/main') {
+    if (!manualDispatchResolvesTagCommit(buildDefinition, repository, tagCommit)) throw new Error('The manually dispatched release provenance does not resolve to the exact tagged commit.');
   }
+  return workflowRef;
 }
+
+export function manualDispatchResolvesTagCommit(buildDefinition: unknown, repository: string, tagCommit: string): boolean {
+  if (!isRecord(buildDefinition) || !/^[a-f0-9]{40}$/u.test(tagCommit)) return false;
+  const resolvedDependencies = buildDefinition['resolvedDependencies'];
+  const repositoryUriPrefix = `git+https://github.com/${repository}@`;
+  return Array.isArray(resolvedDependencies) && resolvedDependencies.some((dependency) => {
+    if (!isRecord(dependency) || typeof dependency['uri'] !== 'string' || !dependency['uri'].startsWith(repositoryUriPrefix)) return false;
+    const digest = dependency['digest'];
+    return isRecord(digest) && digest['gitCommit'] === tagCommit;
+  });
+}
+
+async function resolveGitHubTagCommit(request: typeof fetch, repository: string, version: string, userAgentVersion: string): Promise<string> {
+  const headers = { accept: 'application/vnd.github+json', 'user-agent': `THSV-StreamBridge/${userAgentVersion}`, 'x-github-api-version': '2026-03-10' };
+  const readObject = async (url: string): Promise<Readonly<Record<string, unknown>>> => {
+    const response = await request(url, { headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    if (!response.ok) throw new Error(`GitHub tag provenance lookup returned HTTP ${String(response.status)}.`);
+    const value = await response.json() as unknown;
+    if (!isRecord(value)) throw new Error('GitHub returned an invalid tag provenance response.');
+    return value;
+  };
+  let value = await readObject(`https://api.github.com/repos/${repository}/git/ref/tags/v${version}`);
+  let object = value['object'];
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (!isRecord(object) || typeof object['sha'] !== 'string' || !/^[a-f0-9]{40}$/u.test(object['sha']) || (object['type'] !== 'commit' && object['type'] !== 'tag')) throw new Error('GitHub returned an invalid release tag object.');
+    if (object['type'] === 'commit') return object['sha'];
+    value = await readObject(`https://api.github.com/repos/${repository}/git/tags/${object['sha']}`);
+    object = value['object'];
+  }
+  throw new Error('The release tag has too many annotation layers.');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');

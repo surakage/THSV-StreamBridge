@@ -10,6 +10,8 @@ const sourceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argumentsMap = parseArguments(process.argv.slice(2));
 const installRoot = safeInstallRoot(argumentsMap.get('install-root') ?? join(process.env.LOCALAPPDATA ?? process.env.USERPROFILE ?? '', PRODUCT));
 const startAfterInstall = !argumentsMap.has('no-start');
+const openWizardAfterInstall = !argumentsMap.has('no-open-wizard');
+const launchTrayAfterInstall = !argumentsMap.has('no-tray');
 const allowDowngrade = argumentsMap.has('allow-downgrade');
 const manifestRaw = await readFile(join(sourceRoot, 'release-manifest.json'), 'utf8');
 const manifest = JSON.parse(manifestRaw);
@@ -27,6 +29,7 @@ if (previousRecord !== undefined) {
   if (compareVersions(manifest.version, previousRecord.activeVersion) < 0 && !allowDowngrade) throw new Error(`Refusing to downgrade ${PRODUCT} from ${previousRecord.activeVersion} to ${manifest.version}. Pass --allow-downgrade only after backing up creator data.`);
 }
 
+const preUpgradeReadiness = previousRecord === undefined ? { available: false, reason: 'clean-install' } : await captureInstalledReadiness(installRoot);
 await stopInstalledBridge(installRoot);
 await mkdir(installRoot, { recursive: true });
 await migrateLegacyAddOns(installRoot, previousRecord?.activeVersion);
@@ -87,11 +90,12 @@ try {
   await writeJsonAtomic(recordPath, record);
 
   if (startAfterInstall) {
-    const result = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait', '--open-wizard', '--guided'], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
+    const result = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait', ...(openWizardAfterInstall ? ['--open-wizard', '--guided'] : [])], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
     if (result.status !== 0) {
       throw new Error(`The new version failed its health check and was rolled back. ${result.error?.message || result.stderr || result.stdout}`.trim());
     }
-    await runInstalledWizardSmoke(installRoot, manifest.version);
+    const postUpgradeReadiness = await runInstalledWizardSmoke(installRoot, manifest.version);
+    await writeJsonAtomic(join(installRoot, 'data', 'state', 'last-upgrade-readiness.json'), { schemaVersion: 1, capturedAt: new Date().toISOString(), upgradedFrom: previousRecord?.activeVersion, upgradedTo: manifest.version, before: preUpgradeReadiness, after: postUpgradeReadiness, regressionReviewRequired: preUpgradeReadiness.available === true && preUpgradeReadiness.ready === true && postUpgradeReadiness.ready !== true });
   }
 
   removeLegacyConvenienceShortcuts(installRoot);
@@ -107,7 +111,7 @@ try {
   await pruneOldVersions(join(installRoot, 'app'), new Set([manifest.version])).catch((error) => {
     process.stderr.write(`Warning: an older application version could not be pruned (${error instanceof Error ? error.message : String(error)}).\n`);
   });
-  if (startAfterInstall) launchTrayShell(installRoot);
+  if (startAfterInstall && launchTrayAfterInstall) launchTrayShell(installRoot);
   process.stdout.write(`${PRODUCT} ${manifest.version} installed at ${installRoot}\n`);
   process.stdout.write(`Installed folder: ${installRoot}\n`);
   process.stdout.write(`Wizard recovery key saved to: ${recoveryKeyPath}\n`);
@@ -117,6 +121,7 @@ try {
   process.stdout.write('Next: open Setup Wizard -> Streamer.bot -> One Streamer.bot import. Choose your features, download one .sb file, import it once, then follow the generated trigger checklist.\n');
   if (!startAfterInstall) process.stdout.write('Installation validation completed without starting the bridge.\n');
 } catch (error) {
+  if (startAfterInstall) await stopInstalledBridge(installRoot).catch((stopError) => process.stderr.write(`Warning: the failed replacement could not stop before rollback (${stopError instanceof Error ? stopError.message : String(stopError)}).\n`));
   await rollbackDirectories(moved);
   if (previousRecord?.activeVersion !== undefined) {
     await writeJsonAtomic(recordPath, { ...previousRecord, rolledBackAt: new Date().toISOString(), failedVersion: manifest.version });
@@ -163,7 +168,42 @@ async function runInstalledWizardSmoke(root, expectedVersion) {
   const overview = await overviewResponse.json();
   const reportedVersion = overview?.provenance?.version ?? overview?.version;
   if (reportedVersion !== expectedVersion) throw new Error(`Installed-Wizard smoke expected ${expectedVersion} but the running Wizard reported ${String(reportedVersion ?? 'no version')}.`);
-  await writeJsonAtomic(join(root, 'data', 'state', 'installed-wizard-smoke.json'), { schemaVersion: 1, checkedAt: new Date().toISOString(), version: expectedVersion, ready: true, oneTimeTicketRedeemed: true, authenticatedOverviewLoaded: true });
+  const preflight = await authenticatedJson(`${base}/wizard/api/preflight`, temporaryToken, 'preflight', 15_000);
+  const addOns = await authenticatedJson(`${base}/wizard/api/addons`, temporaryToken, 'add-on inventory');
+  const importCatalogue = await authenticatedJson(`${base}/wizard/api/streamerbot/import-catalogue`, temporaryToken, 'Streamer.bot import catalogue');
+  const triggerStatus = await authenticatedJson(`${base}/wizard/api/streamerbot/triggers`, temporaryToken, 'trigger readiness');
+  const preStreamReport = await authenticatedJson(`${base}/wizard/api/pre-stream-report`, temporaryToken, 'sanitized pre-stream report');
+  if (!Array.isArray(addOns?.addOns) || !Array.isArray(importCatalogue?.packages) || preStreamReport?.schemaVersion !== 1) throw new Error('Installed-Wizard smoke received an invalid settings, import, or readiness response.');
+  const smoke = { schemaVersion: 2, checkedAt: new Date().toISOString(), version: expectedVersion, ready: true, oneTimeTicketRedeemed: true, authenticatedOverviewLoaded: true, authenticatedPreflightLoaded: true, settingsInventoryLoaded: true, addOnCount: addOns.addOns.length, importPackageCount: importCatalogue.packages.length, triggerContractLoaded: typeof triggerStatus === 'object' && triggerStatus !== null, triggerReady: triggerStatus?.ready === true, actionGrantReady: preflight?.addOnActionReadiness?.ready === true, preStreamReportGenerated: true };
+  await writeJsonAtomic(join(root, 'data', 'state', 'installed-wizard-smoke.json'), smoke);
+  return { available: true, ready: preflight?.ready === true, blockerCount: Array.isArray(preflight?.readiness?.blockers) ? preflight.readiness.blockers.length : 0, warningCount: Array.isArray(preflight?.readiness?.warnings) ? preflight.readiness.warnings.length : 0, triggerReady: smoke.triggerReady, actionGrantReady: smoke.actionGrantReady, report: preStreamReport };
+}
+
+async function authenticatedJson(url, token, label, timeoutMs = 5_000) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const response = await fetch(url, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(timeoutMs) });
+    if (response.ok) return response.json();
+    if (response.status !== 429 || attempt === 3) throw new Error(`Installed-Wizard smoke could not load ${label} (${String(response.status)}).`);
+    await delay(250 * attempt);
+  }
+  throw new Error(`Installed-Wizard smoke could not load ${label}.`);
+}
+
+async function captureInstalledReadiness(root) {
+  try {
+    const config = JSON.parse(await readFile(join(root, 'data', 'configuration', 'bridge.local.json'), 'utf8'));
+    const port = Number(config?.service?.port);
+    const configuredTokenPath = String(config?.security?.controlTokenFile ?? '');
+    if (!Number.isInteger(port) || configuredTokenPath === '') return { available: false, reason: 'configuration-unavailable' };
+    const tokenPath = isAbsolute(configuredTokenPath) ? configuredTokenPath : join(root, configuredTokenPath);
+    const token = (await readFile(tokenPath, 'utf8')).trim();
+    const base = `http://127.0.0.1:${String(port)}`;
+    const readyResponse = await fetch(`${base}/ready`, { signal: AbortSignal.timeout(2_000) });
+    if (!readyResponse.ok) return { available: false, reason: `ready-http-${String(readyResponse.status)}` };
+    const readiness = await readyResponse.json();
+    const report = await authenticatedJson(`${base}/wizard/api/pre-stream-report`, token, 'pre-upgrade readiness report');
+    return { available: true, ready: readiness?.ready === true, blockerCount: Array.isArray(readiness?.blockers) ? readiness.blockers.length : 0, warningCount: Array.isArray(readiness?.warnings) ? readiness.warnings.length : 0, report };
+  } catch (error) { return { available: false, reason: error instanceof Error ? error.message.slice(0, 300) : 'readiness-unavailable' }; }
 }
 
 async function prepareCreatorData(root, destination, version) {

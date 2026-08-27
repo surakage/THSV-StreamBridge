@@ -11,6 +11,8 @@ const START_TIMEOUT_MS = 45_000;
 const START_RETRY_DELAY_MS = 1_500;
 const START_ATTEMPTS = 2;
 const EXISTING_HEALTH_STABILITY_MS = 4_000;
+const STALE_LISTENER_NATURAL_RELEASE_MS = 2_000;
+const BRIDGE_RECOVERY_TIMEOUT_MS = 25_000;
 const STREAMERBOT_LOCK_STALE_MS = 130_000;
 const STREAMERBOT_LOCK_HEARTBEAT_MS = 5_000;
 const MAXIMUM_LAUNCHER_CONFIGURATION_BYTES = 256 * 1024;
@@ -32,6 +34,18 @@ export function samePath(left, right) {
   return resolve(left).toLocaleLowerCase('en-US') === resolve(right).toLocaleLowerCase('en-US');
 }
 
+export async function recoverStaleListener({ port, listenerPid, installRoot, output, waitForNaturalRelease = waitForPortRelease, listenerForPort = portListener, stopBridge = stopInstalledBridgeForStaleListener, waitForFinalRelease = waitForPortRelease }) {
+  output.write(`Waiting briefly for stale port ${String(port)} ownership from PID ${String(listenerPid)} to clear...\n`);
+  try { await waitForNaturalRelease(port, STALE_LISTENER_NATURAL_RELEASE_MS); }
+  catch { /* A verified local Bridge may retain the exited listener's inherited Windows socket. */ }
+  const current = listenerForPort(port);
+  if (current === undefined) return false;
+  const bridgeRestartRequired = stopBridge(installRoot, port, current.pid, output);
+  if (!bridgeRestartRequired) output.write(`The stale listener is not retained by this installed StreamBridge. Waiting for Windows to release it...\n`);
+  await waitForFinalRelease(port, RELEASE_TIMEOUT_MS);
+  return bridgeRestartRequired;
+}
+
 export async function startStreamerBotSafely({ executable, websocketPort, installRoot, checkOnly = false, save = false, output = process.stdout } = {}) {
   const startupStartedAt = Date.now();
   const startupRunId = validRunId(process.env['THSV_STARTUP_RUN_ID']) ?? randomUUID();
@@ -47,6 +61,7 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
   if (save && resolvedInstallRoot !== undefined) saveLauncherConfiguration(resolvedInstallRoot, exe, port);
 
   const releaseLock = await acquireLock(port, output);
+  let bridgeRestartRequired = false;
   try {
     assertStreamerBotCircuitClosed(resolvedInstallRoot, port);
     writeStreamerBotProgress(resolvedInstallRoot, startupStartedAt, startupRunId, checkOnly ? 'checking' : 'checking-existing', checkOnly ? 'Checking the existing Streamer.bot listener.' : 'Checking Streamer.bot processes and WebSocket ownership.');
@@ -86,10 +101,10 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
       if (listener === undefined) {
         // The matching listener closed during its stability check; continue into normal recovery.
       } else {
-      output.write(`Waiting for stale port ${String(port)} ownership from PID ${String(listener.pid)} to clear...\n`);
-      await waitForPortRelease(port, RELEASE_TIMEOUT_MS);
-      listener = portListener(port);
-      if (listener !== undefined) throw portConflict(port, listener, processDetails(listener.pid));
+        bridgeRestartRequired = await recoverStaleListener({ port, listenerPid: listener.pid, installRoot: resolvedInstallRoot, output });
+        if (bridgeRestartRequired) repaired = true;
+        listener = portListener(port);
+        if (listener !== undefined) throw portConflict(port, listener, processDetails(listener.pid));
       }
     }
 
@@ -120,6 +135,10 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
           return true;
         }, START_TIMEOUT_MS, `Streamer.bot did not open 127.0.0.1:${String(port)} within 45 seconds.`);
         output.write(`Streamer.bot is ready on 127.0.0.1:${String(port)} (PID ${String(child.pid)}).\n`);
+        if (bridgeRestartRequired && resolvedInstallRoot !== undefined) {
+          restartInstalledBridge(resolvedInstallRoot, output);
+          bridgeRestartRequired = false;
+        }
         clearStreamerBotCircuit(resolvedInstallRoot, port);
         writeStreamerBotResult(resolvedInstallRoot, startupStartedAt, startupRunId, { outcome: repaired ? 'repaired' : 'ready', category: 'none', phase: 'complete', attempt, message: `Streamer.bot is ready on 127.0.0.1:${String(port)}.`, pid: child.pid, port });
         return { pid: child.pid, repaired };
@@ -133,6 +152,10 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
     }
     throw new Error('Streamer.bot did not reach ready state.');
   } catch (error) {
+    if (bridgeRestartRequired && resolvedInstallRoot !== undefined) {
+      try { restartInstalledBridge(resolvedInstallRoot, output); }
+      catch (restartError) { output.write(`[WARNING] StreamBridge could not be restored after stale-listener recovery: ${restartError instanceof Error ? restartError.message : String(restartError)}\n`); }
+    }
     const message = error instanceof Error ? error.message : String(error);
     const category = /crash-loop protection/iu.test(message) ? 'crash-loop-open' : isStreamerBotCrashFailure(error) ? 'streamerbot-crash' : /port/iu.test(message) ? 'port-conflict' : 'launcher-error';
     if (category === 'streamerbot-crash') recordStreamerBotCircuitFailure(resolvedInstallRoot, port, message);
@@ -245,6 +268,51 @@ function requestClose(pid) {
 
 function isAlive(pid) {
   try { process.kill(pid, 0); return true; } catch { return false; }
+}
+
+function stopInstalledBridgeForStaleListener(installRoot, port, listenerPid, output) {
+  if (installRoot === undefined || !installedBridgeServiceIsRunning(installRoot)) return false;
+  const stopScript = join(installRoot, 'launcher', 'stop.mjs');
+  if (!existsSync(stopScript)) return false;
+  output.write(`Port ${String(port)} still references exited PID ${String(listenerPid)} while the installed StreamBridge is running. Stopping StreamBridge gracefully once to release the inherited socket...\n`);
+  try {
+    const result = execFileSync(process.execPath, [stopScript], { cwd: installRoot, encoding: 'utf8', windowsHide: true, timeout: BRIDGE_RECOVERY_TIMEOUT_MS });
+    if (result.trim().length > 0) output.write(result);
+  } catch (error) {
+    const details = `${error?.stdout ?? ''}${error?.stderr ?? ''}`.trim();
+    throw new Error(details || 'StreamBridge could not be stopped gracefully for stale Streamer.bot listener recovery.', { cause: error });
+  }
+  return true;
+}
+
+function restartInstalledBridge(installRoot, output) {
+  const startScript = join(installRoot, 'launcher', 'start.mjs');
+  if (!existsSync(startScript)) throw new Error('The installed StreamBridge start launcher is missing.');
+  output.write('Restarting StreamBridge after stale-listener recovery...\n');
+  try {
+    const result = execFileSync(process.execPath, [startScript, '--wait'], { cwd: installRoot, encoding: 'utf8', windowsHide: true, timeout: 45_000 });
+    if (result.trim().length > 0) output.write(result);
+  } catch (error) {
+    const details = `${error?.stdout ?? ''}${error?.stderr ?? ''}`.trim();
+    throw new Error(details || 'StreamBridge did not restart after stale Streamer.bot listener recovery.', { cause: error });
+  }
+}
+
+function installedBridgeServiceIsRunning(installRoot) {
+  let pid;
+  try { pid = Number(readFileSync(join(installRoot, 'data', 'runtime', 'service.pid'), 'utf8').trim()); }
+  catch { return false; }
+  if (!Number.isInteger(pid) || pid < 1 || !isAlive(pid)) return false;
+  try {
+    const command = `$p=Get-CimInstance Win32_Process -Filter 'ProcessId = ${String(pid)}' -ErrorAction Stop; [pscustomobject]@{path=$p.ExecutablePath;commandLine=$p.CommandLine}|ConvertTo-Json -Compress`;
+    const raw = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 5_000 }).trim();
+    const value = JSON.parse(raw);
+    const executablePath = typeof value.path === 'string' ? value.path : '';
+    const commandLine = typeof value.commandLine === 'string' ? value.commandLine : '';
+    return samePath(executablePath, join(installRoot, 'runtime', 'node.exe'))
+      && commandLine.toLocaleLowerCase('en-US').includes(resolve(installRoot, 'app').toLocaleLowerCase('en-US'))
+      && /dist[\\/]apps[\\/]bridge-service\.js/iu.test(commandLine);
+  } catch { return false; }
 }
 
 async function waitForPortRelease(port, timeoutMs) {

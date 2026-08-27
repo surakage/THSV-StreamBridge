@@ -21,6 +21,9 @@ try {
     $previous = & (Join-Path $PSScriptRoot 'resolve-previous-release.ps1') -CurrentTag $CurrentTag -PreviousTag $PreviousTag -AllowExistingCurrentRelease:$AllowPublishedCurrentVersion
     $archive = Get-ChildItem (Join-Path $repositoryRoot 'packages\THSV-StreamBridge-*.zip') | Where-Object { $_.Name -notlike 'THSV-StreamBridge-AddOn-*' } | Select-Object -First 1
     if ($null -eq $archive) { throw 'Release archive was not produced.' }
+    $installationRehearsalOutput = & (Join-Path $repositoryRoot 'scripts\test-local-installation-rehearsal.ps1') -Archive $archive.FullName
+    if ($LASTEXITCODE -ne 0) { throw 'Isolated installed-Wizard activation rehearsal failed.' }
+    $installationRehearsal = $installationRehearsalOutput | Select-Object -Last 1 | ConvertFrom-Json
     $lifecycleOutput = & (Join-Path $repositoryRoot 'tests\windows\release-archive.tests.ps1') -CurrentArchive $archive.FullName -PreviousArchive $previous.archive
     if ($LASTEXITCODE -ne 0) { throw 'Release install, repair, or upgrade smoke testing failed.' }
     $lifecycle = $lifecycleOutput | Select-Object -Last 1 | ConvertFrom-Json
@@ -43,6 +46,10 @@ try {
         upgradedFrom = $lifecycle.upgradedFrom
         upgradedTo = $lifecycle.upgradedTo
         creatorDataPreserved = $lifecycle.creatorDataPreserved
+        installedWizardSmoke = $installationRehearsal.passed
+        installedWizardSettingsInventory = $installationRehearsal.addOnCount
+        installedWizardImportPackages = $installationRehearsal.importPackageCount
+        upgradeReadinessCaptured = $installationRehearsal.readinessCaptured
         encryptedRecoveryBundleVerified = $recovery.encrypted -eq $true -and $recovery.verifiedBeforeRestore -eq $true
         recoveryFreshProfileRestored = $recovery.freshProfileRestore
         recoveryCreatorDataRestored = $recovery.creatorDataRestored

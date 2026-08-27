@@ -8,6 +8,9 @@ describe('Windows release signing', () => {
     const workflow = await readFile('.github/workflows/release.yml', 'utf8');
     expect(signing).toContain('Get-AuthenticodeSignature');
     expect(signing).toContain('Set-AuthenticodeSignature');
+    expect(signing).toContain('Import-Module Microsoft.PowerShell.Security -ErrorAction Stop');
+    expect(signing).toContain("Status = 'Unavailable'");
+    expect(signing).toContain('$RequireValidRuntime -or -not [string]::IsNullOrWhiteSpace($CertificatePath)');
     expect(signing).toContain('EphemeralKeySet');
     expect(signing).toContain('Code Signing');
     expect(packaging.indexOf('sign-windows-release.ps1')).toBeLessThan(packaging.indexOf('$releaseFiles = @('));

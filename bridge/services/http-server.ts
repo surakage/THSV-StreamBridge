@@ -903,6 +903,11 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.setAddOnApprovedActions(decodeURIComponent(addOnActionGrantsMatch[1]), JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/addons/action-grants/reconcile' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.reconcileAddOnActionGrants(JSON.parse(body.text) as unknown));
+      }
       const addOnOverlayPreviewMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/overlay-preview$/u.exec(request.url ?? '') : null;
       if (addOnOverlayPreviewMatch?.[1] !== undefined && this.wizard !== undefined && this.overlayHub !== undefined) {
         release = this.guard.acquire(request, true);

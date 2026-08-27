@@ -12,7 +12,14 @@ $root = [System.IO.Path]::GetFullPath($StagingRoot)
 if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw "Release staging root does not exist: $root" }
 $runtimePath = Join-Path $root 'runtime\node.exe'
 if (-not (Test-Path -LiteralPath $runtimePath -PathType Leaf)) { throw 'The bundled Node.js runtime is missing.' }
-$runtimeSignature = Get-AuthenticodeSignature -LiteralPath $runtimePath
+$authenticodeAvailable = $false
+try {
+    Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
+    $authenticodeAvailable = $null -ne (Get-Command Get-AuthenticodeSignature -ErrorAction Stop)
+} catch {
+    if ($RequireValidRuntime -or -not [string]::IsNullOrWhiteSpace($CertificatePath)) { throw "Windows Authenticode support is required but unavailable: $($_.Exception.Message)" }
+}
+$runtimeSignature = if ($authenticodeAvailable) { Get-AuthenticodeSignature -LiteralPath $runtimePath } else { [pscustomobject]@{ Status = 'Unavailable'; StatusMessage = 'Microsoft.PowerShell.Security could not be loaded on this host.'; SignerCertificate = $null } }
 if ($RequireValidRuntime -and $runtimeSignature.Status -ne 'Valid') { throw "Bundled Node.js Authenticode verification failed: $($runtimeSignature.Status) $($runtimeSignature.StatusMessage)" }
 
 $scripts = @(Get-ChildItem -LiteralPath $root -Filter '*.ps1' -File -Recurse | Sort-Object FullName)
@@ -35,6 +42,6 @@ if (-not [string]::IsNullOrWhiteSpace($CertificatePath)) {
 $runtimeSigner = if ($null -eq $runtimeSignature.SignerCertificate) { $null } else { [ordered]@{ subject = $runtimeSignature.SignerCertificate.Subject; thumbprint = $runtimeSignature.SignerCertificate.Thumbprint } }
 [pscustomobject]@{
     schemaVersion = 1
-    runtime = [ordered]@{ path = 'runtime/node.exe'; status = [string]$runtimeSignature.Status; statusMessage = [string]$runtimeSignature.StatusMessage; signer = $runtimeSigner }
+    runtime = [ordered]@{ path = 'runtime/node.exe'; status = [string]$runtimeSignature.Status; statusMessage = [string]$runtimeSignature.StatusMessage; inspectionAvailable = $authenticodeAvailable; signer = $runtimeSigner }
     firstParty = [ordered]@{ configured = -not [string]::IsNullOrWhiteSpace($CertificatePath); signedPowerShellCount = $signed.Count; signedPaths = $signed }
 }
