@@ -734,6 +734,13 @@ function updateAddOnFieldVisibility(form) {
   });
 }
 
+function rememberAddOnSettingsDraft(form) {
+  const id = form.dataset.addonSettings;
+  const addOn = id === 'thsv.viewer-foundation' ? state.viewerFoundation : id === 'thsv.community-analytics' ? state.communityAnalytics : id === 'thsv.kofi-donations' ? state.kofiDonations : state.addOns.find((candidate) => candidate.moduleId === id);
+  const draft = collectAddOnSettings(form, addOn);
+  if (addOn && draft !== null) addOn.settings = draft;
+}
+
 const DIRECT_ADDON_TRIGGER_REQUIREMENTS = {
   'thsv.kofi-donations': {
     actionId: 'e61c4b43-6cf0-5d56-a1c9-2176ae09c312',
@@ -1190,7 +1197,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-addon-settings]').forEach((form) => {
     form.addEventListener('submit', saveAddOnSettings);
     form.addEventListener('input', () => scheduleAddOnOverlayDraftPreview(form));
-    form.addEventListener('change', () => { updateAddOnFieldVisibility(form); scheduleAddOnOverlayDraftPreview(form); });
+    form.addEventListener('change', () => { rememberAddOnSettingsDraft(form); updateAddOnFieldVisibility(form); scheduleAddOnOverlayDraftPreview(form); });
     form.querySelector('[data-overlay-editor-frame]')?.addEventListener('load', () => scheduleAddOnOverlayDraftPreview(form, true));
     form.querySelectorAll('[data-addon-sections]').forEach((button) => button.addEventListener('click', () => {
       const open = button.dataset.addonSections === 'expand';
@@ -2348,6 +2355,10 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
   const file = form.elements.package.files?.[0];
   if (!file) return;
   const status = byId('addon-state');
+  const submitButton = form.querySelector('button[type="submit"]');
+  form.dataset.installState = 'installing';
+  delete form.dataset.installedModule;
+  submitButton.disabled = true;
   status.setAttribute('aria-busy', 'true');
   status.textContent = `Verifying ${file.name} before installation...`;
   try {
@@ -2361,9 +2372,17 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
       renderAddOns();
       activatePanel(mainFeatureForModule(result.moduleId) ? 'addons' : 'addon-marketplace');
     }
-    reportAddOnFeedback(`Installed ${result.moduleId} ${result.version}. Restart StreamBridge to activate it.`, 'success', form.querySelector('button[type="submit"]'));
-  } catch (error) { reportAddOnFeedback(`The add-on was not installed: ${error.message}`, 'error', form.querySelector('button[type="submit"]')); }
-  finally { status.removeAttribute('aria-busy'); }
+    form.dataset.installState = 'complete';
+    form.dataset.installedModule = result.moduleId;
+    form.dispatchEvent(new CustomEvent('streambridge:addon-installed', { detail: { moduleId: result.moduleId, version: result.version } }));
+    reportAddOnFeedback(`Installed ${result.moduleId} ${result.version}. Restart StreamBridge to activate it.`, 'success', submitButton);
+  } catch (error) {
+    form.dataset.installState = 'error';
+    reportAddOnFeedback(`The add-on was not installed: ${error.message}`, 'error', submitButton);
+  } finally {
+    status.removeAttribute('aria-busy');
+    submitButton.disabled = false;
+  }
 });
 byId('refresh-addons').addEventListener('click', loadAddOns);
 byId('refresh-addon-marketplace')?.addEventListener('click', loadAddOns);

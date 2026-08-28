@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { expect, test } from './fixtures.js';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 async function unlock(page: Page): Promise<void> {
@@ -54,6 +54,8 @@ test('diagnostics exposes the seamless operations center and its safety boundari
   await expect(page.getByRole('button', { name: 'Back up and repair' })).toBeDisabled();
   await expect(page.locator('#operational-timeline-list')).toBeVisible();
   await expect(page.locator('#post-stream-report')).toBeVisible();
+  await expect(page.getByText('Advanced log storage', { exact: true })).toBeVisible();
+  await expect(page.getByText('Set separate active and archive budgets, preview the result, then prune archives only.')).toBeVisible();
   await expect(page.locator('#operations-state')).toContainText(/Health (?:ready|needs attention).*installed-state.*redacted events retained/iu);
 });
 
@@ -188,6 +190,8 @@ test('pre-stream check requires healthy local evidence and an automatically veri
     },
     launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} },
     launcherPreflight: { ready: true, checks: [] }, broadcastAutomation: {}, obsInventory: { configured: false, ready: true, sources: [], discovered: [], reconciliations: [] },
+    compatibilityFeed: { state: 'verified-cache', available: true, provenanceVerified: true, tag: 'streamerbot-compat-1.1.0-alpha.4', digest: 'a'.repeat(64), installed: ['1.1.0-alpha.4'], expiryState: 'warning', daysRemaining: 6, warning: 'Verified compatibility data expires in 6 days. Connect before then to refresh it.' },
+    logLifecycle: { available: true, state: 'critical', totalBytes: 30, budgetBytes: 100, usagePercent: 30, fileCount: 3, compressedCount: 1, storage: { active: { bytes: 25, budgetBytes: 25, usagePercent: 100, state: 'critical', fileCount: 2 }, archive: { bytes: 5, budgetBytes: 75, usagePercent: 7, state: 'healthy', fileCount: 1 } } },
     speakerBotReadiness: { required: true, ready: speakerRunning, configured: true, enabled: true, running: speakerRunning, modules: ['thsv.voice-relay'], detail: speakerRunning ? 'Speaker.bot is running for every enabled voice feature.' : 'An enabled voice feature requires Speaker.bot to be running.' },
   }) }));
   await page.route('**/wizard/api/streamerbot-launcher/start-all', async (route) => { speakerRunning = true; await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ output: 'Required tools started.', warnings: [], status: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: { speakerbot: { configured: true, enabled: true, running: true } } } }) }); });
@@ -224,7 +228,10 @@ test('pre-stream check requires healthy local evidence and an automatically veri
   await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
   await expect(page.locator('#pre-stream-grid')).toContainText('Add-on action grants');
   await expect(page.locator('#pre-stream-grid')).toContainText('Signed Streamer.bot compatibility data');
+  await expect(page.locator('#pre-stream-grid')).toContainText('expires in 6 days');
   await expect(page.locator('#pre-stream-grid')).toContainText('Log storage budget');
+  await expect(page.locator('#pre-stream-grid')).toContainText('Active 25 B of 25 B · archives 5 B of 75 B.');
+  await expect(page.locator('#pre-stream-grid progress[aria-label="Highest log storage lane 100 percent used"]')).toBeVisible();
   await expect(page.locator('#pre-stream-grid')).toContainText('Critical overlay connections');
   await expect(page.locator('#pre-stream-grid')).toContainText('Timed-action schedule canary');
   await expect(page.locator('#pre-stream-grid')).toContainText('Configured broadcast scenes');
@@ -328,8 +335,8 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
 });
 
 test('release readiness combines lifecycle, PR checks, post-release evidence, and protected approvals without publishing', async ({ page }) => {
-  await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-20T12:00:00.000Z', githubStatusSource: 'cache', usingCachedGitHubStatus: true, localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }, pullRequest: { available: false, message: 'Refresh GitHub status to inspect the open release-candidate PR.' }, checks: [], repositoryProtection: { available: false, message: 'Refresh GitHub status to audit repository controls.' }, releaseHandoff: { tag: 'v4.0.3', exactMainReady: false, instructions: 'Merge and refresh.' }, postReleaseSmoke: { available: false, message: 'Post-release verification begins automatically after publication.' }, summary: { lifecycleReady: true, checksGreen: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment.', 'Approve the protected streambridge-release environment deployment.'] }) }));
-  await page.route('**/wizard/api/release-readiness/refresh', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-21T12:00:00.000Z', githubStatusSource: 'live', usingCachedGitHubStatus: false, localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }, pullRequest: { available: true, number: 9, title: 'Prepare StreamBridge 4.0.3', url: 'https://github.com/surakage/THSV-StreamBridge/pull/9', branch: 'codex/release-4.0.3-seamless', sha: 'a'.repeat(40) }, checks: [{ name: 'windows', status: 'completed', conclusion: 'success' }], repositoryProtection: { available: true, mainProtected: true, immutableReleases: true, immutableEnforcedByOwner: false, activeRulesetCount: 1, rulesetsUrl: 'https://github.com/surakage/THSV-StreamBridge/settings/rules', immutableReleasesUrl: 'https://github.com/surakage/THSV-StreamBridge/settings/releases' }, releaseHandoff: { tag: 'v4.0.3', candidateSha: 'a'.repeat(40), expectedMainSha: 'a'.repeat(40), exactMainReady: true, instructions: 'Copy exact inputs.', tagWorkflowUrl: 'https://github.com/surakage/THSV-StreamBridge/actions/workflows/prepare-release-tag.yml', commitUrl: `https://github.com/surakage/THSV-StreamBridge/commit/${'a'.repeat(40)}` }, postReleaseSmoke: { available: true, tag: 'v4.0.3', previousTag: 'v4.0.2', conclusion: 'success', reinstall: '4.0.3', rollbackProtectionVerified: true, creatorDataPreserved: true, url: 'https://github.com/surakage/THSV-StreamBridge/actions/runs/91', evidenceUrl: 'https://github.com/surakage/THSV-StreamBridge/actions/runs/91#artifacts' }, summary: { lifecycleReady: true, checksGreen: true, postReleaseVerified: true, repositoryProtectionsReady: true, readyForCreatorReview: true }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment.', 'Approve the protected streambridge-release environment deployment.'] }) }));
+  await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-20T12:00:00.000Z', githubStatusSource: 'cache', usingCachedGitHubStatus: true, githubApi: { available: true, source: 'cache', cacheAgeMinutes: 45, stale: false, rateLimitAvailable: true, limit: 60, remaining: 41, resetAt: '2026-08-20T13:00:00.000Z' }, localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }, pullRequest: { available: false, message: 'Refresh GitHub status to inspect the open release-candidate PR.' }, checks: [], canaries: [], repositoryProtection: { available: false, message: 'Refresh GitHub status to audit repository controls.' }, releaseHandoff: { tag: 'v4.0.3', exactMainReady: false, instructions: 'Merge and refresh.' }, postReleaseSmoke: { available: false, message: 'Post-release verification begins automatically after publication.' }, summary: { lifecycleReady: true, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment.', 'Approve the protected streambridge-release environment deployment.'] }) }));
+  await page.route('**/wizard/api/release-readiness/refresh', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-21T12:00:00.000Z', githubStatusSource: 'live', usingCachedGitHubStatus: false, githubApi: { available: true, source: 'live', cacheAgeMinutes: 0, stale: false, rateLimitAvailable: true, limit: 60, remaining: 39, resetAt: '2026-08-21T13:00:00.000Z' }, localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }, pullRequest: { available: true, number: 9, title: 'Prepare StreamBridge 4.0.3', url: 'https://github.com/surakage/THSV-StreamBridge/pull/9', branch: 'codex/release-4.0.3-seamless', sha: 'a'.repeat(40) }, checks: [{ name: 'windows', status: 'completed', conclusion: 'success' }], canaries: [{ name: 'Public release attestation canary', schedule: 'daily', latestConclusion: 'success', lastSuccessAt: '2026-08-21T11:00:00.000Z', ageHours: 1, fresh: true, incident: { state: 'recovered', failureCount: 2, durationHours: 3 }, recentRuns: [{ id: 44, conclusion: 'success', completedAt: '2026-08-21T11:00:00.000Z' }] }], repositoryProtection: { available: true, mainProtected: true, immutableReleases: true, immutableEnforcedByOwner: false, activeRulesetCount: 1, rulesetsUrl: 'https://github.com/surakage/THSV-StreamBridge/settings/rules', immutableReleasesUrl: 'https://github.com/surakage/THSV-StreamBridge/settings/releases' }, releaseHandoff: { tag: 'v4.0.3', candidateSha: 'a'.repeat(40), expectedMainSha: 'a'.repeat(40), exactMainReady: true, instructions: 'Copy exact inputs.', tagWorkflowUrl: 'https://github.com/surakage/THSV-StreamBridge/actions/workflows/prepare-release-tag.yml', commitUrl: `https://github.com/surakage/THSV-StreamBridge/commit/${'a'.repeat(40)}` }, postReleaseSmoke: { available: true, tag: 'v4.0.3', previousTag: 'v4.0.2', conclusion: 'success', reinstall: '4.0.3', rollbackProtectionVerified: true, creatorDataPreserved: true, url: 'https://github.com/surakage/THSV-StreamBridge/actions/runs/91', evidenceUrl: 'https://github.com/surakage/THSV-StreamBridge/actions/runs/91#artifacts' }, summary: { lifecycleReady: true, checksGreen: true, canariesFresh: true, postReleaseVerified: true, repositoryProtectionsReady: true, readyForCreatorReview: true }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment.', 'Approve the protected streambridge-release environment deployment.'] }) }));
   await unlock(page);
   await page.getByRole('button', { name: 'Release Readiness', exact: true }).click();
   await expect(page.locator('#release-readiness-summary')).toContainText('Needs review');
@@ -342,12 +349,33 @@ test('release readiness combines lifecycle, PR checks, post-release evidence, an
   await expect(page.locator('#release-readiness-handoff')).toContainText('Exact main confirmed');
   await expect(page.locator('#release-readiness-handoff')).toContainText('a'.repeat(40));
   await expect(page.locator('#release-readiness-protection')).toContainText('Immutable releases: true');
+  await expect(page.locator('#release-readiness-api')).toContainText('39 of 60 requests remaining');
+  await expect(page.locator('#release-readiness-canaries')).toContainText('Last incident recovered after 3h');
+  await expect(page.locator('#release-readiness-canaries')).toContainText('Recent run history');
   await expect(page.locator('#release-readiness-lifecycle')).toContainText('Encrypted recovery restored: true');
   await expect(page.locator('#release-readiness-post-release')).toContainText('Rollback protection: true');
   await expect(page.getByRole('link', { name: 'Download retained evidence' })).toHaveAttribute('href', /#artifacts$/u);
   await expect(page.locator('#release-readiness-state')).toContainText('Live GitHub status checked');
   await expect(page.locator('#release-readiness-approvals')).toContainText('protected streambridge-tag');
   await expect(page.locator('#release-readiness-approvals')).toContainText('protected streambridge-release');
+});
+
+test('release readiness shows certificate preflight freshness and renewal state without certificate identity', async ({ page }) => {
+  await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.9', githubStatusSource: 'cache', localLifecycle: { available: false }, pullRequest: { available: false }, checks: [], canaries: [], signingCertificatePreflight: { available: true, fresh: true, ageHours: 2, expiryState: 'warning', daysRemaining: 45, conclusion: 'success', url: 'https://github.test/actions/400' }, repositoryProtection: { available: false }, releaseHandoff: { tag: 'v4.0.9' }, postReleaseSmoke: { available: false }, summary: { lifecycleReady: false, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: [] }) }));
+  await unlock(page);
+  await page.getByRole('button', { name: 'Release Readiness', exact: true }).click();
+  await expect(page.locator('#release-readiness-signing')).toContainText('Renewal warning');
+  await expect(page.locator('#release-readiness-signing')).toContainText('Evidence age: 2h');
+  await expect(page.locator('#release-readiness-signing')).toContainText('Days remaining: 45');
+  await expect(page.locator('#release-readiness-signing')).not.toContainText(/thumbprint|subject/iu);
+});
+
+test('release readiness links the exact toolchain promotion attestation', async ({ page }) => {
+  const attestationUrl = 'https://github.com/surakage/THSV-StreamBridge/attestations/12345';
+  await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.9', githubStatusSource: 'cache', localLifecycle: { available: false }, pullRequest: { available: true, number: 10, title: 'Promote toolchain', branch: 'automation/toolchain-major-1', url: 'https://github.test/pr/10', promotionAttestationUrl: attestationUrl }, checks: [], canaries: [], signingCertificatePreflight: { available: false }, repositoryProtection: { available: false }, releaseHandoff: { tag: 'v4.0.9' }, postReleaseSmoke: { available: false }, summary: { lifecycleReady: false, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: [] }) }));
+  await unlock(page);
+  await page.getByRole('button', { name: 'Release Readiness', exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Open promotion attestation' })).toHaveAttribute('href', attestationUrl);
 });
 
 test('Viewer Foundation is a dedicated required Bridge integration', async ({ page }) => {

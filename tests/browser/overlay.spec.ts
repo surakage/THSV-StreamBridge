@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import { expect, test, type APIRequestContext, type Page, type Route } from '@playwright/test';
+import type { APIRequestContext, Page, Route } from '@playwright/test';
+import { expect, test } from './fixtures.js';
 
 declare global {
   interface Window {
@@ -565,6 +566,7 @@ test('wizard skips the restart when staged settings already match the active con
   await page.locator('#token').fill(token);
   await page.locator('#login-form button').click();
   await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#export-config')).toHaveAttribute('data-ready', 'true');
   await page.locator('#export-config').click();
   await expect(page.locator('#transfer-state')).toContainText('currently committed settings');
   await page.locator('#import-config').click();
@@ -925,6 +927,7 @@ test('wizard keeps one protected draft when a second authenticated tab tries to 
   const originalEnabled = await firstEnabledToggle.isChecked();
   await firstEnabledToggle.click();
   await expect(page.locator('#global-change-bar')).toContainText('Twitch platform');
+  await expect(page.locator('#transaction-state')).toContainText('Pending changes: 1 section(s) staged');
 
   await secondPage.locator('[data-view="platforms"]').click();
   const secondEnabledToggle = secondPage.locator('[data-platform="twitch"] input[data-flag="enabled"]');
@@ -1186,7 +1189,7 @@ test('runtime chat layouts are distinct cards, speech bubbles, nameplates, and c
   await expect(page.locator('#status')).toHaveText('LIVE');
   await simulate(request, await fixture('twitch-chat.json'), 'layout-twitch');
   await simulate(request, await fixture('youtube-chat.json'), 'layout-youtube');
-  const first = page.locator('#chat .message').first();
+  const first = page.locator('#chat .message.platform-twitch');
   const youtube = page.locator('#chat .message.platform-youtube');
 
   await page.evaluate("document.body.dataset.layout = 'regular'");
@@ -1605,6 +1608,7 @@ test('native clip playback tolerates a transient buffer stall without skipping',
   await page.route('**/overlay/addons/thsv.random-clip-player', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
   await page.route('**/overlay/cache/random-preview.mp4', async (route) => await route.fulfill({ contentType: 'video/mp4', body: Buffer.from([0, 0, 0, 0]) }));
   await page.goto('/overlay/addons/thsv.random-clip-player');
+  await expect(page.locator('#media-title')).toHaveCSS('display', 'none');
   await page.locator('#media').evaluate((element) => {
     const media = element as HTMLVideoElement;
     let source = '';
@@ -1630,7 +1634,7 @@ test('native clip playback tolerates a transient buffer stall without skipping',
   await page.clock.fastForward(6_000);
   await expect(page.locator('#media-shell')).toBeVisible();
   await expect(page.locator('#media-shell')).toHaveClass(/media-playing/u);
-  await expect(page.locator('#media-title')).toBeHidden();
+  await expect(page.locator('#media-title')).toHaveCSS('display', 'none');
 });
 
 test('media template previews use the production frame and remain visible until explicitly hidden', async ({ page }) => {

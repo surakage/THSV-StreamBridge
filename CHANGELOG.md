@@ -1,5 +1,55 @@
 # Changelog
 
+## [4.0.9] - 2026-08-27
+
+- Began a new application release line without modifying the published 4.0.8 release.
+- Added a seven-day advance warning for verified Streamer.bot compatibility-cache expiry.
+- Added automated Windows coverage for stale GitHub CLI credentials and public release/attestation fallback.
+- Made compatibility-cache and command-publication history replacement flushed, recoverable, and safe across interrupted Windows renames.
+- Split active service output and archived logs into independently reported and enforced storage ceilings.
+- Added a scheduled public-attestation canary and a release-gating Windows ACL acceptance check.
+- Added a dedicated checksum-verified Node runtime cache for offline-tolerant repeat packaging.
+- Serialized crash-safe state writes per path and added fault injection at every replacement boundary.
+- Added persistent wizard log-budget controls with a mutation-free archive-prune preview and explicit approval gate.
+- Updated ESLint to 10.9.1 and typescript-eslint to 8.68.0 while holding TypeScript and Node types on their reviewed major lines.
+- Stabilized the complete browser suite, expanded unauthenticated release verification to every published evidence and add-on asset, and delayed public-canary issues until two consecutive failures.
+- Included safe log-storage budgets in configuration transfers, added a weekly verified runtime-cache rotation rehearsal, and added an isolated TypeScript 7 / Node 26 compatibility lane.
+- Added two-strike recovery-aware notifications for the runtime and toolchain canaries, upgraded actionlint to 1.7.12, and added shared offline hostile release-evidence fixtures.
+- Kept disposable package/tool caches outside ESLint discovery to reduce local and release-gate overhead.
+- Pinned the actionlint container to its immutable registry digest and made cancelled, skipped, neutral, and timed-out automation conclusions non-failures for issue tracking.
+- Bound 4.0.9 release evidence to both the exact clean source commit and the core archive SHA-256 while retaining public verification compatibility for older 4.0.8 evidence.
+- Added commit-, toolchain-, and 24-hour-bound release-validation receipts so clean receipt-backed repackaging can reuse a completed quality gate without rerunning lint, typecheck, tests, and configuration validation.
+- Added daily and weekly canary freshness, latest conclusion, and last-success timestamps to the read-only release-readiness view and creator-review gate.
+- Queried each release canary through its dedicated workflow history, retained recent incident and recovery duration, and exposed GitHub API cache age plus rate-limit capacity in Release readiness.
+- Retained and attested the exact commit-bound validation receipt inside the protected release job.
+- Added a deterministic unsigned-payload manifest before Authenticode signing and carried its SHA-256 into the final release and installed-build provenance.
+- Added restart-safe ETag caching and public GitHub rate-limit backoff to Release readiness, including visible conditional-hit and resume status.
+- Pinned every third-party GitHub Action to an immutable commit or container digest and added a workflow-wide regression test.
+- Required signer and trusted timestamp verification for the bundled runtime and every configured first-party PowerShell signature during post-release smoke.
+- Split the TypeScript 7 and Node 26 type migration canary into independent and combined lanes; all three preserve the production manifest and lockfile.
+- Added weekly grouped Dependabot pull requests for immutable GitHub Action revisions while retaining human review and the existing protected-main checks.
+- Split the oversized add-on browser acceptance into four focused scenarios and added an explicit install-complete/error DOM contract instead of timing-based waits.
+- Blocked first-party signing unless the certificate thumbprint is creator-approved, enforced a minimum validity window, and recorded advance expiry warnings in signing evidence.
+- Added a manual, confirmation-gated draft promotion workflow that requires the published 4.0.9 release and three consecutive green scheduled toolchain canaries.
+- Required toolchain promotion to download and validate every retained lane artifact from all three qualifying canary runs before changing production dependencies.
+- Isolated every Playwright case behind its own Bridge process, random port, and disposable add-on data root, enabling safe parallel browser workers.
+- Added a protected manual signing-certificate preflight that checks the shared allowlist, code-signing EKU, and expiry policy without signing release files.
+- Added a checksum-pinned actionlint bootstrap that reuses its verified archive offline and falls back across Windows HTTPS, Node, and GitHub CLI downloads.
+- Verified every GitHub Action commit pin against its documented upstream tag and corrected the compatibility provenance action to the v2.4.0 commit.
+- Regenerated and aligned all 42 first-party Streamer.bot packages and first-party add-ons for 4.0.9.
+- Bound every toolchain promotion lane to its workflow head commit and required each downloaded artifact to match the SHA-256 digest reported by GitHub.
+- Explicitly dispatches and waits for protected CI on bot-created toolchain promotion pull requests.
+- Shows the protected signing-certificate preflight age, expiry state, and days remaining in Release readiness without exposing certificate identity.
+- Restricts workflow Actions to the approved `actions` publisher and verifies the official actionlint release attestation in CI in addition to its pinned checksum.
+- Retries temporary Action-tag lookups and permits only a matching, seven-day verified cache fallback during GitHub API outages.
+- Attests the exact toolchain-promotion eligibility and validated artifact report before an automated draft promotion pull request can be created.
+- Opens one deduplicated certificate-renewal issue inside the 60-day warning window and closes it after a protected preflight reports a current certificate.
+- Sanitizes retained certificate-preflight artifacts so certificate subject and thumbprint remain inside the protected job.
+- Temporarily runs the isolated next-major toolchain soak daily so the three post-release scheduled gates can complete in days instead of weeks.
+- Links the exact promotion-evidence attestation from both the generated draft pull request and Wizard Release Readiness.
+- Adds a monthly stale-preflight check that opens one protected-approval reminder and closes it after fresh evidence appears.
+- Grants the current GitHub artifact-metadata permission required by the attestation action in release and promotion workflows.
+
 ## [4.0.8] - 2026-08-26
 
 - Added one versioned Streamer.bot 1.0.7 trigger registry shared by universal import generation, trigger assurance, repair, documentation-facing wizard output, and automated tests.

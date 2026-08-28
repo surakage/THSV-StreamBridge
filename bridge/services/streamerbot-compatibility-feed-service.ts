@@ -1,17 +1,19 @@
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { verify } from 'sigstore';
 import type { Logger } from './logger.js';
 import { installVerifiedStreamerBotTriggerVersions } from '../contracts/streamerbot-trigger-contract-registry.js';
+import { readCrashSafeText, writeCrashSafeText } from './crash-safe-state-file.js';
 
 const REPOSITORY = 'surakage/THSV-StreamBridge';
 const API = `https://api.github.com/repos/${REPOSITORY}`;
 const ASSET = 'THSV-StreamBridge-StreamerBot-Compatibility.json';
 const MAXIMUM_BYTES = 256 * 1024;
 const CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1_000;
+const CACHE_EXPIRY_WARNING_MS = 7 * 24 * 60 * 60 * 1_000;
 const HEADERS = { accept: 'application/vnd.github+json', 'user-agent': 'THSV-StreamBridge-compatibility-feed', 'x-github-api-version': '2022-11-28' };
 
 type AttestationVerifier = (bundles: readonly unknown[], digest: string, tag: string) => Promise<void>;
@@ -62,9 +64,10 @@ export class StreamerBotCompatibilityFeedService {
       const feed = parseFeed(JSON.parse(Buffer.from(bytes).toString('utf8')) as unknown);
       const installed = installVerifiedStreamerBotTriggerVersions(feed.versions);
       this.acceptedPublishedAt = publishedAt;
-      await this.writeCache({ schemaVersion: 1, tag, publishedAt: new Date(publishedAt).toISOString(), verifiedAt: this.now().toISOString(), digest, feedBase64: Buffer.from(bytes).toString('base64'), attestations: bundles });
+      const verifiedAt = this.now();
+      await this.writeCache({ schemaVersion: 1, tag, publishedAt: new Date(publishedAt).toISOString(), verifiedAt: verifiedAt.toISOString(), digest, feedBase64: Buffer.from(bytes).toString('base64'), attestations: bundles });
       this.logger.info('Verified Streamer.bot compatibility-data feed', { tag, digest, installedVersions: installed });
-      return this.record({ state: 'verified', available: true, provenanceVerified: true, tag, publishedAt: new Date(publishedAt).toISOString(), digest, installed, declared: feed.versions.map((entry) => entry.version) });
+      return this.record({ state: 'verified', available: true, provenanceVerified: true, tag, publishedAt: new Date(publishedAt).toISOString(), verifiedAt: verifiedAt.toISOString(), ...cacheFreshness(verifiedAt.getTime(), verifiedAt.getTime()), digest, installed, declared: feed.versions.map((entry) => entry.version) });
     } catch (error) {
       this.logger.warn('Streamer.bot compatibility-data refresh was unavailable; the last trusted local registry remains active', { error });
       return this.fallback(error instanceof Error ? error.message : String(error));
@@ -74,7 +77,7 @@ export class StreamerBotCompatibilityFeedService {
   private async loadCache(): Promise<void> {
     if (this.cachePath === undefined) return;
     try {
-      const cache = parseCache(JSON.parse((await readFile(this.cachePath, 'utf8')).replace(/^\uFEFF/u, '')) as unknown);
+      const cache = parseCache(JSON.parse((await readCrashSafeText(this.cachePath)).replace(/^\uFEFF/u, '')) as unknown);
       const verifiedAt = Date.parse(cache.verifiedAt); const publishedAt = Date.parse(cache.publishedAt); const now = this.now().getTime();
       if (now - verifiedAt > CACHE_MAX_AGE_MS || verifiedAt > now + 5 * 60_000) throw new Error('Cached compatibility data is expired or time-invalid.');
       const bytes = Buffer.from(cache.feedBase64, 'base64');
@@ -83,17 +86,14 @@ export class StreamerBotCompatibilityFeedService {
       const feed = parseFeed(JSON.parse(bytes.toString('utf8')) as unknown);
       const installed = installVerifiedStreamerBotTriggerVersions(feed.versions);
       this.acceptedPublishedAt = publishedAt;
-      this.current = Object.freeze({ state: 'verified-cache', source: this.cachePath, available: true, provenanceVerified: true, tag: cache.tag, publishedAt: cache.publishedAt, verifiedAt: cache.verifiedAt, expiresAt: new Date(verifiedAt + CACHE_MAX_AGE_MS).toISOString(), digest: cache.digest, installed, declared: feed.versions.map((entry) => entry.version), checkedAt: this.now().toISOString() });
+      this.current = Object.freeze({ state: 'verified-cache', source: this.cachePath, available: true, provenanceVerified: true, tag: cache.tag, publishedAt: cache.publishedAt, verifiedAt: cache.verifiedAt, ...cacheFreshness(verifiedAt, now), digest: cache.digest, installed, declared: feed.versions.map((entry) => entry.version), checkedAt: this.now().toISOString() });
       this.logger.info('Loaded verified cached Streamer.bot compatibility data', { tag: cache.tag, installedVersions: installed });
     } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') this.logger.warn('Cached Streamer.bot compatibility data was rejected', { error }); }
   }
 
   private async writeCache(cache: CompatibilityCache): Promise<void> {
     if (this.cachePath === undefined) return;
-    await mkdir(dirname(this.cachePath), { recursive: true });
-    const temporary = `${this.cachePath}.${String(process.pid)}.tmp`;
-    try { await writeFile(temporary, `${JSON.stringify(cache, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 }); await rename(temporary, this.cachePath); }
-    finally { await rm(temporary, { force: true }).catch(() => undefined); }
+    await writeCrashSafeText(this.cachePath, `${JSON.stringify(cache, null, 2)}\n`);
   }
 
   private fallback(reason: string): Readonly<Record<string, unknown>> {
@@ -137,6 +137,17 @@ function parseCache(value: unknown): CompatibilityCache {
 }
 
 function parseTimestamp(value: unknown, message: string): number { if (typeof value !== 'string') throw new Error(message); const timestamp = Date.parse(value); if (!Number.isFinite(timestamp)) throw new Error(message); return timestamp; }
+
+function cacheFreshness(verifiedAt: number, now: number): Readonly<Record<string, unknown>> {
+  const expiresAt = verifiedAt + CACHE_MAX_AGE_MS;
+  const remainingMs = Math.max(0, expiresAt - now);
+  const daysRemaining = Math.ceil(remainingMs / (24 * 60 * 60 * 1_000));
+  const expiryState = remainingMs <= CACHE_EXPIRY_WARNING_MS ? 'warning' : 'healthy';
+  return Object.freeze({
+    expiresAt: new Date(expiresAt).toISOString(), daysRemaining, expiryState,
+    ...(expiryState === 'warning' ? { warning: `Verified compatibility data expires in ${String(daysRemaining)} day${daysRemaining === 1 ? '' : 's'}. Connect before then to refresh it.` } : {}),
+  });
+}
 
 function parseFeed(value: unknown): { readonly versions: readonly { readonly version: string; readonly baseVersion: string }[] } {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error('Compatibility feed must be an object.');

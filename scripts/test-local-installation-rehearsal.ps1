@@ -29,7 +29,7 @@ try {
   $releaseRoot = if (Test-Path -LiteralPath (Join-Path $releaseExtract 'release-manifest.json')) { $releaseExtract } else { @(Get-ChildItem -LiteralPath $releaseExtract -Directory)[0].FullName }
   $node = Join-Path $releaseRoot 'runtime\node.exe'
   $installer = Join-Path $releaseRoot 'installer\install.mjs'
-  & $node $installer --install-root $installRoot --no-start --no-shortcuts
+  & $node $installer --install-root $installRoot --no-start --no-shortcuts --skip-acl
   if ($LASTEXITCODE -ne 0) { throw 'The isolated clean installation failed.' }
 
   $configPath = Join-Path $installRoot 'data\configuration\bridge.local.json'
@@ -38,7 +38,7 @@ try {
   $config.streamerbot.testMode = $true
   [System.IO.File]::WriteAllText($configPath, "$($config | ConvertTo-Json -Depth 100)`n", [System.Text.UTF8Encoding]::new($false))
 
-  & $node $installer --install-root $installRoot --no-shortcuts --no-open-wizard --no-tray
+  & $node $installer --install-root $installRoot --no-shortcuts --no-open-wizard --no-tray --skip-acl
   if ($LASTEXITCODE -ne 0) { throw 'The isolated same-version activation and installed-Wizard smoke failed.' }
   $smoke = Get-Content -LiteralPath (Join-Path $installRoot 'data\state\installed-wizard-smoke.json') -Raw | ConvertFrom-Json
   $readiness = Get-Content -LiteralPath (Join-Path $installRoot 'data\state\last-upgrade-readiness.json') -Raw | ConvertFrom-Json

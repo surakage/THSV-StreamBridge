@@ -1,0 +1,57 @@
+name: Public release attestation canary
+
+on:
+  schedule:
+    - cron: '43 11 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published stable tag (defaults to latest)
+        required: false
+        type: string
+
+concurrency:
+  group: public-attestation-canary
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  verify-public-policy:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify checksum and provenance through unauthenticated public APIs
+        shell: powershell
+        run: .\scripts\test-public-attestation-canary.ps1 -Repository '${{ github.repository }}' -Tag '${{ inputs.tag }}'
+      - name: Upload canary evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: public-attestation-canary-${{ github.run_id }}
+          path: artifacts/public-attestation/latest.json
+          if-no-files-found: error
+          retention-days: 30
+
+  notify-after-repeat-failure:
+    needs: verify-public-policy
+    if: ${{ always() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Notify only after two consecutive scheduled failures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_RESULT: ${{ needs.verify-public-policy.result }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/manage-automation-issue.mjs --kind public-attestation-canary --result "$CURRENT_RESULT" --repository "$REPOSITORY" --run-url "$RUN_URL"

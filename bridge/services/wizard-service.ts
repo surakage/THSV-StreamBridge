@@ -187,7 +187,25 @@ export class WizardService {
     private readonly overlayStatus?: () => Readonly<Record<string, unknown>>,
     private readonly compatibilityFeedStatus?: () => Readonly<Record<string, unknown>>,
     private readonly logLifecycleStatus?: () => Promise<Readonly<Record<string, unknown>>>,
+    private readonly logLifecyclePreview?: (input: unknown) => Promise<Readonly<Record<string, unknown>>>,
+    private readonly logLifecycleApply?: (input: unknown) => Promise<Readonly<Record<string, unknown>>>,
   ) {}
+
+  public async previewLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.logLifecyclePreview === undefined) throw new WizardTransactionError(503, 'Log-storage policy controls are unavailable in this installation.');
+    return this.logLifecyclePreview(input);
+  }
+
+  public async logStorageStatus(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.logLifecycleStatus === undefined) throw new WizardTransactionError(503, 'Log-storage status is unavailable in this installation.');
+    return this.logLifecycleStatus();
+  }
+
+  public async applyLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.logLifecycleApply === undefined) throw new WizardTransactionError(503, 'Log-storage policy controls are unavailable in this installation.');
+    if (input === null || typeof input !== 'object' || Array.isArray(input) || (input as Record<string, unknown>)['approvedByCreator'] !== true) throw new WizardTransactionError(400, 'Creator approval is required before saving log budgets or pruning archives.');
+    return this.logLifecycleApply(input);
+  }
 
   public async installedStateDrift(): Promise<Readonly<Record<string, unknown>>> {
     if (this.operationalReliability === undefined) throw new WizardTransactionError(503, 'Installed-state drift inspection is unavailable in this installation.');

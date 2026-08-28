@@ -1,5 +1,5 @@
-export type AutomationIssueKind = 'release-preflight' | 'post-release-smoke' | 'dependency-canary';
-export type AutomationIssueResult = 'success' | 'failure' | 'cancelled';
+export type AutomationIssueKind = 'release-preflight' | 'post-release-smoke' | 'dependency-canary' | 'public-attestation-canary' | 'runtime-cache-canary' | 'toolchain-major-canary' | 'signing-certificate-expiry' | 'signing-certificate-preflight-stale';
+export type AutomationIssueResult = 'success' | 'failure' | 'cancelled' | 'skipped' | 'neutral' | 'timed_out' | 'action_required' | 'stale' | 'startup_failure';
 export type AutomationIssueAction = 'create' | 'close' | 'comment' | 'none';
 
 export interface AutomationIssueInput {

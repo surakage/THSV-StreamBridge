@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CORE_CONTRACT_VERSION } from '../../bridge/contracts/v2/common.js';
@@ -195,6 +195,7 @@ describe('CommandDirectoryService', () => {
     const saved = await readFile(historyPath, 'utf8');
     expect(saved).not.toContain('d'.repeat(48));
     expect(saved).not.toContain('super-secret-value');
+    await rename(historyPath, `${historyPath}.previous`);
     const restarted = new CommandDirectoryService(await testConfig(), new ModuleRegistry([], silentLogger), options);
     await restarted.start();
     expect(restarted.publicationStatus().history).toHaveLength(1);

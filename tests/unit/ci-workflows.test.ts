@@ -1,18 +1,33 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('GitHub workflow reliability', () => {
+  it('pins every third-party action to an immutable commit or container digest', async () => {
+    for (const name of await readdir('.github/workflows')) {
+      if (!name.endsWith('.yml')) continue;
+      const workflow = await readFile(`.github/workflows/${name}`, 'utf8');
+      for (const match of workflow.matchAll(/uses:\s*([^\s#]+)/gu)) {
+        const reference = match[1]; if (reference === undefined || reference.startsWith('./')) continue;
+        if (reference.startsWith('docker://')) expect(reference, name).toMatch(/@sha256:[a-f0-9]{64}$/u);
+        else expect(reference, name).toMatch(/@[a-f0-9]{40}$/u);
+      }
+    }
+  });
   it('validates feature branches once through pull requests and cancels superseded runs', async () => {
     const workflow = await readFile('.github/workflows/ci.yml', 'utf8');
     expect(workflow).toContain('branches: [main]');
     expect(workflow).toContain('pull_request:');
     expect(workflow).toContain('cancel-in-progress: true');
-    expect(workflow).toContain('docker://rhysd/actionlint:1.7.7');
+    expect(workflow).toContain('docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667');
   });
 
   it('offers a non-publishing reusable and manual release preflight', async () => {
     const preflight = await readFile('.github/workflows/release-preflight.yml', 'utf8');
     const release = await readFile('.github/workflows/release.yml', 'utf8');
+    expect(release).toContain('Retain the commit-bound validation receipt');
+    expect(release).toContain('name: release-validation-${{ env.RELEASE_TAG }}');
+    expect(release).toContain('Attest the protected validation receipt');
+    expect(release).toContain('subject-path: artifacts/release-validation/latest.json');
     const tag = await readFile('.github/workflows/prepare-release-tag.yml', 'utf8');
     expect(preflight).toContain('workflow_dispatch:');
     expect(preflight).toContain('workflow_call:');

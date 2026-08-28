@@ -133,8 +133,8 @@ const automaticUpdates = new AutomaticUpdateMonitor({
 const streamerBotLauncher = new StreamerBotLauncherService(dataRoot, config.streamerbot.url);
 const streamerBotCompatibilityFeed = new StreamerBotCompatibilityFeedService(logger, fetch, join(dataRoot, 'updates', 'streamerbot-compatibility-feed-cache.json'));
 await streamerBotCompatibilityFeed.start();
-const logLifecycleStatus = new LogLifecycleStatusService(config.logging.directory, config.logging.maxFileBytes, config.logging.backups);
-await logLifecycleStatus.enforce();
+const logLifecycleStatus = new LogLifecycleStatusService(config.logging.directory, config.logging.maxFileBytes, config.logging.backups, undefined, join(dataRoot, 'configuration', 'log-storage-policy.json'));
+await logLifecycleStatus.start();
 const logRetentionTimer = setInterval(() => { void logLifecycleStatus.enforce().catch((error: unknown) => logger.warn('Aggregate log-retention enforcement failed', { error })); }, 60 * 60 * 1_000);
 logRetentionTimer.unref();
 const universalImports = new StreamerBotUniversalImportService(resolve('packages', 'streamerbot'), () => streamerBotLauncher.version());
@@ -245,6 +245,8 @@ const wizard: WizardService = new WizardService(
   () => overlayHub.status(),
   () => streamerBotCompatibilityFeed.status(),
   () => logLifecycleStatus.status(),
+  (input) => logLifecycleStatus.preview(input),
+  (input) => logLifecycleStatus.applyAndPrune(input),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));

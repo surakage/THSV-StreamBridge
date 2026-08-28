@@ -4,10 +4,14 @@ param(
     [string]$CertificatePath = '',
     [string]$CertificatePassword = '',
     [string]$TimestampServer = 'http://timestamp.digicert.com',
+    [string[]]$AllowedCertificateThumbprints = @(),
+    [ValidateRange(1, 3650)][int]$MinimumCertificateValidityDays = 30,
+    [ValidateRange(1, 3650)][int]$CertificateExpiryWarningDays = 60,
     [switch]$RequireValidRuntime
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'windows-signing-certificate-policy.ps1')
 $root = [System.IO.Path]::GetFullPath($StagingRoot)
 if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw "Release staging root does not exist: $root" }
 $runtimePath = Join-Path $root 'runtime\node.exe'
@@ -24,24 +28,28 @@ if ($RequireValidRuntime -and $runtimeSignature.Status -ne 'Valid') { throw "Bun
 
 $scripts = @(Get-ChildItem -LiteralPath $root -Filter '*.ps1' -File -Recurse | Sort-Object FullName)
 $signed = @()
+$timestamped = @()
+$firstPartySigner = $null
 if (-not [string]::IsNullOrWhiteSpace($CertificatePath)) {
     $resolvedCertificate = [System.IO.Path]::GetFullPath($CertificatePath)
     if (-not (Test-Path -LiteralPath $resolvedCertificate -PathType Leaf)) { throw "Signing certificate does not exist: $resolvedCertificate" }
     $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($resolvedCertificate, $CertificatePassword, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet)
     try {
-        $codeSigningExtensions = @($certificate.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.37' -and $_.Format($false) -match 'Code Signing' })
-        if (-not $certificate.HasPrivateKey -or $codeSigningExtensions.Count -eq 0) { throw 'The supplied certificate is not a code-signing identity with a private key.' }
+        $certificatePolicy = Test-THSVSigningCertificatePolicy -Certificate $certificate -AllowedCertificateThumbprints $AllowedCertificateThumbprints -MinimumCertificateValidityDays $MinimumCertificateValidityDays -CertificateExpiryWarningDays $CertificateExpiryWarningDays
         foreach ($script in $scripts) {
             $signature = Set-AuthenticodeSignature -LiteralPath $script.FullName -Certificate $certificate -HashAlgorithm SHA256 -TimestampServer $TimestampServer
             if ($signature.Status -ne 'Valid') { throw "Authenticode signing failed for $($script.Name): $($signature.Status) $($signature.StatusMessage)" }
+            if ($null -eq $signature.TimeStamperCertificate) { throw "Authenticode signing did not retain trusted timestamp evidence for $($script.Name)." }
             $signed += $script.FullName.Substring($root.Length + 1).Replace([System.IO.Path]::DirectorySeparatorChar, '/')
+            $timestamped += $script.FullName.Substring($root.Length + 1).Replace([System.IO.Path]::DirectorySeparatorChar, '/')
         }
+        $firstPartySigner = $certificatePolicy
     } finally { $certificate.Dispose() }
 }
 
 $runtimeSigner = if ($null -eq $runtimeSignature.SignerCertificate) { $null } else { [ordered]@{ subject = $runtimeSignature.SignerCertificate.Subject; thumbprint = $runtimeSignature.SignerCertificate.Thumbprint } }
 [pscustomobject]@{
-    schemaVersion = 1
+    schemaVersion = 2
     runtime = [ordered]@{ path = 'runtime/node.exe'; status = [string]$runtimeSignature.Status; statusMessage = [string]$runtimeSignature.StatusMessage; inspectionAvailable = $authenticodeAvailable; signer = $runtimeSigner }
-    firstParty = [ordered]@{ configured = -not [string]::IsNullOrWhiteSpace($CertificatePath); signedPowerShellCount = $signed.Count; signedPaths = $signed }
+    firstParty = [ordered]@{ configured = -not [string]::IsNullOrWhiteSpace($CertificatePath); allowlistRequired = $true; minimumValidityDays = $MinimumCertificateValidityDays; expiryWarningDays = $CertificateExpiryWarningDays; signedPowerShellCount = $signed.Count; timestampedPowerShellCount = $timestamped.Count; signedPaths = $signed; timestampServer = $TimestampServer; signer = $firstPartySigner }
 }

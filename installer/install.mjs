@@ -17,6 +17,7 @@ const manifestRaw = await readFile(join(sourceRoot, 'release-manifest.json'), 'u
 const manifest = JSON.parse(manifestRaw);
 validateManifest(manifest);
 await verifyRelease(sourceRoot, manifest);
+await verifyUnsignedPayloadIdentity(sourceRoot, manifest);
 const releaseManifestSha256 = createHash('sha256').update(manifestRaw).digest('hex');
 const buildFingerprint = createHash('sha256').update(JSON.stringify(manifest.files.map((file) => [file.path, file.size, file.sha256]))).digest('hex');
 
@@ -84,6 +85,10 @@ try {
     releaseCreatedAt: manifest.createdAt,
     releaseManifestSha256,
     buildFingerprint,
+    sourceRepository: manifest.source?.repository,
+    sourceCommitSha: manifest.source?.commitSha,
+    sourceTreeState: manifest.source?.treeState,
+    unsignedPayloadSha256: manifest.unsignedPayload?.sha256,
     fileCount: manifest.files.length,
     installerMode: 'verified-portable-release',
   };
@@ -310,6 +315,16 @@ async function verifyRelease(root, value) {
   }
 }
 
+async function verifyUnsignedPayloadIdentity(root, value) {
+  if (value.unsignedPayload === undefined) return;
+  const manifestPath = safeManifestPath(root, value.unsignedPayload.manifestPath);
+  const raw = await readFile(manifestPath, 'utf8');
+  if (createHash('sha256').update(raw).digest('hex') !== value.unsignedPayload.sha256) throw new Error('The unsigned payload identity does not match release-manifest.json.');
+  const unsigned = JSON.parse(raw);
+  if (unsigned.schemaVersion !== 1 || unsigned.product !== PRODUCT || unsigned.version !== value.version || unsigned.createdAt !== undefined || unsigned.source?.repository !== value.source?.repository || unsigned.source?.commitSha !== value.source?.commitSha || !Array.isArray(unsigned.files) || unsigned.files.length !== value.unsignedPayload.fileCount) throw new Error('unsigned-payload-manifest.json is invalid or does not describe this release.');
+  for (const file of unsigned.files) if (typeof file.path !== 'string' || !Number.isSafeInteger(file.size) || !/^[a-f0-9]{64}$/u.test(file.sha256)) throw new Error('unsigned-payload-manifest.json contains an invalid file entry.');
+}
+
 async function copyManifestSection(value, prefix, destination, include = () => true) {
   for (const file of value.files.filter((entry) => entry.path.startsWith(prefix) && include(entry.path))) {
     const relativePath = file.path.slice(prefix.length);
@@ -408,6 +423,8 @@ async function pruneLegacyInstallArtifacts(root) {
 
 function validateManifest(value) {
   if (value.product !== PRODUCT || value.layoutVersion !== 2 || typeof value.version !== 'string' || !isReleaseVersion(value.version) || value.runtime?.platform !== 'win32' || value.runtime?.arch !== 'x64' || !Array.isArray(value.files)) throw new Error('release-manifest.json is invalid or not a Windows x64 portable release.');
+  if (value.source !== undefined && (value.source.repository !== 'surakage/THSV-StreamBridge' || !/^[a-f0-9]{40}$/u.test(value.source.commitSha) || !['clean', 'dirty'].includes(value.source.treeState))) throw new Error('release-manifest.json contains an invalid source identity.');
+  if (value.unsignedPayload !== undefined && (value.unsignedPayload.manifestPath !== 'unsigned-payload-manifest.json' || !/^[a-f0-9]{64}$/u.test(value.unsignedPayload.sha256) || !Number.isSafeInteger(value.unsignedPayload.fileCount))) throw new Error('release-manifest.json does not contain a valid unsigned payload identity.');
   for (const file of value.files) if (typeof file.path !== 'string' || !Number.isSafeInteger(file.size) || !/^[a-f0-9]{64}$/u.test(file.sha256)) throw new Error('release-manifest.json contains an invalid file entry.');
 }
 

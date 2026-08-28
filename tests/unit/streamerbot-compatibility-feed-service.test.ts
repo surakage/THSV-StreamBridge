@@ -46,6 +46,21 @@ describe('StreamerBotCompatibilityFeedService', () => {
     expect(restarted.status()).toMatchObject({ state: 'verified-cache', provenanceVerified: true, refreshError: 'Compatibility release rollback was rejected.' });
     expect(verified).toHaveLength(2);
   });
+
+  it('warns seven days before a verified offline cache expires', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-compat-expiry-'));
+    const cachePath = join(root, 'compatibility.json');
+    const feed = Buffer.from(JSON.stringify({ schemaVersion: 1, versions: [{ version: '1.1.0-alpha.4', baseVersion: '1.1.0-alpha.4' }] }), 'utf8');
+    const release = { tag_name: 'streamerbot-compat-1.1.0-alpha.4', published_at: '2026-08-01T00:00:00.000Z', assets: [{ name: 'THSV-StreamBridge-StreamerBot-Compatibility.json', browser_download_url: 'https://assets.invalid/feed' }] };
+    const online = async (input: string | URL | Request): Promise<Response> => requestUrl(input).includes('/releases') ? Response.json([release]) : requestUrl(input).includes('/attestations/') ? Response.json({ attestations: [{ bundle: { signed: true } }] }) : new Response(feed);
+    const verifier = async (): Promise<void> => undefined;
+    await new StreamerBotCompatibilityFeedService(silentLogger, online, cachePath, verifier, () => new Date('2026-08-01T00:00:00.000Z')).refresh();
+    const offline = async (): Promise<Response> => { throw new Error('offline'); };
+    const service = new StreamerBotCompatibilityFeedService(silentLogger, offline, cachePath, verifier, () => new Date('2026-08-25T00:00:00.000Z'));
+    await service.start();
+    expect(service.status()).toMatchObject({ state: 'verified-cache', expiryState: 'warning', daysRemaining: 6 });
+    expect(String(service.status()['warning'])).toContain('expires in 6 days');
+  });
 });
 
 function requestUrl(input: string | URL | Request): string { return typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url; }

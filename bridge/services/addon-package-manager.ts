@@ -184,7 +184,7 @@ async function executeMigration(scriptPath: string, context: MigrationContext, t
       else finish(new AddOnPackageError(`Migration ${context.fromVersion} -> ${context.toVersion} failed: ${message.error ?? 'unknown error'}`));
       void worker.terminate();
     });
-    worker.once('error', (error) => finish(new AddOnPackageError(`Migration worker failed: ${error.message}`)));
+    worker.once('error', (error: Error) => finish(new AddOnPackageError(`Migration worker failed: ${error.message}`)));
     worker.once('exit', (code) => { if (code !== 0) finish(new AddOnPackageError(`Migration worker exited with code ${String(code)}.`)); });
   });
 }

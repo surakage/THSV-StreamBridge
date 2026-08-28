@@ -178,8 +178,8 @@ export class AddOnWizardService {
     const configurationSchema = JSON.parse(await readFile(safeChild(verified.root, descriptor.manifest.configurationSchema), 'utf8')) as unknown;
     const settingsUi = descriptor.settingsUi === undefined ? undefined : JSON.parse(await readFile(safeChild(verified.root, descriptor.settingsUi), 'utf8')) as unknown;
     return Object.freeze({
-      integration: true,
-      required: true,
+      integration: true as const,
+      required: true as const,
       moduleId: VIEWER_FOUNDATION_MODULE_ID,
       name: descriptor.manifest.name,
       version: descriptor.manifest.version,
@@ -189,9 +189,9 @@ export class AddOnWizardService {
       packageKind: descriptor.packageKind,
       permissions: descriptor.permissions,
       trust: descriptor.trust,
-      enabled: true,
+      enabled: true as const,
       approvedActionIds: [],
-      health: 'installed',
+      health: 'installed' as const,
       configurationSchema,
       settings: await this.readSettings(VIEWER_FOUNDATION_MODULE_ID, configurationSchema),
       installationSteps: ['Viewer Foundation is installed and updated with StreamBridge.', ...descriptor.manifest.installationSteps.slice(1)],
@@ -222,8 +222,8 @@ export class AddOnWizardService {
     const configurationSchema = JSON.parse(await readFile(safeChild(verified.root, descriptor.manifest.configurationSchema), 'utf8')) as unknown;
     const settingsUi = descriptor.settingsUi === undefined ? undefined : JSON.parse(await readFile(safeChild(verified.root, descriptor.settingsUi), 'utf8')) as unknown;
     return Object.freeze({
-      integration: true,
-      required: false,
+      integration: true as const,
+      required: false as const,
       moduleId: COMMUNITY_ANALYTICS_MODULE_ID,
       name: descriptor.manifest.name,
       version: descriptor.manifest.version,
@@ -233,9 +233,9 @@ export class AddOnWizardService {
       packageKind: descriptor.packageKind,
       permissions: descriptor.permissions,
       trust: descriptor.trust,
-      enabled: true,
+      enabled: true as const,
       approvedActionIds: [],
-      health: 'installed',
+      health: 'installed' as const,
       configurationSchema,
       settings: await this.readSettings(COMMUNITY_ANALYTICS_MODULE_ID, configurationSchema),
       installationSteps: ['Community Analytics is installed and updated with StreamBridge.', ...descriptor.manifest.installationSteps.slice(1)],
@@ -266,8 +266,8 @@ export class AddOnWizardService {
     const configurationSchema = JSON.parse(await readFile(safeChild(verified.root, descriptor.manifest.configurationSchema), 'utf8')) as unknown;
     const settingsUi = descriptor.settingsUi === undefined ? undefined : JSON.parse(await readFile(safeChild(verified.root, descriptor.settingsUi), 'utf8')) as unknown;
     return Object.freeze({
-      integration: true,
-      required: false,
+      integration: true as const,
+      required: false as const,
       moduleId: KOFI_DONATIONS_MODULE_ID,
       name: descriptor.manifest.name,
       version: descriptor.manifest.version,
@@ -277,9 +277,9 @@ export class AddOnWizardService {
       packageKind: descriptor.packageKind,
       permissions: descriptor.permissions,
       trust: descriptor.trust,
-      enabled: true,
+      enabled: true as const,
       approvedActionIds: [],
-      health: 'installed',
+      health: 'installed' as const,
       configurationSchema,
       settings: await this.readSettings(KOFI_DONATIONS_MODULE_ID, configurationSchema),
       installationSteps: ['Ko-fi Donations is installed and updated with StreamBridge.', ...descriptor.manifest.installationSteps.slice(1)],

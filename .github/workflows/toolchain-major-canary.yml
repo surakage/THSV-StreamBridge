@@ -1,0 +1,59 @@
+name: TypeScript and Node types next-major canary
+
+on:
+  schedule:
+    # Daily while 4.0.9 gathers its three-run promotion soak; restore weekly after promotion.
+    - cron: '29 10 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: toolchain-next-major-canary
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [typescript-7, node-types-26, combined]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Test TypeScript 7 and Node 26 types without changing production manifests
+        shell: powershell
+        run: .\scripts\test-next-major-toolchain.ps1 -Lane '${{ matrix.lane }}'
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: toolchain-next-major-${{ matrix.lane }}-${{ github.run_id }}
+          path: artifacts/toolchain-canary/latest.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  notify-after-repeat-failure:
+    needs: compatibility
+    if: ${{ always() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Notify only after two consecutive scheduled failures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_RESULT: ${{ needs.compatibility.result }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/manage-automation-issue.mjs --kind toolchain-major-canary --result "$CURRENT_RESULT" --repository "$REPOSITORY" --run-url "$RUN_URL"

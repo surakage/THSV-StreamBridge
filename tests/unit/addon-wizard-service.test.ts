@@ -26,7 +26,7 @@ function declarativeArchive(moduleId = 'sample.status-card', name = 'Sample Stat
     manifest: {
       contractVersion: '2.0.0-preview.1', moduleId, name, version,
       minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies, requiredCapabilities: [],
-      ...(official ? { minimumBridgeVersion: '4.0.8', maximumTestedBridgeVersion: '4.0.8' } : {}),
+      ...(official ? { minimumBridgeVersion: '4.0.9', maximumTestedBridgeVersion: '4.0.9' } : {}),
       configurationSchema: 'schemas/config.json', eventSubscriptions: [], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
       dataStorageOwned: [`addons/state/${moduleId}/`], installationSteps: ['Install through the Add-ons page.'],
       uninstallationSteps: ['Uninstall through the Add-ons page; private settings remain preserved.'], migrations: [], healthChecks: [],

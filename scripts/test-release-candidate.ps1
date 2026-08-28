@@ -14,7 +14,10 @@ try {
     if ([string]::IsNullOrWhiteSpace($CurrentTag)) { $CurrentTag = $expectedTag }
     if ($CurrentTag -ne $expectedTag) { throw "Candidate tag $CurrentTag does not match package.json version $packageVersion. Expected $expectedTag." }
     if (-not $SkipPackaging) {
-        & (Join-Path $PSScriptRoot 'package-release.ps1')
+        $validationReceipt = Join-Path $repositoryRoot 'artifacts\release-validation\latest.json'
+        & (Join-Path $PSScriptRoot 'test-release-source.ps1') -Destination $validationReceipt
+        if ($LASTEXITCODE -ne 0) { throw 'Release source validation failed.' }
+        & (Join-Path $PSScriptRoot 'package-release.ps1') -ValidationReceiptPath $validationReceipt
         if ($LASTEXITCODE -ne 0) { throw 'Release packaging failed.' }
     }
 

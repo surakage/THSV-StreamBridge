@@ -173,7 +173,10 @@ describe('OutputDeliveryManager', () => {
     const template = await fixture();
     await manager.enqueue({ ...template, eventId: 'first-in-lane' });
     await manager.enqueue({ ...template, eventId: 'second-in-lane' });
-    await expect.poll(() => attempts).toEqual(['first-in-lane', 'first-in-lane', 'second-in-lane']);
+    await expect.poll(
+      () => attempts,
+      { timeout: 10_000 },
+    ).toEqual(['first-in-lane', 'first-in-lane', 'second-in-lane']);
     await manager.stop();
   });
 

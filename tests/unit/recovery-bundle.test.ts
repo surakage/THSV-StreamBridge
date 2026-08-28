@@ -60,6 +60,7 @@ describe('encrypted recovery bundles', () => {
     await mkdir(join(root, 'addons', 'packages', 'thsv.test'), { recursive: true });
     await mkdir(join(root, 'addons', 'state', 'thsv.test'), { recursive: true });
     await writeFile(join(root, 'data', 'configuration', 'bridge.local.json'), JSON.stringify({ security: { controlTokenFile: 'data/secrets/control-token' }, webhookUrl: 'https://secret.invalid/value', sceneName: 'BRB' }), 'utf8');
+    await writeFile(join(root, 'data', 'configuration', 'log-storage-policy.json'), JSON.stringify({ schemaVersion: 1, activeBytes: 33554432, archiveBytes: 100663296 }), 'utf8');
     await writeFile(join(root, 'data', 'state', 'scene-catalog.json'), `\uFEFF${JSON.stringify({ scene: 'BRB', credential: 'never-move' })}`, 'utf8');
     await writeFile(join(root, 'data', 'secrets', 'control-token'), 'never-move-token', 'utf8');
     await writeFile(join(root, 'addons', 'packages', 'thsv.test', 'asset.png'), Buffer.from([1, 2, 3]));
@@ -74,6 +75,7 @@ describe('encrypted recovery bundles', () => {
     await restoreTransferBundle({ installRoot: destination, bundlePath: bundle, passphrase: 'correct horse battery staple', approvedByCreator: true });
     await expect(readFile(join(destination, 'data', 'secrets', 'control-token'), 'utf8')).rejects.toThrow();
     expect(await readFile(join(destination, 'data', 'configuration', 'bridge.local.json'), 'utf8')).not.toContain('secret.invalid');
+    expect(JSON.parse(await readFile(join(destination, 'data', 'configuration', 'log-storage-policy.json'), 'utf8'))).toMatchObject({ activeBytes: 33554432, archiveBytes: 100663296 });
     expect(await readFile(join(destination, 'data', 'state', 'scene-catalog.json'), 'utf8')).not.toContain('never-move');
     expect(await readFile(join(destination, 'addons', 'state', 'thsv.test', 'settings.json'), 'utf8')).not.toContain('never-move');
     await expect(readFile(join(destination, 'addons', 'packages', 'thsv.test', 'asset.png'))).resolves.toEqual(Buffer.from([1, 2, 3]));

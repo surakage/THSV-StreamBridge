@@ -5,7 +5,7 @@ This package contains one action: `THSV Addon - Discord Chat Archive - Deliver`.
 ## Setup
 
 1. In Discord, create a dedicated private webhook for the channel that should receive the archive.
-2. Import `THSV-StreamBridge-Discord-Chat-Archive-4.0.8.sb`.
+2. Import `THSV-StreamBridge-Discord-Chat-Archive-4.0.9.sb`.
 3. Accept the custom C# warning only after confirming this package came from the official THSV StreamBridge release.
 4. Open the imported action.
 5. Edit the **Set Argument** named `discordArchiveWebhookUrl` and replace `REPLACE_WITH_DISCORD_WEBHOOK_URL` with the new private webhook URL.

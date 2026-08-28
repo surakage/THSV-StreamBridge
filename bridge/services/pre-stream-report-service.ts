@@ -21,7 +21,7 @@ export async function createPreStreamReport(dataRoot: string, input: PreStreamRe
     schemaVersion: 1,
     generatedAt: generatedAt.toISOString(),
     sharingNotice: 'Sanitized pre-stream evidence. No configuration values, secrets, chat text, viewer identity, or raw provider payloads are included.',
-    build: pick(input.provenance, ['version', 'coreContractVersion', 'installation', 'buildFingerprint', 'releaseManifestSha256', 'runtimeVersion', 'installedAt', 'fileCount']),
+    build: pick(input.provenance, ['version', 'coreContractVersion', 'installation', 'sourceRepository', 'sourceCommitSha', 'sourceTreeState', 'buildFingerprint', 'releaseManifestSha256', 'runtimeVersion', 'installedAt', 'fileCount']),
     readiness,
     obs: { ...pick(input.obsInventory, ['configured', 'ready', 'requiredCount', 'readyRequiredCount']), sources },
     acceptance: { checks, confirmations },

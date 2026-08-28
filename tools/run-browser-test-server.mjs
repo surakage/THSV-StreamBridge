@@ -1,6 +1,6 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 // Playwright owns this disposable process. Give the real bridge shutdown handler
 // time to close files and sockets, then guarantee the test runner is not held open
@@ -11,7 +11,10 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   });
 }
 
-const directory = await mkdtemp(join(tmpdir(), 'thsv-browser-test-'));
+const directory = process.env.THSV_BROWSER_TEST_ROOT
+  ? resolve(process.env.THSV_BROWSER_TEST_ROOT)
+  : await mkdtemp(join(tmpdir(), 'thsv-browser-test-'));
+await mkdir(directory, { recursive: true });
 const config = JSON.parse(await readFile('config/bridge.example.json', 'utf8'));
 config.service.port = Number(process.env.THVS_PLAYWRIGHT_PORT ?? 8799);
 config.streamerbot.testMode = true;
