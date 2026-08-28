@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 const run = promisify(execFile);
 const script = resolve('scripts/test-toolchain-promotion-evidence.ps1');
+const powershell = process.platform === 'win32' ? 'powershell.exe' : 'pwsh';
 const runIds = [101, 102, 103];
 const headShas = ['a'.repeat(40), 'b'.repeat(40), 'c'.repeat(40)];
 const lanes = ['typescript-7', 'node-types-26', 'combined'] as const;
@@ -29,7 +30,7 @@ async function createEvidenceFixture(): Promise<string> {
 }
 
 async function validate(root: string): Promise<string> {
-  const { stdout } = await run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-EvidenceRoot', root, '-RunIdsCsv', runIds.join(','), '-ExpectedHeadShasCsv', headShas.join(',')]);
+  const { stdout } = await run(powershell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-EvidenceRoot', root, '-RunIdsCsv', runIds.join(','), '-ExpectedHeadShasCsv', headShas.join(',')]);
   return stdout;
 }
 
