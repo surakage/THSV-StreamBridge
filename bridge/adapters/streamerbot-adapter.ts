@@ -226,6 +226,21 @@ export class StreamerBotAdapter {
     };
   }
 
+  /** Waits without dispatching or reconnecting; callers can defer dependent startup work. */
+  public async waitUntilConnected(timeoutMs = 30_000, signal?: AbortSignal): Promise<boolean> {
+    if (!this.config.enabled) return false;
+    const deadline = Date.now() + Math.max(0, timeoutMs);
+    while (!signal?.aborted && Date.now() <= deadline) {
+      if (this.state === 'connected' && this.authenticated) return true;
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 100);
+        timer.unref();
+        signal?.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+      });
+    }
+    return this.state === 'connected' && this.authenticated;
+  }
+
   private async connect(): Promise<void> {
     this.state = this.reconnectAttempts === 0 ? 'connecting' : 'reconnecting';
     await new Promise<void>((resolve) => {

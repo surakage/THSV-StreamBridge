@@ -8,6 +8,7 @@ import { KOFI_DONATIONS_MODULE_ID, kofiDonationsIntegrationRoot } from '../core/
 import { isBuiltInIntegrationModuleId } from '../core/built-in-integrations.js';
 import {
   AddOnPackageError,
+  compareVersions,
   installAddOnArchive,
   inspectAddOnArchive,
   listInstalledAddOnPackages,
@@ -123,7 +124,44 @@ export class AddOnWizardService {
     private readonly stateRoot: string,
     private readonly inboxRoot = join(resolve(packagesRoot), 'inbox'),
     private readonly bundledExtensionsRoot = resolve('packages', 'extensions'),
+    private readonly officialUpdatesRoot = resolve('packages', 'official-updates'),
   ) {}
+
+  /**
+   * Reconciles only already-installed first-party extensions with the archives
+   * shipped inside the verified Bridge release. Creator enablement, approved
+   * action IDs, settings, and state are retained by the transactional package
+   * installer. Missing extensions remain opt-in.
+   */
+  public async updateInstalledBundledExtensions(): Promise<Readonly<Record<string, unknown>>> {
+    const updated: Array<Readonly<Record<string, string>>> = [];
+    const skipped: Array<Readonly<Record<string, string>>> = [];
+    const archives: string[] = [];
+    for (const root of [this.bundledExtensionsRoot, this.officialUpdatesRoot]) try {
+      const entries = await readdir(root, { withFileTypes: true });
+      archives.push(...entries.filter((candidate) => candidate.isFile() && candidate.name.endsWith('.thsv-addon')).map((entry) => join(root, entry.name)));
+    } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+    const seen = new Set<string>();
+    for (const archivePath of archives.sort()) {
+      const archive = await readFile(archivePath);
+      const descriptor = await inspectAddOnArchive(archive, this.packagesRoot);
+      if (descriptor.trust.publisherId !== 'thsv.streambridge') throw new AddOnPackageError(`Bundled extension ${descriptor.manifest.moduleId} is not signed as the official THSV publisher.`);
+      if (seen.has(descriptor.manifest.moduleId)) continue;
+      seen.add(descriptor.manifest.moduleId);
+      const installedRoot = join(this.packagesRoot, descriptor.manifest.moduleId);
+      let record: Readonly<Record<string, unknown>>;
+      try { record = objectInput(JSON.parse(await readFile(join(installedRoot, 'installed-package.json'), 'utf8')) as unknown); }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') { skipped.push({ moduleId: descriptor.manifest.moduleId, reason: 'not-installed' }); continue; }
+        throw error;
+      }
+      const installedVersion = typeof record['version'] === 'string' ? record['version'] : '';
+      if (installedVersion !== '' && compareVersions(descriptor.manifest.version, installedVersion) <= 0) { skipped.push({ moduleId: descriptor.manifest.moduleId, reason: 'current' }); continue; }
+      await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
+      updated.push({ moduleId: descriptor.manifest.moduleId, fromVersion: installedVersion || 'unknown', toVersion: descriptor.manifest.version });
+    }
+    return { checked: updated.length + skipped.length, updated, skipped };
+  }
 
   public async list(): Promise<readonly WizardAddOnSummary[]> {
     const installed = (await listInstalledAddOnPackages(this.packagesRoot)).filter((addOn) => !isBuiltInIntegrationModuleId(addOn.moduleId));

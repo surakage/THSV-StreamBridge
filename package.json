@@ -26,7 +26,7 @@
     "simulate:burst": "tsx tools/simulate-burst.ts",
     "start": "node dist/apps/bridge-service.js",
     "test": "vitest run",
-    "test:browser": "npm run build && playwright test",
+    "test:browser": "npm run build && node tools/run-playwright.mjs",
     "test:broadcast-vendors": "node tools/accept-broadcast-vendors.mjs",
     "test:startup-chaos": "node tools/run-startup-chaos.mjs",
     "test:local-install-rehearsal": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-local-installation-rehearsal.ps1",

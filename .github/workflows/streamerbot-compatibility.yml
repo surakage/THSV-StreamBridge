@@ -1,0 +1,37 @@
+name: Publish Streamer.bot compatibility data
+
+on:
+  push:
+    tags:
+      - streamerbot-compat-*
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate bounded compatibility feed
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('packages/streamerbot/compatibility-feed.json','utf8'));if(p.schemaVersion!==1||!Array.isArray(p.versions)||p.versions.length<1||p.versions.length>32)throw new Error('invalid feed');for(const v of p.versions){if(!/^\\d+\\.\\d+\\.\\d+(?:-alpha\\.\\d+)?$/.test(v.version)||!/^\\d+\\.\\d+\\.\\d+(?:-alpha\\.\\d+)?$/.test(v.baseVersion))throw new Error('invalid exact version')}const tagged=process.env.GITHUB_REF_NAME.replace(/^streamerbot-compat-/,'');if(!p.versions.some(v=>v.version===tagged))throw new Error('tag must name an exact declared version')"
+          cp packages/streamerbot/compatibility-feed.json THSV-StreamBridge-StreamerBot-Compatibility.json
+      - name: Attest compatibility data
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: THSV-StreamBridge-StreamerBot-Compatibility.json
+      - name: Publish immutable data-only release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" THSV-StreamBridge-StreamerBot-Compatibility.json --title "Streamer.bot compatibility ${GITHUB_REF_NAME#streamerbot-compat-}" --notes "Attested data-only exact-version compatibility update. No StreamBridge application update is required."

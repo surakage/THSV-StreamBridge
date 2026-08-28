@@ -10,7 +10,9 @@ describe('wizard recovery and feature-aware readiness', () => {
   it('requires Speaker.bot only for enabled features that use it', () => {
     expect(inspectSpeakerBotReadiness([addOn('thsv.random-clip-player')], undefined)).toMatchObject({ required: false, ready: true });
     expect(inspectSpeakerBotReadiness([addOn('thsv.village-hydration-station', { speakerEnabled: false })], undefined)).toMatchObject({ required: false, ready: true });
-    expect(inspectSpeakerBotReadiness([addOn('thsv.voice-relay')], { configured: true, enabled: true, running: false })).toMatchObject({ required: true, ready: false, modules: ['thsv.voice-relay'] });
+    const waitingForLauncher = inspectSpeakerBotReadiness([addOn('thsv.voice-relay')], { configured: true, enabled: true, running: false, executableExists: true });
+    expect(waitingForLauncher).toMatchObject({ required: true, ready: false, willStartAutomatically: true, modules: ['thsv.voice-relay'] });
+    expect(String(waitingForLauncher['detail'])).toContain('Start THSV Streaming Tools');
     expect(inspectSpeakerBotReadiness([addOn('thsv.village-hydration-station', { speakerEnabled: true })], { configured: true, enabled: true, running: true })).toMatchObject({ required: true, ready: true });
   });
 

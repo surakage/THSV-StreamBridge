@@ -75,7 +75,8 @@ try {
     $builtInIntegrationIds = @('thsv.viewer-foundation', 'thsv.community-analytics', 'thsv.kofi-donations')
     $bundledExtensionIds = @([regex]::Matches($mainFeatureRegistrySource, "'(?<id>thsv\.[a-z0-9-]+)'") | ForEach-Object { $_.Groups['id'].Value } | Where-Object { $_ -notin $builtInIntegrationIds } | Select-Object -Unique)
     $bundledExtensionsRoot = Join-Path $temporary 'bundled-extensions'
-    New-Item -ItemType Directory -Path $bundledExtensionsRoot -Force | Out-Null
+    $officialUpdatesRoot = Join-Path $temporary 'official-updates'
+    New-Item -ItemType Directory -Path $bundledExtensionsRoot, $officialUpdatesRoot -Force | Out-Null
     # Release output is a single-version handoff surface. Remove older generated core
     # archives so a local package directory cannot be mistaken for the current release.
     Get-ChildItem -LiteralPath $resolvedPackages -Filter 'THSV-StreamBridge-*.zip*' -File |
@@ -98,6 +99,7 @@ try {
         npm.cmd run addon:package -- $_.FullName $addOnArchive
         if ($LASTEXITCODE -ne 0) { throw "$($descriptor.manifest.name) add-on packaging failed." }
         $addOnHash = Get-Sha256Hex $addOnArchive
+        Copy-Item -LiteralPath $addOnArchive -Destination (Join-Path $officialUpdatesRoot "$([string]$descriptor.manifest.moduleId).thsv-addon")
         $streamerBotPackageRoot = Join-Path $repo "packages\streamerbot\$($_.Name)"
         $streamerBotManifestPath = Join-Path $streamerBotPackageRoot 'manifest.json'
         $hasStreamerBotPackage = Test-Path -LiteralPath $streamerBotManifestPath
@@ -264,6 +266,9 @@ try {
     if ($stagedBundledExtensionFiles.Count -ne $bundledExtensionIds.Count) {
         throw "Release package expected $($bundledExtensionIds.Count) bundled extension components but staged $($stagedBundledExtensionFiles.Count)."
     }
+    $appOfficialUpdatesRoot = Join-Path $appRoot 'packages\official-updates'
+    New-Item -ItemType Directory -Path $appOfficialUpdatesRoot -Force | Out-Null
+    Get-ChildItem -LiteralPath $officialUpdatesRoot -Filter '*.thsv-addon' -File | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $appOfficialUpdatesRoot $_.Name) }
     $coreStreamerBotRoot = Join-Path $appRoot 'packages\streamerbot'
     New-Item -ItemType Directory -Path $coreStreamerBotRoot | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot\import-index.json') -Destination $coreStreamerBotRoot

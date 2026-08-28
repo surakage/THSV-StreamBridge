@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import type { WizardAddOnSummary } from './addon-wizard-service.js';
-import { STREAMERBOT_TRIGGER_REGISTRY_107 } from '../contracts/streamerbot-trigger-contract-registry.js';
+import { STREAMERBOT_TRIGGER_REGISTRY_107, streamerBotTriggerRegistryForVersion } from '../contracts/streamerbot-trigger-contract-registry.js';
 
 interface ImportIndexRecord {
   readonly folder: string;
@@ -73,10 +73,14 @@ export interface UniversalImportResult {
 }
 
 export class StreamerBotUniversalImportService {
-  public constructor(private readonly packagesRoot = resolve('packages', 'streamerbot')) {}
+  public constructor(
+    private readonly packagesRoot = resolve('packages', 'streamerbot'),
+    private readonly streamerBotVersion: () => Promise<string | undefined> = async () => STREAMERBOT_TRIGGER_REGISTRY_107.version,
+  ) {}
 
   public async catalogue(installedAddOns: readonly WizardAddOnSummary[] = []): Promise<UniversalImportCatalogue> {
     const index = await this.readIndex();
+    const triggerRegistry = streamerBotTriggerRegistryForVersion(await this.streamerBotVersion()) ?? STREAMERBOT_TRIGGER_REGISTRY_107;
     const installedById = new Map(installedAddOns.map((addOn) => [addOn.moduleId, addOn]));
     const packages = await Promise.all(index.packages.map(async (record) => {
       const decoded = await this.readPackage(record);
@@ -101,7 +105,7 @@ export class StreamerBotUniversalImportService {
     return {
       bridgeVersion: index.bridgeVersion,
       minimumStreamerBotVersion: highestVersion(index.packages.map((record) => record.minimumStreamerBotVersion)),
-      triggerContractVersion: STREAMERBOT_TRIGGER_REGISTRY_107.version,
+      triggerContractVersion: triggerRegistry.version,
       packages,
     };
   }
@@ -158,7 +162,7 @@ export class StreamerBotUniversalImportService {
       actionCount: actions.length,
       commandCount: commands.length,
       minimumStreamerBotVersion,
-      triggerContractVersion: STREAMERBOT_TRIGGER_REGISTRY_107.version,
+      triggerContractVersion: catalogue.triggerContractVersion,
       triggerRecommendations: recommendationRecords.map(({ record, manifest }) => ({
         package: record.name,
         recommendations: flattenTriggerSetup(manifest.manualTriggerSetup),

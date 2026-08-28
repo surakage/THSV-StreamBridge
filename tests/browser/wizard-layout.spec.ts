@@ -219,10 +219,12 @@ test('pre-stream check requires healthy local evidence and an automatically veri
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Test & finish', exact: true })).toBeVisible();
-  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(15);
+  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(17);
   await expect(page.locator('#pre-stream-badge')).toHaveText('2 steps left');
   await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
   await expect(page.locator('#pre-stream-grid')).toContainText('Add-on action grants');
+  await expect(page.locator('#pre-stream-grid')).toContainText('Signed Streamer.bot compatibility data');
+  await expect(page.locator('#pre-stream-grid')).toContainText('Log storage budget');
   await expect(page.locator('#pre-stream-grid')).toContainText('Critical overlay connections');
   await expect(page.locator('#pre-stream-grid')).toContainText('Timed-action schedule canary');
   await expect(page.locator('#pre-stream-grid')).toContainText('Configured broadcast scenes');

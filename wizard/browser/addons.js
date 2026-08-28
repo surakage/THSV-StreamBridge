@@ -477,8 +477,11 @@ async function refreshSceneCatalogOnOpen() {
 }
 
 const sceneProviderLabels = { obs: 'OBS Studio', streamlabs: 'Streamlabs Desktop', meld: 'Meld Studio' };
-function catalogScenes(provider) { return Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []; }
-function catalogSceneOptions(provider, selected = '') { const scenes = catalogScenes(provider); return `<option value="">${scenes.length ? 'Choose a detected scene…' : 'No scenes detected yet'}</option>${scenes.map((scene) => `<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}`; }
+function decorativeSceneName(scene){const compact=String(scene).replace(/[\s\d._-]/gu,'');return compact.length>0&&/^[━─═—–│┃┄┅┈┉┊┋┌┐└┘├┤┬┴┼]+$/u.test(compact)}
+function currentScenes(provider){return new Set((state.sceneCatalog?.providers?.[provider]?.connections||[]).map((connection)=>connection.currentScene).filter(Boolean))}
+function catalogScenes(provider) { return (Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []).filter((scene)=>!decorativeSceneName(scene)); }
+function categorizedScenes(provider,selected='',query=''){const current=currentScenes(provider);const normalized=query.trim().toLocaleLowerCase();const groups={Current:[],Used:[],Likely:[],Other:[]};for(const scene of catalogScenes(provider)){if(normalized&&!scene.toLocaleLowerCase().includes(normalized))continue;const group=current.has(scene)?'Current':scene===selected?'Used':/(start|soon|brb|break|end|raid|game|chat|ad|countdown)/iu.test(scene)?'Likely':'Other';groups[group].push(scene)}return groups}
+function catalogSceneOptions(provider, selected = '',query='') { const groups=categorizedScenes(provider,selected,query);const count=Object.values(groups).flat().length;return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${Object.entries(groups).filter(([,scenes])=>scenes.length).map(([label,scenes])=>`<optgroup label="${label}">${scenes.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}`; }
 function enabledSceneProviders(selected = '') {
   const enabled = new Set(['obs', selected]);
   for (const connection of state.broadcastConnections?.connections || []) if (connection.enabled === true) enabled.add(connection.provider);
@@ -489,7 +492,7 @@ function renderSceneListPicker(name, label, value, help) {
   return `<fieldset class="scene-catalog-picker" data-scene-list-picker><legend>${label}</legend><textarea name="${safe(name)}" rows="4" data-addon-string-list="true" placeholder="One exact scene name per line">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>${help}<div class="scene-catalog-controls"><label>Broadcast app<select data-scene-catalog-provider>${sceneProviderOptions()}</select></label><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs')}</select></label><button type="button" class="ghost compact" data-add-catalog-scene>Add scene</button><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></div><small data-scene-catalog-status>Manual entry stays available. OBS supports a full read-only refresh; Meld and Streamlabs learn exact names as scene changes are observed.</small></fieldset>`;
 }
 function renderSceneNamePicker(name, label, value, help, ui) {
-  return `<fieldset class="scene-name-picker" data-scene-name-picker><legend>${label}</legend><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs', value ?? '')}</select></label><label>Exact scene name<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"></label>${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>Select a detected exact name above, or keep the manual value for a scene that has not been observed yet.</small></fieldset>`;
+  return `<fieldset class="scene-name-picker" data-scene-name-picker><legend>${label}</legend><label>Filter list<input type="search" data-scene-catalog-search placeholder="Search current, used, likely, or other scenes"></label><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs', value ?? '')}</select></label><label>Exact scene name<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"></label>${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>Select a categorized exact name above, or keep the manual value for a scene that has not been observed yet. Decorative separators are hidden.</small></fieldset>`;
 }
 function providerForSceneInput(input) {
   const form = input.closest('form'); const providerField = input.dataset.providerField;
@@ -497,7 +500,7 @@ function providerForSceneInput(input) {
 }
 function populateSceneCatalogControls(root = document) {
   root.querySelectorAll('[data-scene-list-picker]').forEach((picker) => { const provider = picker.querySelector('[data-scene-catalog-provider]').value; picker.querySelector('[data-scene-catalog-select]').innerHTML = catalogSceneOptions(provider); });
-  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const picker = input.closest('[data-scene-name-picker]'); const select = picker?.querySelector('[data-scene-catalog-select]'); if (select) select.innerHTML = catalogSceneOptions(providerForSceneInput(input), input.value); });
+  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const picker = input.closest('[data-scene-name-picker]'); const select = picker?.querySelector('[data-scene-catalog-select]'); const query=picker?.querySelector('[data-scene-catalog-search]')?.value||'';if (select) select.innerHTML = catalogSceneOptions(providerForSceneInput(input), input.value,query); });
 }
 async function refreshSceneCatalog(button) {
   const picker = button.closest('[data-scene-list-picker]'); const input = button.closest('label')?.querySelector('[data-scene-name-input]');
@@ -513,6 +516,7 @@ async function refreshSceneCatalog(button) {
   finally { button.disabled = false; }
 }
 function attachSceneCatalogPickers(form) {
+  form.querySelectorAll('[data-scene-catalog-search]:not([data-scene-catalog-attached])').forEach((input)=>{input.dataset.sceneCatalogAttached='true';input.addEventListener('input',()=>populateSceneCatalogControls(form))});
   form.querySelectorAll('[data-scene-catalog-provider]:not([data-scene-catalog-attached])').forEach((select) => { select.dataset.sceneCatalogAttached = 'true'; select.addEventListener('change', () => populateSceneCatalogControls(form)); });
   form.querySelectorAll('[data-scene-name-picker] [data-scene-catalog-select]:not([data-scene-catalog-attached])').forEach((select) => { select.dataset.sceneCatalogAttached = 'true'; select.addEventListener('change', () => { const input = select.closest('[data-scene-name-picker]')?.querySelector('[data-scene-name-input]'); if (!input || !select.value) return; input.value = select.value; input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); }); });
   form.querySelectorAll('[data-refresh-scene-catalog]:not([data-scene-catalog-attached])').forEach((button) => { button.dataset.sceneCatalogAttached = 'true'; button.addEventListener('click', () => refreshSceneCatalog(button)); });

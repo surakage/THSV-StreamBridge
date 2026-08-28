@@ -1,5 +1,6 @@
-import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { gzipSync } from 'node:zlib';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 type LogFields = Readonly<Record<string, unknown>>;
@@ -19,6 +20,9 @@ export class StructuredLogger implements Logger {
   private readonly filePath: string;
   private readonly activityDirectory: string;
   private readonly sensitiveValues = new Set<string>();
+  private lastSignature = '';
+  private lastRepeatedAt = 0;
+  private repeated = 0;
 
   public constructor(
     private readonly minimumLevel: LogLevel,
@@ -28,6 +32,7 @@ export class StructuredLogger implements Logger {
   ) {
     this.filePath = resolve(directory, 'streambridge.log');
     this.activityDirectory = resolve(directory, 'daily');
+    this.writeQueue = this.normalizeLegacyLogs();
   }
 
   public debug(message: string, fields: LogFields = {}): void { this.log('debug', message, fields); }
@@ -35,7 +40,7 @@ export class StructuredLogger implements Logger {
   public warn(message: string, fields: LogFields = {}): void { this.log('warn', message, fields); }
   public error(message: string, fields: LogFields = {}): void { this.log('error', message, fields); }
 
-  public async flush(): Promise<void> { await this.writeQueue; }
+  public async flush(): Promise<void> { this.flushRepeatSummary(); await this.writeQueue; }
 
   public addSensitiveValue(value: string | undefined): void {
     if (value !== undefined && value.length >= 4) this.sensitiveValues.add(value);
@@ -46,6 +51,11 @@ export class StructuredLogger implements Logger {
     const now = new Date();
     const sanitizedMessage = sanitizeString(message, this.sensitiveValues);
     const sanitizedFields = sanitize(fields, '', this.sensitiveValues) as Record<string, unknown>;
+    const signature = JSON.stringify([level, sanitizedMessage, sanitizedFields]);
+    if (signature === this.lastSignature && Date.now() - this.lastRepeatedAt <= 10_000) { this.repeated += 1; this.lastRepeatedAt = Date.now(); return; }
+    this.flushRepeatSummary();
+    this.lastSignature = signature;
+    this.lastRepeatedAt = Date.now();
     const entry = JSON.stringify({
       timestamp: now.toISOString(),
       level,
@@ -61,22 +71,61 @@ export class StructuredLogger implements Logger {
     });
   }
 
+  private flushRepeatSummary(): void {
+    if (this.repeated === 0) return;
+    const now = new Date();
+    const line = `${JSON.stringify({ timestamp: now.toISOString(), level: 'info', message: 'Previous log entry repeated', repeatCount: this.repeated })}\n`;
+    const activityPath = resolve(this.activityDirectory, `THSV-StreamBridge-${formatLocalDate(now)}.txt`);
+    const activityLine = `${formatLocalTimestamp(now)} [INFO] Previous log entry repeated | repeatCount=${String(this.repeated)}\n`;
+    this.repeated = 0;
+    process.stdout.write(line);
+    this.writeQueue = this.writeQueue.then(() => this.writeLine(line, activityPath, activityLine));
+  }
+
   private async writeLine(line: string, activityPath: string, activityLine: string): Promise<void> {
     await mkdir(dirname(this.filePath), { recursive: true });
     await mkdir(dirname(activityPath), { recursive: true });
     const size = await stat(this.filePath).then((value) => value.size).catch(() => 0);
     if (size + Buffer.byteLength(line) > this.maxFileBytes) await this.rotate();
+    const activitySize = await stat(activityPath).then((value) => value.size).catch(() => 0);
+    if (activitySize + Buffer.byteLength(activityLine) > this.maxFileBytes) await this.compressFile(activityPath, `${activityPath}.1.gz`);
     await writeFile(this.filePath, line, { encoding: 'utf8', flag: 'a', mode: 0o600 });
     await writeFile(activityPath, activityLine, { encoding: 'utf8', flag: 'a', mode: 0o600 });
   }
 
   private async rotate(): Promise<void> {
     for (let index = this.backups; index >= 1; index -= 1) {
-      const source = index === 1 ? this.filePath : `${this.filePath}.${String(index - 1)}`;
-      const destination = `${this.filePath}.${String(index)}`;
+      const source = index === 1 ? this.filePath : `${this.filePath}.${String(index - 1)}.gz`;
+      const destination = `${this.filePath}.${String(index)}.gz`;
       await rm(destination, { force: true });
-      await rename(source, destination).catch(() => undefined);
+      if (index === 1) await this.compressFile(source, destination);
+      else await rename(source, destination).catch(() => undefined);
     }
+  }
+
+  private async normalizeLegacyLogs(): Promise<void> {
+    for (let index = 1; index <= this.backups; index += 1) {
+      const source = `${this.filePath}.${String(index)}`;
+      const preferredDestination = `${source}.gz`;
+      const destinationExists = await stat(preferredDestination).then(() => true).catch(() => false);
+      await this.compressFile(source, destinationExists ? `${source}.legacy.gz` : preferredDestination);
+    }
+
+    const today = `THSV-StreamBridge-${formatLocalDate(new Date())}.txt`;
+    const activityFiles = await readdir(this.activityDirectory).catch(() => []);
+    for (const name of activityFiles) {
+      if (!name.startsWith('THSV-StreamBridge-') || !name.endsWith('.txt') || name === today) continue;
+      const source = resolve(this.activityDirectory, name);
+      await this.compressFile(source, `${source}.gz`);
+    }
+  }
+
+  private async compressFile(source: string, destination: string): Promise<void> {
+    try {
+      const content = await readFile(source);
+      await writeFile(destination, gzipSync(content, { level: 9 }), { mode: 0o600 });
+      await rm(source, { force: true });
+    } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   }
 }
 

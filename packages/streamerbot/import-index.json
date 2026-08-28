@@ -375,8 +375,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Native-Platform-Intake-4.0.8.sb",
-          "size": 38264,
-          "sha256": "67e56c4da6855feee037df3c7f731e70a77ebf6d8d17efb5ee6c14b6e85a9b28"
+          "size": 38568,
+          "sha256": "86eb7290f2891a38040dae9a54d9cdc73dbc142abb60cf1408da3b662121a58c"
         }
       ]
     },

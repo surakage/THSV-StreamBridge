@@ -1,0 +1,59 @@
+{
+  "schema": "sanitized-streamerbot-actions-fixture-v1",
+  "capturedFrom": "1.1.0-alpha.3",
+  "actions": [
+    {
+      "id": "fixture-twitch",
+      "name": "THSV Twitch - Intake",
+      "group": "THSV",
+      "enabled": true,
+      "triggers": [
+        { "id": "tw-154", "type": 154, "enabled": true, "exclusions": [] },
+        { "id": "tw-155", "type": 155, "enabled": true, "exclusions": [] },
+        { "id": "tw-133", "type": 133, "enabled": true, "exclusions": [] },
+        { "id": "tw-101", "type": 101, "enabled": true, "exclusions": [] },
+        { "id": "tw-102", "type": 102, "enabled": true, "exclusions": [], "min": -1, "max": -1 },
+        { "id": "tw-104", "type": 104, "enabled": true, "exclusions": [], "tiers": 16, "min": -1, "max": -1 },
+        { "id": "tw-105", "type": 105, "enabled": true, "exclusions": [], "tiers": 16, "min": -1, "max": -1, "subType": 0, "monthsGifted": 15 },
+        { "id": "tw-106", "type": 106, "enabled": true, "exclusions": [], "tiers": 16, "min": -1, "max": -1, "subType": 0 },
+        { "id": "tw-107", "type": 107, "enabled": true, "exclusions": [], "min": -1, "max": -1 },
+        { "id": "tw-112", "type": 112, "enabled": true, "exclusions": [], "rewardId": "" }
+      ]
+    },
+    {
+      "id": "fixture-youtube",
+      "name": "THSV YouTube - Intake",
+      "group": "THSV",
+      "enabled": true,
+      "triggers": [
+        { "id": "yt-4003", "type": 4003, "enabled": true, "exclusions": [] },
+        { "id": "yt-4006", "type": 4006, "enabled": true, "exclusions": [], "min": -1.0, "max": -1.0 },
+        { "id": "yt-4007", "type": 4007, "enabled": true, "exclusions": [], "min": -1.0, "max": -1.0 },
+        { "id": "yt-4030", "type": 4030, "enabled": true, "exclusions": [], "min": -1, "max": -1 },
+        { "id": "yt-4018", "type": 4018, "enabled": true, "exclusions": [] },
+        { "id": "yt-4008", "type": 4008, "enabled": true, "exclusions": [] },
+        { "id": "yt-4009", "type": 4009, "enabled": true, "exclusions": [] },
+        { "id": "yt-4015", "type": 4015, "enabled": true, "exclusions": [] },
+        { "id": "yt-4019", "type": 4019, "enabled": true, "exclusions": [] },
+        { "id": "yt-4002", "type": 4002, "enabled": true, "exclusions": [] }
+      ]
+    },
+    {
+      "id": "fixture-kick",
+      "name": "THSV Kick - Intake",
+      "group": "THSV",
+      "enabled": true,
+      "triggers": [
+        { "id": "kick-35010", "type": 35010, "enabled": true, "exclusions": [] },
+        { "id": "kick-35011", "type": 35011, "enabled": true, "exclusions": [] },
+        { "id": "kick-35016", "type": 35016, "enabled": true, "exclusions": [] },
+        { "id": "kick-35015", "type": 35015, "enabled": true, "exclusions": [] },
+        { "id": "kick-35017", "type": 35017, "enabled": true, "exclusions": [], "min": -1, "max": -1 },
+        { "id": "kick-35025", "type": 35025, "enabled": true, "exclusions": [], "min": -1, "max": -1 },
+        { "id": "kick-35024", "type": 35024, "enabled": true, "exclusions": [], "rewardId": "" },
+        { "id": "kick-35012", "type": 35012, "enabled": true, "exclusions": [] },
+        { "id": "kick-35013", "type": 35013, "enabled": true, "exclusions": [] }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 // Purpose: Relays bounded Twitch, YouTube, or Kick trigger arguments to the local bridge WebSocket.
 // Streamer.bot 1.0.5 stable moved Twitch chat fully to EventSub and removed the legacy WebSocket
-// message object. This relay intentionally reads only documented flat action arguments.
+// message object. Streamer.bot 1.1.0 alpha builds also change provider WebSocket payloads, so this
+// relay intentionally stays isolated from those raw payloads and reads only documented flat action arguments.
 // Trust boundary: limits key count and value size; the Core Receiver still validates the normalized event.
 // References: mscorlib.dll, System.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;

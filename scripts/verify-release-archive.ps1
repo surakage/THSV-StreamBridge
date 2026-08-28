@@ -25,14 +25,23 @@ if ($actualHash -ne $expectedHash) { throw "Release checksum mismatch for $archi
 
 $provenanceVerified = $false
 if (-not $SkipAttestation) {
-    $attestationOutput = gh attestation verify $archive --repo $Repository 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $previousErrorPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $attestationOutput = gh attestation verify $archive --repo $Repository 2>&1
+        $githubCliExitCode = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $previousErrorPreference }
+    if ($githubCliExitCode -ne 0) {
         $bundlePath = Join-Path ([System.IO.Path]::GetTempPath()) "thsv-attestations-$([guid]::NewGuid().ToString('N')).jsonl"
         try {
             & node (Join-Path $PSScriptRoot 'public-github-release.mjs') attestations $Repository "sha256:$actualHash" $bundlePath
             if ($LASTEXITCODE -ne 0) { throw "Release provenance retrieval failed for $archiveName. $($attestationOutput -join ' ')" }
-            $attestationOutput = gh attestation verify $archive --repo $Repository --bundle $bundlePath 2>&1
-            if ($LASTEXITCODE -ne 0) {
+            try {
+                $ErrorActionPreference = 'Continue'
+                $attestationOutput = gh attestation verify $archive --repo $Repository --bundle $bundlePath 2>&1
+                $githubCliExitCode = $LASTEXITCODE
+            } finally { $ErrorActionPreference = $previousErrorPreference }
+            if ($githubCliExitCode -ne 0) {
                 & node (Join-Path $PSScriptRoot 'public-github-release.mjs') verify-attestations $Repository "sha256:$actualHash" $bundlePath
                 if ($LASTEXITCODE -ne 0) { throw "Offline release provenance verification failed for $archiveName. $($attestationOutput -join ' ')" }
             }
