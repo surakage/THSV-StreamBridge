@@ -74,7 +74,16 @@ if (Test-Path -LiteralPath $releaseEvidencePath -PathType Leaf) {
     gh attestation verify "$releaseEvidencePath.sha256" --repo $Repository | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Published release-evidence checksum provenance verification failed.' }
     $releaseEvidence = Get-Content -Raw -LiteralPath $releaseEvidencePath | ConvertFrom-Json
-    if ($releaseEvidence.schemaVersion -ne 1 -or $releaseEvidence.product -ne 'THSV StreamBridge' -or $releaseEvidence.tag -ne $Tag -or $releaseEvidence.repository -ne $Repository) { throw 'Published release-evidence identity is invalid.' }
+    $schemaVersion = [int]$releaseEvidence.schemaVersion
+    $numericVersion = $version.Split('-')[0]
+    $versionParts = @($numericVersion.Split('.') | ForEach-Object { [int]$_ })
+    $commitBindingRequired = $versionParts[0] -gt 4 -or ($versionParts[0] -eq 4 -and ($versionParts[1] -gt 0 -or ($versionParts[1] -eq 0 -and $versionParts[2] -ge 9)))
+    if ($schemaVersion -notin @(1, 2) -or ($commitBindingRequired -and $schemaVersion -ne 2) -or $releaseEvidence.product -ne 'THSV StreamBridge' -or $releaseEvidence.tag -ne $Tag -or $releaseEvidence.version -ne $version -or $releaseEvidence.repository -ne $Repository -or [string]$releaseEvidence.commitSha -notmatch '^[a-f0-9]{40}$' -or $null -eq $releaseEvidence.assets) { throw 'Published release-evidence identity is invalid.' }
+    if ($schemaVersion -eq 2) {
+        $coreArchiveName = "THSV-StreamBridge-$version.zip"
+        $coreArchivePath = Join-Path $destinationPath $coreArchiveName
+        if ($releaseEvidence.coreArchive.name -ne $coreArchiveName -or $releaseEvidence.coreArchive.sourceCommitSha -ne $releaseEvidence.commitSha -or [string]$releaseEvidence.coreArchive.sha256 -notmatch '^[a-f0-9]{64}$' -or -not (Test-Path -LiteralPath $coreArchivePath -PathType Leaf) -or $releaseEvidence.coreArchive.sha256 -ne (Get-Sha256 $coreArchivePath)) { throw 'Published release evidence does not bind the core archive to the exact source commit.' }
+    }
     foreach ($asset in @($releaseEvidence.assets)) {
         $name = [string]$asset.name
         if ([string]::IsNullOrWhiteSpace($name) -or [System.IO.Path]::GetFileName($name) -ne $name -or [string]$asset.sha256 -notmatch '^[a-f0-9]{64}$') { throw 'Published release-evidence contains an invalid asset record.' }

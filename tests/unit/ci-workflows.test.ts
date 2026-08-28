@@ -55,6 +55,7 @@ describe('GitHub workflow reliability', () => {
     const script = await readFile('scripts/test-published-release.ps1', 'utf8');
     expect(workflow).toContain('types: [published]');
     expect(workflow).toContain('test-published-release.ps1');
+    expect(workflow.match(/ref: main/gu)).toHaveLength(2);
     expect(script).toContain('gh release download');
     expect(script).toContain('gh attestation verify');
     expect(script).toContain('Assert-Checksum');
@@ -65,6 +66,9 @@ describe('GitHub workflow reliability', () => {
     expect(script).toContain('Refusing to downgrade');
     expect(script).toContain('rollbackProtectionVerified = $true');
     expect(script).toContain('releaseEvidenceVerified');
+    expect(script).toContain('$schemaVersion -notin @(1, 2)');
+    expect(script).toContain('$commitBindingRequired -and $schemaVersion -ne 2');
+    expect(script).toContain('does not bind the core archive to the exact source commit');
     expect(script).toContain('uninstall.mjs');
     expect(script).toContain('reinstallAfterUninstall = $version');
     expect(script).toContain('recoveryKeyVerified = $true');
