@@ -32,7 +32,12 @@ export async function validatePublicReleaseAssets({ directory, repository, tag, 
   if (indexedArchives.some((name) => typeof name !== 'string') || indexedArchives.join('\n') !== addOnArchives.join('\n')) throw new Error('Add-on index archives do not exactly match the published optional add-on archives.');
   for (const item of index.packages) if (!/^[a-f0-9]{64}$/u.test(item.sha256 ?? '') || await sha256(join(directory, item.archiveName)) !== item.sha256) throw new Error(`Add-on index digest mismatch for ${String(item.archiveName)}.`);
   const evidence = await readJson(join(directory, evidenceName), 'release evidence');
-  if (evidence.tag !== tag || evidence.version !== version || evidence.repository !== repository || !/^[a-f0-9]{40}$/u.test(evidence.commitSha ?? '') || !Array.isArray(evidence.assets)) throw new Error('Release evidence identity does not match the public release.');
+  const commitBindingRequired = versionAtLeast(version, '4.0.9');
+  if (![1, 2].includes(evidence.schemaVersion) || (commitBindingRequired && evidence.schemaVersion !== 2) || evidence.tag !== tag || evidence.version !== version || evidence.repository !== repository || !/^[a-f0-9]{40}$/u.test(evidence.commitSha ?? '') || !Array.isArray(evidence.assets)) throw new Error('Release evidence identity does not match the public release.');
+  if (evidence.schemaVersion === 2) {
+    const coreEvidence = evidence.coreArchive;
+    if (coreEvidence?.name !== archiveName || coreEvidence?.sourceCommitSha !== evidence.commitSha || !/^[a-f0-9]{64}$/u.test(coreEvidence?.sha256 ?? '') || coreEvidence.sha256 !== await sha256(join(directory, archiveName))) throw new Error('Release evidence does not bind the core archive to the exact source commit.');
+  }
   for (const asset of evidence.assets) {
     if (typeof asset?.name !== 'string' || !selectedNames.includes(asset.name) || !/^[a-f0-9]{64}$/u.test(asset.sha256 ?? '') || await sha256(join(directory, asset.name)) !== asset.sha256) throw new Error(`Release evidence digest mismatch for ${String(asset?.name)}.`);
   }
@@ -65,3 +70,4 @@ async function readJson(path, label) {
 
 async function sha256(path) { return createHash('sha256').update(await readFile(path)).digest('hex'); }
 function safeName(value) { return value !== '' && value === value.split(/[\\/]/u).pop() && !value.includes('..'); }
+function versionAtLeast(value, minimum) { const current = value.split('.').map(Number); const floor = minimum.split('.').map(Number); for (let index = 0; index < floor.length; index += 1) { if (current[index] > floor[index]) return true; if (current[index] < floor[index]) return false; } return true; }

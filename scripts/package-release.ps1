@@ -1,5 +1,9 @@
 [CmdletBinding()]
-param([string]$NodeVersion = '22.23.1')
+param(
+    [string]$NodeVersion = '22.23.1',
+    [string]$SourceCommitSha = '',
+    [string]$ValidationReceiptPath = ''
+)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $package = Get-Content -Raw -LiteralPath (Join-Path $repo 'package.json') | ConvertFrom-Json
@@ -8,6 +12,10 @@ $assetName = "THSV-StreamBridge-$($package.version)"
 $staging = Join-Path $repo "packages\$assetName"
 $archive = "$staging.zip"
 $checksum = "$archive.sha256"
+$resolvedSourceCommit = if (-not [string]::IsNullOrWhiteSpace($SourceCommitSha)) { $SourceCommitSha } elseif (-not [string]::IsNullOrWhiteSpace($env:RELEASE_COMMIT_SHA)) { [string]$env:RELEASE_COMMIT_SHA } else { (& git -C $repo rev-parse HEAD 2>$null).Trim() }
+if ($resolvedSourceCommit -notmatch '^[0-9a-f]{40}$') { throw 'Release packaging requires an exact 40-character source commit SHA.' }
+$sourceTreeState = 'dirty'
+$validatedSource = $false
 $resolvedPackages = [System.IO.Path]::GetFullPath((Join-Path $repo 'packages'))
 $resolvedStaging = [System.IO.Path]::GetFullPath($staging)
 if (-not $resolvedStaging.StartsWith($resolvedPackages, [System.StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe release staging path.' }
@@ -44,6 +52,22 @@ function Invoke-VerifiedDownload {
     throw "Download failed after 3 attempts: $Uri. $($lastError.Exception.Message)"
 }
 
+if (-not [string]::IsNullOrWhiteSpace($ValidationReceiptPath)) {
+    $resolvedReceipt = if ([System.IO.Path]::IsPathRooted($ValidationReceiptPath)) { [System.IO.Path]::GetFullPath($ValidationReceiptPath) } else { [System.IO.Path]::GetFullPath((Join-Path $repo $ValidationReceiptPath)) }
+    if (-not (Test-Path -LiteralPath $resolvedReceipt)) { throw "Release validation receipt is missing: $resolvedReceipt" }
+    $receipt = Get-Content -Raw -LiteralPath $resolvedReceipt | ConvertFrom-Json
+    $packageJsonPath = Join-Path $repo 'package.json'; $packageLockPath = Join-Path $repo 'package-lock.json'
+    $checks = @('clean', 'imports', 'build', 'lint', 'typecheck', 'tests', 'configuration')
+    $validatedAt = [DateTimeOffset]::MinValue
+    $validTimestamp = [DateTimeOffset]::TryParse([string]$receipt.validatedAt, [ref]$validatedAt)
+    $receiptAgeHours = if ($validTimestamp) { ([DateTimeOffset]::UtcNow - $validatedAt.ToUniversalTime()).TotalHours } else { [double]::PositiveInfinity }
+    $currentNodeVersion = (& node --version).Trim(); $currentNpmVersion = (& npm.cmd --version).Trim()
+    $currentNodePlatform = (& node -p 'process.platform').Trim(); $currentNodeArchitecture = (& node -p 'process.arch').Trim()
+    if ($receipt.schemaVersion -ne 1 -or $receipt.product -ne 'THSV StreamBridge' -or $receipt.sourceCommitSha -ne $resolvedSourceCommit -or $receipt.packageVersion -ne [string]$package.version -or $receipt.packageJsonSha256 -ne (Get-Sha256Hex $packageJsonPath) -or $receipt.packageLockSha256 -ne (Get-Sha256Hex $packageLockPath) -or $receiptAgeHours -lt -0.1 -or $receiptAgeHours -gt 24 -or $receipt.toolchain.nodeVersion -ne $currentNodeVersion -or $receipt.toolchain.npmVersion -ne $currentNpmVersion -or $receipt.toolchain.platform -ne $currentNodePlatform -or $receipt.toolchain.architecture -ne $currentNodeArchitecture -or @($checks | Where-Object { $receipt.checks.$_ -ne $true }).Count -ne 0) { throw 'Release validation receipt does not match this source tree, toolchain, or 24-hour validation window.' }
+    if (@(& git -C $repo status --porcelain --untracked-files=normal 2>$null).Count -ne 0) { throw 'A release validation receipt can only be reused with a clean working tree and no untracked release inputs.' }
+    $validatedSource = $true
+}
+
 function Get-VerifiedNodeRuntimeCache([string]$Root, [string]$ExpectedVersion) {
     $manifestPath = Join-Path $Root 'runtime-cache.json'; $nodePath = Join-Path $Root 'node.exe'; $licensePath = Join-Path $Root 'NODE-LICENSE.txt'
     if (-not (Test-Path -LiteralPath $manifestPath) -or -not (Test-Path -LiteralPath $nodePath) -or -not (Test-Path -LiteralPath $licensePath)) { return $null }
@@ -78,14 +102,19 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Streamer.bot import synchronization failed.' }
     npm.cmd run build
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-    npm.cmd run lint
-    if ($LASTEXITCODE -ne 0) { throw 'Lint failed.' }
-    npm.cmd run typecheck
-    if ($LASTEXITCODE -ne 0) { throw 'Type check failed.' }
-    npm.cmd test
-    if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
-    npm.cmd run config:validate
-    if ($LASTEXITCODE -ne 0) { throw 'Configuration validation failed.' }
+    if ($validatedSource) {
+        if (@(& git status --porcelain --untracked-files=normal).Count -ne 0) { throw 'Receipt-backed repackaging changed source files after validation.' }
+        Write-Output "Reusing the matching release validation receipt at $resolvedReceipt"
+    } else {
+        npm.cmd run lint
+        if ($LASTEXITCODE -ne 0) { throw 'Lint failed.' }
+        npm.cmd run typecheck
+        if ($LASTEXITCODE -ne 0) { throw 'Type check failed.' }
+        npm.cmd test
+        if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
+        npm.cmd run config:validate
+        if ($LASTEXITCODE -ne 0) { throw 'Configuration validation failed.' }
+    }
     New-Item -ItemType Directory -Path $temporary -Force | Out-Null
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     $streamerBotImportIndex = Get-Content -Raw -LiteralPath (Join-Path $repo 'packages\streamerbot\import-index.json') | ConvertFrom-Json
@@ -410,10 +439,34 @@ try {
     Copy-Item -LiteralPath (Join-Path $repo 'docs\addons') -Destination (Join-Path $appRoot 'docs\addons') -Recurse
     Set-Content -LiteralPath (Join-Path $runtimeRoot 'node-version.txt') -Encoding ascii -Value "v$NodeVersion"
 
+    # Capture a deterministic, content-derived identity before Authenticode can add
+    # certificate and timestamp data to any executable. The final release manifest
+    # records this unsigned identity separately from the signing result.
+    $sourceTreeState = if (@(& git status --porcelain --untracked-files=normal 2>$null).Count -eq 0) { 'clean' } else { 'dirty' }
+    $unsignedFiles = @(Get-ChildItem -LiteralPath $staging -File -Recurse | Sort-Object FullName | ForEach-Object {
+        $relative = $_.FullName.Substring($resolvedStaging.Length + 1).Replace([System.IO.Path]::DirectorySeparatorChar, '/')
+        [ordered]@{ path = $relative; size = $_.Length; sha256 = Get-Sha256Hex $_.FullName }
+    })
+    $unsignedPayloadManifest = [ordered]@{
+        schemaVersion = 1
+        product = 'THSV StreamBridge'
+        version = [string]$package.version
+        source = [ordered]@{ repository = 'surakage/THSV-StreamBridge'; commitSha = $resolvedSourceCommit; treeState = $sourceTreeState }
+        runtime = [ordered]@{ nodeVersion = $NodeVersion; platform = 'win32'; arch = 'x64'; upstreamSha256 = $actualNodeHash }
+        files = $unsignedFiles
+    }
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    $unsignedPayloadManifestPath = Join-Path $staging 'unsigned-payload-manifest.json'
+    [System.IO.File]::WriteAllText($unsignedPayloadManifestPath, ($unsignedPayloadManifest | ConvertTo-Json -Depth 6), $utf8NoBom)
+    $unsignedPayloadSha256 = Get-Sha256Hex $unsignedPayloadManifestPath
+
     $signingArguments = @{ StagingRoot = $staging }
     if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_PFX)) {
         $signingArguments.CertificatePath = $env:THSV_WINDOWS_SIGNING_PFX
         $signingArguments.CertificatePassword = [string]$env:THSV_WINDOWS_SIGNING_PASSWORD
+        $signingArguments.AllowedCertificateThumbprints = @(([string]$env:THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS -split '[,;\r\n]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }))
+        if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_MINIMUM_VALIDITY_DAYS)) { $signingArguments.MinimumCertificateValidityDays = [int]$env:THSV_WINDOWS_SIGNING_MINIMUM_VALIDITY_DAYS }
+        if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_EXPIRY_WARNING_DAYS)) { $signingArguments.CertificateExpiryWarningDays = [int]$env:THSV_WINDOWS_SIGNING_EXPIRY_WARNING_DAYS }
     }
     if ($env:THSV_REQUIRE_VALID_RUNTIME_SIGNATURE -eq '1') { $signingArguments.RequireValidRuntime = $true }
     $signing = & (Join-Path $repo 'scripts\sign-windows-release.ps1') @signingArguments
@@ -441,11 +494,12 @@ try {
         version = [string]$package.version
         createdAt = (Get-Date).ToUniversalTime().ToString('o')
         canonicalDownload = 'https://github.com/surakage/THSV-StreamBridge/releases'
+        source = [ordered]@{ repository = 'surakage/THSV-StreamBridge'; commitSha = $resolvedSourceCommit; treeState = $sourceTreeState }
         runtime = [ordered]@{ nodeVersion = $NodeVersion; platform = 'win32'; arch = 'x64'; upstreamSha256 = $actualNodeHash; authenticodeStatus = $signing.runtime.status }
+        unsignedPayload = [ordered]@{ manifestPath = 'unsigned-payload-manifest.json'; sha256 = $unsignedPayloadSha256; fileCount = $unsignedFiles.Count }
         signing = $signing.firstParty
         files = $releaseFiles
     }
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText((Join-Path $staging 'release-manifest.json'), ($releaseManifest | ConvertTo-Json -Depth 6), $utf8NoBom)
     Compress-Archive -Path "$staging\*" -DestinationPath $archive -CompressionLevel Optimal
     $archiveHash = Get-Sha256Hex $archive

@@ -21,6 +21,17 @@ function Get-Sha256([string]$PathValue) {
     try { return ([System.BitConverter]::ToString($sha256.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
     finally { $sha256.Dispose(); $stream.Dispose() }
 }
+function Get-CoreArchiveManifest([string]$ArchivePath) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($ArchivePath)
+    try {
+        $entries = @($zip.Entries | Where-Object { $_.FullName -eq 'release-manifest.json' })
+        if ($entries.Count -ne 1 -or $entries[0].Length -le 0 -or $entries[0].Length -gt 1048576) { throw 'The core archive must contain exactly one bounded release-manifest.json.' }
+        $reader = [System.IO.StreamReader]::new($entries[0].Open(), [System.Text.Encoding]::UTF8, $true)
+        try { return $reader.ReadToEnd() | ConvertFrom-Json }
+        finally { $reader.Dispose() }
+    } finally { $zip.Dispose() }
+}
 $packagesPath = Resolve-EvidencePath $PackagesDirectory
 $sbomFullPath = Resolve-EvidencePath $SbomPath
 $lifecycleFullPath = Resolve-EvidencePath $LifecycleEvidencePath
@@ -44,17 +55,23 @@ $names = @($assetFiles | ForEach-Object Name)
 if ($names -notcontains "THSV-StreamBridge-$version.zip" -or $names -notcontains "THSV-StreamBridge-$version.zip.sha256" -or $names -notcontains 'THSV-StreamBridge-AddOns-index.json' -or $names -notcontains 'THSV-StreamBridge-AddOns-index.json.sha256') { throw 'Core release evidence assets are incomplete.' }
 if (@($assetFiles | Where-Object Name -Like 'THSV-StreamBridge-AddOn-*.zip').Count -eq 0) { throw 'No optional add-on release assets were found.' }
 $assets = @($assetFiles | Sort-Object Name | ForEach-Object { [ordered]@{ name = $_.Name; size = $_.Length; sha256 = Get-Sha256 $_.FullName } })
+$coreArchiveName = "THSV-StreamBridge-$version.zip"
+$coreArchive = $assets | Where-Object name -eq $coreArchiveName | Select-Object -First 1
+if ($null -eq $coreArchive) { throw 'The core archive is missing.' }
+$archiveReleaseManifest = Get-CoreArchiveManifest (Join-Path $packagesPath $coreArchiveName)
+if ($archiveReleaseManifest.version -ne $version -or $archiveReleaseManifest.source.repository -ne $Repository -or $archiveReleaseManifest.source.commitSha -ne $CommitSha -or $archiveReleaseManifest.source.treeState -ne 'clean') { throw 'The packaged source identity does not match the exact clean release commit.' }
 $lifecycle = Get-Content -Raw -LiteralPath $lifecycleFullPath | ConvertFrom-Json
 $startup = Get-Content -Raw -LiteralPath $startupFullPath | ConvertFrom-Json
 if ($lifecycle.currentTag -ne $Tag -or $lifecycle.creatorDataPreserved -ne $true -or $lifecycle.encryptedRecoveryBundleVerified -ne $true -or $lifecycle.recoveryFreshProfileRestored -ne $true) { throw 'Lifecycle evidence does not match the release tag, creator-data, encrypted-recovery, or fresh-profile restore requirement.' }
 if ($startup.passed -ne $true -or $startup.isolated -ne $true -or @($startup.scenarios).Count -eq 0) { throw 'Startup-chaos evidence is not an isolated successful acceptance run.' }
 $manifest = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     product = 'THSV StreamBridge'
     tag = $Tag
     version = $version
     repository = $Repository
     commitSha = $CommitSha
+    coreArchive = [ordered]@{ name = $coreArchive.name; size = $coreArchive.size; sha256 = $coreArchive.sha256; sourceCommitSha = $CommitSha }
     workflowRunId = [string]$env:GITHUB_RUN_ID
     workflowRunAttempt = [string]$env:GITHUB_RUN_ATTEMPT
     generatedAt = [DateTime]::UtcNow.ToString('o')

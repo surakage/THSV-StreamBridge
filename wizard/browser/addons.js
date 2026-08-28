@@ -2355,6 +2355,10 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
   const file = form.elements.package.files?.[0];
   if (!file) return;
   const status = byId('addon-state');
+  const submitButton = form.querySelector('button[type="submit"]');
+  form.dataset.installState = 'installing';
+  delete form.dataset.installedModule;
+  submitButton.disabled = true;
   status.setAttribute('aria-busy', 'true');
   status.textContent = `Verifying ${file.name} before installation...`;
   try {
@@ -2368,9 +2372,17 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
       renderAddOns();
       activatePanel(mainFeatureForModule(result.moduleId) ? 'addons' : 'addon-marketplace');
     }
-    reportAddOnFeedback(`Installed ${result.moduleId} ${result.version}. Restart StreamBridge to activate it.`, 'success', form.querySelector('button[type="submit"]'));
-  } catch (error) { reportAddOnFeedback(`The add-on was not installed: ${error.message}`, 'error', form.querySelector('button[type="submit"]')); }
-  finally { status.removeAttribute('aria-busy'); }
+    form.dataset.installState = 'complete';
+    form.dataset.installedModule = result.moduleId;
+    form.dispatchEvent(new CustomEvent('streambridge:addon-installed', { detail: { moduleId: result.moduleId, version: result.version } }));
+    reportAddOnFeedback(`Installed ${result.moduleId} ${result.version}. Restart StreamBridge to activate it.`, 'success', submitButton);
+  } catch (error) {
+    form.dataset.installState = 'error';
+    reportAddOnFeedback(`The add-on was not installed: ${error.message}`, 'error', submitButton);
+  } finally {
+    status.removeAttribute('aria-busy');
+    submitButton.disabled = false;
+  }
 });
 byId('refresh-addons').addEventListener('click', loadAddOns);
 byId('refresh-addon-marketplace')?.addEventListener('click', loadAddOns);

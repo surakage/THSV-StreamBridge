@@ -37,10 +37,16 @@ async function writePortableRelease(root: string, version: string, marker: strin
     const value = await readFile(join(root, path));
     files.push({ path, size: value.length, sha256: createHash('sha256').update(value).digest('hex') });
   }
+  const unsignedPayload = JSON.stringify({ schemaVersion: 1, product: 'THSV StreamBridge', version, files });
+  await writeFile(join(root, 'unsigned-payload-manifest.json'), unsignedPayload);
+  const unsignedPayloadBytes = Buffer.from(unsignedPayload);
+  files.push({ path: 'unsigned-payload-manifest.json', size: unsignedPayloadBytes.length, sha256: createHash('sha256').update(unsignedPayloadBytes).digest('hex') });
   await writeFile(join(root, 'release-manifest.json'), JSON.stringify({
     product: 'THSV StreamBridge', layoutVersion: 2, version,
     canonicalDownload: 'https://github.com/surakage/THSV-StreamBridge/releases',
-    runtime: { nodeVersion: process.versions.node, platform: 'win32', arch: 'x64' }, files,
+    runtime: { nodeVersion: process.versions.node, platform: 'win32', arch: 'x64' },
+    unsignedPayload: { manifestPath: 'unsigned-payload-manifest.json', sha256: createHash('sha256').update(unsignedPayloadBytes).digest('hex'), fileCount: files.length - 1 },
+    files,
   }));
 }
 

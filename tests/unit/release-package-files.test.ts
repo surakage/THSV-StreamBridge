@@ -27,6 +27,11 @@ describe('public release scripts', () => {
     expect(source).toContain('function Get-Sha256Hex');
     expect(source).toContain('[System.Security.Cryptography.SHA256]::Create()');
     expect(source).toContain('release-manifest.json');
+    expect(source).toContain('unsigned-payload-manifest.json');
+    expect(source).toContain('unsignedPayloadSha256 = Get-Sha256Hex');
+    expect(source.indexOf('$unsignedPayloadManifest = [ordered]@{')).toBeLessThan(source.indexOf('sign-windows-release.ps1'));
+    expect(source).toContain("unsignedPayload = [ordered]@{ manifestPath = 'unsigned-payload-manifest.json'; sha256 = $unsignedPayloadSha256; fileCount = $unsignedFiles.Count }");
+    expect(source).toContain("source = [ordered]@{ repository = 'surakage/THSV-StreamBridge'; commitSha = $resolvedSourceCommit; treeState = $sourceTreeState }");
     expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'addons') -Directory");
     expect(source).toContain('npm.cmd run addon:package -- $_.FullName $addOnArchive');
     expect(source).toContain('THSV-StreamBridge-AddOn-');
@@ -73,6 +78,22 @@ describe('public release scripts', () => {
     for (const forbidden of ['bridge.local.json', 'control-token', 'streambridge.pid', 'state|logs|backups']) expect(source).toContain(forbidden);
     for (const archived of ['viewer-progression', 'companion-actions', 'speaker-orchestration', 'bloom-idle-sprite.png']) expect(source).toContain(archived);
     expect(source).not.toContain("Copy-Item -LiteralPath (Join-Path $repo 'archive')");
+  });
+
+  it('reuses a commit-bound validation receipt without skipping clean rebuild steps', async () => {
+    const packaging = await readFile('scripts/package-release.ps1', 'utf8');
+    const validation = await readFile('scripts/test-release-source.ps1', 'utf8');
+    const candidate = await readFile('scripts/test-release-candidate.ps1', 'utf8');
+    expect(validation).toContain("sourceCommitSha = $sourceCommit");
+    expect(validation).toContain("packageLockSha256 = Get-Sha256Hex $lockPath");
+    expect(validation).toContain('toolchain = [ordered]@{ nodeVersion = $nodeVersion; npmVersion = $npmVersion; platform = $nodePlatform; architecture = $nodeArchitecture }');
+    for (const command of ['npm.cmd run lint', 'npm.cmd run typecheck', 'npm.cmd test', 'npm.cmd run config:validate']) expect(validation).toContain(command);
+    expect(packaging).toContain('[string]$ValidationReceiptPath');
+    expect(packaging).toContain('24-hour validation window');
+    expect(packaging).toContain('npm.cmd run clean');
+    expect(packaging).toContain('npm.cmd run build');
+    expect(candidate).toContain("'test-release-source.ps1'");
+    expect(candidate).toContain('-ValidationReceiptPath $validationReceipt');
   });
 
   it('publishes every optional add-on as a separately verified release asset', async () => {

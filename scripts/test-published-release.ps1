@@ -39,6 +39,31 @@ function Expand-ReleaseRoot([string]$ArchivePath, [string]$DestinationPath) {
     return $roots[0].FullName
 }
 
+function Assert-AuthenticodeEvidence([string]$ReleaseRoot) {
+    Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
+    $signingPath = Join-Path $ReleaseRoot 'windows-signing.json'
+    if (-not (Test-Path -LiteralPath $signingPath -PathType Leaf)) { throw 'Published archive is missing windows-signing.json.' }
+    $signing = Get-Content -Raw -LiteralPath $signingPath | ConvertFrom-Json
+    $runtime = Get-AuthenticodeSignature -LiteralPath (Join-Path $ReleaseRoot 'runtime\node.exe')
+    if ($runtime.Status -ne 'Valid' -or $null -eq $runtime.SignerCertificate) { throw "Published runtime Authenticode verification failed: $($runtime.Status) $($runtime.StatusMessage)" }
+    if ([string]$signing.runtime.signer.thumbprint -ne $runtime.SignerCertificate.Thumbprint) { throw 'Published runtime signer does not match windows-signing.json.' }
+    if ($null -eq $runtime.TimeStamperCertificate) { throw 'Published runtime Authenticode signature does not contain trusted timestamp evidence.' }
+    $verifiedFirstParty = 0
+    if ($signing.firstParty.configured -eq $true) {
+        if ([string]$signing.firstParty.signer.thumbprint -notmatch '^[A-Fa-f0-9]{40,64}$' -or [int]$signing.firstParty.signedPowerShellCount -ne @($signing.firstParty.signedPaths).Count -or [int]$signing.firstParty.timestampedPowerShellCount -ne @($signing.firstParty.signedPaths).Count) { throw 'Published first-party signing evidence is incomplete.' }
+        $rootPrefix = $ReleaseRoot.TrimEnd('\') + '\'
+        foreach ($relativePath in @($signing.firstParty.signedPaths)) {
+            if ([string]::IsNullOrWhiteSpace([string]$relativePath) -or [System.IO.Path]::IsPathRooted([string]$relativePath)) { throw 'Published signing evidence contains an unsafe path.' }
+            $target = [System.IO.Path]::GetFullPath((Join-Path $ReleaseRoot ([string]$relativePath).Replace('/', '\')))
+            if (-not $target.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $target -PathType Leaf)) { throw 'Published signing evidence leaves the release root or names a missing file.' }
+            $signature = Get-AuthenticodeSignature -LiteralPath $target
+            if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate -or $signature.SignerCertificate.Thumbprint -ne [string]$signing.firstParty.signer.thumbprint -or $null -eq $signature.TimeStamperCertificate) { throw "Published Authenticode signer or timestamp verification failed for $relativePath." }
+            $verifiedFirstParty++
+        }
+    } elseif ([int]$signing.firstParty.signedPowerShellCount -ne 0) { throw 'Published signing evidence claims unsigned configuration with signed paths.' }
+    return [ordered]@{ runtimeSignerSubject = $runtime.SignerCertificate.Subject; runtimeSignerThumbprint = $runtime.SignerCertificate.Thumbprint; runtimeTimestamped = $true; firstPartyConfigured = $signing.firstParty.configured -eq $true; firstPartySignedAndTimestamped = $verifiedFirstParty }
+}
+
 $version = $Tag.TrimStart('v')
 $releaseEvidencePath = Join-Path $destinationPath "THSV-StreamBridge-$Tag.release-evidence.json"
 $releaseEvidenceVerified = $false
@@ -85,6 +110,7 @@ foreach ($name in $actualAddOns) {
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) "thsv-published-smoke-$([Guid]::NewGuid())"
 try {
     $source = Expand-ReleaseRoot $archive (Join-Path $testRoot 'current-clean')
+    $authenticode = Assert-AuthenticodeEvidence $source
     $installRoot = Join-Path $testRoot 'installed'
     & (Join-Path $source 'runtime\node.exe') (Join-Path $source 'installer\install.mjs') --install-root $installRoot --no-start
     if ($LASTEXITCODE -ne 0) { throw 'Published archive clean installation failed.' }
@@ -146,7 +172,7 @@ try {
 } finally {
     if (Test-Path -LiteralPath $drillRoot) { Remove-Item -LiteralPath $drillRoot -Recurse -Force }
 }
-$evidence = [ordered]@{ tag = $Tag; previousTag = $previous.previousTag; releaseUrl = $release.url; releaseEvidenceVerified = $releaseEvidenceVerified; coreChecksumVerified = $true; provenanceVerified = $true; addOnCount = $actualAddOns.Count; addOnIndexMatched = $true; cleanInstall = $version; upgradedFrom = $previous.previousTag.TrimStart('v'); upgradedTo = $version; reinstall = $version; rollbackProtectionVerified = $true; creatorDataPreserved = $true; uninstallPreservedCreatorData = $true; reinstallAfterUninstall = $version; recoveryKeyVerified = $true; verifiedAt = [DateTime]::UtcNow.ToString('o') }
+$evidence = [ordered]@{ tag = $Tag; previousTag = $previous.previousTag; releaseUrl = $release.url; releaseEvidenceVerified = $releaseEvidenceVerified; coreChecksumVerified = $true; provenanceVerified = $true; authenticode = $authenticode; addOnCount = $actualAddOns.Count; addOnIndexMatched = $true; cleanInstall = $version; upgradedFrom = $previous.previousTag.TrimStart('v'); upgradedTo = $version; reinstall = $version; rollbackProtectionVerified = $true; creatorDataPreserved = $true; uninstallPreservedCreatorData = $true; reinstallAfterUninstall = $version; recoveryKeyVerified = $true; verifiedAt = [DateTime]::UtcNow.ToString('o') }
 $resultEvidencePath = Join-Path $destinationPath 'latest.json'
 [System.IO.File]::WriteAllText($resultEvidencePath, "$($evidence | ConvertTo-Json -Depth 4)`n", [System.Text.UTF8Encoding]::new($false))
 [pscustomobject]$evidence

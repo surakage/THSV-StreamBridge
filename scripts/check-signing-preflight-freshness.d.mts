@@ -1,0 +1,2 @@
+export interface SigningPreflightFreshnessOptions { repository: string; maximumAgeDays?: number; token?: string; fetcher?: typeof fetch; now?: number }
+export function checkSigningPreflightFreshness(options: SigningPreflightFreshnessOptions): Promise<{ schemaVersion: number; checkedAt: string; repository: string; maximumAgeDays: number; latestSuccessAt?: string; ageDays?: number; latestRunUrl?: string; result: 'success' | 'failure'; fresh: boolean }>;

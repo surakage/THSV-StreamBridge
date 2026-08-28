@@ -1,0 +1,77 @@
+name: Windows signing certificate preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type VERIFY-SIGNING-CERTIFICATE to inspect the protected signing identity
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: ${{ inputs.confirmation == 'VERIFY-SIGNING-CERTIFICATE' }}
+    runs-on: windows-latest
+    timeout-minutes: 10
+    environment: streambridge-release
+    outputs:
+      expiry_state: ${{ steps.certificate.outputs.expiry_state }}
+      days_remaining: ${{ steps.certificate.outputs.days_remaining }}
+    env:
+      THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
+      THSV_WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
+      THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS: ${{ secrets.WINDOWS_SIGNING_ALLOWED_THUMBPRINTS }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Inspect certificate policy without signing release files
+        id: certificate
+        shell: powershell
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64)) { throw 'The protected signing certificate secret is not configured.' }
+          if ([string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS)) { throw 'The creator-approved signing thumbprint allowlist is not configured.' }
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'streambridge-signing-preflight.pfx'
+          [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64))
+          "THSV_SIGNING_PREFLIGHT_PFX=$certificatePath" >> $env:GITHUB_ENV
+          $allowed = @($env:THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS -split '[,;\r\n]+' | Where-Object { $_ })
+          $evidence = .\scripts\test-windows-signing-certificate.ps1 -CertificatePath $certificatePath -CertificatePassword $env:THSV_WINDOWS_SIGNING_PASSWORD -AllowedCertificateThumbprints $allowed -MinimumCertificateValidityDays 30 -CertificateExpiryWarningDays 60 -EvidencePath artifacts\windows-signing-preflight\latest.json
+          $publicEvidence = [ordered]@{ schemaVersion = 2; checkedAt = $evidence.checkedAt; certificate = [ordered]@{ notBefore = $evidence.certificate.notBefore; notAfter = $evidence.certificate.notAfter; daysRemaining = $evidence.certificate.daysRemaining; expiryState = $evidence.certificate.expiryState; creatorApproved = $evidence.certificate.creatorApproved; codeSigningEku = $evidence.certificate.codeSigningEku }; passed = $evidence.passed }
+          [System.IO.File]::WriteAllText('artifacts\windows-signing-preflight\latest.json', ($publicEvidence | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
+          "expiry_state=$($evidence.certificate.expiryState)" >> $env:GITHUB_OUTPUT
+          "days_remaining=$($evidence.certificate.daysRemaining)" >> $env:GITHUB_OUTPUT
+      - name: Retain certificate preflight evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: windows-signing-preflight-${{ steps.certificate.outputs.expiry_state }}-${{ steps.certificate.outputs.days_remaining }}-${{ github.run_id }}
+          path: artifacts/windows-signing-preflight/latest.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Remove temporary certificate
+        if: always()
+        shell: powershell
+        run: if (-not [string]::IsNullOrWhiteSpace($env:THSV_SIGNING_PREFLIGHT_PFX) -and (Test-Path -LiteralPath $env:THSV_SIGNING_PREFLIGHT_PFX)) { Remove-Item -LiteralPath $env:THSV_SIGNING_PREFLIGHT_PFX -Force }
+
+  certificate-renewal-reminder:
+    needs: inspect
+    if: ${{ needs.inspect.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Open or close the deduplicated certificate renewal reminder
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPIRY_STATE: ${{ needs.inspect.outputs.expiry_state }}
+          DAYS_REMAINING: ${{ needs.inspect.outputs.days_remaining }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          RESULT=success
+          if [ "$EXPIRY_STATE" = "warning" ]; then RESULT=failure; fi
+          node scripts/manage-automation-issue.mjs --kind signing-certificate-expiry --result "$RESULT" --days-remaining "$DAYS_REMAINING" --repository "$REPOSITORY" --run-url "$RUN_URL"

@@ -2,15 +2,19 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 export function decideAutomationIssue({ kind, result, tag = '', previousResult = '', openIssueNumber = '' }) {
-  if (!['release-preflight', 'post-release-smoke', 'dependency-canary', 'public-attestation-canary', 'runtime-cache-canary', 'toolchain-major-canary'].includes(kind)) throw new Error(`Unsupported automation issue kind: ${kind}`);
-  if (!['success', 'failure', 'cancelled'].includes(result)) throw new Error(`Unsupported automation result: ${result}`);
+  if (!['release-preflight', 'post-release-smoke', 'dependency-canary', 'public-attestation-canary', 'runtime-cache-canary', 'toolchain-major-canary', 'signing-certificate-expiry', 'signing-certificate-preflight-stale'].includes(kind)) throw new Error(`Unsupported automation issue kind: ${kind}`);
+  if (!workflowConclusions.has(result)) throw new Error(`Unsupported automation result: ${result}`);
+  if (previousResult !== '' && !workflowConclusions.has(previousResult)) throw new Error(`Unsupported previous automation result: ${previousResult}`);
   const title = issueTitle(kind, tag);
   if (kind === 'post-release-smoke' && !/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(tag)) throw new Error(`Invalid release tag: ${tag}`);
   if (result === 'success') return { action: openIssueNumber ? 'close' : 'none', title, issueNumber: openIssueNumber, reason: openIssueNumber ? 'recovered' : 'healthy-without-open-issue' };
+  if (result !== 'failure') return { action: 'none', title, issueNumber: openIssueNumber, reason: 'non-failure-conclusion' };
   if (repeatFailureKinds.has(kind)) {
-    if (result !== 'failure' || previousResult !== 'failure') return { action: 'none', title, issueNumber: openIssueNumber, reason: 'requires-two-consecutive-failures' };
+    if (previousResult !== 'failure') return { action: 'none', title, issueNumber: openIssueNumber, reason: 'requires-two-consecutive-failures' };
     return openIssueNumber ? { action: 'none', title, issueNumber: openIssueNumber, reason: 'failure-already-tracked' } : { action: 'create', title, issueNumber: '', reason: 'two-consecutive-failures' };
   }
+  if (kind === 'signing-certificate-expiry') return openIssueNumber ? { action: 'none', title, issueNumber: openIssueNumber, reason: 'renewal-already-tracked' } : { action: 'create', title, issueNumber: '', reason: 'renewal-warning' };
+  if (kind === 'signing-certificate-preflight-stale') return openIssueNumber ? { action: 'none', title, issueNumber: openIssueNumber, reason: 'preflight-reminder-already-tracked' } : { action: 'create', title, issueNumber: '', reason: 'preflight-stale' };
   return openIssueNumber ? { action: 'comment', title, issueNumber: openIssueNumber, reason: 'repeat-failure' } : { action: 'create', title, issueNumber: '', reason: 'first-tracked-failure' };
 }
 
@@ -21,13 +25,15 @@ async function main() {
   const repository = required(argumentsValue, 'repository');
   const runUrl = required(argumentsValue, 'run-url');
   const tag = argumentsValue.get('tag') ?? '';
+  const daysRemaining = argumentsValue.get('days-remaining') ?? '';
+  if (kind === 'signing-certificate-expiry' && !/^\d{1,4}$/u.test(daysRemaining)) throw new Error('--days-remaining must be a non-negative whole number for signing-certificate-expiry.');
   const dryRun = argumentsValue.has('dry-run');
   const title = issueTitle(kind, tag);
   const openIssueNumber = argumentsValue.get('open-issue-number') ?? (dryRun ? '' : gh(['issue', 'list', '--repo', repository, '--state', 'open', '--search', `${title} in:title`, '--json', 'number', '--jq', '.[0].number // empty']));
   const repeatedWorkflow = repeatWorkflow(kind);
   const previousResult = argumentsValue.get('previous-result') ?? (repeatedWorkflow && !dryRun ? gh(['run', 'list', '--repo', repository, '--workflow', repeatedWorkflow, '--event', 'schedule', '--status', 'completed', '--limit', '1', '--json', 'conclusion', '--jq', '.[0].conclusion // empty']) : '');
   const decision = decideAutomationIssue({ kind, result, tag, previousResult, openIssueNumber });
-  if (!dryRun) applyDecision(decision, { kind, repository, runUrl, tag });
+  if (!dryRun) applyDecision(decision, { kind, repository, runUrl, tag, daysRemaining });
   process.stdout.write(`${JSON.stringify({ ...decision, dryRun })}\n`);
 }
 
@@ -43,7 +49,11 @@ function applyDecision(decision, context) {
     gh(['issue', 'comment', decision.issueNumber, '--repo', context.repository, '--body', message]);
     return;
   }
-  const body = context.kind === 'release-preflight'
+  const body = context.kind === 'signing-certificate-preflight-stale'
+    ? `No successful protected Windows signing-certificate preflight is available inside the 35-day evidence window. Open the workflow, dispatch it with the required confirmation, and approve the protected environment: ${context.runUrl}`
+    : context.kind === 'signing-certificate-expiry'
+    ? `The creator-approved Windows code-signing certificate has ${context.daysRemaining} day(s) remaining and is inside the 60-day renewal window. Renew the certificate, update the protected certificate and thumbprint allowlist together, then rerun the protected preflight: ${context.runUrl}`
+    : context.kind === 'release-preflight'
     ? `Two consecutive weekly non-publishing release preflights failed. Review the latest run: ${context.runUrl}`
     : context.kind === 'public-attestation-canary'
       ? `Two consecutive unauthenticated public-release verification runs failed. GitHub policy, published assets, or attestations may have drifted. Review the latest run: ${context.runUrl}`
@@ -58,12 +68,15 @@ function applyDecision(decision, context) {
 }
 
 const repeatFailureKinds = new Set(['release-preflight', 'public-attestation-canary', 'runtime-cache-canary', 'toolchain-major-canary']);
+const workflowConclusions = new Set(['success', 'failure', 'cancelled', 'skipped', 'neutral', 'timed_out', 'action_required', 'stale', 'startup_failure']);
 
 function issueTitle(kind, tag) {
   if (kind === 'release-preflight') return '[automation] Release preflight has failed twice';
   if (kind === 'public-attestation-canary') return '[automation] Public attestation canary has failed twice';
   if (kind === 'runtime-cache-canary') return '[automation] Runtime cache canary has failed twice';
   if (kind === 'toolchain-major-canary') return '[automation] Toolchain major canary has failed twice';
+  if (kind === 'signing-certificate-expiry') return '[automation] Windows signing certificate renewal required';
+  if (kind === 'signing-certificate-preflight-stale') return '[automation] Windows signing certificate preflight approval required';
   if (kind === 'dependency-canary') return '[automation] Dependency-update canary failed';
   return `[automation] Post-release smoke failed for ${tag}`;
 }
@@ -81,6 +94,8 @@ function recoveryMessage(kind, runUrl, tag) {
   if (kind === 'public-attestation-canary') return `The public release attestation canary recovered successfully: ${runUrl}`;
   if (kind === 'runtime-cache-canary') return `The portable Node runtime-cache canary recovered successfully: ${runUrl}`;
   if (kind === 'toolchain-major-canary') return `The TypeScript 7 / Node 26 compatibility canary recovered successfully: ${runUrl}`;
+  if (kind === 'signing-certificate-expiry') return `The protected Windows signing-certificate preflight reports a current certificate again: ${runUrl}`;
+  if (kind === 'signing-certificate-preflight-stale') return `A successful protected Windows signing-certificate preflight is current again: ${runUrl}`;
   if (kind === 'dependency-canary') return `The dependency-update canary recovered successfully: ${runUrl}`;
   return `Post-release verification recovered for ${tag}: ${runUrl}`;
 }

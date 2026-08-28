@@ -72,6 +72,8 @@ describe('wizard launcher package', () => {
     expect(script).toContain('PRE_STREAM_HISTORY_LIMIT=5');
     expect(script).toContain('Changed · recheck');
     expect(shell).toContain('Build fingerprint &amp; provenance');
+    expect(shell).toContain('Automation canary freshness');
+    expect(script).toContain('renderReleaseCanaryFreshness');
     expect(shell).toContain('Expected OBS sources by scene');
     expect(shell).toContain('Review paths &amp; create desktop shortcut');
     expect(shell).toContain('id="refresh-config-backups"');

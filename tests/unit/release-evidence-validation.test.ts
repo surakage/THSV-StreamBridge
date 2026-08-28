@@ -29,6 +29,12 @@ describe('offline public release evidence validation', () => {
     const indexPath = join(badIndex.directory, 'THSV-StreamBridge-AddOns-index.json');
     await writeFile(indexPath, JSON.stringify({ packages: [{ archiveName: '../escape.zip', sha256: '0'.repeat(64) }] })); await checksum(badIndex.directory, 'THSV-StreamBridge-AddOns-index.json');
     await expect(validatePublicReleaseAssets(badIndex)).rejects.toThrow('Add-on index archives');
+
+    const badBinding = await fixture();
+    const bindingPath = join(badBinding.directory, 'THSV-StreamBridge-v4.0.9.release-evidence.json');
+    const binding = JSON.parse(await readFile(bindingPath, 'utf8')) as { coreArchive: { sourceCommitSha: string } };
+    binding.coreArchive.sourceCommitSha = 'c'.repeat(40); await writeFile(bindingPath, JSON.stringify(binding)); await checksum(badBinding.directory, 'THSV-StreamBridge-v4.0.9.release-evidence.json');
+    await expect(validatePublicReleaseAssets(badBinding)).rejects.toThrow('exact source commit');
   });
 
   it('rejects malformed, wrong-subject, wrong-kind, and mismatched SBOM attestation statements', () => {
@@ -53,7 +59,8 @@ async function fixture(): Promise<{ directory: string; repository: string; tag: 
   await writeFile(join(directory, sbom), JSON.stringify({ bomFormat: 'CycloneDX', metadata: { component: { version: '4.0.9' } } }));
   await writeFile(join(directory, index), JSON.stringify({ packages: [{ archiveName: addon, sha256: await hash(join(directory, addon)) }] })); await checksum(directory, index);
   const evidenceAssets = [archive, `${archive}.sha256`, addon, `${addon}.sha256`, index, `${index}.sha256`, sbom];
-  await writeFile(join(directory, evidence), JSON.stringify({ tag, version: '4.0.9', repository, commitSha: 'b'.repeat(40), assets: await Promise.all(evidenceAssets.map(async (name) => ({ name, sha256: await hash(join(directory, name)) }))) })); await checksum(directory, evidence);
+  const commitSha = 'b'.repeat(40); const archiveSha256 = await hash(join(directory, archive));
+  await writeFile(join(directory, evidence), JSON.stringify({ schemaVersion: 2, tag, version: '4.0.9', repository, commitSha, coreArchive: { name: archive, size: 4, sha256: archiveSha256, sourceCommitSha: commitSha }, assets: await Promise.all(evidenceAssets.map(async (name) => ({ name, sha256: await hash(join(directory, name)) }))) })); await checksum(directory, evidence);
   const names = [...evidenceAssets, evidence, `${evidence}.sha256`];
   return { directory, repository, tag, releaseAssets: await Promise.all(names.map(async (name) => ({ name, size: (await readFile(join(directory, name))).length }))) };
 }
