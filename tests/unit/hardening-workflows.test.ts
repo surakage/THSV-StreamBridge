@@ -87,6 +87,9 @@ describe('4.0.9 scheduled hardening workflows', () => {
     const signer = await readFile('scripts/sign-windows-release.ps1', 'utf8');
     const policy = await readFile('scripts/windows-signing-certificate-policy.ps1', 'utf8');
     expect(release).toContain('WINDOWS_SIGNING_ALLOWED_THUMBPRINTS');
+    expect(release).toContain("vars.WINDOWS_SIGNING_MODE || 'unsigned'");
+    expect(release).toContain("$signingMode -notin @('unsigned', 'certificate')");
+    expect(release).toContain("$signingMode -eq 'certificate'");
     expect(packager).toContain('THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS');
     expect(signer).toContain('AllowedCertificateThumbprints');
     expect(policy).toContain('creator-approved allowlist');
@@ -96,6 +99,9 @@ describe('4.0.9 scheduled hardening workflows', () => {
     expect(preflight).toContain("inputs.confirmation == 'VERIFY-SIGNING-CERTIFICATE'");
     expect(preflight).toContain('environment: streambridge-release');
     expect(preflight).toContain('test-windows-signing-certificate.ps1');
+    expect(preflight).toContain("signingMode = 'unsigned'");
+    expect(preflight).toContain("signingMode = 'certificate'");
+    expect(preflight).toContain("'expiry_state=unsigned'");
     expect(preflight).toContain('certificate-renewal-reminder');
     expect(preflight).toContain('--kind signing-certificate-expiry');
     expect(preflight).toContain('issues: write');

@@ -112,6 +112,26 @@ describe('ReleaseReadinessService', () => {
     expect(JSON.stringify(result)).not.toMatch(/thumbprint|subject/iu);
   });
 
+  it('treats a fresh intentional unsigned-mode preflight as ready', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-release-unsigned-')); roots.push(root); const updatedAt = new Date(Date.now() - 3_600_000).toISOString();
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      if (url.endsWith('/pulls?state=open&per_page=30')) return new Response('[]');
+      if (url.endsWith('/actions/runs?per_page=100')) return new Response(JSON.stringify({ workflow_runs: [] }));
+      if (url.endsWith('/branches/main')) return new Response(JSON.stringify({ name: 'main', protected: true, commit: { sha: 'abc' } }));
+      if (url.endsWith('/immutable-releases')) return new Response(JSON.stringify({ enabled: true }));
+      if (url.includes('/rulesets?')) return new Response(JSON.stringify([]));
+      if (url.includes('windows-signing-certificate-preflight.yml')) return new Response(JSON.stringify({ workflow_runs: [{ ...canaryRun('Windows signing certificate preflight', 410, 'success', updatedAt), artifacts_url: 'https://api.github.test/actions/410/artifacts' }] }));
+      if (url.endsWith('/actions/410/artifacts')) return new Response(JSON.stringify({ artifacts: [{ id: 411, name: 'windows-signing-preflight-unsigned-0-410', expired: false, digest: `sha256:${'e'.repeat(64)}` }] }));
+      if (url.includes('/actions/workflows/')) return new Response(JSON.stringify({ workflow_runs: [] }));
+      return new Response('{}', { status: 404 });
+    });
+    const service = new ReleaseReadinessService('4.0.9', join(root, 'lifecycle.json'), join(root, 'published.json'), join(root, 'cache.json'), 'surakage/THSV-StreamBridge', fetcher);
+    const result = await service.status(true);
+    expect(result).toMatchObject({ signingCertificatePreflight: { available: true, fresh: true, signingMode: 'unsigned', expiryState: 'not-applicable', evidenceAvailable: true } });
+    expect(JSON.stringify(result)).toContain('intentionally disabled');
+  });
+
   it('recalculates cached canary age instead of trusting a stale fresh flag', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-release-cache-age-')); roots.push(root); const cache = join(root, 'cache.json');
     const canaries = ['Public release attestation canary', 'Dependency update canary', 'Portable runtime cache canary', 'TypeScript and Node types next-major canary'].map((name) => ({ name, latestConclusion: 'success', lastSuccessAt: '2020-01-01T00:00:00.000Z', maximumAgeHours: 240, ageHours: 0, fresh: true }));

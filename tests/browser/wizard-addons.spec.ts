@@ -412,6 +412,8 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
 
 test('wizard configures raid scouting and chat safety add-ons', async ({ page }) => {
   test.setTimeout(45_000);
+  const detectedScenes = { refreshAvailable: true, providers: { obs: { scenes: ['📁 Stream Ending', '🎞 Ending Soon'], connections: [] }, meld: { scenes: [], connections: [] }, streamlabs: { scenes: [], connections: [] } } };
+  await page.route('**/wizard/api/scene-catalog*', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(detectedScenes) }));
   await unlockWizard(page);
   await installPackagedAddOn(page, 'addons/raid-scout', 'raid-scout.thsv-addon', 'thsv.raid-scout');
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
@@ -423,7 +425,7 @@ test('wizard configures raid scouting and chat safety add-ons', async ({ page })
   await expect(raidScoutSettings.getByLabel('Show each search phase on the Raid Scout overlay')).toBeChecked();
   await expect(raidScoutSettings.getByLabel('Play one random clip before starting the confirmed raid')).not.toBeChecked();
   await expect(raidScoutSettings.getByLabel('Ending-scene broadcast app').locator('option')).toHaveText(['OBS Studio']);
-  await page.evaluate(`state.broadcastConnections = { connections: [{ provider: 'meld', enabled: true }, { provider: 'streamlabs', enabled: true }] }; state.sceneCatalog = { refreshAvailable: true, providers: { obs: { scenes: ['📁 Stream Ending', '🎞 Ending Soon'] }, meld: { scenes: [] }, streamlabs: { scenes: [] } } }; renderAddOns();`);
+  await page.evaluate(`state.broadcastConnections = { connections: [{ provider: 'meld', enabled: true }, { provider: 'streamlabs', enabled: true }] }; renderAddOns();`);
   const renderedRaidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
   await renderedRaidScoutSettings.getByLabel('Start Raid Scout on an ending scene').check();
   const endingScenePicker = renderedRaidScoutSettings.locator('[data-scene-name-picker]');

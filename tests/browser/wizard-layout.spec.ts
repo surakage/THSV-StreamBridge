@@ -370,6 +370,15 @@ test('release readiness shows certificate preflight freshness and renewal state 
   await expect(page.locator('#release-readiness-signing')).not.toContainText(/thumbprint|subject/iu);
 });
 
+test('release readiness presents intentional unsigned mode as ready', async ({ page }) => {
+  await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.9', githubStatusSource: 'cache', localLifecycle: { available: false }, pullRequest: { available: false }, checks: [], canaries: [], signingCertificatePreflight: { available: true, fresh: true, ageHours: 1, signingMode: 'unsigned', expiryState: 'not-applicable', conclusion: 'success', message: 'Windows signing is intentionally disabled.', url: 'https://github.test/actions/410' }, repositoryProtection: { available: false }, releaseHandoff: { tag: 'v4.0.9' }, postReleaseSmoke: { available: false }, summary: { lifecycleReady: false, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: [] }) }));
+  await unlock(page);
+  await page.getByRole('button', { name: 'Release Readiness', exact: true }).click();
+  await expect(page.locator('#release-readiness-signing')).toContainText('Unsigned by design');
+  await expect(page.locator('#release-readiness-signing')).toContainText('Signing mode: unsigned');
+  await expect(page.locator('#release-readiness-signing')).not.toContainText('Days remaining');
+});
+
 test('release readiness links the exact toolchain promotion attestation', async ({ page }) => {
   const attestationUrl = 'https://github.com/surakage/THSV-StreamBridge/attestations/12345';
   await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.9', githubStatusSource: 'cache', localLifecycle: { available: false }, pullRequest: { available: true, number: 10, title: 'Promote toolchain', branch: 'automation/toolchain-major-1', url: 'https://github.test/pr/10', promotionAttestationUrl: attestationUrl }, checks: [], canaries: [], signingCertificatePreflight: { available: false }, repositoryProtection: { available: false }, releaseHandoff: { tag: 'v4.0.9' }, postReleaseSmoke: { available: false }, summary: { lifecycleReady: false, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: [] }) }));
