@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { promisify } from 'node:util';
+import { promisify, stripVTControlCharacters } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 const run = promisify(execFile);
@@ -35,7 +35,7 @@ async function validate(root: string): Promise<string> {
     return stdout;
   } catch (error) {
     const failure = error as Error & { stderr?: string; stdout?: string };
-    throw new Error([failure.message, failure.stderr, failure.stdout].filter(Boolean).join('\n'), { cause: error });
+    throw new Error(stripVTControlCharacters([failure.message, failure.stderr, failure.stdout].filter(Boolean).join('\n')), { cause: error });
   }
 }
 
