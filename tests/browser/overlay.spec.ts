@@ -1226,11 +1226,13 @@ test('all chat platforms use accessible contrasting names, one moderator badge, 
   for (const [platform, fixtureName] of cases) {
     const input = await fixture(fixtureName);
     const user = input['user'] as Record<string, unknown>;
+    const message = `${platform} readability check with enough text to verify the wider native chat card.`;
     await simulate(request, {
       ...input,
       user: { ...user, roles: ['moderator'], nameColor: '#168a63', badges: [{ id: 'moderator', label: 'Moderator' }] },
-      payload: { message: `${platform} readability check with enough text to verify the wider native chat card.` },
+      payload: { message },
     }, `readability-${platform}`);
+    await expect(page.locator('#chat .body').filter({ hasText: message })).toHaveCount(1);
   }
   for (const [platform, , color] of cases) {
     const card = page.locator(`#chat .message.platform-${platform}`);
@@ -1250,7 +1252,9 @@ test('all chat platforms use accessible contrasting names, one moderator badge, 
 
   for (const [platform, fixtureName] of cases) {
     const input = await fixture(fixtureName);
-    await simulate(request, { ...input, payload: { message: `${platform} second row checks upward overflow without cutting the newest card.` } }, `overflow-${platform}`);
+    const message = `${platform} second row checks upward overflow without cutting the newest card.`;
+    await simulate(request, { ...input, payload: { message } }, `overflow-${platform}`);
+    await expect(page.locator('#chat .body').filter({ hasText: message })).toHaveCount(1);
   }
   await page.waitForTimeout(300);
   const overflowLayout = await page.locator('#chat .message').evaluateAll((cards) => cards.map((card) => {

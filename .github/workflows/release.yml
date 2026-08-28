@@ -63,6 +63,7 @@ jobs:
       name: streambridge-release
       url: https://github.com/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }}
     env:
+      THSV_WINDOWS_SIGNING_MODE: ${{ vars.WINDOWS_SIGNING_MODE || 'unsigned' }}
       THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
       THSV_WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
       THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS: ${{ secrets.WINDOWS_SIGNING_ALLOWED_THUMBPRINTS }}
@@ -106,10 +107,16 @@ jobs:
       - name: Prepare optional Windows code-signing identity
         shell: powershell
         run: |
-          if (-not [string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64)) {
+          $signingMode = $env:THSV_WINDOWS_SIGNING_MODE.Trim().ToLowerInvariant()
+          if ($signingMode -notin @('unsigned', 'certificate')) { throw "WINDOWS_SIGNING_MODE must be unsigned or certificate; received '$signingMode'." }
+          if ($signingMode -eq 'certificate') {
+            if ([string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64)) { throw 'Certificate signing mode requires WINDOWS_SIGNING_CERTIFICATE_BASE64.' }
+            if ([string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS)) { throw 'Certificate signing mode requires WINDOWS_SIGNING_ALLOWED_THUMBPRINTS.' }
             $certificatePath = Join-Path $env:RUNNER_TEMP 'streambridge-signing.pfx'
             [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64))
             "THSV_WINDOWS_SIGNING_PFX=$certificatePath" >> $env:GITHUB_ENV
+          } else {
+            Write-Host 'Publishing in intentional unsigned mode with checksums and GitHub attestations.'
           }
           "THSV_REQUIRE_VALID_RUNTIME_SIGNATURE=1" >> $env:GITHUB_ENV
       - name: Build and smoke-test the release candidate

@@ -21,6 +21,7 @@ jobs:
       expiry_state: ${{ steps.certificate.outputs.expiry_state }}
       days_remaining: ${{ steps.certificate.outputs.days_remaining }}
     env:
+      THSV_WINDOWS_SIGNING_MODE: ${{ vars.WINDOWS_SIGNING_MODE || 'unsigned' }}
       THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
       THSV_WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
       THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS: ${{ secrets.WINDOWS_SIGNING_ALLOWED_THUMBPRINTS }}
@@ -30,6 +31,17 @@ jobs:
         id: certificate
         shell: powershell
         run: |
+          $signingMode = $env:THSV_WINDOWS_SIGNING_MODE.Trim().ToLowerInvariant()
+          if ($signingMode -notin @('unsigned', 'certificate')) { throw "WINDOWS_SIGNING_MODE must be unsigned or certificate; received '$signingMode'." }
+          if ($signingMode -eq 'unsigned') {
+            New-Item -ItemType Directory -Force -Path artifacts\windows-signing-preflight | Out-Null
+            $publicEvidence = [ordered]@{ schemaVersion = 2; checkedAt = [DateTime]::UtcNow.ToString('o'); signingMode = 'unsigned'; certificate = $null; passed = $true }
+            [System.IO.File]::WriteAllText('artifacts\windows-signing-preflight\latest.json', ($publicEvidence | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
+            'expiry_state=unsigned' >> $env:GITHUB_OUTPUT
+            'days_remaining=0' >> $env:GITHUB_OUTPUT
+            Write-Host 'Windows signing is intentionally disabled; provenance attestations and checksums remain the publisher-verification path.'
+            exit 0
+          }
           if ([string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_CERTIFICATE_BASE64)) { throw 'The protected signing certificate secret is not configured.' }
           if ([string]::IsNullOrWhiteSpace($env:THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS)) { throw 'The creator-approved signing thumbprint allowlist is not configured.' }
           $certificatePath = Join-Path $env:RUNNER_TEMP 'streambridge-signing-preflight.pfx'
@@ -37,7 +49,7 @@ jobs:
           "THSV_SIGNING_PREFLIGHT_PFX=$certificatePath" >> $env:GITHUB_ENV
           $allowed = @($env:THSV_WINDOWS_SIGNING_ALLOWED_THUMBPRINTS -split '[,;\r\n]+' | Where-Object { $_ })
           $evidence = .\scripts\test-windows-signing-certificate.ps1 -CertificatePath $certificatePath -CertificatePassword $env:THSV_WINDOWS_SIGNING_PASSWORD -AllowedCertificateThumbprints $allowed -MinimumCertificateValidityDays 30 -CertificateExpiryWarningDays 60 -EvidencePath artifacts\windows-signing-preflight\latest.json
-          $publicEvidence = [ordered]@{ schemaVersion = 2; checkedAt = $evidence.checkedAt; certificate = [ordered]@{ notBefore = $evidence.certificate.notBefore; notAfter = $evidence.certificate.notAfter; daysRemaining = $evidence.certificate.daysRemaining; expiryState = $evidence.certificate.expiryState; creatorApproved = $evidence.certificate.creatorApproved; codeSigningEku = $evidence.certificate.codeSigningEku }; passed = $evidence.passed }
+          $publicEvidence = [ordered]@{ schemaVersion = 2; checkedAt = $evidence.checkedAt; signingMode = 'certificate'; certificate = [ordered]@{ notBefore = $evidence.certificate.notBefore; notAfter = $evidence.certificate.notAfter; daysRemaining = $evidence.certificate.daysRemaining; expiryState = $evidence.certificate.expiryState; creatorApproved = $evidence.certificate.creatorApproved; codeSigningEku = $evidence.certificate.codeSigningEku }; passed = $evidence.passed }
           [System.IO.File]::WriteAllText('artifacts\windows-signing-preflight\latest.json', ($publicEvidence | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
           "expiry_state=$($evidence.certificate.expiryState)" >> $env:GITHUB_OUTPUT
           "days_remaining=$($evidence.certificate.daysRemaining)" >> $env:GITHUB_OUTPUT

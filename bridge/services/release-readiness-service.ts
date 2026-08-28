@@ -310,12 +310,13 @@ function refreshCanaryAges(value: unknown): ReadonlyArray<Readonly<Record<string
 
 function summarizeSigningPreflight(run: WorkflowRunRecord | undefined, artifacts: readonly ArtifactRecord[], checkedAt: string, queryError?: string): Readonly<Record<string, unknown>> {
   if (run === undefined) return { available: false, fresh: false, message: queryError ?? 'The protected certificate preflight has not been run yet.' };
-  const artifact = artifacts.find((item) => /^windows-signing-preflight-(?:current|warning)-\d+-\d+$/u.test(item.name) && !item.expired);
-  const match = /^windows-signing-preflight-(current|warning)-(\d+)-(\d+)$/u.exec(artifact?.name ?? '');
+  const artifact = artifacts.find((item) => /^windows-signing-preflight-(?:current|warning|unsigned)-\d+-\d+$/u.test(item.name) && !item.expired);
+  const match = /^windows-signing-preflight-(current|warning|unsigned)-(\d+)-(\d+)$/u.exec(artifact?.name ?? '');
   const ageHours = Math.max(0, Math.round((Date.parse(checkedAt) - Date.parse(run.updated_at)) / 3_600_000));
-  const expiryState = match?.[1]; const daysRemaining = match === null ? undefined : Number(match[2]);
-  const evidenceAvailable = artifact !== undefined && match !== null && Number.isFinite(daysRemaining);
-  return { available: true, runId: run.id, status: run.status, conclusion: run.conclusion, checkedAt: run.updated_at, ageHours, maximumAgeHours: 720, fresh: run.conclusion === 'success' && ageHours <= 720 && evidenceAvailable, evidenceAvailable, expiryState, daysRemaining, artifactId: artifact?.id, artifactDigest: artifact?.digest, url: run.html_url, ...(evidenceAvailable ? {} : { message: 'The latest preflight run does not expose current, unexpired certificate evidence.' }) };
+  const signingMode = match?.[1] === 'unsigned' ? 'unsigned' : match === null ? undefined : 'certificate';
+  const expiryState = match?.[1] === 'unsigned' ? 'not-applicable' : match?.[1]; const daysRemaining = match === null || match[1] === 'unsigned' ? undefined : Number(match[2]);
+  const evidenceAvailable = artifact !== undefined && match !== null && (signingMode === 'unsigned' || Number.isFinite(daysRemaining));
+  return { available: true, runId: run.id, status: run.status, conclusion: run.conclusion, checkedAt: run.updated_at, ageHours, maximumAgeHours: 720, fresh: run.conclusion === 'success' && ageHours <= 720 && evidenceAvailable, evidenceAvailable, signingMode, expiryState, daysRemaining, artifactId: artifact?.id, artifactDigest: artifact?.digest, url: run.html_url, ...(evidenceAvailable ? signingMode === 'unsigned' ? { message: 'Windows signing is intentionally disabled. Checksums and GitHub attestations remain required.' } : {} : { message: 'The latest preflight run does not expose current signing-mode evidence.' }) };
 }
 
 function refreshSigningPreflight(value: unknown): Readonly<Record<string, unknown>> {
