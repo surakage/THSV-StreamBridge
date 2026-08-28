@@ -35,7 +35,8 @@ async function validate(root: string): Promise<string> {
     return stdout;
   } catch (error) {
     const failure = error as Error & { stderr?: string; stdout?: string };
-    throw new Error(stripVTControlCharacters([failure.message, failure.stderr, failure.stdout].filter(Boolean).join('\n')), { cause: error });
+    const message = stripVTControlCharacters([failure.message, failure.stderr, failure.stdout].filter(Boolean).join('\n')).replace(/\s+/gu, ' ').trim();
+    throw new Error(message, { cause: error });
   }
 }
 
