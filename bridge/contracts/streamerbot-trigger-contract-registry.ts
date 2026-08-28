@@ -85,10 +85,20 @@ export const STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4: StreamerBotTriggerRegistry
   defaults,
 });
 
+export const STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5: StreamerBotTriggerRegistry = Object.freeze({
+  version: '1.1.0-alpha.5',
+  channel: 'alpha',
+  aliases,
+  unavailable: unavailableFor('1.1.0-alpha.5'),
+  contracts,
+  defaults,
+});
+
 export const STREAMERBOT_TRIGGER_REGISTRIES = Object.freeze([
   STREAMERBOT_TRIGGER_REGISTRY_107,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5,
 ]);
 
 const verifiedFeedRegistries: StreamerBotTriggerRegistry[] = [];
