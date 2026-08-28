@@ -10,6 +10,10 @@ const BACKUP_RETENTION_DAYS = 90;
 const BACKUP_RETENTION_FILES = 40;
 const BACKUP_RETENTION_BYTES = 32 * 1024 * 1024;
 const BACKUP_MINIMUM_KEPT = 5;
+const logStoragePolicySchema = z.object({
+  activeBytes: z.number().int().min(16 * 1024 * 1024).max(16 * 1024 * 1024 * 1024),
+  archiveBytes: z.number().int().min(48 * 1024 * 1024).max(16 * 1024 * 1024 * 1024),
+}).strict();
 
 const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('platform'), platform: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/), enabled: z.boolean(), inputEnabled: z.boolean(), outputEnabled: z.boolean() }).strict(),
@@ -28,6 +32,7 @@ const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
     showSimulated: z.boolean(),
     alerts: alertPresentationSchema,
   }).strict() }).strict(),
+  z.object({ kind: z.literal('log-storage-policy'), logStoragePolicy: logStoragePolicySchema }).strict(),
 ]);
 
 const wizardConfigurationImportSchema = z.object({
@@ -39,6 +44,7 @@ const wizardConfigurationImportSchema = z.object({
   timedActions: timedActionsSchema.optional(),
   chatSettings: z.object({ brandLabel: z.string().trim().max(60), maxChatMessages: z.number().int().min(1).max(200), showBots: z.boolean(), chat: chatOverlaySchema }).strict().optional(),
   alertSettings: z.object({ maxAlertQueue: z.number().int().min(1).max(200), alertDurationMs: z.number().int().min(1_000).max(60_000), overlayGapMs: z.number().int().min(250).max(10_000).default(1_000), showSimulated: z.boolean(), alerts: alertPresentationSchema }).strict().optional(),
+  logStoragePolicy: logStoragePolicySchema.optional(),
 }).strict();
 
 export type WizardConfigurationChange = z.infer<typeof wizardConfigurationChangeSchema>;
@@ -59,6 +65,7 @@ interface InternalDraft {
   sourceHash: string;
   candidate: Record<string, unknown>;
   leaseOwner: string;
+  logStoragePolicy?: z.infer<typeof logStoragePolicySchema>;
 }
 
 export interface WizardConfigurationExport {
@@ -70,6 +77,7 @@ export interface WizardConfigurationExport {
   readonly timedActions: BridgeConfig['timedActions'];
   readonly chatSettings: Pick<BridgeConfig['browserOverlay'], 'brandLabel' | 'maxChatMessages' | 'showBots' | 'chat'>;
   readonly alertSettings: Pick<BridgeConfig['browserOverlay'], 'maxAlertQueue' | 'alertDurationMs' | 'overlayGapMs' | 'showSimulated' | 'alerts'>;
+  readonly logStoragePolicy?: z.infer<typeof logStoragePolicySchema>;
 }
 
 export interface WizardConfigurationActivation {
@@ -95,6 +103,7 @@ export class WizardConfigurationGateway {
     private readonly configPath: string,
     private readonly capabilitySource: (platforms: BridgeConfig['platforms']) => readonly PlatformCapabilityReport[],
     private readonly backupDirectory = resolve(dirname(configPath), '..', 'backups', 'wizard'),
+    private readonly logStoragePolicyPath = join(dirname(configPath), 'log-storage-policy.json'),
   ) {
     this.activeConfigHash = readFile(this.configPath, 'utf8').then((value) => configFingerprint(value));
   }
@@ -155,9 +164,11 @@ export class WizardConfigurationGateway {
     } else if (change.kind === 'chat-overlay') {
       const current = bridgeConfigSchema.parse(draft.candidate).browserOverlay;
       draft.candidate = { ...draft.candidate, browserOverlay: { ...current, ...change.chatSettings } };
-    } else {
+    } else if (change.kind === 'alerts') {
       const current = bridgeConfigSchema.parse(draft.candidate).browserOverlay;
       draft.candidate = { ...draft.candidate, browserOverlay: { ...current, ...change.alertSettings } };
+    } else {
+      draft.logStoragePolicy = change.logStoragePolicy;
     }
     bridgeConfigSchema.parse(draft.candidate);
     draft.public = { ...draft.public, stagedChanges: [...draft.public.stagedChanges.filter((existing) => existing.kind !== change.kind || (change.kind === 'platform' && existing.kind === 'platform' && existing.platform !== change.platform)), change] };
@@ -174,11 +185,13 @@ export class WizardConfigurationGateway {
     if (imported.timedActions !== undefined) result = this.stage(id, { kind: 'timed-actions', timedActions: imported.timedActions },leaseOwner);
     if (imported.chatSettings !== undefined) result = this.stage(id, { kind: 'chat-overlay', chatSettings: imported.chatSettings },leaseOwner);
     if (imported.alertSettings !== undefined) result = this.stage(id, { kind: 'alerts', alertSettings: imported.alertSettings },leaseOwner);
+    if (imported.logStoragePolicy !== undefined) result = this.stage(id, { kind: 'log-storage-policy', logStoragePolicy: imported.logStoragePolicy },leaseOwner);
     return result;
   }
 
   public async export(): Promise<WizardConfigurationExport> {
     const config = await this.readConfig();
+    const logStoragePolicy = await this.readLogStoragePolicy();
     return {
       format: 'thsv.streambridge.wizard-configuration', version: 1, exportedAt: new Date().toISOString(),
       platforms: Object.fromEntries(Object.entries(config.platforms).map(([id, value]) => [id, { enabled: value.enabled, inputEnabled: value.inputEnabled, outputEnabled: value.outputEnabled }])),
@@ -186,6 +199,7 @@ export class WizardConfigurationGateway {
       timedActions: config.timedActions,
       chatSettings: pickChatSettings(config),
       alertSettings: pickAlertSettings(config),
+      ...(logStoragePolicy === undefined ? {} : { logStoragePolicy }),
     };
   }
 
@@ -258,18 +272,25 @@ export class WizardConfigurationGateway {
     bridgeConfigSchema.parse(draft.candidate);
     const candidateRaw = `${JSON.stringify(draft.candidate, null, 2)}\n`;
     const restartRequired = configFingerprint(candidateRaw) !== configFingerprint(currentRaw);
+    const currentPolicyRaw = await readOptionalText(this.logStoragePolicyPath);
     await mkdir(this.backupDirectory, { recursive: true });
     const backupPath = join(this.backupDirectory, `${timestampForFilename()}-${id}.json`);
     await writeFile(backupPath, currentRaw, { encoding: 'utf8', flag: 'wx' });
     try {
       await writeAtomic(this.configPath, candidateRaw);
+      if (draft.logStoragePolicy !== undefined) await writeAtomic(this.logStoragePolicyPath, `${JSON.stringify({ schemaVersion: 1, ...draft.logStoragePolicy }, null, 2)}\n`);
       this.mutationWrites += 1;
       await this.readConfig();
+      if (draft.logStoragePolicy !== undefined) await this.readLogStoragePolicy(true);
       await this.pruneBackups();
       draft.public = { ...draft.public, status: 'committed', finishedAt: new Date().toISOString(), restartRequired, backupPath: resolve(backupPath) };
       return draft.public;
     } catch (error) {
       await writeAtomic(this.configPath, currentRaw);
+      if (draft.logStoragePolicy !== undefined) {
+        if (currentPolicyRaw === undefined) await rm(this.logStoragePolicyPath, { force: true });
+        else await writeAtomic(this.logStoragePolicyPath, currentPolicyRaw);
+      }
       this.rollbackWrites += 1;
       draft.public = { ...draft.public, status: 'failed', finishedAt: new Date().toISOString(), backupPath: resolve(backupPath), error: error instanceof Error ? error.message : String(error) };
       throw new WizardConfigurationError(500, 'Configuration commit failed and the pre-commit backup was restored.');
@@ -315,6 +336,16 @@ export class WizardConfigurationGateway {
 
   private async readConfig(): Promise<BridgeConfig> {
     return bridgeConfigSchema.parse(JSON.parse(stripUtf8Bom(await readFile(this.configPath, 'utf8'))) as unknown);
+  }
+
+  private async readLogStoragePolicy(required = false): Promise<z.infer<typeof logStoragePolicySchema> | undefined> {
+    try {
+      const value = JSON.parse(stripUtf8Bom(await readFile(this.logStoragePolicyPath, 'utf8'))) as Record<string, unknown>;
+      return logStoragePolicySchema.parse({ activeBytes: value['activeBytes'], archiveBytes: value['archiveBytes'] });
+    } catch (error) {
+      if (!required && (error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+      throw error;
+    }
   }
 }
 
@@ -372,4 +403,9 @@ async function writeAtomic(path: string, value: string): Promise<void> {
   const temporary = `${path}.${String(process.pid)}.${randomUUID()}.tmp`;
   await writeFile(temporary, value, 'utf8');
   await rename(temporary, path);
+}
+
+async function readOptionalText(path: string): Promise<string | undefined> {
+  try { return await readFile(path, 'utf8'); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error; }
 }

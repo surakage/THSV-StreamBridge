@@ -7,7 +7,7 @@ describe('GitHub workflow reliability', () => {
     expect(workflow).toContain('branches: [main]');
     expect(workflow).toContain('pull_request:');
     expect(workflow).toContain('cancel-in-progress: true');
-    expect(workflow).toContain('docker://rhysd/actionlint:1.7.7');
+    expect(workflow).toContain('docker://rhysd/actionlint:1.7.12');
   });
 
   it('offers a non-publishing reusable and manual release preflight', async () => {

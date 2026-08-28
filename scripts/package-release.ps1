@@ -44,6 +44,32 @@ function Invoke-VerifiedDownload {
     throw "Download failed after 3 attempts: $Uri. $($lastError.Exception.Message)"
 }
 
+function Get-VerifiedNodeRuntimeCache([string]$Root, [string]$ExpectedVersion) {
+    $manifestPath = Join-Path $Root 'runtime-cache.json'; $nodePath = Join-Path $Root 'node.exe'; $licensePath = Join-Path $Root 'NODE-LICENSE.txt'
+    if (-not (Test-Path -LiteralPath $manifestPath) -or -not (Test-Path -LiteralPath $nodePath) -or -not (Test-Path -LiteralPath $licensePath)) { return $null }
+    try {
+        $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+        $nodeHash = Get-Sha256Hex $nodePath
+        $nodeVersion = (& $nodePath --version 2>$null)
+        if ($manifest.schemaVersion -ne 1 -or $manifest.nodeVersion -ne $ExpectedVersion -or $nodeVersion -ne "v$ExpectedVersion" -or $manifest.nodeSha256 -ne $nodeHash -or $manifest.upstreamSha256 -notmatch '^[a-f0-9]{64}$') { return $null }
+        return [pscustomobject]@{ Node = $nodePath; License = $licensePath; UpstreamSha256 = [string]$manifest.upstreamSha256; Source = "dedicated cache $Root" }
+    } catch { return $null }
+}
+
+function Save-VerifiedNodeRuntimeCache([string]$Root, [string]$NodePath, [string]$LicensePath, [string]$ExpectedVersion, [string]$UpstreamSha256, [string]$Source) {
+    $parent = Split-Path -Parent $Root; New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    $temporaryCache = Join-Path $parent ('.node-runtime-cache-' + [guid]::NewGuid().ToString('N'))
+    try {
+        New-Item -ItemType Directory -Path $temporaryCache -Force | Out-Null
+        Copy-Item -LiteralPath $NodePath -Destination (Join-Path $temporaryCache 'node.exe')
+        Copy-Item -LiteralPath $LicensePath -Destination (Join-Path $temporaryCache 'NODE-LICENSE.txt')
+        $manifest = [ordered]@{ schemaVersion = 1; nodeVersion = $ExpectedVersion; platform = 'win32'; arch = 'x64'; upstreamSha256 = $UpstreamSha256; nodeSha256 = Get-Sha256Hex (Join-Path $temporaryCache 'node.exe'); cachedAt = (Get-Date).ToUniversalTime().ToString('o'); source = $Source }
+        [System.IO.File]::WriteAllText((Join-Path $temporaryCache 'runtime-cache.json'), ($manifest | ConvertTo-Json), [System.Text.UTF8Encoding]::new($false))
+        if (Test-Path -LiteralPath $Root) { Remove-Item -LiteralPath $Root -Recurse -Force }
+        Move-Item -LiteralPath $temporaryCache -Destination $Root
+    } finally { Remove-Item -LiteralPath $temporaryCache -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 Push-Location $repo
 try {
     npm.cmd run clean
@@ -334,7 +360,16 @@ try {
     $nodeArchive = Join-Path $temporary $nodeArchiveName
     $nodeBaseUrl = "https://nodejs.org/download/release/v$NodeVersion"
     $actualNodeHash = $null
-    try {
+    $runtimeCacheRoot = [System.IO.Path]::GetFullPath((Join-Path $repo ".cache\node-runtime\node-v$NodeVersion-win-x64"))
+    $resolvedRuntimeCacheParent = [System.IO.Path]::GetFullPath((Join-Path $repo '.cache\node-runtime'))
+    if (-not $runtimeCacheRoot.StartsWith($resolvedRuntimeCacheParent + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe Node runtime cache path.' }
+    $cachedRuntime = Get-VerifiedNodeRuntimeCache $runtimeCacheRoot $NodeVersion
+    if ($null -ne $cachedRuntime) {
+        Write-Output "Using checksum-verified Node.js runtime from $($cachedRuntime.Source)."
+        Copy-Item -LiteralPath $cachedRuntime.Node -Destination $runtimeRoot
+        Copy-Item -LiteralPath $cachedRuntime.License -Destination (Join-Path $runtimeRoot 'NODE-LICENSE.txt')
+        $actualNodeHash = $cachedRuntime.UpstreamSha256
+    } else { try {
         Invoke-VerifiedDownload -Uri "$nodeBaseUrl/$nodeArchiveName" -OutFile $nodeArchive
         $checksums = (Invoke-VerifiedDownload -Uri "$nodeBaseUrl/SHASUMS256.txt").Content
         $checksumMatch = [regex]::Match($checksums, "(?m)^([a-f0-9]{64})\s+$([regex]::Escape($nodeArchiveName))$")
@@ -345,8 +380,9 @@ try {
         $nodeExtracted = Join-Path $temporary "node-v$NodeVersion-win-x64"
         Copy-Item -LiteralPath (Join-Path $nodeExtracted 'node.exe') -Destination $runtimeRoot
         Copy-Item -LiteralPath (Join-Path $nodeExtracted 'LICENSE') -Destination (Join-Path $runtimeRoot 'NODE-LICENSE.txt')
+        Save-VerifiedNodeRuntimeCache $runtimeCacheRoot (Join-Path $runtimeRoot 'node.exe') (Join-Path $runtimeRoot 'NODE-LICENSE.txt') $NodeVersion $actualNodeHash 'nodejs.org verified download'
     } catch {
-        $cachedRuntime = Get-ChildItem -LiteralPath $resolvedPackages -Directory -Filter 'THSV-StreamBridge-*' |
+        $fallbackRuntime = Get-ChildItem -LiteralPath $resolvedPackages -Directory -Filter 'THSV-StreamBridge-*' |
             Sort-Object LastWriteTime -Descending |
             ForEach-Object {
                 $manifestPath = Join-Path $_.FullName 'release-manifest.json'
@@ -364,12 +400,13 @@ try {
                     [pscustomobject]@{ Node = $nodePath; License = $licensePath; UpstreamSha256 = $cachedManifest.runtime.upstreamSha256; Source = $_.Name }
                 }
             } | Select-Object -First 1
-        if ($null -eq $cachedRuntime) { throw }
-        Write-Warning "Official Node.js download failed; reusing verified runtime from $($cachedRuntime.Source)."
-        Copy-Item -LiteralPath $cachedRuntime.Node -Destination $runtimeRoot
-        Copy-Item -LiteralPath $cachedRuntime.License -Destination (Join-Path $runtimeRoot 'NODE-LICENSE.txt')
-        $actualNodeHash = $cachedRuntime.UpstreamSha256
-    }
+        if ($null -eq $fallbackRuntime) { throw }
+        Write-Warning "Official Node.js download failed; seeding the dedicated runtime cache from verified release $($fallbackRuntime.Source)."
+        Copy-Item -LiteralPath $fallbackRuntime.Node -Destination $runtimeRoot
+        Copy-Item -LiteralPath $fallbackRuntime.License -Destination (Join-Path $runtimeRoot 'NODE-LICENSE.txt')
+        $actualNodeHash = $fallbackRuntime.UpstreamSha256
+        Save-VerifiedNodeRuntimeCache $runtimeCacheRoot (Join-Path $runtimeRoot 'node.exe') (Join-Path $runtimeRoot 'NODE-LICENSE.txt') $NodeVersion $actualNodeHash "verified release $($fallbackRuntime.Source)"
+    } }
     Copy-Item -LiteralPath (Join-Path $repo 'docs\addons') -Destination (Join-Path $appRoot 'docs\addons') -Recurse
     Set-Content -LiteralPath (Join-Path $runtimeRoot 'node-version.txt') -Encoding ascii -Value "v$NodeVersion"
 

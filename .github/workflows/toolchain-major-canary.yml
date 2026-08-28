@@ -1,0 +1,54 @@
+name: TypeScript and Node types next-major canary
+
+on:
+  schedule:
+    - cron: '29 10 * * 4'
+  workflow_dispatch:
+
+concurrency:
+  group: toolchain-next-major-canary
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Test TypeScript 7 and Node 26 types without changing production manifests
+        shell: powershell
+        run: .\scripts\test-next-major-toolchain.ps1
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: toolchain-next-major-${{ github.run_id }}
+          path: artifacts/toolchain-canary/latest.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  notify-after-repeat-failure:
+    needs: compatibility
+    if: ${{ always() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Notify only after two consecutive scheduled failures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_RESULT: ${{ needs.compatibility.result }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/manage-automation-issue.mjs --kind toolchain-major-canary --result "$CURRENT_RESULT" --repository "$REPOSITORY" --run-url "$RUN_URL"

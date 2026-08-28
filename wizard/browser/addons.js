@@ -734,6 +734,13 @@ function updateAddOnFieldVisibility(form) {
   });
 }
 
+function rememberAddOnSettingsDraft(form) {
+  const id = form.dataset.addonSettings;
+  const addOn = id === 'thsv.viewer-foundation' ? state.viewerFoundation : id === 'thsv.community-analytics' ? state.communityAnalytics : id === 'thsv.kofi-donations' ? state.kofiDonations : state.addOns.find((candidate) => candidate.moduleId === id);
+  const draft = collectAddOnSettings(form, addOn);
+  if (addOn && draft !== null) addOn.settings = draft;
+}
+
 const DIRECT_ADDON_TRIGGER_REQUIREMENTS = {
   'thsv.kofi-donations': {
     actionId: 'e61c4b43-6cf0-5d56-a1c9-2176ae09c312',
@@ -1190,7 +1197,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-addon-settings]').forEach((form) => {
     form.addEventListener('submit', saveAddOnSettings);
     form.addEventListener('input', () => scheduleAddOnOverlayDraftPreview(form));
-    form.addEventListener('change', () => { updateAddOnFieldVisibility(form); scheduleAddOnOverlayDraftPreview(form); });
+    form.addEventListener('change', () => { rememberAddOnSettingsDraft(form); updateAddOnFieldVisibility(form); scheduleAddOnOverlayDraftPreview(form); });
     form.querySelector('[data-overlay-editor-frame]')?.addEventListener('load', () => scheduleAddOnOverlayDraftPreview(form, true));
     form.querySelectorAll('[data-addon-sections]').forEach((button) => button.addEventListener('click', () => {
       const open = button.dataset.addonSections === 'expand';

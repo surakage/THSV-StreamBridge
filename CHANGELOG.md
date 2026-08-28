@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.0.9] - 2026-08-27
+
+- Began a new application release line without modifying the published 4.0.8 release.
+- Added a seven-day advance warning for verified Streamer.bot compatibility-cache expiry.
+- Added automated Windows coverage for stale GitHub CLI credentials and public release/attestation fallback.
+- Made compatibility-cache and command-publication history replacement flushed, recoverable, and safe across interrupted Windows renames.
+- Split active service output and archived logs into independently reported and enforced storage ceilings.
+- Added a scheduled public-attestation canary and a release-gating Windows ACL acceptance check.
+- Added a dedicated checksum-verified Node runtime cache for offline-tolerant repeat packaging.
+- Serialized crash-safe state writes per path and added fault injection at every replacement boundary.
+- Added persistent wizard log-budget controls with a mutation-free archive-prune preview and explicit approval gate.
+- Updated ESLint to 10.9.1 and typescript-eslint to 8.68.0 while holding TypeScript and Node types on their reviewed major lines.
+- Stabilized the complete browser suite, expanded unauthenticated release verification to every published evidence and add-on asset, and delayed public-canary issues until two consecutive failures.
+- Included safe log-storage budgets in configuration transfers, added a weekly verified runtime-cache rotation rehearsal, and added an isolated TypeScript 7 / Node 26 compatibility lane.
+- Added two-strike recovery-aware notifications for the runtime and toolchain canaries, upgraded actionlint to 1.7.12, and added shared offline hostile release-evidence fixtures.
+- Kept disposable package/tool caches outside ESLint discovery to reduce local and release-gate overhead.
+- Regenerated and aligned all 42 first-party Streamer.bot packages and first-party add-ons for 4.0.9.
+
 ## [4.0.8] - 2026-08-26
 
 - Added one versioned Streamer.bot 1.0.7 trigger registry shared by universal import generation, trigger assurance, repair, documentation-facing wizard output, and automated tests.

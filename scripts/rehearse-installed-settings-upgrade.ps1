@@ -36,6 +36,9 @@ function Get-TreeFingerprint([string]$Root, [string[]]$RelativePaths) {
 try {
     New-Item -ItemType Directory -Path $candidateRoot, $installRoot -Force | Out-Null
     Expand-Archive -LiteralPath $archivePath -DestinationPath $candidateRoot -Force
+    $candidatePackage = Get-Content -Raw -LiteralPath (Join-Path $candidateRoot 'package.json') | ConvertFrom-Json
+    $candidateVersion = [string]$candidatePackage.version
+    if ($candidateVersion -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'The candidate archive has an invalid package version.' }
     foreach ($relativePath in @('data', 'addons')) {
         $source = Join-Path $sourceRoot $relativePath
         if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination (Join-Path $installRoot $relativePath) -Recurse -Force }
@@ -52,7 +55,7 @@ try {
     $after = Get-TreeFingerprint $installRoot $preservedPaths
     if ($before.sha256 -ne $after.sha256 -or $before.files -ne $after.files) { throw 'Creator settings, secrets, private state, or add-on state changed during the isolated upgrade rehearsal.' }
     $resultRecord = Get-Content -Raw -LiteralPath (Join-Path $installRoot 'data\runtime\install-manifest.json') | ConvertFrom-Json
-    if ($resultRecord.activeVersion -ne '4.0.8') { throw "The isolated rehearsal installed $($resultRecord.activeVersion) instead of 4.0.8." }
+    if ($resultRecord.activeVersion -ne $candidateVersion) { throw "The isolated rehearsal installed $($resultRecord.activeVersion) instead of $candidateVersion." }
 
     [pscustomobject]@{
         upgradedFrom = [string]$sourceRecord.activeVersion

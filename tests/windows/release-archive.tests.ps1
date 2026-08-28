@@ -23,7 +23,7 @@ function Expand-Release([string]$Archive, [string]$Destination) {
 function Install-Release([string]$Source, [string]$Destination) {
   $node = Join-Path $Source 'runtime\node.exe'
   $installer = Join-Path $Source 'installer\install.mjs'
-  & $node $installer --install-root $Destination --no-start
+  & $node $installer --install-root $Destination --no-start --skip-acl
   if ($LASTEXITCODE -ne 0) { throw "Release installer failed for $Source" }
   return Get-Content -LiteralPath (Join-Path $Destination 'data\runtime\install-manifest.json') -Raw | ConvertFrom-Json
 }

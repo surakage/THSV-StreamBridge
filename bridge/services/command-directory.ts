@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { BridgeConfig } from '../../schemas/config.js';
 import type { ModuleRegistry } from '../core/module-registry.js';
 import { buildEffectiveCommands, commandName, COMMAND_DIRECTORY_ALIASES, COMMAND_DIRECTORY_COMMAND, type EffectiveAddOnCommand } from '../core/effective-commands.js';
 import type { StreamerBotCommandSummary } from '../adapters/streamerbot-adapter.js';
+import { readCrashSafeText, writeCrashSafeText } from './crash-safe-state-file.js';
 
 const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
 type CommandPlatform = (typeof PLATFORMS)[number];
@@ -145,7 +145,7 @@ export class CommandDirectoryService {
   public async start(): Promise<void> {
     if (this.historyPath === undefined) return;
     try {
-      const value = JSON.parse((await readFile(this.historyPath, 'utf8')).replace(/^\uFEFF/u, '')) as unknown;
+      const value = JSON.parse((await readCrashSafeText(this.historyPath)).replace(/^\uFEFF/u, '')) as unknown;
       const history = parsePublicationHistory(value);
       this.publicationHistory.splice(0, this.publicationHistory.length, ...history);
       this.publication = { ...this.publication, history: Object.freeze([...history]) };
@@ -255,14 +255,9 @@ export class CommandDirectoryService {
     this.publicationHistory.push(entry);
     if (this.publicationHistory.length > 10) this.publicationHistory.splice(0, this.publicationHistory.length - 10);
     if (this.historyPath === undefined) return;
-    const temporary = `${this.historyPath}.${String(process.pid)}.tmp`;
     try {
-      await mkdir(dirname(this.historyPath), { recursive: true });
-      await writeFile(temporary, `${JSON.stringify({ schemaVersion: 1, history: this.publicationHistory }, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
-      await rm(this.historyPath, { force: true });
-      await rename(temporary, this.historyPath);
+      await writeCrashSafeText(this.historyPath, `${JSON.stringify({ schemaVersion: 1, history: this.publicationHistory }, null, 2)}\n`);
     } catch { /* Publication evidence persistence must never alter the publication result. */ }
-    finally { await rm(temporary, { force: true }).catch(() => undefined); }
   }
 
   public async removePublished(): Promise<CommandDirectoryPublicationStatus> {

@@ -92,6 +92,13 @@ jobs:
         with:
           name: startup-chaos-${{ env.RELEASE_TAG }}
           path: artifacts/startup-chaos
+      - name: Restore checksum-verified portable Node runtime cache
+        uses: actions/cache@v5
+        with:
+          path: .cache/node-runtime
+          key: portable-node-runtime-${{ runner.os }}-22.23.1-release-${{ hashFiles('scripts/package-release.ps1') }}
+          restore-keys: |
+            portable-node-runtime-${{ runner.os }}-22.23.1-
       - name: Prepare optional Windows code-signing identity
         shell: powershell
         run: |
@@ -106,6 +113,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: powershell
         run: .\scripts\test-release-candidate.ps1 -CurrentTag $env:RELEASE_TAG
+      - name: Run real Windows ACL acceptance
+        shell: powershell
+        run: |
+          $archive = Get-ChildItem packages\THSV-StreamBridge-*.zip | Where-Object { $_.Name -notlike 'THSV-StreamBridge-AddOn-*' } | Select-Object -First 1
+          if ($null -eq $archive) { throw 'Release archive was not produced for ACL acceptance.' }
+          .\tests\windows\installer-acl.tests.ps1 -ArchivePath $archive.FullName
       - name: Generate production SBOM
         shell: powershell
         run: |

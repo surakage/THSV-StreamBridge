@@ -38,6 +38,24 @@ describe('Stage 4 wizard configuration gateway', () => {
     await expect(restartedGateway.activationStatus()).resolves.toMatchObject({ state: 'active', restartRequired: false });
   });
 
+  it('round-trips the safe local log-storage policy through configuration export and import', async () => {
+    const sourceDirectory = await mkdtemp(join(tmpdir(), 'thsv-wizard-log-policy-source-'));
+    const sourcePath = join(sourceDirectory, 'bridge.json');
+    await writeFile(sourcePath, await readFile('config/bridge.example.json', 'utf8'));
+    await writeFile(join(sourceDirectory, 'log-storage-policy.json'), JSON.stringify({ schemaVersion: 1, activeBytes: 32 * 1024 * 1024, archiveBytes: 96 * 1024 * 1024 }));
+    const exported = await new WizardConfigurationGateway(sourcePath, () => []).export();
+    expect(exported.logStoragePolicy).toEqual({ activeBytes: 32 * 1024 * 1024, archiveBytes: 96 * 1024 * 1024 });
+
+    const targetDirectory = await mkdtemp(join(tmpdir(), 'thsv-wizard-log-policy-target-'));
+    const targetPath = join(targetDirectory, 'bridge.json');
+    await writeFile(targetPath, await readFile('config/bridge.example.json', 'utf8'));
+    const target = new WizardConfigurationGateway(targetPath, () => []);
+    const draft = await target.begin();
+    expect(target.stageImport(draft.id, exported).stagedChanges).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'log-storage-policy' })]));
+    await target.commit(draft.id);
+    expect(JSON.parse(await readFile(join(targetDirectory, 'log-storage-policy.json'), 'utf8'))).toMatchObject({ schemaVersion: 1, activeBytes: 32 * 1024 * 1024, archiveBytes: 96 * 1024 * 1024 });
+  });
+
   it('binds an owned draft to the browser tab that created it', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-tab-lease-'));
     const path = join(directory, 'bridge.json');

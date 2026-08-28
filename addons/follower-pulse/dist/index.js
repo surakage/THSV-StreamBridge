@@ -5,7 +5,7 @@ const SNAPSHOT_ACTION_ID = '0f41b0d1-7c7a-4a1c-9f11-5ab9cc86b301';
 const MAXIMUM_STATE_BYTES = 60_000;
 let scanTaskId; let timeoutTaskId; let activeScan; let nextScanAt = 0; let stopped = true; let operation = Promise.resolve();
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.follower-pulse', name: 'Follower Pulse', version: '4.0.8', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.8', maximumTestedBridgeVersion: '4.0.8', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.follower-pulse', name: 'Follower Pulse', version: '4.0.9', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.9', maximumTestedBridgeVersion: '4.0.9', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['channel.follow', PAGE_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.follower-pulse/', 'data/addons/.state/thsv.follower-pulse/'],
   installationSteps: ['Import the Follower Pulse Streamer.bot package.', 'Keep Snapshot Page triggerless and approve only its stable action ID for Follower Pulse.', 'Reconnect the Twitch broadcaster in Streamer.bot if moderator:read:followers is unavailable, then enable Follower Pulse.'], uninstallationSteps: ['Uninstall the add-on. Its private bounded follower history remains preserved until the creator deletes it.'], migrations: [], healthChecks: [{ id: 'thsv.follower-pulse.runtime', description: 'Confirms bounded Twitch follower reconciliation is scheduled and fail-closed.' }],
 };

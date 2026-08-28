@@ -10,6 +10,18 @@ describe('automation issue policy', () => {
     expect(decideAutomationIssue({ kind: 'release-preflight', result: 'success', previousResult: 'failure', openIssueNumber: '42' })).toMatchObject({ action: 'close', issueNumber: '42' });
   });
 
+  it('requires two consecutive public-attestation failures and closes after recovery', () => {
+    expect(decideAutomationIssue({ kind: 'public-attestation-canary', result: 'failure', previousResult: 'success', openIssueNumber: '' })).toMatchObject({ action: 'none' });
+    expect(decideAutomationIssue({ kind: 'public-attestation-canary', result: 'failure', previousResult: 'failure', openIssueNumber: '' })).toMatchObject({ action: 'create' });
+    expect(decideAutomationIssue({ kind: 'public-attestation-canary', result: 'success', previousResult: 'failure', openIssueNumber: '19' })).toMatchObject({ action: 'close', issueNumber: '19' });
+  });
+
+  it.each(['runtime-cache-canary', 'toolchain-major-canary'] as const)('requires two consecutive %s failures and closes after recovery', (kind) => {
+    expect(decideAutomationIssue({ kind, result: 'failure', previousResult: 'success', openIssueNumber: '' })).toMatchObject({ action: 'none' });
+    expect(decideAutomationIssue({ kind, result: 'failure', previousResult: 'failure', openIssueNumber: '' })).toMatchObject({ action: 'create' });
+    expect(decideAutomationIssue({ kind, result: 'success', previousResult: 'failure', openIssueNumber: '23' })).toMatchObject({ action: 'close', issueNumber: '23' });
+  });
+
   it('creates, updates, and closes one post-release issue per tag', () => {
     expect(decideAutomationIssue({ kind: 'post-release-smoke', result: 'failure', tag: 'v4.0.3', openIssueNumber: '' })).toMatchObject({ action: 'create' });
     expect(decideAutomationIssue({ kind: 'post-release-smoke', result: 'failure', tag: 'v4.0.3', openIssueNumber: '17' })).toMatchObject({ action: 'comment', issueNumber: '17' });

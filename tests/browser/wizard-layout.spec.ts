@@ -54,6 +54,8 @@ test('diagnostics exposes the seamless operations center and its safety boundari
   await expect(page.getByRole('button', { name: 'Back up and repair' })).toBeDisabled();
   await expect(page.locator('#operational-timeline-list')).toBeVisible();
   await expect(page.locator('#post-stream-report')).toBeVisible();
+  await expect(page.getByText('Advanced log storage', { exact: true })).toBeVisible();
+  await expect(page.getByText('Set separate active and archive budgets, preview the result, then prune archives only.')).toBeVisible();
   await expect(page.locator('#operations-state')).toContainText(/Health (?:ready|needs attention).*installed-state.*redacted events retained/iu);
 });
 
@@ -188,6 +190,8 @@ test('pre-stream check requires healthy local evidence and an automatically veri
     },
     launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} },
     launcherPreflight: { ready: true, checks: [] }, broadcastAutomation: {}, obsInventory: { configured: false, ready: true, sources: [], discovered: [], reconciliations: [] },
+    compatibilityFeed: { state: 'verified-cache', available: true, provenanceVerified: true, tag: 'streamerbot-compat-1.1.0-alpha.4', digest: 'a'.repeat(64), installed: ['1.1.0-alpha.4'], expiryState: 'warning', daysRemaining: 6, warning: 'Verified compatibility data expires in 6 days. Connect before then to refresh it.' },
+    logLifecycle: { available: true, state: 'critical', totalBytes: 30, budgetBytes: 100, usagePercent: 30, fileCount: 3, compressedCount: 1, storage: { active: { bytes: 25, budgetBytes: 25, usagePercent: 100, state: 'critical', fileCount: 2 }, archive: { bytes: 5, budgetBytes: 75, usagePercent: 7, state: 'healthy', fileCount: 1 } } },
     speakerBotReadiness: { required: true, ready: speakerRunning, configured: true, enabled: true, running: speakerRunning, modules: ['thsv.voice-relay'], detail: speakerRunning ? 'Speaker.bot is running for every enabled voice feature.' : 'An enabled voice feature requires Speaker.bot to be running.' },
   }) }));
   await page.route('**/wizard/api/streamerbot-launcher/start-all', async (route) => { speakerRunning = true; await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ output: 'Required tools started.', warnings: [], status: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: { speakerbot: { configured: true, enabled: true, running: true } } } }) }); });
@@ -224,7 +228,10 @@ test('pre-stream check requires healthy local evidence and an automatically veri
   await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
   await expect(page.locator('#pre-stream-grid')).toContainText('Add-on action grants');
   await expect(page.locator('#pre-stream-grid')).toContainText('Signed Streamer.bot compatibility data');
+  await expect(page.locator('#pre-stream-grid')).toContainText('expires in 6 days');
   await expect(page.locator('#pre-stream-grid')).toContainText('Log storage budget');
+  await expect(page.locator('#pre-stream-grid')).toContainText('Active 25 B of 25 B · archives 5 B of 75 B.');
+  await expect(page.locator('#pre-stream-grid progress[aria-label="Highest log storage lane 100 percent used"]')).toBeVisible();
   await expect(page.locator('#pre-stream-grid')).toContainText('Critical overlay connections');
   await expect(page.locator('#pre-stream-grid')).toContainText('Timed-action schedule canary');
   await expect(page.locator('#pre-stream-grid')).toContainText('Configured broadcast scenes');

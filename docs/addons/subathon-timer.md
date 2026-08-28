@@ -9,15 +9,15 @@ Maintains one bounded multi-platform subathon countdown that decreases over time
 ## Install
 
 1. Download and extract `THSV-StreamBridge-AddOn-Subathon-Timer-4.0.1.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Subathon-Timer-4.0.8.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.8.sb` in Streamer.bot.
+2. In **Setup Wizard > Add-ons**, install `THSV-Subathon-Timer-4.0.9.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.9.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
 1. Install and enable the add-on, then choose your starting time, cap, and per-event bonuses.
 2. Use stream.online and stream.offline from your connected platform relays so the timer starts and pauses from real live state.
-3. Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.8.sb package for Start, Pause, Resume, Reset, and Add Time actions.
+3. Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.9.sb package for Start, Pause, Resume, Reset, and Add Time actions.
 4. Attach those optional control actions to hotkeys, scene triggers, or buttons in Streamer.bot. The imported actions relay only bounded local timer controls.
 5. Optional: enable the moderator commands if you also want chat-based controls.
 6. Use the core-owned hosted add-on overlay URL shown in the wizard. It renders the timer without executing add-on-supplied browser code.

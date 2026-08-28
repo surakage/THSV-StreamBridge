@@ -1,6 +1,6 @@
 {
   "name": "@thsv/streambridge",
-  "version": "4.0.8",
+  "version": "4.0.9",
   "private": true,
   "license": "MIT",
   "description": "A modular, local-first cross-platform livestream automation framework",
@@ -49,10 +49,10 @@
     "@playwright/test": "^1.61.1",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
-    "eslint": "^10.7.0",
+    "eslint": "^10.9.1",
     "tsx": "^4.23.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.65.0",
+    "typescript-eslint": "^8.68.0",
     "vitest": "^4.1.10"
   }
 }

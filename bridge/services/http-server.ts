@@ -428,6 +428,20 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.diagnostics());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/log-storage' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.logStorageStatus());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/log-storage/preview' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        const body = await readBody(request, 2_048);
+        return this.reply(response, 200, await this.wizard.previewLogStorage(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/log-storage/prune' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 2_048);
+        return this.reply(response, 200, await this.wizard.applyLogStorage(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/streamerbot/triggers' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.triggerAssuranceStatus());

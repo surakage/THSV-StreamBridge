@@ -6,9 +6,10 @@ import { dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { verify } from 'sigstore';
+import { attestationStatementMatches } from './release-evidence-validation.mjs';
 
 const [mode, repository, value, destination] = process.argv.slice(2);
-if (!['list', 'download', 'attestations', 'verify-attestations'].includes(mode) || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repository ?? '')) throw new Error('Usage: public-github-release.mjs <list|download|attestations|verify-attestations> <owner/repository> [value] [destination]');
+if (!['list', 'download', 'attestations', 'verify-attestations', 'verify-sbom-attestations'].includes(mode) || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repository ?? '')) throw new Error('Usage: public-github-release.mjs <list|download|attestations|verify-attestations|verify-sbom-attestations> <owner/repository> [value] [destination]');
 const headers = { accept: 'application/vnd.github+json', 'user-agent': 'THSV-StreamBridge-release-verifier', 'x-github-api-version': '2022-11-28' };
 
 async function json(url) {
@@ -30,7 +31,12 @@ async function download(url, path) {
 
 if (mode === 'list') {
   const releases = await json(`https://api.github.com/repos/${repository}/releases?per_page=100`);
-  process.stdout.write(`${JSON.stringify(releases.map((release) => ({ tagName: release.tag_name, isPrerelease: release.prerelease === true, isDraft: release.draft === true })))}\n`);
+  process.stdout.write(`${JSON.stringify(releases.map((release) => ({
+    tagName: release.tag_name,
+    isPrerelease: release.prerelease === true,
+    isDraft: release.draft === true,
+    assets: Array.isArray(release.assets) ? release.assets.map((asset) => ({ name: asset.name, size: asset.size, digest: asset.digest ?? null })) : [],
+  })))}\n`);
 } else if (mode === 'download') {
   if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value ?? '') || destination === undefined) throw new Error('Download requires a release tag and destination directory.');
   const release = await json(`https://api.github.com/repos/${repository}/releases/tags/${encodeURIComponent(value)}`);
@@ -52,8 +58,12 @@ if (mode === 'list') {
   const expectedDigest = value.slice('sha256:'.length);
   const lines = (await readFile(resolve(destination), 'utf8')).split(/\r?\n/u).filter(Boolean);
   const escapedRepository = repository.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const identity = `^https://github\\.com/${escapedRepository}/\\.github/workflows/[^@]+@refs/tags/v\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$`;
+  const identity = `^https://github\\.com/${escapedRepository}/\\.github/workflows/release\\.yml@(?:refs/heads/main|refs/tags/v\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?)$`;
+  const sbomPath = mode === 'verify-sbom-attestations' ? process.argv[6] : undefined;
+  const expectedSbom = sbomPath === undefined ? undefined : JSON.parse(await readFile(resolve(sbomPath), 'utf8'));
+  if (mode === 'verify-sbom-attestations' && expectedSbom === undefined) throw new Error('SBOM attestation verification requires the released SBOM path.');
   let verified = false;
+  const verificationErrors = [];
   const tufCachePath = await mkdtemp(join(tmpdir(), 'thsv-sigstore-tuf-'));
   try {
     for (const line of lines) {
@@ -61,11 +71,11 @@ if (mode === 'list') {
       try {
         await verify(bundle, { certificateIssuer: 'https://token.actions.githubusercontent.com', certificateIdentityURI: identity, tufCachePath });
         const statement = JSON.parse(Buffer.from(bundle.dsseEnvelope.payload, 'base64').toString('utf8'));
-        const subjectMatches = Array.isArray(statement.subject) && statement.subject.some((subject) => subject?.digest?.sha256 === expectedDigest);
-        if (statement.predicateType === 'https://slsa.dev/provenance/v1' && subjectMatches) { verified = true; break; }
-      } catch { /* Another attestation for the same digest may be the required provenance bundle. */ }
+        if (attestationStatementMatches(statement, { expectedDigest, kind: mode === 'verify-attestations' ? 'provenance' : 'sbom', expectedSbom })) { verified = true; break; }
+      } catch (error) { verificationErrors.push(error instanceof Error ? error.message.slice(0, 240) : String(error).slice(0, 240)); }
     }
   } finally { await rm(tufCachePath, { recursive: true, force: true }); }
-  if (!verified) throw new Error(`No cryptographically valid tagged ${repository} SLSA provenance attestation matched ${value}.`);
-  process.stdout.write(`${JSON.stringify({ provenanceVerified: true, repository, digest: value })}\n`);
+  const label = mode === 'verify-attestations' ? 'SLSA provenance' : 'CycloneDX SBOM';
+  if (!verified) throw new Error(`No cryptographically valid tagged ${repository} ${label} attestation matched ${value}. ${[...new Set(verificationErrors)].join(' | ')}`);
+  process.stdout.write(`${JSON.stringify({ provenanceVerified: mode === 'verify-attestations', sbomAttestationVerified: mode === 'verify-sbom-attestations', repository, digest: value })}\n`);
 }
