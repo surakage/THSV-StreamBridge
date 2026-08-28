@@ -19,10 +19,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - name: Check out the published tag
+      - name: Check out the current release verification policy
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: main
       - name: Download, verify, and install published assets
         env:
           GH_TOKEN: ${{ github.token }}
@@ -46,10 +46,10 @@ jobs:
       contents: read
       issues: write
     steps:
-      - name: Check out notification policy
+      - name: Check out the current notification policy
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: main
       - name: Open one failure issue per tag or close it after recovery
         env:
           GH_TOKEN: ${{ github.token }}
