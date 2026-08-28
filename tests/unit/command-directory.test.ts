@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CORE_CONTRACT_VERSION } from '../../bridge/contracts/v2/common.js';
@@ -166,5 +166,38 @@ describe('CommandDirectoryService', () => {
     const service = new CommandDirectoryService(await testConfig(), new ModuleRegistry([], silentLogger), { publishUrl: 'https://www.slothbloom.com/api/commands/test', tokenFile, request });
     await expect(service.removePublished()).resolves.toMatchObject({ state: 'removed' });
     expect(methods).toEqual(['DELETE']);
+  });
+
+  it('retries transient publication failures and retains bounded attempt evidence', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-command-directory-retry-'));
+    const tokenFile = join(root, 'publish-token.txt');
+    await writeFile(tokenFile, 'c'.repeat(48), 'utf8');
+    let attempts = 0;
+    const request = async (): Promise<Response> => {
+      attempts += 1;
+      return attempts < 3 ? Response.json({ error: 'temporary outage' }, { status: 503 }) : Response.json({ accepted: true, changed: false, publicUrl: '/commands/recovered' });
+    };
+    const service = new CommandDirectoryService(await testConfig(), new ModuleRegistry([], silentLogger), { publishUrl: 'https://www.slothbloom.com/api/commands/test', tokenFile, request });
+    const result = await service.publish();
+    expect(result).toMatchObject({ state: 'unchanged', attempts: 3 });
+    expect(result.history).toHaveLength(3);
+    expect(result.history?.map((entry) => entry.state)).toEqual(['failed', 'failed', 'unchanged']);
+  });
+
+  it('persists only bounded sanitized publication evidence across restarts', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-command-directory-history-'));
+    const tokenFile = join(root, 'publish-token.txt'); const historyPath = join(root, 'state', 'history.json');
+    await writeFile(tokenFile, 'd'.repeat(48), 'utf8');
+    const request = async (): Promise<Response> => Response.json({ error: 'temporary token=super-secret-value' }, { status: 400 });
+    const options = { publishUrl: 'https://www.slothbloom.com/api/commands/test', tokenFile, historyPath, request };
+    const service = new CommandDirectoryService(await testConfig(), new ModuleRegistry([], silentLogger), options);
+    await service.publish();
+    const saved = await readFile(historyPath, 'utf8');
+    expect(saved).not.toContain('d'.repeat(48));
+    expect(saved).not.toContain('super-secret-value');
+    const restarted = new CommandDirectoryService(await testConfig(), new ModuleRegistry([], silentLogger), options);
+    await restarted.start();
+    expect(restarted.publicationStatus().history).toHaveLength(1);
+    expect(restarted.publicationStatus().history?.[0]).toMatchObject({ state: 'failed', attempt: 1 });
   });
 });

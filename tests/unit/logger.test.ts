@@ -41,7 +41,7 @@ describe('StructuredLogger', () => {
     for (let index = 0; index < 40; index += 1) logger.info('x'.repeat(100), { index });
     await logger.flush();
     stdout.mockRestore();
-    await expect(readFile(join(directory, 'streambridge.log.1'), 'utf8')).resolves.toBeTypeOf('string');
-    await expect(readFile(join(directory, 'streambridge.log.3'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(directory, 'streambridge.log.1.gz'))).resolves.toBeInstanceOf(Buffer);
+    await expect(readFile(join(directory, 'streambridge.log.3.gz'))).rejects.toThrow();
   });
 });

@@ -9,7 +9,7 @@ import { AddOnWizardService, validateSettings } from '../../bridge/services/addo
 const temporary: string[] = [];
 afterEach(async () => Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
 
-function declarativeArchive(moduleId = 'sample.status-card', name = 'Sample Status Card', dependencies: readonly string[] = []): Uint8Array {
+function declarativeArchive(moduleId = 'sample.status-card', name = 'Sample Status Card', dependencies: readonly string[] = [], official = false, version = '1.0.0'): Uint8Array {
   const configuration = `${JSON.stringify({
     type: 'object', additionalProperties: false, required: ['label'],
     properties: {
@@ -24,13 +24,15 @@ function declarativeArchive(moduleId = 'sample.status-card', name = 'Sample Stat
     packageFormat: 'thsv-addon-v2', packageKind: 'declarative', author: 'THSV Project',
     description: 'A harmless declarative settings example.', changelog: 'Initial example.', permissions: ['state.private', 'streamerbot.run-approved-action'],
     manifest: {
-      contractVersion: '2.0.0-preview.1', moduleId, name, version: '1.0.0',
+      contractVersion: '2.0.0-preview.1', moduleId, name, version,
       minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies, requiredCapabilities: [],
+      ...(official ? { minimumBridgeVersion: '4.0.8', maximumTestedBridgeVersion: '4.0.8' } : {}),
       configurationSchema: 'schemas/config.json', eventSubscriptions: [], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
       dataStorageOwned: [`addons/state/${moduleId}/`], installationSteps: ['Install through the Add-ons page.'],
       uninstallationSteps: ['Uninstall through the Add-ons page; private settings remain preserved.'], migrations: [], healthChecks: [],
     },
     files: [{ path: 'schemas/config.json', size: Buffer.byteLength(configuration), sha256: createHash('sha256').update(configuration).digest('hex') }],
+    trust: official ? { publisherId: 'thsv.streambridge' } : {},
   };
   return zipSync({ 'module-package.json': strToU8(`${JSON.stringify(descriptor, null, 2)}\n`), 'schemas/config.json': strToU8(configuration) });
 }
@@ -108,6 +110,21 @@ describe('wizard add-on management', () => {
     await expect(service.list()).resolves.toEqual([]);
     await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Live now');
   }, 15_000);
+
+  it('updates an already-installed official package from the verified release cache without changing creator choices', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-bundled-update-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state'); const inbox = join(root, 'inbox'); const bundled = join(root, 'bundled'); const updates = join(root, 'official-updates');
+    await mkdir(updates, { recursive: true });
+    const service = new AddOnWizardService(packages, state, inbox, bundled, updates);
+    const moduleId = 'sample.official-card'; const actionId = '11111111-1111-4111-8111-111111111111';
+    await service.install({ filename: 'official.thsv-addon', contentBase64: Buffer.from(declarativeArchive(moduleId, 'Official Card', [], true, '1.0.0')).toString('base64'), approvedByCreator: true });
+    await service.saveSettings(moduleId, { label: 'Keep me', interval: 15, enabled: true, color: 'green', labels: ['saved'] });
+    await service.setApprovedActions(moduleId, { actionIds: [actionId], approvedByCreator: true });
+    await service.setEnabled(moduleId, { enabled: false, approvedByCreator: true });
+    await writeFile(join(updates, `${moduleId}.thsv-addon`), declarativeArchive(moduleId, 'Official Card', [], true, '1.1.0'));
+    await expect(service.updateInstalledBundledExtensions()).resolves.toMatchObject({ updated: [{ moduleId, fromVersion: '1.0.0', toVersion: '1.1.0' }] });
+    await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId, version: '1.1.0', enabled: false, approvedActionIds: [actionId], settings: expect.objectContaining({ label: 'Keep me' }) as unknown })]);
+  });
 
   it('installs and toggles a built-in extension group as one creator-approved operation', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-extension-group-')); temporary.push(root);

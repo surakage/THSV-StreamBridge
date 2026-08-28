@@ -11,11 +11,14 @@ const MAX_FILES = 5_000;
 const MAX_FILE_BYTES = 16 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 128 * 1024 * 1024;
 const ROOTS = Object.freeze(['data/configuration', 'data/state', 'data/secrets', 'addons/packages', 'addons/state']);
+const TRANSFER_ROOTS = Object.freeze(['data/configuration', 'data/state', 'addons/packages', 'addons/state']);
+const TRANSFER_SECRET_PATH = /(?:^|\/)(?:secrets?|credentials?|vault|private)(?:\/|[-_.])/iu;
+const TRANSFER_SENSITIVE_KEY = /token|password|secret|cookie|authorization|credential|webhookUrl|apiKey/iu;
 
 export async function exportRecoveryBundle({ installRoot, passphrase, outputPath, overwrite = false }) {
   validatePassphrase(passphrase);
   const root = resolve(installRoot);
-  const payload = await collectPayload(root);
+  const payload = await collectPayload(root, ROOTS, false);
   const plaintext = Buffer.from(`${JSON.stringify(payload)}\n`, 'utf8');
   const salt = randomBytes(16);
   const iv = randomBytes(12);
@@ -35,13 +38,56 @@ export async function exportRecoveryBundle({ installRoot, passphrase, outputPath
   const output = resolve(outputPath);
   await mkdir(dirname(output), { recursive: true });
   await writeFile(output, `${JSON.stringify(envelope, null, 2)}\n`, { encoding: 'utf8', flag: overwrite ? 'w' : 'wx', mode: 0o600 });
-  return { outputPath: output, fileCount: payload.files.length, plaintextBytes: plaintext.length, encrypted: true };
+  await verifyRecoveryBundle({ bundlePath: output, passphrase });
+  return { outputPath: output, fileCount: payload.files.length, plaintextBytes: plaintext.length, encrypted: true, verified: true };
+}
+
+export async function exportTransferBundle({ installRoot, passphrase, outputPath, overwrite = false }) {
+  validatePassphrase(passphrase);
+  const root = resolve(installRoot);
+  const payload = { ...await collectPayload(root, TRANSFER_ROOTS, true), portableTransfer: true, credentialsRequired: true };
+  const plaintext = Buffer.from(`${JSON.stringify(payload)}\n`, 'utf8');
+  const salt = randomBytes(16); const iv = randomBytes(12); const key = deriveKey(passphrase, salt);
+  const cipher = createCipheriv('aes-256-gcm', key, iv); cipher.setAAD(AAD);
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  const envelope = { product: PRODUCT, schemaVersion: 1, createdAt: payload.createdAt, portableTransfer: true, cipher: { name: 'aes-256-gcm', iv: iv.toString('base64'), authTag: cipher.getAuthTag().toString('base64') }, kdf: { name: 'scrypt', salt: salt.toString('base64'), cost: 32768, blockSize: 8, parallelization: 1 }, summary: { fileCount: payload.files.length, plaintextBytes: plaintext.length, plaintextSha256: sha256(plaintext), credentialsRequired: true }, ciphertext: ciphertext.toString('base64') };
+  const output = resolve(outputPath); await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, `${JSON.stringify(envelope, null, 2)}\n`, { encoding: 'utf8', flag: overwrite ? 'w' : 'wx', mode: 0o600 });
+  await verifyTransferBundle({ bundlePath: output, passphrase });
+  return { outputPath: output, fileCount: payload.files.length, plaintextBytes: plaintext.length, encrypted: true, verified: true, portableTransfer: true, credentialsRequired: true };
+}
+
+export async function previewTransferBundle({ installRoot }) {
+  const payload = await collectPayload(resolve(installRoot), TRANSFER_ROOTS, true);
+  return {
+    portableTransfer: true,
+    credentialsRequired: true,
+    roots: payload.roots,
+    fileCount: payload.files.length,
+    totalBytes: payload.files.reduce((sum, file) => sum + file.size, 0),
+    redactedFields: payload.transferSummary?.redactedFields ?? 0,
+    omittedFiles: payload.transferSummary?.omittedFiles ?? 0,
+    omittedCategories: ['credentials', 'secrets', 'private data', 'vaults'],
+    files: payload.files.map((file) => ({ path: file.path, size: file.size })),
+  };
+}
+
+export async function verifyTransferBundle({ bundlePath, passphrase }) {
+  const result = await verifyRecoveryBundle({ bundlePath, passphrase });
+  if (result.portableTransfer !== true) throw new Error('Choose a THSV move-computer bundle, not a full recovery bundle.');
+  return result;
+}
+
+export async function restoreTransferBundle(options) {
+  await verifyTransferBundle({ bundlePath: options.bundlePath, passphrase: options.passphrase });
+  const result = await restoreRecoveryBundle(options);
+  return { ...result, portableTransfer: true, credentialsRequired: true, nextStep: 'Open the Setup Wizard and re-enter Streamer.bot, broadcast-app, provider, and webhook credentials.' };
 }
 
 export async function verifyRecoveryBundle({ bundlePath, passphrase }) {
   validatePassphrase(passphrase);
   const payload = await decryptBundle(await readFile(resolve(bundlePath)), passphrase);
-  return { valid: true, createdAt: payload.createdAt, fileCount: payload.files.length, totalBytes: payload.files.reduce((sum, file) => sum + file.size, 0), roots: payload.roots };
+  return { valid: true, createdAt: payload.createdAt, fileCount: payload.files.length, totalBytes: payload.files.reduce((sum, file) => sum + file.size, 0), roots: payload.roots, portableTransfer: payload.portableTransfer === true, credentialsRequired: payload.credentialsRequired === true };
 }
 
 export async function restoreRecoveryBundle({ installRoot, bundlePath, passphrase, approvedByCreator = false }) {
@@ -94,11 +140,13 @@ export async function restoreRecoveryBundle({ installRoot, bundlePath, passphras
   }
 }
 
-async function collectPayload(installRoot) {
+async function collectPayload(installRoot, selectedRoots = ROOTS, portableTransfer = false) {
   const files = [];
   const roots = [];
   let totalBytes = 0;
-  for (const bundleRoot of ROOTS) {
+  let redactedFields = 0;
+  let omittedFiles = 0;
+  for (const bundleRoot of selectedRoots) {
     const absoluteRoot = safeBundlePath(installRoot, bundleRoot);
     if (!await exists(absoluteRoot)) continue;
     roots.push(bundleRoot);
@@ -115,14 +163,33 @@ async function collectPayload(installRoot) {
         totalBytes += info.size;
         if (totalBytes > MAX_TOTAL_BYTES) throw new Error('Recovery bundle exceeds the 128 MiB plaintext limit.');
         if (files.length >= MAX_FILES) throw new Error('Recovery bundle exceeds the 5,000-file limit.');
-        const content = await readFile(absolute);
-        files.push({ path: normalizeBundlePath(relative(installRoot, absolute)), size: content.length, sha256: sha256(content), content: content.toString('base64') });
+        const normalizedPath = normalizeBundlePath(relative(installRoot, absolute));
+        if (portableTransfer && TRANSFER_SECRET_PATH.test(normalizedPath)) { omittedFiles += 1; continue; }
+        let content = await readFile(absolute);
+        if (portableTransfer && normalizedPath.endsWith('.json')) {
+          const redacted = redactTransferJsonWithSummary(JSON.parse(content.toString('utf8').replace(/^\uFEFF/u, '')));
+          redactedFields += redacted.redactedFields;
+          content = Buffer.from(`${JSON.stringify(redacted.value, null, 2)}\n`, 'utf8');
+        }
+        files.push({ path: normalizedPath, size: content.length, sha256: sha256(content), content: content.toString('base64') });
       }
     }
   }
   if (roots.length === 0) throw new Error('No persistent StreamBridge creator data was found.');
   files.sort((left, right) => left.path.localeCompare(right.path));
-  return { product: PRODUCT, schemaVersion: 1, createdAt: new Date().toISOString(), roots, files };
+  return { product: PRODUCT, schemaVersion: 1, createdAt: new Date().toISOString(), roots, files, ...(portableTransfer ? { transferSummary: { redactedFields, omittedFiles } } : {}) };
+}
+
+function redactTransferJsonWithSummary(value) {
+  let redactedFields = 0;
+  const visit = (current, key = '') => {
+    if (typeof current === 'string' && /(?:File|Env)$/u.test(key)) return current;
+    if (TRANSFER_SENSITIVE_KEY.test(key)) { redactedFields += 1; return undefined; }
+    if (Array.isArray(current)) return current.map((item) => visit(item)).filter((item) => item !== undefined);
+    if (current !== null && typeof current === 'object') return Object.fromEntries(Object.entries(current).map(([childKey, childValue]) => [childKey, visit(childValue, childKey)]).filter(([, childValue]) => childValue !== undefined));
+    return current;
+  };
+  return { value: visit(value), redactedFields };
 }
 
 async function decryptBundle(input, passphrase) {
@@ -150,7 +217,7 @@ async function decryptBundle(input, passphrase) {
 
 function validatePayload(payload) {
   if (payload?.product !== PRODUCT || payload?.schemaVersion !== 1 || !Array.isArray(payload.roots) || !Array.isArray(payload.files)) throw new Error('Recovery payload identity is invalid.');
-  if (payload.files.length > MAX_FILES || payload.roots.length === 0 || payload.roots.some((root) => !ROOTS.includes(root))) throw new Error('Recovery payload scope is invalid.');
+  if (payload.files.length > MAX_FILES || payload.roots.length === 0 || payload.roots.some((root) => !ROOTS.includes(root)) || (payload.portableTransfer === true && payload.roots.includes('data/secrets'))) throw new Error('Recovery payload scope is invalid.');
   const roots = new Set(payload.roots);
   const paths = new Set();
   let totalBytes = 0;
@@ -186,14 +253,21 @@ async function readFileIfPresent(path) { try { return await readFile(path); } ca
 async function main() {
   const [command, ...values] = process.argv.slice(2);
   const options = parseArguments(values);
+  if (command === 'transfer-preview') {
+    process.stdout.write(`${JSON.stringify(await previewTransferBundle({ installRoot: required(options, 'install-root') }))}\n`);
+    return;
+  }
   const passphraseName = options.get('passphrase-env') || 'THSV_RECOVERY_PASSPHRASE';
   const passphrase = process.env[passphraseName];
   if (!passphrase) throw new Error(`Set the ${passphraseName} environment variable to the recovery passphrase.`);
   let result;
   if (command === 'export') result = await exportRecoveryBundle({ installRoot: required(options, 'install-root'), outputPath: required(options, 'output'), passphrase, overwrite: options.has('overwrite') });
+  else if (command === 'transfer-export') result = await exportTransferBundle({ installRoot: required(options, 'install-root'), outputPath: required(options, 'output'), passphrase, overwrite: options.has('overwrite') });
+  else if (command === 'transfer-verify') result = await verifyTransferBundle({ bundlePath: required(options, 'bundle'), passphrase });
+  else if (command === 'transfer-restore') result = await restoreTransferBundle({ installRoot: required(options, 'install-root'), bundlePath: required(options, 'bundle'), passphrase, approvedByCreator: options.has('approve') });
   else if (command === 'verify') result = await verifyRecoveryBundle({ bundlePath: required(options, 'bundle'), passphrase });
   else if (command === 'restore') result = await restoreRecoveryBundle({ installRoot: required(options, 'install-root'), bundlePath: required(options, 'bundle'), passphrase, approvedByCreator: options.has('approve') });
-  else throw new Error('Usage: recovery-bundle.mjs <export|verify|restore> [options]. Passphrases are accepted only through --passphrase-env.');
+  else throw new Error('Usage: recovery-bundle.mjs <export|verify|restore|transfer-preview|transfer-export|transfer-verify|transfer-restore> [options]. Passphrases are accepted only through --passphrase-env.');
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 

@@ -162,6 +162,7 @@ test('Ad Break Companion uses a compact bounded browser source and fades away cl
 test('wizard stays readable at a narrow width and remembers its selected theme', async ({ page }) => {
   await page.setViewportSize({ width: 420, height: 850 });
   await page.goto('/wizard/');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', /^(?:dark|light)$/u);
   const initialTheme = await page.locator('html').getAttribute('data-theme');
   await page.locator('#theme-toggle').click();
   const selectedTheme = initialTheme === 'dark' ? 'light' : 'dark';

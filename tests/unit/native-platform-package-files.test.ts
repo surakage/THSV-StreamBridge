@@ -31,9 +31,10 @@ describe('native platform intake package', () => {
     expect(source).not.toMatch(/Process\.Start|PowerShell|cmd\.exe/);
   });
 
-  it('uses the Streamer.bot 1.0.5 EventSub flat Twitch chat arguments and never reads the removed legacy message object', async () => {
+  it('stays isolated from Streamer.bot 1.1 alpha provider payload changes and never reads the removed legacy message object', async () => {
     const source = await readFile('packages/streamerbot/native-platform-intake/src/RelayPlatform.cs', 'utf8');
     expect(source).toContain('reads only documented flat action arguments');
+    expect(source).toContain('stays isolated from those raw payloads');
     expect(source).toContain('First(Read("message"), Read("messageStripped"), Read("rawInput"))');
     expect(source).toContain('First(Read("messageId"), Read("msgId"), Read("eventId")');
     expect(source).not.toContain('ReadObject("message")');

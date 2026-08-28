@@ -1,9 +1,10 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, renameSync, rmSync, statSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { appendFile, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 
 const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dataRoot = join(installRoot, 'data');
@@ -268,13 +269,18 @@ function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.sli
 
 function rotateLaunchLog(path, maximumBytes = 5 * 1024 * 1024, retainedFiles = 3) {
   try {
-    if (!existsSync(path) || statSync(path).size < maximumBytes) return;
-    rmSync(`${path}.${String(retainedFiles)}`, { force: true });
-    for (let index = retainedFiles - 1; index >= 1; index -= 1) {
-      const source = `${path}.${String(index)}`;
-      if (existsSync(source)) renameSync(source, `${path}.${String(index + 1)}`);
+    for (let index = 1; index <= retainedFiles; index += 1) {
+      const legacy = `${path}.${String(index)}`;
+      if (existsSync(legacy)) { writeFileSync(`${legacy}.gz`, gzipSync(readFileSync(legacy), { level: 9 })); rmSync(legacy, { force: true }); }
     }
-    renameSync(path, `${path}.1`);
+    if (!existsSync(path) || statSync(path).size < maximumBytes) return;
+    rmSync(`${path}.${String(retainedFiles)}.gz`, { force: true });
+    for (let index = retainedFiles - 1; index >= 1; index -= 1) {
+      const source = `${path}.${String(index)}.gz`;
+      if (existsSync(source)) renameSync(source, `${path}.${String(index + 1)}.gz`);
+    }
+    writeFileSync(`${path}.1.gz`, gzipSync(readFileSync(path), { level: 9 }));
+    rmSync(path, { force: true });
   } catch (error) {
     process.stderr.write(`THSV StreamBridge could not rotate ${path}: ${error instanceof Error ? error.message : String(error)}\n`);
   }

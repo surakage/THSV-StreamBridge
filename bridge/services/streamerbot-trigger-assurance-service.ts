@@ -1,7 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { normalizeStreamerBotVersion, STREAMERBOT_TRIGGER_REGISTRY_107, type StreamerBotTriggerContract } from '../contracts/streamerbot-trigger-contract-registry.js';
+import {
+  STREAMERBOT_TRIGGER_REGISTRY_107,
+  supportedStreamerBotTriggerVersions,
+  streamerBotTriggerRegistryForVersion,
+  type StreamerBotTriggerContract,
+  type StreamerBotTriggerRegistry,
+} from '../contracts/streamerbot-trigger-contract-registry.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -30,9 +36,8 @@ export interface StreamerBotTriggerAssuranceOptions {
   readonly moduleStatus?: () => readonly Readonly<Record<string, unknown>>[];
 }
 
-const REGISTRY = STREAMERBOT_TRIGGER_REGISTRY_107;
-const VERSION_ALIASES = Object.freeze({ streamerBotVersion: REGISTRY.version, aliases: REGISTRY.aliases, unavailable: REGISTRY.unavailable });
 const TRIGGER_BACKUP_RETENTION_FILES = 20;
+const supportedVersions = (): readonly string[] => supportedStreamerBotTriggerVersions();
 
 export class StreamerBotTriggerAssuranceService {
   private lastStatus: Readonly<Record<string, unknown>> | undefined;
@@ -58,24 +63,25 @@ export class StreamerBotTriggerAssuranceService {
 
   public async status(): Promise<Readonly<Record<string, unknown>>> {
     const actionsPath = await this.options.actionsPath();
-    if (actionsPath === undefined) return this.cache({ available: false, ready: false, canSave: false, error: 'Select Streamer.bot.exe before checking triggers.', versionAliases: VERSION_ALIASES, activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] });
+    if (actionsPath === undefined) return this.cache({ available: false, ready: false, canSave: false, error: 'Select Streamer.bot.exe before checking triggers.', supportedStreamerBotVersions: supportedVersions(), versionAliases: versionAliases(STREAMERBOT_TRIGGER_REGISTRY_107), activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] });
     let document: JsonRecord;
     try { document = await readJson(actionsPath); }
-    catch (error) { return this.cache({ available: false, ready: false, canSave: false, actionsPath, error: errorMessage(error), versionAliases: VERSION_ALIASES, activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] }); }
+    catch (error) { return this.cache({ available: false, ready: false, canSave: false, actionsPath, error: errorMessage(error), supportedStreamerBotVersions: supportedVersions(), versionAliases: versionAliases(STREAMERBOT_TRIGGER_REGISTRY_107), activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] }); }
     const detectedVersion = await this.options.streamerBotVersion();
-    const streamerBotVersion = normalizeStreamerBotVersion(detectedVersion);
-    const versionCompatible = streamerBotVersion === REGISTRY.version;
+    const registry = streamerBotTriggerRegistryForVersion(detectedVersion);
+    const inspectionRegistry = registry ?? STREAMERBOT_TRIGGER_REGISTRY_107;
+    const versionCompatible = registry !== undefined;
     let assessment: TriggerAssessment; let repair: ReturnType<typeof prepareRepair> | undefined;
-    try { assessment = assessDocument(document); repair = versionCompatible ? prepareRepair(document) : undefined; }
-    catch (error) { return this.cache({ available: true, ready: false, canSave: false, checkedAt: new Date().toISOString(), actionsPath, streamerBotVersion: detectedVersion ?? 'unknown', supportedStreamerBotVersion: REGISTRY.version, versionCompatible, schemaCompatible: false, error: `Streamer.bot actions schema is not safe to repair: ${errorMessage(error)}`, versionAliases: VERSION_ALIASES, activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] }); }
+    try { assessment = assessDocument(document, inspectionRegistry); repair = registry === undefined ? undefined : prepareRepair(document, registry); }
+    catch (error) { return this.cache({ available: true, ready: false, canSave: false, checkedAt: new Date().toISOString(), actionsPath, streamerBotVersion: detectedVersion ?? 'unknown', supportedStreamerBotVersion: registry?.version ?? supportedVersions().join(', '), supportedStreamerBotVersions: supportedVersions(), versionCompatible, schemaCompatible: false, error: `Streamer.bot actions schema is not safe to repair: ${errorMessage(error)}`, versionAliases: versionAliases(inspectionRegistry), activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] }); }
     const manifests = await this.packageManifestSummary();
     const ready = versionCompatible && assessment.ready;
     const versionIssue = versionCompatible ? undefined : detectedVersion === undefined
-      ? `The installed Streamer.bot version could not be verified. Trigger repair is read-only until version ${REGISTRY.version} is detected.`
-      : `Streamer.bot ${detectedVersion} is not covered by the tested ${REGISTRY.version} trigger registry. No trigger repair will be offered.`;
+      ? `The installed Streamer.bot version could not be verified. Trigger repair is read-only until one of these exact versions is detected: ${supportedVersions().join(', ')}.`
+      : `Streamer.bot ${detectedVersion} is not covered by the tested trigger registries (${supportedVersions().join(', ')}). No trigger repair will be offered.`;
     return this.cache({
       available: true, ready, canSave: repair?.changes.repairable === true && repair.changes.total > 0, checkedAt: new Date().toISOString(), actionsPath,
-      streamerBotVersion: detectedVersion ?? 'unknown', supportedStreamerBotVersion: REGISTRY.version, versionCompatible, schemaCompatible: true, versionIssue, versionAliases: VERSION_ALIASES, manifests, actions: assessment.results,
+      streamerBotVersion: detectedVersion ?? 'unknown', supportedStreamerBotVersion: registry?.version ?? supportedVersions().join(', '), supportedStreamerBotVersions: supportedVersions(), triggerRegistryChannel: registry?.channel, versionCompatible, schemaCompatible: true, versionIssue, versionAliases: versionAliases(inspectionRegistry), manifests, actions: assessment.results,
       issues: assessment.issues, repairPlan: repair?.changes ?? { repairable: false, total: 0, reason: versionIssue }, activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [],
       connectionExplanation: ready
         ? `All supported trigger contracts are installed once and enabled.${assessment.compatibilityExceptions.length > 0 ? ' A 9/10 or Partially Connected label can reflect version-unavailable plain subscription pickers; it does not mean the Streamer.bot WebSocket is disconnected.' : ''}`
@@ -87,18 +93,18 @@ export class StreamerBotTriggerAssuranceService {
     requireApproval(input, 'approvedByCreator');
     if (await this.options.streamerBotRunning?.() === true) throw new TriggerAssuranceError(409, 'Close Streamer.bot before reconciling its actions file. The Bridge will not edit a live Streamer.bot database.');
     const actionsPath = await this.requireActionsPath();
-    await this.requireSupportedVersion();
+    const registry = await this.requireSupportedRegistry();
     const document = await readJson(actionsPath);
-    const repair = prepareRepair(document);
+    const repair = prepareRepair(document, registry);
     if (!repair.changes.repairable) throw new TriggerAssuranceError(409, repair.changes.reason ?? 'Trigger repair is unavailable. Regenerate and import the current universal package.');
     if (repair.changes.total === 0) return { reconciled: true, changed: 0, changes: repair.changes, status: await this.status() };
-    if (managedActionBodyFingerprint(document) !== managedActionBodyFingerprint(repair.document)) throw new TriggerAssuranceError(409, 'Reconciliation was blocked because the proposed repair changed an action body. No Streamer.bot file was changed.');
+    if (managedActionBodyFingerprint(document, registry) !== managedActionBodyFingerprint(repair.document, registry)) throw new TriggerAssuranceError(409, 'Reconciliation was blocked because the proposed repair changed an action body. No Streamer.bot file was changed.');
     const backup = await this.createBackup(actionsPath, 'before-reconcile');
     let installed = false;
     try {
       await atomicWriteJson(actionsPath, repair.document); installed = true;
       const persisted = await readJson(actionsPath);
-      if (!assessDocument(persisted).ready || managedActionBodyFingerprint(document) !== managedActionBodyFingerprint(persisted)) throw new Error('Post-write trigger validation did not match the approved repair plan.');
+      if (!assessDocument(persisted, registry).ready || managedActionBodyFingerprint(document, registry) !== managedActionBodyFingerprint(persisted, registry)) throw new Error('Post-write trigger validation did not match the approved repair plan.');
     } catch (error) {
       if (installed) await restoreVerifiedBackup(String(backup['path']), actionsPath, String(backup['sha256']));
       throw new TriggerAssuranceError(409, `Trigger reconciliation did not validate and the original actions file was ${installed ? 'restored automatically' : 'left unchanged'}: ${errorMessage(error)}`);
@@ -137,7 +143,14 @@ export class StreamerBotTriggerAssuranceService {
   private cache(value: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> { this.lastStatus = value; return value; }
   private activityStatus(): Readonly<Record<string, unknown>> { return Object.fromEntries([...this.activity.entries()].sort(([a], [b]) => a.localeCompare(b))); }
   private async requireActionsPath(): Promise<string> { const value = await this.options.actionsPath(); if (value === undefined) throw new TriggerAssuranceError(409, 'Select Streamer.bot.exe first.'); return value; }
-  private async requireSupportedVersion(): Promise<void> { const detected = await this.options.streamerBotVersion(); if (normalizeStreamerBotVersion(detected) !== REGISTRY.version) throw new TriggerAssuranceError(409, detected === undefined ? `The installed Streamer.bot version could not be verified. Repair requires the tested ${REGISTRY.version} registry.` : `Streamer.bot ${detected} is not covered by the tested ${REGISTRY.version} trigger registry. No file was changed.`); }
+  private async requireSupportedRegistry(): Promise<StreamerBotTriggerRegistry> {
+    const detected = await this.options.streamerBotVersion();
+    const registry = streamerBotTriggerRegistryForVersion(detected);
+    if (registry !== undefined) return registry;
+    throw new TriggerAssuranceError(409, detected === undefined
+      ? `The installed Streamer.bot version could not be verified. Repair requires one of these tested registries: ${supportedVersions().join(', ')}.`
+      : `Streamer.bot ${detected} is not covered by the tested trigger registries (${supportedVersions().join(', ')}). No file was changed.`);
+  }
   private backupRoot(): string { return join(this.options.stateRoot, 'streamerbot-action-backups'); }
   private async createBackup(actionsPath: string, reason: string): Promise<Readonly<Record<string, unknown>>> {
     const root = this.backupRoot(); await mkdir(root, { recursive: true, mode: 0o700 });
@@ -195,14 +208,14 @@ interface TriggerRepairChanges {
   readonly items: readonly Readonly<Record<string, unknown>>[];
 }
 
-function assessDocument(document: JsonRecord): TriggerAssessment {
+function assessDocument(document: JsonRecord, registry: StreamerBotTriggerRegistry): TriggerAssessment {
   const actions = readActions(document);
-  const results = REGISTRY.contracts.map((contract) => reconcileContract(contract, actions));
-  const duplicateEnabledTriggers = actions.flatMap((action) => enabledDuplicateTriggers(action, REGISTRY.contracts.find((contract) => contract.actionName === action.name)?.triggerTypes));
+  const results = registry.contracts.map((contract) => reconcileContract(contract, actions));
+  const duplicateEnabledTriggers = actions.flatMap((action) => enabledDuplicateTriggers(action, registry.contracts.find((contract) => contract.actionName === action.name)?.triggerTypes));
   const missingActions = results.filter((entry) => entry.state === 'missing-action').map((entry) => entry.actionName);
   const disabledActions = results.filter((entry) => entry.state === 'disabled-action').map((entry) => entry.actionName);
   const missingTriggers = results.flatMap((entry) => entry.missingTriggerTypes.map((type) => ({ actionName: entry.actionName, type })));
-  const compatibilityExceptions = results.flatMap((entry) => (entry['unavailableAliases'] as readonly string[]).map((alias) => ({ actionName: entry.actionName, alias, explanation: REGISTRY.unavailable[alias] })));
+  const compatibilityExceptions = results.flatMap((entry) => (entry['unavailableAliases'] as readonly string[]).map((alias) => ({ actionName: entry.actionName, alias, explanation: registry.unavailable[alias] })));
   return {
     ready: missingActions.length === 0 && disabledActions.length === 0 && missingTriggers.length === 0 && duplicateEnabledTriggers.length === 0,
     results, missingActions, compatibilityExceptions,
@@ -210,14 +223,14 @@ function assessDocument(document: JsonRecord): TriggerAssessment {
   };
 }
 
-function prepareRepair(document: JsonRecord): { readonly document: JsonRecord; readonly changes: TriggerRepairChanges } {
+function prepareRepair(document: JsonRecord, registry: StreamerBotTriggerRegistry): { readonly document: JsonRecord; readonly changes: TriggerRepairChanges } {
   const proposed = structuredClone(document);
   const actions = readActions(proposed);
-  const missingActions = REGISTRY.contracts.filter((contract) => !actions.some((action) => action.name === contract.actionName)).map((contract) => contract.actionName);
+  const missingActions = registry.contracts.filter((contract) => !actions.some((action) => action.name === contract.actionName)).map((contract) => contract.actionName);
   if (missingActions.length > 0) return { document: proposed, changes: { repairable: false, reason: `Regenerate and import the current universal package first. Missing managed actions: ${missingActions.join(', ')}.`, total: 0, created: 0, reenabled: 0, disabledDuplicates: 0, enabledActions: 0, items: [] } };
   const items: Readonly<Record<string, unknown>>[] = [];
   let created = 0; let reenabled = 0; let disabledDuplicates = 0; let enabledActions = 0;
-  for (const contract of REGISTRY.contracts) {
+  for (const contract of registry.contracts) {
     const action = actions.find((candidate) => candidate.name === contract.actionName);
     if (action === undefined) continue;
     if (action.source['enabled'] !== true) { action.source['enabled'] = true; enabledActions += 1; items.push({ kind: 'enable-action', actionName: contract.actionName }); }
@@ -235,11 +248,11 @@ function prepareRepair(document: JsonRecord): { readonly document: JsonRecord; r
       if (enabled.length > 0) continue;
       const disabled = triggers.find((trigger) => trigger['enabled'] === false && trigger['type'] === type);
       if (disabled !== undefined) { disabled['enabled'] = true; reenabled += 1; items.push({ kind: 'reenable-trigger', actionName: contract.actionName, triggerType: type, triggerId: disabled['id'] }); continue; }
-      const trigger = createNative107Trigger(type); triggers.push(trigger); created += 1; items.push({ kind: 'create-trigger', actionName: contract.actionName, triggerType: type, triggerId: trigger['id'] });
+      const trigger = createNativeTrigger(type, registry); triggers.push(trigger); created += 1; items.push({ kind: 'create-trigger', actionName: contract.actionName, triggerType: type, triggerId: trigger['id'] });
     }
   }
   const total = created + reenabled + disabledDuplicates + enabledActions;
-  const after = assessDocument(proposed);
+  const after = assessDocument(proposed, registry);
   if (!after.ready) return { document: proposed, changes: { repairable: false, reason: 'The proposed repair did not produce one enabled copy of every supported trigger. No file will be changed.', total, created, reenabled, disabledDuplicates, enabledActions, items } };
   return { document: proposed, changes: { repairable: true, total, created, reenabled, disabledDuplicates, enabledActions, items } };
 }
@@ -259,8 +272,8 @@ function mutableRawTriggers(action: JsonRecord): JsonRecord[] {
   if (!Array.isArray(triggers) || !triggers.every(isRecord)) throw new TriggerAssuranceError(422, 'A managed Streamer.bot action contains an invalid triggers array. No Streamer.bot file was changed.');
   return triggers;
 }
-function createNative107Trigger(type: number): JsonRecord {
-  return { ...(REGISTRY.defaults[type] ?? {}), id: randomUUID(), type, enabled: true, exclusions: [] };
+function createNativeTrigger(type: number, registry: StreamerBotTriggerRegistry): JsonRecord {
+  return { ...(registry.defaults[type] ?? {}), id: randomUUID(), type, enabled: true, exclusions: [] };
 }
 function triggerFingerprint(trigger: JsonRecord): string { const copy = Object.fromEntries(Object.entries(trigger).filter(([key]) => !['id', 'enabled', 'exclusions'].includes(key)).sort(([a], [b]) => a.localeCompare(b))); return createHash('sha256').update(JSON.stringify(copy)).digest('hex'); }
 function enabledDuplicateTriggers(action: InstalledAction, uniqueTypes: readonly number[] = []): readonly Readonly<Record<string, unknown>>[] {
@@ -273,10 +286,13 @@ function enabledDuplicateTriggers(action: InstalledAction, uniqueTypes: readonly
   }
   return duplicates;
 }
-function managedActionBodyFingerprint(document: JsonRecord): string {
-  const managedNames = new Set(REGISTRY.contracts.map((contract) => contract.actionName));
+function managedActionBodyFingerprint(document: JsonRecord, registry: StreamerBotTriggerRegistry): string {
+  const managedNames = new Set(registry.contracts.map((contract) => contract.actionName));
   const bodies = readActions(document).filter((action) => managedNames.has(action.name)).map((action) => Object.fromEntries(Object.entries(action.source).filter(([key]) => key !== 'triggers' && key !== 'enabled')));
   return sha256Of(Buffer.from(JSON.stringify(bodies)));
+}
+function versionAliases(registry: StreamerBotTriggerRegistry): Readonly<Record<string, unknown>> {
+  return Object.freeze({ streamerBotVersion: registry.version, aliases: registry.aliases, unavailable: registry.unavailable });
 }
 function requireApproval(input: unknown, field: string): void { if (!isRecord(input) || input[field] !== true) throw new TriggerAssuranceError(403, 'This action requires explicit creator approval.'); }
 function isRecord(value: unknown): value is JsonRecord { return typeof value === 'object' && value !== null && !Array.isArray(value); }

@@ -1,13 +1,19 @@
-import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { StreamerBotTriggerAssuranceService } from '../../bridge/services/streamerbot-trigger-assurance-service.js';
-import { STREAMERBOT_TRIGGER_REGISTRY_107 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
+import {
+  normalizeStreamerBotVersion,
+  STREAMERBOT_TRIGGER_REGISTRY_107,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4,
+  streamerBotTriggerRegistryForVersion,
+} from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 
 const contracts = STREAMERBOT_TRIGGER_REGISTRY_107.contracts.map((contract) => [contract.actionName, contract.triggerTypes] as const);
 
-async function fixture(): Promise<{ root: string; actionsPath: string; service: StreamerBotTriggerAssuranceService }> {
+async function fixture(version = '1.0.7'): Promise<{ root: string; actionsPath: string; service: StreamerBotTriggerAssuranceService }> {
   const root = await mkdtemp(join(tmpdir(), 'thsv-trigger-assurance-'));
   const actionsPath = join(root, 'streamerbot', 'data', 'actions.json'); await mkdir(join(root, 'streamerbot', 'data'), { recursive: true });
   await writeFile(actionsPath, JSON.stringify({ actions: contracts.map(([name, types], actionIndex) => ({
@@ -16,10 +22,58 @@ async function fixture(): Promise<{ root: string; actionsPath: string; service: 
   })) }));
   const packageRoot = join(root, 'packages'); await mkdir(join(packageRoot, 'native-platform-intake'), { recursive: true });
   await writeFile(join(packageRoot, 'native-platform-intake', 'manifest.json'), JSON.stringify({ name: 'Native', version: '4.0.3', actions: [{ name: 'one' }], triggerContract: {} }));
-  return { root, actionsPath, service: new StreamerBotTriggerAssuranceService({ packageRoot, stateRoot: join(root, 'state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.0.7', streamerBotRunning: async () => false }) };
+  return { root, actionsPath, service: new StreamerBotTriggerAssuranceService({ packageRoot, stateRoot: join(root, 'state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => version, streamerBotRunning: async () => false }) };
 }
 
 describe('StreamerBotTriggerAssuranceService', () => {
+  it('normalizes and selects only exact tested 1.1.0 alpha registries', async () => {
+    expect(normalizeStreamerBotVersion('1.1.0 alpha.3')).toBe('1.1.0-alpha.3');
+    expect(normalizeStreamerBotVersion('1.1.0-alpha.3')).toBe('1.1.0-alpha.3');
+    expect(normalizeStreamerBotVersion('1.0.7.0')).toBe('1.0.7');
+    expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.3')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.4')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4);
+
+    const alpha = await fixture('1.1.0 alpha.3');
+    await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
+    expect(await alpha.service.status()).toMatchObject({
+      ready: true,
+      canSave: false,
+      versionCompatible: true,
+      supportedStreamerBotVersion: '1.1.0-alpha.3',
+      triggerRegistryChannel: 'alpha',
+    });
+
+    const document = JSON.parse(await readFile(alpha.actionsPath, 'utf8')) as { actions: Array<{ name: string; triggers: Array<Record<string, unknown>> }> };
+    const twitch = document.actions.find((action) => action.name === 'THSV Twitch - Intake');
+    if (twitch === undefined) throw new Error('Sanitized alpha fixture is missing the Twitch action.');
+    twitch.triggers = twitch.triggers.filter((trigger) => trigger['type'] !== 104);
+    await writeFile(alpha.actionsPath, JSON.stringify(document));
+    const repaired = await alpha.service.reconcile({ approvedByCreator: true });
+    expect(repaired['changed']).toBe(1);
+    const persisted = JSON.parse((await readFile(alpha.actionsPath, 'utf8')).replace(/^\uFEFF/u, '')) as typeof document;
+    expect(persisted.actions.find((action) => action.name === 'THSV Twitch - Intake')?.triggers.find((trigger) => trigger['type'] === 104)).toMatchObject({ tiers: 16, min: -1, max: -1 });
+  });
+
+  it('selects the exact installed alpha.4 registry without weakening future-alpha safety', async () => {
+    const alpha = await fixture('1.1.0 alpha.4');
+    await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
+    expect(await alpha.service.status()).toMatchObject({
+      ready: true,
+      canSave: false,
+      versionCompatible: true,
+      supportedStreamerBotVersion: '1.1.0-alpha.4',
+      triggerRegistryChannel: 'alpha',
+    });
+  });
+
+  it('keeps unvalidated 1.1.0 alpha builds inspection-only', async () => {
+    const alpha = await fixture('1.1.0 alpha.5');
+    await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
+    expect(await alpha.service.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false });
+    await expect(alpha.service.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
+    expect((await alpha.service.backups())['backups']).toEqual([]);
+  });
+
   it('recognizes the supported 1.0.7 contract and records genuine activity only', async () => {
     const { service } = await fixture();
     service.observe({ platform: 'twitch', eventType: 'chat.message', receivedAt: '2026-08-22T12:00:00.000Z', metadata: { simulated: false } });
@@ -84,7 +138,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
   it('refuses unknown Streamer.bot versions and missing action bodies before creating a backup', async () => {
     const { actionsPath, root } = await fixture();
     const wrongVersion = new StreamerBotTriggerAssuranceService({ packageRoot: join(root, 'packages'), stateRoot: join(root, 'wrong-state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.0.8', streamerBotRunning: async () => false });
-    expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersion: '1.0.7' });
+    expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersions: ['1.0.7', '1.1.0-alpha.3', '1.1.0-alpha.4'] });
     await expect(wrongVersion.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
     expect((await wrongVersion.backups())['backups']).toEqual([]);
 

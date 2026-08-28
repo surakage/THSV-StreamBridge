@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "description": "Attested exact-version aliases for Streamer.bot trigger schemas already validated by StreamBridge.",
+  "versions": [
+    { "version": "1.0.7", "baseVersion": "1.0.7" },
+    { "version": "1.1.0-alpha.3", "baseVersion": "1.1.0-alpha.3" },
+    { "version": "1.1.0-alpha.4", "baseVersion": "1.1.0-alpha.4" }
+  ]
+}

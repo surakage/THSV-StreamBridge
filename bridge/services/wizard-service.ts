@@ -185,6 +185,8 @@ export class WizardService {
     private readonly directSceneConnections?: DirectSceneConnectionManager,
     private readonly scheduledReliabilityPreflight?: ScheduledReliabilityPreflightService,
     private readonly overlayStatus?: () => Readonly<Record<string, unknown>>,
+    private readonly compatibilityFeedStatus?: () => Readonly<Record<string, unknown>>,
+    private readonly logLifecycleStatus?: () => Promise<Readonly<Record<string, unknown>>>,
   ) {}
 
   public async installedStateDrift(): Promise<Readonly<Record<string, unknown>>> {
@@ -211,9 +213,19 @@ export class WizardService {
       this.inspect(),
       this.addOns?.list() ?? Promise.resolve([]),
     ]);
-    const sceneCatalog = this.sceneCatalogStatus();
     const launcherStatus = launcher['launcher'] as Readonly<Record<string, unknown>>;
     const optionalApps = launcherStatus['optionalApps'] as Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined;
+    const sceneRefreshes = await Promise.all(['obs', 'meld', 'streamlabs'].map(async (provider) => {
+      const application = optionalApps?.[provider] ?? {};
+      if (application['enabled'] !== true || application['running'] !== true || this.sceneCatalog === undefined) return { provider, attempted: false, reason: application['enabled'] !== true ? 'disabled' : 'not-running' };
+      const previous = this.sceneCatalogStatus()['providers'] as Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+      const providerState = previous[provider] ?? {};
+      const connections = Array.isArray(providerState['connections']) ? providerState['connections'] as readonly unknown[] : [];
+      const attempts = Math.max(1, connections.length);
+      const results = await Promise.allSettled(Array.from({ length: attempts }, async (_, connectionIndex) => await this.sceneCatalog?.refresh({ provider, connectionIndex })));
+      return { provider, attempted: true, refreshed: results.filter((result) => result.status === 'fulfilled').length, failed: results.filter((result) => result.status === 'rejected').length };
+    }));
+    const sceneCatalog = this.sceneCatalogStatus();
     const providers = sceneCatalog['providers'] as Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined;
     const broadcastAutomation = Object.fromEntries(['obs', 'meld', 'streamlabs'].map((provider) => {
       const application = optionalApps?.[provider] ?? {};
@@ -232,10 +244,24 @@ export class WizardService {
     const timedActionCanary = inspectTimedActionCanary(rehearsal, inspection.actions, inspection.available);
     const speakerBotReadiness = inspectSpeakerBotReadiness(installedAddOns, optionalApps?.['speakerbot']);
     const endingFlow = endingFlowChecklist(installedAddOns, addOnActionReadiness, sceneConfiguration);
+    const ready = launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true && speakerBotReadiness.ready === true;
+    const coreReady = launcher['ready'] === true && inspection.available;
+    const issues = [
+      ...(!coreReady ? [{ area: 'core', fix: !inspection.available ? 'Start Streamer.bot, enable its WebSocket server Auto Start, then run the check again.' : 'Open Streaming tools and repair the exact launcher item shown.' }] : []),
+      ...(requiredBroadcastReady ? [] : Object.entries(broadcastAutomation).filter(([, value]) => (value as Readonly<Record<string, unknown>>)['ready'] !== true).map(([provider, value]) => { const detail = (value as Readonly<Record<string, unknown>>)['detail']; return { area: provider, fix: typeof detail === 'string' ? detail : 'Start the app and refresh its scenes.' }; })),
+      ...(sceneConfiguration.ready === true ? [] : [{ area: 'scenes', fix: 'Open Included features, refresh scenes, and choose a detected exact scene name for each enabled scene feature.' }]),
+      ...(addOnActionReadiness.ready === true ? [] : [{ area: 'actions', fix: 'Open Included features and restore the exact missing Streamer.bot action approvals.' }]),
+      ...(criticalOverlays.ready === true ? [] : [{ area: 'overlays', fix: 'Open Overlays and connect each enabled critical browser source before going live.' }]),
+      ...(timedActionCanary.ready === true ? [] : [{ area: 'timed-actions', fix: 'Open Timed actions, enable at least one valid schedule, then rerun the safe canary.' }]),
+      ...(speakerBotReadiness.ready === true ? [] : [{ area: 'speakerbot', fix: typeof speakerBotReadiness.detail === 'string' ? speakerBotReadiness.detail : 'Start Speaker.bot or disable voice delivery in the affected feature.' }]),
+    ];
+    const compatibilityFeed = this.compatibilityFeedStatus?.() ?? { state: 'embedded', available: false, provenanceVerified: false, installed: [], reason: 'Compatibility feed status is unavailable.' };
+    const logLifecycle = await this.logLifecycleStatus?.().catch((error: unknown) => ({ available: false, state: 'unavailable', error: error instanceof Error ? error.message : String(error) })) ?? { available: false, state: 'unavailable' };
     return {
       generatedAt: new Date().toISOString(), mutationFree: true,
-      ready: launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true && speakerBotReadiness.ready === true,
-      launcher, rehearsal, configurationBackups, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, speakerBotReadiness, endingFlow,
+      ready,
+      readinessSummary: { state: !coreReady ? 'core-needs-attention' : ready ? 'ready-to-stream' : 'optional-attention', coreReady, readyToStream: ready, optionalAttention: coreReady && !ready, issues },
+      launcher, rehearsal, configurationBackups, sceneRefreshes, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, speakerBotReadiness, endingFlow, compatibilityFeed, logLifecycle,
     };
   }
 
@@ -1135,10 +1161,12 @@ export function inspectSpeakerBotReadiness(addOns: readonly WizardAddOnSummary[]
   const configured = application?.['configured'] === true;
   const enabled = application?.['enabled'] === true;
   const running = application?.['running'] === true;
+  const executableExists = application?.['executableExists'] !== false;
+  const willStartAutomatically = required && configured && enabled && executableExists && !running;
   const ready = !required || configured && enabled && running;
   return {
-    required, ready, configured, enabled, running, modules,
-    detail: !required ? 'No enabled feature currently requires Speaker.bot.' : !configured ? 'An enabled voice feature requires a selected Speaker.bot executable.' : !enabled ? 'An enabled voice feature requires Speaker.bot automatic startup.' : !running ? 'An enabled voice feature requires Speaker.bot to be running.' : 'Speaker.bot is running for every enabled voice feature.',
+    required, ready, configured, enabled, running, executableExists, willStartAutomatically, modules,
+    detail: !required ? 'No enabled feature currently requires Speaker.bot.' : !configured ? 'An enabled voice feature requires a selected Speaker.bot executable.' : !executableExists ? 'The saved Speaker.bot executable is missing; choose its current location.' : !enabled ? 'An enabled voice feature requires Speaker.bot automatic startup.' : !running ? 'Speaker.bot is ready to be started automatically by Start THSV Streaming Tools.' : 'Speaker.bot is running for every enabled voice feature.',
   };
 }
 

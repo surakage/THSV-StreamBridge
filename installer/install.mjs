@@ -61,8 +61,8 @@ try {
   await replaceDirectory(appTarget, stagedApp, appBackup, moved);
   await replaceDirectory(runtimeTarget, stagedRuntime, runtimeBackup, moved);
   await replaceDirectory(launcherTarget, stagedLauncher, launcherBackup, moved);
-  for (const name of ['Start THSV StreamBridge.cmd', 'Start THSV Streamer.bot Safely.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Open THSV StreamBridge Tray.cmd', 'Create THSV Recovery Bundle.cmd', 'Restore THSV Recovery Bundle.cmd', 'Uninstall THSV StreamBridge.cmd']) {
-    await copyFile(join(sourceRoot, 'launcher', name), join(installRoot, name));
+  for (const name of ['Start THSV StreamBridge.cmd', 'Start THSV Streamer.bot Safely.cmd', 'Start THSV Streaming Tools.cmd', 'Stop THSV StreamBridge.cmd', 'Open THSV Setup Wizard.cmd', 'Open THSV StreamBridge Tray.cmd', 'Create THSV Recovery Bundle.cmd', 'Restore THSV Recovery Bundle.cmd', 'Move THSV StreamBridge to Another Computer.cmd', 'Restore THSV Move Bundle.cmd', 'Uninstall THSV StreamBridge.cmd']) {
+    if (await exists(join(sourceRoot, 'launcher', name))) await copyFile(join(sourceRoot, 'launcher', name), join(installRoot, name));
   }
   // The installer launcher belongs only in the downloaded release folder. Its
   // companion installer/install.mjs is intentionally not part of an installed

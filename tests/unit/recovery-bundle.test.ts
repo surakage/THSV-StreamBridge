@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { exportRecoveryBundle, restoreRecoveryBundle, verifyRecoveryBundle } from '../../launcher/recovery-bundle.mjs';
+import { exportRecoveryBundle, exportTransferBundle, previewTransferBundle, restoreRecoveryBundle, restoreTransferBundle, verifyRecoveryBundle, verifyTransferBundle } from '../../launcher/recovery-bundle.mjs';
 
 const roots: string[] = [];
 afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
@@ -23,7 +23,7 @@ describe('encrypted recovery bundles', () => {
     await writeFile(join(root, 'addons', 'state', 'thsv.test', 'state.json'), '{"preserved":true}\n', 'utf8');
 
     const exported = await exportRecoveryBundle({ installRoot: root, outputPath: bundle, passphrase: 'correct horse battery staple' });
-    expect(exported).toMatchObject({ encrypted: true, fileCount: 5 });
+    expect(exported).toMatchObject({ encrypted: true, verified: true, fileCount: 5 });
     expect(await readFile(bundle, 'utf8')).not.toContain('private-recovery-token');
     await expect(verifyRecoveryBundle({ bundlePath: bundle, passphrase: 'wrong passphrase value' })).rejects.toThrow('authentication failed');
     await expect(restoreRecoveryBundle({ installRoot: root, bundlePath: bundle, passphrase: 'correct horse battery staple' })).rejects.toThrow('explicit creator approval');
@@ -48,5 +48,34 @@ describe('encrypted recovery bundles', () => {
     await exportRecoveryBundle({ installRoot: root, outputPath: bundle, passphrase: 'correct horse battery staple' });
     await restoreRecoveryBundle({ installRoot: root, bundlePath: bundle, passphrase: 'correct horse battery staple', approvedByCreator: true });
     await expect(readFile(join(root, 'data', 'configuration', 'bridge.local.json'), 'utf8')).resolves.toBe('{}\n');
+  });
+
+  it('moves settings, state, packages, and assets without moving credentials', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-transfer-')); roots.push(root);
+    const destination = await mkdtemp(join(tmpdir(), 'thsv-transfer-destination-')); roots.push(destination);
+    const bundle = join(root, 'move.thsv-transfer');
+    await mkdir(join(root, 'data', 'configuration'), { recursive: true });
+    await mkdir(join(root, 'data', 'state'), { recursive: true });
+    await mkdir(join(root, 'data', 'secrets'), { recursive: true });
+    await mkdir(join(root, 'addons', 'packages', 'thsv.test'), { recursive: true });
+    await mkdir(join(root, 'addons', 'state', 'thsv.test'), { recursive: true });
+    await writeFile(join(root, 'data', 'configuration', 'bridge.local.json'), JSON.stringify({ security: { controlTokenFile: 'data/secrets/control-token' }, webhookUrl: 'https://secret.invalid/value', sceneName: 'BRB' }), 'utf8');
+    await writeFile(join(root, 'data', 'state', 'scene-catalog.json'), `\uFEFF${JSON.stringify({ scene: 'BRB', credential: 'never-move' })}`, 'utf8');
+    await writeFile(join(root, 'data', 'secrets', 'control-token'), 'never-move-token', 'utf8');
+    await writeFile(join(root, 'addons', 'packages', 'thsv.test', 'asset.png'), Buffer.from([1, 2, 3]));
+    await writeFile(join(root, 'addons', 'state', 'thsv.test', 'settings.json'), JSON.stringify({ volume: 0.8, apiKey: 'never-move-key' }), 'utf8');
+    const preview = await previewTransferBundle({ installRoot: root });
+    expect(preview).toMatchObject({ portableTransfer: true, credentialsRequired: true, redactedFields: 3 });
+    expect(preview.omittedCategories).toEqual(expect.arrayContaining<string>(['credentials', 'secrets']));
+    expect(preview.files.map((file) => file.path)).not.toContain('data/secrets/control-token');
+    const exported = await exportTransferBundle({ installRoot: root, outputPath: bundle, passphrase: 'correct horse battery staple' });
+    expect(exported).toMatchObject({ portableTransfer: true, credentialsRequired: true, verified: true });
+    await expect(verifyTransferBundle({ bundlePath: bundle, passphrase: 'correct horse battery staple' })).resolves.toMatchObject({ portableTransfer: true, credentialsRequired: true });
+    await restoreTransferBundle({ installRoot: destination, bundlePath: bundle, passphrase: 'correct horse battery staple', approvedByCreator: true });
+    await expect(readFile(join(destination, 'data', 'secrets', 'control-token'), 'utf8')).rejects.toThrow();
+    expect(await readFile(join(destination, 'data', 'configuration', 'bridge.local.json'), 'utf8')).not.toContain('secret.invalid');
+    expect(await readFile(join(destination, 'data', 'state', 'scene-catalog.json'), 'utf8')).not.toContain('never-move');
+    expect(await readFile(join(destination, 'addons', 'state', 'thsv.test', 'settings.json'), 'utf8')).not.toContain('never-move');
+    await expect(readFile(join(destination, 'addons', 'packages', 'thsv.test', 'asset.png'))).resolves.toEqual(Buffer.from([1, 2, 3]));
   });
 });

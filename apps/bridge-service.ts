@@ -44,6 +44,8 @@ import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state
 import { OperationalReliabilityService } from '../bridge/services/operational-reliability-service.js';
 import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } from '../bridge/services/broadcast-connection-vault-service.js';
 import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-connection-manager.js';
+import { StreamerBotCompatibilityFeedService } from '../bridge/services/streamerbot-compatibility-feed-service.js';
+import { LogLifecycleStatusService } from '../bridge/services/log-lifecycle-status-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -108,12 +110,15 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   },
   cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
 });
+const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
+const bundledExtensionUpdate = await addOnWizard.updateInstalledBundledExtensions();
+if ((bundledExtensionUpdate['updated'] as readonly unknown[]).length > 0) logger.info('Updated installed bundled extensions from the verified Bridge release', bundledExtensionUpdate);
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);
-const commandDirectory = new CommandDirectoryService(config, modules, {}, streamerBotInspector);
+const commandDirectory = new CommandDirectoryService(config, modules, { historyPath: join(dataRoot, 'state', 'command-directory-publication-history.json') }, streamerBotInspector);
+await commandDirectory.start();
 const commandDirectoryResponder = new CommandDirectoryResponder(commandDirectory, outboundRouter, logger);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
 const activeBridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, deliveryOutboxStore, modules });
-const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
 const installedAddOns = await addOnWizard.list();
 const buildProvenance = await readBuildProvenance(dataRoot);
 const releaseUpdates = new ReleaseUpdateService(STREAMBRIDGE_VERSION, undefined, undefined, join(dataRoot, 'updates'));
@@ -125,7 +130,14 @@ const automaticUpdates = new AutomaticUpdateMonitor({
   logger,
   statePath: join(dataRoot, 'updates', 'automatic-update-status.json'),
 });
-const universalImports = new StreamerBotUniversalImportService();
+const streamerBotLauncher = new StreamerBotLauncherService(dataRoot, config.streamerbot.url);
+const streamerBotCompatibilityFeed = new StreamerBotCompatibilityFeedService(logger, fetch, join(dataRoot, 'updates', 'streamerbot-compatibility-feed-cache.json'));
+await streamerBotCompatibilityFeed.start();
+const logLifecycleStatus = new LogLifecycleStatusService(config.logging.directory, config.logging.maxFileBytes, config.logging.backups);
+await logLifecycleStatus.enforce();
+const logRetentionTimer = setInterval(() => { void logLifecycleStatus.enforce().catch((error: unknown) => logger.warn('Aggregate log-retention enforcement failed', { error })); }, 60 * 60 * 1_000);
+logRetentionTimer.unref();
+const universalImports = new StreamerBotUniversalImportService(resolve('packages', 'streamerbot'), () => streamerBotLauncher.version());
 const universalImportCatalogue = await universalImports.catalogue(installedAddOns);
 const triggerContractFingerprint = fingerprint(universalImportCatalogue);
 const configurationFingerprint = createHash('sha256').update(JSON.stringify(config)).digest('hex');
@@ -153,7 +165,6 @@ await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
 const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
-const streamerBotLauncher = new StreamerBotLauncherService(dataRoot, config.streamerbot.url);
 const broadcastConnectionVault = new BroadcastConnectionVaultService(dataRoot);
 await broadcastConnectionVault.start();
 const environmentConnections: ResolvedBroadcastConnection[] = [
@@ -232,6 +243,8 @@ const wizard: WizardService = new WizardService(
   directSceneConnections,
   scheduledReliabilityPreflight,
   () => overlayHub.status(),
+  () => streamerBotCompatibilityFeed.status(),
+  () => logLifecycleStatus.status(),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
@@ -263,6 +276,7 @@ let commandDirectoryRefreshTimer: NodeJS.Timeout | undefined;
 
 async function refreshCommandDirectory(): Promise<void> {
   if (commandDirectoryRefreshActive || stopping) return;
+  if (streamerBotInspector !== undefined && streamerBotInspector.status()['state'] !== 'connected') return;
   commandDirectoryRefreshActive = true;
   try {
     const refresh = await commandDirectory.refreshStreamerBotCommands();
@@ -322,7 +336,11 @@ try {
     .catch((error: unknown) => logger.warn('Initial scene snapshot was unavailable; observed scene changes remain active', { provider, error }));
   automaticUpdates.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
-  await refreshCommandDirectory();
+  if (streamerBotInspector !== undefined) void streamerBotInspector.waitUntilConnected(60_000).then(async (connected) => {
+    if (!connected || stopping) { logger.info('Streamer.bot-dependent startup work remains paused until the next connected refresh window'); return; }
+    await refreshCommandDirectory();
+    logger.info('Streamer.bot-dependent startup work resumed after the shared connection gate opened');
+  }).catch((error: unknown) => logger.warn('Streamer.bot-dependent startup work could not resume', { error }));
   commandDirectoryRefreshTimer = setInterval(() => void refreshCommandDirectory(), 5 * 60_000);
   commandDirectoryRefreshTimer.unref();
 } catch (error) {

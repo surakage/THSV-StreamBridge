@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { StreamerBotUniversalImportService } from '../../bridge/services/streamerbot-universal-import-service.js';
 import type { WizardAddOnSummary } from '../../bridge/services/addon-wizard-service.js';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
-import { STREAMERBOT_TRIGGER_REGISTRY_107 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
+import { STREAMERBOT_TRIGGER_REGISTRY_107, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 
 function decode(contentBase64: string): { data: { actions: Array<{ id: string; name: string }>; commands: Array<{ id: string }> }; meta: { name: string } } {
   const bytes = Buffer.from(contentBase64, 'base64');
@@ -34,6 +34,17 @@ describe('Streamer.bot universal import service', () => {
     expect(decoded.data.actions).toContainEqual(expect.objectContaining({ id: 'e924f0ad-36c1-4687-8c05-c39466d06963', name: 'THSV Addon - Raid Scout - Suggest' }));
     expect(new Set(decoded.data.actions.map((action) => action.id)).size).toBe(decoded.data.actions.length);
     expect(result.triggerRecommendations.find((item) => item.package.includes('Raid Scout'))?.recommendations).toContain('Suggest: Attach only to a creator-controlled hotkey, deck button, or operator command.');
+  });
+
+  it('labels generated imports with the exact supported alpha trigger registry', async () => {
+    const service = new StreamerBotUniversalImportService(undefined, async () => '1.1.0 alpha.3');
+    const catalogue = await service.catalogue([]);
+    const result = await service.build(['raid-scout']);
+    expect(catalogue.triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3.version);
+    expect(result.triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3.version);
+
+    const alpha4 = new StreamerBotUniversalImportService(undefined, async () => '1.1.0 alpha.4');
+    expect((await alpha4.catalogue([])).triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4.version);
   });
 
   it('rejects optional add-on actions until the matching add-on is installed', async () => {

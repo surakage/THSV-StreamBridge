@@ -64,6 +64,7 @@ test('wizard prepares and starts a verified offline Bridge update without manual
 test('wizard installs and configures add-ons without injecting package code', async ({ page, context }) => {
   test.setTimeout(90_000);
   await page.goto('/wizard/');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', /^(?:dark|light)$/u);
   const initialTheme = await page.locator('html').getAttribute('data-theme');
   await page.locator('#theme-toggle').click();
   const selectedTheme = initialTheme === 'dark' ? 'light' : 'dark';
