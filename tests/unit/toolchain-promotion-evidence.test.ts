@@ -30,8 +30,13 @@ async function createEvidenceFixture(): Promise<string> {
 }
 
 async function validate(root: string): Promise<string> {
-  const { stdout } = await run(powershell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-EvidenceRoot', root, '-RunIdsCsv', runIds.join(','), '-ExpectedHeadShasCsv', headShas.join(',')]);
-  return stdout;
+  try {
+    const { stdout } = await run(powershell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-EvidenceRoot', root, '-RunIdsCsv', runIds.join(','), '-ExpectedHeadShasCsv', headShas.join(',')]);
+    return stdout;
+  } catch (error) {
+    const failure = error as Error & { stderr?: string; stdout?: string };
+    throw new Error([failure.message, failure.stderr, failure.stdout].filter(Boolean).join('\n'), { cause: error });
+  }
 }
 
 describe('toolchain promotion evidence', () => {
