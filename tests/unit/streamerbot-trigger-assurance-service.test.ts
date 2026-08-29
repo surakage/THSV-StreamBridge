@@ -8,6 +8,7 @@ import {
   STREAMERBOT_TRIGGER_REGISTRY_107,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5,
   streamerBotTriggerRegistryForVersion,
 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 
@@ -32,6 +33,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
     expect(normalizeStreamerBotVersion('1.0.7.0')).toBe('1.0.7');
     expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.3')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3);
     expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.4')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.5')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5);
 
     const alpha = await fixture('1.1.0 alpha.3');
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
@@ -54,20 +56,23 @@ describe('StreamerBotTriggerAssuranceService', () => {
     expect(persisted.actions.find((action) => action.name === 'THSV Twitch - Intake')?.triggers.find((trigger) => trigger['type'] === 104)).toMatchObject({ tiers: 16, min: -1, max: -1 });
   });
 
-  it('selects the exact installed alpha.4 registry without weakening future-alpha safety', async () => {
-    const alpha = await fixture('1.1.0 alpha.4');
+  it.each([
+    ['1.1.0 alpha.4', '1.1.0-alpha.4'],
+    ['1.1.0 alpha.5', '1.1.0-alpha.5'],
+  ])('selects the exact installed %s registry without weakening future-alpha safety', async (installedVersion, normalizedVersion) => {
+    const alpha = await fixture(installedVersion);
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
     expect(await alpha.service.status()).toMatchObject({
       ready: true,
       canSave: false,
       versionCompatible: true,
-      supportedStreamerBotVersion: '1.1.0-alpha.4',
+      supportedStreamerBotVersion: normalizedVersion,
       triggerRegistryChannel: 'alpha',
     });
   });
 
   it('keeps unvalidated 1.1.0 alpha builds inspection-only', async () => {
-    const alpha = await fixture('1.1.0 alpha.5');
+    const alpha = await fixture('1.1.0 alpha.6');
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
     expect(await alpha.service.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false });
     await expect(alpha.service.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
@@ -100,7 +105,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
   });
 
   it('recreates version-compatible triggers stripped by an import without changing action bodies', async () => {
-    const { actionsPath, service } = await fixture();
+    const { actionsPath, service } = await fixture('1.1.0 alpha.5');
     const document = JSON.parse(await readFile(actionsPath, 'utf8')) as {
       actions: Array<{ name: string; triggers: Array<Record<string, unknown>>; subActions?: Array<Record<string, unknown>> }>;
     };
@@ -138,7 +143,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
   it('refuses unknown Streamer.bot versions and missing action bodies before creating a backup', async () => {
     const { actionsPath, root } = await fixture();
     const wrongVersion = new StreamerBotTriggerAssuranceService({ packageRoot: join(root, 'packages'), stateRoot: join(root, 'wrong-state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.0.8', streamerBotRunning: async () => false });
-    expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersions: ['1.0.7', '1.1.0-alpha.3', '1.1.0-alpha.4'] });
+    expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersions: ['1.0.7', '1.1.0-alpha.3', '1.1.0-alpha.4', '1.1.0-alpha.5'] });
     await expect(wrongVersion.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
     expect((await wrongVersion.backups())['backups']).toEqual([]);
 
