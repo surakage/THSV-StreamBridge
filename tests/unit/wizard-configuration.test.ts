@@ -142,6 +142,21 @@ describe('Stage 4 wizard configuration gateway', () => {
     expect(await gateway.export()).toMatchObject({ chatSettings: { maxChatMessages: 12, chat: { ignoredNames: ['ExampleBot'], events: { platformEvents: { youtube: { subscriber: { enabled: false } } }, characterLimits: { youtube: 160 } } } } });
   });
 
+  it('stages built-in live captions through the protected transaction and safe export', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-captions-'));
+    const path = join(directory, 'bridge.json');
+    await writeFile(path, await readFile('config/bridge.example.json', 'utf8'));
+    const gateway = new WizardConfigurationGateway(path, () => [], join(directory, 'backups'));
+    const snapshot = await gateway.snapshot() as { liveCaptions: Record<string, unknown> };
+    const liveCaptions = { ...snapshot.liveCaptions, enabled: true, fontSizePx: 64, backgroundMode: 'highlight', position: 'top' };
+    const draft = await gateway.begin();
+    const staged = gateway.stage(draft.id, { kind: 'live-captions', liveCaptions });
+    expect(staged.stagedChanges).toEqual([expect.objectContaining({ kind: 'live-captions' })]);
+    await gateway.commit(draft.id);
+    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ liveCaptions: { enabled: true, fontSizePx: 64, backgroundMode: 'highlight', position: 'top' } });
+    expect(await gateway.export()).toMatchObject({ liveCaptions: { enabled: true, fontSizePx: 64, backgroundMode: 'highlight', position: 'top' } });
+  });
+
   it('rejects a stale draft without writing', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'thsv-wizard-stale-'));
     const path = join(directory, 'bridge.json');

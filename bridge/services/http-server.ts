@@ -53,6 +53,12 @@ export interface DockChatController {
   send(request: OutboundMessageRequest): Promise<readonly OutboundMessageDelivery[]>;
 }
 
+export interface LiveCaptionController {
+  status(): Readonly<Record<string, unknown>>;
+  preview(input?: unknown): Readonly<Record<string, unknown>>;
+  clear(reason?: string): Readonly<Record<string, unknown>>;
+}
+
 class UnsupportedContentEncodingError extends Error {}
 class OverlayAssetError extends Error {}
 
@@ -107,6 +113,7 @@ export class DiagnosticsServer {
     private readonly dataRoot = 'data',
     private readonly commandDirectory?: CommandDirectoryService,
     private readonly dockChat?: DockChatController,
+    private readonly liveCaptions?: LiveCaptionController,
   ) {
     this.controlToken = controlToken;
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
@@ -249,6 +256,20 @@ export class DiagnosticsServer {
       if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) {
         this.guard.assertLoopback(request);
         return this.reply(response, 200, this.overlayHub.clientConfig());
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/live-captions' && this.liveCaptions !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.liveCaptions.status());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/live-captions/preview' && this.liveCaptions !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 8_192);
+        const input = body.text.trim() === '' ? undefined : JSON.parse(body.text) as unknown;
+        return this.reply(response, 200, this.liveCaptions.preview(input));
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/live-captions/clear' && this.liveCaptions !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.liveCaptions.clear('wizard-request'));
       }
       if (request.method === 'GET' && requestPath === '/overlay/chat/dock') {
         this.guard.assertLoopback(request);
@@ -1089,7 +1110,9 @@ export class DiagnosticsServer {
       if (error instanceof UnsupportedContentEncodingError) return this.reply(response, 415, { error: error.message });
       if (error instanceof OverlayAssetError) return this.reply(response, 400, { error: error.message });
       if (error instanceof SyntaxError || isValidationError(error)) return this.reply(response, 400, {
-        error: request.url === '/wizard/api/viewer-foundation/admin'
+        error: request.url === '/wizard/api/live-captions/preview'
+          ? 'Request body is not a valid live-caption preview'
+          : request.url === '/wizard/api/viewer-foundation/admin'
           ? 'Request body is not a valid Viewer Foundation administration request'
           : request.url === '/wizard/api/community-analytics/admin'
             ? 'Request body is not a valid Community Analytics administration request'
@@ -1680,6 +1703,9 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/chat': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/chat/dock': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/alerts': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/captions': { file: 'captions.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/captions.js': { file: 'captions.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/captions.css': { file: 'captions.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-0.9.5.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/app-0.9.6.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },

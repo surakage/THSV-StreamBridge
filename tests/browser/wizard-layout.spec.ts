@@ -42,6 +42,29 @@ test('normal Wizard openings show every management page even after an older guid
   await expect(page.getByRole('button', { name: 'Community Analytics', exact: true })).toBeVisible();
 });
 
+test('built-in live captions expose no-import setup, full styling, and unsaved preview', async ({ page }) => {
+  await unlock(page);
+  await page.getByRole('button', { name: 'Live Captions', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Live Captions' })).toBeVisible();
+  await expect(page.getByText('No Streamer.bot import is required.')).toBeVisible();
+  await expect(page.getByLabel('Live-caption source')).toHaveValue(/\/overlay\/captions$/u);
+  const panel = page.locator('[data-panel="live-captions"]');
+  await expect(panel.getByLabel('Use close alternate recognition phrases when an accent correction matches')).toBeChecked();
+  await expect(panel.getByLabel('Mask common profanity in captions')).toBeChecked();
+  await panel.getByLabel('Accent corrections, one per line').fill('hidden slot village => Hidden Sloth Village');
+  await panel.getByLabel('Additional words or phrases to mask').fill('heck no');
+  await panel.locator('summary').filter({ hasText: '2. Text appearance' }).click();
+  await panel.locator('summary').filter({ hasText: '3. Background and placement' }).click();
+  await panel.getByLabel('Font size (pixels)', { exact: true }).fill('72');
+  await panel.locator('select[name="backgroundMode"]').selectOption('highlight');
+  expect(await panel.locator(':invalid').evaluateAll((elements) => elements.map((element) => element.getAttribute('name')))).toEqual([]);
+  await page.getByRole('button', { name: 'Send preview caption' }).click();
+  await expect(page.locator('#live-captions-state')).toContainText('including unsaved design changes');
+  await panel.getByLabel('Accent corrections, one per line').fill('missing separator');
+  await page.getByRole('button', { name: 'Stage live-caption settings' }).click();
+  await expect(page.locator('#live-captions-state')).toHaveText('Accent correction line 1 must use heard => intended.');
+});
+
 test('diagnostics exposes the seamless operations center and its safety boundaries', async ({ page }) => {
   await page.route('**/wizard/api/operations/drift', async (route) => await route.fulfill({
     contentType: 'application/json',

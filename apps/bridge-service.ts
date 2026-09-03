@@ -46,6 +46,8 @@ import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } fro
 import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-connection-manager.js';
 import { StreamerBotCompatibilityFeedService } from '../bridge/services/streamerbot-compatibility-feed-service.js';
 import { LogLifecycleStatusService } from '../bridge/services/log-lifecycle-status-service.js';
+import { LiveCaptionService } from '../bridge/services/live-caption-service.js';
+import { StreamerBotEventRelay } from '../bridge/adapters/streamerbot-event-relay.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -57,7 +59,8 @@ const loadedConfig = await loadConfigWithNotices(configPath);
 const config = loadedConfig.config;
 const logger = new StructuredLogger(config.logging.level, config.logging.directory, config.logging.maxFileBytes, config.logging.backups);
 for (const notice of loadedConfig.notices) logger.warn(notice.message, { code: notice.code, configPath: resolve(configPath), ignoredPaths: notice.paths });
-const registry = createDefaultAdapterRegistry(config, logger);
+const streamerBotEventRelay = new StreamerBotEventRelay();
+const registry = createDefaultAdapterRegistry(config, logger, streamerBotEventRelay);
 const inputs = registry.createInputs(config.platforms);
 const outputs = registry.createOutputs(config.outputs);
 const streamerBotInspector = outputs.find((output): output is StreamerBotAdapter => output instanceof StreamerBotAdapter);
@@ -73,6 +76,7 @@ const liveRecoveryPlatformIds = [...enabledPlatformIds].filter((platform) => ['t
 const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
+const liveCaptions = new LiveCaptionService(config.liveCaptions, overlayHub, streamerBotEventRelay, logger);
 const chatEmotes = new ChatEmoteService(logger);
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
@@ -252,6 +256,7 @@ activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
 activeBridge.subscribe((event) => operationalReliability.observe(event));
+activeBridge.subscribe((event) => liveCaptions.observeBridgeEvent(event));
 activeBridge.subscribe(async (event) => {
   if (event.metadata.simulated || event.eventType !== 'addon.thsv.live-beacon.broadcast-control' || event.payload['action'] !== 'online') return;
   await activeBridge.recoverLiveSession(liveRecoveryPlatformIds, typeof event.payload['startedAt'] === 'string' ? event.payload['startedAt'] : event.receivedAt);
@@ -299,6 +304,7 @@ async function shutdown(signal: string): Promise<void> {
   obsBroadcastMonitor.stop();
   logger.info('Shutdown requested', { signal });
   try {
+    liveCaptions.stop();
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -320,6 +326,7 @@ const server = new DiagnosticsServer(
     enabledPlatforms: dockChatPlatforms,
     send: (request) => dockOutboundRouter.route(request),
   },
+  liveCaptions,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -328,6 +335,7 @@ process.once('uncaughtException', (error) => { logger.error('Uncaught exception'
 process.once('unhandledRejection', (error) => { logger.error('Unhandled rejection', { error }); void shutdown('unhandledRejection'); });
 
 try {
+  liveCaptions.start();
   await activeBridge.start();
   await obsBroadcastMonitor.start();
   await operationalReliability.start();

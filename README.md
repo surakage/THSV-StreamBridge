@@ -6,7 +6,7 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Version 4:** StreamBridge, its 23 bundled extension components, three built-in integrations, 11 optional add-ons, and all 42 generated Streamer.bot packages are synchronized at `4.0.9`. Version 4 replaces the former install-every-feature model with seven built-in extension groups, a single selectable Streamer.bot import, and separate downloads only for genuinely optional add-ons. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [4.0.9 release notes](docs/releases/4.0.9.md).
+> **Version 4:** StreamBridge, its 23 bundled extension components, three built-in integrations, 11 optional add-ons, and all 42 generated Streamer.bot packages are synchronized at `4.0.10`. Version 4 replaces the former install-every-feature model with seven built-in extension groups, a single selectable Streamer.bot import, and separate downloads only for genuinely optional add-ons. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [4.0.10 release notes](docs/releases/4.0.10.md).
 
 ## Start here
 
@@ -42,7 +42,7 @@ Streamer.bot remains the automation and decision engine. StreamBridge does not a
 
 Public releases have a stable [Download StreamBridge](https://www.slothbloom.com/downloads/streambridge) address on SlothBloom, backed by the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest). The website redirects to the exact current Windows x64 archive rather than duplicating executable files. The main archive includes the bridge, pinned Node.js runtime, production dependencies, installer, launchers, documentation, all built-in integrations and extension components, and the manifests used by the wizard's one-import generator. Optional add-ons remain separate ZIP downloads. Users do not need to install Node.js, npm, Docker, or a database.
 
-1. Download `THSV-StreamBridge-4.0.9.zip` and its adjacent `.sha256` file from the latest Version 4 release.
+1. Download `THSV-StreamBridge-4.0.10.zip` and its adjacent `.sha256` file from the latest Version 4 release.
 2. Verify the download using [RELEASE-VERIFICATION.md](RELEASE-VERIFICATION.md). GitHub artifact attestations provide a free publisher-verification path without requiring a paid Windows code-signing certificate.
 3. If Windows shows **Unblock** in the ZIP's Properties, select it before extracting.
 4. Extract the ZIP to a temporary folder; do not run the installer from inside the ZIP preview.
@@ -228,13 +228,13 @@ Streamer.bot inspection sends only documented `GetActions` and `GetCommands` req
 
 ## TikFinity intake
 
-The reviewed TikFinity-to-Streamer.bot intake relays TikTok chat, follows, gifts, 100-like milestones, and subscriptions. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.9.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
+The reviewed TikFinity-to-Streamer.bot intake relays TikTok chat, follows, gifts, 100-like milestones, and subscriptions. Import `packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.10.sb`, keep TikFinity pointed at `127.0.0.1:8080/`, and enable the `tiktok` platform only after the simulator acceptance check in [Streamer.bot setup](docs/streamerbot-setup.md).
 
 TikFinity does not currently document a stable source-event ID or reliable simulator marker. Intake events therefore expose those limitations explicitly and default to simulated until live provenance is verified; do not use them for production progression or financial statistics yet.
 
 ## Native Streamer.bot platform intake
 
-Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.9.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
+Twitch, YouTube, and Kick use one native intake action per platform, each placed in its own Streamer.bot group. Import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.10.sb`, configure the trigger matrix declared in its manifest, and enable each platform with adapter `streamerbot-native`. Native triggers reuse the existing authenticated Streamer.bot WebSocket connection, preserve Streamer.bot's test-event provenance, and carry a known first-ever-message flag without guessing when the field is absent.
 
 The native intake also relays documented Twitch and YouTube emote ranges. StreamBridge locally matches BTTV for Twitch/YouTube, FrankerFaceZ for Twitch, and 7TV for Twitch/YouTube/Kick; unavailable catalogs and image failures preserve the original emote code as text.
 

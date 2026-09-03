@@ -412,6 +412,56 @@ const browserOverlaySchema = z.object({
   alerts: alertPresentationSchema.default({ profiles: {} }),
 }).strict();
 
+export const liveCaptionsSchema = z.object({
+  enabled: z.boolean().default(false),
+  minimumConfidence: z.number().min(0).max(1).default(0.7),
+  useAlternatives: z.boolean().default(true),
+  alternativeConfidenceTolerance: z.number().min(0).max(0.5).default(0.15),
+  corrections: z.array(z.object({
+    heard: z.string().trim().min(1).max(80),
+    intended: z.string().trim().min(1).max(80),
+  }).strict()).max(100).default([]),
+  profanityFilter: z.boolean().default(true),
+  additionalProfanity: z.array(z.string().trim().min(1).max(80)).max(100).default([]),
+  maximumCharacters: z.number().int().min(40).max(500).default(240),
+  durationMs: z.number().int().min(1_000).max(30_000).default(6_000),
+  repeatSuppressionMs: z.number().int().min(0).max(30_000).default(1_500),
+  fontFamily: z.enum(['system', 'rounded', 'serif', 'mono']).default('system'),
+  fontSizePx: z.number().int().min(20).max(120).default(48),
+  fontWeight: z.number().int().min(400).max(900).multipleOf(100).default(800),
+  textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#ffffff'),
+  textAlign: z.enum(['left', 'center', 'right']).default('center'),
+  outlineColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#000000'),
+  outlineWidthPx: z.number().int().min(0).max(8).default(2),
+  backgroundMode: z.enum(['solid', 'glass', 'highlight', 'none']).default('glass'),
+  backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#101722'),
+  backgroundOpacity: z.number().min(0).max(1).default(0.88),
+  paddingPx: z.number().int().min(0).max(64).default(20),
+  borderRadiusPx: z.number().int().min(0).max(64).default(18),
+  shadowEnabled: z.boolean().default(true),
+  shadowColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#000000'),
+  shadowBlurPx: z.number().int().min(0).max(40).default(12),
+  shadowOffsetXpx: z.number().int().min(-30).max(30).default(0),
+  shadowOffsetYpx: z.number().int().min(-30).max(30).default(4),
+  position: z.enum(['top', 'center', 'bottom']).default('bottom'),
+  maximumWidthPercent: z.number().int().min(25).max(100).default(86),
+  maximumLines: z.number().int().min(1).max(6).default(3),
+  animation: z.enum(['fade', 'slide', 'pop', 'none']).default('fade'),
+}).strict().superRefine((captions, context) => {
+  const heard = new Set<string>();
+  captions.corrections.forEach((correction, index) => {
+    const key = correction.heard.toLocaleLowerCase('en-US');
+    if (heard.has(key)) context.addIssue({ code: 'custom', path: ['corrections', index, 'heard'], message: 'Each heard phrase must be unique.' });
+    heard.add(key);
+  });
+  const profanity = new Set<string>();
+  captions.additionalProfanity.forEach((term, index) => {
+    const key = term.toLocaleLowerCase('en-US');
+    if (profanity.has(key)) context.addIssue({ code: 'custom', path: ['additionalProfanity', index], message: 'Each additional profanity term must be unique.' });
+    profanity.add(key);
+  });
+});
+
 const filterRuleSchema = z.object({
   id: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/),
   name: z.string().min(1).max(100),
@@ -515,6 +565,13 @@ const bridgeConfigObjectSchema = z
       chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [...DEFAULT_IGNORED_BOT_NAMES], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
       alerts: { profiles: {} },
     }),
+    liveCaptions: liveCaptionsSchema.default({
+      enabled: false, minimumConfidence: 0.7, useAlternatives: true, alternativeConfidenceTolerance: 0.15, corrections: [], profanityFilter: true, additionalProfanity: [], maximumCharacters: 240, durationMs: 6_000, repeatSuppressionMs: 1_500,
+      fontFamily: 'system', fontSizePx: 48, fontWeight: 800, textColor: '#ffffff', textAlign: 'center', outlineColor: '#000000', outlineWidthPx: 2,
+      backgroundMode: 'glass', backgroundColor: '#101722', backgroundOpacity: 0.88, paddingPx: 20, borderRadiusPx: 18,
+      shadowEnabled: true, shadowColor: '#000000', shadowBlurPx: 12, shadowOffsetXpx: 0, shadowOffsetYpx: 4,
+      position: 'bottom', maximumWidthPercent: 86, maximumLines: 3, animation: 'fade',
+    }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
     streamerbot: z
       .object({
@@ -560,6 +617,10 @@ const bridgeConfigObjectSchema = z
   .refine((config) => Object.values(config.platforms).some((platform) => platform.adapter === 'mock'), {
     message: 'At least one platform entry must use the mock adapter for simulation',
     path: ['platforms'],
+  })
+  .superRefine((config, context) => {
+    if (config.liveCaptions.enabled && !config.browserOverlay.enabled) context.addIssue({ code: 'custom', path: ['liveCaptions', 'enabled'], message: 'Live captions require browserOverlay.enabled=true' });
+    if (config.liveCaptions.enabled && !config.streamerbot.enabled) context.addIssue({ code: 'custom', path: ['liveCaptions', 'enabled'], message: 'Live captions require streamerbot.enabled=true' });
   });
 
 export const bridgeConfigSchema = z.preprocess((input) => {

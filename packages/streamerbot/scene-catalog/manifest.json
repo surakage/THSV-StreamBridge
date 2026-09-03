@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Scene Catalog",
-  "version": "4.0.9",
+  "version": "4.0.10",
   "author": "surakage",
   "description": "Reads available broadcast scenes for the authenticated StreamBridge setup wizard without changing the active scene.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -18,7 +18,7 @@
       ".\\Newtonsoft.Json.dll"
     ],
     "source": "src/RefreshSceneCatalog.cs",
-    "importFile": "THSV-StreamBridge-Scene-Catalog-4.0.9.sb"
+    "importFile": "THSV-StreamBridge-Scene-Catalog-4.0.10.sb"
   },
   "runtime": {
     "queue": "THSV StreamBridge",

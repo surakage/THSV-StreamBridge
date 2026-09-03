@@ -469,9 +469,12 @@ describe('Browser Overlay Hub contract', () => {
 
   it('uses text-only DOM sinks in the reviewed browser source', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
+    const captions = await readFile('overlays/browser/captions.js', 'utf8');
     const addOnHost = await readFile('overlays/browser/addon-host.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
+    expect(captions).toContain('captionText.textContent = payload.text');
+    expect(captions).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\s*\(/u);
     expect(addOnHost).toContain("kind: 'addon.subscribe', moduleId, rendererId");
     expect(addOnHost).toContain("kind: 'addon.unsubscribe', moduleId, rendererId");
     expect(source).toContain("kind: 'host.visibility'");

@@ -185,7 +185,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
 
   const addOnHeading = page.locator('[data-addon-settings] [name="heading"]');
   await addOnHeading.fill('My private add-on setting');
-  await page.getByLabel('Accent').selectOption('green');
+  await page.locator('[data-addon-settings] select[name="accent"]').selectOption('green');
   await page.getByRole('button', { name: 'Save all settings' }).click();
   await expect(page.locator('#wizard-feedback')).toContainText('Settings saved for sample.declarative-settings');
   await expect(page.locator('#wizard-feedback')).toHaveAttribute('data-kind', 'success');

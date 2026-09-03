@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AddOnWizardService, validateSettings } from '../../bridge/services/addon-wizard-service.js';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 const temporary: string[] = [];
 afterEach(async () => Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
@@ -26,7 +27,7 @@ function declarativeArchive(moduleId = 'sample.status-card', name = 'Sample Stat
     manifest: {
       contractVersion: '2.0.0-preview.1', moduleId, name, version,
       minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', dependencies, requiredCapabilities: [],
-      ...(official ? { minimumBridgeVersion: '4.0.9', maximumTestedBridgeVersion: '4.0.9' } : {}),
+      ...(official ? { minimumBridgeVersion: STREAMBRIDGE_VERSION, maximumTestedBridgeVersion: STREAMBRIDGE_VERSION } : {}),
       configurationSchema: 'schemas/config.json', eventSubscriptions: [], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
       dataStorageOwned: [`addons/state/${moduleId}/`], installationSteps: ['Install through the Add-ons page.'],
       uninstallationSteps: ['Uninstall through the Add-ons page; private settings remain preserved.'], migrations: [], healthChecks: [],
