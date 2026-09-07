@@ -6,7 +6,7 @@ THSV StreamBridge is a local-first, cross-platform livestream automation framewo
 
 Instead of building a separate bot, socket, and overlay for every platform, StreamBridge gives the creator one installation, one authenticated setup wizard, one Streamer.bot connection, and reusable modules for chat, commands, alerts, timed messages, rewards, overlays, and future add-ons.
 
-> **Version 4:** StreamBridge, its 23 bundled extension components, three built-in integrations, 11 optional add-ons, and all 42 generated Streamer.bot packages are synchronized at `4.0.10`. Version 4 replaces the former install-every-feature model with seven built-in extension groups, a single selectable Streamer.bot import, and separate downloads only for genuinely optional add-ons. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [4.0.10 release notes](docs/releases/4.0.10.md).
+> **Version 4:** StreamBridge, its 24 bundled extension components, three built-in integrations, 11 optional add-ons, and all 43 generated Streamer.bot packages are synchronized at `4.0.10`. Version 4 replaces the former install-every-feature model with seven built-in extension groups, a single selectable Streamer.bot import, and separate downloads only for genuinely optional add-ons. Genuine provider acceptance remains separate; high-impact operations without verified provider-stable IDs stay blocked at runtime. See the [4.0.10 release notes](docs/releases/4.0.10.md).
 
 ## Start here
 
@@ -89,6 +89,8 @@ For the exact completed-versus-remaining acceptance cutoff, see [Published relea
 
 Stream Launch Countdown is included in the built-in **Broadcast Director** extension group and uses the core-hosted `/overlay/countdown` browser source. Select Broadcast Director when generating the one Streamer.bot import. See [Stream Launch Countdown](docs/starting-soon-countdown.md).
 
+Stream Break & End Guard is also included in **Broadcast Director**. Its automatic mode derives the break cadence from the planned stream length (30 minutes into a one-hour stream, hourly for streams of two hours or longer), defaults to five-minute breaks, warns five minutes before each deadline, switches to scenes selected from the connected broadcast app, restores the prior scene, and never stops the broadcast itself. See [Stream Break & End Guard](docs/addons/stream-session-guard.md).
+
 Add-ons must use the main StreamBridge installation. They reuse its normalized event bus, Streamer.bot connection, scheduler, private state, outbound router, and overlay transport instead of opening additional bridge instances or WebSockets.
 
 Install a `.thsv-addon` through the authenticated Add-ons page, or copy it into `data/addons/inbox/` and review it there. Inbox packages are inspected but never installed or executed automatically. Executable add-ons run under the creator's Windows account, so install them only from trusted publishers. Planned projects and their safety requirements are tracked in the [future project and add-on roadmap](docs/future-projects-and-addons.md).
@@ -97,7 +99,7 @@ Optional add-ons are separate downloads on the same GitHub Release as core. Each
 
 Release packaging runs `npm run imports:sync` before validation. Every declared `.sb` is regenerated from its reviewed C# source, stale sibling exports are excluded, and `packages/streamerbot/import-index.json` records the canonical filename, version, size, and SHA-256. Add-on release bundles include the matching import plus its adjacent checksum, so extension and optional add-on imports cannot drift unnoticed from the source that produced the release.
 
-Published packages are not automatically provider-accepted. Version 4 includes 23 extension components and three integrations in the main installation, with only 11 independently installable optional add-ons. Use the [Add-on acceptance ledger](docs/add-on-acceptance-ledger.md), [offline/private testing guide](docs/offline-acceptance.md), and [first-live checklist](docs/live-test-checklist.md) before enabling financial, reward, moderation, raid, outbound-chat, Discord, translation, voice, scene, or media side effects.
+Published packages are not automatically provider-accepted. Version 4 includes 24 extension components and three integrations in the main installation, with only 11 independently installable optional add-ons. Use the [Add-on acceptance ledger](docs/add-on-acceptance-ledger.md), [offline/private testing guide](docs/offline-acceptance.md), and [first-live checklist](docs/live-test-checklist.md) before enabling financial, reward, moderation, raid, outbound-chat, Discord, translation, voice, scene, or media side effects.
 
 The wizard organizes frequently combined components into seven [main features](docs/main-features.md): Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language. They appear on the dedicated **Extensions** page. Separately installed packages appear on the dedicated **Add-ons** page with their install, update, and package-management controls. Existing component IDs, settings, Streamer.bot actions, and failure isolation remain compatible.
 

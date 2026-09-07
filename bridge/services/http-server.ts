@@ -1221,7 +1221,7 @@ interface AddOnPreviewSource {
 }
 
 export function addOnOverlayPreviewTopic(moduleId: string): string {
-  if (['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.subathon-timer'].includes(moduleId)) return `${moduleId}.timer.update`;
+  if (['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.subathon-timer'].includes(moduleId)) return `${moduleId}.timer.update`;
   if (moduleId === 'thsv.stream-labels') return `${moduleId}.labels.update`;
   if (moduleId === 'thsv.prize-wheel') return `${moduleId}.wheel.spin`;
   if (moduleId === 'thsv.custom-counter') return `${moduleId}.counter.update`;
@@ -1323,6 +1323,26 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
         liveColor: previewColor(addOn.settings['overlayAccentColor'], '#f4c95d'),
         borderColor: previewColor(addOn.settings['overlayBorderColor'], '#f4c95d'),
         showProgressBar: true,
+      },
+    };
+  }
+  if (addOn.moduleId === 'thsv.stream-session-guard') {
+    const warningMinutes = boundedPreviewInteger(addOn.settings['warningMinutes'], 1, 15, 5);
+    const remainingSeconds = warningMinutes * 60;
+    return {
+      moduleId: addOn.moduleId, label: 'BREAK IN', remainingSeconds, maximumSeconds: remainingSeconds,
+      remainingText: `${String(warningMinutes).padStart(2, '0')}:00`, running: true, live: true, completed: false,
+      badgeText: 'REMINDER', contextText: 'Scheduled wellness break', lastReason: 'Preview uses the saved five-minute warning template',
+      warning: true, critical: false, preview: true, templatePreview: true,
+      style: {
+        fontFamily: previewEnum(addOn.settings['overlayFontFamily'], ['display', 'broadcast', 'mono'], 'broadcast'),
+        backgroundMode: previewEnum(addOn.settings['overlayBackgroundMode'], ['glass', 'solid', 'none'], 'glass'),
+        backgroundColor: previewColor(addOn.settings['overlayBackgroundColor'], '#101722'),
+        backgroundOpacity: typeof addOn.settings['overlayBackgroundOpacity'] === 'number' ? Math.max(0, Math.min(1, addOn.settings['overlayBackgroundOpacity'])) : .92,
+        accentColor: previewColor(addOn.settings['overlayAccentColor'], '#f4c95d'), textColor: previewColor(addOn.settings['overlayTextColor'], '#ffffff'),
+        mutedColor: previewColor(addOn.settings['overlayMutedColor'], '#d9e2ef'), warningColor: previewColor(addOn.settings['overlayWarningColor'], '#f4c95d'),
+        criticalColor: previewColor(addOn.settings['overlayCriticalColor'], '#ff6b7d'), liveColor: previewColor(addOn.settings['overlayAccentColor'], '#f4c95d'),
+        borderColor: previewColor(addOn.settings['overlayBorderColor'], '#f4c95d'), showProgressBar: true,
       },
     };
   }

@@ -23,6 +23,14 @@ describe('hosted add-on overlay previews', () => {
     });
   });
 
+  it('builds the Stream Break & End Guard warning with saved styling', () => {
+    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.stream-session-guard', name: 'Stream Break & End Guard', settings: { warningMinutes: 5, overlayBackgroundColor: '#102030', overlayAccentColor: '#abcdef' } })).toMatchObject({
+      moduleId: 'thsv.stream-session-guard', label: 'BREAK IN', remainingSeconds: 300, maximumSeconds: 300,
+      remainingText: '05:00', running: true, warning: true, templatePreview: true,
+      style: { backgroundColor: '#102030', accentColor: '#abcdef' },
+    });
+  });
+
   it('builds a dedicated bounded Automated Shoutouts creator card', () => {
     expect(buildAddOnOverlayPreview({ moduleId: 'thsv.automated-shoutouts', name: 'Automated Shoutouts', settings: {} })).toMatchObject({
       cardKind: 'shoutout-spotlight', trigger: 'manual', presentation: 'creator', platform: 'twitch', durationMs: 60_000, preview: true,

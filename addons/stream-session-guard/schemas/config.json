@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stream Break & End Guard",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Stream Break & End Guard", "default": false },
+    "provider": { "type": "string", "title": "Broadcast app", "enum": ["obs", "meld", "streamlabs"], "default": "obs" },
+    "connectionIndex": { "type": "integer", "title": "Streamer.bot connection number", "description": "Use 0 for the first OBS or Streamlabs connection. Meld also accepts 0 for its first saved connection.", "minimum": 0, "maximum": 23, "default": 0 },
+    "breaksEnabled": { "type": "boolean", "title": "Schedule wellness breaks", "default": true },
+    "breakScheduleMode": { "type": "string", "title": "Break schedule", "enum": ["automatic", "manual"], "default": "automatic" },
+    "breakIntervalMinutes": { "type": "integer", "title": "Manual break interval (minutes)", "description": "Used only for a manual schedule. Automatic scheduling uses half of streams under two hours, capped at one break per hour for longer streams.", "minimum": 15, "maximum": 360, "default": 60 },
+    "warningMinutes": { "type": "integer", "title": "Warning time (minutes)", "minimum": 1, "maximum": 15, "default": 5 },
+    "breakDurationMinutes": { "type": "integer", "title": "Break length (minutes)", "minimum": 1, "maximum": 60, "default": 5 },
+    "breakSceneName": { "type": "string", "title": "Break scene", "description": "Choose the exact scene to show when the break begins.", "minLength": 1, "maxLength": 256, "default": "BRB" },
+    "returnMode": { "type": "string", "title": "After the break", "enum": ["previous", "selected"], "default": "previous" },
+    "returnSceneName": { "type": "string", "title": "Return scene", "description": "Used only when After the break is set to a selected scene.", "maxLength": 256, "default": "" },
+    "streamLimitEnabled": { "type": "boolean", "title": "Limit total stream length", "default": true },
+    "maximumStreamMinutes": { "type": "integer", "title": "Maximum stream length (minutes)", "minimum": 30, "maximum": 1440, "default": 240 },
+    "endingSceneName": { "type": "string", "title": "Ending scene", "description": "The extension switches here at the limit but never stops the broadcast.", "minLength": 1, "maxLength": 256, "default": "Stream Ending" },
+    "showOverlayWarning": { "type": "boolean", "title": "Show countdown reminders on the extension overlay", "default": true },
+    "overlayFontFamily": { "type": "string", "title": "Font style", "enum": ["broadcast", "display", "mono"], "default": "broadcast" },
+    "overlayBackgroundMode": { "type": "string", "title": "Background style", "enum": ["glass", "solid", "none"], "default": "glass" },
+    "overlayBackgroundColor": { "type": "string", "title": "Background color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#101722" },
+    "overlayBackgroundOpacity": { "type": "number", "title": "Background opacity", "minimum": 0, "maximum": 1, "default": 0.92 },
+    "overlayAccentColor": { "type": "string", "title": "Accent color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#f4c95d" },
+    "overlayTextColor": { "type": "string", "title": "Timer color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
+    "overlayMutedColor": { "type": "string", "title": "Secondary text color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#d9e2ef" },
+    "overlayWarningColor": { "type": "string", "title": "Warning color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#f4c95d" },
+    "overlayCriticalColor": { "type": "string", "title": "Final minute color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ff6b7d" },
+    "overlayBorderColor": { "type": "string", "title": "Border color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#f4c95d" }
+  }
+}

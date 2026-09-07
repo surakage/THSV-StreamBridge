@@ -1,19 +1,18 @@
 # Random Clip Player setup
 
 **Module:** `thsv.random-clip-player`
-**Version:** `4.0.1`
+**Version:** `4.0.10`
 **Publisher:** THSV StreamBridge
 
 Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.
 
-## Install
+## Built-in setup
 
-1. Download and extract `THSV-StreamBridge-AddOn-Random-Clip-Player-4.0.1.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Random-Clip-Player-4.0.10.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.10.sb` in Streamer.bot.
-4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension is bundled and updated with THSV StreamBridge; do not download a separate add-on archive.
+2. Select this extension when generating the one universal Streamer.bot import, then import that one `.sb` file.
+3. Configure it from the **Extensions > Clip Engine** component catalogue, save, and restart StreamBridge when prompted.
 
-### Add-on-specific steps
+### Extension-specific steps
 
 1. Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.10.sb into Streamer.bot.
 2. In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.
@@ -40,11 +39,11 @@ Creator-selected triggers:
 
 ## Browser source
 
-When this add-on publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.random-clip-player` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the add-on has no visual output, the hosted page remains idle.
+When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.random-clip-player` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the extension has no visual output, the hosted page remains idle.
 
 ## Offline test
 
-1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.
+1. Keep the bridge and Streamer.bot running, then open the **Extensions > Clip Engine** component catalogue.
 2. Save the intended settings and use its preview, test, or manual control where available.
 3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.
 4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.

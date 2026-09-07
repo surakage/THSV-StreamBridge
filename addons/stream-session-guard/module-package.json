@@ -1,0 +1,51 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "A built-in live-session wellness timer that derives breaks from the planned stream length, warns before deadlines, and switches only to scenes detected from the connected broadcast app.",
+  "changelog": "4.0.10: initial built-in extension with stream-length-aware automatic break cadence, five-minute warnings and breaks, persisted live-session timing, end-priority scheduling, catalogue-only scene selection, and one triggerless multi-provider Streamer.bot scene controller.",
+  "permissions": ["events.subscribe", "streamerbot.run-approved-action", "overlay.publish", "schedule.bounded", "state.private"],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.stream-session-guard",
+    "name": "Stream Break & End Guard",
+    "version": "4.0.10",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": ["stream.online", "stream.offline", "stream.scene-changed", "system.scene-catalog", "addon.thsv.stream-session-guard.scene-result"],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": ["data/addons/thsv.stream-session-guard/", "data/addons/.state/thsv.stream-session-guard/"],
+    "installationSteps": [
+      "Enable this built-in extension and choose the broadcast app, break scene, break interval, break length, maximum stream length, and ending scene.",
+      "Import the bundled Stream Break & End Guard Streamer.bot helper and approve only its triggerless Scene Controller action.",
+      "Refresh the scene catalogue and select exact detected scene names in the wizard instead of copying and pasting them.",
+      "Add the extension overlay URL to the scenes where the five-minute warning should be visible.",
+      "Run an offline overlay preview, then verify one short private test stream before relying on automatic scene changes."
+    ],
+    "uninstallationSteps": ["Disable the extension. Its small local schedule audit remains preserved unless extension data is explicitly deleted."],
+    "migrations": [],
+    "healthChecks": [{ "id": "thsv.stream-session-guard.runtime", "description": "Confirms persisted live timing, bounded warnings, and guarded scene-switch dispatch." }],
+    "minimumBridgeVersion": "4.0.10",
+    "maximumTestedBridgeVersion": "4.0.10"
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    { "path": "dist/index.js", "size": 17945, "sha256": "cdc94159827be5810c8cee2ac383ebdc72e8c644a8ca71565369961ebdbc7115" },
+    { "path": "schemas/config.json", "size": 3839, "sha256": "d779e4ff350a1eec06285df354abf080dab4522070f920614d642bc105543711" },
+    { "path": "ui/settings.json", "size": 5648, "sha256": "ee98206b53f256be2f9a0b45c22f17da254e0dd71477b063daf90259c698baa9" },
+    { "path": "README.md", "size": 1054, "sha256": "9465155e999ea4ee5803bc57bf552a975c27ab31be3a7d22d796f88b5ff47f8e" }
+  ]
+}

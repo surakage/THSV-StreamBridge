@@ -491,6 +491,22 @@
       ]
     },
     {
+      "folder": "stream-session-guard",
+      "moduleId": "thsv.stream-session-guard",
+      "kind": "extension",
+      "name": "THSV StreamBridge - Stream Break & End Guard",
+      "version": "4.0.10",
+      "minimumStreamerBotVersion": "1.0.7",
+      "manifestSha256": "7376360f89982f918ce310938db4706009296d185c926589f96bcf7fca016039",
+      "imports": [
+        {
+          "filename": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.10.sb",
+          "size": 3948,
+          "sha256": "a047575af3a27f50e95dde303b9902739a2f269e2830ca51bf050a9331795fe4"
+        }
+      ]
+    },
+    {
       "folder": "subathon-timer",
       "moduleId": "thsv.subathon-timer",
       "kind": "addon",

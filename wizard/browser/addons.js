@@ -470,7 +470,7 @@ async function refreshSceneCatalogOnOpen() {
   if (state.sceneCatalogRefreshRequested || state.sceneCatalog?.refreshAvailable !== true) return;
   state.sceneCatalogRefreshRequested = true;
   try {
-    await api('/wizard/api/scene-catalog/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'obs', connectionIndex: 0 }) });
+    await Promise.allSettled(enabledSceneProviders().map((provider) => api('/wizard/api/scene-catalog/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider, connectionIndex: 0 }) })));
     await new Promise((resolve) => setTimeout(resolve, 500));
     state.sceneCatalog = await api('/wizard/api/scene-catalog'); populateSceneCatalogControls(document);
   } catch { /* Existing observations and manual entry remain available. */ }
@@ -481,7 +481,7 @@ function decorativeSceneName(scene){const compact=String(scene).replace(/[\s\d._
 function currentScenes(provider){return new Set((state.sceneCatalog?.providers?.[provider]?.connections||[]).map((connection)=>connection.currentScene).filter(Boolean))}
 function catalogScenes(provider) { return (Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []).filter((scene)=>!decorativeSceneName(scene)); }
 function categorizedScenes(provider,selected='',query=''){const current=currentScenes(provider);const normalized=query.trim().toLocaleLowerCase();const groups={Current:[],Used:[],Likely:[],Other:[]};for(const scene of catalogScenes(provider)){if(normalized&&!scene.toLocaleLowerCase().includes(normalized))continue;const group=current.has(scene)?'Current':scene===selected?'Used':/(start|soon|brb|break|end|raid|game|chat|ad|countdown)/iu.test(scene)?'Likely':'Other';groups[group].push(scene)}return groups}
-function catalogSceneOptions(provider, selected = '',query='') { const groups=categorizedScenes(provider,selected,query);const count=Object.values(groups).flat().length;return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${Object.entries(groups).filter(([,scenes])=>scenes.length).map(([label,scenes])=>`<optgroup label="${label}">${scenes.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}`; }
+function catalogSceneOptions(provider, selected = '',query='',preserveSaved=false) { const groups=categorizedScenes(provider,selected,query);const scenes=Object.values(groups).flat();const count=scenes.length;const saved=preserveSaved&&selected&&!scenes.includes(selected)?`<optgroup label="Saved — refresh required"><option value="${safe(selected)}" selected>${safe(selected)}</option></optgroup>`:'';return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${saved}${Object.entries(groups).filter(([,entries])=>entries.length).map(([label,entries])=>`<optgroup label="${label}">${entries.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}`; }
 function enabledSceneProviders(selected = '') {
   const enabled = new Set(['obs', selected]);
   for (const connection of state.broadcastConnections?.connections || []) if (connection.enabled === true) enabled.add(connection.provider);
@@ -492,7 +492,11 @@ function renderSceneListPicker(name, label, value, help) {
   return `<fieldset class="scene-catalog-picker" data-scene-list-picker><legend>${label}</legend><textarea name="${safe(name)}" rows="4" data-addon-string-list="true" placeholder="One exact scene name per line">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>${help}<div class="scene-catalog-controls"><label>Broadcast app<select data-scene-catalog-provider>${sceneProviderOptions()}</select></label><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs')}</select></label><button type="button" class="ghost compact" data-add-catalog-scene>Add scene</button><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></div><small data-scene-catalog-status>Manual entry stays available. OBS supports a full read-only refresh; Meld and Streamlabs learn exact names as scene changes are observed.</small></fieldset>`;
 }
 function renderSceneNamePicker(name, label, value, help, ui) {
-  return `<fieldset class="scene-name-picker" data-scene-name-picker><legend>${label}</legend><label>Filter list<input type="search" data-scene-catalog-search placeholder="Search current, used, likely, or other scenes"></label><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs', value ?? '')}</select></label><label>Exact scene name<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"></label>${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>Select a categorized exact name above, or keep the manual value for a scene that has not been observed yet. Decorative separators are hidden.</small></fieldset>`;
+  const detectedOnly = ui.requireDetected === true;
+  const selectAttributes = detectedOnly ? ` name="${safe(name)}" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"` : '';
+  const manual = detectedOnly ? '' : `<label>Exact scene name<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"></label>`;
+  const status = detectedOnly ? 'Choose a scene detected from the connected broadcast app. Refreshing never changes the active scene.' : 'Select a categorized exact name above, or keep the manual value for a scene that has not been observed yet. Decorative separators are hidden.';
+  return `<fieldset class="scene-name-picker" data-scene-name-picker><legend>${label}</legend><label>Filter list<input type="search" data-scene-catalog-search placeholder="Search current, used, likely, or other scenes"></label><label>Detected scene<select data-scene-catalog-select${selectAttributes}>${catalogSceneOptions('obs', value ?? '', '', detectedOnly)}</select></label>${manual}${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>${status}</small></fieldset>`;
 }
 function providerForSceneInput(input) {
   const form = input.closest('form'); const providerField = input.dataset.providerField;
@@ -500,19 +504,20 @@ function providerForSceneInput(input) {
 }
 function populateSceneCatalogControls(root = document) {
   root.querySelectorAll('[data-scene-list-picker]').forEach((picker) => { const provider = picker.querySelector('[data-scene-catalog-provider]').value; picker.querySelector('[data-scene-catalog-select]').innerHTML = catalogSceneOptions(provider); });
-  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const picker = input.closest('[data-scene-name-picker]'); const select = picker?.querySelector('[data-scene-catalog-select]'); const query=picker?.querySelector('[data-scene-catalog-search]')?.value||'';if (select) select.innerHTML = catalogSceneOptions(providerForSceneInput(input), input.value,query); });
+  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const picker = input.closest('[data-scene-name-picker]'); const select = picker?.querySelector('[data-scene-catalog-select]'); const query=picker?.querySelector('[data-scene-catalog-search]')?.value||'';if (select) select.innerHTML = catalogSceneOptions(providerForSceneInput(input), input.value,query,input.tagName==='SELECT'); });
 }
 async function refreshSceneCatalog(button) {
-  const picker = button.closest('[data-scene-list-picker]'); const input = button.closest('label')?.querySelector('[data-scene-name-input]');
+  const picker = button.closest('[data-scene-list-picker]'); const input = button.closest('.addon-setting, [data-scene-mapping-row]')?.querySelector('[data-scene-name-input]');
   const provider = picker?.querySelector('[data-scene-catalog-provider]')?.value || (input ? providerForSceneInput(input) : 'obs');
+  const detectedOnly = input?.tagName === 'SELECT';
   const status = button.closest('.addon-setting, [data-scene-mapping-row]')?.querySelector('[data-scene-catalog-status]');
   button.disabled = true; if (status) status.textContent = `Requesting ${sceneProviderLabels[provider]} scenes without changing the active scene…`;
   try {
     await api('/wizard/api/scene-catalog/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider, connectionIndex: 0 }) });
     await new Promise((resolve) => setTimeout(resolve, 500));
     state.sceneCatalog = await api('/wizard/api/scene-catalog'); populateSceneCatalogControls(button.closest('form') || document);
-    const count = catalogScenes(provider).length; if (status) status.textContent = `${count} exact ${sceneProviderLabels[provider]} scene name${count === 1 ? '' : 's'} available. Manual entry remains available.`;
-  } catch (error) { if (status) status.textContent = `${error.message} Previously detected scenes and manual entry are unchanged.`; }
+    const count = catalogScenes(provider).length; if (status) status.textContent = `${count} exact ${sceneProviderLabels[provider]} scene name${count === 1 ? '' : 's'} available.${detectedOnly ? ' Select one from the detected list.' : ' Manual entry remains available.'}`;
+  } catch (error) { if (status) status.textContent = `${error.message} Previously detected scenes${detectedOnly ? '' : ' and manual entry'} are unchanged.`; }
   finally { button.disabled = false; }
 }
 function attachSceneCatalogPickers(form) {

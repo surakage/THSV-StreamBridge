@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Stream Break & End Guard",
+  "version": "4.0.10",
+  "author": "surakage",
+  "description": "Provides one broker-authorized, triggerless OBS, Meld, or Streamlabs scene controller for the built-in live-session guard.",
+  "minimumStreamerBotVersion": "1.0.7",
+  "actions": [
+    {
+      "id": "f4e7fcb4-617b-4438-a6ac-5e6a6dc9ad92",
+      "name": "THSV Extension - Stream Break & End Guard - Scene Controller",
+      "group": "THSV Extension - Stream Break & End Guard",
+      "source": "src/SceneController.cs",
+      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.10.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Extensions",
+    "concurrent": false
+  },
+  "manualTriggerSetup": {
+    "controller": []
+  },
+  "triggerSafety": "Scene Controller must remain triggerless. StreamBridge supplies a one-use broker token plus one exact provider, connection index, and wizard-selected scene name.",
+  "verificationStatus": "OBS, Meld, and Streamlabs scene method signatures are source-verified against current official Streamer.bot documentation; live scene mutation remains creator acceptance-tested."
+}

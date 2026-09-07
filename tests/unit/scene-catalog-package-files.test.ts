@@ -18,7 +18,9 @@ describe('Scene Catalog Streamer.bot package and wizard controls', () => {
     expect(countdown.fields.automaticSceneNames?.control).toBe('scene-list'); expect(clips.fields.automaticSceneNames?.control).toBe('scene-list');
     expect(raid.fields.autoStartSceneName).toMatchObject({ control: 'scene-name', providerField: 'autoStartProvider' });
     expect(wizard).toContain('data-scene-mapping-field="sceneName" data-scene-name-input'); expect(wizard).toContain('Manual entry stays available');
-    expect(wizard).toContain('data-scene-name-picker'); expect(wizard).toContain('Detected scene<select data-scene-catalog-select>');
+    expect(wizard).toContain('data-scene-name-picker'); expect(wizard).toContain('Detected scene<select data-scene-catalog-select');
+    expect(wizard).toContain("ui.requireDetected === true");
+    expect(wizard).toContain("button.closest('.addon-setting, [data-scene-mapping-row]')?.querySelector('[data-scene-name-input]')");
     expect(wizard).not.toContain('<datalist id="scene-catalog-');
   });
 });

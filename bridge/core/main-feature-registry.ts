@@ -13,7 +13,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
     name: 'Broadcast Director',
     description: 'One stream lifecycle from Starting Soon through ads, raid, and every broadcast output stopping.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.live-beacon', 'thsv.starting-soon-countdown', 'thsv.scene-actions', 'thsv.ad-break-companion', 'thsv.raid-scout']),
+    modules: Object.freeze(['thsv.live-beacon', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.scene-actions', 'thsv.ad-break-companion', 'thsv.raid-scout']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({
@@ -78,7 +78,7 @@ export const MAIN_FEATURE_PRESENTATION_POLICY = Object.freeze({
     'thsv.village-roll-call',
   ]),
   mediaLane: Object.freeze(['thsv.raid-scout', 'thsv.random-clip-player']),
-  timerLane: Object.freeze(['thsv.ad-break-companion', 'thsv.starting-soon-countdown']),
+  timerLane: Object.freeze(['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard']),
   backgroundOnly: Object.freeze(['thsv.chat-guard', 'thsv.discord-chat-archive', 'thsv.quote-vault', 'thsv.follower-pulse', 'thsv.community-analytics', 'thsv.user-translate', 'thsv.village-fun-commands']),
   behavior: Object.freeze({
     foreground: 'Serialized with a bounded gap so transient cards do not overlap.',

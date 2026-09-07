@@ -21,6 +21,20 @@ describe('wizard production preflight hardening', () => {
     expect(inspectSceneConfiguration([addOn('thsv.random-clip-player', { automaticSceneNames: ['BRB'] })], provider(new Date().toISOString(), false), automation)).toMatchObject({ ready: false });
   });
 
+  it('checks every enabled session-guard scene against its selected app', () => {
+    const sceneCatalog = { providers: { obs: { scenes: ['BRB', 'Gameplay', 'Stream Ending'], complete: true, updatedAt: new Date().toISOString(), connections: [{ complete: true }] } } };
+    const settings = { enabled: true, provider: 'obs', breaksEnabled: true, breakSceneName: 'BRB', returnMode: 'selected', returnSceneName: 'Gameplay', streamLimitEnabled: true, endingSceneName: 'Stream Ending' };
+    expect(inspectSceneConfiguration([addOn('thsv.stream-session-guard', settings)], sceneCatalog, { obs: { enabled: true } })).toMatchObject({ ready: true, checks: [{ setting: 'breakSceneName' }, { setting: 'returnSceneName' }, { setting: 'endingSceneName' }] });
+    const missingScene = inspectSceneConfiguration([addOn('thsv.stream-session-guard', { ...settings, endingSceneName: 'Missing' })], sceneCatalog, { obs: { enabled: true } });
+    expect(missingScene.ready).toBe(false);
+    const endingSceneMissing = Array.isArray(missingScene.checks) && missingScene.checks.some((check: unknown) => {
+      if (check === null || typeof check !== 'object') return false;
+      const item = check as Record<string, unknown>;
+      return item['setting'] === 'endingSceneName' && item['ready'] === false;
+    });
+    expect(endingSceneMissing).toBe(true);
+  });
+
   it('requires a connected browser source for each enabled critical overlay', () => {
     const addOns = [addOn('thsv.starting-soon-countdown', { enabled: true, showOverlay: true }), addOn('thsv.raid-scout', { showSearchProgress: true })];
     expect(inspectCriticalOverlayReadiness(addOns, { enabled: true, addOnClients: { 'thsv.starting-soon-countdown': 1 } })).toMatchObject({ ready: false, requiredCount: 2, connectedCount: 1 });

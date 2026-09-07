@@ -1221,6 +1221,20 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
       const ready = enabledProviders.has(provider) && providerHealth.get(provider)?.fresh === true && exists;
       checks.push({ moduleId: addOn.moduleId, setting: 'autoStartSceneName', provider, sceneName, ready, issue: ready ? undefined : !enabledProviders.has(provider) ? 'The selected ending-scene app is not enabled.' : exists ? 'Exact ending scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact ending scene was not found in the selected app catalogue.' });
     }
+    if (addOn.moduleId === 'thsv.stream-session-guard' && addOn.settings['enabled'] === true) {
+      const provider = typeof addOn.settings['provider'] === 'string' ? addOn.settings['provider'] : 'obs';
+      const selected = [
+        ...(addOn.settings['breaksEnabled'] === false ? [] : [['breakSceneName', addOn.settings['breakSceneName']]]),
+        ...(addOn.settings['breaksEnabled'] === false || addOn.settings['returnMode'] !== 'selected' ? [] : [['returnSceneName', addOn.settings['returnSceneName']]]),
+        ...(addOn.settings['streamLimitEnabled'] === false ? [] : [['endingSceneName', addOn.settings['endingSceneName']]]),
+      ] as Array<[string, unknown]>;
+      for (const [setting, rawSceneName] of selected) {
+        const sceneName = typeof rawSceneName === 'string' ? rawSceneName : '';
+        const exists = sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true;
+        const ready = enabledProviders.has(provider) && providerHealth.get(provider)?.fresh === true && exists;
+        checks.push({ moduleId: addOn.moduleId, setting, provider, sceneName, ready, issue: ready ? undefined : !enabledProviders.has(provider) ? 'The selected session-guard app is not enabled.' : exists ? 'Exact session-guard scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact session-guard scene was not found in the selected app catalogue.' });
+      }
+    }
   }
   return { ready: checks.every((item) => item['ready'] === true), maximumCatalogAgeMinutes: 15, enabledProviders: [...enabledProviders], providers: Object.fromEntries(providerHealth), checks };
 }
@@ -1231,6 +1245,7 @@ export function inspectCriticalOverlayReadiness(addOns: readonly WizardAddOnSumm
     if (!addOn.enabled || addOn.health !== 'installed') return false;
     if (addOn.moduleId === 'thsv.starting-soon-countdown') return addOn.settings['enabled'] !== false && addOn.settings['showOverlay'] !== false;
     if (addOn.moduleId === 'thsv.ad-break-companion') return true;
+    if (addOn.moduleId === 'thsv.stream-session-guard') return addOn.settings['enabled'] === true && addOn.settings['showOverlayWarning'] !== false;
     if (addOn.moduleId === 'thsv.random-clip-player') return Array.isArray(addOn.settings['automaticSceneNames']) && addOn.settings['automaticSceneNames'].length > 0;
     if (addOn.moduleId === 'thsv.raid-scout') return addOn.settings['showSearchProgress'] !== false || addOn.settings['showSuggestionCard'] !== false || addOn.settings['showConfirmedCard'] !== false;
     return false;
