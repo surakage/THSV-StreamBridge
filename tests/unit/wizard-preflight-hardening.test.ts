@@ -21,6 +21,12 @@ describe('wizard production preflight hardening', () => {
     expect(inspectSceneConfiguration([addOn('thsv.random-clip-player', { automaticSceneNames: ['BRB'] })], provider(new Date().toISOString(), false), automation)).toMatchObject({ ready: false });
   });
 
+  it('accepts a fresh direct scene inventory when an observed relay is incomplete', () => {
+    const updatedAt = new Date().toISOString();
+    const sceneCatalog = { providers: { obs: { scenes: ['BRB'], complete: true, updatedAt, connections: [{ source: 'observed', complete: false, updatedAt }, { source: 'direct-websocket', complete: true, updatedAt }] } } };
+    expect(inspectSceneConfiguration([addOn('thsv.random-clip-player', { automaticSceneNames: ['BRB'] })], sceneCatalog, { obs: { enabled: true, automationReady: true } })).toMatchObject({ ready: true });
+  });
+
   it('checks every enabled session-guard scene against its selected app', () => {
     const sceneCatalog = { providers: { obs: { scenes: ['BRB', 'Gameplay', 'Stream Ending'], complete: true, updatedAt: new Date().toISOString(), connections: [{ complete: true }] } } };
     const settings = { enabled: true, provider: 'obs', breaksEnabled: true, breakSceneName: 'BRB', returnMode: 'selected', returnSceneName: 'Gameplay', streamLimitEnabled: true, endingSceneName: 'Stream Ending' };

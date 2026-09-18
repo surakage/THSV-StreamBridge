@@ -5,14 +5,14 @@ import guard, { automaticBreakIntervalMinutes, CONTROLLER_ACTION_ID, createSessi
 
 function runtime(settings: Record<string, unknown> = {}) {
   let state: Record<string, unknown> = {};
-  const scheduled: Array<{ delay: number; task: () => Promise<void> }> = [];
+  const scheduled: Array<{ delay: number; task: () => void | Promise<void> }> = [];
   const context = {
     settings: { enabled: true, provider: 'obs', connectionIndex: 0, breaksEnabled: true, breakScheduleMode: 'automatic', breakIntervalMinutes: 60, warningMinutes: 5, breakDurationMinutes: 5, breakSceneName: 'BRB', returnMode: 'previous', returnSceneName: '', streamLimitEnabled: true, maximumStreamMinutes: 240, endingSceneName: 'Stream Ending', showOverlayWarning: true, ...settings },
     approvedActionIds: [CONTROLLER_ACTION_ID],
     state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) },
     streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
     overlay: { publish: vi.fn(async () => undefined) },
-    schedule: { after: vi.fn((delay: number, task: () => Promise<void>) => { scheduled.push({ delay, task }); return `timer-${String(scheduled.length)}`; }), cancel: vi.fn(() => true) },
+    schedule: { after: vi.fn((delay: number, task: () => void | Promise<void>) => { scheduled.push({ delay, task }); return `timer-${String(scheduled.length)}`; }), cancel: vi.fn(() => true) },
   };
   return { context, state: () => state, setState: (value: Record<string, unknown>) => { state = value; }, scheduled };
 }
@@ -56,6 +56,53 @@ describe('Stream Break & End Guard extension', () => {
     await evaluate(test.context, 10_000);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardPurpose: 'return', sessionGuardSceneName: 'Gameplay' }));
     expect(test.state()).toMatchObject({ phase: 'live', completedBreaks: 1 });
+  });
+
+  it('refuses to start a break when no safe return scene has been observed', async () => {
+    const test = runtime();
+    test.setState({ ...createSessionState(sanitizeState({}), test.context.settings, 1_000), livePlatforms: ['twitch'] });
+    await evaluate(test.context, 3_601_000);
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(test.state()).toMatchObject({ phase: 'live', breakEndsAt: 0, lastReason: 'break-canceled-return-scene-missing' });
+  });
+
+  it('cancels the countdown and automatic return when the creator leaves BRB early', async () => {
+    const test = runtime(); await guard.start(test.context); const startedAt = Date.now() - 60_000;
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, startedAt), livePlatforms: ['twitch'], currentSceneName: 'BRB', previousSceneName: 'Gameplay', phase: 'break', breakEndsAt: Date.now() + 300_000 });
+    await guard.onEvent({ eventType: 'stream.scene-changed', platform: 'system', metadata: { simulated: false }, payload: { provider: 'obs', sceneName: 'Just Chatting' } }, test.context);
+    expect(test.state()).toMatchObject({ phase: 'live', breakEndsAt: 0, previousSceneName: '', currentSceneName: 'Just Chatting', lastReason: 'break-canceled-scene-left' });
+    expect(test.context.overlay.publish).toHaveBeenCalledWith(expect.stringContaining('.timer.hide'), expect.anything(), { lane: 'timer' });
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardPurpose: 'return' }));
+    await guard.stop(test.context);
+  });
+
+  it('cancels all break work when the configured ending scene is entered manually', async () => {
+    const test = runtime(); await guard.start(test.context);
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'BRB' }), test.context.settings, 1_000), livePlatforms: ['twitch'], currentSceneName: 'BRB', previousSceneName: 'Gameplay', phase: 'break', breakEndsAt: Date.now() + 300_000, pendingRequest: { requestId: 'late-break', purpose: 'break', sceneName: 'BRB', sentAt: Date.now() } });
+    await guard.onEvent({ eventType: 'stream.scene-changed', platform: 'system', metadata: { simulated: false }, payload: { provider: 'obs', sceneName: 'Stream Ending' } }, test.context);
+    expect(test.state()).toMatchObject({ phase: 'ending', breakEndsAt: 0, previousSceneName: '', pendingRequest: null, lastReason: 'ending-scene-entered' });
+    expect(test.scheduled.at(-1)?.delay ?? 1_000).toBeGreaterThanOrEqual(1_000);
+    await guard.stop(test.context);
+  });
+
+  it('only schedules integer delays accepted by the capability broker', async () => {
+    const test = runtime(); await guard.start(test.context);
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1_000), livePlatforms: ['twitch'], currentSceneName: 'Gameplay' });
+    await evaluate(test.context, 2_000.25);
+    expect(test.scheduled.length).toBeGreaterThan(0);
+    expect(test.scheduled.every(({ delay }) => Number.isInteger(delay) && delay >= 1_000 && delay <= 86_400_000)).toBe(true);
+    await guard.stop(test.context);
+  });
+
+  it('returns scheduled callbacks immediately while scene work continues in the serialized queue', async () => {
+    const test = runtime(); await guard.start(test.context);
+    const startedAt = Date.now();
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, startedAt), livePlatforms: ['twitch'], currentSceneName: 'Gameplay' });
+    await evaluate(test.context, startedAt + 1_000);
+    const callback = test.scheduled.at(-1)?.task;
+    expect(callback).toBeDefined();
+    expect(callback?.()).toBeUndefined();
+    await guard.stop(test.context);
   });
 
   it('prioritizes the stream limit and never stops the broadcast', async () => {

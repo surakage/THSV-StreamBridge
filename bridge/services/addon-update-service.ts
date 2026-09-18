@@ -217,12 +217,22 @@ export class AddOnUpdateService {
     if (this.repository === DEFAULT_REPOSITORY) {
       try {
         const response = await this.request(OFFICIAL_RELEASE_FEED, this.requestOptions());
-        if (response.ok) return { release: await response.json() as GitHubRelease, source: 'slothbloom' };
+        if (response.ok) {
+          const release = await response.json() as GitHubRelease;
+          if (isStableAddOnRelease(release)) return { release, source: 'slothbloom' };
+        }
       } catch { /* Website discovery is optional; verified GitHub releases remain authoritative. */ }
     }
     const response = await this.request(`https://api.github.com/repos/${this.repository}/releases/latest`, this.requestOptions());
     if (!response.ok) throw new Error(`GitHub add-on update check returned HTTP ${String(response.status)}.`);
-    return { release: await response.json() as GitHubRelease, source: 'github' };
+    const latest = await response.json() as GitHubRelease;
+    if (isStableAddOnRelease(latest)) return { release: latest, source: 'github' };
+    const listingResponse = await this.request(`https://api.github.com/repos/${this.repository}/releases?per_page=20`, this.requestOptions());
+    if (!listingResponse.ok) throw new Error(`GitHub add-on release listing returned HTTP ${String(listingResponse.status)}.`);
+    const listing = await listingResponse.json() as unknown;
+    const release = Array.isArray(listing) ? listing.find((candidate): candidate is GitHubRelease => isStableAddOnRelease(candidate)) : undefined;
+    if (release === undefined) throw new Error('No public stable StreamBridge release with an add-on index was found in the latest GitHub releases.');
+    return { release, source: 'github' };
   }
 
   private async download(url: string, name: string, maximumBytes: number): Promise<Uint8Array> {
@@ -238,6 +248,14 @@ export class AddOnUpdateService {
     if (bytes.byteLength === 0 || bytes.byteLength > maximumBytes) throw new Error(`${name} is empty or exceeds the add-on update download safety limit.`);
     return bytes;
   }
+}
+
+function isStableAddOnRelease(value: unknown): value is GitHubRelease {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const release = value as GitHubRelease;
+  const tag = typeof release.tag_name === 'string' ? release.tag_name.replace(/^v/u, '') : '';
+  return release.draft !== true && release.prerelease !== true && VERSION.test(tag)
+    && Array.isArray(release.assets) && release.assets.some((asset) => typeof asset === 'object' && asset !== null && !Array.isArray(asset) && (asset as GitHubReleaseAsset).name === INDEX_ASSET_NAME);
 }
 
 function stageRequest(value: unknown): { readonly moduleId: string; readonly version: string } {

@@ -69,6 +69,14 @@ describe('Voice Relay', () => {
     expect(textFor({ ...base, payload: { message: 'a blocked phrase' } }, chatSettings)).toBe('');
   });
 
+  it('blocks common profanity by default without substring false positives and supports creator opt-out', () => {
+    const base = { eventType: 'chat.message', metadata: {}, user: { actorType: 'human', roles: ['moderator'], displayName: 'Alex' }, payload: { message: 'This is shit' } };
+    const chatSettings = settings({ eventTypes: new Set(['chat.message']), blockedTerms: [] });
+    expect(textFor(base, chatSettings)).toBe('');
+    expect(textFor({ ...base, payload: { message: 'A classic title' } }, chatSettings)).toBe('A classic title');
+    expect(textFor(base, settings({ eventTypes: new Set(['chat.message']), blockedTerms: [], useDefaultProfanityFilter: false }))).toBe('This is shit');
+  });
+
   it('speaks the creator thank-you before an explicitly enabled viewer message', () => {
     const event = { eventType: 'engagement.donation', metadata: {}, user: { actorType: 'human', displayName: 'Alex' }, payload: { amount: '25.00', currency: 'USD', message: 'Love the stream!' } };
     expect(textFor(event, settings())).toBe('Thank you, Alex, for 25.00 USD!');

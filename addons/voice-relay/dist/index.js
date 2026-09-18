@@ -5,6 +5,12 @@ const SPEAK_ACTION_ID = '9d7b9f62-8f33-41a0-b7d8-a2d247a02fd3';
 const ALERT_TYPES = Object.freeze(['channel.follow', 'channel.subscription', 'channel.membership', 'channel.gift-subscription', 'engagement.gift', 'engagement.donation', 'engagement.cheer', 'engagement.raid', 'engagement.super-chat', 'engagement.milestone']);
 const ALL_TYPES = Object.freeze([...ALERT_TYPES, 'chat.message', 'reward.redemption', 'command.received']);
 const REQUEST_PLATFORMS = Object.freeze(['youtube', 'tiktok']);
+// High-confidence defaults avoid common false positives while giving new and upgraded
+// installs a useful safety baseline. Creators can disable this list or extend it.
+const DEFAULT_BLOCKED_TERMS = Object.freeze([
+  'asshole', 'bastard', 'bitch', 'cunt', 'dick', 'fuck', 'motherfucker',
+  'nigga', 'nigger', 'pussy', 'shit', 'slut', 'whore'
+]);
 // Every normalized alert receives its creator-authored acknowledgement by default.
 // Viewer chat and viewer-authored alert messages remain separate, explicit opt-ins.
 const DEFAULT_TYPES = Object.freeze([...ALERT_TYPES]);
@@ -67,6 +73,7 @@ function settingsFor(context) {
     minimumCheerQuantity: Math.trunc(boundedNumber(raw.minimumCheerQuantity, 0, 10000000, 0)),
     likeMilestoneInterval: Math.trunc(boundedNumber(raw.likeMilestoneInterval, 100, 100000, 1000)),
     allowChatRoles: new Set(Array.isArray(raw.allowChatRoles) ? raw.allowChatRoles : ['broadcaster', 'moderator']),
+    useDefaultProfanityFilter: raw.useDefaultProfanityFilter !== false,
     blockedTerms: Array.isArray(raw.blockedTerms) ? raw.blockedTerms.map((value) => clean(value, 80).toLowerCase()).filter(Boolean).slice(0, 200) : [],
     viewerRequestsEnabled: raw.viewerRequestsEnabled === true,
     twitchRewardId: clean(raw.twitchRewardId, 256),
@@ -126,8 +133,21 @@ function textFor(event, settings) {
 
 function filtered(output, settings) {
   if (!output) return '';
-  const lower = output.toLowerCase();
-  return settings.blockedTerms.some((term) => lower.includes(term)) ? '' : output;
+  const normalized = normalizeForFiltering(output);
+  const customTerms = Array.isArray(settings.blockedTerms) ? settings.blockedTerms : [];
+  const terms = settings.useDefaultProfanityFilter === false ? customTerms : [...DEFAULT_BLOCKED_TERMS, ...customTerms];
+  return terms.some((term) => containsBlockedTerm(normalized, term)) ? '' : output;
+}
+
+function normalizeForFiltering(value) {
+  return ` ${String(value || '').normalize('NFKD').toLowerCase()
+    .replace(/[013457]/gu, (character) => ({ '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't' })[character])
+    .replace(/[^a-z0-9]+/gu, ' ').trim().replace(/\s+/gu, ' ')} `;
+}
+
+function containsBlockedTerm(normalizedOutput, term) {
+  const normalizedTerm = normalizeForFiltering(term).trim();
+  return normalizedTerm.length > 0 && normalizedOutput.includes(` ${normalizedTerm} `);
 }
 
 function requestLimit(settings, platform) {

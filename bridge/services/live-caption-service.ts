@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { liveCaptionsSchema, type BridgeConfig } from '../../schemas/config.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { StreamerBotEventRelay } from '../adapters/streamerbot-event-relay.js';
@@ -7,6 +9,7 @@ import type { Logger } from './logger.js';
 
 type JsonRecord = Readonly<Record<string, unknown>>;
 type CaptionCandidate = Readonly<{ text: string; confidence: number; alternative: boolean }>;
+export type LiveCaptionSourceReadiness = Readonly<{ ready: boolean; modelConfigured: boolean; microphoneConfigured: boolean; detail: string; recovery?: string }>;
 
 const BUILT_IN_PROFANITY = Object.freeze([
   'asshole', 'bastard', 'bitch', 'bullshit', 'cunt', 'dick', 'fuck', 'fucked', 'fucker', 'fucking', 'motherfucker', 'motherfucking', 'pussy', 'shit', 'shitty',
@@ -28,6 +31,7 @@ export class LiveCaptionService {
   private lastDictationAt: string | undefined;
   private lastCaptionAt: string | undefined;
   private unsubscribe: (() => void) | undefined;
+  private sourceReadiness: LiveCaptionSourceReadiness = { ready: false, modelConfigured: false, microphoneConfigured: false, detail: 'Streamer.bot speech-to-text readiness has not been checked yet.', recovery: 'Open Streamer.bot Speech to Text settings and select a Whisper model and microphone.' };
 
   public constructor(
     private readonly config: BridgeConfig['liveCaptions'],
@@ -69,10 +73,14 @@ export class LiveCaptionService {
     return { cleared: true };
   }
 
+  public setSourceReadiness(readiness: LiveCaptionSourceReadiness): void { this.sourceReadiness = Object.freeze({ ...readiness }); }
+
   public status(): Readonly<Record<string, unknown>> {
     return {
       enabled: this.config.enabled,
       listening: this.unsubscribe !== undefined,
+      ready: this.config.enabled && this.unsubscribe !== undefined && this.sourceReadiness.ready,
+      sourceReadiness: this.sourceReadiness,
       provider: 'streamerbot-speech-to-text',
       overlayUrl: '/overlay/captions',
       privacy: { storesAudio: false, storesTranscripts: false, logsCaptionText: false },
@@ -148,6 +156,25 @@ export class LiveCaptionService {
   private resetRepeatSuppression(): void {
     this.lastTextFingerprint = '';
     this.lastPublishedAtMs = 0;
+  }
+}
+
+export async function inspectStreamerBotCaptionReadiness(actionsPath: string | undefined): Promise<LiveCaptionSourceReadiness> {
+  if (actionsPath === undefined) return { ready: false, modelConfigured: false, microphoneConfigured: false, detail: 'Streamer.bot is not selected in the wizard.', recovery: 'Select the exact Streamer.bot.exe, then configure Speech to Text.' };
+  try {
+    const serialized = await readFile(join(dirname(actionsPath), 'settings.json'), 'utf8');
+    const document = JSON.parse(serialized.replace(/^\uFEFF/u, '')) as unknown;
+    const root = record(document); const speech = record(root?.['speechToText']);
+    const modelConfigured = typeof speech?.['modelPath'] === 'string' && speech['modelPath'].trim() !== '';
+    const microphoneConfigured = typeof speech?.['audioDevice'] === 'string' && speech['audioDevice'].trim() !== '';
+    const ready = speech?.['autoStart'] === true && modelConfigured && microphoneConfigured;
+    return {
+      ready, modelConfigured, microphoneConfigured,
+      detail: ready ? 'Streamer.bot Speech to Text has a Whisper model and microphone selected.' : 'Live captions cannot receive speech until Streamer.bot Speech to Text has both a Whisper model and microphone selected.',
+      ...(ready ? {} : { recovery: 'In Streamer.bot, open Speech to Text, download or select a Whisper model, select your microphone, and enable automatic start.' }),
+    };
+  } catch {
+    return { ready: false, modelConfigured: false, microphoneConfigured: false, detail: 'Streamer.bot Speech to Text settings could not be inspected.', recovery: 'Open Streamer.bot Speech to Text and confirm its model and microphone, then restart StreamBridge.' };
   }
 }
 

@@ -180,7 +180,9 @@
   // same source alive across scenes; the bridge uses this ID to ensure that only the copy that
   // actually started a clip is allowed to report its completion.
   const rendererId = globalThis.crypto?.randomUUID?.() || `renderer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  let obsScene;
+  const declaredObsScene = new URLSearchParams(location.search).get('obsScene');
+  const lockedObsScene = typeof declaredObsScene === 'string' && declaredObsScene.trim().length > 0 && declaredObsScene.length <= 200 ? declaredObsScene.trim() : undefined;
+  let obsScene = lockedObsScene;
   let lastCompletionSequence = -1;
   let sendTransport = () => undefined;
   let obsVisible = document.visibilityState !== 'hidden';
@@ -1292,12 +1294,12 @@
     sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'host.visibility', moduleId, rendererId, host: window.obsstudio ? 'obs' : 'browser', surface: location.pathname, visible: window.obsstudio ? obsVisible : document.visibilityState !== 'hidden', ...(typeof obsActive === 'boolean' ? { active: obsActive } : {}), ...(typeof obsScene === 'string' ? { scene: obsScene } : {}) });
   }
 
-  function refreshObsScene() { if (typeof window.obsstudio?.getCurrentScene === 'function') window.obsstudio.getCurrentScene((scene) => { if (typeof scene?.name === 'string') obsScene = scene.name; reportHostVisibility(); }); }
+  function refreshObsScene() { if (lockedObsScene !== undefined) { reportHostVisibility(); return; } if (typeof window.obsstudio?.getCurrentScene === 'function') window.obsstudio.getCurrentScene((scene) => { const value = typeof scene === 'string' ? scene : scene?.name ?? scene?.sceneName; if (typeof value === 'string') obsScene = value; reportHostVisibility(); }); }
 
   document.addEventListener('visibilitychange',()=>{if(!window.obsstudio)obsVisible=document.visibilityState!=='hidden';reportHostVisibility()});
   addEventListener('obsSourceVisibleChanged',(event)=>{const value=event.detail?.visible??event.detail;if(typeof value==='boolean')obsVisible=value;reportHostVisibility()});
   addEventListener('obsSourceActiveChanged',(event)=>{const value=event.detail?.active??event.detail;if(typeof value==='boolean')obsActive=value;reportHostVisibility()});
-  addEventListener('obsSceneChanged',(event)=>{const value=event.detail?.name??event.detail?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()});
+  addEventListener('obsSceneChanged',(event)=>{if(lockedObsScene!==undefined){reportHostVisibility();return}const detail=event.detail;const value=typeof detail==='string'?detail:detail?.name??detail?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()});
   refreshObsScene();
   setInterval(reportHostVisibility,15_000);
 

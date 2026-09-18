@@ -8,6 +8,7 @@ import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 import type { CommandAdministrationRequest } from '../core/command-administration.js';
 import type { RewardAdministrationRequest } from '../core/reward-administration.js';
 import type { AddOnActionArgumentsV2 } from '../contracts/v2/addon-capability.js';
+import { assertSecureVoiceRelayArguments } from '../contracts/voice-relay-handoff.js';
 import { projectMultiTimedAction, type MultiTimedAction } from '../core/multi-timed-actions.js';
 
 interface PendingRequest {
@@ -148,6 +149,7 @@ export class StreamerBotAdapter {
 
   /** Dispatches only the exact action ID already approved by the creator and broker. */
   public async runApprovedAction(actionId: string, argumentsValue: AddOnActionArgumentsV2 = {}, signal?: AbortSignal): Promise<void> {
+    assertSecureVoiceRelayArguments(actionId, argumentsValue);
     if (!this.config.enabled) throw new Error('Streamer.bot output is disabled.');
     if (this.config.testMode) {
       this.logger.info('Streamer.bot test mode accepted approved add-on action', { actionId, argumentCount: Object.keys(argumentsValue).length });

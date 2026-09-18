@@ -184,8 +184,8 @@ export class TriggerAssuranceError extends Error { public constructor(public rea
 function reconcileContract(contract: StreamerBotTriggerContract, actions: readonly InstalledAction[]): Readonly<Record<string, unknown>> & { readonly state: string; readonly actionName: string; readonly missingTriggerTypes: readonly number[] } {
   const action = actions.find((candidate) => candidate.name === contract.actionName);
   const enabledTypes = new Set(action?.triggers.filter((trigger) => trigger.enabled).map((trigger) => trigger.type) ?? []);
-  const missingTriggerTypes = contract.triggerTypes.filter((type) => !enabledTypes.has(type));
-  const state = action === undefined ? 'missing-action' : !action.enabled ? 'disabled-action' : missingTriggerTypes.length > 0 ? 'missing-triggers' : 'ready';
+  const missingTriggerTypes = action === undefined && contract.optional === true ? [] : contract.triggerTypes.filter((type) => !enabledTypes.has(type));
+  const state = action === undefined ? (contract.optional === true ? 'not-installed' : 'missing-action') : !action.enabled ? 'disabled-action' : missingTriggerTypes.length > 0 ? 'missing-triggers' : 'ready';
   return { packageId: contract.packageId, actionName: contract.actionName, state, enabledTriggerCount: action?.triggers.filter((trigger) => trigger.enabled).length ?? 0, expectedTriggerTypes: contract.triggerTypes, triggerLabels: contract.triggerLabels, missingTriggerTypes, unavailableAliases: contract.unavailableAliases ?? [] };
 }
 
@@ -226,7 +226,7 @@ function assessDocument(document: JsonRecord, registry: StreamerBotTriggerRegist
 function prepareRepair(document: JsonRecord, registry: StreamerBotTriggerRegistry): { readonly document: JsonRecord; readonly changes: TriggerRepairChanges } {
   const proposed = structuredClone(document);
   const actions = readActions(proposed);
-  const missingActions = registry.contracts.filter((contract) => !actions.some((action) => action.name === contract.actionName)).map((contract) => contract.actionName);
+  const missingActions = registry.contracts.filter((contract) => contract.optional !== true && !actions.some((action) => action.name === contract.actionName)).map((contract) => contract.actionName);
   if (missingActions.length > 0) return { document: proposed, changes: { repairable: false, reason: `Regenerate and import the current universal package first. Missing managed actions: ${missingActions.join(', ')}.`, total: 0, created: 0, reenabled: 0, disabledDuplicates: 0, enabledActions: 0, items: [] } };
   const items: Readonly<Record<string, unknown>>[] = [];
   let created = 0; let reenabled = 0; let disabledDuplicates = 0; let enabledActions = 0;

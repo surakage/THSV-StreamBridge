@@ -31,7 +31,7 @@ Imported group: `THSV Addon - Voice Relay`
 - `THSV Addon - Voice Relay - Resume` in `THSV Addon - Voice Relay`
 - `THSV Addon - Voice Relay - Stop` in `THSV Addon - Voice Relay`
 
-Speak is triggerless and requires a one-use broker token. Controls use an exact source/payload allowlist.
+Speak is triggerless and accepts a broker-issued relay token. The Bridge places each bounded phrase in a private, one-use local inbox and sends Streamer.bot only an opaque filename and non-sensitive inbox path, keeping spoken text out of verbose WebSocket logs. The action deletes the handoff before speaking; the Bridge removes failed, abandoned, or stale handoffs. Reimport the matching Voice Relay package whenever this transport changes; the older plaintext-reading Speak action is intentionally incompatible. Controls use an exact source/payload allowlist.
 
 Creator-selected triggers:
 
@@ -56,7 +56,7 @@ When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/
 
 Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `schedule.bounded`, `overlay.publish`, `chat.send`, `viewer.foundation.read`, `viewer.foundation.mutate`.
 
-Private storage: `data/addons/thsv.voice-relay/`, `data/addons/.state/thsv.voice-relay/`.
+Private storage: `data/addons/thsv.voice-relay/`, `data/addons/.state/thsv.voice-relay/`. Speech handoffs exist only briefly in `data/runtime/voice-relay-inbox/` and are deleted after delivery.
 
 Dependencies: `thsv.viewer-foundation`.
 

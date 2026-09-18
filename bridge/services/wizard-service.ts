@@ -1202,7 +1202,9 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
     const parsed = updatedAt === undefined ? Number.NaN : Date.parse(updatedAt);
     const ageMs = Number.isFinite(parsed) ? Math.max(0, Date.now() - parsed) : Number.POSITIVE_INFINITY;
     const connections = Array.isArray(record['connections']) ? record['connections'].filter(isRecordValue) : [];
-    const complete = record['complete'] === true && connections.length > 0 && connections.every((connection) => connection['complete'] === true && typeof connection['error'] !== 'string');
+    const directConnections = connections.filter((connection) => connection['source'] === 'direct-websocket');
+    const assessedConnections = directConnections.length > 0 ? directConnections : connections;
+    const complete = record['complete'] === true && assessedConnections.length > 0 && assessedConnections.every((connection) => connection['complete'] === true && typeof connection['error'] !== 'string');
     const fresh = complete && ageMs <= maximumAgeMs;
     providerHealth.set(provider, { fresh, complete, ...(updatedAt === undefined ? {} : { updatedAt }), ...(Number.isFinite(ageMs) ? { ageSeconds: Math.round(ageMs / 1_000) } : {}), ...(complete && fresh ? {} : { issue: !complete ? 'Scene catalogue is incomplete or contains a connection error.' : 'Scene catalogue is older than 15 minutes; refresh it before going live.' }) });
   }

@@ -133,7 +133,9 @@ describe('portable Windows release installer', () => {
     expect(processOutput(firstResult)).toContain(`Notification-area shell: ${join(firstInstall, 'Open THSV StreamBridge Tray.cmd')}`);
     expect(processOutput(firstResult)).not.toContain(firstToken);
     expect(processOutput(firstResult)).not.toContain('older StreamBridge desktop shortcut could not be removed');
-    expect(await readFile(join(firstInstall, 'Start THSV Streamer.bot Safely.cmd'), 'utf8')).toContain('launcher\\start-streamerbot.mjs');
+    const safeStreamerBotLauncher = await readFile(join(firstInstall, 'Start THSV Streamer.bot Safely.cmd'), 'utf8');
+    expect(safeStreamerBotLauncher).toContain('launcher\\start-streamerbot.mjs');
+    expect(safeStreamerBotLauncher).toContain('--install-root "%~dp0."');
     expect(await readFile(join(firstInstall, 'Start THSV Streaming Tools.cmd'), 'utf8')).toContain('launcher\\start-streaming-tools.mjs');
     expect(await readFile(join(firstInstall, 'Open THSV StreamBridge Tray.cmd'), 'utf8')).toContain('launcher\\tray.ps1');
     expect(await readFile(join(firstInstall, 'launcher', 'start-streamerbot.mjs'), 'utf8')).toContain('streamerbot-launcher.json');

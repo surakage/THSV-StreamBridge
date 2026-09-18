@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { StreamerBotUniversalImportService } from '../../bridge/services/streamerbot-universal-import-service.js';
 import type { WizardAddOnSummary } from '../../bridge/services/addon-wizard-service.js';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
-import { STREAMERBOT_TRIGGER_REGISTRY_107, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
+import { STREAMERBOT_TRIGGER_REGISTRY_107, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 
 function decode(contentBase64: string): { data: { actions: Array<{ id: string; name: string }>; commands: Array<{ id: string }> }; meta: { name: string } } {
   const bytes = Buffer.from(contentBase64, 'base64');
@@ -51,6 +51,9 @@ describe('Streamer.bot universal import service', () => {
 
     const alpha6 = new StreamerBotUniversalImportService(undefined, async () => '1.1.0 alpha.6');
     expect((await alpha6.catalogue([])).triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6.version);
+
+    const alpha10 = new StreamerBotUniversalImportService(undefined, async () => '1.1.0 alpha.10');
+    expect((await alpha10.catalogue([])).triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10.version);
   });
 
   it('rejects optional add-on actions until the matching add-on is installed', async () => {

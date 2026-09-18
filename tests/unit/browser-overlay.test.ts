@@ -481,6 +481,13 @@ describe('Browser Overlay Hub contract', () => {
     expect(addOnHost).toContain("kind: 'host.visibility'");
     expect(source).toContain('getCurrentScene');
     expect(addOnHost).toContain('obsSceneChanged');
+    expect(addOnHost).toContain("typeof scene === 'string' ? scene : scene?.name ?? scene?.sceneName");
+    expect(source).toContain("typeof scene === 'string' ? scene : scene?.name ?? scene?.sceneName");
+    expect(captions).toContain("typeof scene==='string'?scene:scene?.name??scene?.sceneName");
+    expect(addOnHost).toContain("new URLSearchParams(location.search).get('obsScene')");
+    expect(addOnHost).toContain('if (lockedObsScene !== undefined) { reportHostVisibility(); return; }');
+    expect(source).toContain("new URLSearchParams(location.search).get('obsScene')");
+    expect(captions).toContain("new URLSearchParams(location.search).get('obsScene')");
     expect(source).toContain("addEventListener('obsSourceVisibleChanged'");
     expect(source).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");
     expect(addOnHost).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");

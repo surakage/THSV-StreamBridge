@@ -1,10 +1,22 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { StreamerBotEventRelay } from '../../bridge/adapters/streamerbot-event-relay.js';
 import type { BrowserOverlayHub } from '../../bridge/services/browser-overlay-hub.js';
-import { LiveCaptionService } from '../../bridge/services/live-caption-service.js';
+import { inspectStreamerBotCaptionReadiness, LiveCaptionService } from '../../bridge/services/live-caption-service.js';
 import { silentLogger, testConfig } from '../helpers.js';
 
 describe('LiveCaptionService', () => {
+  it('reports a missing Whisper model instead of claiming captions are ready', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-caption-readiness-')); const data = join(root, 'data');
+    await mkdir(data); const actionsPath = join(data, 'actions.json'); await writeFile(actionsPath, '{}');
+    await writeFile(join(data, 'settings.json'), JSON.stringify({ speechToText: { autoStart: true, audioDevice: 'microphone-1', modelPath: '' } }));
+    await expect(inspectStreamerBotCaptionReadiness(actionsPath)).resolves.toMatchObject({ ready: false, modelConfigured: false, microphoneConfigured: true });
+    await writeFile(join(data, 'settings.json'), `\uFEFF${JSON.stringify({ speechToText: { autoStart: true, audioDevice: 'microphone-1', modelPath: 'models/ggml-small.en.bin' } })}`);
+    await expect(inspectStreamerBotCaptionReadiness(actionsPath)).resolves.toMatchObject({ ready: true, modelConfigured: true, microphoneConfigured: true });
+    await rm(root, { recursive: true, force: true });
+  });
   it('publishes native dictation directly with confidence and repeat gates', async () => {
     const config = await testConfig();
     config.liveCaptions.enabled = true;

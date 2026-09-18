@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Voice Relay",
   "version": "4.0.10",
   "author": "surakage",
-  "description": "Broker-authorized Speaker.bot delivery and creator queue controls.",
+  "description": "Broker-authorized Speaker.bot delivery with private one-use speech handoffs and creator queue controls.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -85,6 +85,6 @@
   "manualTriggerSetup": [
     "Attach Pause/Resume/Stop only to creator controls."
   ],
-  "triggerSafety": "Speak is triggerless and requires a one-use broker token. Controls use an exact source/payload allowlist.",
+  "triggerSafety": "Speak is triggerless, accepts the broker-issued relay token argument, and reads only a bounded one-use file from the Bridge private inbox. Controls use an exact source/payload allowlist.",
   "verificationStatus": "TtsSpeak method source-verified; each creator must live-test their Speaker.bot connection and voice alias."
 }

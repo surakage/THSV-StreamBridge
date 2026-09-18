@@ -655,12 +655,12 @@
       "name": "THSV StreamBridge - Voice Relay",
       "version": "4.0.10",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "b02f1df8c665299983e21ac331cada4099ba7c3c4fde54fde2d3de919cb80043",
+      "manifestSha256": "7ca917bed46eadbd1918862af6189bc56d50c6ff0856917c35899e35a5b5d386",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Voice-Relay-4.0.10.sb",
-          "size": 3732,
-          "sha256": "e16afae1f4223a7bf053db65fc3528a3c1f888cdf47b123c3a09c062cd7f182d"
+          "size": 5236,
+          "sha256": "f5041b3092e0c9672942bc3f55a8062355e0ff873eab31e9d0e0765b0aafbd27"
         }
       ]
     },

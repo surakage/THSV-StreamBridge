@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, rename, stat } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
@@ -10,6 +10,7 @@ import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { Logger } from '../services/logger.js';
 import { addOnRelayAuthorizer } from '../services/addon-relay-authorizer.js';
+import { VOICE_RELAY_MODULE_ID, VOICE_RELAY_SPEAK_ACTION_ID } from '../contracts/voice-relay-handoff.js';
 
 const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -119,6 +120,7 @@ interface ActiveModuleCapabilityGrant extends ModuleCapabilityGrant { readonly g
 
 export interface AddOnCapabilityBrokerDependencies {
   readonly runStreamerBotAction?: (actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>;
+  readonly prepareStreamerBotAction?: (moduleId: string, actionId: string, argumentsValue: AddOnActionArgumentsV2) => Promise<{ readonly argumentsValue: AddOnActionArgumentsV2; readonly dispose: (accepted: boolean) => Promise<void> }>;
   readonly publishOverlay?: (moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>, options?: AddOnOverlayPublishOptionsV2) => Promise<void>;
   readonly subscribeOverlayLifecycle?: (moduleId: string, listener: (event: AddOnOverlayLifecycleV2) => void) => () => void;
   readonly routeOutboundMessage?: (request: AddOnOutboundMessageRequestV2, signal: AbortSignal) => Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
@@ -338,13 +340,28 @@ export class AddOnCapabilityBroker {
     try {
       const information = await stat(path);
       if (!information.isFile() || information.size > MAXIMUM_JSON_BYTES) throw new Error('Private add-on state is not a regular bounded file.');
-      const parsed = parseRecord(JSON.parse(await readFile(path, 'utf8')) as unknown, 'Private add-on state');
+      const source = await readFile(path, 'utf8');
+      let decoded: unknown;
+      try { decoded = JSON.parse(source) as unknown; }
+      catch (error) { return await this.recoverInvalidState(grant, path, error); }
+      let parsed: Record<string, z.infer<typeof jsonValueV2Schema>>;
+      try { parsed = parseRecord(decoded, 'Private add-on state'); }
+      catch (error) { return await this.recoverInvalidState(grant, path, error); }
       this.record(grant.moduleId, 'state.read', 'granted');
       return Object.freeze(parsed);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') { this.record(grant.moduleId, 'state.read', 'granted'); return Object.freeze({}); }
       this.record(grant.moduleId, 'state.read', 'failed'); throw error;
     }
+  }
+
+  private async recoverInvalidState(grant: ActiveModuleCapabilityGrant, path: string, error: unknown): Promise<AddOnPrivateStateV2> {
+    const quarantinePath = `${path}.corrupt-${new Date().toISOString().replace(/[:.]/gu, '-')}-${randomUUID()}.json`;
+    await rename(path, quarantinePath);
+    await writeJsonAtomic(path, {});
+    this.record(grant.moduleId, 'state.read', 'failed');
+    this.logger.warn('Invalid add-on private state was quarantined and reset safely', { moduleId: grant.moduleId, quarantinePath, error });
+    return Object.freeze({});
   }
 
   private async cacheMedia(grant: ActiveModuleCapabilityGrant, request: ClipMediaCacheRequest): Promise<ClipMediaCacheResult> {
@@ -375,6 +392,7 @@ export class AddOnCapabilityBroker {
     if (Object.keys(parsed).length > MAXIMUM_ARGUMENTS) throw new Error(`Streamer.bot action arguments may contain at most ${String(MAXIMUM_ARGUMENTS)} keys.`);
     assertBoundedJson(parsed, 'Streamer.bot action arguments');
     if (this.dependencies.runStreamerBotAction === undefined) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'Streamer.bot action dispatch is unavailable.');
+    if (grant.moduleId === VOICE_RELAY_MODULE_ID && actionId.toLowerCase() === VOICE_RELAY_SPEAK_ACTION_ID && this.dependencies.prepareStreamerBotAction === undefined) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'Village Voice secure speech handoff is unavailable.');
     const activity = this.actionActivity.get(grant.moduleId) ?? { pending: 0, startedAt: [], controllers: new Set<AbortController>() };
     const cutoff = Date.now() - 60_000;
     while ((activity.startedAt[0] ?? Number.POSITIVE_INFINITY) < cutoff) activity.startedAt.shift();
@@ -383,8 +401,15 @@ export class AddOnCapabilityBroker {
     const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.actionActivity.set(grant.moduleId, activity);
     const relayToken = addOnRelayAuthorizer.issue(grant.moduleId);
     this.logger.info('Add-on Streamer.bot action dispatch started', { moduleId: grant.moduleId, actionId });
+    let accepted = false;
+    let disposePreparedAction: (accepted: boolean) => Promise<void> = async () => undefined;
     try {
-      await this.dependencies.runStreamerBotAction(actionId, { ...parsed, thsvAddonRelayToken: relayToken }, controller.signal);
+      const prepared = this.dependencies.prepareStreamerBotAction === undefined
+        ? { argumentsValue: parsed, dispose: disposePreparedAction }
+        : await this.dependencies.prepareStreamerBotAction(grant.moduleId, actionId, parsed);
+      disposePreparedAction = prepared.dispose;
+      await this.dependencies.runStreamerBotAction(actionId, { ...prepared.argumentsValue, thsvAddonRelayToken: relayToken }, controller.signal);
+      accepted = true;
       this.record(grant.moduleId, 'streamerbot.run-approved-action', 'granted');
       this.logger.info('Add-on Streamer.bot action dispatch accepted', { moduleId: grant.moduleId, actionId });
     }
@@ -393,7 +418,10 @@ export class AddOnCapabilityBroker {
       this.logger.error('Add-on Streamer.bot action dispatch failed', { moduleId: grant.moduleId, actionId, error });
       throw error;
     }
-    finally { activity.pending -= 1; activity.controllers.delete(controller); }
+    finally {
+      await disposePreparedAction(accepted).catch((error: unknown) => this.logger.warn('Prepared Streamer.bot action cleanup failed', { moduleId: grant.moduleId, actionId, error }));
+      activity.pending -= 1; activity.controllers.delete(controller);
+    }
   }
 
   private schedule(grant: ActiveModuleCapabilityGrant, delayMs: number, task: () => void | Promise<void>): string {

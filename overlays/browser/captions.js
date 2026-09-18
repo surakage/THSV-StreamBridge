@@ -9,7 +9,9 @@
   let sendTransport = () => {};
   let obsVisible = document.visibilityState !== 'hidden';
   let obsActive;
-  let obsScene;
+  const declaredObsScene = new URLSearchParams(location.search).get('obsScene');
+  const lockedObsScene = typeof declaredObsScene === 'string' && declaredObsScene.trim().length > 0 && declaredObsScene.length <= 200 ? declaredObsScene.trim() : undefined;
+  let obsScene = lockedObsScene;
 
   const colors = (value, fallback) => typeof value === 'string' && /^#[0-9a-f]{6}$/iu.test(value) ? value : fallback;
   const integer = (value, minimum, maximum, fallback) => Number.isInteger(value) ? Math.max(minimum, Math.min(maximum, value)) : fallback;
@@ -52,13 +54,13 @@
   function enforceExpiry() { if (captionExpiresAt > 0 && Date.now() >= captionExpiresAt) clear(); }
   function receive(event) { if (event.kind === 'caption.show' && event.contractVersion === 'thsv-live-captions-v1') show(event.payload); else if (event.kind === 'caption.clear' || event.kind === 'overlay.reset') clear(); }
   function reportHostVisibility() { sendTransport({ contractVersion:'thsv-addon-overlay-v1',kind:'host.visibility',rendererId,host:window.obsstudio?'obs':'browser',moduleId:'core.live-captions',surface:'/overlay/captions',visible:window.obsstudio?obsVisible:document.visibilityState!=='hidden',...(typeof obsActive==='boolean'?{active:obsActive}:{}),...(typeof obsScene==='string'?{scene:obsScene}:{}) }); }
-  function refreshObsScene(){ if(typeof window.obsstudio?.getCurrentScene==='function')window.obsstudio.getCurrentScene((scene)=>{if(typeof scene?.name==='string')obsScene=scene.name;reportHostVisibility()}); }
+  function refreshObsScene(){ if(lockedObsScene!==undefined){reportHostVisibility();return}if(typeof window.obsstudio?.getCurrentScene==='function')window.obsstudio.getCurrentScene((scene)=>{const value=typeof scene==='string'?scene:scene?.name??scene?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()}); }
   document.addEventListener('visibilitychange',()=>{enforceExpiry();if(!window.obsstudio)obsVisible=document.visibilityState!=='hidden';reportHostVisibility()});
   addEventListener('pageshow',enforceExpiry);
   setInterval(enforceExpiry,1_000);
   addEventListener('obsSourceVisibleChanged',(event)=>{const value=event.detail?.visible??event.detail;if(typeof value==='boolean')obsVisible=value;reportHostVisibility()});
   addEventListener('obsSourceActiveChanged',(event)=>{const value=event.detail?.active??event.detail;if(typeof value==='boolean')obsActive=value;reportHostVisibility()});
-  addEventListener('obsSceneChanged',(event)=>{const value=event.detail?.name??event.detail?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()});
+  addEventListener('obsSceneChanged',(event)=>{if(lockedObsScene!==undefined){reportHostVisibility();return}const detail=event.detail;const value=typeof detail==='string'?detail:detail?.name??detail?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()});
   refreshObsScene(); setInterval(reportHostVisibility,15_000);
   function connectDirectly(){const protocol=location.protocol==='https:'?'wss:':'ws:';const socket=new WebSocket(`${protocol}//${location.host}/overlay/events`);sendTransport=(payload)=>{if(socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(payload))};socket.addEventListener('open',reportHostVisibility);socket.addEventListener('message',(message)=>{try{receive(JSON.parse(message.data))}catch{}});socket.addEventListener('close',()=>setTimeout(connectDirectly,1500));}
   function connect(){if('SharedWorker'in window){try{const worker=new SharedWorker('/overlay/worker-1.3.3.js','thsv-browser-overlay-1.3.3');sendTransport=(payload)=>worker.port.postMessage({kind:'transport.send',payload});worker.port.addEventListener('message',(message)=>{if(message.data?.kind==='transport.status'){if(message.data.state==='live')reportHostVisibility();return}receive(message.data)});worker.port.start();return}catch{}}connectDirectly();}
