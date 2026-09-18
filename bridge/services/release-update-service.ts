@@ -249,12 +249,22 @@ export class ReleaseUpdateService {
     if (this.repository === DEFAULT_REPOSITORY) {
       try {
         const response = await this.fetchRelease(OFFICIAL_RELEASE_FEED, this.releaseRequestOptions());
-        if (response.ok) return { release: await response.json() as GitHubRelease, source: 'slothbloom' };
+        if (response.ok) {
+          const release = await response.json() as GitHubRelease;
+          if (isStableCoreRelease(release)) return { release, source: 'slothbloom' };
+        }
       } catch { /* The official website is a discovery convenience; GitHub remains the fallback authority. */ }
     }
     const response = await this.fetchRelease(`https://api.github.com/repos/${this.repository}/releases/latest`, this.releaseRequestOptions());
     if (!response.ok) throw new Error(`GitHub release check returned HTTP ${String(response.status)}.`);
-    return { release: await response.json() as GitHubRelease, source: 'github' };
+    const latest = await response.json() as GitHubRelease;
+    if (isStableCoreRelease(latest)) return { release: latest, source: 'github' };
+    const listingResponse = await this.fetchRelease(`https://api.github.com/repos/${this.repository}/releases?per_page=20`, this.releaseRequestOptions());
+    if (!listingResponse.ok) throw new Error(`GitHub release listing returned HTTP ${String(listingResponse.status)}.`);
+    const listing = await listingResponse.json() as unknown;
+    const release = Array.isArray(listing) ? listing.find((candidate): candidate is GitHubRelease => isStableCoreRelease(candidate)) : undefined;
+    if (release === undefined) throw new Error('No public stable StreamBridge release was found in the latest GitHub releases.');
+    return { release, source: 'github' };
   }
 
   private releaseRequestOptions(): RequestInit {
@@ -313,6 +323,12 @@ export class ReleaseUpdateService {
     if (bytes.byteLength === 0 || bytes.byteLength > maximumBytes) throw new Error(`${asset.name} is empty or exceeds the update download safety limit.`);
     return bytes;
   }
+}
+
+function isStableCoreRelease(value: unknown): value is GitHubRelease {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const release = value as GitHubRelease;
+  return release.draft !== true && release.prerelease !== true && typeof release.tag_name === 'string' && VERSION_TAG.test(release.tag_name);
 }
 
 export async function verifyGitHubArtifactProvenance(artifact: Uint8Array, options: GitHubProvenanceOptions): Promise<ProvenanceVerification> {

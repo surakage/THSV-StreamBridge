@@ -132,9 +132,8 @@ export class AdapterRegistry {
   }
 }
 
-export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logger): AdapterRegistry {
+export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logger, streamerBotEventRelay = new StreamerBotEventRelay()): AdapterRegistry {
   const registry = new AdapterRegistry();
-  const streamerBotEventRelay = new StreamerBotEventRelay();
   registry.registerInput('mock', (name, platform) => new MockAdapter(name, platform), () => ({
     legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'raids', 'moderation', 'engagement', 'channelUpdates', 'timedActions', 'rewards'],
     supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'raids', 'cheers', 'donations', 'gifts', 'moderation', 'stream-status', 'channel-rewards.redemptions'],

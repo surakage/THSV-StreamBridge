@@ -1,6 +1,6 @@
 import { execFile, execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -137,6 +137,8 @@ export class StreamerBotLauncherService {
   public async version(): Promise<string | undefined> {
     const configuration = await this.readConfiguration();
     if (configuration === undefined || !await isFile(configuration.executable)) return undefined;
+    const runtimeVersion = await latestStreamerBotRuntimeVersion(dirname(configuration.executable));
+    if (runtimeVersion !== undefined) return runtimeVersion;
     return Object.values(applicationVersions([configuration.executable]))[0];
   }
 
@@ -627,6 +629,30 @@ function processesNamed(names: readonly string[]): readonly ProcessIdentity[] {
     const value = JSON.parse(raw) as ProcessIdentity | ProcessIdentity[];
     return Array.isArray(value) ? value : [value];
   } catch { return []; }
+}
+
+async function latestStreamerBotRuntimeVersion(installDirectory: string): Promise<string | undefined> {
+  const logsDirectory = join(installDirectory, 'logs');
+  try {
+    const candidates = await Promise.all((await readdir(logsDirectory, { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && /^log_.*\.log$/iu.test(entry.name))
+      .map(async (entry) => ({ path: join(logsDirectory, entry.name), modifiedAt: (await stat(join(logsDirectory, entry.name))).mtimeMs })));
+    const latest = candidates.sort((left, right) => right.modifiedAt - left.modifiedAt)[0];
+    if (latest === undefined) return undefined;
+    const details = await stat(latest.path);
+    const length = Math.min(details.size, 8 * 1024 * 1024);
+    if (length <= 0) return undefined;
+    const handle = await open(latest.path, 'r');
+    try {
+      const buffer = Buffer.alloc(length);
+      await handle.read(buffer, 0, length, Math.max(0, details.size - length));
+      const matches = [...buffer.toString('utf8').matchAll(/Streamer\.bot \((\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\)/gu)];
+      return matches.at(-1)?.[1];
+    } finally { await handle.close(); }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    return undefined;
+  }
 }
 
 function applicationVersions(paths: readonly string[]): Readonly<Record<string, string>> {

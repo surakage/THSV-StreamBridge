@@ -38,6 +38,16 @@ describe('SceneCatalogService', () => {
     await service.flush();
   });
 
+  it('does not let an incomplete observed relay downgrade a complete direct inventory', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-scene-authoritative-')); roots.push(root);
+    const direct = vi.fn(async () => ({ connectionId: 'direct', connectionName: 'OBS direct', scenes: ['BRB', 'Live'], currentScene: 'Live' }));
+    const service = new SceneCatalogService(root, async () => undefined, direct); await service.start();
+    service.observe(normalizeStreamerBotSceneRelay({ type: 'thsv.scene', version: '1.0.0', provider: 'obs', sourceEventType: 'OBSSceneChanged', relayId: 'one', receivedAt: '2026-08-22T10:00:00.000Z', simulated: false, connectionId: 'observed', connectionName: 'OBS observed', sceneName: 'BRB' }));
+    await service.refresh({ provider: 'obs', connectionIndex: 0 });
+    expect(service.status()).toMatchObject({ providers: { obs: { source: 'direct-websocket', complete: true, scenes: ['BRB', 'Live'], connections: [{ complete: false, source: 'observed' }, { complete: true, source: 'direct-websocket' }] } } });
+    await service.flush();
+  });
+
   it('removes redundant observations and inactive direct profiles without touching fallback inventories', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-scene-prune-')); roots.push(root);
     const service = new SceneCatalogService(root); await service.start();

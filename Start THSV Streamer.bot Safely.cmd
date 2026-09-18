@@ -11,7 +11,9 @@ echo Checking that Streamer.bot has fully released its WebSocket
 echo port before starting or repairing the local session.
 echo.
 if exist "%~dp0runtime\node.exe" (
-  "%~dp0runtime\node.exe" "%~dp0launcher\start-streamerbot.mjs" --install-root "%~dp0"
+  rem The trailing dot prevents Windows argv parsing from treating the root's final
+  rem backslash as an escape for the closing quote.
+  "%~dp0runtime\node.exe" "%~dp0launcher\start-streamerbot.mjs" --install-root "%~dp0."
 ) else (
   node.exe "%~dp0tools\start-streamerbot-safely.mjs"
 )

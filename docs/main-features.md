@@ -10,7 +10,7 @@ The feature catalogue and presentation lanes now come from one Bridge-owned regi
 
 Each feature card has a **System details** disclosure. It combines bounded runtime metrics with per-component Healthy, Disabled, Restart required, Not active, or Runtime unknown states. Component buttons open the existing detailed editor; the summary never mutates settings or dispatches a live action.
 
-The Browser Overlay Hub publishes a versioned presentation policy in diagnostics. Reward cards and Automated Shoutouts share the foreground queue. Random Clip Player and Raid Scout media use the independent media lane. Ad Break Companion and Starting Soon Countdown use the independent timer lane. Chat Guard, Discord Chat Archive, and Quote Vault remain background-only and never consume an overlay slot. Exact template previews always bypass the queue.
+The Browser Overlay Hub publishes a versioned presentation policy in diagnostics. Reward cards and Automated Shoutouts share the foreground queue. Random Clip Player and Raid Scout media use the independent media lane. Ad Break Companion, Starting Soon Countdown, and Stream Break & End Guard use the independent timer lane. Chat Guard, Discord Chat Archive, and Quote Vault remain background-only and never consume an overlay slot. Exact template previews always bypass the queue.
 
 ## Broadcast Director
 
@@ -18,6 +18,7 @@ Broadcast Director owns the stream lifecycle view:
 
 - Live Beacon reports which platforms are online.
 - Starting Soon Countdown owns launch timing.
+- Stream Break & End Guard schedules creator breaks and the maximum live-session duration, warns before each deadline, and switches to creator-selected scenes.
 - Scene Actions reacts to creator-selected scenes.
 - Ad Break Companion tracks the active ad window independently from transient overlays.
 - Raid Scout performs the end-of-stream suggestion, clip, raid, and shutdown sequence.

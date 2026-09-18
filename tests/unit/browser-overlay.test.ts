@@ -226,7 +226,7 @@ describe('Browser Overlay Hub contract', () => {
           contractVersion: '1.0.0',
           foregroundQueue: ['thsv.automated-shoutouts', 'thsv.fan-crown', 'thsv.first-five', 'thsv.raid-scout', 'thsv.viewer-spotlight', 'thsv.village-hydration-station', 'thsv.village-roll-call'],
           mediaLane: ['thsv.raid-scout', 'thsv.random-clip-player'],
-          timerLane: ['thsv.ad-break-companion', 'thsv.starting-soon-countdown'],
+          timerLane: ['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard'],
           backgroundOnly: ['thsv.chat-guard', 'thsv.discord-chat-archive', 'thsv.quote-vault', 'thsv.follower-pulse', 'thsv.community-analytics', 'thsv.user-translate', 'thsv.village-fun-commands'],
         },
         presentationQueue: { active: { owner: 'thsv.first-five', lane: 'foreground' }, queued: [] },
@@ -469,15 +469,25 @@ describe('Browser Overlay Hub contract', () => {
 
   it('uses text-only DOM sinks in the reviewed browser source', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
+    const captions = await readFile('overlays/browser/captions.js', 'utf8');
     const addOnHost = await readFile('overlays/browser/addon-host.js', 'utf8');
     const worker = await readFile('overlays/browser/worker.js', 'utf8');
     expect(source).toContain('textContent');
+    expect(captions).toContain('captionText.textContent = payload.text');
+    expect(captions).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\s*\(/u);
     expect(addOnHost).toContain("kind: 'addon.subscribe', moduleId, rendererId");
     expect(addOnHost).toContain("kind: 'addon.unsubscribe', moduleId, rendererId");
     expect(source).toContain("kind: 'host.visibility'");
     expect(addOnHost).toContain("kind: 'host.visibility'");
     expect(source).toContain('getCurrentScene');
     expect(addOnHost).toContain('obsSceneChanged');
+    expect(addOnHost).toContain("typeof scene === 'string' ? scene : scene?.name ?? scene?.sceneName");
+    expect(source).toContain("typeof scene === 'string' ? scene : scene?.name ?? scene?.sceneName");
+    expect(captions).toContain("typeof scene==='string'?scene:scene?.name??scene?.sceneName");
+    expect(addOnHost).toContain("new URLSearchParams(location.search).get('obsScene')");
+    expect(addOnHost).toContain('if (lockedObsScene !== undefined) { reportHostVisibility(); return; }');
+    expect(source).toContain("new URLSearchParams(location.search).get('obsScene')");
+    expect(captions).toContain("new URLSearchParams(location.search).get('obsScene')");
     expect(source).toContain("addEventListener('obsSourceVisibleChanged'");
     expect(source).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");
     expect(addOnHost).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");

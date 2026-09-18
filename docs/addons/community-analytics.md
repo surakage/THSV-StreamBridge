@@ -1,17 +1,17 @@
 # Community Analytics setup
 
 **Module:** `thsv.community-analytics`
-**Version:** `4.0.1`
+**Version:** `4.0.10`
 **Publisher:** THSV StreamBridge
 
 Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.
 
 ## Built-in setup
 
-1. This integration is installed and updated with THSV StreamBridge; do not install a separate `.thsv-addon`.
+1. This integration is bundled and updated with THSV StreamBridge; do not download a separate add-on archive.
 2. Configure it from its dedicated **Community Analytics** wizard page, save, and restart StreamBridge when prompted.
 
-### Add-on-specific steps
+### Integration-specific steps
 
 1. Community Analytics is installed and updated with StreamBridge after Viewer Foundation.
 2. No Community Analytics Streamer.bot package or direct trigger is required. Keep chat and lifecycle triggers attached only to the main THSV platform intake actions.

@@ -185,7 +185,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
 
   const addOnHeading = page.locator('[data-addon-settings] [name="heading"]');
   await addOnHeading.fill('My private add-on setting');
-  await page.getByLabel('Accent').selectOption('green');
+  await page.locator('[data-addon-settings] select[name="accent"]').selectOption('green');
   await page.getByRole('button', { name: 'Save all settings' }).click();
   await expect(page.locator('#wizard-feedback')).toContainText('Settings saved for sample.declarative-settings');
   await expect(page.locator('#wizard-feedback')).toHaveAttribute('data-kind', 'success');
@@ -408,6 +408,42 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   await expect(kofiIntegration).toContainText('select Ko-fi Donations when creating the one universal Streamer.bot import');
   await expect(kofiIntegration.locator('[data-addon-settings="thsv.kofi-donations"]')).toBeVisible();
   await page.evaluate('state.liveActions = [];');
+});
+
+test('Stream Break & End Guard derives its cadence and selects detected scenes without typing', async ({ page }) => {
+  test.setTimeout(45_000);
+  const detectedScenes = { refreshAvailable: true, providers: {
+    obs: { scenes: ['BRB', 'Gameplay', 'Stream Ending'], connections: [] },
+    meld: { scenes: ['Meld Break', 'Meld Live', 'Meld Ending'], connections: [] },
+    streamlabs: { scenes: ['SLOBS Break', 'SLOBS Live', 'SLOBS Ending'], connections: [] },
+  } };
+  await page.route('**/wizard/api/scene-catalog*', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(detectedScenes) });
+  });
+  await unlockWizard(page);
+  await installPackagedAddOn(page, 'addons/stream-session-guard', 'stream-session-guard.thsv-addon', 'thsv.stream-session-guard');
+  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
+  const available = await page.evaluate(`state.addOns.some((candidate) => candidate.moduleId === 'thsv.stream-session-guard')`);
+  expect(available).toBe(true);
+  await page.evaluate(`state.selectedAddOnId = 'thsv.stream-session-guard'; state.sceneCatalog = ${JSON.stringify(detectedScenes)}; renderAddOns();`);
+
+  const settings = page.locator('[data-addon-settings="thsv.stream-session-guard"]');
+  await expect(settings).toBeVisible();
+  await settings.getByLabel('Broadcast app').selectOption('meld');
+  await settings.locator('summary').filter({ hasText: 'Plan the stream length' }).click();
+  await expect(settings.getByLabel('Maximum stream length (minutes)')).toHaveValue('240');
+  await settings.locator('summary').filter({ hasText: 'Schedule breaks' }).click();
+  await expect(settings.getByLabel('Break schedule')).toHaveValue('automatic');
+  await expect(settings.getByLabel('Manual break interval (minutes)')).not.toBeVisible();
+  await expect(settings.getByLabel('Break length (minutes)')).toHaveValue('5');
+  await expect(settings.getByLabel('Exact scene name')).toHaveCount(0);
+
+  const breakPicker = settings.locator('[data-scene-name-picker]').filter({ hasText: 'Break scene' });
+  await expect(breakPicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', 'BRB', 'Meld Break', 'Meld Ending', 'Meld Live']);
+  await breakPicker.getByLabel('Detected scene').selectOption('Meld Break');
+  await expect(breakPicker.getByLabel('Detected scene')).toHaveValue('Meld Break');
+  await breakPicker.getByRole('button', { name: 'Refresh scenes' }).click();
+  await expect(breakPicker.locator('[data-scene-catalog-status]')).toHaveText('3 exact Meld Studio scene names available. Select one from the detected list.');
 });
 
 test('wizard configures raid scouting and chat safety add-ons', async ({ page }) => {

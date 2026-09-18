@@ -57,6 +57,7 @@ export class BrowserOverlayHub {
   private published = 0;
   private addOnPublished = 0;
   private addOnLifecycleReports = 0;
+  private liveCaptionsPublished = 0;
   private readonly lifecycleListeners = new Map<string, Set<(event: AddOnOverlayLifecycleV2) => void>>();
   private readonly addOnSubscriptions = new Map<WebSocket, Map<string, Set<string>>>();
   private readonly hostVisibility = new Map<WebSocket, Map<string, OverlayHostVisibility>>();
@@ -184,6 +185,16 @@ export class BrowserOverlayHub {
     return Promise.resolve();
   }
 
+  public publishLiveCaption(payload: Readonly<Record<string, unknown>>): void {
+    if (!this.config.enabled) throw new Error('Browser overlays are disabled.');
+    this.broadcast(JSON.stringify({ contractVersion: 'thsv-live-captions-v1', kind: 'caption.show', emittedAt: new Date().toISOString(), payload }));
+    this.liveCaptionsPublished += 1;
+  }
+
+  public clearLiveCaptions(reason: string): void {
+    this.broadcast(JSON.stringify({ contractVersion: 'thsv-live-captions-v1', kind: 'caption.clear', emittedAt: new Date().toISOString(), reason: reason.slice(0, 100) }));
+  }
+
   public subscribeAddOnLifecycle(moduleId: string, listener: (event: AddOnOverlayLifecycleV2) => void): () => void {
     if (!MODULE_ID.test(moduleId)) throw new Error('Invalid add-on module ID for overlay lifecycle subscription.');
     const listeners = this.lifecycleListeners.get(moduleId) ?? new Set<(event: AddOnOverlayLifecycleV2) => void>();
@@ -198,7 +209,7 @@ export class BrowserOverlayHub {
       for (const [moduleId, renderers] of subscriptions) addOnClients[moduleId] = (addOnClients[moduleId] ?? 0) + renderers.size;
     }
     const visibility = [...this.hostVisibility.values()].flatMap((entries) => [...entries.values()]);
-    return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, hostVisibility: { supported: visibility.some((entry) => entry.host === 'obs'), obsSources: visibility.filter((entry) => entry.host === 'obs'), visibleObsSources: visibility.filter((entry) => entry.host === 'obs' && entry.visible).length }, published: this.published, addOnPublished: this.addOnPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationPolicy: MAIN_FEATURE_PRESENTATION_POLICY, presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
+    return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, hostVisibility: { supported: visibility.some((entry) => entry.host === 'obs'), obsSources: visibility.filter((entry) => entry.host === 'obs'), visibleObsSources: visibility.filter((entry) => entry.host === 'obs' && entry.visible).length }, published: this.published, addOnPublished: this.addOnPublished, liveCaptionsPublished: this.liveCaptionsPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationPolicy: MAIN_FEATURE_PRESENTATION_POLICY, presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
   }
   public clientConfig(): BrowserOverlayConfig { return { ...this.config }; }
 

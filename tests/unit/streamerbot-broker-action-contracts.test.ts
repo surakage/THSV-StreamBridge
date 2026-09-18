@@ -45,7 +45,7 @@ describe('Streamer.bot broker action contracts', () => {
       'd12e5b98-4dc5-5f0c-b54d-85cfe3a4f7b2', 'd4c4d0c6-5466-4a30-b437-7fd582f69038',
       'd72d0873-8cbd-4dd5-a171-6b7122cd125e', 'df40969d-5923-4432-bdca-ecdee451f150',
       'df4ee3e7-cee1-48e7-b301-5533d57c11d8', 'e0907527-94ec-466b-a05f-b5b21930ac55',
-      'e3d92d7e-193a-5bba-8b8c-4f17e605c9d2', 'f89e397b-7106-5101-a620-b0f5da4facf9',
+      'e3d92d7e-193a-5bba-8b8c-4f17e605c9d2', 'f4e7fcb4-617b-4438-a6ac-5e6a6dc9ad92', 'f89e397b-7106-5101-a620-b0f5da4facf9',
       'fa5b3b6d-a639-48a6-9999-7e5b11f31590',
     ]));
   });

@@ -44,7 +44,8 @@
     "queueLimit": { "type": "integer", "title": "Maximum waiting phrases", "minimum": 1, "maximum": 30, "default": 10 },
     "gapSeconds": { "type": "integer", "title": "Gap between requests (seconds)", "minimum": 1, "maximum": 30, "default": 2 },
     "allowChatRoles": { "type": "array", "title": "Roles whose chat may be read", "items": { "type": "string", "enum": ["broadcaster", "moderator", "subscriber", "viewer"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["broadcaster", "moderator"] },
-    "blockedTerms": { "type": "array", "title": "Never speak text containing", "items": { "type": "string", "minLength": 1, "maxLength": 80 }, "maxItems": 200, "uniqueItems": true, "default": [] }
+    "useDefaultProfanityFilter": { "type": "boolean", "title": "Block common profanity automatically", "description": "Uses a conservative built-in list with whole-word matching. Add channel-specific terms below.", "default": true },
+    "blockedTerms": { "type": "array", "title": "Additional words or phrases to never speak", "items": { "type": "string", "minLength": 1, "maxLength": 80 }, "maxItems": 200, "uniqueItems": true, "default": [] }
   },
   "allOf": [
     {

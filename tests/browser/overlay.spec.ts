@@ -114,6 +114,45 @@ async function publishAddOnEvent(page: Page, moduleId: string, topic: string, pa
   }), { moduleId, topic, payload });
 }
 
+test('built-in live captions render bounded plain text with creator styling', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/captions');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-live-captions-v1',
+    kind: 'caption.show',
+    payload: {
+      text: '<b>Readable creator speech</b>', durationMs: 30_000,
+      style: { fontFamily: 'serif', fontSizePx: 72, fontWeight: 800, textColor: '#ffffff', textAlign: 'center', outlineColor: '#000000', outlineWidthPx: 2, backgroundMode: 'highlight', backgroundColor: '#101722', backgroundOpacity: 0.9, paddingPx: 20, borderRadiusPx: 18, shadowEnabled: true, shadowColor: '#000000', shadowBlurPx: 12, shadowOffsetXpx: 0, shadowOffsetYpx: 4, position: 'top', maximumWidthPercent: 80, maximumLines: 2, animation: 'fade' },
+    },
+  }));
+  await expect(page.locator('#caption')).toBeVisible();
+  await expect(page.locator('#caption-text')).toHaveText('<b>Readable creator speech</b>');
+  await expect(page.locator('#caption')).toHaveAttribute('data-background', 'highlight');
+  await expect(page.locator('#caption-stage')).toHaveAttribute('data-position', 'top');
+  await expect(page.locator('#caption')).toHaveCSS('font-size', '72px');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-live-captions-v1', kind: 'caption.show',
+    payload: {
+      text: Array(80).fill('bounded').join(' '), durationMs: 30_000,
+      style: { fontFamily: 'serif', fontSizePx: 72, fontWeight: 800, textColor: '#ffffff', textAlign: 'center', outlineColor: '#000000', outlineWidthPx: 2, backgroundMode: 'highlight', backgroundColor: '#101722', backgroundOpacity: 0.9, paddingPx: 20, borderRadiusPx: 18, shadowEnabled: true, shadowColor: '#000000', shadowBlurPx: 12, shadowOffsetXpx: 0, shadowOffsetYpx: 4, position: 'top', maximumWidthPercent: 80, maximumLines: 2, animation: 'fade' },
+    },
+  }));
+  const bounded = await page.locator('#caption').evaluate((element) => {
+    const style = getComputedStyle(element);
+    return element.getBoundingClientRect().height <= Number.parseFloat(style.lineHeight) * 2 + 1;
+  });
+  expect(bounded).toBe(true);
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-live-captions-v1', kind: 'caption.clear' }));
+  await expect(page.locator('#caption')).toBeHidden();
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-live-captions-v1', kind: 'caption.show',
+    payload: { text: 'This delayed caption must stay hidden', durationMs: 30_000, expiresAt: '2000-01-01T00:00:00.000Z', style: {} },
+  }));
+  await expect(page.locator('#caption')).toBeHidden();
+  await expect(page.locator('#caption-text')).toHaveText('');
+});
+
 test('Ad Break Companion uses a compact bounded browser source and fades away cleanly', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');

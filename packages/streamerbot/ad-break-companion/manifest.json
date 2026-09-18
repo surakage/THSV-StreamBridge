@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Ad Break Companion",
-  "version": "4.0.9",
+  "version": "4.0.10",
   "author": "surakage",
   "description": "Relays Twitch Upcoming Ad and Ad Run timing plus triggerless offline preview controls to Ad Break Companion.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -17,7 +17,7 @@
         }
       ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.9.sb",
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.10.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -35,7 +35,7 @@
         }
       ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.9.sb",
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.10.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -53,7 +53,7 @@
         }
       ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.9.sb",
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.10.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -71,7 +71,7 @@
         }
       ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.9.sb",
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.10.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -89,7 +89,7 @@
         }
       ],
       "source": "src/RelayAdBreak.cs",
-      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.9.sb",
+      "importFile": "THSV-StreamBridge-Ad-Break-Companion-4.0.10.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

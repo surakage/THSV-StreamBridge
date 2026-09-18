@@ -67,11 +67,13 @@ export class SceneCatalogService {
       providers: Object.fromEntries(PROVIDERS.map((provider) => {
         const connections = this.state[provider].connections;
         const scenes = uniqueSorted(connections.flatMap((connection) => connection.scenes));
+        const directConnections = connections.filter((connection) => connection.source === 'direct-websocket');
+        const assessedConnections = directConnections.length > 0 ? directConnections : connections;
         return [provider, {
           provider,
           scenes,
           source: connections.some((connection) => connection.source === 'direct-websocket') ? 'direct-websocket' : connections.some((connection) => connection.complete) ? 'streamerbot-fallback' : 'observed',
-          complete: connections.length > 0 && connections.every((connection) => connection.complete),
+          complete: assessedConnections.length > 0 && assessedConnections.every((connection) => connection.complete && connection.error === undefined),
           connections,
           updatedAt: newest(connections.map((connection) => connection.updatedAt)),
         }];

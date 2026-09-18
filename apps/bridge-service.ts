@@ -46,6 +46,9 @@ import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } fro
 import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-connection-manager.js';
 import { StreamerBotCompatibilityFeedService } from '../bridge/services/streamerbot-compatibility-feed-service.js';
 import { LogLifecycleStatusService } from '../bridge/services/log-lifecycle-status-service.js';
+import { inspectStreamerBotCaptionReadiness, LiveCaptionService } from '../bridge/services/live-caption-service.js';
+import { StreamerBotEventRelay } from '../bridge/adapters/streamerbot-event-relay.js';
+import { VoiceRelayHandoffService } from '../bridge/services/voice-relay-handoff-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -57,7 +60,8 @@ const loadedConfig = await loadConfigWithNotices(configPath);
 const config = loadedConfig.config;
 const logger = new StructuredLogger(config.logging.level, config.logging.directory, config.logging.maxFileBytes, config.logging.backups);
 for (const notice of loadedConfig.notices) logger.warn(notice.message, { code: notice.code, configPath: resolve(configPath), ignoredPaths: notice.paths });
-const registry = createDefaultAdapterRegistry(config, logger);
+const streamerBotEventRelay = new StreamerBotEventRelay();
+const registry = createDefaultAdapterRegistry(config, logger, streamerBotEventRelay);
 const inputs = registry.createInputs(config.platforms);
 const outputs = registry.createOutputs(config.outputs);
 const streamerBotInspector = outputs.find((output): output is StreamerBotAdapter => output instanceof StreamerBotAdapter);
@@ -73,8 +77,11 @@ const liveRecoveryPlatformIds = [...enabledPlatformIds].filter((platform) => ['t
 const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
+const liveCaptions = new LiveCaptionService(config.liveCaptions, overlayHub, streamerBotEventRelay, logger);
 const chatEmotes = new ChatEmoteService(logger);
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
+const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
+await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Village Voice secure handoff cleanup could not start', { error }));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
   if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is not configured.');
   await streamerBotInspector.runApprovedAction(TIMED_MESSAGE_OUTPUT_ACTION_ID, {
@@ -102,6 +109,7 @@ const dockOutboundRouter = new OutboundMessageRouter({ send: async (platform, me
 } });
 const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   ...(streamerBotInspector === undefined ? {} : { runStreamerBotAction: (actionId, argumentsValue, signal) => streamerBotInspector.runApprovedAction(actionId, argumentsValue, signal) }),
+  prepareStreamerBotAction: (moduleId, actionId, argumentsValue) => voiceRelayHandoff.prepare(moduleId, actionId, argumentsValue, config.streamerbot.testMode),
   publishOverlay: async (moduleId, topic, payload, options) => overlayHub.publishAddOn(moduleId, topic, payload, options),
   subscribeOverlayLifecycle: (moduleId, listener) => overlayHub.subscribeAddOnLifecycle(moduleId, listener),
   routeOutboundMessage: (request, signal) => outboundRouter.route(request, signal),
@@ -131,6 +139,7 @@ const automaticUpdates = new AutomaticUpdateMonitor({
   statePath: join(dataRoot, 'updates', 'automatic-update-status.json'),
 });
 const streamerBotLauncher = new StreamerBotLauncherService(dataRoot, config.streamerbot.url);
+liveCaptions.setSourceReadiness(await inspectStreamerBotCaptionReadiness(await streamerBotLauncher.actionsPath()));
 const streamerBotCompatibilityFeed = new StreamerBotCompatibilityFeedService(logger, fetch, join(dataRoot, 'updates', 'streamerbot-compatibility-feed-cache.json'));
 await streamerBotCompatibilityFeed.start();
 const logLifecycleStatus = new LogLifecycleStatusService(config.logging.directory, config.logging.maxFileBytes, config.logging.backups, undefined, join(dataRoot, 'configuration', 'log-storage-policy.json'));
@@ -252,6 +261,7 @@ activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
 activeBridge.subscribe((event) => operationalReliability.observe(event));
+activeBridge.subscribe((event) => liveCaptions.observeBridgeEvent(event));
 activeBridge.subscribe(async (event) => {
   if (event.metadata.simulated || event.eventType !== 'addon.thsv.live-beacon.broadcast-control' || event.payload['action'] !== 'online') return;
   await activeBridge.recoverLiveSession(liveRecoveryPlatformIds, typeof event.payload['startedAt'] === 'string' ? event.payload['startedAt'] : event.receivedAt);
@@ -275,6 +285,7 @@ activeBridge.subscribe((event) => commandDirectoryResponder.handle(event));
 let stopping = false;
 let commandDirectoryRefreshActive = false;
 let commandDirectoryRefreshTimer: NodeJS.Timeout | undefined;
+let captionReadinessTimer: NodeJS.Timeout | undefined;
 
 async function refreshCommandDirectory(): Promise<void> {
   if (commandDirectoryRefreshActive || stopping) return;
@@ -294,11 +305,14 @@ async function shutdown(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
   if (commandDirectoryRefreshTimer !== undefined) clearInterval(commandDirectoryRefreshTimer);
+  if (captionReadinessTimer !== undefined) clearInterval(captionReadinessTimer);
+  await voiceRelayHandoff.stop();
   automaticUpdates.stop();
   scheduledReliabilityPreflight.stop();
   obsBroadcastMonitor.stop();
   logger.info('Shutdown requested', { signal });
   try {
+    liveCaptions.stop();
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -320,6 +334,7 @@ const server = new DiagnosticsServer(
     enabledPlatforms: dockChatPlatforms,
     send: (request) => dockOutboundRouter.route(request),
   },
+  liveCaptions,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -328,6 +343,7 @@ process.once('uncaughtException', (error) => { logger.error('Uncaught exception'
 process.once('unhandledRejection', (error) => { logger.error('Unhandled rejection', { error }); void shutdown('unhandledRejection'); });
 
 try {
+  liveCaptions.start();
   await activeBridge.start();
   await obsBroadcastMonitor.start();
   await operationalReliability.start();
@@ -345,6 +361,8 @@ try {
   }).catch((error: unknown) => logger.warn('Streamer.bot-dependent startup work could not resume', { error }));
   commandDirectoryRefreshTimer = setInterval(() => void refreshCommandDirectory(), 5 * 60_000);
   commandDirectoryRefreshTimer.unref();
+  captionReadinessTimer = setInterval(() => void streamerBotLauncher.actionsPath().then(inspectStreamerBotCaptionReadiness).then((readiness) => liveCaptions.setSourceReadiness(readiness)).catch((error: unknown) => logger.warn('Live caption source readiness refresh failed', { error })), 60_000);
+  captionReadinessTimer.unref();
 } catch (error) {
   logger.error('Startup failed', { error });
   await activeBridge.stop().catch(() => undefined);

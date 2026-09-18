@@ -3,6 +3,7 @@ export interface StreamerBotTriggerContract {
   readonly actionName: string;
   readonly triggerTypes: readonly number[];
   readonly triggerLabels: readonly string[];
+  readonly optional?: boolean;
   readonly unavailableAliases?: readonly string[];
 }
 
@@ -12,7 +13,7 @@ export interface StreamerBotTriggerRegistry {
   readonly aliases: Readonly<Record<string, string>>;
   readonly unavailable: Readonly<Record<string, string>>;
   readonly contracts: readonly StreamerBotTriggerContract[];
-  readonly defaults: Readonly<Record<number, Readonly<Record<string, string | number | boolean>>>>;
+  readonly defaults: Readonly<Record<number, Readonly<Record<string, unknown>>>>;
 }
 
 const aliases = Object.freeze({
@@ -41,6 +42,19 @@ const contracts = Object.freeze([
       triggerLabels: Object.freeze(['Chat Message', 'Follow', 'Resubscription', 'Gift Subscription', 'Mass Gift Subscription', 'Kicks Gifted', 'Reward Redemption', 'Stream Online', 'Stream Offline']),
       unavailableAliases: Object.freeze(['KickSubscription']),
   }),
+  Object.freeze({
+      packageId: 'scene-actions', actionName: 'THSV Scene Actions - Intake', optional: true,
+      triggerTypes: Object.freeze([14004, 22003, 33007]),
+      triggerLabels: Object.freeze(['OBS Studio Scene Changed', 'Streamlabs Desktop Scene Changed', 'Meld Studio Scene Changed']),
+  }),
+  Object.freeze({
+      packageId: 'ad-break-companion', actionName: 'THSV Addon - Ad Break Companion - Upcoming Ad Intake', optional: true,
+      triggerTypes: Object.freeze([186]), triggerLabels: Object.freeze(['Twitch Upcoming Ad']),
+  }),
+  Object.freeze({
+      packageId: 'ad-break-companion', actionName: 'THSV Addon - Ad Break Companion - Ad Run Intake', optional: true,
+      triggerTypes: Object.freeze([139]), triggerLabels: Object.freeze(['Twitch Ad Run']),
+  }),
 ]);
 
 const defaults = Object.freeze({
@@ -56,6 +70,10 @@ const defaults = Object.freeze({
     35017: Object.freeze({ min: -1, max: -1 }),
     35025: Object.freeze({ min: -1, max: -1 }),
   35024: Object.freeze({ rewardId: '' }),
+  14004: Object.freeze({ sceneName: null, obsId: null }),
+  22003: Object.freeze({ sdId: '00000000-0000-0000-0000-000000000000', sceneName: null }),
+  33007: Object.freeze({ sceneName: null, meldStudioId: null }),
+  186: Object.freeze({ minutes: Object.freeze([1]) }),
 });
 
 export const STREAMERBOT_TRIGGER_REGISTRY_107: StreamerBotTriggerRegistry = Object.freeze({
@@ -94,11 +112,31 @@ export const STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5: StreamerBotTriggerRegistry
   defaults,
 });
 
+export const STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6: StreamerBotTriggerRegistry = Object.freeze({
+  version: '1.1.0-alpha.6',
+  channel: 'alpha',
+  aliases,
+  unavailable: unavailableFor('1.1.0-alpha.6'),
+  contracts,
+  defaults,
+});
+
+export const STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10: StreamerBotTriggerRegistry = Object.freeze({
+  version: '1.1.0-alpha.10',
+  channel: 'alpha',
+  aliases,
+  unavailable: unavailableFor('1.1.0-alpha.10'),
+  contracts,
+  defaults,
+});
+
 export const STREAMERBOT_TRIGGER_REGISTRIES = Object.freeze([
   STREAMERBOT_TRIGGER_REGISTRY_107,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10,
 ]);
 
 const verifiedFeedRegistries: StreamerBotTriggerRegistry[] = [];

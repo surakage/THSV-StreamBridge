@@ -1,0 +1,34 @@
+{
+  "intro": "Keep long streams comfortable and intentional. Set the planned stream length and automatic mode chooses the break cadence, shows a five-minute warning, takes a five-minute break by default, restores the last live scene, and moves to the selected ending scene at the limit without stopping the broadcast.",
+  "order": ["enabled", "provider", "connectionIndex", "streamLimitEnabled", "maximumStreamMinutes", "endingSceneName", "breaksEnabled", "breakScheduleMode", "breakIntervalMinutes", "warningMinutes", "breakDurationMinutes", "breakSceneName", "returnMode", "returnSceneName", "showOverlayWarning", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundOpacity", "overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayBorderColor"],
+  "fields": {
+    "provider": { "labels": { "obs": "OBS Studio", "meld": "Meld Studio", "streamlabs": "Streamlabs Desktop" } },
+    "connectionIndex": { "advanced": true },
+    "breakScheduleMode": { "visibleWhen": { "field": "breaksEnabled", "equals": true }, "labels": { "automatic": "Automatic from stream length", "manual": "Set my own interval" } },
+    "breakIntervalMinutes": { "visibleWhen": { "field": "breakScheduleMode", "equals": "manual" } },
+    "warningMinutes": { "visibleWhen": { "field": "enabled", "equals": true } },
+    "breakDurationMinutes": { "visibleWhen": { "field": "breaksEnabled", "equals": true } },
+    "breakSceneName": { "control": "scene-name", "providerField": "provider", "requireDetected": true, "visibleWhen": { "field": "breaksEnabled", "equals": true } },
+    "returnMode": { "visibleWhen": { "field": "breaksEnabled", "equals": true }, "labels": { "previous": "Restore the scene I was using", "selected": "Switch to a selected scene" } },
+    "returnSceneName": { "control": "scene-name", "providerField": "provider", "requireDetected": true, "visibleWhen": { "field": "returnMode", "equals": "selected" } },
+    "maximumStreamMinutes": { "visibleWhen": { "field": "streamLimitEnabled", "equals": true } },
+    "endingSceneName": { "control": "scene-name", "providerField": "provider", "requireDetected": true, "visibleWhen": { "field": "streamLimitEnabled", "equals": true } },
+    "overlayFontFamily": { "visibleWhen": { "field": "showOverlayWarning", "equals": true }, "labels": { "broadcast": "Broadcast", "display": "Display", "mono": "Monospace" } },
+    "overlayBackgroundMode": { "visibleWhen": { "field": "showOverlayWarning", "equals": true }, "labels": { "glass": "Translucent glass", "solid": "Solid", "none": "No background" } },
+    "overlayBackgroundOpacity": { "visibleWhen": { "field": "overlayBackgroundMode", "notEquals": "none" } },
+    "overlayBackgroundColor": { "visibleWhen": { "field": "overlayBackgroundMode", "notEquals": "none" } },
+    "overlayAccentColor": { "visibleWhen": { "field": "showOverlayWarning", "equals": true } },
+    "overlayTextColor": { "visibleWhen": { "field": "showOverlayWarning", "equals": true } },
+    "overlayMutedColor": { "visibleWhen": { "field": "showOverlayWarning", "equals": true } },
+    "overlayWarningColor": { "visibleWhen": { "field": "showOverlayWarning", "equals": true } },
+    "overlayCriticalColor": { "visibleWhen": { "field": "showOverlayWarning", "equals": true } },
+    "overlayBorderColor": { "visibleWhen": { "field": "showOverlayWarning", "equals": true } }
+  },
+  "sections": [
+    { "id": "quick-start", "title": "1. Turn on the guard", "description": "Choose the app that owns your program scene. The extension remains inactive until a genuine live signal arrives.", "open": true, "notice": "This extension changes scenes only. It never starts or stops streaming, and test events cannot cause a real scene change.", "fields": ["enabled", "provider", "connectionIndex"] },
+    { "id": "ending", "title": "2. Plan the stream length", "description": "Choose the maximum live-session length and the detected scene shown when that limit is reached.", "notice": "The ending scene is a reminder and handoff point; the extension deliberately leaves the broadcast running for your raid or manual ending flow.", "fields": ["streamLimitEnabled", "maximumStreamMinutes", "endingSceneName"] },
+    { "id": "breaks", "title": "3. Schedule breaks", "description": "Automatic mode calculates the cadence from the planned stream length: 60 minutes produces a break at 30 minutes, while streams of two hours or more use an hourly cadence. Breaks last five minutes by default.", "notice": "A break is skipped when it would overlap the five-minute end warning. The stream limit always wins.", "fields": ["breaksEnabled", "breakScheduleMode", "breakIntervalMinutes", "warningMinutes", "breakDurationMinutes", "breakSceneName", "returnMode", "returnSceneName"] },
+    { "id": "overlay", "title": "4. Five-minute reminder overlay", "description": "Show a clear countdown before a break or the stream limit, plus the remaining time while on break.", "fields": ["showOverlayWarning", "overlayFontFamily", "overlayBackgroundMode", "overlayBackgroundOpacity", "overlayBackgroundColor", "overlayAccentColor", "overlayTextColor", "overlayMutedColor", "overlayWarningColor", "overlayCriticalColor", "overlayBorderColor"] },
+    { "id": "helper", "title": "5. Connect the built-in scene helper", "description": "Import the included Streamer.bot package and approve its one triggerless Scene Controller action.", "notice": "Do not attach a trigger to Scene Controller. StreamBridge calls it with a one-use authorization token and exact validated provider, connection, and scene values.", "fields": [] }
+  ]
+}

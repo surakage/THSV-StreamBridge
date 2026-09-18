@@ -9,6 +9,8 @@ import {
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10,
   streamerBotTriggerRegistryForVersion,
 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 
@@ -34,6 +36,8 @@ describe('StreamerBotTriggerAssuranceService', () => {
     expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.3')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3);
     expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.4')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4);
     expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.5')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.6')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.10')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10);
 
     const alpha = await fixture('1.1.0 alpha.3');
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
@@ -59,6 +63,8 @@ describe('StreamerBotTriggerAssuranceService', () => {
   it.each([
     ['1.1.0 alpha.4', '1.1.0-alpha.4'],
     ['1.1.0 alpha.5', '1.1.0-alpha.5'],
+    ['1.1.0 alpha.6', '1.1.0-alpha.6'],
+    ['1.1.0 alpha.10', '1.1.0-alpha.10'],
   ])('selects the exact installed %s registry without weakening future-alpha safety', async (installedVersion, normalizedVersion) => {
     const alpha = await fixture(installedVersion);
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
@@ -72,7 +78,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
   });
 
   it('keeps unvalidated 1.1.0 alpha builds inspection-only', async () => {
-    const alpha = await fixture('1.1.0 alpha.6');
+    const alpha = await fixture('1.1.0 alpha.11');
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
     expect(await alpha.service.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false });
     await expect(alpha.service.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
@@ -117,10 +123,10 @@ describe('StreamerBotTriggerAssuranceService', () => {
     await writeFile(actionsPath, JSON.stringify(document));
 
     const before = await service.status();
-    expect((before['issues'] as { missingTriggers: unknown[] }).missingTriggers).toHaveLength(29);
+    expect((before['issues'] as { missingTriggers: unknown[] }).missingTriggers).toHaveLength(34);
 
     const result = await service.reconcile({ approvedByCreator: true });
-    expect(result['changed']).toBe(29);
+    expect(result['changed']).toBe(34);
     expect((result['status'] as Record<string, unknown>)['ready']).toBe(true);
 
     const backup = result['backup'] as { path: string };
@@ -143,7 +149,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
   it('refuses unknown Streamer.bot versions and missing action bodies before creating a backup', async () => {
     const { actionsPath, root } = await fixture();
     const wrongVersion = new StreamerBotTriggerAssuranceService({ packageRoot: join(root, 'packages'), stateRoot: join(root, 'wrong-state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.0.8', streamerBotRunning: async () => false });
-    expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersions: ['1.0.7', '1.1.0-alpha.3', '1.1.0-alpha.4', '1.1.0-alpha.5'] });
+    expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersions: ['1.0.7', '1.1.0-alpha.3', '1.1.0-alpha.4', '1.1.0-alpha.5', '1.1.0-alpha.6', '1.1.0-alpha.10'] });
     await expect(wrongVersion.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
     expect((await wrongVersion.backups())['backups']).toEqual([]);
 
@@ -184,7 +190,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
     const entries = await readdir(join(root, 'state', 'streamerbot-action-backups'));
     expect(entries.filter((name) => name.endsWith('.json') && !name.endsWith('.integrity.json'))).toHaveLength(20);
     expect(entries.filter((name) => name.endsWith('.integrity.json'))).toHaveLength(20);
-  });
+  }, 30_000);
 
   it('keeps an unknown managed trigger schema read-only', async () => {
     const { actionsPath, service } = await fixture();

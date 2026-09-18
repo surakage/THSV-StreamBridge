@@ -1,17 +1,17 @@
 # Viewer Foundation setup
 
 **Module:** `thsv.viewer-foundation`
-**Version:** `4.0.1`
+**Version:** `4.0.10`
 **Publisher:** THSV StreamBridge
 
 Provides named, configurable, privacy-conscious cross-platform points for chat consistency, observed active/lurk time, and supported community events.
 
 ## Built-in setup
 
-1. This integration is installed and updated with THSV StreamBridge; do not install a separate `.thsv-addon`.
+1. This integration is bundled and updated with THSV StreamBridge; do not download a separate add-on archive.
 2. Configure it from its dedicated **Viewer Foundation** wizard page, save, and restart StreamBridge when prompted.
 
-### Add-on-specific steps
+### Integration-specific steps
 
 1. Open the built-in Viewer Foundation page and review its private identity and progression settings.
 2. Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.

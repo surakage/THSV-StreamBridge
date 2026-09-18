@@ -37,6 +37,16 @@ describe('public Streamer.bot launcher configuration', () => {
     expect(JSON.parse(await readFile(join(dataRoot, 'configuration', 'streamerbot-launcher.json'), 'utf8'))).toMatchObject({ version: 2, executable, websocketPort: 65534, optionalApps: {} });
   });
 
+  it('prefers the exact runtime alpha version recorded by Streamer.bot over generic Windows file metadata', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-streamerbot-alpha-version-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data'); const portable = join(root, 'portable'); const executable = join(portable, 'Streamer.bot.exe');
+    await mkdir(join(portable, 'logs'), { recursive: true });
+    await writeFile(executable, 'test executable');
+    await writeFile(join(portable, 'logs', 'log_20260917.log'), '[2026-09-17 18:18:44.720 INF] Streamer.bot (1.1.0-alpha.10)\n');
+    const service = windowsLauncher(dataRoot); await service.save(executable);
+    await expect(service.version()).resolves.toBe('1.1.0-alpha.10');
+  });
+
   it('keeps native launcher controls unsupported outside Windows', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-streamerbot-non-windows-')); temporaryRoots.push(root);
     const dataRoot = join(root, 'data'); const executable = join(root, 'portable', 'Streamer.bot.exe');

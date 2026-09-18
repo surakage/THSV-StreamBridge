@@ -277,6 +277,53 @@
   </div>
   <p id="chat-overlay-state" class="notice" role="status" aria-live="polite" aria-atomic="true"></p>
 </section>
+<section class="view hidden" data-panel="live-captions">
+  <div class="title-row"><div><h2>Live Captions</h2><p>Turn the streamer microphone speech recognized by Streamer.bot into private, short-lived on-stream captions. No audio or transcript history is stored.</p></div><span id="live-captions-badge" class="status-chip status-neutral">Disabled</span></div>
+  <p class="notice"><strong>No Streamer.bot import is required.</strong> Select and test the microphone under Streamer.bot Voice Control. StreamBridge uses its existing authenticated WebSocket connection and subscribes to SpeechToText → Dictation automatically.</p>
+  <form id="live-captions-form" class="filter-form">
+    <details class="form-section" open><summary><span>1. Recognition and privacy<small>Tune uncertain speech, correct recurring accent mistakes, and mask profanity locally.</small></span></summary><div class="detail-grid">
+      <label class="check full-row"><input type="checkbox" name="enabled"> Enable microphone live captions</label>
+      <label>Minimum confidence<input name="minimumConfidence" type="number" min="0" max="1" step="0.05" required><small>Try 0.65–0.75. Raising this hides uncertain phrases but cannot repair confidently misheard words.</small></label>
+      <label>Alternate tolerance<input name="alternativeConfidenceTolerance" type="number" min="0" max="0.5" step="0.01" required><small>An alternate may be selected when it is within this confidence distance of the first result.</small></label>
+      <label class="check full-row"><input type="checkbox" name="useAlternatives"> Use close alternate recognition phrases when an accent correction matches</label>
+      <label class="full-row">Accent corrections, one per line<textarea name="accentCorrections" rows="5" maxlength="20000" spellcheck="false" placeholder="what Streamer.bot heard =&gt; what you meant&#10;hidden slot village =&gt; Hidden Sloth Village"></textarea><small>These explicit rules stay in your local configuration. They do not save audio or build transcript history. For acoustic accent training, use Windows Speech Recognition training and its Custom Dictionary in Streamer.bot's Voice Control guidance.</small></label>
+      <label class="check full-row"><input type="checkbox" name="profanityFilter"> Mask common profanity in captions</label>
+      <label class="full-row">Additional words or phrases to mask<textarea name="additionalProfanity" rows="4" maxlength="10000" spellcheck="false" placeholder="one word or phrase per line"></textarea><small>Matching is case-insensitive and respects word boundaries. Masked text is replaced with dots before it reaches the overlay.</small></label>
+      <label>Maximum characters<input name="maximumCharacters" type="number" min="40" max="500" required></label>
+      <label>Show caption for (seconds)<input name="durationSeconds" type="number" min="1" max="30" required></label>
+      <label>Repeat suppression (seconds)<input name="repeatSuppressionSeconds" type="number" min="0" max="30" step="0.1" required></label>
+      <p class="notice full-row">Want the recognizer itself to learn your voice? Complete <a href="https://docs.streamer.bot/guide/core/voice-control#additional-resources" target="_blank" rel="noopener noreferrer">Windows Voice Training and Custom Dictionary setup</a>. StreamBridge intentionally does not record you for automatic training.</p>
+    </div></details>
+    <details class="form-section"><summary><span>2. Text appearance<small>Choose a readable typeface, size, alignment, outline, and shadow.</small></span></summary><div class="detail-grid">
+      <label>Font<select name="fontFamily"><option value="system">Clean system</option><option value="rounded">Rounded</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
+      <label>Font size (pixels)<input name="fontSizePx" type="number" min="20" max="120" required></label>
+      <label>Font weight<select name="fontWeight"><option value="400">Regular</option><option value="500">Medium</option><option value="600">Semi-bold</option><option value="700">Bold</option><option value="800">Extra bold</option><option value="900">Black</option></select></label>
+      <label>Text alignment<select name="textAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
+      <label>Text color<input name="textColor" type="color" required></label>
+      <label>Outline color<input name="outlineColor" type="color" required></label>
+      <label>Outline width<input name="outlineWidthPx" type="number" min="0" max="8" required></label>
+      <label class="check"><input type="checkbox" name="shadowEnabled"> Enable text shadow</label>
+      <label>Shadow color<input name="shadowColor" type="color" required></label>
+      <label>Shadow blur<input name="shadowBlurPx" type="number" min="0" max="40" required></label>
+      <label>Shadow horizontal offset<input name="shadowOffsetXpx" type="number" min="-30" max="30" required></label>
+      <label>Shadow vertical offset<input name="shadowOffsetYpx" type="number" min="-30" max="30" required></label>
+    </div></details>
+    <details class="form-section"><summary><span>3. Background and placement<small>Use a full caption box, text highlight, glass panel, or transparent canvas.</small></span></summary><div class="detail-grid">
+      <label>Background<select name="backgroundMode"><option value="glass">Glass panel</option><option value="solid">Solid panel</option><option value="highlight">Highlight behind text</option><option value="none">None</option></select></label>
+      <label>Background color<input name="backgroundColor" type="color" required></label>
+      <label>Background opacity<input name="backgroundOpacity" type="number" min="0" max="1" step="0.01" required></label>
+      <label>Padding<input name="paddingPx" type="number" min="0" max="64" required></label>
+      <label>Corner radius<input name="borderRadiusPx" type="number" min="0" max="64" required></label>
+      <label>Screen position<select name="position"><option value="bottom">Bottom</option><option value="center">Center</option><option value="top">Top</option></select></label>
+      <label>Maximum width (%)<input name="maximumWidthPercent" type="number" min="25" max="100" required></label>
+      <label>Maximum lines<input name="maximumLines" type="number" min="1" max="6" required></label>
+      <label>Entrance animation<select name="animation"><option value="fade">Fade</option><option value="slide">Slide</option><option value="pop">Pop</option><option value="none">None</option></select></label>
+    </div></details>
+    <button type="submit">Stage live-caption settings</button>
+  </form>
+  <div class="transaction"><h3>Caption browser source</h3><p>Add this once as a transparent 1920 × 1080 browser source in OBS, Meld, or Streamlabs. Keep the source loaded between scene changes.</p><label>Live-caption source<input id="live-captions-source-url" readonly></label><div class="button-row"><button id="copy-live-captions-url" type="button" class="ghost">Copy source URL</button><button id="preview-live-caption" type="button">Send preview caption</button><button id="clear-live-caption" type="button" class="ghost">Hide caption</button></div></div>
+  <p id="live-captions-state" class="notice" role="status" aria-live="polite" aria-atomic="true">Configure Streamer.bot Voice Control before enabling this feature.</p>
+</section>
 <section class="view hidden" data-panel="alerts">
   <div class="title-row"><div><h2>Alerts</h2><p>Configure how normalized alerts appear in Meld, OBS, Streamlabs, or any compatible browser source. Pick a platform, then an event, to edit it — each is independent.</p></div></div>
   <p class="notice"><strong>Preview is always simulated.</strong> It never charges, subscribes, raids, or posts to chat. Ko-fi and Streamlabs donation previews are available.</p>

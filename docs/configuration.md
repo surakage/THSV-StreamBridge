@@ -62,6 +62,18 @@ Timers do not arm merely because the bridge process is running. A normalized `st
 
 Template tokens such as `{actor}`, `{quantity}`, `{tier}`, and `{months}` are StreamBridge's stable normalized presentation contract. They are not raw Streamer.bot argument names. The native and TikFinity intake actions translate provider-specific variables into the normalized event first, so browser templates do not need to change when two platforms name the same value differently. Unknown tokens fail configuration validation.
 
+### Built-in live captions
+
+`liveCaptions.enabled` subscribes the existing authenticated Streamer.bot WebSocket connection to native `SpeechToText.Dictation` events and publishes recognized phrases to `/overlay/captions`. Configure and test the microphone in Streamer.bot Voice Control first; no Streamer.bot action, trigger, or import is required for captions. The caption path bypasses normalized Bridge events, durable delivery, deduplication, add-ons, and transcript logs. StreamBridge stores neither microphone audio nor recognized text; repeat suppression keeps only a one-way in-memory fingerprint and resets it when the stream ends.
+
+`minimumConfidence` is a rejection floor: raising it suppresses uncertain recognition but cannot repair a confidently incorrect phrase. Start near `0.65` to `0.75` and adjust during an offline microphone test. When `useAlternatives` is enabled, `alternativeConfidenceTolerance` permits a close Streamer.bot alternative to win when a configured accent correction recognizes it. Keep the tolerance narrow so a much weaker alternative never replaces the primary result.
+
+`corrections` is a bounded, local `heard` to `intended` phrase dictionary for recurring names, community terms, and accent-related mistakes. The Wizard accepts one `heard => intended` rule per line. Corrections are case-insensitive, match complete word or phrase boundaries, and are applied before filtering and display. They are explicit creator-authored rules, not automatic acoustic training. StreamBridge intentionally stores no audio and no rolling transcript history, so train the recognizer itself with Windows Voice Training and its Custom Dictionary through Streamer.bot Voice Control.
+
+`profanityFilter` masks a conservative built-in list before text reaches the browser overlay. `additionalProfanity` adds creator-defined words or phrases, one per line, while leaving legitimate substrings inside longer words alone. Disable the switch when uncensored captions are intentional.
+
+The remaining settings control the Unicode-safe character limit, display duration, short duplicate-suppression window, font, colors, outline, shadow, background style, screen position, width, line limit, and entrance animation. The Wizard can preview the values currently shown before they are saved. Each caption carries an absolute expiry, so delayed delivery, browser-source reconnection, and background timer throttling cannot revive stale speech. Add `/overlay/captions` as a transparent 1920 by 1080 browser source and keep it loaded between scenes. Disabling captions stops the dictation consumer after the required offline restart.
+
 User presentation metadata accepts HTTPS-only avatar and badge icon URLs, six-digit hex name colors, and at most 16 bounded badges. Subscription presentation accepts explicit new/renewal/upgrade, month, streak, gift, and gifter fields; values are never inferred from unrelated platform data.
 
 ## Channel rewards

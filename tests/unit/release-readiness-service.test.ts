@@ -52,7 +52,8 @@ describe('ReleaseReadinessService', () => {
   it('keeps creator review blocked when the newest canary failed despite a recent earlier success', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-release-canaries-')); roots.push(root);
     const now = new Date().toISOString();
-    const publicRuns = [canaryRun('Public release attestation canary', 199, 'failure', now), canaryRun('Public release attestation canary', 198, 'success', '2026-08-27T00:00:00.000Z')];
+    const recentSuccess = new Date(Date.now() - 60 * 60_000).toISOString();
+    const publicRuns = [canaryRun('Public release attestation canary', 199, 'failure', now), canaryRun('Public release attestation canary', 198, 'success', recentSuccess)];
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(new Response('[]'))
       .mockResolvedValueOnce(new Response(JSON.stringify({ workflow_runs: [] })))

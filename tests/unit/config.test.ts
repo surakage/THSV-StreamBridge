@@ -31,6 +31,20 @@ describe('bridge configuration', () => {
     expect(raw.streamerbot.testMode).toBe(false);
   });
 
+  it('defaults private caption accuracy controls and rejects ambiguous duplicate rules', async () => {
+    const config = await testConfig();
+    const legacyCaptions = { ...config.liveCaptions } as Record<string, unknown>;
+    delete legacyCaptions['useAlternatives'];
+    delete legacyCaptions['alternativeConfidenceTolerance'];
+    delete legacyCaptions['corrections'];
+    delete legacyCaptions['profanityFilter'];
+    delete legacyCaptions['additionalProfanity'];
+    const parsed = bridgeConfigSchema.parse({ ...config, liveCaptions: legacyCaptions });
+    expect(parsed.liveCaptions).toMatchObject({ minimumConfidence: 0.7, useAlternatives: true, alternativeConfidenceTolerance: 0.15, corrections: [], profanityFilter: true, additionalProfanity: [] });
+    expect(bridgeConfigSchema.safeParse({ ...config, liveCaptions: { ...config.liveCaptions, corrections: [{ heard: 'slot', intended: 'sloth' }, { heard: 'SLOT', intended: 'Sloth' }] } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, liveCaptions: { ...config.liveCaptions, additionalProfanity: ['heck', 'HECK'] } }).success).toBe(false);
+  });
+
   it('preloads conservative ignored bot names when chat settings omit the list', async () => {
     const config = await testConfig();
     const chat = { ...config.browserOverlay.chat } as Record<string, unknown>;

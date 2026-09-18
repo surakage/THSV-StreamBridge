@@ -5,6 +5,7 @@ import { createTestBridge, fixture, silentLogger, TEST_CONTROL_TOKEN, testConfig
 import type { StreamBridge } from '../../bridge/core/bridge.js';
 import { ModuleRegistry } from '../../bridge/core/module-registry.js';
 import { CommandDirectoryService } from '../../bridge/services/command-directory.js';
+import { liveCaptionsSchema } from '../../schemas/config.js';
 
 const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
@@ -140,12 +141,13 @@ describe('bridge HTTP integration', () => {
     const bridge = createTestBridge(config);
     const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
     bridge.subscribe((event) => hub.publish(event));
-    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, hub);
+    const captions = { status: vi.fn(() => ({ enabled: true, listening: true })), preview: vi.fn(() => ({ published: true })), clear: vi.fn(() => ({ cleared: true })) };
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, hub, undefined, 'data', undefined, undefined, captions);
     await bridge.start();
     await server.start();
     stops.push(async () => { await server.stop(); await bridge.stop(); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
-    for (const route of ['/overlay/', '/overlay/chat', '/overlay/chat/dock', '/overlay/alerts']) {
+    for (const route of ['/overlay/', '/overlay/chat', '/overlay/chat/dock', '/overlay/alerts', '/overlay/captions']) {
       const response = await fetch(`${baseUrl}${route}`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
@@ -165,6 +167,18 @@ describe('bridge HTTP integration', () => {
     expect(addOnHost.headers.get('content-security-policy')).toContain("style-src 'self' 'unsafe-inline'");
     expect(addOnHost.headers.get('content-security-policy')).toContain("media-src 'self' blob:");
     expect((await fetch(`${baseUrl}/overlay/addons/host.css`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/wizard/api/live-captions`)).status).toBe(401);
+    const captionHeaders = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    expect(await fetch(`${baseUrl}/wizard/api/live-captions`, { headers: captionHeaders }).then((response) => response.json())).toMatchObject({ enabled: true, listening: true });
+    expect((await fetch(`${baseUrl}/wizard/api/live-captions/preview`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` }, body: '{}' })).status).toBe(415);
+    expect(await fetch(`${baseUrl}/wizard/api/live-captions/preview`, { method: 'POST', headers: captionHeaders, body: JSON.stringify({ settings: config.liveCaptions }) }).then((response) => response.json())).toMatchObject({ published: true });
+    captions.preview.mockImplementationOnce(() => { liveCaptionsSchema.parse({ durationMs: 86_400_000 }); return { published: true }; });
+    const invalidCaptionPreview = await fetch(`${baseUrl}/wizard/api/live-captions/preview`, { method: 'POST', headers: captionHeaders, body: JSON.stringify({ settings: { durationMs: 86_400_000 } }) });
+    expect(invalidCaptionPreview.status).toBe(400);
+    expect(await invalidCaptionPreview.json()).toEqual({ error: 'Request body is not a valid live-caption preview' });
+    expect(await fetch(`${baseUrl}/wizard/api/live-captions/clear`, { method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}` } }).then((response) => response.json())).toMatchObject({ cleared: true });
+    expect(captions.preview).toHaveBeenCalledWith({ settings: config.liveCaptions });
+    expect(captions.clear).toHaveBeenCalledWith('wizard-request');
   });
 
   it('keeps dock sending local, session-bound, platform-scoped, and character-limited', async () => {

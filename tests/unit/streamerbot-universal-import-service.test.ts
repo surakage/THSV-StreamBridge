@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { StreamerBotUniversalImportService } from '../../bridge/services/streamerbot-universal-import-service.js';
 import type { WizardAddOnSummary } from '../../bridge/services/addon-wizard-service.js';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
-import { STREAMERBOT_TRIGGER_REGISTRY_107, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
+import { STREAMERBOT_TRIGGER_REGISTRY_107, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA4, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6, STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 
 function decode(contentBase64: string): { data: { actions: Array<{ id: string; name: string }>; commands: Array<{ id: string }> }; meta: { name: string } } {
   const bytes = Buffer.from(contentBase64, 'base64');
@@ -48,6 +48,12 @@ describe('Streamer.bot universal import service', () => {
 
     const alpha5 = new StreamerBotUniversalImportService(undefined, async () => '1.1.0 alpha.5');
     expect((await alpha5.catalogue([])).triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5.version);
+
+    const alpha6 = new StreamerBotUniversalImportService(undefined, async () => '1.1.0 alpha.6');
+    expect((await alpha6.catalogue([])).triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6.version);
+
+    const alpha10 = new StreamerBotUniversalImportService(undefined, async () => '1.1.0 alpha.10');
+    expect((await alpha10.catalogue([])).triggerContractVersion).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10.version);
   });
 
   it('rejects optional add-on actions until the matching add-on is installed', async () => {
@@ -61,12 +67,12 @@ describe('Streamer.bot universal import service', () => {
       .filter((item) => item.kind === 'addon' && item.moduleId !== undefined)
       .map((item) => ({ moduleId: item.moduleId, health: 'installed', enabled: true }) as WizardAddOnSummary);
     const catalogue = await service.catalogue(installedAddOns);
-    expect(catalogue.packages).toHaveLength(42);
+    expect(catalogue.packages).toHaveLength(43);
     expect(catalogue.packages.filter((item) => item.kind === 'addon').every((item) => item.available && item.enabled)).toBe(true);
 
     const result = await service.build(catalogue.packages.map((item) => item.folder), installedAddOns);
     const decoded = decode(result.contentBase64);
-    expect(result.packageFolders).toHaveLength(42);
+    expect(result.packageFolders).toHaveLength(43);
     expect(new Set(decoded.data.actions.map((action) => action.id)).size).toBe(decoded.data.actions.length);
     expect(new Set(decoded.data.commands.map((command) => command.id)).size).toBe(decoded.data.commands.length);
   });

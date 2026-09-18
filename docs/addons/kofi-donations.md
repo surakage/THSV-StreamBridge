@@ -1,18 +1,18 @@
 # Ko-fi Donations setup
 
 **Module:** `thsv.kofi-donations`
-**Version:** `4.0.1`
+**Version:** `4.0.10`
 **Publisher:** THSV StreamBridge
 
 Receives verified Ko-fi Donation triggers through Streamer.bot and publishes stable-ID donations into StreamBridge's durable alert pipeline with privacy controls.
 
 ## Built-in setup
 
-1. This integration is installed and updated with THSV StreamBridge; do not install a separate `.thsv-addon`.
+1. This integration is bundled and updated with THSV StreamBridge; do not download a separate add-on archive.
 2. Select this integration when generating the one universal Streamer.bot import, then import that one `.sb` file.
 3. Configure it from **Alerts > Donation provider setup**, save, and restart StreamBridge when prompted.
 
-### Add-on-specific steps
+### Integration-specific steps
 
 1. Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.
 2. Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its intake action.

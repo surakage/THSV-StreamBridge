@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +6,7 @@ import { AddOnCapabilityBroker, CapabilityDeniedError } from '../../bridge/core/
 import type { AddOnActionArgumentsV2, AddOnOverlayLifecycleV2, ViewerFoundationMutationRequestV1 } from '../../bridge/contracts/v2/addon-capability.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { silentLogger } from '../helpers.js';
+import { VOICE_RELAY_SPEAK_ACTION_ID } from '../../bridge/contracts/voice-relay-handoff.js';
 
 const ACTION_ONE = '11111111-1111-4111-8111-111111111111';
 const ACTION_TWO = '22222222-2222-4222-8222-222222222222';
@@ -86,6 +87,19 @@ describe('AddOnCapabilityBroker', () => {
     await expect(first.state.write({ oversized: 'x'.repeat(70_000) })).rejects.toThrow('65536 bytes');
   });
 
+  it('quarantines malformed private state and lets the extension recover with an empty state', async () => {
+    const root = await stateRoot(); const moduleRoot = join(root, 'sample.recovery');
+    await mkdir(moduleRoot, { recursive: true });
+    await writeFile(join(moduleRoot, 'runtime-state.json'), Buffer.alloc(65));
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const broker = new AddOnCapabilityBroker(logger, root);
+    const context = broker.contextFor({ moduleId: 'sample.recovery', permissions: ['state.private'], approvedActionIds: [] });
+    await expect(context.state.read()).resolves.toEqual({});
+    await expect(readFile(join(moduleRoot, 'runtime-state.json'), 'utf8')).resolves.toBe('{}\n');
+    expect((await readdir(moduleRoot)).some((name) => name.startsWith('runtime-state.json.corrupt-'))).toBe(true);
+    expect(logger.warn).toHaveBeenCalledWith('Invalid add-on private state was quarantined and reset safely', expect.objectContaining({ moduleId: 'sample.recovery' }));
+  });
+
   it('dispatches only an exact creator-approved Streamer.bot action ID with bounded JSON arguments', async () => {
     const dispatch = vi.fn<(actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>>().mockResolvedValue(undefined);
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { runStreamerBotAction: dispatch });
@@ -98,6 +112,29 @@ describe('AddOnCapabilityBroker', () => {
     expect(dispatch.mock.calls[0]?.[2]?.aborted).toBe(false);
     await expect(context.streamerbot.runApprovedAction(ACTION_TWO)).rejects.toThrow('not creator-approved');
     await expect(context.streamerbot.runApprovedAction(ACTION_ONE, Object.fromEntries(Array.from({ length: 51 }, (_, index) => [`key${String(index)}`, index])))).rejects.toThrow('at most 50 keys');
+  });
+
+  it('dispatches prepared action arguments without the original sensitive value and always disposes them', async () => {
+    const dispose = vi.fn(async () => undefined);
+    const dispatch = vi.fn<(actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>>().mockRejectedValue(new Error('dispatch failed'));
+    const prepare = vi.fn(async (_moduleId: string, _actionId: string, argumentsValue: AddOnActionArgumentsV2) => ({
+      argumentsValue: { voiceRelayMessageHandoff: 'voice-opaque.txt', voiceRelayVoiceAlias: argumentsValue['voiceRelayVoiceAlias'] as string }, dispose,
+    }));
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { runStreamerBotAction: dispatch, prepareStreamerBotAction: prepare });
+    const context = broker.contextFor({ moduleId: 'thsv.voice-relay', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [ACTION_ONE] });
+    await expect(context.streamerbot.runApprovedAction(ACTION_ONE, { voiceRelayMessage: 'private phrase', voiceRelayVoiceAlias: 'THSV Male' })).rejects.toThrow('dispatch failed');
+    expect(prepare).toHaveBeenCalledWith('thsv.voice-relay', ACTION_ONE, expect.objectContaining({ voiceRelayMessage: 'private phrase' }));
+    expect(dispatch.mock.calls[0]?.[1]).not.toHaveProperty('voiceRelayMessage');
+    expect(dispatch.mock.calls[0]?.[1]).toMatchObject({ voiceRelayMessageHandoff: 'voice-opaque.txt', voiceRelayVoiceAlias: 'THSV Male' });
+    expect(dispose).toHaveBeenCalledWith(false);
+  });
+
+  it('fails closed when the Village Voice secure preparer is unavailable', async () => {
+    const dispatch = vi.fn(async () => undefined);
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { runStreamerBotAction: dispatch });
+    const context = broker.contextFor({ moduleId: 'thsv.voice-relay', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [VOICE_RELAY_SPEAK_ACTION_ID] });
+    await expect(context.streamerbot.runApprovedAction(VOICE_RELAY_SPEAK_ACTION_ID, { voiceRelayMessage: 'must not cross' })).rejects.toThrow('secure speech handoff is unavailable');
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it('bounds per-module action concurrency and cancels pending dispatches during cleanup', async () => {
