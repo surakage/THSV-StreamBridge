@@ -22,7 +22,11 @@ try {
   $output = & $node $testScript $releaseRoot $fixtureRoot
   if ($LASTEXITCODE -ne 0) { throw 'Packaged Streamer.bot trigger recovery lifecycle failed.' }
   $result = $output | Select-Object -Last 1 | ConvertFrom-Json
-  if ($result.repairedTriggers -ne 29 -or $result.postRepairRestartReady -ne $true -or $result.verifiedRollback -ne $true) { throw 'Packaged trigger recovery evidence was incomplete.' }
+  if ($result.expectedTriggerCount -le 0 -or
+      $result.detectedMissingTriggers -ne $result.expectedTriggerCount -or
+      $result.repairedTriggers -ne $result.expectedTriggerCount -or
+      $result.postRepairRestartReady -ne $true -or
+      $result.verifiedRollback -ne $true) { throw 'Packaged trigger recovery evidence was incomplete.' }
   $result | ConvertTo-Json -Compress
 } finally {
   if (Test-Path -LiteralPath $resolvedTestRoot) { Remove-Item -LiteralPath $resolvedTestRoot -Recurse -Force }
