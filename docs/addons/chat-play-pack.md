@@ -1,7 +1,7 @@
 # Chat Play Pack setup
 
 **Module:** `thsv.chat-play-pack`
-**Version:** `4.0.10`
+**Version:** `4.0.11`
 **Publisher:** THSV StreamBridge
 
 Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, idempotent points, optional OpenTDB trivia, and dictionary-backed Unscramble.

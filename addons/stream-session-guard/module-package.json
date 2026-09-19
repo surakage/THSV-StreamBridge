@@ -3,8 +3,14 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "A built-in live-session wellness timer that derives breaks from the planned stream length, warns before deadlines, and switches only to scenes detected from the connected broadcast app.",
-  "changelog": "4.0.10: hardens automatic breaks with safe return-scene capture, early-BRB cancellation, terminal ending-scene handling, integer-safe scheduling, and non-blocking timer callbacks.",
-  "permissions": ["events.subscribe", "streamerbot.run-approved-action", "overlay.publish", "schedule.bounded", "state.private"],
+  "changelog": "4.0.11: aligned with THSV StreamBridge 4.0.11, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: hardens automatic breaks with safe return-scene capture, early-BRB cancellation, terminal ending-scene handling, integer-safe scheduling, and non-blocking timer callbacks.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "overlay.publish",
+    "schedule.bounded",
+    "state.private"
+  ],
   "trust": {
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
@@ -16,17 +22,26 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.stream-session-guard",
     "name": "Stream Break & End Guard",
-    "version": "4.0.10",
+    "version": "4.0.11",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
-    "eventSubscriptions": ["stream.online", "stream.offline", "stream.scene-changed", "system.scene-catalog", "addon.thsv.stream-session-guard.scene-result"],
+    "eventSubscriptions": [
+      "stream.online",
+      "stream.offline",
+      "stream.scene-changed",
+      "system.scene-catalog",
+      "addon.thsv.stream-session-guard.scene-result"
+    ],
     "commandsProvided": [],
     "actionsProvided": [],
     "browserSourcesProvided": [],
-    "dataStorageOwned": ["data/addons/thsv.stream-session-guard/", "data/addons/.state/thsv.stream-session-guard/"],
+    "dataStorageOwned": [
+      "data/addons/thsv.stream-session-guard/",
+      "data/addons/.state/thsv.stream-session-guard/"
+    ],
     "installationSteps": [
       "Enable this built-in extension and choose the broadcast app, break scene, break interval, break length, maximum stream length, and ending scene.",
       "Import the bundled Stream Break & End Guard Streamer.bot helper and approve only its triggerless Scene Controller action.",
@@ -34,18 +49,41 @@
       "Add the extension overlay URL to the scenes where the five-minute warning should be visible.",
       "Run an offline overlay preview, then verify one short private test stream before relying on automatic scene changes."
     ],
-    "uninstallationSteps": ["Disable the extension. Its small local schedule audit remains preserved unless extension data is explicitly deleted."],
+    "uninstallationSteps": [
+      "Disable the extension. Its small local schedule audit remains preserved unless extension data is explicitly deleted."
+    ],
     "migrations": [],
-    "healthChecks": [{ "id": "thsv.stream-session-guard.runtime", "description": "Confirms persisted live timing, bounded warnings, and guarded scene-switch dispatch." }],
-    "minimumBridgeVersion": "4.0.10",
-    "maximumTestedBridgeVersion": "4.0.10"
+    "healthChecks": [
+      {
+        "id": "thsv.stream-session-guard.runtime",
+        "description": "Confirms persisted live timing, bounded warnings, and guarded scene-switch dispatch."
+      }
+    ],
+    "minimumBridgeVersion": "4.0.11",
+    "maximumTestedBridgeVersion": "4.0.11"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
-    { "path": "dist/index.js", "size": 20283, "sha256": "c9d89111c5c743fc62e8164eea966990e246f4a8a9b7549a1c2230f1d40c12b0" },
-    { "path": "schemas/config.json", "size": 3839, "sha256": "d779e4ff350a1eec06285df354abf080dab4522070f920614d642bc105543711" },
-    { "path": "ui/settings.json", "size": 5648, "sha256": "ee98206b53f256be2f9a0b45c22f17da254e0dd71477b063daf90259c698baa9" },
-    { "path": "README.md", "size": 1054, "sha256": "9465155e999ea4ee5803bc57bf552a975c27ab31be3a7d22d796f88b5ff47f8e" }
+    {
+      "path": "dist/index.js",
+      "size": 20283,
+      "sha256": "03eb079d5a14ed09e8b891c818d1b9a3ffd133b7583b52a7e99f90518d41b7fe"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3839,
+      "sha256": "d779e4ff350a1eec06285df354abf080dab4522070f920614d642bc105543711"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 5648,
+      "sha256": "ee98206b53f256be2f9a0b45c22f17da254e0dd71477b063daf90259c698baa9"
+    },
+    {
+      "path": "README.md",
+      "size": 1054,
+      "sha256": "9465155e999ea4ee5803bc57bf552a975c27ab31be3a7d22d796f88b5ff47f8e"
+    }
   ]
 }

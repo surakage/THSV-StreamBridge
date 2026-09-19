@@ -1,7 +1,7 @@
 # Village Hydration Station setup
 
 **Module:** `thsv.village-hydration-station`
-**Version:** `4.0.10`
+**Version:** `4.0.11`
 **Publisher:** THSV StreamBridge
 
 Provides live-only hydration reminders, creator-authorized ounce tracking, viewer reminder cooldowns, optional Speaker.bot confirmations, and an animated fill overlay.

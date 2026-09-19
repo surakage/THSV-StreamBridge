@@ -1,7 +1,7 @@
 # Viewer Spotlight setup
 
 **Module:** `thsv.viewer-spotlight`
-**Version:** `4.0.10`
+**Version:** `4.0.11`
 **Publisher:** THSV StreamBridge
 
 Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Score from bounded projections.

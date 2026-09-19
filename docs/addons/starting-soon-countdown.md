@@ -1,7 +1,7 @@
 # Stream Launch Countdown setup
 
 **Module:** `thsv.starting-soon-countdown`
-**Version:** `4.0.10`
+**Version:** `4.0.11`
 **Publisher:** THSV StreamBridge
 
 Runs one exact-scene-aware Starting Soon countdown with a custom message, local tone, and optional approved completion action.

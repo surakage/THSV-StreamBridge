@@ -1,7 +1,7 @@
 # Follower Pulse setup
 
 **Module:** `thsv.follower-pulse`
-**Version:** `4.0.10`
+**Version:** `4.0.11`
 **Publisher:** THSV StreamBridge
 
 Privately detects delayed Twitch unfollows through complete, bounded, two-scan follower reconciliation.
