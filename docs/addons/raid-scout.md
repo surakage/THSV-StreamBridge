@@ -1,7 +1,7 @@
 # Raid Scout setup
 
 **Module:** `thsv.raid-scout`
-**Version:** `4.0.10`
+**Version:** `4.0.11`
 **Publisher:** THSV StreamBridge
 
 Finds a safe live Twitch raid destination, retries bounded public clip previews, can request an ending Twitch ad, and safely ends only after Twitch reports that ad has finished.

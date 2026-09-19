@@ -1,7 +1,7 @@
 # Custom Counter setup
 
 **Module:** `thsv.custom-counter`
-**Version:** `4.0.10`
+**Version:** `4.0.11`
 **Publisher:** THSV StreamBridge
 
 Provides multiple bounded persistent creator counters, collision-safe moderator commands, reusable controls, and a customizable core-hosted overlay.
