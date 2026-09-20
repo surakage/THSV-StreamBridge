@@ -3,9 +3,26 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { StreamerBotCompatibilityFeedService } from '../../bridge/services/streamerbot-compatibility-feed-service.js';
+import { streamerBotTriggerRegistryForVersion } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 import { silentLogger } from '../helpers.js';
 
 describe('StreamerBotCompatibilityFeedService', () => {
+  it('accepts the exact alpha.11 alias only after verified feed delivery', async () => {
+    const feed = await readFile('packages/streamerbot/compatibility-feed.json');
+    const release = { tag_name: 'streamerbot-compat-1.1.0-alpha.11', published_at: '2026-09-19T22:00:00.000Z', assets: [{ name: 'THSV-StreamBridge-StreamerBot-Compatibility.json', browser_download_url: 'https://assets.invalid/feed' }] };
+    const fetcher = async (input: string | URL | Request): Promise<Response> => {
+      const url = requestUrl(input);
+      if (url.includes('/releases')) return Response.json([release]);
+      if (url.includes('/attestations/')) return Response.json({ attestations: [{ bundle: { signed: true } }] });
+      return new Response(feed);
+    };
+    const service = new StreamerBotCompatibilityFeedService(silentLogger, fetcher, undefined, async () => undefined);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.11')).toBeUndefined();
+    await expect(service.refresh()).resolves.toMatchObject({ state: 'verified', installed: ['1.1.0-alpha.11'] });
+    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.11')?.contracts).toBe(streamerBotTriggerRegistryForVersion('1.1.0-alpha.10')?.contracts);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.12')).toBeUndefined();
+  });
+
   it('exposes the checked official source and safe embedded fallback state', async () => {
     const fetcher = async (): Promise<Response> => Response.json([]);
     const service = new StreamerBotCompatibilityFeedService(silentLogger, fetcher);
