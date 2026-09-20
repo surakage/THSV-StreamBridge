@@ -1,0 +1,7 @@
+# Streamer.bot 1.1.0-alpha.11 compatibility evidence
+
+This is an exact-version compatibility-data candidate for the creator host, not a recommendation to install an alpha release generally. StreamBridge continues to recommend Streamer.bot 1.0.7 stable for routine installations.
+
+On September 19, 2026, the creator host updated from 1.1.0-alpha.10 to 1.1.0-alpha.11. A read-only comparison of `data/actions.json.bak` with the post-update `data/actions.json` found the same top-level keys and, for all six managed intake actions, the same action-object keys, trigger-record keys, trigger types, and counts. All 34 managed triggers were present and enabled: 29 platform triggers plus three scene-change and two ad triggers. Streamer.bot and the Bridge reconnected after the update; Streamer.bot, Speaker.bot, OBS, and Bridge local ports were listening.
+
+The proposed attested data-only alias maps exact version `1.1.0-alpha.11` to the embedded `1.1.0-alpha.10` trigger registry. It does not broaden matching to future alphas. Until the compatibility-data release is merged, tagged, published, and verified by the installed Bridge, alpha.11 trigger repair stays read-only. The schema comparison and local connection checks do not establish genuine live-event, C# compile, voice playback, or end-to-end provider acceptance; those checks remain to be completed before claiming a fully live-verified alpha.11 baseline.
