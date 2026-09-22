@@ -7,9 +7,9 @@ import { streamerBotTriggerRegistryForVersion } from '../../bridge/contracts/str
 import { silentLogger } from '../helpers.js';
 
 describe('StreamerBotCompatibilityFeedService', () => {
-  it('accepts the exact alpha.11 alias only after verified feed delivery', async () => {
+  it('accepts the exact alpha.11 and alpha.12 aliases only after verified feed delivery', async () => {
     const feed = await readFile('packages/streamerbot/compatibility-feed.json');
-    const release = { tag_name: 'streamerbot-compat-1.1.0-alpha.11', published_at: '2026-09-19T22:00:00.000Z', assets: [{ name: 'THSV-StreamBridge-StreamerBot-Compatibility.json', browser_download_url: 'https://assets.invalid/feed' }] };
+    const release = { tag_name: 'streamerbot-compat-1.1.0-alpha.12', published_at: '2026-09-22T20:00:00.000Z', assets: [{ name: 'THSV-StreamBridge-StreamerBot-Compatibility.json', browser_download_url: 'https://assets.invalid/feed' }] };
     const fetcher = async (input: string | URL | Request): Promise<Response> => {
       const url = requestUrl(input);
       if (url.includes('/releases')) return Response.json([release]);
@@ -18,9 +18,11 @@ describe('StreamerBotCompatibilityFeedService', () => {
     };
     const service = new StreamerBotCompatibilityFeedService(silentLogger, fetcher, undefined, async () => undefined);
     expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.11')).toBeUndefined();
-    await expect(service.refresh()).resolves.toMatchObject({ state: 'verified', installed: ['1.1.0-alpha.11'] });
-    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.11')?.contracts).toBe(streamerBotTriggerRegistryForVersion('1.1.0-alpha.10')?.contracts);
     expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.12')).toBeUndefined();
+    await expect(service.refresh()).resolves.toMatchObject({ state: 'verified', installed: ['1.1.0-alpha.11', '1.1.0-alpha.12'] });
+    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.11')?.contracts).toBe(streamerBotTriggerRegistryForVersion('1.1.0-alpha.10')?.contracts);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.12')?.contracts).toBe(streamerBotTriggerRegistryForVersion('1.1.0-alpha.10')?.contracts);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.13')).toBeUndefined();
   });
 
   it('exposes the checked official source and safe embedded fallback state', async () => {
