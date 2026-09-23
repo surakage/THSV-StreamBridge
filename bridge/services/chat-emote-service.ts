@@ -6,6 +6,7 @@ interface CatalogEmote { readonly name: string; readonly imageUrl: string; reado
 interface CacheEntry { readonly emotes: ReadonlyMap<string, CatalogEmote>; readonly expiresAt: number }
 
 const CACHE_MS = 30 * 60_000;
+const FAILURE_RETRY_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 3_000;
 const COLD_MESSAGE_WAIT_MS = 1_250;
 const MAX_CATALOG_EMOTES = 20_000;
@@ -50,7 +51,11 @@ export class ChatEmoteService {
     const task = this.load(event).then((emotes) => {
       this.cache.set(key, { emotes, expiresAt: Date.now() + CACHE_MS });
       this.logger.info('Chat emote catalog refreshed', { platform: event.platform, channelId: event.channel.id ?? '', emotes: emotes.size });
-    }).catch((error: unknown) => this.logger.warn('Chat emote catalog refresh failed; plain text remains available', { platform: event.platform, error }))
+    }).catch((error: unknown) => {
+      // Keep the last working catalog and avoid retrying on every chat message.
+      this.cache.set(key, { emotes: cached?.emotes ?? new Map(), expiresAt: Date.now() + FAILURE_RETRY_MS });
+      this.logger.warn('Chat emote catalog refresh failed; plain text remains available', { platform: event.platform, error });
+    })
       .finally(() => this.warming.delete(key));
     this.warming.set(key, task);
     return task;
@@ -86,7 +91,10 @@ export class ChatEmoteService {
   }
 
   private async loadSevenTv(platform: string, channelId: string): Promise<CatalogEmote[]> {
-    const payloads = await this.getAvailable(['https://7tv.io/v3/emote-sets/global', ...(channelId === '' ? [] : [`https://7tv.io/v3/users/${encodeURIComponent(platform)}/${encodeURIComponent(channelId)}`])]);
+    // The v3 user endpoint rejects YouTube with HTTP 400 (invalid platform).
+    // Global emotes remain available for YouTube without a channel lookup.
+    const channelSupported = platform === 'twitch' || platform === 'kick';
+    const payloads = await this.getAvailable(['https://7tv.io/v3/emote-sets/global', ...(!channelSupported || channelId === '' ? [] : [`https://7tv.io/v3/users/${encodeURIComponent(platform)}/${encodeURIComponent(channelId)}`])]);
     return payloads.flatMap(sevenTvEmotes);
   }
 
@@ -165,7 +173,7 @@ function sevenTvEmotes(payload: unknown): CatalogEmote[] {
     const item = record(value); const name = string(item?.['name']); const data = record(item?.['data']); const host = record(data?.['host']); const base = string(host?.['url']);
     const files = objectArray(host, 'files').map(record).filter((file): file is Record<string, unknown> => file !== undefined);
     const preferred = files.find((file) => string(file['name']) === '2x.webp') ?? files.find((file) => string(file['format']).toUpperCase() === 'WEBP') ?? files[0];
-    const filename = string(preferred?.['name']); const imageUrl = httpsUrl(base && filename ? `${base.startsWith('//') ? 'https:' : base}/${filename}` : '');
+    const filename = string(preferred?.['name']); const imageUrl = httpsUrl(base && filename ? `${base.startsWith('//') ? `https:${base}` : base}/${filename}` : '');
     return name && imageUrl ? [{ name, imageUrl, provider: '7tv' as const }] : [];
   });
 }
