@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Shows a compact Twitch upcoming-ad and active-ad countdown without controlling ad playback.",
-  "changelog": "4.0.11: aligned with THSV StreamBridge 4.0.11, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: aligned with THSV StreamBridge 4.0.10, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.9: aligned with THSV StreamBridge 4.0.9, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.8: aligned with THSV StreamBridge 4.0.8, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.7: aligned with THSV StreamBridge 4.0.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.6: aligned with THSV StreamBridge 4.0.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.5: aligned with THSV StreamBridge 4.0.5, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.4: aligned with THSV StreamBridge 4.0.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: Twitch-only Upcoming Ad and Ad Run intake, fail-closed persisted timing, separate upcoming/active offline previews, and a compact browser overlay.",
+  "changelog": "4.0.12: aligned with THSV StreamBridge 4.0.12, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.11: aligned with THSV StreamBridge 4.0.11, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: aligned with THSV StreamBridge 4.0.10, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.9: aligned with THSV StreamBridge 4.0.9, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.8: aligned with THSV StreamBridge 4.0.8, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.7: aligned with THSV StreamBridge 4.0.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.6: aligned with THSV StreamBridge 4.0.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.5: aligned with THSV StreamBridge 4.0.5, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.4: aligned with THSV StreamBridge 4.0.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: Twitch-only Upcoming Ad and Ad Run intake, fail-closed persisted timing, separate upcoming/active offline previews, and a compact browser overlay.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.ad-break-companion",
     "name": "Ad Break Companion",
-    "version": "4.0.11",
+    "version": "4.0.12",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -57,8 +57,8 @@
         "description": "Confirms Twitch ad timing events, bounded scheduling, persistence, and overlay publishing."
       }
     ],
-    "minimumBridgeVersion": "4.0.11",
-    "maximumTestedBridgeVersion": "4.0.11"
+    "minimumBridgeVersion": "4.0.12",
+    "maximumTestedBridgeVersion": "4.0.12"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -66,7 +66,7 @@
     {
       "path": "dist/index.js",
       "size": 12175,
-      "sha256": "ca0f4bc2e9e8ef65265c4bc16fad7a297bd57fab326f5cdd082729bb0da14726"
+      "sha256": "318599f193e674a465c459e0fda64f89e11a7f1b86a76ca1c01a257aa5380f02"
     },
     {
       "path": "schemas/config.json",
@@ -81,7 +81,7 @@
     {
       "path": "README.md",
       "size": 1572,
-      "sha256": "800ed487e20695b7d8ab60d2a466a072208d9d3a8267afa4e03cc7f13490b7e7"
+      "sha256": "f24fc6ff3d8e4e7a4170737480ee03a2f80d71bfaad3987a12eabd2aa0244f5f"
     }
   ]
 }
