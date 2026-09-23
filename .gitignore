@@ -1,4 +1,6 @@
 # Dependencies and build output
+# Local creator artwork, review sheets, and installation receipts are not release source.
+/output/
 node_modules/
 dist/
 !addons/**/dist/

@@ -1,6 +1,8 @@
 # Version 4 production readiness
 
-Snapshot: August 17, 2026. Release baseline: `4.0.1`.
+Historical snapshot: August 17, 2026. Release baseline: `4.0.1`.
+
+This document records the original Version 4 acceptance evidence, not current installation status. See the [September 23 cleanup validation](maintenance-2026-09-23.md) for the latest scoped emote-service checks. Neither record substitutes for live-provider acceptance.
 
 Version 4 is package-complete and has passed its automated, browser, Windows release-package, and local-upgrade gates. This proves repository and installation cohesion; it does not replace creator-specific acceptance for genuine provider events or high-impact mutations.
 
