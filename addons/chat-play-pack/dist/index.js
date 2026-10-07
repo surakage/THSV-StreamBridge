@@ -377,4 +377,4 @@ export default {
 };
 
 let monthlyTask, monthlyStopped = true;
-function armMonthly(context) { monthlyStopped = false; monthlyTask = context.schedule.after(60000, () => { const check = async () => { try { await context.state.write(stateFor(await context.state.read())); } finally { if (!monthlyStopped) armMonthly(context); } }; operation = operation.then(check, check); return operation; }); }
+function armMonthly(context) { monthlyStopped = false; monthlyTask = context.schedule.after(60000, () => { const check = async () => { try { const raw = await context.state.read(); const next = stateFor(raw); if (next.month !== raw?.month) await context.state.write(next); } finally { if (!monthlyStopped) armMonthly(context); } }; operation = operation.then(check, check); return operation; }); }
