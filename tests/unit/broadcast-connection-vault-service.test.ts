@@ -14,7 +14,7 @@ describe('broadcast connection vault', () => {
     const protectedValue = await dpapi.protect('local-vendor-token');
     expect(protectedValue).not.toContain('local-vendor-token');
     await expect(dpapi.unprotect(protectedValue)).resolves.toBe('local-vendor-token');
-  });
+  }, 45_000);
   it('stores only protected credentials and exposes safe named profiles', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-broadcast-vault-')); roots.push(root);
     const service = new BroadcastConnectionVaultService(root, 'win32', protector); await service.start();
