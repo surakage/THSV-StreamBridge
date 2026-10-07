@@ -1,7 +1,7 @@
 # Fan Crown setup
 
 **Module:** `thsv.fan-crown`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with bounded eligibility and a private monthly leaderboard.
@@ -17,7 +17,7 @@ Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation 
 1. Import the separate Fan Crown Streamer.bot package.
 2. Keep its Controller action triggerless and approve only that action for this add-on.
 3. Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.
-4. Create Twitch and Kick rewards. The saved YouTube and TikTok command registers automatically after restart.
+4. Create Twitch and Kick rewards. The saved YouTube, TikTok and Facebook command registers automatically after restart.
 
 ## Streamer.bot
 

@@ -9,6 +9,26 @@ import clipCourier, { validClip, withinObservedStream } from '../../addons/clip-
 import { migrate } from '../../addons/clip-courier/migrations/001-current-stream-only.mjs';
 
 describe('Clip Courier', () => {
+  it('uses the observed start when a provider timestamp is incorrectly in the future', async () => {
+    let stored: Record<string, unknown> = {};
+    const context = { settings: { enabled: true }, state: { read: async () => stored, write: async (value: Record<string, unknown>) => { stored = value; } } };
+    await clipCourier.onEvent({ eventType: 'stream.online', platform: 'twitch', receivedAt: '2026-10-04T16:09:30.000Z', payload: { startedAt: '2026-10-04T21:09:24.000Z' } }, context);
+    expect(stored['stream']).toMatchObject({ startedAt: '2026-10-04T16:09:30.000Z', active: true });
+  });
+
+  it('keeps discovery open after an empty offline scan so delayed clips can arrive', async () => {
+    let stored: Record<string, unknown> = { stream: { startedAt: '2026-10-04T16:00:00.000Z', endedAt: '2026-10-04T18:00:00.000Z', active: false, finalized: false } };
+    const calls: unknown[] = [];
+    const context = { settings: { enabled: true, automaticCurrentStreamClips: true }, state: { read: async () => stored, write: async (value: Record<string, unknown>) => { stored = value; } }, streamerbot: { runApprovedAction: async (...args: unknown[]) => { calls.push(args); } } };
+    await clipCourier.onEvent({ eventType: 'addon.thsv.clip-library-cache.snapshot', receivedAt: '2026-10-04T18:01:00.000Z', payload: { clips: [] } }, context);
+    expect(stored['stream']).toMatchObject({ finalized: false });
+    await clipCourier.onEvent({ eventType: 'addon.thsv.clip-library-cache.snapshot', receivedAt: '2026-10-04T18:16:00.000Z', payload: { clips: [{ id: 'DelayedClip', url: 'https://clips.twitch.tv/DelayedClip', createdAt: '2026-10-04T17:59:00.000Z' }] } }, context);
+    expect(calls).toHaveLength(1);
+    await clipCourier.onEvent({ eventType: 'addon.thsv.clip-courier.delivery-result', receivedAt: '2026-10-04T18:16:01.000Z', payload: { requestId: (stored['pending'] as { requestId: string }).requestId, success: true, messageId: '123456789' } }, context);
+    await clipCourier.onEvent({ eventType: 'addon.thsv.clip-library-cache.snapshot', receivedAt: '2026-10-04T18:21:00.000Z', payload: { clips: [] } }, context);
+    expect(stored['stream']).toMatchObject({ finalized: true });
+  });
+
   it('routes the intake-owned Twitch clip command to the approved create helper once', async () => {
     let stored: Record<string, unknown> = { published: [], queue: [] };
     const calls: Array<{ id: string; arguments: Record<string, unknown> }> = [];

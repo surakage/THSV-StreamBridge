@@ -9,6 +9,88 @@ import { BrowserOverlayHub } from '../../bridge/services/browser-overlay-hub.js'
 import { fixture, silentLogger, testConfig } from '../helpers.js';
 
 describe('Browser Overlay Hub contract', () => {
+  it('projects Facebook viewer comments into the shared chat feed used by overlays and the streamer dock', async () => {
+    const config = await testConfig();
+    const event = { ...await fixture('twitch-chat.json'), platform: 'facebook', eventId: 'facebook-viewer-comment', metadata: { simulated: false, bridgeSequence: 1 }, user: { name: 'facebook_viewer', displayName: 'Facebook Villager', actorType: 'human' as const, roles: ['viewer'] }, payload: { message: 'Hello from Facebook!' } };
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay)).toMatchObject([{ kind: 'chat.add', payload: { platform: 'facebook', message: 'Hello from Facebook!', user: { displayName: 'Facebook Villager' } } }]);
+  });
+  it('retains only explicit caption editing samples and clears them on go-live', async () => {
+    const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const server = createServer(); hub.attach(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address(); if (!address || typeof address === 'string') throw new Error('Expected TCP address');
+    const url = `ws://127.0.0.1:${String(address.port)}/overlay/events`;
+    const clients: WebSocket[] = [];
+    const connect = async (): Promise<Array<Record<string, unknown>>> => {
+      const client = new WebSocket(url); clients.push(client);
+      const received: Array<Record<string, unknown>> = [];
+      client.on('message', (raw) => {
+        const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : Array.isArray(raw) ? Buffer.concat(raw).toString('utf8') : Buffer.from(raw).toString('utf8');
+        received.push(JSON.parse(text) as Record<string, unknown>);
+      });
+      await new Promise<void>((resolve, reject) => { client.once('open', resolve); client.once('error', reject); });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return received;
+    };
+    try {
+      hub.publishLiveCaption({ text: 'Sample', preview: true, templatePreview: true });
+      const received = await connect();
+      expect(received[1]).toMatchObject({ kind: 'caption.show', payload: { templatePreview: true } });
+      hub.publish({ ...await fixture(), eventType: 'stream.online', metadata: { simulated: false } });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(received.some((message) => message['kind'] === 'caption.clear')).toBe(true);
+      expect(await connect()).toHaveLength(1);
+      hub.publishLiveCaption({ text: 'Sample', preview: true, templatePreview: true });
+      hub.publishLiveCaption({ text: 'Private speech' });
+      expect(await connect()).toHaveLength(1);
+      hub.publishLiveCaption({ text: 'Sample', preview: true, templatePreview: true });
+      hub.clearLiveCaptions('creator-request');
+      expect(await connect()).toHaveLength(1);
+      hub.publishPreview(await fixture('twitch-follow.json'), config.browserOverlay, true);
+      expect((await connect())[1]).toMatchObject({ kind: 'alert.show', payload: { templatePreview: true } });
+      hub.clearAlertPreview();
+      expect(await connect()).toHaveLength(1);
+      hub.publishPreview(await fixture('twitch-follow.json'), config.browserOverlay, true);
+      hub.publish({ ...await fixture(), eventType: 'stream.online', metadata: { simulated: false } });
+      expect(await connect()).toHaveLength(1);
+      hub.publishPreview(await fixture('twitch-chat.json'), config.browserOverlay, true);
+      expect((await connect())[1]).toMatchObject({ kind: 'chat.add', payload: { templatePreview: true } });
+      hub.clearChatPreviews();
+      expect(await connect()).toHaveLength(1);
+    } finally { for (const client of clients) client.close(); hub.stop(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+  });
+  it('replays a template to a newly opened source and clears samples on a genuine go-live signal', async () => {
+    const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const server = createServer(); hub.attach(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address(); if (!address || typeof address === 'string') throw new Error('Expected TCP address');
+    await hub.publishAddOn('sample.overlay', 'sample.overlay.card.show', { templatePreview: true, title: 'Sample' });
+    const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`, { origin: `http://127.0.0.1:${String(address.port)}` });
+    const received: Array<Record<string, unknown>> = [];
+    try {
+      await new Promise<void>((resolve, reject) => {
+        client.on('error', reject);
+        client.on('message', (raw) => { const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : Array.isArray(raw) ? Buffer.concat(raw).toString('utf8') : Buffer.from(raw).toString('utf8'); received.push(JSON.parse(text) as Record<string, unknown>); if (received.length === 2) resolve(); });
+      });
+      expect(received[1]).toMatchObject({ moduleId: 'sample.overlay', payload: { templatePreview: true, title: 'Sample' } });
+      const hidden = new Promise<void>((resolve) => client.once('message', () => resolve()));
+      hub.publish({ ...await fixture(), eventType: 'stream.online', metadata: { simulated: false } });
+      await hidden;
+      expect(received[2]).toMatchObject({ topic: 'sample.overlay.preview.hide' });
+    } finally { client.close(); hub.stop(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+  });
+
+  it('shows and hides all template previews immediately without filling the live presentation queue', async () => {
+    const config = await testConfig();
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    try {
+      for (let index = 0; index < 21; index += 1) await hub.publishAddOn(`sample.overlay-${String(index)}`, `sample.overlay-${String(index)}.card.show`, { templatePreview: true, durationMs: 60_000 });
+      expect(hub.status()).toMatchObject({ addOnPublished: 21, presentationQueue: { active: null, queued: [] } });
+      for (let index = 0; index < 21; index += 1) await hub.publishAddOn(`sample.overlay-${String(index)}`, `sample.overlay-${String(index)}.preview.hide`, { force: true });
+      expect(hub.status()).toMatchObject({ addOnPublished: 42, presentationQueue: { active: null, queued: [] } });
+    } finally { hub.stop(); }
+  });
+
   it('projects public chat and preserves hostile markup as inert text data', async () => {
     const source = await fixture();
     const event: NormalizedEvent = { ...source, payload: { message: '<img src=x onerror=alert(1)> 🦥' }, metadata: { ...source.metadata, bridgeSequence: 7 } };
@@ -80,6 +162,20 @@ describe('Browser Overlay Hub contract', () => {
     for (const eventType of ['chat.private-message', 'operator.message', 'command.received', 'system.timed']) {
       expect(projectBrowserOverlayEvent({ ...source, eventType, metadata: { ...source.metadata, bridgeSequence: 9 } })).toBeUndefined();
     }
+  });
+
+  it.each(['twitch','youtube','kick','tiktok','facebook'])('hides both streamer names on %s while keeping other viewers', async(platform) => {
+    const config = await testConfig(); config.browserOverlay.chat.ignoredNames = ['suraruisuh','suraruisuh_bot'];
+    const source = await fixture('twitch-chat.json');
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const user = source.user; if (user === undefined) throw new Error('twitch-chat fixture has no user.');
+    for (const name of ['suraruisuh','SURARUISUH_BOT']) {
+      const event = { ...source, platform, user: { ...user, name, displayName: name }, metadata: { ...source.metadata, bridgeSequence: 1 } };
+      hub.publish(event);
+      expect(hub.status().published).toBe(0);
+    }
+    hub.publish({ ...source, platform, metadata: { ...source.metadata, bridgeSequence: 2 } });
+    expect(hub.status().published).toBe(1); hub.stop();
   });
 
   it('filters configured ignored chat names before browser publication', async () => {
@@ -489,12 +585,12 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("new URLSearchParams(location.search).get('obsScene')");
     expect(captions).toContain("new URLSearchParams(location.search).get('obsScene')");
     expect(source).toContain("addEventListener('obsSourceVisibleChanged'");
-    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");
-    expect(addOnHost).toContain("new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.5.js', 'thsv-browser-overlay-1.3.5'");
+    expect(addOnHost).toContain("new SharedWorker('/overlay/worker-1.3.5.js', 'thsv-browser-overlay-1.3.5'");
     expect(worker).toContain('const candidate = new WebSocket');
     expect(worker).toContain('if (socket !== candidate) return;');
     expect(worker).toContain("setTransportState('reconnecting');");
-    expect(source).toContain("from '/overlay/alert-queue-1.2.3.js'");
+    expect(source).toContain("from '/overlay/alert-queue-1.2.4.js'");
     expect(source).toContain("card.dataset.transition = cardStyle.transition || 'slide-vertical'");
     expect(source).toContain("card.classList.add('alert-exit')");
     expect(source).toContain('function fitAlertTitle(card)');

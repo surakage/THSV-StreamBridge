@@ -15,10 +15,32 @@
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll"
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
       ],
       "brokerDispatched": true,
-      "mustRemainTriggerless": true
+      "mustRemainTriggerless": true,
+      "queueName": "THSV Speech",
+      "concurrent": false,
+      "followingSubActions": [
+        {
+          "type": 602,
+          "aliasId": null,
+          "alias": "%voiceRelayVoiceAlias%",
+          "message": "%voiceRelayPreparedMessage%",
+          "badWordFilter": true,
+          "delay": true,
+          "silent": false
+        },
+        {
+          "source": "src/CompleteSpeech.cs",
+          "references": [
+            "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+            "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+            ".\\Newtonsoft.Json.dll"
+          ]
+        }
+      ]
     },
     {
       "id": "51ac94ac-a06e-402d-a850-6c0fb6a9f9bc",
@@ -37,7 +59,8 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
-      ]
+      ],
+      "concurrent": false
     },
     {
       "id": "7b7c728d-cefc-4c1e-9073-fe5e554912b8",
@@ -56,7 +79,8 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
-      ]
+      ],
+      "concurrent": false
     },
     {
       "id": "90e91bb9-9d09-4470-985e-b98de79a2d72",
@@ -75,6 +99,30 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
+      ],
+      "concurrent": false,
+      "followingSubActions": [
+        {
+          "type": 606
+        },
+        {
+          "type": 605
+        },
+        {
+          "type": 603,
+          "state": 1
+        },
+        {
+          "source": "src/StopResetDelay.cs",
+          "references": [
+            "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+            "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
+          ]
+        },
+        {
+          "type": 603,
+          "state": 0
+        }
       ]
     }
   ],
@@ -86,5 +134,5 @@
     "Attach Pause/Resume/Stop only to creator controls."
   ],
   "triggerSafety": "Speak is triggerless, accepts the broker-issued relay token argument, and reads only a bounded one-use file from the Bridge private inbox. Controls use an exact source/payload allowlist.",
-  "verificationStatus": "TtsSpeak method source-verified; each creator must live-test their Speaker.bot connection and voice alias."
+  "verificationStatus": "Verified with Streamer.bot 1.1.0-alpha.14 and Speaker.bot 1.0.0-alpha.5: native speech completes, Stop interrupts active playback using sequential Disable / 500 ms wait / Enable, both aliases recover afterward, and rejected handoffs report failure promptly. OBS TTS audio interruption was measured."
 }

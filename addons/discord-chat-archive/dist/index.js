@@ -3,7 +3,7 @@
 // action delivers it; the add-on never writes chat content or the Discord webhook to disk.
 const DELIVERY_ACTION_ID = 'df40969d-5923-4432-bdca-ecdee451f150';
 const DELIVERY_EVENT = 'addon.thsv.discord-chat-archive.delivery-received';
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const DISCORD_CONTENT_LIMIT = 1900;
 const RESULT_TIMEOUT_MS = 15_000;
 
@@ -41,6 +41,7 @@ const FALLBACKS = Object.freeze({
   youtubeColor: '#ff0033',
   kickColor: '#53fc18',
   tiktokColor: '#25f4ee',
+  facebookColor: '#1877f2',
   messageTemplate: '[{time}] [{platform}] {displayName}: {message}',
   webhookDisplayName: 'THSV Chat Archive',
   useViewerIdentityForSingleMessage: false,
@@ -94,6 +95,7 @@ function settingsFor(context) {
     youtubeColor: /^#[0-9a-f]{6}$/iu.test(raw.youtubeColor) ? raw.youtubeColor : FALLBACKS.youtubeColor,
     kickColor: /^#[0-9a-f]{6}$/iu.test(raw.kickColor) ? raw.kickColor : FALLBACKS.kickColor,
     tiktokColor: /^#[0-9a-f]{6}$/iu.test(raw.tiktokColor) ? raw.tiktokColor : FALLBACKS.tiktokColor,
+    facebookColor: /^#[0-9a-f]{6}$/iu.test(raw.facebookColor) ? raw.facebookColor : FALLBACKS.facebookColor,
     batchWindowSeconds: clampInteger(raw.batchWindowSeconds, 5, 5, 30),
     maximumMessagesPerBatch: clampInteger(raw.maximumMessagesPerBatch, 10, 1, 20),
     maximumQueueMessages: clampInteger(raw.maximumQueueMessages, 100, 10, 500),
@@ -198,7 +200,7 @@ export function buildArchiveEmbeds(items, settings) {
 }
 
 function sessionHeader(settings, receivedAt) {
-  return `## ${escapeDiscordValue(settings.sessionHeaderTitle, 80)}\n**${escapeDiscordValue(formatDate(receivedAt), 64)} · ${escapeDiscordValue(formatTime(receivedAt), 32)}**\nTwitch, YouTube, Kick, and TikTok messages are color-coded below.`;
+  return `## ${escapeDiscordValue(settings.sessionHeaderTitle, 80)}\n**${escapeDiscordValue(formatDate(receivedAt), 64)} · ${escapeDiscordValue(formatTime(receivedAt), 32)}**\n${settings.enabledPlatforms.map(platformLabel).join(', ')} messages are color-coded below.`;
 }
 
 export function renderArchiveLine(template, item) {

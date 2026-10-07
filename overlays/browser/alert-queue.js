@@ -81,6 +81,13 @@ export class AlertPresentationController {
   }
 
   enqueue(alert, queuedAt = Date.now()) {
+    if (alert.templatePreview === true) {
+      this.reset();
+      this.render(alert);
+      this.activeAlert = alert;
+      return;
+    }
+    if (this.activeAlert?.templatePreview === true) this.reset();
     if (alert.alertType === 'follow') {
       this.recentFollows = this.recentFollows.filter((time) => queuedAt - time <= 10000);
       if (this.recentFollows.length >= 5) return;

@@ -13,6 +13,21 @@ function alert(sequence: number, priority: QueuedAlert['priority'] = 'normal', a
 
 describe('browser alert presentation queue', () => {
   afterEach(() => vi.useRealTimers());
+  it('holds silent editing samples until reset or replaced by a real alert', () => {
+    vi.useFakeTimers();
+    const render = vi.fn(); const clear = vi.fn(); const playSound = vi.fn();
+    const controller = new AlertPresentationController({ capacity: 20, defaultDurationMs: 7000, render, clear, playSound, onError: (error) => { throw error; } });
+    controller.enqueue({ ...alert(1), templatePreview: true });
+    vi.advanceTimersByTime(120000);
+    expect(render).toHaveBeenCalledOnce(); expect(playSound).not.toHaveBeenCalled();
+    controller.enqueue(alert(2));
+    expect(render).toHaveBeenCalledTimes(2); expect(playSound).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(7000);
+    expect(clear).toHaveBeenCalledTimes(3);
+    controller.enqueue({ ...alert(3), templatePreview: true });
+    controller.reset();
+    expect(vi.getTimerCount()).toBe(0);
+  });
   it('keeps a gift storm bounded and aggregates matching queued gifts', () => {
     const bounded = new AlertPresentationQueue(20);
     for (let sequence = 1; sequence <= 200; sequence += 1) bounded.enqueue(alert(sequence), sequence, undefined);

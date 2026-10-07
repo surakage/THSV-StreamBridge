@@ -73,6 +73,21 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
       ]
+    },
+    {
+      "id": "ae24db2e-55aa-4f3c-b32c-b7b5c8ab6c92",
+      "name": "THSV Scene - BRB 180 Second Ad",
+      "group": "THSV Addon - Scene Actions",
+      "source": "src/RequestBreakAd.cs",
+      "importFile": "THSV-StreamBridge-Scene-Actions-4.0.12.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
     }
   ],
   "runtime": {

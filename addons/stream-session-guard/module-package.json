@@ -33,7 +33,8 @@
       "stream.offline",
       "stream.scene-changed",
       "system.scene-catalog",
-      "addon.thsv.stream-session-guard.scene-result"
+      "addon.thsv.stream-session-guard.scene-result",
+      "addon.thsv.stream-session-guard.control"
     ],
     "commandsProvided": [],
     "actionsProvided": [],
@@ -67,18 +68,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20283,
-      "sha256": "d1328f5be8bfa9726e08f8718754129f6d3307fb560dee4088794417ddb7d6af"
+      "size": 23290,
+      "sha256": "afddd5415f695b3d04e451448b0d60dcea7d4d8300ac8ad159ddac6f3d7d014a"
     },
     {
       "path": "schemas/config.json",
-      "size": 3839,
-      "sha256": "d779e4ff350a1eec06285df354abf080dab4522070f920614d642bc105543711"
+      "size": 6344,
+      "sha256": "709426c41ed98b3cb088cf88cdc3ade4c10d55e7dc300773a09f7748bf9cf11c"
     },
     {
       "path": "ui/settings.json",
-      "size": 5648,
-      "sha256": "ee98206b53f256be2f9a0b45c22f17da254e0dd71477b063daf90259c698baa9"
+      "size": 7912,
+      "sha256": "3ed4a0462fbd05071405752ba8791bfa80cf3f97bf01dfa4868273b6b6afc10b"
     },
     {
       "path": "README.md",

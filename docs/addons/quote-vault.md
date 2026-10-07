@@ -1,7 +1,7 @@
 # Quote Vault setup
 
 **Module:** `thsv.quote-vault`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Provides one bounded, moderated, local quote library shared by Twitch, YouTube, Kick, and TikTok with source-platform-only responses.

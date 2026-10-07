@@ -14,6 +14,12 @@ function relay(platform: 'twitch' | 'youtube' | 'kick', sourceEventType: string,
 }
 
 describe('native Streamer.bot platform relay adapter', () => {
+  it('drops ambiguous and future stream dates while preserving explicit UTC boundaries', () => {
+    const base = { receivedAt: '2026-10-04T16:09:30.000Z' };
+    expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchStreamOnline', { ...base, streamStartedAt: '10/4/2026 4:09:24 PM' })).payload).not.toHaveProperty('startedAt');
+    expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchStreamOnline', { ...base, streamStartedAt: '2026-10-04T21:09:24Z' })).payload).not.toHaveProperty('startedAt');
+    expect(normalizeStreamerBotPlatformRelay(relay('twitch', 'TwitchStreamOnline', { ...base, streamStartedAt: '2026-10-04T16:09:24Z' })).payload).toHaveProperty('startedAt', '2026-10-04T16:09:24.000Z');
+  });
   it('logs bounded rejection context without viewer content, platform IDs, or relay secrets', () => {
     const input = relay('twitch', 'TwitchRewardRedemption', {
       relayId: 'one-use-relay-secret', sourceEventId: '', userName: 'private-viewer', message: 'private chat text',
@@ -173,6 +179,7 @@ describe('native Streamer.bot platform relay adapter', () => {
 
   it('preserves bounded stream identity and presentation metadata for notification add-ons', () => {
     const event = normalizeStreamerBotPlatformRelay(relay('kick', 'KickStreamOnline', {
+      receivedAt: '2026-07-27T12:00:01.000Z',
       streamId: 'kick-stream-42', streamTitle: 'Community night', streamCategoryId: '5787', streamCategoryName: 'Cats & Soup',
       streamThumbnailUrl: 'https://example.com/category.webp', streamStartedAt: '2026-07-27T12:00:00.000Z',
     }));

@@ -1,7 +1,34 @@
 import { readFile } from 'node:fs/promises';
+// The launcher only runs on Windows, so evaluate it with Windows path rules on every CI platform.
+import { win32 } from 'node:path';
+
+const basename = (path: string, suffix?: string): string => win32.basename(path, suffix);
+const isAbsolute = (path: string): boolean => win32.isAbsolute(path);
+const join = (...paths: string[]): string => win32.join(...paths);
+import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
 describe('one-button streaming tools launcher', () => {
+  it('warns for missing TikFinity and continues to an installed application', async () => {
+    const source = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
+    const functions = source.slice(source.indexOf('async function startOptionalApplication('), source.indexOf('async function optionalApplicationCircuit('));
+    const results: Array<{ application: string; status: string; detail: string }> = [];
+    const context = {
+      applicationResults: results, basename, isAbsolute, join,
+      process: { env: { LOCALAPPDATA: 'C:/missing' }, stdout: { write: () => undefined } },
+      isFile: async (path: string) => path === 'C:/installed/obs64.exe',
+      optionalApplicationCircuit: async () => ({ open: false }),
+      processesNamed: () => [{ pid: 123, path: 'C:/installed/obs64.exe' }],
+      samePath: (left: string, right: string) => left === right,
+    };
+    await runInNewContext(`${functions}\n(async () => {
+      await startOptionalApplication('tikfinity', { optionalApps: { tikfinity: { enabled: true, executable: 'C:/missing/TikFinity.exe' } } });
+      await startOptionalApplication('obs', { optionalApps: { obs: { enabled: true, executable: 'C:/installed/obs64.exe' } } });
+    })()`, context);
+    expect(results[0]).toMatchObject({ application: 'TikFinity', status: 'WARNING' });
+    expect(results[0]?.detail).toContain('missing or invalid');
+    expect(results[1]).toMatchObject({ application: 'OBS Studio', status: 'SUCCESS' });
+  });
   it('starts Streamer.bot, then Speaker.bot, makes the bridge ready, and opens enabled broadcast apps last', async () => {
     const source = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
     expect(source).toContain("join(launcherRoot, 'tray.ps1')");
@@ -72,13 +99,13 @@ describe('one-button streaming tools launcher', () => {
   it('ships a visible command wrapper suitable for Stream Deck System Open', async () => {
     const source = await readFile('launcher/Start THSV Streaming Tools.cmd', 'utf8');
     expect(source).toContain('launcher\\start-streaming-tools.mjs');
-    expect(source).toContain('Streamer.bot, Speaker.bot, StreamBridge, then enabled broadcast apps');
-    expect(source).toContain('[SUCCESS] Your THSV streaming tools are ready.');
-    expect(source).toContain('Optional OBS, Meld, Streamlabs, or Speaker.bot issues are warnings');
-    expect(source).toContain('Closing automatically in 2 seconds.');
-    expect(source).toContain('runtime\\node.exe" -e "setTimeout(function(){},2000)"');
+    expect(source).toContain('enabled broadcast apps, and TikFinity');
+    expect(source).toContain('per-app summary above');
+    expect(source).toContain('Missing apps produce warnings');
+    expect(source).toContain('Bundled Node runtime is missing');
+    expect(source).toContain('pause >nul');
+    expect(source).not.toContain('Closing automatically');
     expect(source).not.toContain('timeout /t');
-    expect(source.indexOf('exit /b 0')).toBeLessThan(source.indexOf('Press any key to close this window.'));
     expect(source).toContain('exit /b %THSV_TOOLS_EXIT%');
   });
 

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Village Lurk Tracker",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "title": "Enable lurk tracking"
+    },
+    "lurkCommand": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "lurk",
+      "title": "Lurk command",
+      "description": "Match Viewer Foundation’s lurk command."
+    },
+    "timeZone": {
+      "type": "string",
+      "default": "America/Chicago",
+      "enum": [
+        "America/Chicago"
+      ],
+      "title": "Monthly calendar"
+    },
+    "announceLurk": {
+      "type": "boolean",
+      "default": true,
+      "title": "Thank viewers for lurking"
+    },
+    "announceReturn": {
+      "type": "boolean",
+      "default": false,
+      "title": "Welcome viewers back in chat"
+    },
+    "ignoredNames": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "maxItems": 100,
+      "default": [
+        "suraruisuh",
+        "suraruisuh_bot",
+        "The Hidden Sloth Village"
+      ],
+      "title": "Accounts to ignore"
+    }
+  }
+}

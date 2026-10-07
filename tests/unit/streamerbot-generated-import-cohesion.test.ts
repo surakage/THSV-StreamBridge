@@ -15,6 +15,9 @@ interface ExportAction {
   readonly group: string;
   readonly id?: string;
   readonly sourceSubActionId?: string;
+  readonly queueName?: string;
+  readonly concurrent?: boolean;
+  readonly followingSubActions?: readonly Readonly<Record<string, unknown>>[];
   readonly source: string;
   readonly importFile: string;
   readonly references?: readonly string[];
@@ -74,6 +77,14 @@ describe('generated Streamer.bot import cohesion', () => {
         group: action.group,
         ...(action.id === undefined ? {} : { id: action.id }),
         ...(action.sourceSubActionId === undefined ? {} : { sourceSubActionId: action.sourceSubActionId }),
+        ...(action.queueName === undefined ? {} : { queueName: action.queueName }),
+        ...(action.concurrent === undefined ? {} : { concurrent: action.concurrent }),
+        ...(action.followingSubActions === undefined ? {} : { followingSubActions: await Promise.all(action.followingSubActions.map(async (step) => {
+          if (typeof step['source'] !== 'string') return step;
+          const { source: followingSource, ...fields } = step;
+          const source = (await readFile(join(packageRoot, followingSource), 'utf8')).replace(/\r\n?/gu, '\n');
+          return { ...fields, type: 99_999, byteCode: Buffer.from(source).toString('base64'), precompile: false, delayStart: false, saveResultToVariable: false, saveToVariable: null };
+        })) }),
         ...(action.references === undefined ? {} : { references: action.references }),
         ...(action.excludeFromHistory === undefined ? {} : { excludeFromHistory: action.excludeFromHistory }),
         ...(action.excludeFromPending === undefined ? {} : { excludeFromPending: action.excludeFromPending }),

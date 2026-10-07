@@ -5,6 +5,22 @@
   "policy": "Canonical imports are regenerated from reviewed package source before every release build.",
   "packages": [
     {
+      "folder": "accessibility-captions",
+      "moduleId": "thsv.accessibility-captions",
+      "kind": "addon",
+      "name": "THSV StreamBridge - Accessibility Captions",
+      "version": "4.0.12",
+      "minimumStreamerBotVersion": "1.0.7",
+      "manifestSha256": "0f371b79d9a7b4a52c47b5bb549690fcb735453ca64bd7b5131e40af1a764f66",
+      "imports": [
+        {
+          "filename": "THSV-StreamBridge-Accessibility-Captions-4.0.12.sb",
+          "size": 3196,
+          "sha256": "7be493373c4b102bc36454ba393dfa74293a6c88bc1d1c22ba65c1e47d83f432"
+        }
+      ]
+    },
+    {
       "folder": "ad-break-companion",
       "moduleId": "thsv.ad-break-companion",
       "kind": "extension",
@@ -42,12 +58,12 @@
       "name": "THSV StreamBridge - Bridge Launcher",
       "version": "4.0.12",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "8a295751d904e7a296289ec46f6746490687d0075eca1fd9513bba221fbe1dee",
+      "manifestSha256": "e5df222d57882bb4d137266f9c0b0c4cd890d724af83d41a94d8f6ec8465db8d",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Bridge-Launcher-4.0.12.sb",
-          "size": 11884,
-          "sha256": "8d3e12de72fac1308f23faad513e8636346f6f2e9119a2ce0b75dbb846804197"
+          "size": 13716,
+          "sha256": "cf3ab55bdbc067f2d8b459ac6b73784da94226f0130a32588b9bcb2f2122316c"
         }
       ]
     },
@@ -110,8 +126,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Clip-Courier-4.0.12.sb",
-          "size": 8904,
-          "sha256": "583a3385e4c1208f33c687583b0c64d6fe840095e1630b008673811e4b15d92a"
+          "size": 8844,
+          "sha256": "227079dfff226cf582a5aa93e404fc64ea52ba00d7087226a1032e5a9e733159"
         }
       ]
     },
@@ -126,8 +142,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Clip-Library-Cache-4.0.12.sb",
-          "size": 3804,
-          "sha256": "4f65c94cff41a896754537386d49942f8cc33729c1579bdc3c82136d6b9badd7"
+          "size": 4440,
+          "sha256": "335aea02f1632faf02f4d64776a9656cc922e8d699b7fa7881bf525b005d279f"
         }
       ]
     },
@@ -300,8 +316,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Live-Beacon-4.0.12.sb",
-          "size": 9484,
-          "sha256": "511587a18c62bfefa4cef1a1025665fc69714b1fdbff11c8ad77e995f245820c"
+          "size": 13820,
+          "sha256": "992cf90d1851f12ae7a583b6c066484d594617ccd3718e7ca1858c61f3cc7960"
         }
       ]
     },
@@ -375,8 +391,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Native-Platform-Intake-4.0.12.sb",
-          "size": 38572,
-          "sha256": "efb3c0bc951a188e17185b7c124a8e49d074904756f448e04a76c0223bae4ddf"
+          "size": 41220,
+          "sha256": "5279ca7fd66c54918ef55b14bb553d9356287112879cea3b3c76fda4271698dc"
         }
       ]
     },
@@ -403,12 +419,12 @@
       "name": "THSV StreamBridge - Raid Scout",
       "version": "4.0.12",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "ea7805348824ca576d8476c43f04d945603396c2d2f72332125323dea58e9db2",
+      "manifestSha256": "297bb21860c855a1012931481f6b9b7c800589be4b81eea6c52dc884d75306c3",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Raid-Scout-4.0.12.sb",
-          "size": 27580,
-          "sha256": "dd23a593414682cb45029bc120630224c124d057053f4b657fefce4fe22bf607"
+          "size": 36808,
+          "sha256": "c31d31ad73054e71901c7173935104b8c436852b0a1107fe76cde5814f5a7d11"
         }
       ]
     },
@@ -450,12 +466,12 @@
       "name": "THSV StreamBridge - Scene Actions",
       "version": "4.0.12",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "bf74503027d01b14e95d23a225b5455f942c7d283b95a1e6426387e9682526e1",
+      "manifestSha256": "4783d31ff7bc7c429db19e76f2ef59d04a030d851abb0bb0f140242c01a3330a",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Scene-Actions-4.0.12.sb",
-          "size": 5640,
-          "sha256": "48b2d864969fc95fc148980609d2374ce04881b77efbc9678d4a2c4221bbc787"
+          "size": 7148,
+          "sha256": "424b72c438434dfcadd3a5a78f808e5011e2384daceb2b1563f5372f5a3f3985"
         }
       ]
     },
@@ -497,12 +513,12 @@
       "name": "THSV StreamBridge - Stream Break & End Guard",
       "version": "4.0.12",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "347be69682e9968c21d54452c6ebaeebda3e1b6e575f2feba4a1c411e63880e7",
+      "manifestSha256": "cdda96bd9bc986dcbcf641edd14b8c099e12b1194820a92d8234c3ca1a05d74b",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.12.sb",
-          "size": 3944,
-          "sha256": "26da8cbf82c100b9b6a94af5acc3db50467a78a64244e660516bb886e1320d32"
+          "size": 5120,
+          "sha256": "f456c189f13200a51e7c23387c0f0f3cbc43f6b1d6271fdf5de438e2b6fa28b3"
         }
       ]
     },
@@ -655,12 +671,12 @@
       "name": "THSV StreamBridge - Voice Relay",
       "version": "4.0.12",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "fc52243be3381703e66d5aea16d6b015be7ce8a2c06c9499b012c42b56b6de7e",
+      "manifestSha256": "cf6200fda1b2133fb000b0c74c122bf87eb8deee8861b60465fd3ee5e087e119",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Voice-Relay-4.0.12.sb",
-          "size": 5236,
-          "sha256": "8ab513c206342991dfd6d68c184408e47458b83cb25ac91ec3347656f0b0aeb1"
+          "size": 6728,
+          "sha256": "cf1f2baa9a3b439ca89c9e85810544ab451e410294d47b3adc72d17224bf5d59"
         }
       ]
     },
@@ -674,8 +690,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Setup-Wizard-Launcher-4.0.12.sb",
-          "size": 3220,
-          "sha256": "1de6d6674b61ea9b0c4c1e86ecc17c15bb1367a9b4aa7d389781cea159e957f7"
+          "size": 4244,
+          "sha256": "f7cb905cda4eb761bba443dae1fb1dcf7d0c5efe37feb3639da4002b8f456fd9"
         }
       ]
     }

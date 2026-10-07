@@ -259,7 +259,7 @@ describe('Streamer.bot adapter', () => {
       reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
     }, silentLogger, 'streamerbot', relay);
     const server = new WebSocketServer({ host: '127.0.0.1', port });
-    let subscription: { readonly events?: { readonly General?: readonly string[]; readonly Streamlabs?: readonly string[]; readonly speechToText?: readonly string[] } } | undefined;
+    let subscription: { readonly events?: { readonly General?: readonly string[]; readonly Twitch?: readonly string[]; readonly Streamlabs?: readonly string[]; readonly SpeechToText?: readonly string[] } } | undefined;
     server.on('connection', (socket) => {
       socket.send(JSON.stringify({ request: 'Hello', info: {} }));
       socket.on('message', (data) => {
@@ -274,18 +274,23 @@ describe('Streamer.bot adapter', () => {
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.addon', version: '1.0.0', moduleId: 'sample.random-clip-player' } }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.scene', version: '1.0.0', provider: 'obs', sceneName: 'BRB' } }));
         socket.send(JSON.stringify({ event: { source: 'Streamlabs', type: 'Donation' }, data: { event_id: 'streamlabs-event-1', message: [{ id: 42, name: 'Supporter', amount: '5.00', currency: 'USD' }] } }));
+        socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.caption', version: '1.0.0', payload: { text: 'A spoken village phrase', confidence: 0.85 } } }));
+        socket.send(JSON.stringify({ event: { source: 'Twitch', type: 'RaidSend' }, data: { createdAt: '2026-10-05T12:00:00Z', isTest: false, targetUser: { id: '123', login: 'alpha' }, viewers: 5 } }));
       });
     });
     await adapter.start();
-    await expect.poll(() => received.length).toBe(5);
+    await expect.poll(() => received.length).toBe(7);
     expect(subscription?.events?.General).toEqual(['Custom']);
     expect(subscription?.events?.Streamlabs).toEqual(['Donation']);
-    expect(subscription?.events?.speechToText).toEqual(['Dictation']);
+    expect(subscription?.events?.SpeechToText).toEqual(['Dictation']);
+    expect(subscription?.events?.Twitch).toEqual(['RaidSend']);
     expect(received[0]).toMatchObject({ type: 'thsv.tikfinity', kind: 'follow' });
     expect(received[1]).toMatchObject({ type: 'thsv.platform', platform: 'twitch' });
     expect(received[2]).toMatchObject({ type: 'thsv.addon', moduleId: 'sample.random-clip-player' });
     expect(received[3]).toMatchObject({ type: 'thsv.scene', provider: 'obs', sceneName: 'BRB' });
     expect(received[4]).toMatchObject({ event: { source: 'Streamlabs', type: 'Donation' } });
+    expect(received[5]).toMatchObject({ event: { source: 'SpeechToText', type: 'Dictation' }, data: { text: 'A spoken village phrase', confidence: 0.85 } });
+    expect(received[6]).toMatchObject({ event: { source: 'Twitch', type: 'RaidSend' }, data: { targetUser: { id: '123' } } });
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
@@ -446,3 +451,4 @@ describe('Streamer.bot adapter', () => {
     await adapter.stop();
   });
 });
+

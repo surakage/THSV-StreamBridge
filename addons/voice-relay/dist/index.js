@@ -33,6 +33,8 @@ const TEMPLATE_SETTINGS = Object.freeze({
   'engagement.milestone': 'milestoneTemplate'
 });
 let queue = [];
+let speechGeneration = 0;
+let activeSpeech;
 let speaking = false;
 let paused = false;
 let taskId;
@@ -187,31 +189,46 @@ async function drain(context) {
   if (stopped || speaking || paused || !queue.length) return;
   speaking = true;
   const item = queue.shift();
+  activeSpeech = item;
+  const generation = speechGeneration;
   const durationMs = estimatedDuration(item.text, item.wordsPerMinute);
   try {
     if (item.showOverlay) await context.overlay?.publish?.(`${MODULE_ID}.card.show`, {
       title: `${item.displayName} • ${String(item.platform).toUpperCase()}`,
       text: item.text,
       ...(item.avatarUrl ? { imageUrl: item.avatarUrl } : {}),
-      durationMs,
+      durationMs: 35000,
       revealDurationMs: Math.max(1000, durationMs - 700),
       presentationMode: 'typewriter',
       style: item.overlayStyle
     });
-    await context.streamerbot.runApprovedAction(SPEAK_ACTION_ID, { voiceRelayMessage: item.text, voiceRelayVoiceAlias: item.voiceAlias });
+    // Actual native playback completion is awaited outside the event handler.
+    // Chat intake and emergency controls must remain responsive during speech.
+    void context.streamerbot.runApprovedAction(SPEAK_ACTION_ID, { voiceRelayMessage: item.text, voiceRelayVoiceAlias: item.voiceAlias })
+      .then(() => finishSpeech(context, item, generation, false), () => finishSpeech(context, item, generation, true))
+      .catch(() => undefined);
   } catch {
     await refundPoints(context, item, 'dispatch-failed').catch(() => undefined);
     if (item.showOverlay) await context.overlay?.publish?.(`${MODULE_ID}.card.hide`, {})?.catch(() => undefined);
     speaking = false;
+    activeSpeech = undefined;
     if (queue.length && !paused && !stopped) taskId = context.schedule.after(item.gapSeconds * 1000, () => serialize(async () => { taskId = undefined; await drain(context); }));
     return;
   }
-  taskId = context.schedule.after(durationMs + item.gapSeconds * 1000, () => serialize(async () => {
-    taskId = undefined;
+}
+
+async function finishSpeech(context, item, generation, failed) {
+  await serialize(async () => {
+    if (generation !== speechGeneration) return;
+    if (failed) await refundPoints(context, item, 'delivery-refund').catch(() => undefined);
     if (item.showOverlay) await context.overlay?.publish?.(`${MODULE_ID}.card.hide`, {})?.catch(() => undefined);
-    speaking = false;
-    await drain(context);
-  }));
+    activeSpeech = undefined;
+    taskId = context.schedule.after(item.gapSeconds * 1000, () => serialize(async () => {
+      taskId = undefined;
+      speaking = false;
+      await drain(context);
+    }));
+  });
 }
 
 async function enqueueText(event, text, context, settings, points) {
@@ -309,6 +326,9 @@ async function processEvent(event, context) {
     if (action === 'pause') paused = true;
     if (action === 'resume') { paused = false; await drain(context); }
     if (action === 'stop') {
+      speechGeneration += 1;
+      if (activeSpeech) await refundPoints(context, activeSpeech, 'delivery-refund').catch(() => undefined);
+      activeSpeech = undefined;
       const abandoned = queue; paused = true; queue = []; speaking = false;
       for (const item of abandoned) await refundPoints(context, item, 'creator-stop').catch(() => undefined);
       if (taskId) context.schedule.cancel(taskId);
@@ -330,9 +350,12 @@ async function processEvent(event, context) {
 const module = {
   manifest,
   required: false,
-  async start() { operation = Promise.resolve(); queue = []; speaking = false; paused = false; stopped = false; taskId = undefined; pendingAggregates.clear(); viewerCooldowns.clear(); },
+  async start() { speechGeneration += 1; activeSpeech = undefined; operation = Promise.resolve(); queue = []; speaking = false; paused = false; stopped = false; taskId = undefined; pendingAggregates.clear(); viewerCooldowns.clear(); },
   async stop(context) {
     stopped = true;
+    speechGeneration += 1;
+    if (activeSpeech) await refundPoints(context, activeSpeech, 'delivery-refund').catch(() => undefined);
+    activeSpeech = undefined;
     if (taskId) context.schedule.cancel(taskId);
     taskId = undefined;
     for (const pending of pendingAggregates.values()) if (pending.taskId) context.schedule.cancel(pending.taskId);

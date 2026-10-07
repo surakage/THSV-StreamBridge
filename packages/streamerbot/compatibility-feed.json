@@ -9,6 +9,8 @@
     { "version": "1.1.0-alpha.6", "baseVersion": "1.1.0-alpha.5" },
     { "version": "1.1.0-alpha.10", "baseVersion": "1.1.0-alpha.10" },
     { "version": "1.1.0-alpha.11", "baseVersion": "1.1.0-alpha.10" },
-    { "version": "1.1.0-alpha.12", "baseVersion": "1.1.0-alpha.10" }
+    { "version": "1.1.0-alpha.12", "baseVersion": "1.1.0-alpha.10" },
+    { "version": "1.1.0-alpha.14", "baseVersion": "1.1.0-alpha.10" },
+    { "version": "1.1.0-alpha.15", "baseVersion": "1.1.0-alpha.14" }
   ]
 }

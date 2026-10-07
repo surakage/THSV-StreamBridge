@@ -13,6 +13,14 @@ describe('wizard production preflight hardening', () => {
     expect(result).toMatchObject({ ready: true, requiredCount: 3, readyCount: 3 });
   });
 
+  it('does not require ad and broadcast-stop grants when Raid Scout automatic ending is disabled', async () => {
+    const controller = '6a78d950-17b5-4a98-9de7-1a5b4275f31c';
+    const result = await inspectAddOnActionReadiness([addOn('thsv.raid-scout', { endBroadcastAfterRaid: false }, [controller])], [{ id: controller, name: 'Controller', group: 'Raid', enabled: true, triggerCount: 0 }], true);
+    expect(result).toMatchObject({ ready: true, requiredCount: 1 });
+    const enabled = await inspectAddOnActionReadiness([addOn('thsv.raid-scout', { endBroadcastAfterRaid: true }, [controller])], [{ id: controller, name: 'Controller', group: 'Raid', enabled: true, triggerCount: 0 }], true);
+    expect(enabled).toMatchObject({ ready: false, requiredCount: 3 });
+  });
+
   it('rejects exact scene names when the catalogue is stale or incomplete', () => {
     const automation = { obs: { enabled: true, automationReady: true } };
     const provider = (updatedAt: string, complete = true) => ({ providers: { obs: { scenes: ['BRB'], complete, updatedAt, connections: [{ complete, updatedAt }] } } });

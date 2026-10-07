@@ -30,6 +30,8 @@ import { DirectSceneConnectionError } from './direct-scene-connection-manager.js
 import { TriggerAssuranceError } from './streamerbot-trigger-assurance-service.js';
 import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } from './pre-stream-report-service.js';
 import { OperationalReliabilityError } from './operational-reliability-service.js';
+import { FacebookConnectionError, type FacebookPageAdapter } from '../adapters/facebook-page-adapter.js';
+import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -114,6 +116,7 @@ export class DiagnosticsServer {
     private readonly commandDirectory?: CommandDirectoryService,
     private readonly dockChat?: DockChatController,
     private readonly liveCaptions?: LiveCaptionController,
+    private readonly facebook?: FacebookPageAdapter,
   ) {
     this.controlToken = controlToken;
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
@@ -257,6 +260,43 @@ export class DiagnosticsServer {
         this.guard.assertLoopback(request);
         return this.reply(response, 200, this.overlayHub.clientConfig());
       }
+      if (request.url === '/wizard/api/facebook' && request.method === 'GET' && this.facebook) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.facebook.status());
+      }
+      if (request.url === '/wizard/api/facebook' && request.method === 'PUT' && this.facebook) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 24576);
+        const input: unknown = JSON.parse(body.text);
+        if (typeof input === 'object' && input !== null && 'token' in input &&
+            typeof input.token === 'string' && input.token.trim() === this.controlToken) {
+          return this.reply(response, 400, { error: 'Paste your Facebook Page access token. The wizard unlock token cannot be used here.' });
+        }
+        return this.reply(response, 200, await this.facebook.configure(input));
+      }
+      if (request.url === '/wizard/api/facebook/enabled' && request.method === 'POST' && this.facebook) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.facebook.setEnabled(JSON.parse(body.text) as unknown));
+      }
+      if (request.url === '/wizard/api/facebook/alerts' && request.method === 'POST' && this.facebook) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.facebook.setAlerts(JSON.parse(body.text) as unknown));
+      }
+      if (request.url === '/wizard/api/facebook/output' && request.method === 'POST' && this.facebook) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.facebook.setOutput(JSON.parse(body.text) as unknown));
+      }
+      if (request.url === '/wizard/api/facebook/alerts/test' && request.method === 'POST' && this.facebook) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.facebook.testAlerts());
+      }
+      if (request.url === '/wizard/api/facebook/test' && request.method === 'POST' && this.facebook) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.facebook.test());
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/live-captions' && this.liveCaptions !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.liveCaptions.status());
@@ -281,8 +321,8 @@ export class DiagnosticsServer {
         return this.reply(response, 200, {
           enabled: this.dockChat !== undefined,
           platforms: this.dockChat?.enabledPlatforms ?? [],
-          characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 },
-          accountMode: { twitch: 'creator', youtube: 'creator', kick: 'creator', tiktok: 'tikfinity-configured-sender' },
+          characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 },
+          accountMode: { twitch: 'creator', youtube: 'creator', kick: 'creator', tiktok: 'tikfinity-configured-sender', facebook: 'page' },
         });
       }
       if (request.method === 'POST' && requestPath === '/overlay/chat/dock/send') {
@@ -299,7 +339,7 @@ export class DiagnosticsServer {
             : this.dockChat.enabledPlatforms.includes(target as OutboundPlatform) ? [target as OutboundPlatform] : [];
           if (message.length === 0) return this.reply(response, 400, { error: 'Type a chat message before sending.' });
           if (selectedPlatforms.length === 0) return this.reply(response, 400, { error: 'Choose an enabled chat platform.' });
-          const limits: Readonly<Record<OutboundPlatform, number>> = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 };
+          const limits: Readonly<Record<OutboundPlatform, number>> = { twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 };
           const maximum = Math.min(...selectedPlatforms.map((platform) => limits[platform]));
           if (Array.from(message).length > maximum) return this.reply(response, 400, { error: `Message exceeds the ${String(maximum)} character limit for the selected destination.` });
           const deliveries = await this.dockChat.send({ message, routing: 'selected', selectedPlatforms, overflow: 'reject' });
@@ -706,6 +746,10 @@ export class DiagnosticsServer {
         const body = await readBody(request, 2_048);
         return this.reply(response, 200, await this.wizard.restoreConfigurationBackup(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/monthly-trackers') {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { reports: await readMonthlyTrackerReports(join(this.dataRoot, 'reports', 'monthly')) });
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/addons' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), featureFamilies: MAIN_FEATURE_FAMILIES, featureMigrations: await this.wizard.listFeatureMigrations(), discovered: await this.wizard.discoverAddOns(), trustedPublishers: await this.wizard.listTrustedAddOnPublishers() });
@@ -1080,16 +1124,35 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
         const input = JSON.parse(body.text) as Record<string, unknown>;
+        if (input['action'] === 'hide') { this.overlayHub.clearAlertPreview(); return this.reply(response, 200, { cleared: true }); }
         const platform = typeof input['platform'] === 'string' ? input['platform'] : '';
         const alertType = typeof input['alertType'] === 'string' ? input['alertType'] : '';
         if (!isValidPlatformAlertType(platform, alertType)) return this.reply(response, 400, { error: 'Unknown platform or alert type for that platform' });
         const alerts = alertPresentationSchema.parse(input['alerts']);
         const base = this.overlayHub.clientConfig();
-        const count = this.overlayHub.publishPreview(buildAlertPreview(platform, alertType), { ...base, alerts, alertDurationMs: typeof input['alertDurationMs'] === 'number' ? Math.max(1_000, Math.min(60_000, Math.trunc(input['alertDurationMs']))) : base.alertDurationMs });
+        const count = this.overlayHub.publishPreview(buildAlertPreview(platform, alertType), { ...base, alerts, alertDurationMs: typeof input['alertDurationMs'] === 'number' ? Math.max(1_000, Math.min(60_000, Math.trunc(input['alertDurationMs']))) : base.alertDurationMs }, input['templatePreview'] === true);
         return this.reply(response, 202, { accepted: count > 0, simulated: true, platform, alertType, overlayEvents: count });
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/chat/preview' && this.wizard !== undefined && this.overlayHub !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 8_192);
+        const input = JSON.parse(body.text) as Record<string, unknown>;
+        this.overlayHub.clearChatPreviews();
+        if (input['action'] === 'hide') return this.reply(response, 200, { cleared: true });
+        const base = this.overlayHub.clientConfig();
+        let count = 0;
+        for (const platform of ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'] as const) {
+          count += this.overlayHub.publishPreview(buildNormalizedEvent({ eventType: 'chat.message', platform, adapter: 'wizard-preview', sourceEventName: 'OBS chat editing sample', sourceEventId: `wizard-${randomUUID()}`, channel: { name: 'Preview Channel' }, user: { name: 'preview_viewer', displayName: 'Preview Villager', actorType: 'human', roles: ['viewer'] }, payload: { message: 'Welcome to the village! This is a local overlay sample.' }, simulated: true }), base, true);
+        }
+        return this.reply(response, 202, { accepted: count > 0, simulated: true, overlayEvents: count });
       }
       return this.reply(response, 404, { error: 'Not found' });
     } catch (error) {
+      if (request.url === '/wizard/api/follower-pulse/admin' && error instanceof Error && [
+        'Enable Follower Pulse before checking followers.',
+        'Follower Pulse is unavailable. Enable it and restart StreamBridge.',
+      ].includes(error.message)) return this.reply(response, 409, { error: error.message });
+      if (error instanceof FacebookConnectionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardConfigurationError) return this.reply(response, error.statusCode, { error: error.message });
@@ -1274,6 +1337,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     const reminderIntervalMinutes = boundedPreviewInteger(addOn.settings['reminderIntervalMinutes'], 5, 240, 45);
     return {
       moduleId: addOn.moduleId, cardKind: 'hydration-station', visible: true,
+      displayMode: previewEnum(addOn.settings['displayMode'], ['reminder', 'sips', 'volume'], 'reminder'), sipCount: 3,
       title: 'Water Goal', totalOunces, goalOunces, percentage: Math.round(totalOunces / goalOunces * 1_000) / 10,
       defaultServingOunces: boundedPreviewInteger(addOn.settings['defaultServingOunces'], 1, 64, 8),
       nextReminderAt: Date.now() + reminderIntervalMinutes * 60_000, reminderIntervalMinutes,
@@ -1748,6 +1812,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/app-1.5.2.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/alert-queue-1.2.2.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/alert-queue-1.2.3.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/alert-queue-1.2.4.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.8.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.9.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
@@ -1756,6 +1821,8 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/worker-1.2.1.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.3.1.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-1.3.3.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker-1.3.4.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/worker-1.3.5.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.5.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/styles-0.9.6.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },

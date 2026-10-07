@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.IO;
 
 public class CPHInline
 {
@@ -13,6 +15,8 @@ public class CPHInline
 
     public bool Execute()
     {
+        JArray suiteOutputs = TrySuiteOutputs();
+        if (suiteOutputs != null) return StopSuiteStreams(suiteOutputs);
         int stoppedPluginOutputs = 0;
         int failedPluginOutputs = 0;
         var requestedPluginOutputs = new List<string>();
@@ -228,5 +232,64 @@ public class CPHInline
         public string outputKind { get; set; }
         public object outputFlags { get; set; }
         public bool outputActive { get; set; }
+    }
+
+    private JObject SuiteRequest(string requestType, object requestData)
+    {
+        string request = JsonConvert.SerializeObject(new { vendorName = "aitum-stream-suite", requestType, requestData });
+        string response = CPH.ObsSendRaw("CallVendorRequest", request);
+        EnsureRequestSucceeded(response, "Stream Suite " + requestType);
+        JObject body = JObject.Parse(String.IsNullOrWhiteSpace(response) ? "{}" : response);
+        while (body["responseData"] is JObject) body = (JObject)body["responseData"];
+        if ((bool?)body["success"] != true) throw new InvalidOperationException("Stream Suite did not accept " + requestType + ".");
+        return body;
+    }
+    private JArray TrySuiteOutputs()
+    {
+        try { return SuiteRequest("get_outputs", new { })["outputs"] as JArray; }
+        catch { return null; }
+    }
+
+    private bool StopSuiteStreams(JArray discovered)
+    {
+        bool dryRun = CPH.TryGetArg("thsvStopAllTestDryRun", out bool requestedDryRun) && requestedDryRun;
+        int failed = 0;
+        var targets = new List<string>();
+        foreach (JToken output in discovered)
+            if ((string)output["type"] == "stream" && (bool?)output["active"] == true) targets.Add((string)output["name"]);
+        if (dryRun)
+        {
+            CPH.SetArgument("raidScoutStopAllSuccess", true);
+            CPH.LogInfo("THSV Stream Suite stop dry run inspected streaming outputs without stopping any broadcast.");
+            return true;
+        }
+        foreach (string target in targets)
+        {
+            try { SuiteRequest("stop_output", new { output = target }); }
+            catch { failed++; CPH.LogWarn("THSV Stream Suite could not dispatch one streaming-output stop."); }
+        }
+        int deadline = Environment.TickCount + 3000;
+        int active = targets.Count;
+        try
+        {
+            do
+            {
+                active = 0;
+                foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"])
+                    if (targets.Contains((string)output["name"]) && (bool?)output["active"] == true) active++;
+                if (active == 0) break;
+                Thread.Sleep(100);
+            } while (unchecked(Environment.TickCount - deadline) < 0);
+        }
+        catch { active = targets.Count; }
+        try { if (CPH.ObsIsStreaming()) CPH.ObsStopStreaming(); }
+        catch { failed++; }
+        failed += active;
+        CPH.SetArgument("raidScoutStopAllSuccess", failed == 0);
+        CPH.SetArgument("raidScoutStoppedPluginOutputs", targets.Count - active);
+        CPH.SetArgument("raidScoutFailedPluginOutputs", failed);
+        CPH.SetArgument("raidScoutVerticalStopRequested", true);
+        CPH.SetArgument("raidScoutStopAllError", failed == 0 ? "" : "One or more streaming outputs could not be confirmed stopped.");
+        return failed == 0;
     }
 }

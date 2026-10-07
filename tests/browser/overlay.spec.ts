@@ -382,7 +382,7 @@ test('wizard exposes automatic commands and one shared non-repeating timed-messa
   await expect(timedForm.locator('[name="id"]')).toHaveValue('social-rotation');
   await expect(timedForm.locator('[name="selectionMode"]')).toHaveValue('shuffle-container');
   await expect(timedForm.locator('[name="actionId"]')).toHaveValue('7d107c29-1127-5bb1-ae8b-6f04d89a71d4');
-  await expect(timedForm.locator('[name="deliveryPlatform"]:checked')).toHaveCount(4);
+  await expect(timedForm.locator('[name="deliveryPlatform"]:checked')).toHaveCount(5);
   await expect(timedForm.locator('details.form-section[open]')).toHaveCount(1);
   await expect(timedForm.locator('summary').filter({ hasText: 'Optional safety rules' })).toBeVisible();
   await expect(timedForm.locator('summary').filter({ hasText: 'Advanced settings' })).toBeVisible();
@@ -529,7 +529,7 @@ test('wizard shows only the selected platform events and exposes platform color 
 
   // Live chat preview reflects settings without staging or connecting to an overlay.
   // "Layout & text" is open by default; other settings sections start collapsed.
-  await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(5);
+  await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(6);
   await expect(page.locator('#chat-preview-list img.preview-chat-emote')).toHaveCount(1);
   await expect(page.locator('#chat-preview-list img.preview-chat-emote')).toHaveAttribute('alt','SampleSloth');
   await expect(page.locator('#chat-preview-list .preview-chat-event .preview-chat-name')).toHaveText('New follower');
@@ -585,7 +585,7 @@ test('wizard shows only the selected platform events and exposes platform color 
 
   await form.locator('summary').filter({ hasText: '4. Events shown in chat' }).click();
   await form.locator('[name="showEvents"]').uncheck();
-  await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(4);
+  await expect(page.locator('#chat-preview-list .preview-chat-message')).toHaveCount(5);
   await page.locator('#chat-event-platform').selectOption('youtube');
   await expect(page.locator('[data-platform-event]')).toHaveCount(7);
   await expect(page.locator('#chat-event-template-editor')).toContainText('New subscriber (free)');
@@ -1465,7 +1465,7 @@ test('Village Hydration Station uses the exact bounded fill template', async ({ 
   await page.setViewportSize({ width: 520, height: 620 });
   await page.goto('/overlay/addons/thsv.village-hydration-station');
   await publishAddOnEvent(page, 'thsv.village-hydration-station', 'thsv.village-hydration-station.hydration.update', {
-    cardKind: 'hydration-station', visible: true, title: 'Water Goal', totalOunces: 32, goalOunces: 64, percentage: 50,
+    cardKind: 'hydration-station', displayMode: 'volume', visible: true, title: 'Water Goal', totalOunces: 32, goalOunces: 64, percentage: 50,
     nextReminderAt: Date.now() + 45 * 60_000, showNumbers: true, showNextReminder: true, live: true, templatePreview: true,
     notice: { kind: 'preview', text: 'Hydration check. Time for a sip of water.' },
     style: { containerStyle: 'bottle', backgroundMode: 'glass', backgroundColor: '#0b1720', backgroundOpacity: .9, waterColor: '#55d6ff', waterHighlightColor: '#b8f3ff', accentColor: '#7ff5cc', textColor: '#ffffff', mutedColor: '#c9e7ef' },
@@ -1820,7 +1820,14 @@ test('generic add-on host renders viewer-queue contracts', async ({ page }) => {
     ],
   });
   await expect(page.locator('#card')).toBeVisible();
-  await expect(page.locator('#card-title')).toHaveText('VIEWER LOBBY • OPEN • 2 VIEWERS');
-  await expect(page.locator('#card-text')).toContainText('1. Alex (TWITCH) - selected');
-  await expect(page.locator('#card-text')).toContainText('2. Sam (YOUTUBE)');
+  await expect(page.locator('#card-title')).toHaveText('Village Play Lobby');
+  await expect(page.locator('#card-text .lobby-summary')).toHaveText('OPEN · 2 participants');
+  await expect(page.locator('#card-text .lobby-row')).toHaveCount(2);
+  const selectedRow = page.locator('#card-text .lobby-row[data-selected="true"]');
+  await expect(selectedRow.locator('.lobby-rank')).toHaveText('UP NEXT');
+  await expect(selectedRow.locator('.lobby-name')).toHaveText('Alex');
+  await expect(selectedRow.locator('.lobby-platform')).toHaveText('TWITCH');
+  const waitingRow = page.locator('#card-text .lobby-row[data-selected="false"]');
+  await expect(waitingRow.locator('.lobby-name')).toHaveText('Sam');
+  await expect(waitingRow.locator('.lobby-platform')).toHaveText('YOUTUBE');
 });

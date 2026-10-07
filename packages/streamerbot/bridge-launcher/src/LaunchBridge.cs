@@ -48,6 +48,7 @@ public class CPHInline
             if (!process.WaitForExit(LaunchTimeoutMs)) return Fail("the launcher did not finish within the expected time.");
             if (process.ExitCode != 0) return Fail("the launcher reported a failure (exit code " + process.ExitCode + ").");
             CPH.LogInfo("THSV StreamBridge launch completed through its validated lifecycle launcher.");
+            RememberInstall(installPath);
             return ReportReadiness();
         }
         catch (Exception exception)
@@ -75,6 +76,14 @@ public class CPHInline
         try
         {
             installPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(configured.Trim()));
+            // Re-importing this package resets the argument to its default, so fall back to the
+            // folder remembered by the last successful launch when the argument has no install.
+            string remembered;
+            if (!LooksInstalled(installPath) && TryReadRememberedInstall(out remembered))
+            {
+                CPH.LogInfo("THSV StreamBridge is using its remembered install folder because the configured folder has no installation.");
+                installPath = remembered;
+            }
             return true;
         }
         catch (Exception exception)
@@ -84,6 +93,9 @@ public class CPHInline
         }
     }
 
+    // Shell execution keeps the launcher from inheriting Streamer.bot's handles. Without
+    // it the long-lived bridge inherited Streamer.bot's WebSocket and Stream Deck
+    // listening sockets, so a restarted Streamer.bot could not bind them.
     private static ProcessStartInfo HiddenProcess(string fileName, string arguments, string workingDirectory)
     {
         return new ProcessStartInfo
@@ -91,41 +103,54 @@ public class CPHInline
             FileName = fileName,
             Arguments = arguments,
             WorkingDirectory = workingDirectory,
-            UseShellExecute = false,
-            CreateNoWindow = true,
+            UseShellExecute = true,
             WindowStyle = ProcessWindowStyle.Hidden,
         };
     }
 
+    // The bridge connects to Streamer.bot only after it starts listening, so a
+    // first "not ready" answer is expected; retry briefly before reporting failure.
+    private const int ReadinessWindowMs = 15_000;
+    private const int ReadinessRetryDelayMs = 1_000;
+
     private bool ReportReadiness()
     {
-        try
+        DateTime deadline = DateTime.UtcNow.AddMilliseconds(ReadinessWindowMs);
+        string lastProblem;
+        do
         {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(HealthUrl);
-            request.Method = "GET";
-            request.Timeout = HealthTimeoutMs;
-            request.ReadWriteTimeout = HealthTimeoutMs;
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+            try
             {
-                string body = reader.ReadToEnd();
-                if (Regex.IsMatch(body, "\\\"ready\\\"\\s*:\\s*true", RegexOptions.IgnoreCase))
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(HealthUrl);
+                request.Method = "GET";
+                request.Timeout = HealthTimeoutMs;
+                request.ReadWriteTimeout = HealthTimeoutMs;
+                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
                 {
-                    CPH.LogInfo("THSV StreamBridge readiness check passed: bridge, adapters, Streamer.bot delivery, and modules are healthy.");
-                    Notify("Status: GREEN - bridge, platforms, delivery, and modules are connected." + OptionalApplicationStatus());
-                    return true;
+                    string body = reader.ReadToEnd();
+                    if (Regex.IsMatch(body, "\\\"ready\\\"\\s*:\\s*true", RegexOptions.IgnoreCase))
+                    {
+                        CPH.LogInfo("THSV StreamBridge readiness check passed: bridge, adapters, Streamer.bot delivery, and modules are healthy.");
+                        Notify("Status: GREEN - bridge, platforms, delivery, and modules are connected." + OptionalApplicationStatus());
+                        return true;
+                    }
+                    lastProblem = "the bridge started but its readiness check did not pass.";
                 }
-                return Fail("the bridge started but its readiness check did not pass.");
             }
+            catch (WebException exception)
+            {
+                lastProblem = "the bridge started but readiness is unavailable (" + exception.Status + ").";
+            }
+            catch (Exception exception)
+            {
+                return Fail("the bridge started but readiness could not be checked (" + exception.GetType().Name + ").");
+            }
+            if (DateTime.UtcNow.AddMilliseconds(ReadinessRetryDelayMs) >= deadline) break;
+            System.Threading.Thread.Sleep(ReadinessRetryDelayMs);
         }
-        catch (WebException exception)
-        {
-            return Fail("the bridge started but readiness is unavailable (" + exception.Status + ").");
-        }
-        catch (Exception exception)
-        {
-            return Fail("the bridge started but readiness could not be checked (" + exception.GetType().Name + ").");
-        }
+        while (true);
+        return Fail(lastProblem);
     }
 
     // Every invocation raises exactly one toast — success and failure paths are exclusive,
@@ -155,6 +180,45 @@ public class CPHInline
     private void Notify(string message)
     {
         CPH.ShowToastNotification(ToastId, "THSV StreamBridge", message, "THSV StreamBridge", null);
+    }
+
+    private static string RememberedInstallFile()
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "THSV StreamBridge", "install-location.txt");
+    }
+
+    private static bool LooksInstalled(string folder)
+    {
+        return (File.Exists(Path.Combine(folder, "runtime", "node.exe")) && File.Exists(Path.Combine(folder, "launcher", "start.mjs")))
+            || File.Exists(Path.Combine(folder, "scripts", "start.ps1"));
+    }
+
+    private static bool TryReadRememberedInstall(out string folder)
+    {
+        folder = String.Empty;
+        try
+        {
+            string path = RememberedInstallFile();
+            if (!File.Exists(path)) return false;
+            string line;
+            using (StreamReader reader = new StreamReader(path)) line = reader.ReadLine() ?? String.Empty;
+            string candidate = Path.GetFullPath(line.Trim());
+            if (!LooksInstalled(candidate)) return false;
+            folder = candidate;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    private static void RememberInstall(string folder)
+    {
+        try
+        {
+            string path = RememberedInstallFile();
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllText(path, folder);
+        }
+        catch { }
     }
 
     private bool Fail(string reason)

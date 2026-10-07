@@ -1,12 +1,15 @@
-// Purpose: Sends one broker-authorized bounded phrase to Speaker.bot.
+// Purpose: Prepares one private phrase for the native WebSocket Speak sub-action.
 // References: mscorlib.dll, System.dll, netstandard.dll.
 using System;
 using System.IO;
 using System.Text;
+using Newtonsoft.Json.Linq;
 public class CPHInline
 {
     public bool Execute()
     {
+        CPH.SetArgument("voiceRelayPreparedMessage", "");
+        CPH.SetArgument("voiceRelayPrepared", false);
         string token = Read("thsvAddonRelayToken", 100), voice = Read("voiceRelayVoiceAlias", 80), handoff = Read("voiceRelayMessageHandoff", 80), handoffRoot = Read("voiceRelayHandoffRoot", 1024);
         if (token.Length < 20 || handoff.Length == 0 || handoffRoot.Length == 0) return Fail("The broker token or secure speech handoff was missing.");
         if (voice.Length == 0) return Fail("Create a Speaker.bot Voice Alias and enter that exact alias in the StreamBridge wizard.");
@@ -30,11 +33,21 @@ public class CPHInline
             }
             File.Delete(path); path = "";
             if (message.Length == 0 || message.Length > 400) return Fail("The secure speech phrase was empty or oversized.");
-            int requestId = CPH.TtsSpeak(voice, message, true); CPH.SetArgument("voiceRelayRequestId", requestId); CPH.SetArgument("voiceRelaySuccess", requestId >= 0); return requestId >= 0;
+            CPH.SetArgument("voiceRelayPreparedMessage", message);
+            CPH.SetArgument("voiceRelayPrepared", true);
+            return true;
         }
         catch (Exception error) { return Fail("Speaker.bot request failed (" + error.GetType().Name + ")."); }
         finally { if (path.Length > 0) try { File.Delete(path); } catch { } }
     }
     private string Read(string key, int max) { object value; string text = CPH.TryGetArg(key, out value) && value != null ? Convert.ToString(value).Trim() : ""; return text.Length <= max ? text : text.Substring(0, max); }
-    private bool Fail(string reason) { CPH.SetArgument("voiceRelaySuccess", false); CPH.SetArgument("voiceRelayError", reason); CPH.LogWarn("THSV Voice Relay request failed without logging speech content."); return false; }
+    private bool Fail(string reason)
+    {
+        CPH.SetArgument("voiceRelaySuccess", false); CPH.SetArgument("voiceRelayError", reason);
+        CPH.LogWarn("THSV Voice Relay: " + reason);
+        string executionId = Read("voiceRelayExecutionId", 100), token = Read("thsvAddonRelayToken", 100);
+        if (executionId.Length > 0 && token.Length >= 20)
+            CPH.WebsocketBroadcastJson(new JObject { ["type"] = "thsv.voice-result", ["executionId"] = executionId, ["relayToken"] = token, ["success"] = false, ["durationMs"] = 0 }.ToString(Newtonsoft.Json.Formatting.None));
+        return false;
+    }
 }

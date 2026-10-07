@@ -19,6 +19,7 @@ const OPTIONAL_CIRCUIT_FAILURES = 3;
 const startupStartedAt = Date.now();
 const startupRunId = randomUUID();
 let currentPhase = 'initializing';
+const applicationResults = [];
 
 await main().catch(async (error) => {
   const message = error instanceof Error ? error.message : String(error);
@@ -40,16 +41,24 @@ async function startStreamingTools() {
   if (!Number.isInteger(config.service?.port) || config.service.port < 1 || config.service.port > 65_535) throw new Error('The configured StreamBridge service port is invalid.');
   const baseUrl = `http://127.0.0.1:${String(config.service.port)}`;
   const launcherConfig = await readLauncherConfiguration();
-  await validateCoreLauncherConfiguration(launcherConfig);
   const optionalWarnings = [];
   optionalWarnings.push(...await startTrayShell());
 
   await writeStartupProgress('starting-streamerbot', 'Checking Streamer.bot and its configured WebSocket port.');
-  await startStreamerBotWithBridgeRecovery();
+  try {
+    await validateCoreLauncherConfiguration(launcherConfig);
+    await startStreamerBotWithBridgeRecovery();
+    applicationResults.push({ application: 'Streamer.bot', status: 'SUCCESS', detail: 'WebSocket ready.' });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    applicationResults.push({ application: 'Streamer.bot', status: 'FAILED', detail });
+    process.stderr.write(`[WARNING] Streamer.bot: ${detail} Continuing with other installed apps.\n`);
+  }
   await writeStartupProgress('starting-speakerbot', 'Starting Speaker.bot when it is enabled.');
   optionalWarnings.push(...await startOptionalApplication('speakerbot', launcherConfig));
 
   await writeStartupProgress('checking-bridge', 'Checking StreamBridge readiness.');
+  try {
   if (await bridgeReady(baseUrl)) {
     process.stdout.write('Streamer.bot and THSV StreamBridge are already ready. No restart was needed.\n');
   } else {
@@ -63,18 +72,32 @@ async function startStreamingTools() {
     }
     process.stdout.write('Streamer.bot and THSV StreamBridge are ready.\n');
   }
+    applicationResults.push({ application: 'StreamBridge', status: 'SUCCESS', detail: 'Readiness check passed.' });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    applicationResults.push({ application: 'StreamBridge', status: 'FAILED', detail });
+    process.stderr.write(`[WARNING] StreamBridge: ${detail} Continuing with other installed apps.\n`);
+  }
   await writeStartupProgress('starting-broadcast-apps', 'Starting enabled broadcast applications.');
   for (const application of ['obs', 'meld', 'streamlabs']) optionalWarnings.push(...await startOptionalApplication(application, launcherConfig));
+  optionalWarnings.push(...await startOptionalApplication('tikfinity', launcherConfig));
   if (optionalWarnings.length > 0) process.stdout.write(`Optional app warning: ${optionalWarnings.join(' ')}\n`);
   else process.stdout.write('Enabled optional streaming apps are ready.\n');
+  process.stdout.write('\n========== STARTUP SUMMARY ==========\n');
+  for (const result of applicationResults) process.stdout.write(`[${result.status}] ${result.application}: ${result.detail}\n`);
+  const failed = applicationResults.some((result) => result.status === 'FAILED');
+  const warnings = applicationResults.some((result) => result.status === 'WARNING');
+  process.stdout.write(`Summary: ${applicationResults.filter((result) => result.status === 'SUCCESS').length} succeeded, ${applicationResults.filter((result) => result.status === 'FAILED').length} failed, ${applicationResults.filter((result) => result.status === 'WARNING').length} warnings, ${applicationResults.filter((result) => result.status === 'SKIPPED').length} skipped.\n`);
   await writeStartupReport({
-    outcome: optionalWarnings.length > 0 ? 'ready-with-optional-warnings' : 'ready',
+    outcome: failed ? 'failed' : warnings || optionalWarnings.length > 0 ? 'ready-with-optional-warnings' : 'ready',
     category: optionalWarnings.length > 0 ? 'optional-application' : 'none',
-    message: optionalWarnings.length > 0 ? optionalWarnings.join(' ') : 'Streamer.bot, StreamBridge, and enabled optional streaming apps are ready.',
+    message: failed ? applicationResults.filter((result) => result.status === 'FAILED').map((result) => `${result.application}: ${result.detail}`).join(' ') : optionalWarnings.length > 0 ? optionalWarnings.join(' ') : 'Streamer.bot, StreamBridge, and enabled optional streaming apps are ready.',
     phase: 'complete',
     durationMs: Date.now() - startupStartedAt,
     port: config.service.port,
+    applications: applicationResults,
   }).catch(reportWarning);
+  if (failed) process.exitCode = 1;
 }
 
 async function startStreamerBotWithBridgeRecovery() {
@@ -234,12 +257,32 @@ async function validateCoreLauncherConfiguration(configuration) {
 }
 
 async function startOptionalApplication(application, launcherConfig) {
+  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity' };
+  const saved = launcherConfig?.optionalApps?.[application];
+  if (saved?.enabled !== true) {
+    applicationResults.push({ application: labels[application], status: 'SKIPPED', detail: 'Not enabled in launcher settings.' });
+    return [];
+  }
+  try {
+    const warnings = await startOptionalApplicationImpl(application, launcherConfig);
+    const failed = warnings.some((warning) => /could not start|exited during startup/i.test(warning));
+    applicationResults.push({ application: labels[application], status: failed ? 'FAILED' : warnings.length > 0 ? 'WARNING' : 'SUCCESS', detail: warnings.length > 0 ? warnings.join(' ') : 'Running (started or already open).' });
+    return warnings;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    applicationResults.push({ application: labels[application], status: 'FAILED', detail });
+    return [`${labels[application]}: ${detail}`];
+  }
+}
+
+async function startOptionalApplicationImpl(application, launcherConfig) {
   const warnings = [];
   const definitions = {
     obs: { label: 'OBS Studio', processNames: ['obs64'], executableNames: ['obs64.exe'] },
     meld: { label: 'Meld Studio', processNames: ['Meld', 'Meld Studio'], executableNames: ['meld.exe', 'meld studio.exe'] },
     streamlabs: { label: 'Streamlabs Desktop', processNames: ['Streamlabs Desktop', 'slobs-client'], executableNames: ['streamlabs desktop.exe', 'slobs-client.exe'] },
     speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'], executableNames: ['speaker.bot.exe'] },
+    tikfinity: { label: 'TikFinity', processNames: ['TikFinity'], executableNames: ['tikfinity.exe'] },
   };
   const definition = definitions[application];
   const saved = launcherConfig?.optionalApps?.[application];

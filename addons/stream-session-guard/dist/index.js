@@ -3,6 +3,7 @@
 // triggerless Streamer.bot controller.
 const MODULE_ID = 'thsv.stream-session-guard';
 const RESULT_EVENT = 'addon.thsv.stream-session-guard.scene-result';
+const CONTROL_EVENT = 'addon.thsv.stream-session-guard.control';
 const CONTROLLER_ACTION_ID = 'f4e7fcb4-617b-4438-a6ac-5e6a6dc9ad92';
 const LIFECYCLE_EVENTS = Object.freeze(['stream.online', 'stream.offline']);
 const SCENE_EVENTS = Object.freeze(['stream.scene-changed', 'system.scene-catalog']);
@@ -12,7 +13,7 @@ const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.0.12',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [...LIFECYCLE_EVENTS, ...SCENE_EVENTS, RESULT_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  eventSubscriptions: [...LIFECYCLE_EVENTS, ...SCENE_EVENTS, RESULT_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Enable this built-in extension and choose the broadcast app, break scene, break interval, break length, maximum stream length, and ending scene.',
@@ -28,8 +29,9 @@ const manifest = {
 const FALLBACKS = Object.freeze({
   enabled: false, provider: 'obs', connectionIndex: 0,
   breaksEnabled: true, breakScheduleMode: 'automatic', breakIntervalMinutes: 60, warningMinutes: 5, breakDurationMinutes: 5,
+  breakPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], breakEnabledScenes: [],
   breakSceneName: 'BRB', returnMode: 'previous', returnSceneName: '',
-  streamLimitEnabled: true, maximumStreamMinutes: 240, endingSceneName: 'Stream Ending',
+  streamLimitEnabled: true, maximumStreamMinutes: 240, endingSceneName: 'Stream Ending', endWarningSceneName: '', endingSceneMode: 'automatic',
   showOverlayWarning: true, overlayBackgroundMode: 'glass',
   overlayBackgroundColor: '#101722', overlayBackgroundOpacity: 0.92, overlayAccentColor: '#f4c95d',
   overlayTextColor: '#ffffff', overlayMutedColor: '#d9e2ef', overlayWarningColor: '#f4c95d',
@@ -42,15 +44,22 @@ function number(value, minimum, maximum, fallback) { return Number.isFinite(valu
 function color(value, fallback) { const text = clean(value, 16); return /^#[0-9a-f]{6}$/iu.test(text) ? text : fallback; }
 function settingsFor(context) { return { ...FALLBACKS, ...(context.settings ?? {}) }; }
 function provider(value) { return PROVIDERS.includes(value) ? value : 'obs'; }
-function platform(value) { return ['twitch', 'youtube', 'kick', 'tiktok'].includes(value) ? value : ''; }
+function platform(value) { return ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(value) ? value : ''; }
+export function breakEligible(settings, state) {
+  const platforms = Array.isArray(settings.breakPlatforms) ? settings.breakPlatforms : FALLBACKS.breakPlatforms;
+  if (!state.livePlatforms.some((name) => platforms.includes(name))) return false;
+  const scenes = Array.isArray(settings.breakEnabledScenes) ? settings.breakEnabledScenes.map((name) => clean(name, 256).toLowerCase()).filter(Boolean) : [];
+  return scenes.length === 0 || scenes.includes(clean(state.currentSceneName, 256).toLowerCase());
+}
 function iso(value) { const parsed = typeof value === 'string' ? Date.parse(value) : Number.NaN; return Number.isFinite(parsed) ? parsed : Date.now(); }
 function formatRemaining(totalSeconds) { const value = Math.max(0, Math.floor(totalSeconds)); const hours = Math.floor(value / 3600); const minutes = Math.floor((value % 3600) / 60); const seconds = value % 60; return hours > 0 ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}` : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; }
 
 export function sanitizeState(value) {
   const source = value && typeof value === 'object' ? value : {};
-  const livePlatforms = Array.isArray(source.livePlatforms) ? [...new Set(source.livePlatforms.filter((item) => platform(item)))].slice(0, 4) : [];
+  const livePlatforms = Array.isArray(source.livePlatforms) ? [...new Set(source.livePlatforms.filter((item) => platform(item)))].slice(0, 5) : [];
   return {
     livePlatforms, sessionStartedAt: integer(source.sessionStartedAt, 0, Number.MAX_SAFE_INTEGER, 0),
+    automationPausedAt: integer(source.automationPausedAt, 0, Number.MAX_SAFE_INTEGER, 0),
     nextBreakAt: integer(source.nextBreakAt, 0, Number.MAX_SAFE_INTEGER, 0), endAt: integer(source.endAt, 0, Number.MAX_SAFE_INTEGER, 0),
     breakEndsAt: integer(source.breakEndsAt, 0, Number.MAX_SAFE_INTEGER, 0), phase: ['idle', 'live', 'break', 'ending'].includes(source.phase) ? source.phase : 'idle',
     breakWarningFor: integer(source.breakWarningFor, 0, Number.MAX_SAFE_INTEGER, 0), endWarningSent: source.endWarningSent === true,
@@ -76,7 +85,7 @@ export function breakIntervalFor(settings) {
 export function createSessionState(state, settings, startedAt) {
   const breakIntervalMs = breakIntervalFor(settings) * 60_000;
   const maximumMs = integer(settings.maximumStreamMinutes, 30, 1_440, 240) * 60_000;
-  return { ...state, sessionStartedAt: startedAt, nextBreakAt: settings.breaksEnabled === false ? 0 : startedAt + breakIntervalMs,
+  return { ...state, automationPausedAt: 0, sessionStartedAt: startedAt, nextBreakAt: settings.breaksEnabled === false ? 0 : startedAt + breakIntervalMs,
     endAt: settings.streamLimitEnabled === false ? 0 : startedAt + maximumMs, breakEndsAt: 0, phase: 'live', breakWarningFor: 0,
     endWarningSent: false, previousSceneName: '', lastNonBreakSceneName: state.currentSceneName,
     pendingRequest: null, completedBreaks: 0, sessionSequence: state.sessionSequence + 1, lastReason: 'stream-online' };
@@ -107,7 +116,7 @@ async function hideOverlay(context) { try { await context.overlay.publish(`${MOD
 async function showOverlay(context, settings, state, label, remainingMs, totalMs, reason) {
   if (settings.showOverlayWarning === false) return;
   const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1_000));
-  try { await context.overlay.publish(`${MODULE_ID}.timer.update`, { moduleId: MODULE_ID, label: clean(label, 80), remainingSeconds, maximumSeconds: Math.max(1, Math.ceil(totalMs / 1_000)), remainingText: formatRemaining(remainingSeconds), running: true, live: true, livePlatforms: state.livePlatforms, contextText: reason, warning: true, critical: remainingSeconds <= 60, lastReason: reason, lastAwardSeconds: 0, style: overlayStyle(settings), emittedAt: new Date().toISOString() }, { lane: 'timer' }); } catch { /* Optional overlay. */ }
+  try { await context.overlay.publish(`${MODULE_ID}.timer.update`, { moduleId: MODULE_ID, label: clean(label, 80), endsAt: Date.now() + remainingMs, remainingSeconds, maximumSeconds: Math.max(1, Math.ceil(totalMs / 1_000)), remainingText: formatRemaining(remainingSeconds), running: true, live: true, livePlatforms: state.livePlatforms, contextText: reason, warning: true, critical: remainingSeconds <= 60, lastReason: reason, lastAwardSeconds: 0, style: overlayStyle(settings), emittedAt: new Date().toISOString() }, { lane: 'timer' }); } catch { /* Optional overlay. */ }
 }
 
 async function dispatchScene(context, settings, state, sceneName, purpose, now) {
@@ -142,21 +151,29 @@ async function finishBreak(context, settings, state, now) {
 }
 async function finishStream(context, settings, state, now) {
   state.phase = 'ending'; state.breakEndsAt = 0; state.endWarningSent = true; state.lastReason = 'stream-limit-reached';
-  await hideOverlay(context); await dispatchScene(context, settings, state, settings.endingSceneName, 'ending', now);
+  await hideOverlay(context);
+  if (settings.endingSceneMode !== 'manual') await dispatchScene(context, settings, state, settings.endingSceneName, 'ending', now);
+  else state.lastReason = 'stream-limit-awaiting-manual-ending';
 }
 
 export async function evaluate(context, now = Date.now()) {
   const settings = settingsFor(context); const state = sanitizeState(await context.state.read()); cancelTimer(context);
   if (!settings.enabled || state.livePlatforms.length === 0 || state.phase === 'idle' || state.phase === 'ending') { await hideOverlay(context); await context.state.write(state); return; }
+  if (state.automationPausedAt > 0) { await hideOverlay(context); await context.state.write(state); return; }
   const warningMs = integer(settings.warningMinutes, 1, 15, 5) * 60_000;
   if (state.endAt > 0 && now >= state.endAt) { await finishStream(context, settings, state, now); await context.state.write(state); return; }
   if (state.phase === 'break') {
     if (state.breakEndsAt > 0 && now >= state.breakEndsAt) { await finishBreak(context, settings, state, now); await hideOverlay(context); await context.state.write(state); schedule(context, 1_000); return; }
-    const remaining = Math.max(0, state.breakEndsAt - now); await showOverlay(context, settings, state, 'BREAK', remaining, integer(settings.breakDurationMinutes, 1, 60, 5) * 60_000, 'Break in progress'); await context.state.write(state); schedule(context, Math.min(1_000, Math.max(250, remaining))); return;
+    const remaining = Math.max(0, state.breakEndsAt - now); if (settings.breaksEnabled !== false) await showOverlay(context, settings, state, 'BACK IN', remaining, integer(settings.breakDurationMinutes, 1, 60, 5) * 60_000, 'Break in progress'); else await hideOverlay(context); await context.state.write(state); schedule(context, Math.min(1_000, Math.max(250, remaining))); return;
   }
   const endWarningAt = state.endAt > 0 ? state.endAt - warningMs : Number.POSITIVE_INFINITY;
-  if (state.endAt > 0 && now >= endWarningAt) { state.endWarningSent = true; await showOverlay(context, settings, state, 'STREAM ENDS IN', state.endAt - now, warningMs, 'Maximum stream length'); await context.state.write(state); schedule(context, 1_000); return; }
-  const breakCanRun = settings.breaksEnabled !== false && state.nextBreakAt > 0 && (state.endAt === 0 || state.nextBreakAt + integer(settings.breakDurationMinutes, 1, 60, 5) * 60_000 < endWarningAt);
+  if (state.endAt > 0 && now >= endWarningAt) {
+    if (!state.endWarningSent && clean(settings.endWarningSceneName, 256)) await dispatchScene(context, settings, state, settings.endWarningSceneName, 'end-warning', now);
+    state.endWarningSent = true; await showOverlay(context, settings, state, 'STREAM ENDS IN', state.endAt - now, warningMs, settings.endingSceneMode === 'manual' ? 'Use Stream Deck to start the ending sequence' : 'Maximum stream length'); await context.state.write(state); schedule(context, 1_000); return;
+  }
+  const eligible = breakEligible(settings, state);
+  if (!eligible && state.nextBreakAt > 0 && now >= state.nextBreakAt) state.nextBreakAt = nextBreakDeadline(now, state.sessionStartedAt, breakIntervalFor(settings));
+  const breakCanRun = eligible && settings.breaksEnabled !== false && state.nextBreakAt > 0 && (state.endAt === 0 || state.nextBreakAt + integer(settings.breakDurationMinutes, 1, 60, 5) * 60_000 < endWarningAt);
   if (breakCanRun && now >= state.nextBreakAt) { await beginBreak(context, settings, state, now); await context.state.write(state); schedule(context, 1_000); return; }
   const breakWarningAt = breakCanRun ? state.nextBreakAt - warningMs : Number.POSITIVE_INFINITY;
   if (breakCanRun && now >= breakWarningAt) { state.breakWarningFor = state.nextBreakAt; await showOverlay(context, settings, state, 'BREAK IN', state.nextBreakAt - now, warningMs, 'Scheduled wellness break'); await context.state.write(state); schedule(context, 1_000); return; }
@@ -169,7 +186,7 @@ async function lifecycle(event, context) {
   const live = new Set(state.livePlatforms); const wasLive = live.size > 0;
   if (event.eventType === 'stream.online') live.add(source); else live.delete(source); state.livePlatforms = [...live];
   if (!wasLive && live.size > 0) Object.assign(state, createSessionState(state, settings, iso(event.receivedAt)));
-  if (live.size === 0) Object.assign(state, { livePlatforms: [], sessionStartedAt: 0, nextBreakAt: 0, endAt: 0, breakEndsAt: 0, phase: 'idle', breakWarningFor: 0, endWarningSent: false, previousSceneName: '', lastNonBreakSceneName: '', pendingRequest: null, lastReason: 'stream-offline' });
+  if (live.size === 0) Object.assign(state, { livePlatforms: [], automationPausedAt: 0, sessionStartedAt: 0, nextBreakAt: 0, endAt: 0, breakEndsAt: 0, phase: 'idle', breakWarningFor: 0, endWarningSent: false, previousSceneName: '', lastNonBreakSceneName: '', pendingRequest: null, lastReason: 'stream-offline' });
   await context.state.write(state); if (live.size === 0) { cancelTimer(context); await hideOverlay(context); } else await evaluate(context);
 }
 
@@ -190,15 +207,35 @@ async function sceneEvent(event, context) {
     await hideOverlay(context); await context.state.write(state); await evaluate(context); return;
   }
   if (normalizedName !== breakScene && normalizedName !== endingScene) state.lastNonBreakSceneName = name;
-  await context.state.write(state);
+  await context.state.write(state); await evaluate(context);
 }
 async function sceneResult(event, context) { const state = sanitizeState(await context.state.read()); const requestId = clean(event.payload?.requestId, 100); if (!state.pendingRequest || requestId !== state.pendingRequest.requestId) return; state.lastSceneResult = { purpose: state.pendingRequest.purpose, sceneName: state.pendingRequest.sceneName, success: event.payload?.success === true, at: clean(event.receivedAt, 40), error: clean(event.payload?.error, 200) }; state.pendingRequest = null; state.lastReason = state.lastSceneResult.success ? `${state.lastSceneResult.purpose}-scene-confirmed` : `${state.lastSceneResult.purpose}-scene-failed`; await context.state.write(state); }
+
+async function automationControl(event, context) {
+  if (event.metadata?.simulated === true) return;
+  const action = clean(event.payload?.action, 30);
+  if (!['pause', 'resume', 'toggle'].includes(action)) return;
+  const state = sanitizeState(await context.state.read());
+  if (!state.livePlatforms.length || !['live', 'break'].includes(state.phase)) return;
+  const now = Date.now();
+  const pause = action === 'pause' || (action === 'toggle' && state.automationPausedAt === 0);
+  if (pause && state.automationPausedAt === 0) { state.automationPausedAt = now; state.lastReason = 'automation-paused'; }
+  else if (!pause && state.automationPausedAt > 0) {
+    const elapsed = Math.max(0, now - state.automationPausedAt);
+    // Freeze deadlines, so resuming after a match cannot immediately force a scene switch.
+    for (const field of ['nextBreakAt', 'endAt', 'breakEndsAt']) if (state[field] > 0) state[field] += elapsed;
+    state.sessionStartedAt += elapsed;
+    if (state.breakWarningFor > 0) state.breakWarningFor += elapsed;
+    state.automationPausedAt = 0; state.lastReason = 'automation-resumed';
+  }
+  await context.state.write(state); await evaluate(context);
+}
 
 export default {
   manifest, required: false,
   async start(context) { stopped = false; operation = Promise.resolve(); const state = sanitizeState(await context.state.read()); await context.state.write(state); if (settingsFor(context).enabled && state.livePlatforms.length > 0 && state.phase !== 'idle') await evaluate(context); },
   async stop(context) { stopped = true; cancelTimer(context); await operation; },
-  async onEvent(event, context) { if (!settingsFor(context).enabled) return; if (LIFECYCLE_EVENTS.includes(event.eventType)) return serialize(() => lifecycle(event, context)); if (SCENE_EVENTS.includes(event.eventType)) return serialize(() => sceneEvent(event, context)); if (event.eventType === RESULT_EVENT) return serialize(() => sceneResult(event, context)); },
+  async onEvent(event, context) { if (!settingsFor(context).enabled) return; if (LIFECYCLE_EVENTS.includes(event.eventType)) return serialize(() => lifecycle(event, context)); if (SCENE_EVENTS.includes(event.eventType)) return serialize(() => sceneEvent(event, context)); if (event.eventType === RESULT_EVENT) return serialize(() => sceneResult(event, context)); if (event.eventType === CONTROL_EVENT) return serialize(() => automationControl(event, context)); },
 };
 
 export { CONTROLLER_ACTION_ID, RESULT_EVENT };

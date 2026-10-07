@@ -56,11 +56,11 @@ const FALLBACKS = Object.freeze({
   levelStepPoints: 100, achievementsEnabled: true,
 });
 
-const PLATFORM = /^(twitch|youtube|kick|tiktok)$/u;
+const PLATFORM = /^(twitch|youtube|kick|tiktok|facebook)$/u;
 const VIEWER_ID = /^[a-z][a-z0-9-]{0,63}$/u;
-const GENERATED_VIEWER_ID = /^(?:twitch|youtube|kick|tiktok)-[a-f0-9]{24}$/u;
+const GENERATED_VIEWER_ID = /^(?:twitch|youtube|kick|tiktok|facebook)-[a-f0-9]{24}$/u;
 const MAXIMUM_STATE_BYTES = 60_000;
-const CHAT_LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
+const CHAT_LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
 let operation = Promise.resolve();
 let unregisterProvider;
 const livePlatforms = new Set();
@@ -326,6 +326,7 @@ export async function processViewerEvent(event, context, now = Date.now()) {
     await context.state.write(sanitizeViewerFoundationState(state, settings, now));
     return { ...identity, duplicate: false, lurking: true, alreadyLurking, pointsAwarded: 0, totalPoints: viewer.points, currencyName: settings.currencyName };
   }
+  if (event.eventType === 'chat.message' && clean(event.payload?.message || event.payload?.text, 256).toLowerCase().split(/\s/u)[0] === `!${settings.lurkCommand}`) return undefined;
   if (!EVENT_POINTS[event.eventType]) return undefined;
   const eventId = await eventIdentity(event);
   if (!eventId || state.processed.some((item) => item.id === eventId)) return { ...identity, duplicate: true, pointsAwarded: 0 };

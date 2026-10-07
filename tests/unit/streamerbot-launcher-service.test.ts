@@ -94,9 +94,9 @@ describe('public Streamer.bot launcher configuration', () => {
   it('stores Meld and Streamlabs as independent optional broadcast applications', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-provider-apps-')); temporaryRoots.push(root);
     const dataRoot = join(root, 'data'); const portable = join(root, 'portable');
-    const streamerBot = join(portable, 'Streamer.bot.exe'); const meld = join(root, 'Meld Studio.exe'); const streamlabs = join(root, 'Streamlabs Desktop.exe');
+    const streamerBot = join(portable, 'Streamer.bot.exe'); const meld = join(root, 'Meld Studio.exe'); const streamlabs = join(root, 'Streamlabs Desktop.exe'); const tikfinity = join(root, 'TikFinity.exe');
     await mkdir(portable, { recursive: true });
-    await Promise.all([writeFile(streamerBot, 'streamerbot'), writeFile(meld, 'meld'), writeFile(streamlabs, 'streamlabs')]);
+    await Promise.all([writeFile(streamerBot, 'streamerbot'), writeFile(meld, 'meld'), writeFile(streamlabs, 'streamlabs'), writeFile(tikfinity, 'tikfinity')]);
     const service = windowsLauncher(dataRoot);
     await service.save(streamerBot);
     let status = await service.saveOptionalApplication('meld', meld, true);
@@ -104,6 +104,10 @@ describe('public Streamer.bot launcher configuration', () => {
     status = await service.saveOptionalApplication('streamlabs', streamlabs, true);
     expect(status.optionalApps.streamlabs).toMatchObject({ configured: true, enabled: true, executable: streamlabs, executableExists: true });
     expect(status.optionalApps.obs).toMatchObject({ configured: false, enabled: false });
+    status = await service.saveOptionalApplication('tikfinity', tikfinity, true);
+    expect(status.optionalApps.tikfinity).toMatchObject({ configured: true, enabled: true, executable: tikfinity, executableExists: true });
+    const reloaded = windowsLauncher(dataRoot);
+    expect((await reloaded.status()).optionalApps.tikfinity).toMatchObject({ configured: true, enabled: true, executable: tikfinity });
   });
 
   it('rejects missing files and misleading executable names', async () => {

@@ -63,3 +63,5 @@ Official references:
 - [Streamer.bot Discord integration](https://docs.streamer.bot/guide/integrations/discord)
 - [Streamer.bot Discord webhook method](https://docs.streamer.bot/api/csharp/methods/integrations/discord/post-text-to-webhook)
 - [Discord webhook resource](https://docs.discord.com/developers/resources/webhook)
+
+Facebook public comments are supported through the connected Facebook Page adapter. Select Facebook under Platforms to archive; clean embeds use Facebook blue (#1877F2), editable under Platform colors. Existing batching, bot and ignored-viewer filters, mention suppression, deduplication, and session rules also apply to Facebook. No separate chat trigger or webhook is needed.

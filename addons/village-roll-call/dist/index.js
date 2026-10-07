@@ -1,4 +1,4 @@
-// Village Roll Call accepts Twitch/Kick rewards and YouTube/TikTok point commands.
+// Village Roll Call accepts Twitch/Kick rewards and YouTube/TikTok/Facebook point commands.
 const MODULE_ID = 'thsv.village-roll-call';
 const FALLBACKS = Object.freeze({
   enabled: false,
@@ -35,7 +35,7 @@ const manifest = {
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.',
-    'Choose the check-in command name. It registers automatically for YouTube and TikTok after restart.',
+    'Choose the check-in command name. It registers automatically for YouTube, TikTok and Facebook after restart.',
     'Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.',
     'Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.',
   ],
@@ -143,10 +143,10 @@ function format(template, values, maximum = 500) {
 }
 async function sendChat(context, message, platform = 'twitch') {
   if (!message) return;
-  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'reject' }); }
+  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'split' }); }
   catch { /* A cosmetic chat failure never corrupts a valid check-in. */ }
 }
-async function publishCard(context, settings, state, title = 'VILLAGE ROLL CALL') {
+async function publishCard(context, settings, state, title = 'VILLAGE ROLL CALL', platform = 'twitch') {
   if (!settings.showLeaderboardCard) return;
   const leaders = rank(state.entries).slice(0, settings.leaderboardSize);
   const leaderboard = leaders.map((entry, index) => ({ rank: index + 1, displayName: entry.displayName, count: entry.count }));
@@ -154,7 +154,7 @@ async function publishCard(context, settings, state, title = 'VILLAGE ROLL CALL'
     ? leaders.map((entry, index) => `${String(index + 1)}. ${entry.displayName} (${String(entry.count)})`).join(' • ')
     : 'No check-ins yet this month.';
   try { await context.overlay.publish(`${MODULE_ID}.card.show`, {
-    cardKind: 'village-roll-call', mode: 'leaderboard', headline: title,
+    cardKind: 'village-roll-call', mode: 'leaderboard', headline: title, platform,
     subtitle: leaders.length ? 'Monthly check-in leaderboard' : 'The noticeboard is ready for its first villager',
     monthLabel: monthName(state.month), leaders: leaderboard, title, text,
     durationMs: settings.cardSeconds * 1000,
@@ -174,7 +174,7 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
   const configuredReward = event.platform === 'twitch' ? settings.rewardId : event.platform === 'kick' ? settings.kickRewardId : '';
   const matchingReward = event.eventType === 'reward.redemption' && ['twitch', 'kick'].includes(event.platform)
     && event.payload?.verifiedTransport === true && configuredReward && clean(event.payload?.rewardId, 256) === configuredReward;
-  const matchingCommand = event.eventType === 'command.received' && ['youtube', 'tiktok'].includes(event.platform) && clean(event.payload?.command, 64).toLowerCase() === settings.commandName;
+  const matchingCommand = event.eventType === 'command.received' && ['youtube', 'tiktok', 'facebook'].includes(event.platform) && clean(event.payload?.command, 64).toLowerCase() === settings.commandName;
   if (event.metadata?.simulated === true) {
     if (!matchingReward && !matchingCommand) return { accepted: false, reason: 'simulated-unrelated' };
     const displayName = clean(event.user?.displayName || event.user?.name, 100) || 'Sample Villager';
@@ -242,7 +242,7 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
   await sendChat(context, format(settings.successfulMessage, {
     name: displayName, count: entry.count, rank: position, month: monthName(state.month),
   }), event.platform);
-  await publishCard(context, settings, state);
+  await publishCard(context, settings, state, 'VILLAGE ROLL CALL', event.platform);
   return { accepted: true, simulated: false, count: entry.count, rank: position };
 }
 export { calendarParts, rank as rankRollCall, rollover as rolloverRollCall, sanitizeState as sanitizeRollCallState };
@@ -254,7 +254,12 @@ export default {
     const settings = settingsFor(context);
     const state = sanitizeState(await context.state.read(), Date.now(), settings.timeZone);
     await context.state.write(state);
+    await monthlyCheck(context); armMonthly(context);
   },
-  async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); },
+  async stop(context) { monthlyStopped = true; if (monthlyTask) context?.schedule?.cancel(monthlyTask); monthlyTask = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); },
   async onEvent(event, context) { operation = operation.then(() => processRollCallEvent(event, context), () => processRollCallEvent(event, context)); await operation; },
 };
+
+let monthlyTask, monthlyStopped = true;
+async function monthlyCheck(context) { const settings = settingsFor(context); if (!settings.enabled) return; const state = sanitizeState(await context.state.read(), Date.now(), settings.timeZone); const rolled = rollover(state, Date.now(), settings.timeZone); if (rolled.state.month !== state.month) await context.state.write(rolled.state); }
+function armMonthly(context) { monthlyStopped = false; monthlyTask = context.schedule.after(60000, () => { const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; operation = operation.then(check, check); return operation; }); }

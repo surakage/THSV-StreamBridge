@@ -1,7 +1,7 @@
 # Viewer Spotlight setup
 
 **Module:** `thsv.viewer-spotlight`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Score from bounded projections.
@@ -16,7 +16,7 @@ Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Sc
 
 1. Install and enable Viewer Foundation and Community Analytics first.
 2. Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.
-3. Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube and TikTok card command. It registers automatically after restart.
+3. Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube, TikTok and Facebook card command. It registers automatically after restart.
 4. Add /overlay/addons/thsv.viewer-spotlight as a browser source.
 
 ## Streamer.bot
@@ -47,7 +47,7 @@ When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `overlay.publish`, `schedule.bounded`, `viewer.foundation.read`, `viewer.foundation.mutate`, `community.analytics.read`, `streamerbot.run-approved-action`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `overlay.publish`, `schedule.bounded`, `viewer.foundation.read`, `viewer.foundation.mutate`, `community.analytics.read`, `streamerbot.run-approved-action`, `chat.send`.
 
 Private storage: `data/addons/thsv.viewer-spotlight/`, `data/addons/.state/thsv.viewer-spotlight/`.
 

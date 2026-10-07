@@ -11,7 +11,8 @@
     "chat.send",
     "overlay.publish",
     "viewer.foundation.read",
-    "viewer.foundation.mutate"
+    "viewer.foundation.mutate",
+    "schedule.bounded"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -27,6 +28,8 @@
     "version": "4.0.12",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.12",
+    "maximumTestedBridgeVersion": "4.0.12",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -56,7 +59,7 @@
       "Import the separate First Five Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that action for this add-on.",
       "Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.",
-      "Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube and TikTok command registers automatically after restart."
+      "Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube, TikTok and Facebook command registers automatically after restart."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall."
@@ -67,32 +70,30 @@
         "id": "thsv.first-five.runtime",
         "description": "Confirms serialized placement claims, reward transitions, and monthly leaderboard state."
       }
-    ],
-    "minimumBridgeVersion": "4.0.12",
-    "maximumTestedBridgeVersion": "4.0.12"
+    ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 25342,
-      "sha256": "46d2fe4131e069660e853fc7a1d36074478fec16a6407fb6f35b405c1eca71e9"
+      "size": 26303,
+      "sha256": "cc61b70b88134c081c098caa00819308e7d89f9fea43bc817a232f7186fa650c"
     },
     {
       "path": "schemas/config.json",
-      "size": 5443,
-      "sha256": "7f692f31b000fbef74f88a3f353310acda7618534b5e25371e2d483f6fc65c14"
+      "size": 5657,
+      "sha256": "21df7befa4cfcadc2812322e5fdcfbd6a0f8cd8ffed5a800347beb157bb189c8"
     },
     {
       "path": "ui/settings.json",
-      "size": 4176,
-      "sha256": "52bcf78d74f9e6db58a5c0d2e9e85a918cbdb9746cf7279fe675f548af5d833d"
+      "size": 4196,
+      "sha256": "0bf8bfa4dc0f63882451a0fa2ffee42dd8527a7d12c0066f032e2fac28927acd"
     },
     {
       "path": "README.md",
-      "size": 1820,
-      "sha256": "cbb24daecb7a401938f8a2be3c175f0d8bf53e93b3fb36e3696f0675c156cea9"
+      "size": 1840,
+      "sha256": "f2bd45454f652c036849a043657c40695121c3f5e3dc60167a6e8886f5346cc0"
     }
   ]
 }

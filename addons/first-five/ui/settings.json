@@ -1,5 +1,5 @@
 {
-  "intro": "First Five uses native placement rewards on Twitch and Kick, plus Viewer Foundation points and one command on YouTube and TikTok.",
+  "intro": "First Five uses native placement rewards on Twitch and Kick, plus Viewer Foundation points and one command on YouTube, TikTok and Facebook.",
   "order": [
     "enabled",
     "reward1Id", "reward2Id", "reward3Id", "reward4Id", "reward5Id", "kickReward1Id", "kickReward2Id", "kickReward3Id", "kickReward4Id", "kickReward5Id", "commandName", "pointsCost",
@@ -26,7 +26,7 @@
     {
       "id": "kick-and-points",
       "title": "3. Kick, YouTube, and TikTok",
-      "description": "Paste five ordered Kick reward IDs. YouTube and TikTok use the command and Viewer Foundation points instead.",
+      "description": "Paste five ordered Kick reward IDs. YouTube, TikTok and Facebook use the command and Viewer Foundation points instead.",
       "fields": ["kickReward1Id", "kickReward2Id", "kickReward3Id", "kickReward4Id", "kickReward5Id", "commandName", "pointsCost"],
       "notice": "Create the same five Kick rewards at 100 points each, color #2DB7A3, with viewer input off. Kick redemptions are accepted natively, but Streamer.bot documents no Kick sequence, title, enable, disable, or refund methods; only the expected next position is accepted and rejected Kick points cannot be returned."
     },

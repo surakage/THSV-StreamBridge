@@ -1,4 +1,4 @@
-// Fan Crown uses native Twitch/Kick rewards and Viewer Foundation commands on YouTube/TikTok.
+// Fan Crown uses native Twitch/Kick rewards and Viewer Foundation commands on YouTube/TikTok/Facebook.
 const CONTROLLER_ACTION_ID = 'ad2b29a1-4e8e-4f0b-9ac2-6c4e5f473e12';
 const CONTROLLER_RESULT_EVENT = 'addon.thsv.fan-crown.controller-result';
 const CONTROL_EVENT = 'addon.thsv.fan-crown.control';
@@ -29,7 +29,7 @@ const manifest = {
     'Import the separate Fan Crown Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
     'Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.',
-    'Create Twitch and Kick rewards. The saved YouTube and TikTok command registers automatically after restart.',
+    'Create Twitch and Kick rewards. The saved YouTube, TikTok and Facebook command registers automatically after restart.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact private season state remains preserved for a later reinstall.'],
   migrations: [],
@@ -146,8 +146,8 @@ function settingsFor(context) {
 }
 
 export function monthKey(timestamp = Date.now()) {
-  const date = new Date(timestamp);
-  return `${String(date.getFullYear()).padStart(4, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit' }).formatToParts(new Date(timestamp)).map(p => [p.type,p.value]));
+  return `${parts.year}-${parts.month}`;
 }
 
 function crownRecord(value) {
@@ -353,7 +353,7 @@ function rejectionReason(event, settings, state, now, stableUserId = event.user?
 
 async function sendChat(context, message, platform = 'twitch') {
   if (!message) return;
-  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'reject' }); }
+  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'split' }); }
   catch { /* Chat delivery is cosmetic and never rolls back a valid reward operation. */ }
 }
 
@@ -528,7 +528,7 @@ async function handleRedemption(event, context, settings, state) {
 }
 
 async function handlePointsCommand(event, context, settings, state) {
-  if (event.eventType !== 'command.received' || !['youtube', 'tiktok'].includes(event.platform) || event.metadata?.simulated === true || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return state;
+  if (event.eventType !== 'command.received' || !['youtube', 'tiktok', 'facebook'].includes(event.platform) || event.metadata?.simulated === true || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return state;
   const providerUserId = clean(event.user?.id, 240); const displayName = clean(event.user?.displayName || event.user?.name, 100);
   const userId = providerUserId ? `${event.platform}:${providerUserId}` : ''; const eventId = clean(event.eventId || event.source?.eventId, 200);
   if (!userId || !displayName || !eventId || state.recentRedemptionIds.includes(`command:${eventId}`)) return state;
@@ -637,7 +637,7 @@ function scheduleResetCheck(context, retryDelayMs) {
   const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
   const delay = Number.isInteger(retryDelayMs)
     ? Math.max(1_000, Math.min(300_000, retryDelayMs))
-    : Math.max(1_000, Math.min(MAXIMUM_DAY_MS, nextMidnight - now.getTime() + 1_000));
+    : 60_000;
   resetCheckTaskId = context.schedule.after(delay, () => enqueue(async () => {
     resetCheckTaskId = undefined;
     const settings = settingsFor(context);

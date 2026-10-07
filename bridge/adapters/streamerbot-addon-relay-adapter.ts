@@ -72,7 +72,17 @@ export class StreamerBotAddOnRelayAdapter extends ManagedAdapter {
     // Captured once so a concurrent stop() clearing this.context mid-flight cannot leave the
     // catch handler below dereferencing undefined after an awaited emit() rejects.
     const context = this.context;
-    if (message['type'] !== 'thsv.addon' || context === undefined) return;
+    if (context === undefined) return;
+    if (isRecord(message['event']) && message['event']['source'] === 'Twitch' && message['event']['type'] === 'RaidSend') {
+      try {
+        const event = normalizeStreamerBotRaidSend(message);
+        const result = await context.emit(event, Buffer.byteLength(JSON.stringify(message)));
+        context.logger.info('Twitch viewer handoff received', { targetLogin: event.payload['targetLogin'], simulated: event.metadata.simulated, result });
+      }
+      catch { context.logger.warn('Ignored invalid Twitch raid completion event.'); }
+      return;
+    }
+    if (message['type'] !== 'thsv.addon') return;
     try {
       const event = normalizeStreamerBotAddOnRelay(message);
       const result = await context.emit(event, Buffer.byteLength(JSON.stringify(message)));
@@ -84,6 +94,11 @@ export class StreamerBotAddOnRelayAdapter extends ManagedAdapter {
       context.logger.warn('Streamer.bot add-on relay event rejected', { adapter: this.name, error });
     }
   }
+}
+
+export function normalizeStreamerBotRaidSend(input: unknown): NormalizedEvent {
+  const message = z.object({ timeStamp: z.iso.datetime({ offset: true }).optional(), event: z.object({ source: z.literal('Twitch'), type: z.literal('RaidSend') }), data: z.object({ createdAt: z.iso.datetime({ offset: true }), isTest: z.boolean(), targetUser: z.object({ id: z.string().min(1).max(64), login: z.string().regex(/^[a-z0-9_]{1,25}$/iu) }), viewers: z.number().int().min(0) }) }).parse(input);
+  return { schemaVersion: '1.0.0', eventId: boundedEventId('twitch-raid-send-', `${message.data.targetUser.id}-${message.data.createdAt}`), eventType: 'addon.thsv.raid-scout.raid-completed', platform: 'twitch', source: { adapter: 'streamerbot-addon-relay', eventName: 'Twitch.RaidSend' }, receivedAt: new Date().toISOString(), channel: { name: 'Twitch' }, payload: { targetUserId: message.data.targetUser.id, targetLogin: message.data.targetUser.login, completedAt: message.data.createdAt, viewers: message.data.viewers }, metadata: { simulated: message.data.isTest } };
 }
 
 export function normalizeStreamerBotAddOnRelay(input: unknown): NormalizedEvent {
@@ -116,6 +131,12 @@ function boundedEventId(prefix: string, value: string): string {
 
 function isCreatorControl(relay: AddOnRelay): boolean {
   if (relay.relayToken !== '') return false;
+  if (relay.moduleId === 'thsv.stream-session-guard' && relay.eventType === 'addon.thsv.stream-session-guard.control') {
+    const action = relay.payload['action'];
+    return (action === 'pause' || action === 'resume' || action === 'toggle')
+      && relay.sourceEventType === `THSV Stream Break & End Guard - ${action}`
+      && Object.keys(relay.payload).length === 1;
+  }
   if (relay.moduleId === 'thsv.chat-guard' && relay.eventType === 'addon.thsv.chat-guard.trusted-account-request') {
     if (relay.sourceEventType !== 'THSV Addon - Chat Guard - Trust Viewer') return false;
     const keys = Object.keys(relay.payload);
@@ -313,3 +334,5 @@ function assertBoundedPayload(payload: AddOnRelay['payload']): void {
   if (keys.length > MAXIMUM_PAYLOAD_KEYS) throw new Error(`Add-on relay payload may contain at most ${String(MAXIMUM_PAYLOAD_KEYS)} keys.`);
   if (Buffer.byteLength(JSON.stringify(payload)) > MAXIMUM_PAYLOAD_BYTES) throw new Error(`Add-on relay payload may be at most ${String(MAXIMUM_PAYLOAD_BYTES)} bytes.`);
 }
+
+function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }

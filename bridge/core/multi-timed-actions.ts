@@ -61,8 +61,8 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
   const targetActionName = targetProvider === 'run-existing-action' ? boundedText(event.payload['targetActionName'], 'targetActionName', 200) : undefined;
   if (targetProvider === 'run-existing-action' && event.payload['targetActionApproved'] !== true) throw new InvalidMultiTimedActionError('targetActionApproved must be true for run-existing-action.');
   const targetPlatforms = stringArray(event.payload['targetPlatforms'], 'targetPlatforms', 16, 64);
-  const deliveryPlatforms = stringArray(event.payload['deliveryPlatforms'], 'deliveryPlatforms', 4, 64);
-  if (!deliveryPlatforms.every((platform) => ['twitch', 'youtube', 'kick', 'tiktok'].includes(platform))) throw new InvalidMultiTimedActionError('deliveryPlatforms contains an unsupported chat platform.');
+  const deliveryPlatforms = stringArray(event.payload['deliveryPlatforms'], 'deliveryPlatforms', 5, 64);
+  if (!deliveryPlatforms.every((platform) => ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(platform))) throw new InvalidMultiTimedActionError('deliveryPlatforms contains an unsupported chat platform.');
   return {
     contractVersion: MULTI_TIMED_ACTIONS_CONTRACT_VERSION,
     eventId: event.eventId,
@@ -96,7 +96,7 @@ export function projectMultiTimedAction(event: NormalizedEvent): MultiTimedActio
 
 function platformMessages(value: JsonValue | undefined): Record<string, string> {
   if (!isRecord(value)) throw new InvalidMultiTimedActionError('selectedMessages must be an object for platform-shuffle mode.');
-  const limits: Readonly<Record<string, number>> = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 };
+  const limits: Readonly<Record<string, number>> = { twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 };
   const result: Record<string, string> = {};
   for (const [platform, message] of Object.entries(value)) {
     const limit = limits[platform];

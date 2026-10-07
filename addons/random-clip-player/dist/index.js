@@ -16,6 +16,7 @@ const CONTROL_EVENT = 'addon.thsv.random-clip-player.control';
 // Cancelled the moment the expected response actually arrives -- see arm/disarmSafetyNet.
 const SAFETY_NET_MS = 90_000;
 const CONNECTION_RETRY_MS = 1_000;
+const CONNECTION_RETRY_MAX_MS = 30_000;
 // The shared cache normally answers immediately. Keep the fallback window short so enabling the
 // player never appears unresponsive when the cache is cold, disabled, or still starting.
 const SHARED_CACHE_WAIT_MS = 1_000;
@@ -184,9 +185,14 @@ function armSafetyNet(context, task) {
   safetyTaskId = context.schedule.after(SAFETY_NET_MS, () => serialize(task));
 }
 
+// Back off while Streamer.bot is unreachable (for example during its restart) instead of
+// retrying every second; the next successful dispatch resets the delay.
+let connectionFailures = 0;
 function armConnectionRetry(context, task) {
   if (safetyTaskId !== undefined) context.schedule.cancel(safetyTaskId);
-  safetyTaskId = context.schedule.after(CONNECTION_RETRY_MS, () => serialize(task));
+  const delay = Math.min(CONNECTION_RETRY_MAX_MS, CONNECTION_RETRY_MS * 2 ** connectionFailures);
+  connectionFailures = Math.min(connectionFailures + 1, 16);
+  safetyTaskId = context.schedule.after(delay, () => serialize(task));
 }
 
 function isPermanentCapabilityError(error) {
@@ -237,7 +243,7 @@ async function requestClipList(context) {
     if (stopped) return;
     // Arm before dispatch so an unusually fast relay response cannot race with timer setup.
     armSafetyNet(context, () => requestClipList(context));
-    try { await context.streamerbot.runApprovedAction(GET_CLIPS_ACTION_ID, { clipCount: settings.clipCount }); }
+    try { await context.streamerbot.runApprovedAction(GET_CLIPS_ACTION_ID, { clipCount: settings.clipCount }); connectionFailures = 0; }
     catch (error) {
       if (isPermanentCapabilityError(error)) await pauseForPermission(context, error);
       else armConnectionRetry(context, () => requestClipList(context));
@@ -250,7 +256,7 @@ async function requestClipDownload(context, clipId) {
   const state = sanitizeState(await context.state.read());
   if (!state.playbackEnabled || suspendedByMediaSlot || state.pendingClipId !== clipId) return;
   armSafetyNet(context, () => requestClipDownload(context, clipId));
-  try { await context.streamerbot.runApprovedAction(GET_CLIP_DOWNLOAD_ACTION_ID, { clipId }); }
+  try { await context.streamerbot.runApprovedAction(GET_CLIP_DOWNLOAD_ACTION_ID, { clipId }); connectionFailures = 0; }
   catch (error) {
     if (isPermanentCapabilityError(error)) await pauseForPermission(context, error);
     else armConnectionRetry(context, () => requestClipDownload(context, clipId));
@@ -368,6 +374,7 @@ export default {
   manifest,
   required: false,
   async start(context) {
+    connectionFailures = 0;
     operation = Promise.resolve();
     stopped = false;
     lifecycleUnsubscribe = context.overlay.onLifecycle((event) => { void serialize(() => onLifecycle(event, context)); });

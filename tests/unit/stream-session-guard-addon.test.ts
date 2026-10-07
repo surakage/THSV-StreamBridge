@@ -18,6 +18,81 @@ function runtime(settings: Record<string, unknown> = {}) {
 }
 
 describe('Stream Break & End Guard extension', () => {
+  it('freezes scene switching and deadlines while paused, then resumes without an immediate overdue switch', async () => {
+    const test = runtime({ maximumStreamMinutes: 120, endWarningSceneName: 'Just Chatting' });
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(60_000);
+    try {
+      test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1000), livePlatforms: ['twitch'], currentSceneName: 'Gameplay' });
+      const before = test.state();
+      await guard.onEvent({ eventType: 'addon.thsv.stream-session-guard.control', payload: { action: 'pause' } }, test.context);
+      await evaluate(test.context, 10_000_000);
+      expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+      expect(test.state().automationPausedAt).toBe(60_000);
+      clock.mockReturnValue(10_000_000);
+      await guard.onEvent({ eventType: 'addon.thsv.stream-session-guard.control', payload: { action: 'resume' } }, test.context);
+      expect(test.state().endAt).toBe(Number(before.endAt) + 9_940_000);
+      expect(test.state().nextBreakAt).toBe(Number(before.nextBreakAt) + 9_940_000);
+      expect(test.state().automationPausedAt).toBe(0);
+      expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    } finally { clock.mockRestore(); }
+  });
+  it('ignores simulated pause controls and clears pause at the end of a live session', async () => {
+    const test = runtime();
+    test.setState({ ...sanitizeState({}), livePlatforms: ['twitch'], phase: 'live' });
+    await guard.onEvent({ eventType: 'addon.thsv.stream-session-guard.control', payload: { action: 'pause' }, metadata: { simulated: true } }, test.context);
+    expect(test.state().automationPausedAt).toBe(0);
+    test.setState({ ...test.state(), automationPausedAt: 1000 });
+    await guard.onEvent({ eventType: 'stream.offline', platform: 'twitch' }, test.context);
+    expect(test.state().automationPausedAt).toBe(0);
+  });
+  it.each(['automatic', 'manual'])('moves to the warning scene once and respects the ending mode: %s', async (endingSceneMode) => {
+    const test=runtime({ maximumStreamMinutes: 120, endWarningSceneName: 'Just Chatting', endingSceneMode });
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1000), livePlatforms: ['twitch'], currentSceneName: 'Gameplay' });
+    await evaluate(test.context, 1000 + 115 * 60_000);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardSceneName: 'Just Chatting' }));
+    await evaluate(test.context, 1000 + 115 * 60_000 + 1000);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    await evaluate(test.context, 1000 + 120 * 60_000);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(endingSceneMode === 'automatic' ? 2 : 1);
+    if (endingSceneMode === 'manual') expect(test.state().lastReason).toBe('stream-limit-awaiting-manual-ending');
+  });
+  it('shows the return countdown in BRB even when only Gameplay permits scheduled breaks', async () => {
+    const test = runtime({ breakEnabledScenes: ['Gameplay'], streamLimitEnabled: false });
+    test.setState({ ...sanitizeState({}), phase: 'break', livePlatforms: ['twitch'], currentSceneName: 'BRB', breakEndsAt: 121000 });
+    await evaluate(test.context, 1000);
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.stream-session-guard.timer.update', expect.objectContaining({ label: 'BACK IN', remainingSeconds: 120 }), { lane: 'timer' });
+  });
+  it.each(['Starting Soon', 'BRB', 'Just Chatting', 'Stream Ending'])('skips due breaks and hides reminders outside gameplay: %s', async (scene) => {
+    const test = runtime({ breakEnabledScenes: ['Gameplay'], breakPlatforms: ['twitch'], streamLimitEnabled: false });
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: scene }), test.context.settings, 1_000), livePlatforms: ['twitch'], currentSceneName: scene });
+    await evaluate(test.context, 3_601_000);
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(test.state().nextBreakAt).toBe(7_201_000);
+    expect(test.context.overlay.publish).not.toHaveBeenCalledWith(expect.stringContaining('.timer.update'), expect.anything());
+  });
+
+  it('requires a selected live channel before gameplay can start a break', async () => {
+    const test = runtime({ breakEnabledScenes: ['Gameplay'], breakPlatforms: ['twitch'], streamLimitEnabled: false });
+    const base = createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1_000);
+    test.setState({ ...base, livePlatforms: ['facebook'] });
+    await evaluate(test.context, 3_601_000);
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    test.setState({ ...base, livePlatforms: ['twitch'] });
+    await evaluate(test.context, 3_601_000);
+    expect(test.state().phase).toBe('break');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalled();
+  });
+
+  it('hides the BRB reminder but still returns after the two-minute break', async () => {
+    const test = runtime({ breakEnabledScenes: ['Gameplay'], breakDurationMinutes: 2, streamLimitEnabled: false });
+    test.setState({ ...createSessionState(sanitizeState({}), test.context.settings, 1_000), livePlatforms: ['twitch'], phase: 'break', currentSceneName: 'BRB', previousSceneName: 'Gameplay', breakEndsAt: 121_000 });
+    await evaluate(test.context, 61_000);
+    expect(test.context.overlay.publish).not.toHaveBeenCalledWith(expect.stringContaining('.timer.update'), expect.anything());
+    await evaluate(test.context, 121_000);
+    expect(test.state().phase).toBe('live');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardSceneName: 'Gameplay' }));
+  });
+
   it('derives a sensible automatic cadence from the planned stream length', () => {
     expect(automaticBreakIntervalMinutes(30)).toBe(15);
     expect(automaticBreakIntervalMinutes(60)).toBe(30);

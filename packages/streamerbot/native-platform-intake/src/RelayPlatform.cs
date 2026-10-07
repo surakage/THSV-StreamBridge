@@ -46,6 +46,9 @@ public class CPHInline
         // Snapshot only a bounded number of trigger arguments for the bridge adapter to normalize.
         string platform = PlatformName();
         string sourceEventType = CPH.GetEventType().ToString();
+        // The current native picker emits these names; retain the bridge's stable contract.
+        if (sourceEventType == "YouTubeGiftMembershipReceived") sourceEventType = "YouTubeMembershipGift";
+        if (sourceEventType == "YouTubeBroadcastMonitoringStarted") sourceEventType = "YouTubeBroadcastStarted";
         if (String.IsNullOrWhiteSpace(platform) || !Supported(platform, sourceEventType))
         {
             CPH.SetArgument("platformRelayValid", false);
@@ -137,7 +140,7 @@ public class CPHInline
             ["streamCategoryId"] = First(ReadInvariant("gameId"), ReadInvariant("category.id"), ReadInvariant("broadcasterChannel.gameId")),
             ["streamCategoryName"] = First(Read("game"), Read("category.name"), Read("broadcasterChannel.gameName")),
             ["streamThumbnailUrl"] = First(Read("broadcast.thumbnailUrl"), Read("category.thumbnail")),
-            ["streamStartedAt"] = First(Read("startedAt"), Read("broadcast.publishedAt")),
+            ["streamStartedAt"] = First(ReadTimestamp("startedAt"), ReadTimestamp("broadcast.publishedAt")),
             ["argumentKeys"] = argumentKeys
         };
         try { CPH.WebsocketBroadcastJson(message.ToString(Formatting.None)); }
@@ -207,7 +210,7 @@ public class CPHInline
         if (realId.Length > 0) return realId;
         if (sourceEventType == "TwitchStreamOnline" || sourceEventType == "YouTubeBroadcastStarted" || sourceEventType == "KickStreamOnline")
         {
-            string startedAt = First(Read("startedAt"), Read("broadcast.publishedAt"));
+            string startedAt = First(ReadTimestamp("startedAt"), ReadTimestamp("broadcast.publishedAt"));
             string streamId = First(Read("broadcast.id"), Read("broadcastId"));
             if (streamId.Length > 0) return "stream:" + streamId;
             return startedAt.Length == 0 ? "" : "stream-start:" + startedAt;
@@ -363,6 +366,23 @@ public class CPHInline
             if (String.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)) return Bounded(Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? "", 2048);
         }
         return "";
+    }
+
+    private string ReadTimestamp(string name)
+    {
+        object value;
+        if (!CPH.TryGetArg(name, out value) || value == null) return "";
+        if (value is DateTimeOffset) return ((DateTimeOffset)value).ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+        if (value is DateTime) {
+            DateTime timestamp = (DateTime)value;
+            // Provider start timestamps are UTC; Streamer.bot may omit DateTime.Kind.
+            if (timestamp.Kind == DateTimeKind.Unspecified) timestamp = DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+            return timestamp.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+        }
+        DateTimeOffset parsed;
+        return DateTimeOffset.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out parsed)
+            ? parsed.ToString("O", CultureInfo.InvariantCulture) : "";
     }
 
     private string ReadInvariant(string name)

@@ -31,7 +31,11 @@
     "eventSubscriptions": [
       "addon.thsv.starting-soon-countdown.control",
       "stream.scene-changed",
-      "system.scene-catalog"
+      "system.scene-catalog",
+      "stream.online",
+      "stream.offline",
+      "system.broadcast-started",
+      "system.broadcast-stopped"
     ],
     "commandsProvided": [],
     "actionsProvided": [],
@@ -66,18 +70,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 18721,
-      "sha256": "0d9a28e76a100cdf02788319013b5fb621c1b8a89b2504575c85ab11c476b938"
+      "size": 22603,
+      "sha256": "b5450a1141f61b2862dfceb2e111bb6191a4fe2e28bfbb3f11df995cf6a085fb"
     },
     {
       "path": "schemas/config.json",
-      "size": 4189,
-      "sha256": "c8225244ce3abf27b0a14ce1fa5d86a98abddfbfd756029adc7bee4bb9e9fb9f"
+      "size": 5449,
+      "sha256": "e8c3851a43a94963c757afc050d39c587874e9a6c8047f314acd5e0d815cc0fa"
     },
     {
       "path": "ui/settings.json",
-      "size": 5161,
-      "sha256": "a45f657d6449de2980fb2fad5922478e1ab3fb3f75b0334759112bb9b8e34464"
+      "size": 6511,
+      "sha256": "1596b097abf0f3b6c5731cf53444fe3e5a12e41d85af3cf69eddda58ca57d7a0"
     },
     {
       "path": "README.md",

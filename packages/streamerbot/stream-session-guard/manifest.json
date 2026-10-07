@@ -21,6 +21,66 @@
       ],
       "brokerDispatched": true,
       "mustRemainTriggerless": true
+    },
+    {
+      "id": "aa906f5d-73c0-4589-9b9c-3f3672e674a3",
+      "name": "THSV Extension - Stream Break & End Guard - Pause Automation",
+      "group": "THSV Extension - Stream Break & End Guard",
+      "arguments": [
+        {
+          "name": "sessionGuardAction",
+          "value": "pause"
+        }
+      ],
+      "source": "src/ControlAutomation.cs",
+      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.12.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "ea75bd97-babd-49f4-beb7-fc28667711bc",
+      "name": "THSV Extension - Stream Break & End Guard - Resume Automation",
+      "group": "THSV Extension - Stream Break & End Guard",
+      "arguments": [
+        {
+          "name": "sessionGuardAction",
+          "value": "resume"
+        }
+      ],
+      "source": "src/ControlAutomation.cs",
+      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.12.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
+    },
+    {
+      "id": "2c744fbc-fbee-49b9-a187-bef9d732e914",
+      "name": "THSV Extension - Stream Break & End Guard - Toggle Pause",
+      "group": "THSV Extension - Stream Break & End Guard",
+      "arguments": [
+        {
+          "name": "sessionGuardAction",
+          "value": "toggle"
+        }
+      ],
+      "source": "src/ControlAutomation.cs",
+      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.12.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ]
     }
   ],
   "runtime": {

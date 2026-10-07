@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -33,8 +33,9 @@ describe('Stream Launch Countdown installed add-on', () => {
     const statePath = join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json');
     await registry.start();
     await registry.publish({ ...control('scene-snapshot'), eventType: 'system.scene-catalog', payload: { provider: 'obs', currentScene: 'Starting Soon', scenes: ['Starting Soon'] } });
-    let state = JSON.parse(await readFile(statePath, 'utf8')) as { remainingSeconds: number; maximumSeconds: number; running: boolean; visible: boolean };
-    expect(state).toMatchObject({ running: true, visible: true });
+    let state = JSON.parse(await readFile(statePath, 'utf8')) as { remainingSeconds: number; maximumSeconds: number; running: boolean; visible: boolean; waitingForLive?: boolean };
+    // Entering the automatic scene shows the countdown but waits for a platform to go live before running.
+    expect(state).toMatchObject({ running: false, visible: true, waitingForLive: true });
     await registry.publish(control('set-and-start', { seconds: 90 }));
     state = JSON.parse(await readFile(statePath, 'utf8')) as typeof state;
     expect(state).toMatchObject({ remainingSeconds: 90, maximumSeconds: 90, running: true, visible: true });
@@ -63,13 +64,14 @@ describe('Stream Launch Countdown installed add-on', () => {
     }], silentLogger, 5_000, broker);
     const statePath = join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json');
     await mkdir(join(stateRoot, 'thsv.starting-soon-countdown'), { recursive: true });
-    await writeFile(statePath, JSON.stringify({
-      initialized: true, remainingSeconds: 1, maximumSeconds: 1, running: true, visible: true, completed: false,
-      updatedAt: Date.now() - 2_000, completedAt: 0, completionSequence: 0, completionActionSent: false,
-      completionActionDueAt: 0, lastReason: 'started',
-    }), 'utf8');
     await registry.start();
-    const completionState = JSON.parse(await readFile(statePath, 'utf8')) as Record<string, unknown>;
+    // A restart no longer resumes a saved running countdown, so start a one-second countdown explicitly.
+    await registry.publish(control('set-and-start', { seconds: 1 }));
+    let completionState: Record<string, unknown> = {};
+    for (let attempt = 0; attempt < 40 && completionState.completionActionSent !== true; attempt += 1) {
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+      completionState = JSON.parse(await readFile(statePath, 'utf8')) as Record<string, unknown>;
+    }
     expect(completionState).toMatchObject({ completed: true, completionActionSent: true });
     expect(actions).toHaveLength(1);
     expect(actions[0]).toMatchObject({ actionId, argumentsValue: { countdownModule: 'thsv.starting-soon-countdown', countdownTrigger: 'completed' } });

@@ -1,0 +1,9 @@
+
+/* Keep the complete ad card inside its short portrait browser canvas. */
+.timer-shell[data-variant="ad-break"]{width:100%!important;height:100%!important;max-width:100%!important;min-height:0!important;padding:4px!important;margin:0!important;box-sizing:border-box!important;}
+.timer-shell[data-variant="ad-break"] .timer-card{width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;box-sizing:border-box!important;padding:8px 10px!important;margin:0!important;display:flex!important;flex-direction:column!important;justify-content:space-between!important;gap:3px!important;box-shadow:none!important;}
+.timer-shell[data-variant="ad-break"] .timer-topline{flex:0 0 auto!important;min-height:22px!important;gap:8px!important;}
+.timer-shell[data-variant="ad-break"] .timer-label,.timer-shell[data-variant="ad-break"] .timer-badge{font-size:14px!important;line-height:1.1!important;}
+.timer-shell[data-variant="ad-break"] .timer-time{flex:1 1 auto!important;min-height:0!important;margin:0!important;font-size:44px!important;line-height:1!important;display:grid!important;place-items:center!important;}
+.timer-shell[data-variant="ad-break"] .timer-progress-track{flex:0 0 5px!important;height:5px!important;min-height:5px!important;margin:0!important;}
+.timer-shell[data-variant="ad-break"] .timer-meta{display:none!important;}

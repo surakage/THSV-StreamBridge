@@ -1,7 +1,7 @@
 # Stream Break & End Guard setup
 
 **Module:** `thsv.stream-session-guard`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 A built-in live-session wellness timer that derives breaks from the planned stream length, warns before deadlines, and switches only to scenes detected from the connected broadcast app.
@@ -27,6 +27,9 @@ Minimum supported Streamer.bot version: `1.0.7`.
 Imported group: `THSV Extension - Stream Break & End Guard`
 
 - `THSV Extension - Stream Break & End Guard - Scene Controller` in `THSV Extension - Stream Break & End Guard`
+- `THSV Extension - Stream Break & End Guard - Pause Automation` in `THSV Extension - Stream Break & End Guard`
+- `THSV Extension - Stream Break & End Guard - Resume Automation` in `THSV Extension - Stream Break & End Guard`
+- `THSV Extension - Stream Break & End Guard - Toggle Pause` in `THSV Extension - Stream Break & End Guard`
 
 Scene Controller must remain triggerless. StreamBridge supplies a one-use broker token plus one exact provider, connection index, and wizard-selected scene name.
 

@@ -423,3 +423,255 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 @keyframes counter-bounce { 0%, 100% { transform: translateY(0); } 42% { transform: translateY(-12%); } 68% { transform: translateY(3%); } }
 @keyframes counter-flash { 0%, 100% { box-shadow: 0 20px 70px rgb(0 0 0 / 42%); } 45% { box-shadow: 0 0 42px var(--counter-accent); } }
 @media (prefers-reduced-motion: reduce) { .counter-shell.counter-change .counter-card, .counter-shell.counter-change .counter-value { animation: none !important; } }
+.hydration-sip-copy { display: none; }
+.hydration-shell[data-mode="reminder"] .hydration-body, .hydration-shell[data-mode="sips"] .hydration-body { grid-template-columns: 1fr; gap: 14px; }
+.hydration-shell[data-mode="reminder"] .hydration-vessel, .hydration-shell[data-mode="sips"] .hydration-vessel,
+.hydration-shell[data-mode="reminder"] .hydration-total-label, .hydration-shell[data-mode="sips"] .hydration-total-label,
+.hydration-shell[data-mode="reminder"] .hydration-measure, .hydration-shell[data-mode="sips"] .hydration-measure,
+.hydration-shell[data-mode="reminder"] .hydration-progress-row, .hydration-shell[data-mode="sips"] .hydration-progress-row { display: none; }
+.hydration-shell[data-mode="reminder"] .hydration-sip-copy, .hydration-shell[data-mode="sips"] .hydration-sip-copy { display: grid; gap: 8px; padding: 12px 0; }
+.hydration-sip-copy strong { color: var(--hydration-accent); font-size: clamp(24px, 3vw, 34px); line-height: 1.15; }
+.hydration-sip-copy p { margin: 0; color: var(--hydration-muted); font-size: 17px; line-height: 1.5; }
+#hydration-sip-count:empty { display: none; }
+#hydration-sip-count { color: var(--hydration-muted); font-size: 15px; }
+/* Shared physical card frame. Select ?cardSize=compact or ?cardSize=regular. */
+html[data-redemption-size] { --redemption-zoom:1; }
+html[data-redemption-size="regular"] { --redemption-zoom:1.4; }
+html[data-redemption-size] .stage { padding:0!important; }
+html[data-redemption-size] :is(.fan-crown-shell,.first-five-shell,.roll-call-shell,.chat-play-game-shell,.chat-play-winner-shell,.card[data-card-kind="viewer-spotlight"]) {
+  width:700px!important; height:410px!important; min-width:700px!important; max-width:700px!important; max-height:410px!important;
+  aspect-ratio:auto!important; padding:0!important; margin:0!important; box-sizing:border-box!important; zoom:var(--redemption-zoom); border:0!important; background:transparent!important; box-shadow:none!important;
+}
+html[data-redemption-size] :is(.fan-crown-card,.first-five-board,.roll-call-board,.chat-play-game-card,.chat-play-winner-card,.spotlight-face) {
+  width:100%!important; height:100%!important; max-height:none!important; box-sizing:border-box!important;
+  border:2px solid #8b713a!important; border-radius:16px!important; padding:24px!important; margin:0!important;
+  background:linear-gradient(105deg,#302719,#17261c 28%,#101b15)!important;
+  box-shadow:inset 0 0 0 4px #100f0b,inset 0 0 0 5px #766035!important; overflow:hidden!important; gap:10px!important;
+}
+html[data-redemption-size] :is(.fan-crown-card,.first-five-board,.roll-call-board,.chat-play-game-card,.chat-play-winner-card)::before,
+html[data-redemption-size] .roll-call-board::after { display:none!important; }
+html[data-redemption-size] .first-five-header { padding-bottom:8px!important; }
+html[data-redemption-size] .first-five-header h1 { font-size:32px!important; margin:0!important; }
+html[data-redemption-size] :is(.first-five-eyebrow,.first-five-header p,.first-five-footer,.first-five-copy small) { display:none!important; }
+html[data-redemption-size] .first-five-progress { display:grid!important; place-items:center!important; width:48px!important; height:48px!important; min-width:48px!important; min-height:48px!important; flex:0 0 48px!important; box-sizing:border-box!important; padding:0!important; margin:0!important; font-size:18px!important; line-height:1!important; white-space:nowrap!important; border-radius:50%!important; }
+html[data-redemption-size] .first-five-places { grid-auto-rows:54px!important; gap:6px!important; }
+html[data-redemption-size] .first-five-place { padding:5px 12px!important; grid-template-columns:38px minmax(0,1fr) auto!important; gap:10px!important; }
+html[data-redemption-size] .first-five-copy strong { font-size:24px!important; }
+html[data-redemption-size] .first-five-platform { font-size:12px!important; }
+html[data-redemption-size] .roll-call-board { grid-template-rows:auto 1fr auto; }
+html[data-redemption-size] :is(.roll-call-eyebrow,.roll-call-footer) { display:none!important; }
+html[data-redemption-size] .roll-call-header h1 { font-size:36px!important; }
+html[data-redemption-size] .roll-call-header p { font-size:16px!important; }
+html[data-redemption-size] .roll-call-place { min-height:130px!important; padding:12px!important; gap:6px!important; }
+html[data-redemption-size] .roll-call-place-1 { min-height:150px!important; }
+html[data-redemption-size] .roll-call-name { font-size:21px!important; }
+html[data-redemption-size] .roll-call-runners { gap:8px!important; }
+html[data-redemption-size] .fan-crown-card { grid-template-rows:auto 1fr auto; }
+html[data-redemption-size] .fan-crown-body { grid-template-columns:140px minmax(0,1fr)!important; gap:20px!important; }
+html[data-redemption-size] .fan-crown-name { font-size:32px!important; }
+html[data-redemption-size] .spotlight-face { padding:24px!important; }
+html[data-redemption-size] .spotlight-back-heading { padding-bottom:10px!important; }
+html[data-redemption-size] .spotlight-back-heading strong { font-size:34px!important; }
+html[data-redemption-size] .spotlight-stats { align-content:center!important; gap:12px!important; }
+html[data-redemption-size] .spotlight-stat { min-height:65px!important; padding:8px!important; }
+html[data-redemption-size] .spotlight-stat-name { font-size:16px!important; }
+html[data-redemption-size] .spotlight-stat-value { font-size:28px!important; }
+html[data-redemption-size] .spotlight-back-platform { padding:8px!important; font-size:16px!important; }
+html[data-redemption-size] .spotlight-front { padding-left:170px!important; justify-content:center!important; }
+html[data-redemption-size] .spotlight-front .spotlight-avatar { position:absolute; left:24px; top:120px; width:120px!important; height:120px!important; margin:0!important; font-size:60px!important; }
+html[data-redemption-size] .spotlight-front .spotlight-name { font-size:34px!important; margin:10px 0!important; }
+html[data-redemption-size] .spotlight-front .spotlight-follow { margin-top:12px!important; }
+html[data-redemption-size] .chat-play-winner-body { grid-template-columns:140px minmax(0,1fr)!important; gap:20px!important; }
+html[data-redemption-size] #chat-play-winner-name { font-size:32px!important; }
+html[data-redemption-size] .chat-play-game-card h1 { font-size:30px!important; }
+html[data-redemption-size] .chat-play-prompt { font-size:24px!important; }
+/* Portrait variants use the same shared frame with a vertical content layout. */
+html[data-redemption-size][data-redemption-orientation="vertical"] :is(.fan-crown-shell,.first-five-shell,.roll-call-shell,.chat-play-game-shell,.chat-play-winner-shell,.card[data-card-kind="viewer-spotlight"]) {
+  width:410px!important; height:700px!important; min-width:410px!important; max-width:410px!important; max-height:700px!important;
+}
+html[data-redemption-orientation="vertical"] .first-five-header h1 { font-size:28px!important; }
+html[data-redemption-orientation="vertical"] .first-five-places { grid-auto-rows:100px!important; }
+html[data-redemption-orientation="vertical"] .first-five-place { grid-template-columns:30px minmax(0,1fr)!important; }
+html[data-redemption-orientation="vertical"] .first-five-platform { display:none!important; }
+html[data-redemption-orientation="vertical"] .first-five-copy strong { font-size:23px!important; white-space:normal!important; display:-webkit-box!important; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+html[data-redemption-orientation="vertical"] .fan-crown-body { display:flex!important; flex-direction:column!important; justify-content:center!important; gap:22px!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-crest { width:130px!important; height:150px!important; margin:0 auto!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-copy { text-align:center!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-name { font-size:28px!important; -webkit-line-clamp:3!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-footer { display:none!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-metrics { margin-top:16px!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-metrics > div { padding:8px 6px!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-metrics > div:last-child { display:grid!important; }
+html[data-redemption-orientation="vertical"] .roll-call-header h1 { font-size:29px!important; }
+html[data-redemption-orientation="vertical"] .roll-call-podium { grid-template-columns:1fr!important; align-items:stretch!important; gap:10px!important; }
+html[data-redemption-orientation="vertical"] .roll-call-place { min-height:110px!important; order:initial!important; }
+html[data-redemption-orientation="vertical"] .roll-call-place-1 { min-height:110px!important; }
+html[data-redemption-orientation="vertical"] .roll-call-runners { grid-template-columns:1fr!important; }
+html[data-redemption-orientation="vertical"] .spotlight-front { padding:215px 24px 24px!important; justify-content:flex-start!important; }
+html[data-redemption-orientation="vertical"] .spotlight-front .spotlight-avatar { left:calc(50% - 60px)!important; top:65px!important; }
+html[data-redemption-orientation="vertical"] .spotlight-front .spotlight-name { font-size:30px!important; }
+html[data-redemption-orientation="vertical"] .spotlight-stats { grid-template-columns:1fr!important; }
+html[data-redemption-orientation="vertical"] .spotlight-back-heading strong { font-size:30px!important; }
+html[data-redemption-orientation="vertical"] .spotlight-stat { min-height:100px!important; }
+html[data-redemption-orientation="vertical"] .chat-play-winner-body { grid-template-columns:1fr!important; align-content:center!important; gap:24px!important; }
+html[data-redemption-orientation="vertical"] .chat-play-winner-card { grid-template-rows:50px minmax(0,1fr)!important; }
+html[data-redemption-orientation="vertical"] .chat-play-winner-avatar-wrap { width:135px!important; margin:auto!important; }
+html[data-redemption-orientation="vertical"] .chat-play-winner-copy { text-align:center!important; }
+html[data-redemption-orientation="vertical"] #chat-play-winner-name { font-size:28px!important; }
+html[data-redemption-orientation="vertical"] .chat-play-choices { grid-template-columns:1fr!important; }
+
+
+/* Portrait browser-source variants; dimensions are listed by the bridge source assistant. */
+html[data-overlay-orientation="vertical"] .stage {padding:0;}
+html[data-overlay-orientation="vertical"] .card {width:100%;max-width:100%;padding:18px;gap:14px;}
+html[data-overlay-orientation="vertical"] .timer-shell,html[data-overlay-orientation="vertical"] .timer-card{width:100%;height:100%;max-width:100%;margin:0;padding:12px;box-sizing:border-box;}
+html[data-overlay-orientation="vertical"] .timer-card{display:flex;flex-direction:column;justify-content:space-between;gap:2px;}
+html[data-overlay-orientation="vertical"] .timer-time:not(.timer-complete-message){font-size:clamp(38px,12vw,90px);line-height:1.05;}
+html[data-overlay-orientation="vertical"] .timer-label,html[data-overlay-orientation="vertical"] .timer-badge{font-size:16px;}
+html[data-overlay-orientation="vertical"] .timer-meta{display:none;}
+html[data-overlay-orientation="vertical"] .media-title{display:none;}
+html[data-overlay-orientation="vertical"] .media-shell.media-template-preview::before{content:"";}
+
+
+/* Keep the complete ad card inside its short portrait browser canvas. */
+html[data-overlay-orientation="vertical"] .timer-shell[data-variant="ad-break"]{width:100%!important;height:100%!important;max-width:100%!important;min-height:0!important;padding:4px!important;margin:0!important;box-sizing:border-box!important;}
+html[data-overlay-orientation="vertical"] .timer-shell[data-variant="ad-break"] .timer-card{width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;box-sizing:border-box!important;padding:8px 10px!important;margin:0!important;display:flex!important;flex-direction:column!important;justify-content:space-between!important;gap:3px!important;box-shadow:none!important;}
+html[data-overlay-orientation="vertical"] .timer-shell[data-variant="ad-break"] .timer-topline{flex:0 0 auto!important;min-height:22px!important;gap:8px!important;}
+html[data-overlay-orientation="vertical"] .timer-shell[data-variant="ad-break"] .timer-label,html[data-overlay-orientation="vertical"] .timer-shell[data-variant="ad-break"] .timer-badge{font-size:14px!important;line-height:1.1!important;}
+html[data-overlay-orientation="vertical"] .timer-shell[data-variant="ad-break"] .timer-time{flex:1 1 auto!important;min-height:0!important;margin:0!important;font-size:44px!important;line-height:1!important;display:grid!important;place-items:center!important;}
+html[data-overlay-orientation="vertical"] .timer-shell[data-variant="ad-break"] .timer-progress-track{flex:0 0 5px!important;height:5px!important;min-height:5px!important;margin:0!important;}
+html[data-overlay-orientation="vertical"] .timer-shell[data-variant="ad-break"] .timer-meta{display:none!important;}
+
+
+
+
+
+/* Redemption celebration update 20261005 */
+/* Shared physical card frame. Select ?cardSize=compact or ?cardSize=regular. */
+html[data-redemption-size] { --redemption-zoom:1; }
+html[data-redemption-size="regular"] { --redemption-zoom:1.4; }
+html[data-redemption-size] .stage { padding:0!important; }
+html[data-redemption-size] :is(.fan-crown-shell,.first-five-shell,.roll-call-shell,.chat-play-game-shell,.chat-play-winner-shell,.card[data-card-kind="viewer-spotlight"]) {
+  width:700px!important; height:410px!important; min-width:700px!important; max-width:700px!important; max-height:410px!important;
+  aspect-ratio:auto!important; padding:0!important; margin:0!important; box-sizing:border-box!important; zoom:var(--redemption-zoom); border:0!important; background:transparent!important; box-shadow:none!important;
+}
+html[data-redemption-size] :is(.fan-crown-card,.first-five-board,.roll-call-board,.chat-play-game-card,.chat-play-winner-card,.spotlight-face) {
+  width:100%!important; height:100%!important; max-height:none!important; box-sizing:border-box!important;
+  border:2px solid #8b713a!important; border-radius:16px!important; padding:24px!important; margin:0!important;
+  background:linear-gradient(105deg,#302719,#17261c 28%,#101b15)!important;
+  box-shadow:inset 0 0 0 4px #100f0b,inset 0 0 0 5px #766035!important; overflow:hidden!important; gap:10px!important;
+}
+html[data-redemption-size] :is(.fan-crown-card,.first-five-board,.roll-call-board,.chat-play-game-card,.chat-play-winner-card)::before,
+html[data-redemption-size] .roll-call-board::after { display:none!important; }
+html[data-redemption-size] .first-five-header { padding-bottom:8px!important; }
+html[data-redemption-size] .first-five-header h1 { font-size:32px!important; margin:0!important; }
+html[data-redemption-size] :is(.first-five-eyebrow,.first-five-header p,.first-five-footer,.first-five-copy small) { display:none!important; }
+html[data-redemption-size] .first-five-progress { display:grid!important; place-items:center!important; width:48px!important; height:48px!important; min-width:48px!important; min-height:48px!important; flex:0 0 48px!important; box-sizing:border-box!important; padding:0!important; margin:0!important; font-size:18px!important; line-height:1!important; white-space:nowrap!important; border-radius:50%!important; }
+html[data-redemption-size] .first-five-places { grid-auto-rows:54px!important; gap:6px!important; }
+html[data-redemption-size] .first-five-place { padding:5px 12px!important; grid-template-columns:38px minmax(0,1fr) auto!important; gap:10px!important; }
+html[data-redemption-size] .first-five-copy strong { font-size:24px!important; }
+html[data-redemption-size] .first-five-platform { font-size:12px!important; }
+html[data-redemption-size] .roll-call-board { grid-template-rows:auto 1fr auto; }
+html[data-redemption-size] :is(.roll-call-eyebrow,.roll-call-footer) { display:none!important; }
+html[data-redemption-size] .roll-call-header h1 { font-size:36px!important; }
+html[data-redemption-size] .roll-call-header p { font-size:16px!important; }
+html[data-redemption-size] .roll-call-place { min-height:130px!important; padding:12px!important; gap:6px!important; }
+html[data-redemption-size] .roll-call-place-1 { min-height:150px!important; }
+html[data-redemption-size] .roll-call-name { font-size:21px!important; }
+html[data-redemption-size] .roll-call-runners { gap:8px!important; }
+html[data-redemption-size] .fan-crown-card { grid-template-rows:auto 1fr auto; }
+html[data-redemption-size] .fan-crown-body { grid-template-columns:140px minmax(0,1fr)!important; gap:20px!important; }
+html[data-redemption-size] .fan-crown-name { font-size:32px!important; }
+html[data-redemption-size] .spotlight-face { padding:24px!important; }
+html[data-redemption-size] .spotlight-back-heading { padding-bottom:10px!important; }
+html[data-redemption-size] .spotlight-back-heading strong { font-size:34px!important; }
+html[data-redemption-size] .spotlight-stats { align-content:center!important; gap:12px!important; }
+html[data-redemption-size] .spotlight-stat { min-height:65px!important; padding:8px!important; }
+html[data-redemption-size] .spotlight-stat-name { font-size:16px!important; }
+html[data-redemption-size] .spotlight-stat-value { font-size:28px!important; }
+html[data-redemption-size] .spotlight-back-platform { padding:8px!important; font-size:16px!important; }
+html[data-redemption-size] .spotlight-front { padding-left:170px!important; justify-content:center!important; }
+html[data-redemption-size] .spotlight-front .spotlight-avatar { position:absolute; left:24px; top:120px; width:120px!important; height:120px!important; margin:0!important; font-size:60px!important; }
+html[data-redemption-size] .spotlight-front .spotlight-name { font-size:34px!important; margin:10px 0!important; }
+html[data-redemption-size] .spotlight-front .spotlight-follow { margin-top:12px!important; }
+html[data-redemption-size] .chat-play-winner-body { grid-template-columns:140px minmax(0,1fr)!important; gap:20px!important; }
+html[data-redemption-size] #chat-play-winner-name { font-size:32px!important; }
+html[data-redemption-size] .chat-play-game-card h1 { font-size:30px!important; }
+html[data-redemption-size] .chat-play-prompt { font-size:24px!important; }
+/* Portrait variants use the same shared frame with a vertical content layout. */
+html[data-redemption-size][data-redemption-orientation="vertical"] :is(.fan-crown-shell,.first-five-shell,.roll-call-shell,.chat-play-game-shell,.chat-play-winner-shell,.card[data-card-kind="viewer-spotlight"]) {
+  width:410px!important; height:700px!important; min-width:410px!important; max-width:410px!important; max-height:700px!important;
+}
+html[data-redemption-orientation="vertical"] .first-five-header h1 { font-size:28px!important; }
+html[data-redemption-orientation="vertical"] .first-five-places { grid-auto-rows:100px!important; }
+html[data-redemption-orientation="vertical"] .first-five-place { grid-template-columns:30px minmax(0,1fr)!important; }
+html[data-redemption-orientation="vertical"] .first-five-platform { display:none!important; }
+html[data-redemption-orientation="vertical"] .first-five-copy strong { font-size:23px!important; white-space:normal!important; display:-webkit-box!important; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+html[data-redemption-orientation="vertical"] .fan-crown-body { display:flex!important; flex-direction:column!important; justify-content:center!important; gap:22px!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-crest { width:130px!important; height:150px!important; margin:0 auto!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-copy { text-align:center!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-name { font-size:28px!important; -webkit-line-clamp:3!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-footer { display:none!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-metrics { margin-top:16px!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-metrics > div { padding:8px 6px!important; }
+html[data-redemption-orientation="vertical"] .fan-crown-metrics > div:last-child { display:grid!important; }
+html[data-redemption-orientation="vertical"] .roll-call-header h1 { font-size:29px!important; }
+html[data-redemption-orientation="vertical"] .roll-call-podium { grid-template-columns:1fr!important; align-items:stretch!important; gap:10px!important; }
+html[data-redemption-orientation="vertical"] .roll-call-place { min-height:110px!important; order:initial!important; }
+html[data-redemption-orientation="vertical"] .roll-call-place-1 { min-height:110px!important; }
+html[data-redemption-orientation="vertical"] .roll-call-runners { grid-template-columns:1fr!important; }
+html[data-redemption-orientation="vertical"] .spotlight-front { padding:215px 24px 24px!important; justify-content:flex-start!important; }
+html[data-redemption-orientation="vertical"] .spotlight-front .spotlight-avatar { left:calc(50% - 60px)!important; top:65px!important; }
+html[data-redemption-orientation="vertical"] .spotlight-front .spotlight-name { font-size:30px!important; }
+html[data-redemption-orientation="vertical"] .spotlight-stats { grid-template-columns:1fr!important; }
+html[data-redemption-orientation="vertical"] .spotlight-back-heading strong { font-size:30px!important; }
+html[data-redemption-orientation="vertical"] .spotlight-stat { min-height:100px!important; }
+html[data-redemption-orientation="vertical"] .chat-play-winner-body { grid-template-columns:1fr!important; align-content:center!important; gap:24px!important; }
+html[data-redemption-orientation="vertical"] .chat-play-winner-card { grid-template-rows:50px minmax(0,1fr)!important; }
+html[data-redemption-orientation="vertical"] .chat-play-winner-avatar-wrap { width:135px!important; margin:auto!important; }
+html[data-redemption-orientation="vertical"] .chat-play-winner-copy { text-align:center!important; }
+html[data-redemption-orientation="vertical"] #chat-play-winner-name { font-size:28px!important; }
+html[data-redemption-orientation="vertical"] .chat-play-choices { grid-template-columns:1fr!important; }
+
+/* Firefly celebration: one readable frame for every size and orientation. */
+html[data-redemption-size] { --redemption-accent:#f2cc68; --redemption-platform:#f2cc68; }
+html[data-redemption-size] :is(.fan-crown-card,.first-five-board,.roll-call-board,.chat-play-game-card,.chat-play-winner-card,.spotlight-face) {
+  position:relative!important; isolation:isolate; color:#fff7df!important;
+  border:2px solid #e9bd58!important; border-radius:20px!important;
+  background:radial-gradient(ellipse at 85% 0%,#9b743433,transparent 55%),radial-gradient(ellipse at 0% 100%,#32b39f2b,transparent 65%),linear-gradient(120deg,#302714,#132b25 46%,#091b19)!important;
+  box-shadow:inset 0 0 0 4px #0a1616,inset 0 0 0 5px #a38040,inset 0 0 70px #02131399!important;
+}
+html[data-redemption-size] :is(.fan-crown-card,.first-five-board,.roll-call-board,.chat-play-game-card,.chat-play-winner-card)::before {
+  display:block!important; content:""; position:absolute!important; inset:0!important; z-index:-1!important; pointer-events:none;
+  background:radial-gradient(circle at 7% 14%,#f2cc68aa 0 1px,transparent 2px),radial-gradient(circle at 90% 84%,#79e6c6aa 0 1px,transparent 3px),radial-gradient(circle at 93% 10%,#f2cc6855 0 2px,transparent 5px),repeating-linear-gradient(135deg,transparent 0 24px,#deb95a06 25px 26px);
+  opacity:1!important; transform:none!important; width:auto!important; height:auto!important; aspect-ratio:auto!important; border-radius:0!important; box-shadow:none!important;
+}
+html[data-redemption-size] :is(.fan-crown-shell,.first-five-shell,.roll-call-shell,.chat-play-game-shell,.chat-play-winner-shell,.card[data-card-kind="viewer-spotlight"]):not(.hidden) { animation:village-card-arrival .45s cubic-bezier(.2,.85,.3,1) both; }
+@keyframes village-card-arrival { from { opacity:0; transform:translateY(12px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+html[data-redemption-size] :is(.first-five-header,.roll-call-header,.fan-crown-header,.chat-play-game-card header,.chat-play-winner-card header) { border-bottom:1px solid #eac66855!important; padding-bottom:10px!important; }
+html[data-redemption-size] :is(.first-five-header h1,.roll-call-header h1,.spotlight-back-heading strong,.fan-crown-name,#chat-play-winner-name) { color:#fff4c9!important; text-shadow:0 2px 2px #0008,0 0 22px #f2cc6830; }
+html[data-redemption-size] .first-five-eyebrow { display:block!important; color:#f2cc68!important; font-size:10px!important; letter-spacing:2px!important; }
+html[data-redemption-size] .first-five-places { grid-auto-rows:52px!important; }
+html[data-redemption-size] .first-five-place { background:linear-gradient(90deg,#163b30eb,#071b18d9)!important; border:1px solid #79d4b933!important; border-radius:9px!important; box-shadow:inset 3px 0 #f2cc68!important; }
+html[data-redemption-size] .first-five-place[data-filled="true"] { background:linear-gradient(90deg,#79602b55,#133b30dd)!important; border-color:#f2cc6870!important; }
+html[data-redemption-size] .first-five-progress { color:#fff2b1!important; background:#b8943226!important; border:1px solid #e0bb53!important; box-shadow:0 0 18px #d7ac4333!important; }
+html[data-redemption-size] :is(.fan-crown-platform,.first-five-platform,.spotlight-platform,#chat-play-winner-platform) { color:var(--redemption-platform)!important; background:color-mix(in srgb,var(--redemption-platform) 14%,#071716)!important; border:1px solid color-mix(in srgb,var(--redemption-platform) 55%,transparent)!important; border-radius:6px!important; padding:4px 8px!important; font-weight:800!important; letter-spacing:.5px; }
+html[data-redemption-size] :is(.fan-crown-crest,.chat-play-winner-avatar-wrap,.spotlight-avatar) { filter:drop-shadow(0 0 18px #e6bf4e55); }
+html[data-redemption-size] .fan-crown-metrics > div { background:#04171499!important; border:1px solid #d8b25444!important; border-radius:10px!important; }
+html[data-redemption-size] .fan-crown-metrics small { color:#c4dcd1!important; }
+html[data-redemption-size] .fan-crown-metrics strong { color:#ffe7a4!important; }
+html[data-redemption-size] .roll-call-place { border:1px solid #87d9ba55!important; border-radius:12px!important; background:linear-gradient(150deg,#26725745,#081d1bd9)!important; }
+html[data-redemption-size] .roll-call-place-1 { border-color:#f2cc68!important; background:linear-gradient(150deg,#cda44e40,#143b2bd9)!important; box-shadow:0 0 25px #e6b94f1c!important; }
+html[data-redemption-size] .roll-call-rank { color:#ffe8a0!important; }
+html[data-redemption-size] .roll-call-count { color:#b8ebd3!important; }
+html[data-redemption-size] .roll-call-name { color:#fff3ce!important; }
+html[data-redemption-size] .roll-call-header p { color:#bedfd0!important; }
+html[data-redemption-size] .roll-call-runner { border-radius:8px!important; background:#0a211bbb!important; border:1px solid #afcc9955!important; }
+html[data-redemption-size] .spotlight-stat { border:1px solid #d8b25466!important; border-radius:12px!important; background:#08241fd9!important; }
+html[data-redemption-size] .spotlight-stat-value { color:#ffe6a0!important; }
+html[data-redemption-size] .spotlight-stat-name { color:#c7e4d5!important; }
+html[data-redemption-size] :is(.spotlight-foil,.chat-play-burst) { inset:0!important; transform:none!important; animation:none!important; }
+html[data-redemption-size] .chat-play-choices > * { border:1px solid #e5bd5655!important; border-radius:8px!important; background:#112f28!important; }
+html[data-redemption-size][data-redemption-orientation="vertical"] .first-five-places { grid-auto-rows:100px!important; }
+html[data-redemption-size][data-redemption-orientation="vertical"] .first-five-platform { display:block!important; grid-column:2; justify-self:start; font-size:10px!important; }
+@media (prefers-reduced-motion:reduce) { html[data-redemption-size] :is(.fan-crown-shell,.first-five-shell,.roll-call-shell,.chat-play-game-shell,.chat-play-winner-shell,.card[data-card-kind="viewer-spotlight"]) { animation:none!important; } }

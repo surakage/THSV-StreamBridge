@@ -1,7 +1,7 @@
 # First Five setup
 
 **Module:** `thsv.first-five`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with one placement per viewer per stream.
@@ -17,7 +17,7 @@ Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer F
 1. Import the separate First Five Streamer.bot package.
 2. Keep its Controller action triggerless and approve only that action for this add-on.
 3. Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.
-4. Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube and TikTok command registers automatically after restart.
+4. Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube, TikTok and Facebook command registers automatically after restart.
 
 ## Streamer.bot
 
@@ -51,7 +51,7 @@ When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`, `schedule.bounded`.
 
 Private storage: `data/addons/thsv.first-five/`, `data/addons/.state/thsv.first-five/`.
 

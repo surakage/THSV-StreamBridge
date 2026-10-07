@@ -11,6 +11,8 @@ import {
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA14,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA15,
   streamerBotTriggerRegistryForVersion,
 } from '../../bridge/contracts/streamerbot-trigger-contract-registry.js';
 
@@ -38,6 +40,9 @@ describe('StreamerBotTriggerAssuranceService', () => {
     expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.5')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5);
     expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.6')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6);
     expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.10')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.14')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA14);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.15')).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA15);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0 alpha.16')).toBeUndefined();
 
     const alpha = await fixture('1.1.0 alpha.3');
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
@@ -65,6 +70,8 @@ describe('StreamerBotTriggerAssuranceService', () => {
     ['1.1.0 alpha.5', '1.1.0-alpha.5'],
     ['1.1.0 alpha.6', '1.1.0-alpha.6'],
     ['1.1.0 alpha.10', '1.1.0-alpha.10'],
+    ['1.1.0 alpha.14', '1.1.0-alpha.14'],
+    ['1.1.0 alpha.15', '1.1.0-alpha.15'],
   ])('selects the exact installed %s registry without weakening future-alpha safety', async (installedVersion, normalizedVersion) => {
     const alpha = await fixture(installedVersion);
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
@@ -149,7 +156,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
   it('refuses unknown Streamer.bot versions and missing action bodies before creating a backup', async () => {
     const { actionsPath, root } = await fixture();
     const wrongVersion = new StreamerBotTriggerAssuranceService({ packageRoot: join(root, 'packages'), stateRoot: join(root, 'wrong-state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.0.8', streamerBotRunning: async () => false });
-    expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersions: ['1.0.7', '1.1.0-alpha.3', '1.1.0-alpha.4', '1.1.0-alpha.5', '1.1.0-alpha.6', '1.1.0-alpha.10'] });
+    expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersions: ['1.0.7', '1.1.0-alpha.3', '1.1.0-alpha.4', '1.1.0-alpha.5', '1.1.0-alpha.6', '1.1.0-alpha.10', '1.1.0-alpha.14', '1.1.0-alpha.15'] });
     await expect(wrongVersion.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
     expect((await wrongVersion.backups())['backups']).toEqual([]);
 

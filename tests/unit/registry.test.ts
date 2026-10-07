@@ -9,7 +9,7 @@ describe('AdapterRegistry', () => {
     const first = await adapterContractFingerprints();
     const second = await adapterContractFingerprints();
     expect(second).toEqual(first);
-    expect(Object.keys(first).sort()).toEqual(['mock', 'streamerbot', 'streamerbot-addon-relay', 'streamerbot-native', 'streamerbot-scene-relay', 'streamerbot-streamlabs', 'tikfinity-streamerbot', 'timed-actions']);
+    expect(Object.keys(first).sort()).toEqual(['facebook-page', 'mock', 'streamerbot', 'streamerbot-addon-relay', 'streamerbot-native', 'streamerbot-scene-relay', 'streamerbot-streamlabs', 'tikfinity-streamerbot', 'timed-actions']);
     for (const value of Object.values(first)) expect(value).toMatch(/^sha256:[a-f0-9]{64}$/u);
     expect(first['streamerbot-native']).not.toBe(first['streamerbot-scene-relay']);
   });

@@ -35,6 +35,8 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .message.platform-youtube { border-left-color: #ff3b30; }
 .message.platform-kick { border-left-color: #53fc18; }
 .message.platform-tiktok { border-left-color: #25f4ee; }
+.message.platform-facebook { border-left-color: #0866ff; }
+.message.platform-facebook .platform { background: #0866ff; color: #fff; }
 .message.platform-streamlabs { border-left-color: #32c3a2; }
 .message.platform-kofi { border-left-color: #29abe0; }
 .identity { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 7px; min-width: 0; font-family: var(--chat-font-family); }
@@ -253,3 +255,12 @@ body[data-mode="alerts"] .alert { width: min(800px, 100%); }
   .alert h2 { font-size: 23px; }
   .alert p { font-size: 16px; }
 }
+
+.alert.platform-facebook{--alert-accent:#0866ff;--alert-accent-2:#d8b24c;--alert-accent-soft:#dceaff}
+
+html[data-overlay-orientation="vertical"] body[data-mode="chat"] #chat{inset:0;width:100%;height:100%;padding:4px;}
+html[data-overlay-orientation="vertical"] body[data-mode="chat"] .message .body{font-size:32px;line-height:1.3;}
+html[data-overlay-orientation="vertical"] #alerts{inset:0;width:100%;padding:0;}
+html[data-overlay-orientation="vertical"] .alert{width:100%;max-width:100%;margin:0;padding:18px;}
+html[data-overlay-orientation="vertical"] .caption-stage{padding:4px;align-items:center;}
+html[data-overlay-orientation="vertical"] .caption{max-width:100%;font-size:32px;}

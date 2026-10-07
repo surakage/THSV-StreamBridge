@@ -28,6 +28,8 @@
     "version": "4.0.12",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.12",
+    "maximumTestedBridgeVersion": "4.0.12",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -56,7 +58,7 @@
       "Import the separate Fan Crown Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that action for this add-on.",
       "Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.",
-      "Create Twitch and Kick rewards. The saved YouTube and TikTok command registers automatically after restart."
+      "Create Twitch and Kick rewards. The saved YouTube, TikTok and Facebook command registers automatically after restart."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its compact private season state remains preserved for a later reinstall."
@@ -67,32 +69,30 @@
         "id": "thsv.fan-crown.runtime",
         "description": "Confirms serialized crown captures, result-correlated reward administration, bounded pricing, and private monthly ranking state."
       }
-    ],
-    "minimumBridgeVersion": "4.0.12",
-    "maximumTestedBridgeVersion": "4.0.12"
+    ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 32931,
-      "sha256": "794617d74d085cf0765241e507bd23faab9acf800a23882bd4f8901da18dc7b9"
+      "size": 32986,
+      "sha256": "bab1d0de4102e20a178709b46439bba0c2c9eff89136f8c62aef1a503a0707e2"
     },
     {
       "path": "schemas/config.json",
-      "size": 5769,
-      "sha256": "4a0021598d37e81ed4f8af3e3e303270ac288ec101ec9c77b305a29f174dad20"
+      "size": 6449,
+      "sha256": "913ba5fdc3bba2a74350e1f9a3cab33f1ac60c9a21332793e0c0161b2caa8d91"
     },
     {
       "path": "ui/settings.json",
-      "size": 4300,
-      "sha256": "23fec9b90bae150c548b62a2e9e1d2e8cc6c873e6f6aed7ed1a1e372658f5024"
+      "size": 4330,
+      "sha256": "675fd00c61eb4e27df93d90b0b08eb151b597d747f798d040f0a3c1768b6dacb"
     },
     {
       "path": "README.md",
-      "size": 2225,
-      "sha256": "307548637ac3820a61fb90ac252fc4888ecfa3f4a05ea72c77737026864b1119"
+      "size": 2255,
+      "sha256": "85bdbb5ee033647e4daa2bed6ab79239ab2d484fbab0e907e3f134450f18005d"
     }
   ]
 }

@@ -1,0 +1,30 @@
+.card {  background:
+    radial-gradient(circle at 12px 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at 12px calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    repeating-linear-gradient(2deg, #ffffff03 0 1px, transparent 1px 7px),
+    linear-gradient(105deg, #302719, #17261c 28%, #101b15 100%) !important;
+  border: 2px solid #8b713a !important;
+  border-radius: 8px 24px 8px 24px !important;
+  box-shadow: inset 0 0 0 5px #100f0b, inset 0 0 0 6px #766035,
+    inset 0 0 24px #050b07, 0 9px 22px #00000045 !important;
+  color: #f3ead5;
+  backdrop-filter: none !important;
+}
+
+.card {width:min(92vw,780px);min-height:0;padding:26px 30px;font-family:'Segoe UI',sans-serif;}
+.generic-card,.card-copy {width:100%;}
+.card-copy::before {content:'VILLAGE VOICE';display:block;font:11px Georgia,serif;letter-spacing:.17em;color:#b9a475;margin-bottom:10px;}
+.card strong {color:#e0c47e;font-family:Georgia,serif;font-size:26px;line-height:1.2;}
+.card p {color:#f3ead5;font-size:20px;line-height:1.4;margin-top:10px;}
+.card-image {border:3px double #b59851;border-radius:50%;}
+
+/* Compact speech strip: at most three lines, following the newest spoken words. */
+.card {width:min(94vw,620px);padding:16px 22px;border-radius:6px 14px 6px 14px!important;gap:12px;}
+.generic-card {display:flex;align-items:center;gap:12px;min-width:0;}
+.card-copy {min-width:0;}
+.card-copy::before {display:none;}
+.card strong {display:block;font-family:'Segoe UI',sans-serif;font-size:18px;font-weight:600;line-height:1.25;overflow-wrap:anywhere;}
+.card p {display:block;-webkit-line-clamp:unset;max-height:3.9em;overflow:hidden;font-size:19px;line-height:1.3;margin:6px 0 0;overflow-wrap:anywhere;white-space:normal;}
+.card-image {width:38px;height:38px;flex:0 0 38px;}

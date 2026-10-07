@@ -1,7 +1,7 @@
 # Village Roll Call setup
 
 **Module:** `thsv.village-roll-call`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.
@@ -14,7 +14,7 @@ Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok
 ### Extension-specific steps
 
 1. Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.
-2. Choose the check-in command name. It registers automatically for YouTube and TikTok after restart.
+2. Choose the check-in command name. It registers automatically for YouTube, TikTok and Facebook after restart.
 3. Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.
 4. Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.
 
@@ -39,7 +39,7 @@ When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`, `schedule.bounded`.
 
 Private storage: `data/addons/thsv.village-roll-call/`, `data/addons/.state/thsv.village-roll-call/`.
 

@@ -130,6 +130,22 @@ export const STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10: StreamerBotTriggerRegistr
   defaults,
 });
 
+// The creator's alpha.12 -> alpha.14 automatic upgrade snapshots retained all
+// 129 actions and 42 trigger records unchanged. Keep matching exact versions.
+export const STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA14: StreamerBotTriggerRegistry = Object.freeze({
+  ...STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10,
+  version: '1.1.0-alpha.14',
+  unavailable: unavailableFor('1.1.0-alpha.14'),
+});
+
+// The installed alpha.15 actions pass the alpha.14 trigger contract assessment
+// with no missing, disabled, or duplicated required triggers.
+export const STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA15: StreamerBotTriggerRegistry = Object.freeze({
+  ...STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA14,
+  version: '1.1.0-alpha.15',
+  unavailable: unavailableFor('1.1.0-alpha.15'),
+});
+
 export const STREAMERBOT_TRIGGER_REGISTRIES = Object.freeze([
   STREAMERBOT_TRIGGER_REGISTRY_107,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA3,
@@ -137,6 +153,8 @@ export const STREAMERBOT_TRIGGER_REGISTRIES = Object.freeze([
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA5,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA6,
   STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA10,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA14,
+  STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA15,
 ]);
 
 const verifiedFeedRegistries: StreamerBotTriggerRegistry[] = [];

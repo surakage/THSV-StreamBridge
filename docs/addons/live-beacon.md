@@ -1,10 +1,10 @@
 # Live Beacon setup
 
 **Module:** `thsv.live-beacon`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
-Posts separate guarded Twitch, YouTube, Kick, and optional TikTok live embeds to a Discord channel or forum.
+Announces selected live platforms with title, category, profile picture, category art and preview imagery, including shared metadata during multistreams.
 
 ## Built-in setup
 

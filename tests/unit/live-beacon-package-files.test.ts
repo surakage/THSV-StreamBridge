@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 describe('Live Beacon Streamer.bot package', () => {
   it('ships intact UTF-8 forum welcome templates', async () => {
     const schema = JSON.parse(await readFile('addons/live-beacon/schemas/config.json', 'utf8')) as { properties: Record<string, { default?: string }> };
-    for (const platform of ['twitch', 'youtube', 'kick', 'tiktok']) {
+    for (const platform of ['twitch', 'youtube', 'kick', 'tiktok', 'facebook']) {
       const template = schema.properties[`${platform}ForumWelcome`]?.default ?? '';
       expect(template).toContain('🎮');
       expect(template).toContain('🔗');
@@ -34,6 +34,17 @@ describe('Live Beacon Streamer.bot package', () => {
     expect(source).toContain('["threadId"]');
     expect(source).toContain('["embeds"]');
     expect(source).toContain('PlatformColor');
+    expect(source).toContain('box_art_url');
+    expect(source).toContain('profile_image_url');
+    expect(source).toContain('streams?user_id=');
+    expect(source).toContain('["image"]');
+    expect(source).toContain('["thumbnail"]');
+    expect(source).toContain('["author"]');
+    expect(source.indexOf('liveBeaconPreviewOnly')).toBeLessThan(source.indexOf('string webhook ='));
+    expect(source).toContain('value == "facebook"');
+    expect(source).toContain('host == "facebook.com"');
+    expect(source).toContain('return 1603570');
+    expect(source.indexOf('liveBeaconValidateOnly')).toBeLessThan(source.indexOf('string webhook ='));
     expect(source).toContain('"Stream title"');
     expect(source).toContain('"Game / Category"');
     expect(source).toContain('"Direct link"');

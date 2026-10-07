@@ -24,6 +24,8 @@
     "version": "4.0.12",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.12",
+    "maximumTestedBridgeVersion": "4.0.12",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -69,22 +71,20 @@
         "id": "thsv.viewer-foundation.runtime",
         "description": "Confirms named currency, salted identity resolution, bounded chat/time/event awards, replay protection, and atomic private progression state."
       }
-    ],
-    "minimumBridgeVersion": "4.0.12",
-    "maximumTestedBridgeVersion": "4.0.12"
+    ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 37024,
-      "sha256": "3ba6c2ea7b14beb978cccbf48017d48e977b06090d39ef2be4a687d6fdd3714b"
+      "size": 37239,
+      "sha256": "b7c9d532c75c848027b2169a0f040ee00089d68f12127f706c8dfd235567b449"
     },
     {
       "path": "schemas/config.json",
-      "size": 5071,
-      "sha256": "ef8f7d1c258d02fd204cddb70ce8b57c680dba3df6a5f43fb377e1f95478cc25"
+      "size": 6127,
+      "sha256": "5b8a3a258d07e4264cce5741e2e352c4e5bb6d087755715823af1e7068f8245e"
     },
     {
       "path": "ui/settings.json",

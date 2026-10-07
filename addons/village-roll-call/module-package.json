@@ -10,7 +10,8 @@
     "chat.send",
     "overlay.publish",
     "viewer.foundation.read",
-    "viewer.foundation.mutate"
+    "viewer.foundation.mutate",
+    "schedule.bounded"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -52,7 +53,7 @@
     ],
     "installationSteps": [
       "Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.",
-      "Choose the check-in command name. It registers automatically for YouTube and TikTok after restart.",
+      "Choose the check-in command name. It registers automatically for YouTube, TikTok and Facebook after restart.",
       "Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.",
       "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview."
     ],
@@ -72,23 +73,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 14277,
-      "sha256": "c7960230dc0571fcdc826754d21007cdec8e48828e7f536c25634b70796bc974"
+      "size": 15220,
+      "sha256": "26e26ccb12067c5cfeb8fe63ea52a598d8f1441aaafc0319a2b9b5fd0b38a8da"
     },
     {
       "path": "schemas/config.json",
-      "size": 2722,
-      "sha256": "e167d1bcdd982ccc93c5dc6157cff4693dcb9dde8380542a564b24bc7b10695b"
+      "size": 3192,
+      "sha256": "79a5ff54fdd01804962d937caad8a8ede457d880e594fee601c3c36e2b38ee5e"
     },
     {
       "path": "ui/settings.json",
-      "size": 2495,
-      "sha256": "9b24ddfe18709cc823fc1b61bf9da635e5ab20f9bfa9b313e7d9481e7b5ba11b"
+      "size": 2525,
+      "sha256": "fb346ca5cb2e2cb9d10a28a7d66b6e85562ffebfa2096520caa3540e693adae4"
     },
     {
       "path": "README.md",
-      "size": 1342,
-      "sha256": "81da2ad85dc620937d769d6a38963caac079d2a1e5e41b8112746d58bcafdb85"
+      "size": 1371,
+      "sha256": "ab692522f8df3d95de4df40a3251f1bd348cd303c1ca136340b0e67084534143"
     }
   ]
 }
