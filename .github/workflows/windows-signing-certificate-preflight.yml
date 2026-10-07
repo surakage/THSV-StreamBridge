@@ -55,7 +55,7 @@ jobs:
           "days_remaining=$($evidence.certificate.daysRemaining)" >> $env:GITHUB_OUTPUT
       - name: Retain certificate preflight evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-signing-preflight-${{ steps.certificate.outputs.expiry_state }}-${{ steps.certificate.outputs.days_remaining }}-${{ github.run_id }}
           path: artifacts/windows-signing-preflight/latest.json

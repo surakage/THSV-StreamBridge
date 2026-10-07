@@ -106,9 +106,9 @@
     "shutdown": [],
     "check-connections": [],
     "monitor-connections": [
-      "Core > Timed Actions > THSV StreamBridge Health (every 1 minute); the monitor only toasts when health changes"
+      "Core > Timed Actions > THSV StreamBridge Health (every 5 minutes); the monitor only toasts when health changes"
     ]
   },
-  "triggerSafety": "Launch may use Streamer.bot Started. Monitor Connections may use one one-minute Timed Action and suppresses unchanged states. Keep Shutdown and Check Connections manual; attaching Shutdown to one platform's offline event would incorrectly stop a multi-platform bridge while another platform remains live.",
+  "triggerSafety": "Launch may use Streamer.bot Started. Monitor Connections may use one five-minute Timed Action and suppresses unchanged states. Keep Shutdown and Check Connections manual; attaching Shutdown to one platform's offline event would incorrectly stop a multi-platform bridge while another platform remains live.",
   "verificationStatus": "live Streamer.bot 1.0.7 compilation and action execution verified 2026-08-09"
 }

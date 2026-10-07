@@ -48,6 +48,7 @@ public class CPHInline
             if (!process.WaitForExit(LaunchTimeoutMs)) return Fail("the launcher did not finish within the expected time.");
             if (process.ExitCode != 0) return Fail("the launcher reported a failure (exit code " + process.ExitCode + ").");
             CPH.LogInfo("THSV StreamBridge launch completed through its validated lifecycle launcher.");
+            RememberInstall(installPath);
             return ReportReadiness();
         }
         catch (Exception exception)
@@ -75,6 +76,14 @@ public class CPHInline
         try
         {
             installPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(configured.Trim()));
+            // Re-importing this package resets the argument to its default, so fall back to the
+            // folder remembered by the last successful launch when the argument has no install.
+            string remembered;
+            if (!LooksInstalled(installPath) && TryReadRememberedInstall(out remembered))
+            {
+                CPH.LogInfo("THSV StreamBridge is using its remembered install folder because the configured folder has no installation.");
+                installPath = remembered;
+            }
             return true;
         }
         catch (Exception exception)
@@ -171,6 +180,45 @@ public class CPHInline
     private void Notify(string message)
     {
         CPH.ShowToastNotification(ToastId, "THSV StreamBridge", message, "THSV StreamBridge", null);
+    }
+
+    private static string RememberedInstallFile()
+    {
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "THSV StreamBridge", "install-location.txt");
+    }
+
+    private static bool LooksInstalled(string folder)
+    {
+        return (File.Exists(Path.Combine(folder, "runtime", "node.exe")) && File.Exists(Path.Combine(folder, "launcher", "start.mjs")))
+            || File.Exists(Path.Combine(folder, "scripts", "start.ps1"));
+    }
+
+    private static bool TryReadRememberedInstall(out string folder)
+    {
+        folder = String.Empty;
+        try
+        {
+            string path = RememberedInstallFile();
+            if (!File.Exists(path)) return false;
+            string line;
+            using (StreamReader reader = new StreamReader(path)) line = reader.ReadLine() ?? String.Empty;
+            string candidate = Path.GetFullPath(line.Trim());
+            if (!LooksInstalled(candidate)) return false;
+            folder = candidate;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    private static void RememberInstall(string folder)
+    {
+        try
+        {
+            string path = RememberedInstallFile();
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllText(path, folder);
+        }
+        catch { }
     }
 
     private bool Fail(string reason)
