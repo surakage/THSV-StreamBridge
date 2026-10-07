@@ -24,10 +24,12 @@ describe('public Streamer.bot launcher configuration', () => {
       return '';
     };
     const service = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32', runner);
-    await service.save(streamerBot); await service.saveOptionalApplication('obs', obs, true);
+    // Mock the clock before saving: on Windows, saving can warm the probe caches, and a cache stamped with the
+    // real clock could still look fresh at a mocked time earlier in the day.
     let now = Date.parse('2026-10-07T12:00:00.000Z'); const clock = vi.spyOn(Date, 'now').mockImplementation(() => now);
     try {
-      calls.length = 0;
+      await service.save(streamerBot); await service.saveOptionalApplication('obs', obs, true);
+      now += 60_000; calls.length = 0;
       const results = await Promise.all(Array.from({ length: 5 }, async () => await service.endpointApplicationStatus('obs', 'ws://127.0.0.1:4455')));
       for (const result of results) expect(result).toMatchObject({ configured: true, running: true, processId: 77, executableName: 'obs64.exe', state: 'running' });
       await service.endpointApplicationStatus('obs', 'ws://127.0.0.1:4455');
