@@ -986,7 +986,7 @@ byId('apply-timer-template').addEventListener('click',()=>{const form=byId('time
     tiktok:['Stretch break: roll those shoulders and unclench that jaw.','Quick posture check — sit back, relax your arms, breathe.'],
   }},
 };const preset=presets[template];if(!preset)return;for(const [key,value] of Object.entries(preset)){if(['platformMessages','enabled','selectionMode','messages'].includes(key))continue;form.elements[key].value=value}form.elements.selectionMode.value='shuffle-container';const presetMessages=timedMessagesFromSelection({mode:'platform-shuffle',messagesByPlatform:preset.platformMessages});timedMessageGroups=[newTimedMessageGroup(template==='custom'?'All messages':preset.name,presetMessages)];renderTimedMessageGroups();form.elements.enabled.checked=preset.enabled!==false;
-timedPlatformMessages={twitch:[...(preset.platformMessages.twitch)],youtube:[...(preset.platformMessages.youtube)],kick:[...(preset.platformMessages.kick)],tiktok:[...(preset.platformMessages.tiktok)]};
+timedPlatformMessages=Object.fromEntries(Object.keys(timedPlatformLimits).map((platform)=>[platform,[...(preset.platformMessages[platform]||[])]]));
 form.elements.missedRunPolicy.value='skip';form.elements.requireLive.checked=true;form.querySelectorAll('input[name="deliveryPlatform"]').forEach((input)=>{input.checked=template!=='custom'});
 renderTimedPlatformMessages();if(template==='custom')form.elements.actionId.value='';else ensureTimedMessageActionOption(form);updateTimedFormVisibility();
 byId('timed-action-state').textContent=template==='custom'?'Blank rotation ready. Add at least two messages and choose its platforms.':'Template ready. All starter wording is in one non-repeating list; edit it and uncheck platforms you do not use.'});

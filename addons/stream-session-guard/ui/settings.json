@@ -200,6 +200,7 @@
     "endWarningSceneName": {
       "control": "scene-name",
       "providerField": "provider",
+      "requireDetected": true,
       "visibleWhen": {
         "field": "streamLimitEnabled",
         "equals": true

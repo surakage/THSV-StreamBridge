@@ -356,7 +356,7 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   await expect(page.locator('#wizard-feedback')).toHaveAttribute('data-kind', 'success');
   await expect(countdownOverlay.locator('#timer-shell')).toBeVisible();
   await expect(countdownOverlay.locator('#timer-label')).toHaveText('STARTING SOON');
-  await expect(countdownOverlay.locator('#timer-time')).toHaveText('00:10:00');
+  await expect(countdownOverlay.locator('#timer-time')).toHaveText('10:00');
   await countdownOverlay.waitForTimeout(1_100);
   await expect(countdownOverlay.locator('#timer-shell')).toBeVisible();
   await page.locator('[data-addon-id="thsv.starting-soon-countdown"] [data-hide-addon-overlay="thsv.starting-soon-countdown"]').click();
@@ -429,7 +429,7 @@ test('Stream Break & End Guard derives its cadence and selects detected scenes w
 
   const settings = page.locator('[data-addon-settings="thsv.stream-session-guard"]');
   await expect(settings).toBeVisible();
-  await settings.getByLabel('Broadcast app').selectOption('meld');
+  await settings.locator('select[name="provider"]').selectOption('meld');
   await settings.locator('summary').filter({ hasText: 'Plan the stream length' }).click();
   await expect(settings.getByLabel('Maximum stream length (minutes)')).toHaveValue('240');
   await settings.locator('summary').filter({ hasText: 'Schedule breaks' }).click();
@@ -455,7 +455,7 @@ test('wizard configures raid scouting and chat safety add-ons', async ({ page })
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
   await expect(page.getByRole('article').getByText(`Raid Scout ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.raid-scout"] .addon-trigger-readiness')).toContainText('Use the existing chat intakes');
-  await expect(raidScoutSettings.locator('summary')).toHaveCount(14);
+  await expect(raidScoutSettings.locator('summary')).toHaveCount(15);
   await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
   await expect(raidScoutSettings.getByLabel('Raid confirmation mode')).toHaveValue('required');
   await expect(raidScoutSettings.getByLabel('Show each search phase on the Raid Scout overlay')).toBeChecked();
@@ -471,7 +471,7 @@ test('wizard configures raid scouting and chat safety add-ons', async ({ page })
   await expect(endingScenePicker.getByLabel('Exact scene name')).toHaveValue('📁 Stream Ending');
   await raidScoutSettings.locator('summary').filter({ hasText: 'Where to search' }).click();
   await expect(raidScoutSettings.getByLabel('Search preferred channels')).toBeChecked();
-  await raidScoutSettings.locator('summary').filter({ hasText: 'Preferred channels' }).click();
+  await raidScoutSettings.locator('summary').filter({ hasText: 'Preferred channels and viewer suggestions' }).click();
   await expect(raidScoutSettings.getByLabel('Permanent preferred Twitch channels')).toBeVisible();
   await expect(raidScoutSettings.getByLabel('Let viewers suggest channels')).not.toBeChecked();
   await expect(raidScoutSettings.getByLabel('Twitch suggestion reward ID')).not.toBeVisible();

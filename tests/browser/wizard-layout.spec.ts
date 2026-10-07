@@ -16,7 +16,7 @@ test('fresh installer opens a focused guided setup without exposing advanced too
   await page.getByRole('button', { name: 'Unlock' }).click();
 
   await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'guided');
-  await expect(page.locator('#guided-setup-progress')).toHaveText('3 of 6 complete');
+  await expect(page.locator('#guided-setup-progress')).toHaveText(/^[3-5] of 6 complete$/u); // Evidence-based steps can finish while the fresh Bridge is still starting.
   await expect(page.locator('.workspace > nav .nav:visible')).toHaveText([
     'Start here', 'Platforms', 'Streamer.bot', 'Overlays', 'Included features', 'Test & finish', 'Lock',
   ]);
@@ -44,8 +44,8 @@ test('normal Wizard openings show every management page even after an older guid
 
 test('built-in live captions expose no-import setup, full styling, and unsaved preview', async ({ page }) => {
   await unlock(page);
-  await page.getByRole('button', { name: 'Live Captions', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Live Captions' })).toBeVisible();
+  await page.getByRole('button', { name: 'Closed Captions', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Closed Captions' })).toBeVisible();
   await expect(page.getByText('No Streamer.bot import is required.')).toBeVisible();
   await expect(page.getByLabel('Live-caption source')).toHaveValue(/\/overlay\/captions$/u);
   const panel = page.locator('[data-panel="live-captions"]');
@@ -506,7 +506,7 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   await expect(page.getByRole('heading', { name: 'One Streamer.bot import' })).toBeVisible();
   await expect(page.locator('[data-import-kind="core"] input')).toHaveCount(13);
   await expect(page.locator('[data-import-kind="core"] input:checked')).toHaveCount(13);
-  await expect(page.locator('[data-import-kind="addon"] input')).toHaveCount(7);
+  await expect(page.locator('[data-import-kind="addon"] input')).toHaveCount(8);
   expect(await page.locator('[data-import-kind="addon"] input:disabled').count()).toBeGreaterThan(0);
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Create & download one import' }).click();
