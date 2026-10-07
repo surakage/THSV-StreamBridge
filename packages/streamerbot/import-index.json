@@ -62,8 +62,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Bridge-Launcher-4.0.12.sb",
-          "size": 11884,
-          "sha256": "8d3e12de72fac1308f23faad513e8636346f6f2e9119a2ce0b75dbb846804197"
+          "size": 12320,
+          "sha256": "be631394e5a933ca6d40ef5b073fd51254e14903d8f16355e8dc37ee39d307fb"
         }
       ]
     },
@@ -690,8 +690,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Setup-Wizard-Launcher-4.0.12.sb",
-          "size": 3220,
-          "sha256": "1de6d6674b61ea9b0c4c1e86ecc17c15bb1367a9b4aa7d389781cea159e957f7"
+          "size": 3372,
+          "sha256": "3e41914304009cd8c165050c727ba4037d933823256419a67e57d6f991813aa2"
         }
       ]
     }

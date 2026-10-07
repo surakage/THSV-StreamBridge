@@ -25,8 +25,9 @@ public class CPHInline
                 FileName = node,
                 Arguments = "\"" + launcher + "\"",
                 WorkingDirectory = installPath,
-                UseShellExecute = false,
-                CreateNoWindow = true,
+                // Shell execution keeps a newly opened browser from inheriting
+                // Streamer.bot's WebSocket and Stream Deck listening sockets.
+                UseShellExecute = true,
                 WindowStyle = ProcessWindowStyle.Hidden
             });
             if (process == null || !process.WaitForExit(10_000) || process.ExitCode != 0) return Fail("the launcher could not verify and open the local wizard.");

@@ -79,6 +79,18 @@ describe('Bridge Launcher Streamer.bot package', () => {
     expect(source).not.toContain('npm run dev');
   });
 
+  it('starts long-lived processes without inheriting Streamer.bot sockets and waits briefly for readiness', async () => {
+    const launch = await readFile('packages/streamerbot/bridge-launcher/src/LaunchBridge.cs', 'utf8');
+    const wizard = await readFile('packages/streamerbot/wizard-launcher/src/OpenWizard.cs', 'utf8');
+    for (const source of [launch, wizard]) {
+      expect(source).toContain('UseShellExecute = true');
+      expect(source).not.toContain('UseShellExecute = false');
+      expect(source).not.toContain('CreateNoWindow');
+    }
+    expect(launch).toContain('ReadinessWindowMs = 15_000');
+    expect(launch).toMatch(/while \(true\);\s*return Fail\(lastProblem\);/u);
+  });
+
   it('the shutdown action delegates token handling to the official shutdown script', async () => {
     const source = await readFile('packages/streamerbot/bridge-launcher/src/ShutdownBridge.cs', 'utf8');
     expect(source).toContain('stop.ps1');
