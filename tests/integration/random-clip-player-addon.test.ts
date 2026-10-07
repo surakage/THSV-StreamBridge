@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installAddOnPackage } from '../../bridge/services/addon-package-manager.js';
 import { loadInstalledAddOns } from '../../bridge/core/installed-modules.js';
 import { AddOnCapabilityBroker } from '../../bridge/core/addon-capability-broker.js';
@@ -156,6 +156,7 @@ describe('Random Clip Player add-on package', () => {
     });
     const grantedModule = { ...module, capabilityGrant: { moduleId: 'thsv.random-clip-player', permissions: installed.descriptor.permissions, approvedActionIds: ['f89e397b-7106-5101-a620-b0f5da4facf9', 'ad3cf90f-b320-5ae2-a493-485a5485e0ce'] } };
     const cacheGrant = { ...cacheModule, settings: { enabled: false }, capabilityGrant: { moduleId: 'thsv.clip-library-cache', permissions: cacheInstalled.descriptor.permissions, approvedActionIds: [] } };
+    const scheduleSpy = vi.spyOn(broker as unknown as { schedule: (...args: unknown[]) => string }, 'schedule');
     const registry = new ModuleRegistry([cacheGrant, grantedModule], silentLogger, 5_000, broker);
 
     await registry.start();
@@ -215,7 +216,10 @@ describe('Random Clip Player add-on package', () => {
     // async handler has persisted the completed clip and armed the post-clip task before advancing
     // the wall clock, otherwise a busy full-suite run can publish the cache snapshot too early.
     await expect.poll(() => broker.diagnostics()['scheduledTasks']).toBe(1);
-    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    // Publish the snapshot only once the pause has run and the player is waiting on the shared
+    // cache. A fixed sleep raced slow state writes on the Windows runners and published too early.
+    const schedulesBeforeCacheWait = scheduleSpy.mock.calls.length;
+    await expect.poll(() => scheduleSpy.mock.calls.length, { timeout: 3_000 }).toBe(schedulesBeforeCacheWait + 1);
     expect(dispatchedActions).toHaveLength(2);
 
     // An unseen but ineligible clip must not keep the playable bag exhausted or cause a repeated
