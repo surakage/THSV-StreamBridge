@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.14] - 2026-10-07
+
+- Republished the 4.0.13 changes after its release build stopped on a launcher test that only passed before noon UTC; the test now mocks the clock before saving. No application changes beyond 4.0.13.
+
 ## [4.0.13] - 2026-10-07
 
 - Kept one subscribed OBS WebSocket per endpoint for scene and live-state changes instead of opening a new authenticated connection every second, with a 15-second fallback check.

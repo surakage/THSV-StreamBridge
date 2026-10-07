@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Stream Break & End Guard",
-  "version": "4.0.13",
+  "version": "4.0.14",
   "author": "surakage",
   "description": "Provides one broker-authorized, triggerless OBS, Meld, or Streamlabs scene controller for the built-in live-session guard.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Extension - Stream Break & End Guard - Scene Controller",
       "group": "THSV Extension - Stream Break & End Guard",
       "source": "src/SceneController.cs",
-      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.14.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -33,7 +33,7 @@
         }
       ],
       "source": "src/ControlAutomation.cs",
-      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.14.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -53,7 +53,7 @@
         }
       ],
       "source": "src/ControlAutomation.cs",
-      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.14.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -73,7 +73,7 @@
         }
       ],
       "source": "src/ControlAutomation.cs",
-      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Stream-Break-End-Guard-4.0.14.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",

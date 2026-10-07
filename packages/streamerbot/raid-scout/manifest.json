@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Raid Scout",
-  "version": "4.0.13",
+  "version": "4.0.14",
   "author": "surakage",
   "description": "Provides bounded Twitch raid controls, resilient clip lookup, ending-ad coordination, provider stop confirmation, and creator-only OBS/Aitum start and stop helpers.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Addon - Raid Scout - Controller",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutController.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "brokerDispatched": true,
       "mustRemainTriggerless": true,
       "references": [
@@ -28,7 +28,7 @@
       "name": "THSV Addon - Raid Scout - Suggest",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -50,7 +50,7 @@
       "name": "THSV Addon - Raid Scout - Finish Stream",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -72,7 +72,7 @@
       "name": "THSV Addon - Raid Scout - Confirm",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -94,7 +94,7 @@
       "name": "THSV Addon - Raid Scout - Cancel",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -116,7 +116,7 @@
       "name": "THSV Addon - Raid Scout - Broadcast Stopped",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
@@ -138,7 +138,7 @@
       "name": "THSV Addon - Raid Scout - Run Ending Ad",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RunEndingAd.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "excludeFromHistory": false,
       "excludeFromPending": false,
       "brokerDispatched": true,
@@ -157,7 +157,7 @@
       "name": "THSV StreamBridge - Go Live - OBS and Stream Suite",
       "group": "THSV Addon - Raid Scout",
       "source": "src/StartAllObsStreamingOutputs.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "excludeFromHistory": false,
       "excludeFromPending": false,
       "references": [
@@ -173,7 +173,7 @@
       "name": "THSV Addon - Raid Scout - Stop All OBS Streaming Outputs",
       "group": "THSV Addon - Raid Scout",
       "source": "src/StopAllObsStreamingOutputs.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "excludeFromHistory": false,
       "excludeFromPending": false,
       "brokerDispatched": true,
@@ -191,7 +191,7 @@
       "name": "THSV Addon - Raid Scout - Suggest and Confirm",
       "group": "THSV Addon - Raid Scout",
       "source": "src/RaidScoutControl.cs",
-      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.13.sb",
+      "importFile": "THSV-StreamBridge-Raid-Scout-4.0.14.sb",
       "arguments": [
         {
           "name": "raidScoutControlAction",
