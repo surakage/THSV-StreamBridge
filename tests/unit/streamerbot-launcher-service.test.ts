@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
-import { parseOptionalStartupWarnings, StreamerBotLauncherService } from '../../bridge/services/streamerbot-launcher-service.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { parseOptionalStartupWarnings, StreamerBotLauncherService, type ProcessProbeRunner } from '../../bridge/services/streamerbot-launcher-service.js';
 
 const temporaryRoots: string[] = [];
 const windowsLauncher = (dataRoot: string): StreamerBotLauncherService => new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32');
@@ -12,6 +12,32 @@ afterEach(async () => {
 });
 
 describe('public Streamer.bot launcher configuration', () => {
+  it('answers endpoint ownership from cached asynchronous probes without re-running the full launcher status', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-endpoint-probe-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data'); const streamerBot = join(root, 'sb', 'Streamer.bot.exe'); const obs = join(root, 'obs', 'obs64.exe');
+    await mkdir(join(root, 'sb'), { recursive: true }); await mkdir(join(root, 'obs'), { recursive: true }); await writeFile(streamerBot, 'exe'); await writeFile(obs, 'exe');
+    const calls: string[] = [];
+    const runner: ProcessProbeRunner = async (file, args) => {
+      calls.push(file);
+      if (file === 'netstat.exe') return '  Proto  Local Address  Foreign Address  State  PID\n  TCP    0.0.0.0:4455   0.0.0.0:0  LISTENING  77\n  TCP    [::]:65534  [::]:0  LISTENING  88\n';
+      if (String(args.at(-1)).includes('Get-Process -Id 77')) return JSON.stringify({ pid: 77, name: 'obs64', path: obs });
+      throw new Error('unexpected probe');
+    };
+    const service = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32', runner);
+    await service.save(streamerBot); await service.saveOptionalApplication('obs', obs, true);
+    let now = Date.parse('2026-10-07T12:00:00.000Z'); const clock = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    try {
+      calls.length = 0;
+      const results = await Promise.all(Array.from({ length: 5 }, async () => await service.endpointApplicationStatus('obs', 'ws://127.0.0.1:4455')));
+      for (const result of results) expect(result).toMatchObject({ configured: true, running: true, processId: 77, executableName: 'obs64.exe', state: 'running' });
+      await service.endpointApplicationStatus('obs', 'ws://127.0.0.1:4455');
+      // One netstat table and one Get-Process for the OBS port; the Streamer.bot port is not probed.
+      expect(calls).toEqual(['netstat.exe', 'powershell.exe']);
+      now += 5_000; await service.endpointApplicationStatus('obs', 'ws://127.0.0.1:4455');
+      expect(calls).toEqual(['netstat.exe', 'powershell.exe', 'netstat.exe', 'powershell.exe']);
+    } finally { clock.mockRestore(); }
+  });
+
   it('keeps a bounded redacted tray notification history for the Wizard', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-tray-history-')); temporaryRoots.push(root); const service = windowsLauncher(join(root, 'data'));
     await expect(service.recordTrayNotification({ title: 'No approval', summary: 'ignored' })).rejects.toThrow('Explicit creator approval');

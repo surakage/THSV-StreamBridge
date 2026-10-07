@@ -89,12 +89,27 @@ interface LauncherConfiguration {
 
 interface ProcessIdentity { readonly pid: number; readonly name: string; readonly path?: string }
 
+/** Runs a short read-only probe command and resolves its stdout. Injectable for tests. */
+export type ProcessProbeRunner = (file: string, args: readonly string[], options?: { readonly timeout?: number; readonly env?: NodeJS.ProcessEnv }) => Promise<string>;
+const defaultProbeRunner: ProcessProbeRunner = async (file, args, options = {}) => (await execFileAsync(file, [...args], { encoding: 'utf8', windowsHide: true, timeout: options.timeout ?? 5_000, ...(options.env === undefined ? {} : { env: options.env }) })).stdout;
+interface CachedProbe<T> { readonly expiresAt: number; readonly value: Promise<T> }
+/** netstat listener table and per-PID identity are shared by every caller for this long. */
+const PORT_PROBE_TTL_MS = 3_000;
+/** Named optional-application process list (one PowerShell spawn) is reused for this long. */
+const OPTIONAL_PROCESS_TTL_MS = 10_000;
+/** Endpoint ownership answers are reused for this long by every connection-manager and wizard caller. */
+const ENDPOINT_STATUS_TTL_MS = 4_000;
+type EndpointApplicationStatus = Readonly<{ configured: boolean; running: boolean; executableName?: string; processId?: number; differentInstallationProcessId?: number; state: string }>;
+
 export class StreamerBotLauncherService {
   private readonly configurationPath: string;
   private readonly installRoot: string;
-  private optionalProcessCache: { readonly expiresAt: number; readonly processes: readonly ProcessIdentity[] } | undefined;
+  private optionalProcessCache: CachedProbe<readonly ProcessIdentity[]> | undefined;
+  private listenerCache: CachedProbe<ReadonlyMap<number, number>> | undefined;
+  private readonly identityCache = new Map<number, CachedProbe<ProcessIdentity | undefined>>();
+  private readonly endpointStatusCache = new Map<string, CachedProbe<EndpointApplicationStatus>>();
 
-  public constructor(private readonly dataRoot: string, private readonly websocketUrl: string, private readonly platform: NodeJS.Platform = process.platform) {
+  public constructor(private readonly dataRoot: string, private readonly websocketUrl: string, private readonly platform: NodeJS.Platform = process.platform, private readonly runProbe: ProcessProbeRunner = defaultProbeRunner) {
     this.installRoot = resolve(dataRoot, '..');
     this.configurationPath = join(dataRoot, 'configuration', 'streamerbot-launcher.json');
   }
@@ -109,22 +124,52 @@ export class StreamerBotLauncherService {
     if (configuration === undefined) return { ...location, optionalApps, supported: true, configured: false, executableExists: false, websocketPort: port, state: 'not-configured', message: 'Select Streamer.bot.exe once, or use automatic detection.' };
     const executableExists = await isFile(configuration.executable);
     if (!executableExists) return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: false, websocketPort: port, state: 'missing', message: 'The saved Streamer.bot.exe was moved or removed. Select it again.' };
-    const listener = listenerForPort(port);
+    const listener = await this.listenerForPort(port);
     if (listener === undefined) return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: true, websocketPort: port, state: 'stopped', message: 'Streamer.bot is configured but its WebSocket server is not currently listening.' };
-    const owner = processIdentity(listener);
+    const owner = await this.processIdentity(listener);
     if (owner?.path !== undefined && samePath(owner.path, configuration.executable)) return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: true, websocketPort: port, state: 'ready', processId: listener, portOwnerName: owner.name, message: 'Streamer.bot is ready and owns the configured WebSocket port.' };
     return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: true, websocketPort: port, state: 'port-conflict', processId: listener, portOwnerName: owner?.name ?? 'Unknown process', message: `Port ${String(port)} belongs to ${owner?.name ?? 'another process'} (PID ${String(listener)}). It will not be stopped automatically.` };
   }
 
-  public async endpointApplicationStatus(application: 'obs' | 'meld' | 'streamlabs', endpoint: string): Promise<Readonly<{ configured: boolean; running: boolean; executableName?: string; processId?: number; differentInstallationProcessId?: number; state: string }>> {
-    const status = (await this.status()).optionalApps[application];
+  /**
+   * Reports whether the exact saved OBS/Meld/Streamlabs executable owns a
+   * WebSocket endpoint. Probes run asynchronously and are cached briefly so the
+   * connection manager, wizard and conflict assistant share one answer.
+   */
+  public async endpointApplicationStatus(application: 'obs' | 'meld' | 'streamlabs', endpoint: string): Promise<EndpointApplicationStatus> {
+    const key = `${application}\n${endpoint}`; const now = Date.now(); const cached = this.endpointStatusCache.get(key);
+    if (cached !== undefined && cached.expiresAt > now) return await cached.value;
+    const value = this.probeEndpointApplicationStatus(application, endpoint);
+    this.endpointStatusCache.set(key, { expiresAt: now + ENDPOINT_STATUS_TTL_MS, value });
+    value.catch(() => { if (this.endpointStatusCache.get(key)?.value === value) this.endpointStatusCache.delete(key); });
+    return await value;
+  }
+
+  private async probeEndpointApplicationStatus(application: 'obs' | 'meld' | 'streamlabs', endpoint: string): Promise<EndpointApplicationStatus> {
+    const status = (await this.optionalApplicationStatuses())[application];
     let port: number; try { const parsed = new URL(endpoint); port = Number(parsed.port || (parsed.protocol === 'wss:' ? 443 : 80)); } catch { return { configured: status.configured, running: false, state: 'invalid-endpoint' }; }
-    const pid = listenerForPort(port); const owner = pid === undefined ? undefined : processIdentity(pid); const expected = status.executable;
+    const pid = await this.listenerForPort(port); const owner = pid === undefined ? undefined : await this.processIdentity(pid); const expected = status.executable;
     if (pid !== undefined && owner?.path !== undefined && expected !== undefined) {
       const exact = samePath(owner.path, expected);
       return { configured: true, running: exact, executableName: basename(expected), ...(exact ? { processId: pid } : { differentInstallationProcessId: pid }), state: exact ? 'running' : 'different-installation-running' };
     }
     return { configured: status.configured, running: false, ...(expected === undefined ? {} : { executableName: basename(expected) }), ...(status.differentInstallationProcessId === undefined ? {} : { differentInstallationProcessId: status.differentInstallationProcessId }), state: status.state };
+  }
+
+  /** Clears cached process probes, for example after launching or selecting applications. */
+  private invalidateProcessProbes(): void { this.optionalProcessCache = undefined; this.listenerCache = undefined; this.identityCache.clear(); this.endpointStatusCache.clear(); }
+
+  private async listenerForPort(port: number): Promise<number | undefined> {
+    const now = Date.now();
+    if (this.listenerCache === undefined || this.listenerCache.expiresAt <= now) this.listenerCache = { expiresAt: now + PORT_PROBE_TTL_MS, value: listeningPorts(this.runProbe) };
+    return (await this.listenerCache.value).get(port);
+  }
+
+  private async processIdentity(pid: number): Promise<ProcessIdentity | undefined> {
+    const now = Date.now(); for (const [key, entry] of this.identityCache) if (entry.expiresAt <= now) this.identityCache.delete(key);
+    const cached = this.identityCache.get(pid); if (cached !== undefined) return await cached.value;
+    const value = processIdentity(this.runProbe, pid); this.identityCache.set(pid, { expiresAt: now + PORT_PROBE_TTL_MS, value });
+    return await value;
   }
 
   /** Returns the local Streamer.bot action database selected by the creator. */
@@ -139,7 +184,7 @@ export class StreamerBotLauncherService {
     if (configuration === undefined || !await isFile(configuration.executable)) return undefined;
     const runtimeVersion = await latestStreamerBotRuntimeVersion(dirname(configuration.executable));
     if (runtimeVersion !== undefined) return runtimeVersion;
-    return Object.values(applicationVersions([configuration.executable]))[0];
+    return Object.values(await applicationVersions(this.runProbe, [configuration.executable]))[0];
   }
 
   public async isRunning(): Promise<boolean> {
@@ -148,7 +193,7 @@ export class StreamerBotLauncherService {
   }
 
   public async detect(): Promise<{ readonly candidates: readonly StreamerBotLauncherCandidate[]; readonly optionalCandidates: readonly OptionalApplicationCandidate[]; readonly status: StreamerBotLauncherStatus }> {
-    this.optionalProcessCache = undefined;
+    this.invalidateProcessProbes();
     const candidates = new Map<string, StreamerBotLauncherCandidate>();
     const add = async (path: string | undefined, source: StreamerBotLauncherCandidate['source']): Promise<void> => {
       if (path === undefined || basename(path).toLocaleLowerCase('en-US') !== 'streamer.bot.exe' || !await isFile(path)) return;
@@ -158,7 +203,7 @@ export class StreamerBotLauncherService {
     const savedExecutable = (await this.readConfiguration())?.executable;
     await add(savedExecutable, 'saved');
     for (const nearby of await nearbyExecutableCandidates(savedExecutable, ['streamer.bot.exe'])) await add(nearby, 'near-saved-location');
-    for (const processValue of streamerBotProcesses()) await add(processValue.path, 'running');
+    for (const processValue of await streamerBotProcesses(this.runProbe)) await add(processValue.path, 'running');
     const profile = process.env['USERPROFILE']; const local = process.env['LOCALAPPDATA'];
     for (const path of [
       local ? join(local, 'Streamer.bot', 'Streamer.bot.exe') : undefined,
@@ -177,7 +222,7 @@ export class StreamerBotLauncherService {
       { label: 'desktop command', path: this.locationFields().streamDeckTarget },
     ].map(async ({ label, path }) => ({ label, ready: await isFile(path), filename: basename(path) })));
     const configuredPaths = [status.executable, ...Object.values(status.optionalApps).map((application) => application.executable)].filter((path): path is string => typeof path === 'string');
-    const versions = applicationVersions(configuredPaths);
+    const versions = await applicationVersions(this.runProbe, configuredPaths);
     const checks = [
       { id: 'streamerbot-path', label: 'Exact Streamer.bot path', ready: status.configured && status.executableExists, detail: status.message, recovery: status.configured ? 'Reselect Streamer.bot.exe in the Wizard.' : 'Choose Streamer.bot.exe in the Wizard.' },
       { id: 'streamerbot-websocket', label: 'Streamer.bot WebSocket', ready: status.state === 'ready', detail: status.state === 'ready' ? `Ready on port ${String(status.websocketPort)}.` : `Not automation-ready on port ${String(status.websocketPort)} (${status.state}).`, recovery: 'Start Streamer.bot and confirm WebSocket Auto Start is enabled.' },
@@ -231,6 +276,7 @@ export class StreamerBotLauncherService {
     if (basename(absolute).toLocaleLowerCase('en-US') !== 'streamer.bot.exe' || !await isFile(absolute)) throw new Error('Choose the real Streamer.bot.exe file. The selected path does not exist or has the wrong filename.');
     const previous = await this.readConfiguration();
     const configuration: LauncherConfiguration = { version: 2, executable: absolute, websocketPort: this.websocketPort(), optionalApps: previous?.optionalApps ?? {}, updatedAt: new Date().toISOString() };
+    this.invalidateProcessProbes();
     await mkdir(dirname(this.configurationPath), { recursive: true });
     const temporary = `${this.configurationPath}.${randomUUID()}.tmp`;
     await writeFile(temporary, `${JSON.stringify(configuration, null, 2)}\n`, 'utf8');
@@ -311,6 +357,7 @@ export class StreamerBotLauncherService {
     if (configuration === undefined) throw new Error('Select Streamer.bot.exe before using safe start.');
     const launcher = await this.launcherPath();
     const result = await execFileAsync(process.execPath, [launcher, '--install-root', this.installRoot, '--exe', configuration.executable, '--port', String(this.websocketPort()), '--save'], { cwd: this.installRoot, windowsHide: true, timeout: 120_000, encoding: 'utf8' });
+    this.invalidateProcessProbes();
     return { status: await this.status(), output: `${result.stdout}${result.stderr}`.trim() };
   }
 
@@ -319,7 +366,7 @@ export class StreamerBotLauncherService {
     const launcher = join(this.installRoot, 'launcher', 'start-streaming-tools.mjs');
     if (!await isFile(launcher)) throw new Error('The one-button streaming tools launcher is missing. Reinstall the current StreamBridge release.');
     const result = await execFileAsync(process.execPath, [launcher], { cwd: this.installRoot, windowsHide: true, timeout: 360_000, encoding: 'utf8' });
-    this.optionalProcessCache = undefined;
+    this.invalidateProcessProbes();
     const output = `${result.stdout}${result.stderr}`.trim();
     return { status: await this.status(), output, warnings: parseOptionalStartupWarnings(output) };
   }
@@ -429,6 +476,7 @@ export class StreamerBotLauncherService {
   }
 
   private async writeConfiguration(configuration: LauncherConfiguration): Promise<void> {
+    this.invalidateProcessProbes();
     await mkdir(dirname(this.configurationPath), { recursive: true });
     const temporary = `${this.configurationPath}.${randomUUID()}.tmp`;
     await writeFile(temporary, `${JSON.stringify(configuration, null, 2)}\n`, 'utf8');
@@ -438,7 +486,7 @@ export class StreamerBotLauncherService {
   private async optionalApplicationStatuses(): Promise<Readonly<Record<OptionalApplication, OptionalApplicationStatus>>> {
     const configuration = await this.readConfiguration();
     const circuits = await this.optionalCircuitStatus();
-    const runningProcesses = this.optionalProcesses();
+    const runningProcesses = await this.optionalProcesses();
     const entries = await Promise.all(OPTIONAL_APPLICATIONS.map(async (application) => {
       const metadata = optionalApplicationMetadata(application);
       if (this.platform !== 'win32') return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: false, state: 'unsupported', message: `${metadata.label} startup is available on Windows only.` }] as const;
@@ -482,7 +530,7 @@ export class StreamerBotLauncherService {
 
   private async detectOptionalApplications(): Promise<readonly OptionalApplicationCandidate[]> {
     const configuration = await this.readConfiguration();
-    const runningProcesses = this.optionalProcesses();
+    const runningProcesses = await this.optionalProcesses();
     const candidates = new Map<string, OptionalApplicationCandidate>();
     for (const application of OPTIONAL_APPLICATIONS) {
       const metadata = optionalApplicationMetadata(application);
@@ -500,12 +548,10 @@ export class StreamerBotLauncherService {
     return [...candidates.values()];
   }
 
-  private optionalProcesses(): readonly ProcessIdentity[] {
+  private async optionalProcesses(): Promise<readonly ProcessIdentity[]> {
     const now = Date.now();
-    if (this.optionalProcessCache !== undefined && this.optionalProcessCache.expiresAt > now) return this.optionalProcessCache.processes;
-    const processes = processesNamed(OPTIONAL_APPLICATIONS.flatMap((application) => optionalApplicationMetadata(application).processNames));
-    this.optionalProcessCache = { expiresAt: now + 10_000, processes };
-    return processes;
+    if (this.optionalProcessCache === undefined || this.optionalProcessCache.expiresAt <= now) this.optionalProcessCache = { expiresAt: now + OPTIONAL_PROCESS_TTL_MS, value: processesNamed(this.runProbe, OPTIONAL_APPLICATIONS.flatMap((application) => optionalApplicationMetadata(application).processNames)) };
+    return await this.optionalProcessCache.value;
   }
 
   private async launcherPath(): Promise<string> {
@@ -536,24 +582,25 @@ function validReadinessBlockers(value: unknown): readonly StartupReadinessBlocke
   });
 }
 async function isFile(path: string): Promise<boolean> { try { return (await stat(path)).isFile(); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false; throw error; } }
-function listenerForPort(port: number): number | undefined {
+async function listeningPorts(run: ProcessProbeRunner): Promise<ReadonlyMap<number, number>> {
+  const listeners = new Map<number, number>();
   try {
-    const output = execFileSync('netstat.exe', ['-ano', '-p', 'tcp'], { encoding: 'utf8', windowsHide: true, timeout: 5_000 });
-    for (const line of output.split(/\r?\n/u)) { const fields = line.trim().split(/\s+/u); if (fields[0]?.toUpperCase() === 'TCP' && fields[1]?.endsWith(`:${String(port)}`) && fields[3]?.toUpperCase() === 'LISTENING') { const pid = Number(fields[4]); if (Number.isInteger(pid) && pid > 0) return pid; } }
-    return undefined;
-  } catch { return undefined; }
+    const output = await run('netstat.exe', ['-ano', '-p', 'tcp'], { timeout: 5_000 });
+    for (const line of output.split(/\r?\n/u)) { const fields = line.trim().split(/\s+/u); if (fields[0]?.toUpperCase() !== 'TCP' || fields[3]?.toUpperCase() !== 'LISTENING') continue; const port = Number(fields[1]?.slice(fields[1].lastIndexOf(':') + 1)); const pid = Number(fields[4]); if (Number.isInteger(port) && Number.isInteger(pid) && pid > 0 && !listeners.has(port)) listeners.set(port, pid); }
+  } catch { /* An unavailable probe means no listener is known. */ }
+  return listeners;
 }
-function processIdentity(pid: number): ProcessIdentity | undefined {
+async function processIdentity(run: ProcessProbeRunner, pid: number): Promise<ProcessIdentity | undefined> {
   try {
     const command = `$p=Get-Process -Id ${String(pid)} -ErrorAction Stop; [pscustomobject]@{pid=$p.Id;name=$p.ProcessName;path=$p.Path}|ConvertTo-Json -Compress`;
-    const value = JSON.parse(execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 5_000 })) as { pid: number; name?: string; path?: string };
+    const value = JSON.parse(await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout: 5_000 })) as { pid: number; name?: string; path?: string };
     return { pid: value.pid, name: value.name ?? 'Unknown process', ...(typeof value.path === 'string' ? { path: value.path } : {}) };
   } catch { return undefined; }
 }
-function streamerBotProcesses(): readonly ProcessIdentity[] {
+async function streamerBotProcesses(run: ProcessProbeRunner): Promise<readonly ProcessIdentity[]> {
   try {
     const command = "@(Get-Process -Name 'Streamer.bot' -ErrorAction SilentlyContinue|ForEach-Object{[pscustomobject]@{pid=$_.Id;name=$_.ProcessName;path=$_.Path}})|ConvertTo-Json -Compress";
-    const raw = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 5_000 }).trim();
+    const raw = (await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout: 5_000 })).trim();
     if (!raw) return [];
     const value = JSON.parse(raw) as ProcessIdentity | ProcessIdentity[];
     return Array.isArray(value) ? value : [value];
@@ -623,12 +670,12 @@ function validOptionalApplications(value: unknown): LauncherConfiguration['optio
   return result;
 }
 
-function processesNamed(names: readonly string[]): readonly ProcessIdentity[] {
+async function processesNamed(run: ProcessProbeRunner, names: readonly string[]): Promise<readonly ProcessIdentity[]> {
   if (process.platform !== 'win32') return [];
   try {
     const quoted = names.map((name) => `'${name.replaceAll("'", "''")}'`).join(',');
     const command = `@(${quoted}|ForEach-Object{Get-Process -Name $_ -ErrorAction SilentlyContinue}|Sort-Object Id -Unique|ForEach-Object{[pscustomobject]@{pid=$_.Id;name=$_.ProcessName;path=$_.Path}})|ConvertTo-Json -Compress`;
-    const raw = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 5_000 }).trim();
+    const raw = (await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout: 5_000 })).trim();
     if (!raw) return [];
     const value = JSON.parse(raw) as ProcessIdentity | ProcessIdentity[];
     return Array.isArray(value) ? value : [value];
@@ -659,12 +706,12 @@ async function latestStreamerBotRuntimeVersion(installDirectory: string): Promis
   }
 }
 
-function applicationVersions(paths: readonly string[]): Readonly<Record<string, string>> {
+async function applicationVersions(run: ProcessProbeRunner, paths: readonly string[]): Promise<Readonly<Record<string, string>>> {
   const unique = [...new Set(paths)];
   if (process.platform !== 'win32' || unique.length === 0) return {};
   try {
     const script = "$paths=ConvertFrom-Json $env:THSV_VERSION_PATHS; @($paths|ForEach-Object{$item=Get-Item -LiteralPath $_ -ErrorAction Stop; $productVersion=$item.VersionInfo.ProductVersion; $detectedVersion=if([string]::IsNullOrWhiteSpace($productVersion)){$item.VersionInfo.FileVersion}else{$productVersion}; [pscustomobject]@{path=$item.FullName;version=$detectedVersion}})|ConvertTo-Json -Compress";
-    const raw = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true, timeout: 8_000, env: { ...process.env, THSV_VERSION_PATHS: JSON.stringify(unique) } }).trim();
+    const raw = (await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { timeout: 8_000, env: { ...process.env, THSV_VERSION_PATHS: JSON.stringify(unique) } })).trim();
     if (raw.length === 0) return {};
     const parsed = JSON.parse(raw) as { path?: unknown; version?: unknown } | { path?: unknown; version?: unknown }[];
     return Object.fromEntries((Array.isArray(parsed) ? parsed : [parsed]).flatMap((entry) => typeof entry.path === 'string' && typeof entry.version === 'string' && entry.version.trim().length > 0 ? [[entry.path, entry.version.trim()]] : []));
