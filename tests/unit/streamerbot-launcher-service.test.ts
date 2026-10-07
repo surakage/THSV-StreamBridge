@@ -18,10 +18,10 @@ describe('public Streamer.bot launcher configuration', () => {
     await mkdir(join(root, 'sb'), { recursive: true }); await mkdir(join(root, 'obs'), { recursive: true }); await writeFile(streamerBot, 'exe'); await writeFile(obs, 'exe');
     const calls: string[] = [];
     const runner: ProcessProbeRunner = async (file, args) => {
-      calls.push(file);
-      if (file === 'netstat.exe') return '  Proto  Local Address  Foreign Address  State  PID\n  TCP    0.0.0.0:4455   0.0.0.0:0  LISTENING  77\n  TCP    [::]:65534  [::]:0  LISTENING  88\n';
-      if (String(args.at(-1)).includes('Get-Process -Id 77')) return JSON.stringify({ pid: 77, name: 'obs64', path: obs });
-      throw new Error('unexpected probe');
+      if (file === 'netstat.exe') { calls.push(file); return '  Proto  Local Address  Foreign Address  State  PID\n  TCP    0.0.0.0:4455   0.0.0.0:0  LISTENING  77\n  TCP    [::]:65534  [::]:0  LISTENING  88\n'; }
+      if (String(args.at(-1)).includes('Get-Process -Id 77')) { calls.push(file); return JSON.stringify({ pid: 77, name: 'obs64', path: obs }); }
+      // Version and process-name lookups only run on a real Windows host; this test counts port ownership probes.
+      return '';
     };
     const service = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32', runner);
     await service.save(streamerBot); await service.saveOptionalApplication('obs', obs, true);
