@@ -410,16 +410,30 @@ function scheduleTick(context, state) {
   });
 }
 
+// The 1 s tick updates the overlay from the last state this module wrote. The
+// stored remainingSeconds/updatedAt pair already determines the timer, so the
+// tick only rewrites private state when the timer stops or every
+// PERSIST_INTERVAL_MS as a safety checkpoint, not every second.
+const PERSIST_INTERVAL_MS = 30_000;
+let tickBase;
+
 async function persist(context, settings, state) {
   await context.state.write(state);
+  tickBase = { state, persistedAt: Date.now() };
   await publishState(context, settings, state);
   scheduleTick(context, state);
 }
 
 async function handleTick(context) {
   const settings = settingsFor(context);
-  let state = initializeState(sanitizeState(await context.state.read()), settings);
-  state = applyElapsed(state);
+  const base = tickBase?.state ?? initializeState(sanitizeState(await context.state.read()), settings);
+  const state = applyElapsed(base);
+  if (tickBase !== undefined && state.running && Date.now() - tickBase.persistedAt < PERSIST_INTERVAL_MS) {
+    tickBase = { state, persistedAt: tickBase.persistedAt };
+    await publishState(context, settings, state);
+    scheduleTick(context, state);
+    return;
+  }
   await persist(context, settings, state);
 }
 
@@ -551,6 +565,7 @@ export default {
   async start(context) {
     stopped = false;
     operation = Promise.resolve();
+    tickBase = undefined;
     const settings = settingsFor(context);
     const state = initializeState(sanitizeState(await context.state.read()), settings);
     await persist(context, settings, applyElapsed(state));
@@ -559,6 +574,7 @@ export default {
     stopped = true;
     cancelTick(context);
     await operation;
+    tickBase = undefined;
   },
   async onEvent(event, context) {
     await serialize(() => handleEvent(event, context));

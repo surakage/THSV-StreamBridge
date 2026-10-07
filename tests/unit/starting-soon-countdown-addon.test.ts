@@ -39,7 +39,8 @@ describe('Stream Launch Countdown add-on', () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(test.state()).toMatchObject({ remainingSeconds: 60, running: true, visible: true });
     await vi.advanceTimersByTimeAsync(1000);
-    expect(test.state().remainingSeconds).toBe(59);
+    // Stored state is remainingSeconds as of updatedAt; ticks no longer rewrite it every second.
+    expect(applyElapsed(test.state()).state.remainingSeconds).toBe(59);
     const updates = test.context.overlay.publish.mock.calls.filter(([topic]) => topic.endsWith('.timer.update'));
     expect(updates.at(-1)?.[1]).toMatchObject({ running: true, remainingSeconds: 59 });
     expect(test.context.overlay.publish.mock.results.every(result => result.type === 'return')).toBe(true);
@@ -108,7 +109,7 @@ describe('Stream Launch Countdown add-on', () => {
     vi.setSystemTime(new Date('2026-08-08T20:00:10.000Z'));
     await vi.advanceTimersByTimeAsync(1000);
     await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Starting Soon' } }, test.context);
-    expect(test.state()).toMatchObject({ remainingSeconds: 51, running: true, visible: true });
+    expect(applyElapsed(test.state()).state).toMatchObject({ remainingSeconds: 51, running: true, visible: true });
     await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Gaming' } }, test.context);
     expect(test.state()).toMatchObject({ remainingSeconds: 51, running: false, visible: false, lastReason: 'stop' });
   });
@@ -139,5 +140,30 @@ describe('Stream Launch Countdown add-on', () => {
     await countdown.onEvent(test.control('start'), test.context);
     await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Gaming' } }, test.context);
     expect(test.state()).toMatchObject({ remainingSeconds: 60, running: true, visible: true, lastReason: 'start' });
+  });
+
+  it('publishes every second but checkpoints private state only on changes and every 30 seconds', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-08-08T20:00:00.000Z'));
+    const test = runtime(); test.context.settings.durationMinutes = 2; await countdown.start(test.context);
+    await countdown.onEvent(test.control('start'), test.context);
+    const writesAfterStart = test.context.state.write.mock.calls.length;
+    const updates = () => test.context.overlay.publish.mock.calls.filter(([topic]) => topic.endsWith('.timer.update'));
+    const updatesAfterStart = updates().length;
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(test.context.state.write.mock.calls.length).toBe(writesAfterStart);
+    expect(updates().length - updatesAfterStart).toBe(29);
+    expect(updates().at(-1)?.[1]).toMatchObject({ remainingSeconds: 91, running: true });
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(test.context.state.write.mock.calls.length).toBe(writesAfterStart + 1);
+    expect(test.state()).toMatchObject({ remainingSeconds: 90, running: true });
+    // A Bridge restart resumes from the stored pair without losing elapsed time.
+    await vi.advanceTimersByTimeAsync(5_000);
+    await countdown.stop(test.context); await countdown.start(test.context);
+    expect(applyElapsed(test.state()).state.remainingSeconds).toBe(85);
+    await countdown.onEvent(test.control('start'), test.context);
+    expect(test.state()).toMatchObject({ remainingSeconds: 85, running: true });
+    // Completion is always written immediately.
+    await vi.advanceTimersByTimeAsync(85_000);
+    expect(test.state()).toMatchObject({ remainingSeconds: 0, completed: true, running: false });
   });
 });
