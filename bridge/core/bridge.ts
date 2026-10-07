@@ -9,6 +9,7 @@ import type { DeduplicationStore } from '../services/deduplication-store.js';
 import type { DeliveryOutboxStore } from '../services/delivery-outbox-store.js';
 import { CoalescedTask } from './coalesced-task.js';
 import { EventDeduplicator } from './deduplicator.js';
+import { SceneChangeDeduplicator } from './scene-change-deduplicator.js';
 import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
@@ -48,6 +49,7 @@ export interface StreamBridgeDependencies {
 export class StreamBridge {
   private readonly bus = new InternalEventBus();
   private readonly deduplicator: EventDeduplicator;
+  private readonly sceneChanges = new SceneChangeDeduplicator();
   private readonly inputs: readonly InputAdapter[];
   private readonly simulationAdapter: SimulationAdapter;
   private readonly delivery: OutputDeliveryManager;
@@ -203,6 +205,12 @@ export class StreamBridge {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
+    if (this.sceneChanges.isDuplicate(validatedEvent)) {
+      // The same switch already arrived from the other scene source (Streamer.bot relay or OBS watcher).
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      this.logger.debug('Duplicate scene switch from a second source ignored', { eventId: validatedEvent.eventId, provider: validatedEvent.payload['provider'], sceneName: validatedEvent.payload['sceneName'] });
+      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
+    }
     const lifecycleState = validatedEvent.metadata.simulated ? undefined : lifecycleStateFor(validatedEvent.eventType);
     if (lifecycleState !== undefined && this.lifecycleState.get(validatedEvent.platform) === lifecycleState) {
       // Debounced: the store coalesces bursts and flushes on shutdown.
@@ -223,6 +231,7 @@ export class StreamBridge {
       }
     } catch (error) {
       this.deduplicator.forget(validatedEvent);
+      this.sceneChanges.forget(validatedEvent);
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
       await this.dependencies.deduplicationStore.flush().catch(() => undefined);
       throw error;
@@ -252,6 +261,7 @@ export class StreamBridge {
         derivedCommand = undefined;
       } else {
         this.deduplicator.forget(validatedEvent);
+        this.sceneChanges.forget(validatedEvent);
         if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
         throw error;
       }
@@ -294,6 +304,7 @@ export class StreamBridge {
       };
     } catch (error) {
       this.deduplicator.forget(validatedEvent);
+      this.sceneChanges.forget(validatedEvent);
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
       await this.dependencies.deduplicationStore.flush().catch(() => undefined);
       throw error;
