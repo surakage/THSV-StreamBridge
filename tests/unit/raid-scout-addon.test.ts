@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import raidScout, { CONTROLLER_ACTION_ID, filterCandidates, sanitizeState, selectCandidate } from '../../addons/raid-scout/dist/index.js';
+import raidScout, { CONTROLLER_ACTION_ID, RAID_SCOUT_CONTROL_ACTION_IDS, filterCandidates, sanitizeState, selectCandidate } from '../../addons/raid-scout/dist/index.js';
+import { readFileSync } from 'node:fs';
 
 const END_BROADCAST_ACTION_ID = '30c8f99d-884b-45f4-8840-cd384e7bddbe';
 const RUN_ENDING_AD_ACTION_ID = '18a8de7c-1c5f-4a1e-8d58-7944c74060d5';
@@ -1309,6 +1310,30 @@ describe('Raid Scout add-on', () => {
     await confirmHandoff(unacknowledged);
     expect(unacknowledged.value().pending).toBeUndefined();
     expect(unacknowledged.value().lastError).toContain('acknowledgement');
+  });
+
+  it('refuses every packaged Raid Scout action except Stop All OBS Streaming Outputs as the Stop Streaming action', async () => {
+    const manifest = JSON.parse(readFileSync('packages/streamerbot/raid-scout/manifest.json', 'utf8')) as { actions: Array<{ id: string; name: string }> };
+    const stopAllOutputs = '0c4d8af8-593c-5e6a-b07f-948079c22cd1';
+    expect(RAID_SCOUT_CONTROL_ACTION_IDS.has('28d07eab-b697-4b65-9b68-fd12a493d765')).toBe(true);
+    expect(RAID_SCOUT_CONTROL_ACTION_IDS.has('9a7f2c1d-5b84-4ec3-8d61-f7a209c4e836')).toBe(true);
+    for (const action of manifest.actions) expect(RAID_SCOUT_CONTROL_ACTION_IDS.has(action.id), action.name).toBe(action.id !== stopAllOutputs);
+
+    for (const [index, actionId] of ['28d07eab-b697-4b65-9b68-fd12a493d765', '9a7f2c1d-5b84-4ec3-8d61-f7a209c4e836'].entries()) {
+      const requestIdValue = `raid-forbidden-stop-${String(index)}`;
+      const test = runtime({ endBroadcastAfterRaid: true, endBroadcastActionId: actionId, endBroadcastTiming: 'countdown', endBroadcastDelaySeconds: 5, endBroadcastAcknowledged: true }, sanitizeState({
+        pending: { operation: 'raid', requestId: requestIdValue, startedAt: Date.now(), candidate: candidate('alpha') },
+      }) as Record<string, unknown>);
+      test.context.approvedActionIds.push(actionId);
+      await raidScout.start(test.context);
+      await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'raid', requestId: requestIdValue, success: true } }, test.context);
+      await confirmHandoff(test);
+      await test.runScheduled(); await test.runScheduled();
+      expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(actionId, expect.anything());
+      expect(test.value().pending).toBeUndefined();
+      expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'AUTO END NOT ARMED' }), { lane: 'foreground' });
+      await raidScout.stop(test.context);
+    }
   });
 
   it('times out an unconfirmed stop without retrying and clears stale stop requests on restart', async () => {

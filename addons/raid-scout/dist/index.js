@@ -8,6 +8,8 @@ const AD_STARTED_EVENT = 'addon.thsv.ad-break-companion.started';
 const RAID_SCOUT_CONTROL_ACTION_IDS = new Set([
   CONTROLLER_ACTION_ID, RUN_ENDING_AD_ACTION_ID, 'e924f0ad-36c1-4687-8c05-c39466d06963', 'b2a5681e-329a-40ac-9ce3-57d249ba80fe',
   'c3a739c4-dfdc-455b-a377-bf9d72f4cd30', '74d1914e-8b75-4cb6-90f6-977a77803082', '5e3be19a-1ab3-5b11-8dea-8cc8fe985db7',
+  // Suggest and Confirm (a Finish Stream alias) and Go Live - OBS and Stream Suite (starts broadcasts).
+  '28d07eab-b697-4b65-9b68-fd12a493d765', '9a7f2c1d-5b84-4ec3-8d61-f7a209c4e836',
 ]);
 const MAXIMUM_CANDIDATES = 100;
 const MAXIMUM_HISTORY = 100;
@@ -1691,5 +1693,5 @@ const moduleDefinition = {
   },
 };
 
-export { CONTROLLER_ACTION_ID };
+export { CONTROLLER_ACTION_ID, RAID_SCOUT_CONTROL_ACTION_IDS };
 export default moduleDefinition;
