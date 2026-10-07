@@ -62,6 +62,7 @@ const TIMELINE_RETENTION_MS = 30 * 60_000;
 const MAXIMUM_RECOVERY_ATTEMPTS = 5;
 const MAXIMUM_RECOVERY_DELAY_MS = 60_000;
 const SESSION_JOURNAL_DEBOUNCE_MS = 1_500;
+const TIMELINE_DEBOUNCE_MS = 1_500;
 const EXPECTED_LIVE_SIGNALS = Object.freeze([
   'stream.online',
   'stream.offline',
@@ -79,6 +80,8 @@ export class OperationalReliabilityService {
   private writes: Promise<void> = Promise.resolve();
   private sessionWriteTimer: NodeJS.Timeout | undefined;
   private sessionWriteDirty = false;
+  private timelineWriteTimer: NodeJS.Timeout | undefined;
+  private timelineWriteDirty = false;
   private timer: NodeJS.Timeout | undefined;
   private sampling = false;
   private lastHealth: Readonly<JsonRecord> | undefined;
@@ -217,6 +220,7 @@ export class OperationalReliabilityService {
   }
 
   public async flush(): Promise<void> {
+    this.flushPendingTimelineWrite();
     this.flushPendingSessionWrite();
     await this.writes;
   }
@@ -350,7 +354,22 @@ export class OperationalReliabilityService {
     this.writes = this.writes.then(() => this.persistActiveSession()).catch((error: unknown) => { this.options.logger.warn('Active stream session persistence failed', { error }); });
   }
 
+  /** Debounced like the session journal: bursts of events produce one timeline write; flush() forces it. */
   private queueTimelineWrite(): void {
+    this.timelineWriteDirty = true;
+    if (this.timelineWriteTimer !== undefined) return;
+    this.timelineWriteTimer = setTimeout(() => {
+      this.timelineWriteTimer = undefined;
+      this.flushPendingTimelineWrite();
+    }, TIMELINE_DEBOUNCE_MS);
+    this.timelineWriteTimer.unref();
+  }
+
+  private flushPendingTimelineWrite(): void {
+    if (this.timelineWriteTimer !== undefined) clearTimeout(this.timelineWriteTimer);
+    this.timelineWriteTimer = undefined;
+    if (!this.timelineWriteDirty) return;
+    this.timelineWriteDirty = false;
     this.writes = this.writes.then(() => writeJsonAtomic(this.timelinePath(), { schemaVersion: 1, retainedMinutes: 30, events: this.timeline })).catch((error: unknown) => { this.options.logger.warn('Operational timeline persistence failed', { error }); });
   }
 
