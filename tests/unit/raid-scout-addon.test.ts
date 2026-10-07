@@ -94,6 +94,7 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
   let lifecycleListener: ((event: Record<string, unknown>) => void) | undefined;
   let taskSequence = 0;
   const scheduled = new Map<string, () => unknown>();
+  const scheduledDelays = new Map<string, number>();
   let mediaOwner: Record<string, unknown> = {};
   return {
     value: () => state,
@@ -104,6 +105,11 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
       // Production timers enqueue I/O work and return immediately so the capability broker's
       // five-second callback budget is never consumed by Twitch or Streamer.bot latency.
       // Give that private promise queue one event-loop turn to settle in the test harness.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    },
+    runDelay: async (delay: number) => {
+      const selected = [...scheduled.entries()].filter(([id]) => scheduledDelays.get(id) === delay);
+      for (const [id, task] of selected) { scheduled.delete(id); await task(); }
       await new Promise((resolve) => setTimeout(resolve, 0));
     },
     context: {
@@ -174,7 +180,7 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
       },
       approvedActionIds: [CONTROLLER_ACTION_ID],
       state: { read: vi.fn(async () => state), write: vi.fn(async (value) => { state = value; }) },
-      streamerbot: { runApprovedAction: vi.fn(async () => {}) },
+      streamerbot: { runApprovedAction: vi.fn<(id: string, args: Record<string, unknown>) => Promise<void>>(async () => {}) },
       viewerFoundation: { getProjection: vi.fn(async () => ({ viewerId: 'viewer-points', currencyName: 'Village Points' })), mutate: vi.fn(async () => ({ applied: true })) },
       chat: { send: vi.fn(async () => []) },
       overlay: {
@@ -194,7 +200,7 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
         fetch: vi.fn(async () => ({ url: '/overlay/cache/raid-clip.mp4', cacheHit: false, bytes: 1024, expiresAt: new Date(Date.now() + 3_600_000).toISOString() })),
       },
       schedule: {
-        after: vi.fn((_delay: number, task: () => unknown) => { const id = `task-${String(++taskSequence)}`; scheduled.set(id, task); return id; }),
+        after: vi.fn((delay: number, task: () => unknown) => { const id = `task-${String(++taskSequence)}`; scheduled.set(id, task); scheduledDelays.set(id, delay); return id; }),
         cancel: vi.fn((id: string) => scheduled.delete(id)),
       },
     },
@@ -231,6 +237,180 @@ afterEach(async () => {
 });
 
 describe('Raid Scout add-on', () => {
+  function fallbackRuntime(initial: Record<string, unknown> = {}, overrides: Record<string, unknown> = {}) {
+    const test = runtime({ endBroadcastWithoutRaid: true, endBroadcastFallbackSeconds: 30, endBroadcastAdStart: 'search', endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastAcknowledged: true, ...overrides }, initial);
+    test.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
+    return test;
+  }
+  async function controllerResult(test: ReturnType<typeof runtime>, operation: string, extra: Record<string, unknown> = {}) {
+    const pending = test.value().pending as { requestId: string };
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation, requestId: pending.requestId, ...extra } }, test.context);
+  }
+  function stopCalls(test: ReturnType<typeof runtime>) { return test.context.streamerbot.runApprovedAction.mock.calls.filter(([id]) => id === END_BROADCAST_ACTION_ID); }
+
+  it('finishes an empty search after the genuine ad without announcing a raid or stopping twice', async () => {
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now);
+    const test = fallbackRuntime({ twitchLive: true }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('finish'), test.context);
+    await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 180 } }, test.context);
+    await controllerResult(test, 'discover', { success: true, candidates: [] });
+    expect(test.value()).toMatchObject({ raidFlowEndingFallback: true, raidFlowRaidCompletedAt: 0, pending: { operation: 'end-broadcast-countdown', executeAt: now + 183_000 } });
+    expect(stopCalls(test)).toHaveLength(0); expect(test.context.chat.send).not.toHaveBeenCalled();
+    await test.runDelay(183_000); expect(stopCalls(test)).toHaveLength(1);
+    await test.runDelay(360_000); expect(stopCalls(test)).toHaveLength(1);
+  });
+
+  it('uses a 30-second farewell for a rejected ad and honors Cancel', async () => {
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now);
+    const test = fallbackRuntime({ twitchLive: true }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('finish'), test.context);
+    await controllerResult(test, 'discover', { success: false });
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'ending-ad-request', requestId: test.value().raidFlowAdRequestId, success: false } }, test.context);
+    expect(test.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', executeAt: now + 30_000 });
+    expect(stopCalls(test)).toHaveLength(0);
+    await raidScout.onEvent(control('cancel'), test.context);
+    await test.runDelay(30_000); await test.runDelay(360_000);
+    expect(stopCalls(test)).toHaveLength(0); expect(test.value().raidFlowFinishRequested).toBe(false);
+  });
+
+  it.each([true, undefined])('waits the full requested ad plus grace when its start signal is missing (%s)', async (accepted) => {
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now);
+    const test = fallbackRuntime({ twitchLive: true }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('finish'), test.context);
+    if (accepted) await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'ending-ad-request', requestId: test.value().raidFlowAdRequestId, success: true } }, test.context);
+    await controllerResult(test, 'discover', { success: true, candidates: [] });
+    await test.runDelay(45_000);
+    expect(test.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', executeAt: now + 225_000 });
+    expect(stopCalls(test)).toHaveLength(0);
+    await test.runDelay(225_000); expect(stopCalls(test)).toHaveLength(1);
+  });
+
+  it.each([false, true])('finishes failed or unconfirmed raids after ads without recording success (%s)', async (accepted) => {
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now);
+    const test = fallbackRuntime({ raidFlowFinishRequested: true, raidFlowStartedAt: now, raidFlowAdEndsAt: now + 180_000, pending: { operation: 'raid', requestId: 'failed-raid', startedAt: now, candidate: candidate('alpha') } });
+    await raidScout.start(test.context); await controllerResult(test, 'raid', { success: accepted });
+    if (accepted) await test.runDelay(120_000);
+    expect(test.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', executeAt: now + 183_000 });
+    expect(test.context.chat.send).not.toHaveBeenCalled();
+    expect((test.value().history as Array<{ status: string }>).some(h => h.status === 'confirmed')).toBe(false);
+    await test.runDelay(183_000); expect(stopCalls(test)).toHaveLength(1);
+  });
+
+  it('releases a failed raid preview for own clips instead of retrying previews', async () => {
+    const now = Date.now();
+    const test = fallbackRuntime({}, { previewClipBeforeRaid: true }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('finish'), test.context);
+    await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 180 } }, test.context);
+    await controllerResult(test, 'discover', { success: true, candidates: [candidate('alpha')] });
+    const clips = ['one', 'two'].map(id => ({ id, embedUrl: `https://clips.twitch.tv/embed?clip=${id}`, durationSeconds: 20 }));
+    await controllerResult(test, 'clip', { success: true, clips });
+    await controllerResult(test, 'clip-download', { success: true, landscapeUrl: 'https://example.com/clip.mp4' });
+    const playback = test.value().pending as { playbackId: string };
+    test.lifecycle({ playbackId: playback.playbackId, phase: 'failed', occurredAt: new Date(now).toISOString() });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(test.context.mediaSlot.release).toHaveBeenCalledTimes(1);
+    expect(test.value().pending).toMatchObject({ operation: 'raid' });
+    expect(test.context.streamerbot.runApprovedAction.mock.calls.filter(([,args]) => args.raidScoutOperation === 'clip-download')).toHaveLength(1);
+  });
+
+  it('skips an unresolved embed and resumes own clips while the raid proceeds', async () => {
+    const test = fallbackRuntime({}, { previewClipBeforeRaid: true }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('finish'), test.context);
+    await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 180 } }, test.context);
+    await controllerResult(test, 'discover', { success: true, candidates: [candidate('alpha')] });
+    await controllerResult(test, 'clip', { success: true, clips: [{ id: 'one', embedUrl: 'https://clips.twitch.tv/embed?clip=one', durationSeconds: 20 }] });
+    await controllerResult(test, 'clip-download', { success: false });
+    expect(test.context.mediaSlot.release).toHaveBeenCalledTimes(1);
+    expect(test.value().pending).toMatchObject({ operation: 'raid' });
+    expect((test.context.overlay.publish.mock.calls as unknown as Array<[string, unknown]>).some(([type]) => type === 'thsv.raid-scout.media.play')).toBe(false);
+  });
+
+  it('bounds a stuck ending even with ads requested only after target confirmation', async () => {
+    const test = fallbackRuntime({ twitchLive: true }, { endBroadcastAdStart: 'confirmed' }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('finish'), test.context);
+    expect(test.context.streamerbot.runApprovedAction.mock.calls.some(([id]) => id === RUN_ENDING_AD_ACTION_ID)).toBe(false);
+    await test.runDelay(360_000);
+    expect(test.value()).toMatchObject({ raidFlowEndingFallback: true, pending: { operation: 'end-broadcast-waiting-for-ad' } });
+    expect(stopCalls(test)).toHaveLength(0);
+  });
+
+  it('replaces a fallback wait with a late genuine ad timer and cancels the earlier stop', async () => {
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now);
+    const test = fallbackRuntime({ twitchLive: true }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('finish'), test.context);
+    await controllerResult(test, 'discover', { success: true, candidates: [] });
+    await test.runDelay(45_000);
+    expect(test.value().pending).toMatchObject({ executeAt: now + 225_000 });
+    await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 240 } }, test.context);
+    expect(test.value().pending).toMatchObject({ executeAt: now + 243_000 });
+    await test.runDelay(225_000); expect(stopCalls(test)).toHaveLength(0);
+    await test.runDelay(243_000); expect(stopCalls(test)).toHaveLength(1);
+  });
+
+  it('cancels fallback stopping if the approved stop-action grant is removed', async () => {
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now);
+    const test = fallbackRuntime({ twitchLive: true }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('finish'), test.context);
+    await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 180 } }, test.context);
+    await controllerResult(test, 'discover', { success: true, candidates: [] });
+    test.context.approvedActionIds.splice(test.context.approvedActionIds.indexOf(END_BROADCAST_ACTION_ID),1);
+    await test.runDelay(183_000); expect(stopCalls(test)).toHaveLength(0);
+  });
+
+  it('does not stop on Suggest-only searches or when acknowledgement is missing', async () => {
+    const test = fallbackRuntime({ twitchLive: true, raidFlowFinishRequested: true }); await raidScout.start(test.context);
+    await raidScout.onEvent(control('suggest'), test.context);
+    await controllerResult(test, 'discover', { success: true, candidates: [] });
+    await test.runScheduled(); expect(stopCalls(test)).toHaveLength(0);
+    await raidScout.stop(test.context);
+    const unarmed = fallbackRuntime({ twitchLive: true }, { endBroadcastAcknowledged: false }); await raidScout.start(unarmed.context);
+    await raidScout.onEvent(control('finish'), unarmed.context);
+    await controllerResult(unarmed, 'discover', { success: true, candidates: [] });
+    await unarmed.runScheduled(); expect(stopCalls(unarmed)).toHaveLength(0);
+  });
+
+  it('requests the ending ad on scene entry before searching, for either color variant', async () => {
+    const test = runtime({ startMode: 'scene-change', autoStartSceneName: '🔴 Ending Soon', sceneStartAction: 'suggest-and-confirm', endBroadcastAdStart: 'search', endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastAcknowledged: true });
+    test.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
+    await raidScout.start(test.context);
+    await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, test.context);
+    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🟠 Ending Soon' }, metadata: { simulated: false } }, test.context);
+    const calls = test.context.streamerbot.runApprovedAction.mock.calls;
+    expect(calls[0]?.[0]).toBe(RUN_ENDING_AD_ACTION_ID);
+    expect(calls[1]?.[0]).toBe(CONTROLLER_ACTION_ID);
+    expect(test.value().pending).toMatchObject({ operation: 'discover' });
+  });
+
+  it('uses the genuine intake time instead of adding delivery delay to the ad end', async () => {
+    const now = 1_800_000_000_000; vi.spyOn(Date, 'now').mockReturnValue(now);
+    const test = runtime({}, sanitizeState({ twitchLive: true, raidFlowStartedAt: now - 5000 }) as Record<string, unknown>);
+    await raidScout.start(test.context);
+    await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', receivedAt: new Date(now - 3000).toISOString(), metadata: { simulated: false }, payload: { adLength: 180 } }, test.context);
+    expect(test.value().lastAdEndsAt).toBe(now + 177000);
+  });
+
+  it('retains the destination through Twitch’s 90-second countdown before confirming handoff', async () => {
+    let now = 1_800_000_000_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const test = runtime({ endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastTiming: 'countdown', endBroadcastDelaySeconds: 5, endBroadcastAcknowledged: true }, sanitizeState({ pending: { operation: 'raid', requestId: 'long-handoff', startedAt: now, candidate: candidate('alpha') } }) as Record<string, unknown>);
+    test.context.approvedActionIds.push(END_BROADCAST_ACTION_ID);
+    await raidScout.start(test.context);
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'raid', requestId: 'long-handoff', success: true } }, test.context);
+    now += 90_000;
+    expect(sanitizeState(test.value()).pending).toMatchObject({ operation: 'raid-handoff' });
+    await confirmHandoff(test);
+    expect(test.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', executeAt: now + 5_000 });
+  });
+
+  it('falls back to the embed when a thumbnail-derived asset cannot be verified', async () => {
+    const pending = { operation: 'clip-download', requestId: 'bad-asset', startedAt: Date.now(), candidate: candidate('alpha'), clip: { id: 'clip-bad', embedUrl: 'https://clips.twitch.tv/embed?clip=clip-bad', durationSeconds: 12, thumbnailUrl: 'https://clips-media-assets2.twitch.tv/clip-bad-preview-480x272.jpg' }, remainingClips: [] };
+    const test = runtime({}, sanitizeState({ pending }) as Record<string, unknown>);
+    test.context.mediaCache.fetch.mockRejectedValueOnce(new Error('CDN 404'));
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'clip-download', requestId: pending.requestId, success: false } }, test.context);
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ embedUrl: pending.clip.embedUrl }), { lane: 'media' });
+    expect(test.context.overlay.publish).not.toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ url: 'https://clips-media-assets2.twitch.tv/clip-bad.mp4' }), expect.anything());
+  });
+
   it('filters own, blocked, recent, language, category, tag, and viewer mismatches', () => {
     const state = sanitizeState({
       streamCycle: 10,
@@ -266,6 +446,38 @@ describe('Raid Scout add-on', () => {
     expect(noPreferred.candidate?.userId).toBe('gamma');
     const categoryOnly = selectCandidate(candidates.filter((item) => item.source === 'category'), state, settings, 50);
     expect(categoryOnly.candidate?.userId).toBe('delta');
+  });
+
+  it('rotates randomly through each eligible tier without repeats and drops stale candidates', () => {
+    const candidates = [candidate('alpha'), candidate('beta'), candidate('gamma')];
+    let state = sanitizeState({ bags: { preferred: ['offline', 'gamma', 'alpha', 'beta'] } });
+    const selected: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const result = selectCandidate(candidates, state, { selectionMode: 'random' });
+      selected.push(String(result.candidate.userId));
+      state = { ...state, bags: result.bags };
+    }
+    expect(selected).toEqual(['gamma', 'alpha', 'beta']);
+    expect(selectCandidate(candidates, state, { selectionMode: 'random' }).candidate).toBeDefined();
+  });
+
+  it('manual start mode ignores scene changes even with the legacy scene checkbox enabled', async () => {
+    const testRuntime = runtime({ startMode: 'manual', autoStartSceneEnabled: true, autoStartSceneName: 'Ending Soon' });
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
+    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    await raidScout.onEvent(control('suggest'), testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
+  });
+
+  it('scene-change start mode works without the legacy scene checkbox', async () => {
+    const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneEnabled: false, autoStartSceneName: 'Ending Soon' });
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
+    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
+    expect(testRuntime.value().pending).toMatchObject({ autoConfirm: true });
   });
 
   it('keeps the normal viewer ceiling strict unless the bounded fallback is explicitly requested', () => {
@@ -421,6 +633,7 @@ describe('Raid Scout add-on', () => {
       payload: { operation: 'raid', requestId: raidPending.requestId, success: true, error: '' },
       metadata: { simulated: false },
     }, testRuntime.context);
+    await confirmHandoff(testRuntime);
     expect(testRuntime.value().suggestion).toBeUndefined();
     expect(testRuntime.value().history).toEqual(expect.arrayContaining([
       expect.objectContaining({ status: 'confirmed', candidate: expect.objectContaining({ userId: 'alpha' }) }),
@@ -433,6 +646,22 @@ describe('Raid Scout add-on', () => {
       title: 'NEXT STOP',
       imageUrl: 'https://example.com/avatar.jpg',
     }), { lane: 'foreground' });
+  });
+
+  it('starts the ending ad after scene-triggered discovery confirms a target, then reserves the target clip slot', async () => {
+    const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneName: 'Ending Soon', endBroadcastAdStart: 'confirmed', previewClipBeforeRaid: true, endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastAcknowledged: true }, sanitizeState({ twitchLive: true, streamCycle: 1 }) as Record<string, unknown>);
+    testRuntime.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
+    await raidScout.start(testRuntime.context);
+    const scene = { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } };
+    await raidScout.onEvent(scene, testRuntime.context);
+    await raidScout.onEvent(scene, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    const pending = testRuntime.value().pending as { requestId: string };
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'discover', requestId: pending.requestId, success: true, broadcasterUserId: 'owner', broadcasterLogin: 'owner', candidates: [candidate('ending_target')] } }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction.mock.calls.map(call => call[0])).toEqual([CONTROLLER_ACTION_ID, RUN_ENDING_AD_ACTION_ID, CONTROLLER_ACTION_ID]);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'clip', raidScoutTargetUserId: 'ending_target' }));
+    expect(testRuntime.context.mediaSlot.acquire).toHaveBeenCalled();
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'clip' });
   });
 
   it('runs the streamlined Finish Stream control through discovery and automatic confirmation', async () => {
@@ -455,6 +684,58 @@ describe('Raid Scout add-on', () => {
       raidScoutOperation: 'raid', raidScoutTargetLogin: 'finish_target',
     }));
     expect(testRuntime.value().pending).toMatchObject({ operation: 'raid' });
+  });
+
+  it('does not interrupt the target clip or stop the stream when its ending ad fails', async () => {
+    const now = Date.now();
+    const testRuntime = runtime({ endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastTiming: 'after-ad', endBroadcastAcknowledged: true, endBroadcastAdFailureDelaySeconds: 15 }, sanitizeState({ twitchLive: true, raidFlowStartedAt: now, raidFlowAdRequestedAt: now, raidFlowAdRequestId: 'failed-ad', pending: { operation: 'clip-playback', requestId: 'clip-test', startedAt: now, candidate: candidate('finish_target'), playbackId: 'preview', durationMs: 30000 } }) as Record<string, unknown>);
+    testRuntime.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
+    const livePending = { ...testRuntime.value() };
+    await raidScout.start(testRuntime.context);
+    await testRuntime.context.state.write(livePending);
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'ending-ad-request', requestId: 'failed-ad', success: false } }, testRuntime.context);
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'clip-playback' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid' }));
+    expect(testRuntime.context.schedule.after).toHaveBeenCalledWith(15000, expect.any(Function));
+    await testRuntime.runScheduled();
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.anything());
+    await raidScout.stop(testRuntime.context);
+  });
+
+  it.each(['failure', 'ad-start', 'cancel', 'accepted', 'simulated'])('uses the 15-second ad-failure fallback only for an explicit failure: %s', async (outcome) => {
+    const testRuntime = runtime({
+      endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID,
+      endBroadcastTiming: 'after-ad', endBroadcastAcknowledged: true, endBroadcastAdFailureDelaySeconds: 15,
+    }, sanitizeState({ twitchLive: true, raidFlowStartedAt: Date.now(), raidFlowAdRequestedAt: Date.now(), raidFlowAdRequestId: 'failed-ad' }) as Record<string, unknown>);
+    testRuntime.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent({
+      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: outcome === 'simulated' },
+      payload: { operation: 'ending-ad-request', requestId: 'failed-ad', success: outcome === 'accepted', error: 'Commercial unavailable.' },
+    }, testRuntime.context);
+    if (outcome !== 'accepted' && outcome !== 'simulated') expect(testRuntime.context.schedule.after).toHaveBeenCalledWith(15_000, expect.any(Function));
+    if (outcome === 'ad-start') await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 180 } }, testRuntime.context);
+    if (outcome === 'cancel') await raidScout.onEvent(control('cancel'), testRuntime.context);
+    await testRuntime.runScheduled();
+    const stops = testRuntime.context.streamerbot.runApprovedAction.mock.calls.filter(([id]) => id === END_BROADCAST_ACTION_ID);
+    expect(stops).toHaveLength(0);
+    await raidScout.stop(testRuntime.context);
+  });
+
+  it('keeps streaming after an accepted raid countdown without a confirmed handoff', async () => {
+    let now = 1_800_000_000_000; vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const test = runtime({ endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastTiming: 'after-ad', endBroadcastAcknowledged: true, endBroadcastAdFailureDelaySeconds: 15 }, sanitizeState({ twitchLive: true, raidFlowStartedAt: now, raidFlowAdRequestedAt: now, raidFlowAdRequestId: 'failed-ad' }) as Record<string, unknown>);
+    test.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);await raidScout.start(test.context);
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'ending-ad-request', requestId: 'failed-ad', success: false } }, test.context);
+    await test.context.state.write({ ...test.value(), raidFlowRaidAcceptedAt: now });
+    now += 15_000;await test.runScheduled();
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.anything());
+    expect(test.context.schedule.after).toHaveBeenCalledWith(80_000, expect.any(Function));
+    now += 79_999;await test.runScheduled();
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.anything());
+    now += 1;await test.runScheduled();
+    expect(test.context.streamerbot.runApprovedAction.mock.calls.filter(([id])=>id===END_BROADCAST_ACTION_ID)).toHaveLength(0);
+    await raidScout.stop(test.context);
   });
 
   it('starts the ending ad as Suggest begins and keeps discovery independent from the ad result', async () => {
@@ -607,6 +888,33 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().lastError).toContain('expired');
   });
 
+  it('never announces or stops on an accepted request, simulated handoff, or wrong destination', async () => {
+    const test = runtime({ endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastTiming: 'countdown', endBroadcastAcknowledged: true }, sanitizeState({ pending: { operation: 'raid', requestId: 'verify-request', startedAt: Date.now(), candidate: candidate('alpha') } }) as Record<string, unknown>);
+    test.context.approvedActionIds.push(END_BROADCAST_ACTION_ID);
+    await raidScout.start(test.context);
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'raid', requestId: 'verify-request', success: true } }, test.context);
+    expect(test.value().pending).toMatchObject({ operation: 'raid-handoff' });
+    expect(test.value().history).not.toEqual(expect.arrayContaining([expect.objectContaining({ confirmed: true })]));
+    const completion = { eventType: 'addon.thsv.raid-scout.raid-completed', platform: 'twitch', source: { eventName: 'Twitch.RaidSend' }, metadata: { simulated: true }, payload: { targetUserId: 'alpha', targetLogin: 'alpha', completedAt: new Date(Date.now()).toISOString() } };
+    await raidScout.onEvent(completion, test.context);
+    await raidScout.onEvent({ ...completion, metadata: { simulated: false }, payload: { ...completion.payload, targetUserId: 'wrong' } }, test.context);
+    expect(test.value().pending).toMatchObject({ operation: 'raid-handoff' });
+    await test.runScheduled();
+    expect(test.value().pending).toBeUndefined();
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.anything());
+    expect(test.value().lastError).toContain('confirm');
+  });
+
+  it('tries the next clip when the first preview reports failure', async () => {
+    const test = runtime({}, sanitizeState({ pending: { operation: 'clip-playback', requestId: 'preview', playbackId: 'first-preview', startedAt: Date.now(), durationMs: 12000, candidate: candidate('alpha'), clip: { id: 'first', durationSeconds: 12, embedUrl: 'https://clips.twitch.tv/embed?clip=first' }, remainingClips: [{ id: 'second', durationSeconds: 12, embedUrl: 'https://clips.twitch.tv/embed?clip=second' }] } }) as Record<string, unknown>);
+    await raidScout.start(test.context);
+    await test.context.state.write(sanitizeState({ pending: { operation: 'clip-playback', requestId: 'preview', playbackId: 'first-preview', startedAt: Date.now(), durationMs: 12000, candidate: candidate('alpha'), clip: { id: 'first', durationSeconds: 12, embedUrl: 'https://clips.twitch.tv/embed?clip=first' }, remainingClips: [{ id: 'second', durationSeconds: 12, embedUrl: 'https://clips.twitch.tv/embed?clip=second' }] } }));
+    test.lifecycle({ playbackId: 'first-preview', phase: 'failed', occurredAt: new Date().toISOString() });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'clip-download', raidScoutClipId: 'second' }));
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid' }));
+  });
+
   it('plays one bounded clip after confirmation and raids when the preview completes', async () => {
     const initial = sanitizeState({
       suggestion: { candidate: candidate('alpha'), suggestedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 60_000).toISOString() },
@@ -629,9 +937,9 @@ describe('Raid Scout add-on', () => {
       payload: { operation: 'clip-download', requestId: downloadPending.requestId, success: true, clipId: 'clip-1', landscapeUrl: 'https://clips-media-assets2.twitch.tv/clip-1.mp4' },
     }, testRuntime.context);
     const playback = testRuntime.value().pending as { playbackId: string; durationMs: number };
-    expect(testRuntime.context.mediaCache.fetch).not.toHaveBeenCalled();
+    expect(testRuntime.context.mediaCache.fetch).toHaveBeenCalled();
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.hide', {}, { lane: 'foreground' });
-    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ embedUrl: 'https://clips.twitch.tv/embed?clip=clip-1', durationMs: 12_000 }), { lane: 'media' });
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ url: '/overlay/cache/raid-clip.mp4', durationMs: 12_000 }), { lane: 'media' });
     expect(testRuntime.context.mediaSlot.acquire).toHaveBeenCalledWith({ durationMs: 600_000, priority: 100 });
     expect(playback.durationMs).toBe(12_000);
     expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(30_000, expect.any(Function));
@@ -671,7 +979,7 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().pending).toMatchObject({ operation: 'clip-playback' });
   });
 
-  it('prefers the Twitch embed over a derived thumbnail media URL when Streamer.bot returns no clip URL', async () => {
+  it('uses a successfully verified legacy clip asset when Streamer.bot returns no clip URL', async () => {
     const pending = {
       operation: 'clip-download', requestId: 'clip-download-fallback', startedAt: Date.now(), candidate: candidate('alpha'),
       clip: { id: 'clip-fallback', embedUrl: 'https://clips.twitch.tv/embed?clip=clip-fallback', durationSeconds: 12, thumbnailUrl: 'https://clips-media-assets2.twitch.tv/clip-fallback-preview-480x272.jpg' },
@@ -682,9 +990,9 @@ describe('Raid Scout add-on', () => {
       eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
       payload: { operation: 'clip-download', requestId: pending.requestId, success: false, error: 'No playable URL.' },
     }, testRuntime.context);
-    expect(testRuntime.context.mediaCache.fetch).not.toHaveBeenCalled();
+    expect(testRuntime.context.mediaCache.fetch).toHaveBeenCalled();
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({
-      embedUrl: 'https://clips.twitch.tv/embed?clip=clip-fallback',
+      url: '/overlay/cache/raid-clip.mp4',
     }), { lane: 'media' });
     expect(testRuntime.value().pending).toMatchObject({ operation: 'clip-playback' });
   });
@@ -817,12 +1125,13 @@ describe('Raid Scout add-on', () => {
       eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
       payload: { operation: 'raid', requestId: raidPending.requestId, success: true },
     }, testRuntime.context);
-    expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', executeAt: now });
+    await confirmHandoff(testRuntime);
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', executeAt: now + 5_000 });
     await testRuntime.runScheduled();
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'end-broadcast' }));
   });
 
-  it('ends after the genuine ad timer even when Twitch rejects the raid', async () => {
+  it('keeps the broadcast live when Twitch rejects the raid despite a running ad', async () => {
     const now = 1_800_000_000_000;
     vi.spyOn(Date, 'now').mockReturnValue(now);
     const raidRequestId = 'raid-rejected-after-ad';
@@ -844,15 +1153,12 @@ describe('Raid Scout add-on', () => {
       eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
       payload: { operation: 'raid', requestId: raidRequestId, success: false, error: 'Raid rejected.' },
     }, testRuntime.context);
-    expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', executeAt: now + 33_000 });
-    expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(33_000, expect.any(Function));
+    expect(testRuntime.value().pending).toBeUndefined();
     await testRuntime.runScheduled();
-    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({
-      raidScoutOperation: 'end-broadcast', raidScoutTargetLogin: 'small_channel',
-    }));
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.anything());
   });
 
-  it('arms a cancelable broadcast-ending countdown only after Twitch accepts the raid', async () => {
+  it('arms a cancelable broadcast-ending countdown only after Twitch confirms handoff', async () => {
     const raidRequestId = 'raid-accepted-request';
     const initial = sanitizeState({
       pending: { operation: 'raid', requestId: raidRequestId, startedAt: Date.now(), candidate: candidate('alpha') },
@@ -870,10 +1176,11 @@ describe('Raid Scout add-on', () => {
       eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
       payload: { operation: 'raid', requestId: raidRequestId, success: true, error: '' },
     }, testRuntime.context);
+    await confirmHandoff(testRuntime);
     expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', actionId: END_BROADCAST_ACTION_ID });
     expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(10_000, expect.any(Function));
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({
-      title: 'RAID FLOW COMPLETE', text: expect.stringContaining('Raid Scout Cancel'),
+      title: 'WAITING FOR ENDING HANDOFF', text: expect.stringContaining('Raid Scout Cancel'),
     }), { lane: 'foreground' });
 
     await raidScout.onEvent(control('cancel'), testRuntime.context);
@@ -902,6 +1209,7 @@ describe('Raid Scout add-on', () => {
       eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
       payload: { operation: 'raid', requestId: raidRequestId, success: true, error: '' },
     }, testRuntime.context);
+    await confirmHandoff(testRuntime);
     await testRuntime.runScheduled();
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({
       raidScoutOperation: 'end-broadcast', raidScoutTargetLogin: 'beta',
@@ -934,6 +1242,7 @@ describe('Raid Scout add-on', () => {
       eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
       payload: { operation: 'raid', requestId: raidRequestId, success: true },
     }, testRuntime.context);
+    await confirmHandoff(testRuntime);
     expect(testRuntime.value().pending).toMatchObject({ operation: 'end-broadcast-waiting-for-ad' });
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(RUN_ENDING_AD_ACTION_ID, expect.objectContaining({
       raidScoutOperation: 'run-ending-ad', raidScoutAdDurationSeconds: 180,
@@ -948,7 +1257,7 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'end-broadcast' }));
   });
 
-  it('ends after a rejected raid attempt but still requires the explicit safety acknowledgement', async () => {
+  it('keeps rejected raids live and still requires acknowledgement for confirmed handoffs', async () => {
     const rejectedId = 'raid-rejected-request';
     const rejected = runtime({ endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastTiming: 'countdown', endBroadcastAcknowledged: true }, sanitizeState({
       pending: { operation: 'raid', requestId: rejectedId, startedAt: Date.now(), candidate: candidate('alpha') },
@@ -956,9 +1265,9 @@ describe('Raid Scout add-on', () => {
     rejected.context.approvedActionIds.push(END_BROADCAST_ACTION_ID);
     await raidScout.start(rejected.context);
     await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'raid', requestId: rejectedId, success: false, error: 'Raid rejected.' } }, rejected.context);
-    expect(rejected.value().pending).toMatchObject({ operation: 'end-broadcast-countdown', actionId: END_BROADCAST_ACTION_ID });
+    expect(rejected.value().pending).toBeUndefined();
     await rejected.runScheduled();
-    expect(rejected.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'end-broadcast' }));
+    expect(rejected.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(END_BROADCAST_ACTION_ID, expect.anything());
 
     await raidScout.stop(rejected.context);
     const unacknowledgedId = 'raid-unacknowledged-request';
@@ -968,6 +1277,7 @@ describe('Raid Scout add-on', () => {
     unacknowledged.context.approvedActionIds.push(END_BROADCAST_ACTION_ID);
     await raidScout.start(unacknowledged.context);
     await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'raid', requestId: unacknowledgedId, success: true } }, unacknowledged.context);
+    await confirmHandoff(unacknowledged);
     expect(unacknowledged.value().pending).toBeUndefined();
     expect(unacknowledged.value().lastError).toContain('acknowledgement');
   });
@@ -984,6 +1294,7 @@ describe('Raid Scout add-on', () => {
     testRuntime.context.approvedActionIds.push(END_BROADCAST_ACTION_ID);
     await raidScout.start(testRuntime.context);
     await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'raid', requestId: raidRequestId, success: true } }, testRuntime.context);
+    await confirmHandoff(testRuntime);
     await testRuntime.runScheduled();
     await testRuntime.runScheduled();
     expect(testRuntime.value().pending).toBeUndefined();
@@ -1004,3 +1315,9 @@ describe('Raid Scout add-on', () => {
     expect(restarted.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
   });
 });
+
+async function confirmHandoff(test: ReturnType<typeof runtime>) {
+  const pending = test.value().pending as { operation?: string; candidate?: { userId: string; login: string } } | undefined;
+  if (pending?.operation !== 'raid-handoff' || !pending.candidate) return;
+  await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.raid-completed', platform: 'twitch', source: { eventName: 'Twitch.RaidSend' }, metadata: { simulated: false }, payload: { targetUserId: pending.candidate.userId, targetLogin: pending.candidate.login, completedAt: new Date(Date.now()).toISOString() } }, test.context);
+}

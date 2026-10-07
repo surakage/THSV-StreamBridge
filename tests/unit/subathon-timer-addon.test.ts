@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- verified executable add-on exports are intentionally loaded from plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import { applyElapsed, awardForEvent, formatRemaining, sanitizeState } from '../../addons/subathon-timer/dist/index.js';
+import * as subathonModule from '../../addons/subathon-timer/dist/index.js';
+
+type TimerState = Record<string, unknown>;
+interface TimerContext { settings: Record<string, unknown>; state: { read: () => Promise<TimerState>; write: (value: never) => Promise<void> }; overlay: { publish: () => Promise<void> }; schedule: { after: (delay: number, task: () => unknown) => string; cancel: () => void } }
+const { default: subathon, applyElapsed, awardForEvent, formatRemaining, sanitizeState } = subathonModule as {
+  default: { start: (context: TimerContext) => Promise<void>; stop: (context: TimerContext) => Promise<void> };
+  applyElapsed: (state: TimerState, now: number) => TimerState;
+  awardForEvent: (event: { eventType: string; platform: string; payload: Record<string, unknown> }, settings: Record<string, unknown>, state: TimerState) => TimerState;
+  formatRemaining: (seconds: number) => string;
+  sanitizeState: (value: TimerState) => TimerState;
+};
 
 const settings = {
   enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], followSeconds: 30, subscriptionSeconds: 300,
@@ -11,6 +20,14 @@ const settings = {
 };
 
 describe('Subathon Timer helpers', () => {
+  it('returns from its scheduled callback without waiting for private timer I/O', async () => {
+    let callback: (() => unknown) | undefined;
+    let state = { initialized: true, remainingSeconds: 60, maximumSeconds: 60, running: true, updatedAt: Date.now(), livePlatforms: ['twitch'] };
+    const context = { settings: { enabled: true, showOverlay: true }, state: { read: async()=>state, write: async(value: typeof state)=>{state=value;} }, overlay: { publish: async()=>{} }, schedule: { after: (_delay: number, task: () => unknown)=>{callback=task;return 'tick';}, cancel: ()=>{} } };
+    await subathon.start(context);
+    expect(callback).toBeDefined(); expect(callback?.()).toBeUndefined();
+    await subathon.stop(context);
+  });
   it('formats long timers without wrapping days into a clock', () => {
     expect(formatRemaining(90_061)).toBe('25:01:01');
   });
