@@ -843,6 +843,55 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().twitchLive).toBe(false);
   });
 
+  it('checks the live state and continues when the ending scene arrives after a missed stream-online signal', async () => {
+    const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneName: 'Ending Soon' }, sanitizeState({ twitchLive: false, streamCycle: 4, autoSceneStartedCycle: 4 }) as Record<string, unknown>);
+    await raidScout.start(testRuntime.context);
+    const endingScene = { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } };
+    await raidScout.onEvent(endingScene, testRuntime.context);
+    await raidScout.onEvent(endingScene, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'discover', autoConfirm: true, liveCheck: true });
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'CHECKING LIVE STATUS' }), { lane: 'foreground' });
+    const pending = testRuntime.value().pending as { requestId: string };
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'discover', requestId: pending.requestId, success: true, broadcasterUserId: 'owner', broadcasterLogin: 'owner', broadcasterLive: true, candidates: [candidate('recovered_target')] } }, testRuntime.context);
+    expect(testRuntime.value()).toMatchObject({ twitchLive: true, streamCycle: 5, autoSceneStartedCycle: 5 });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid', raidScoutTargetLogin: 'recovered_target' }));
+    await raidScout.onEvent(endingScene, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [{ broadcasterLive: false }, 'offline'],
+    [{}, 'Re-import'],
+    [{ success: false }, 'could not reach Twitch'],
+  ])('explains why the ending scene did not auto-raid when the live state is not confirmed (%o)', async (result, reason) => {
+    const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneName: 'Ending Soon' }, sanitizeState({ twitchLive: false, streamCycle: 4 }) as Record<string, unknown>);
+    await raidScout.start(testRuntime.context);
+    const endingScene = { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } };
+    await raidScout.onEvent(endingScene, testRuntime.context);
+    const pending = testRuntime.value().pending as { requestId: string };
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'discover', requestId: pending.requestId, success: true, broadcasterUserId: 'owner', broadcasterLogin: 'owner', candidates: [candidate('target')], ...result } }, testRuntime.context);
+    expect(testRuntime.value().pending).toBeUndefined();
+    expect(testRuntime.value()).toMatchObject({ twitchLive: false, streamCycle: 4, raidFlowStartedAt: 0, raidFlowFinishRequested: false });
+    expect(testRuntime.value().suggestion).toBeUndefined();
+    expect(testRuntime.value().lastError).toContain(reason);
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'AUTO-RAID DID NOT RUN', text: expect.stringContaining('Finish Stream') }), { lane: 'foreground' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    // Repeated scene-active signals do not loop the check; Finish Stream still works manually.
+    await raidScout.onEvent(endingScene, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    await raidScout.onEvent(control('finish'), testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
+    expect(testRuntime.value().pending).not.toHaveProperty('liveCheck');
+  });
+
+  it('reports the controller live state from its own-stream lookup', async () => {
+    const controller = readFileSync('packages/streamerbot/raid-scout/src/RaidScoutController.cs', 'utf8');
+    expect(controller).toContain('broadcasterLive = ownStream != null;');
+    expect(controller).toContain('if (broadcasterLive.HasValue) payload["broadcasterLive"] = broadcasterLive.Value;');
+  });
+
   it('uses the selected Meld scene relay and ignores a different broadcast app', async () => {
     const testRuntime = runtime({ autoStartSceneEnabled: true, autoStartProvider: 'meld', autoStartSceneName: 'Ending Soon' });
     await raidScout.start(testRuntime.context);

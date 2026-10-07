@@ -297,7 +297,7 @@ function pendingRecord(value) {
     || (operation === 'clip-download' && !clip)
     || (operation === 'clip-playback' && (!playbackId || durationMs === 0))
     || (operation.startsWith('end-broadcast-') && (!actionId || !executeAt))) return undefined;
-  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(operation === 'clip-playback' && value.embedded === true ? { embedded: true } : {}), ...(previewStartedAt ? { previewStartedAt } : {}), ...(clipTimeouts ? { clipTimeouts } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}) };
+  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(operation === 'clip-playback' && value.embedded === true ? { embedded: true } : {}), ...(previewStartedAt ? { previewStartedAt } : {}), ...(clipTimeouts ? { clipTimeouts } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}), ...(operation === 'discover' && value.liveCheck === true ? { liveCheck: true } : {}) };
 }
 
 function broadcastProviderName(provider) {
@@ -344,6 +344,7 @@ export function sanitizeState(value) {
     twitchLive: source.twitchLive === true,
     broadcasterUserId: clean(source.broadcasterUserId, 64),
     autoSceneStartedCycle: integer(source.autoSceneStartedCycle, 0, Number.MAX_SAFE_INTEGER, 0),
+    autoSceneLiveCheckedAt: integer(source.autoSceneLiveCheckedAt, 0, Number.MAX_SAFE_INTEGER, 0),
     lastAdStartedAt: integer(source.lastAdStartedAt, 0, Number.MAX_SAFE_INTEGER, 0),
     lastAdEndsAt: integer(source.lastAdEndsAt, 0, Number.MAX_SAFE_INTEGER, 0),
     raidFlowAdEndsAt: integer(source.raidFlowAdEndsAt, 0, Number.MAX_SAFE_INTEGER, 0),
@@ -574,7 +575,7 @@ async function publishCard(context, settings, candidate, confirmed) {
   } catch { /* Optional presentation. */ }
 }
 
-async function requestDiscovery(context, settings, state, autoConfirm = false) {
+async function requestDiscovery(context, settings, state, autoConfirm = false, liveCheck = false) {
   if (state.pending) {
     await publishStatusCard(context, settings, 'RAID SCOUT BUSY', 'The current Raid Scout step is still running. Use Cancel if you need to stop it.', 5_000);
     return state;
@@ -587,7 +588,7 @@ async function requestDiscovery(context, settings, state, autoConfirm = false) {
   }
   cancelProgress(context);
   if (settings.showSearchProgress) await publishStatusCard(context, settings, 'RAID SCOUT', 'Starting a safe destination search...', 1_500);
-  const pending = { operation: 'discover', requestId: requestId('discover'), startedAt: Date.now(), ...(autoConfirm ? { autoConfirm: true } : {}) };
+  const pending = { operation: 'discover', requestId: requestId('discover'), startedAt: Date.now(), ...(autoConfirm ? { autoConfirm: true } : {}), ...(liveCheck ? { liveCheck: true } : {}) };
   const reserved = { ...state, pending, lastError: '' }; await context.state.write(reserved);
   try {
     await runController(context, {
@@ -1514,7 +1515,25 @@ async function handleDiscoveryResult(event, context, settings, state) {
   if (state.pending?.operation !== 'discover' || clean(event.payload?.requestId, 100) !== state.pending.requestId) return state;
   cancelControllerWatchdog(context);
   const autoConfirm = state.pending.autoConfirm === true;
-  const base = withoutPending(state);
+  let base = withoutPending(state);
+  if (state.pending.liveCheck === true) {
+    // The ending scene started this search although StreamBridge never saw Twitch's stream-online
+    // signal. Proceed only when the controller's own-stream lookup confirms the channel is live.
+    const live = event.payload?.success === true ? event.payload?.broadcasterLive : undefined;
+    if (live !== true) {
+      const reason = live === false ? 'Twitch reports this channel is offline, so the ending scene did not start Raid Scout.'
+        : event.payload?.success !== true ? 'Raid Scout could not reach Twitch to confirm the stream is live, so the ending scene did not start it.'
+          : 'This Raid Scout Streamer.bot package cannot confirm the stream is live. Re-import the current Raid Scout package.';
+      const skipped = { ...withoutRaidFlow(base), lastError: reason };
+      await context.state.write(skipped);
+      cancelProgress(context);
+      await publishStatusCard(context, settings, 'AUTO-RAID DID NOT RUN', `StreamBridge missed Twitch's stream-online signal (StreamBridge or Streamer.bot was offline when you went live). ${reason} Press Finish Stream to run the raid and ending yourself.`, 15_000);
+      return skipped;
+    }
+    // Recover the missed stream-online signal: this is a new live stream cycle.
+    base = { ...base, twitchLive: true, streamCycle: state.streamCycle + 1, autoSceneStartedCycle: state.streamCycle + 1 };
+    await context.state.write(base);
+  }
   if (event.payload?.success !== true) {
     const failed = { ...base, lastError: clean(event.payload?.error, 300) || 'Twitch discovery failed.' };
     await context.state.write(failed);
@@ -1646,11 +1665,12 @@ async function handleRaidCompleted(event, context, settings, state) {
 }
 
 async function handleSceneChanged(event, context, settings, state) {
-  if (event.metadata?.simulated === true || !settings.autoStartSceneEnabled || !state.twitchLive) return state;
+  if (event.metadata?.simulated === true || !settings.autoStartSceneEnabled) return state;
   const provider = clean(event.payload?.provider, 30).toLowerCase();
   const sceneName = clean(event.payload?.sceneName, 200);
   const sceneKey = value => value.toLowerCase().replace(/^[🔴🟠]\s*/u, '');
   if ((provider && provider !== settings.autoStartProvider) || !sceneName || sceneKey(sceneName) !== sceneKey(settings.autoStartSceneName)) return state;
+  if (!state.twitchLive) return startSceneFlowWithoutLiveSignal(context, settings, state);
   if (state.autoSceneStartedCycle === state.streamCycle || state.pending) return state;
 
   // Claim this stream cycle before dispatch so duplicate broadcast-app scene-active signals cannot
@@ -1659,6 +1679,20 @@ async function handleSceneChanged(event, context, settings, state) {
   await context.state.write(claimed);
   const prepared = await startOrAdoptEndingAd(context, settings, claimed);
   return requestDiscovery(context, settings, prepared, settings.sceneStartAction === 'suggest-and-confirm');
+}
+
+// Twitch's stream-online signal can be missed while StreamBridge or Streamer.bot is offline. The
+// ending scene must not then silently do nothing: check the live state through the same bounded
+// discovery request, and either continue or tell the creator why auto-raid did not run.
+const SCENE_LIVE_CHECK_COOLDOWN_MS = 120_000;
+async function startSceneFlowWithoutLiveSignal(context, settings, state) {
+  if (state.pending || Date.now() - state.autoSceneLiveCheckedAt < SCENE_LIVE_CHECK_COOLDOWN_MS) return state;
+  const autoConfirm = settings.sceneStartAction === 'suggest-and-confirm';
+  const claimed = { ...state, autoSceneLiveCheckedAt: Date.now(), raidFlowFinishRequested: autoConfirm, lastError: '' };
+  await context.state.write(claimed);
+  await publishStatusCard(context, settings, 'CHECKING LIVE STATUS', 'StreamBridge did not receive Twitch\'s stream-online signal. Confirming the stream is live before the ending flow continues.', 5_000);
+  const prepared = await startOrAdoptEndingAd(context, settings, claimed);
+  return requestDiscovery(context, settings, prepared, autoConfirm, true);
 }
 
 async function processEvent(event, context) {
