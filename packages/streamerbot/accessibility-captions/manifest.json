@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Accessibility Captions",
-  "version": "4.0.13",
+  "version": "4.0.14",
   "author": "surakage",
   "description": "Relays recognized native Voice Control dictation to the Accessibility Captions add-on when speech WebSocket notifications are unavailable.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -10,7 +10,7 @@
     "name": "THSV Closed Captions - Relay Dictation",
     "group": "THSV Addon - Accessibility Captions",
     "source": "src/Relay.cs",
-    "importFile": "THSV-StreamBridge-Accessibility-Captions-4.0.13.sb",
+    "importFile": "THSV-StreamBridge-Accessibility-Captions-4.0.14.sb",
     "excludeFromHistory": true,
     "excludeFromPending": true,
     "references": [
