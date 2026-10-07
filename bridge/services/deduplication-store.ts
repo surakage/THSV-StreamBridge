@@ -23,7 +23,12 @@ export class FileDeduplicationStore implements DeduplicationStore {
   private writeQueue: Promise<void> = Promise.resolve();
   private lastError: string | undefined;
 
-  public constructor(private readonly path: string, private readonly logger: Logger, private readonly delayMs = 100) {}
+  /**
+   * @param delayMs debounce window: a burst of accepted events produces one
+   *   write per window. Entries live for minutes, so losing at most this window
+   *   on a crash only reopens a short replay gap; shutdown always flushes.
+   */
+  public constructor(private readonly path: string, private readonly logger: Logger, private readonly delayMs = 1_000) {}
 
   public async load(): Promise<readonly DeduplicationEntry[]> {
     try {

@@ -10,9 +10,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: MODULE_ID,
   name: 'Stream Launch Countdown',
-  version: '4.0.12',
+  version: '4.0.13',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.13', maximumTestedBridgeVersion: '4.0.13',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [CONTROL_EVENT, SCENE_EVENT, SCENE_SNAPSHOT_EVENT, 'stream.online', 'stream.offline', 'system.broadcast-started', 'system.broadcast-stopped'], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
@@ -143,7 +143,14 @@ function overlayStyle(settings) {
 }
 
 let tickTimer; let hideTimer; let completionActionTimer; let liveStartTimer; let stopped = false; let operation = Promise.resolve();
+// The 1 s tick updates the overlay from the last state this module wrote. The
+// stored remainingSeconds/updatedAt pair already determines the countdown, so
+// the tick only rewrites private state on a real change (completion) or every
+// PERSIST_INTERVAL_MS as a safety checkpoint, not every second.
+const PERSIST_INTERVAL_MS = 30_000;
+let tickBase;
 function serialize(task) { operation = operation.then(task, task); return operation; }
+async function writeState(context, state) { await context.state.write(state); tickBase = { state, persistedAt: Date.now(), dirty: false }; }
 function cancelTimers(context) {
   if (tickTimer !== undefined) context.schedule.cancel(tickTimer);
   if (hideTimer !== undefined) context.schedule.cancel(hideTimer);
@@ -165,12 +172,12 @@ async function dispatchCompletionAction(context, settings) {
   if (state.completionActionSent || !state.completed || state.remainingSeconds !== 0 || state.completedAt === 0) return;
   if (Date.now() - state.completedAt > 300_000) {
     state.completionActionSent = true; state.lastReason = 'completion-action-expired';
-    await context.state.write(state); return;
+    await writeState(context, state); return;
   }
   const actionId = approvedCompletionAction(context);
   if (!actionId) return;
   state.completionActionSent = true; state.lastReason = 'completion-action-dispatched';
-  await context.state.write(state);
+  await writeState(context, state);
   try {
     await context.streamerbot.runApprovedAction(actionId, {
       countdownModule: MODULE_ID,
@@ -232,15 +239,21 @@ function schedule(context, settings, state) {
 }
 
 async function persist(context, settings, state, playCompletionTone = false) {
-  await context.state.write(state); await publishState(context, settings, state, playCompletionTone); schedule(context, settings, state);
+  await writeState(context, state); await publishState(context, settings, state, playCompletionTone); schedule(context, settings, state);
 }
 
 async function handleTick(context) {
   const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
-  const elapsed = applyElapsed(initializeState(sanitizeState(await context.state.read(), configured), configured));
+  const base = tickBase?.state ?? initializeState(sanitizeState(await context.state.read(), configured), configured);
+  const elapsed = applyElapsed(base);
   const completionActionDelaySeconds = integer(settings.completionActionDelaySeconds, 0, 60, 0);
   if (elapsed.completedNow && settings.runCompletionAction === true) {
     elapsed.state.completionActionDueAt = Date.now() + completionActionDelaySeconds * 1_000;
+  }
+  if (tickBase !== undefined && !elapsed.completedNow && elapsed.state.running && Date.now() - tickBase.persistedAt < PERSIST_INTERVAL_MS) {
+    tickBase = { state: elapsed.state, persistedAt: tickBase.persistedAt, dirty: true };
+    await publishState(context, settings, elapsed.state, false); schedule(context, settings, elapsed.state);
+    return;
   }
   await persist(context, settings, elapsed.state, elapsed.completedNow);
   if (elapsed.completedNow && settings.runCompletionAction === true && completionActionDelaySeconds === 0) {
@@ -318,7 +331,7 @@ async function handleSceneChanged(event, context) {
 export default {
   manifest, required: false,
   async start(context) {
-    stopped = false; operation = Promise.resolve(); currentSceneName = ''; onlinePlatforms.clear(); firstLiveAt = 0;
+    stopped = false; operation = Promise.resolve(); currentSceneName = ''; onlinePlatforms.clear(); firstLiveAt = 0; tickBase = undefined;
     const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
     const initial = initializeState(sanitizeState(await context.state.read(), configured), configured);
     // Re-establish the scene and actual platform live state before resuming automation.
@@ -333,7 +346,12 @@ export default {
       await dispatchCompletionAction(context, settings);
     }
   },
-  async stop(context) { stopped = true; cancelTimers(context); await operation; },
+  async stop(context) {
+    stopped = true; cancelTimers(context); await operation;
+    // Restart pauses the countdown at its stored value, so checkpoint the latest tick on a clean shutdown.
+    if (tickBase?.dirty === true) { try { await context.state.write(tickBase.state); } catch { /* Shutdown continues. */ } }
+    tickBase = undefined;
+  },
   async onEvent(event, context) {
     if (!settingsFor(context).enabled) return;
     if (['stream.online', 'stream.offline', 'system.broadcast-started', 'system.broadcast-stopped'].includes(event.eventType) && event.metadata?.simulated !== true) {

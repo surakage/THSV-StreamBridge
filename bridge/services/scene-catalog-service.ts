@@ -105,7 +105,7 @@ export class SceneCatalogService {
 
   public acceptDirectSnapshot(provider: SceneProvider, snapshot: DirectSceneSnapshot): void {
     const withoutRedundantObserved = this.state[provider].connections.filter((connection) => connection.source !== 'observed');
-    if (withoutRedundantObserved.length !== this.state[provider].connections.length) this.state = { ...this.state, [provider]: { connections: withoutRedundantObserved } };
+    if (withoutRedundantObserved.length !== this.state[provider].connections.length) { this.state = { ...this.state, [provider]: { connections: withoutRedundantObserved } }; this.queueWrite(); }
     this.replaceConnection(provider, { id: snapshot.connectionId, name: snapshot.connectionName, scenes: uniqueSorted(snapshot.scenes), ...(snapshot.currentScene === undefined ? {} : { currentScene: snapshot.currentScene }), complete: true, updatedAt: new Date().toISOString(), source: 'direct-websocket' });
   }
 
@@ -168,9 +168,13 @@ export class SceneCatalogService {
   }
 
   private replaceConnection(provider: SceneProvider, connection: SceneConnectionState): void {
-    const connections = this.state[provider].connections.filter((candidate) => candidate.id !== connection.id);
-    this.state = { ...this.state, [provider]: { connections: [...connections, connection].slice(-MAXIMUM_CONNECTIONS) } };
-    this.queueWrite();
+    const previous = this.state[provider].connections;
+    const connections = previous.filter((candidate) => candidate.id !== connection.id);
+    const next = [...connections, connection].slice(-MAXIMUM_CONNECTIONS);
+    this.state = { ...this.state, [provider]: { connections: next } };
+    // Repeated identical snapshots only refresh the in-memory timestamp; the
+    // file is rewritten when the catalog content actually changes.
+    if (!sameCatalogContent(previous, next)) this.queueWrite();
   }
 
   private queueWrite(): void {
@@ -185,6 +189,10 @@ export class SceneCatalogService {
 
 export class SceneCatalogError extends Error { public constructor(public readonly statusCode: number, message: string) { super(message); } }
 
+function sameCatalogContent(left: readonly SceneConnectionState[], right: readonly SceneConnectionState[]): boolean {
+  const comparable = (connections: readonly SceneConnectionState[]): string => JSON.stringify(connections.map((connection) => ({ ...connection, updatedAt: '' })));
+  return comparable(left) === comparable(right);
+}
 function emptyState(): SceneCatalogState { return { obs: { connections: [] }, streamlabs: { connections: [] }, meld: { connections: [] } }; }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function isSceneProvider(value: unknown): value is SceneProvider { return value === 'obs' || value === 'streamlabs' || value === 'meld'; }

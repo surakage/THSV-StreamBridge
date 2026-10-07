@@ -34,8 +34,14 @@ export class DirectSceneConnectionManager {
   private readonly degradationSince = new Map<string, number>();
   private reliabilitySnapshots: ReliabilitySnapshot[] = [];
   private eventWrites: Promise<void> = Promise.resolve();
+  private readonly lastSnapshotSignatures = new Map<string, string>();
 
-  public constructor(private readonly vault: BroadcastConnectionVaultService, private readonly environmentDefaults: readonly ResolvedBroadcastConnection[] = [], private readonly createClient: DirectSceneConnectionClientFactory = client, private readonly historyPath?: string, private readonly applicationState?: DirectSceneApplicationStateProvider, private readonly pausePollMs = 2_000) {}
+  /**
+   * @param pausePollMs how often a closed application is re-checked while its subscription is paused.
+   * @param connectedProbeMs how often a connected application is re-checked. A dropped socket already
+   *   triggers an immediate check, so this is only a slow safety net for "wrong installation" detection.
+   */
+  public constructor(private readonly vault: BroadcastConnectionVaultService, private readonly environmentDefaults: readonly ResolvedBroadcastConnection[] = [], private readonly createClient: DirectSceneConnectionClientFactory = client, private readonly historyPath?: string, private readonly applicationState?: DirectSceneApplicationStateProvider, private readonly pausePollMs = 5_000, private readonly connectedProbeMs = 60_000) {}
 
   public async start(listener: (provider: BroadcastConnectionProvider, snapshot: DirectSceneSnapshot) => void): Promise<void> { this.listener = listener; await Promise.all([this.loadHistory(), this.loadAcceptanceReceipts(), this.loadAcceptanceBaseline(), this.loadReliabilitySnapshots()]); await this.reload(); }
 
@@ -169,7 +175,7 @@ export class DirectSceneConnectionManager {
       }
       this.resume(profile);
       try {
-        this.setState(profile, 'connecting'); const instance = this.createClient(profile); const startedAt = Date.now(); const snapshot = await instance.getSceneList(); this.recordSnapshot(profile, Date.now() - startedAt, snapshot.scenes.length); this.listener?.(profile.provider, snapshot); this.setState(profile, 'connected'); failures = 0;
+        this.setState(profile, 'connecting'); const instance = this.createClient(profile); const startedAt = Date.now(); const snapshot = await instance.getSceneList(); this.recordSnapshot(profile, Date.now() - startedAt, snapshot.scenes.length); this.lastSnapshotSignatures.set(profile.id, snapshotSignature(snapshot)); this.listener?.(profile.provider, snapshot); this.setState(profile, 'connected'); failures = 0;
         const applicationClosed = await this.watchUntilApplicationCloses(profile, instance, signal);
         if (applicationClosed) continue;
       } catch (error) { if (isActive(signal)) { failures += 1; this.recordError(profile, error); this.setState(profile, 'reconnecting'); } }
@@ -178,7 +184,7 @@ export class DirectSceneConnectionManager {
     this.setState(profile, 'stopped'); this.recordEvent(profile, 'stopped');
   }
 
-  private async refreshAfterEvent(profile: ResolvedBroadcastConnection, instance: DirectSceneConnectionClient): Promise<void> { if (this.refreshes.has(profile.id)) return; this.refreshes.add(profile.id); const startedAt = Date.now(); try { const updated = await instance.getSceneList(); this.recordSnapshot(profile, Date.now() - startedAt, updated.scenes.length); this.listener?.(profile.provider, updated); } catch (error) { this.recordError(profile, error); } finally { this.refreshes.delete(profile.id); } }
+  private async refreshAfterEvent(profile: ResolvedBroadcastConnection, instance: DirectSceneConnectionClient): Promise<void> { if (this.refreshes.has(profile.id)) return; this.refreshes.add(profile.id); const startedAt = Date.now(); try { const updated = await instance.getSceneList(); const signature = snapshotSignature(updated); const changed = this.lastSnapshotSignatures.get(profile.id) !== signature; this.lastSnapshotSignatures.set(profile.id, signature); this.recordSnapshot(profile, Date.now() - startedAt, updated.scenes.length, changed); if (changed) this.listener?.(profile.provider, updated); } catch (error) { this.recordError(profile, error); } finally { this.refreshes.delete(profile.id); } }
   private async watchUntilApplicationCloses(profile: ResolvedBroadcastConnection, instance: DirectSceneConnectionClient, signal: AbortSignal): Promise<boolean> {
     if (this.applicationState === undefined) { await instance.watchChanges(() => { void this.refreshAfterEvent(profile, instance); }, signal); return false; }
     const local = new AbortController(); const stop = () => local.abort(); signal.addEventListener('abort', stop, { once: true });
@@ -192,7 +198,7 @@ export class DirectSceneConnectionManager {
   }
   private async waitForApplicationClose(profile: ResolvedBroadcastConnection, signal: AbortSignal): Promise<void> {
     while (isActive(signal)) {
-      await delay(this.pausePollMs, undefined, { signal }).catch(() => undefined);
+      await delay(this.connectedProbeMs, undefined, { signal }).catch(() => undefined);
       if (!isActive(signal)) return;
       const application = await this.applicationState?.(profile).catch(() => ({ configured: false, running: true }));
       if (application?.configured === true && !application.running) return;
@@ -203,7 +209,8 @@ export class DirectSceneConnectionManager {
   private recordApplication(profile: ResolvedBroadcastConnection, application: DirectSceneApplicationState | undefined): void { if (application === undefined) return; const current = this.runtimes.get(profile.id) ?? { profile, state: 'connecting' as const, reconnectCount: 0 }; const next: ConnectionRuntime = { ...current, ...(application.executableName === undefined ? {} : { applicationExecutableName: application.executableName }), ...(application.processId === undefined ? {} : { applicationProcessId: application.processId }), ...(application.differentInstallationProcessId === undefined ? {} : { differentInstallationProcessId: application.differentInstallationProcessId }) }; if (application.processId === undefined) delete next.applicationProcessId; if (application.differentInstallationProcessId === undefined) delete next.differentInstallationProcessId; this.runtimes.set(profile.id, next); }
   private resume(profile: ResolvedBroadcastConnection): void { const current = this.runtimes.get(profile.id); if (current?.state !== 'paused') return; const next: ConnectionRuntime = { ...current, state: 'connecting' }; delete next.pauseReason; this.runtimes.set(profile.id, next); this.recordEvent(profile, 'resumed', { detail: 'Application process detected; native subscription is resuming.' }); }
   private setState(profile: ResolvedBroadcastConnection, state: ConnectionRuntime['state']): void { const current = this.runtimes.get(profile.id) ?? { profile, state, reconnectCount: 0 }; const next: ConnectionRuntime = { ...current, state, ...(state === 'connected' ? { lastConnectedAt: new Date().toISOString() } : {}) }; if (state === 'connected') delete next.lastError; this.runtimes.set(profile.id, next); }
-  private recordSnapshot(profile: ResolvedBroadcastConnection, latencyMs: number, sceneCount: number): void { const current = this.runtimes.get(profile.id) ?? { profile, state: 'connected' as const, reconnectCount: 0 }; const next: ConnectionRuntime = { ...current, state: 'connected', lastConnectedAt: current.lastConnectedAt ?? new Date().toISOString(), lastSnapshotAt: new Date().toISOString(), lastLatencyMs: latencyMs }; delete next.lastError; this.runtimes.set(profile.id, next); this.recordEvent(profile, current.lastSnapshotAt === undefined ? 'connected' : 'snapshot', { latencyMs, sceneCount }); }
+  /** Unchanged confirmation snapshots update the live runtime only; the persisted history records changes. */
+  private recordSnapshot(profile: ResolvedBroadcastConnection, latencyMs: number, sceneCount: number, changed = true): void { const current = this.runtimes.get(profile.id) ?? { profile, state: 'connected' as const, reconnectCount: 0 }; const next: ConnectionRuntime = { ...current, state: 'connected', lastConnectedAt: current.lastConnectedAt ?? new Date().toISOString(), lastSnapshotAt: new Date().toISOString(), lastLatencyMs: latencyMs }; delete next.lastError; this.runtimes.set(profile.id, next); if (changed || current.lastSnapshotAt === undefined || current.lastError !== undefined) this.recordEvent(profile, current.lastSnapshotAt === undefined ? 'connected' : 'snapshot', { latencyMs, sceneCount }); }
   private recordError(profile: ResolvedBroadcastConnection, error: unknown): void { const current = this.runtimes.get(profile.id) ?? { profile, state: 'reconnecting' as const, reconnectCount: 0 }; const detail = safeError(error); this.runtimes.set(profile.id, { ...current, reconnectCount: current.reconnectCount + 1, lastError: detail }); this.recordEvent(profile, 'reconnecting', { detail }); }
   private async stopWatchers(): Promise<void> { this.controller?.abort(); this.controller = undefined; await Promise.allSettled(this.tasks); this.tasks = []; }
   private recordEvent(profile: ResolvedBroadcastConnection, type: ConnectionEvent['type'], detail: Pick<ConnectionEvent, 'latencyMs' | 'sceneCount' | 'detail'> = {}): void { this.events = [...this.events, { timestamp: new Date().toISOString(), connectionId: profile.id, connectionName: profile.name, provider: profile.provider, type, ...detail }].slice(-MAXIMUM_EVENTS); this.queueHistoryWrite(); }
@@ -228,6 +235,7 @@ function client(profile: ResolvedBroadcastConnection): DirectSceneConnectionClie
   if (profile.provider === 'meld') return new MeldDirectSceneClient(profile.url, 4_000, profile.id, profile.name);
   return new StreamlabsDirectSceneClient(profile.url, profile.credential, 4_000, profile.id, profile.name);
 }
+function snapshotSignature(snapshot: DirectSceneSnapshot): string { return JSON.stringify([snapshot.connectionId, snapshot.connectionName, snapshot.scenes, snapshot.currentScene ?? null]); }
 function safeError(error: unknown): string { return (error instanceof Error ? error.message : String(error)).replaceAll(/\b(?:password|token|secret)\s*[:=]\s*\S+/giu, '[REDACTED]').slice(0, 500); }
 function providerLabel(provider: BroadcastConnectionProvider): string { return provider === 'obs' ? 'OBS' : provider === 'meld' ? 'Meld Studio' : 'Streamlabs Desktop'; }
 function isActive(signal: AbortSignal): boolean { return !signal.aborted; }

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import type { DeduplicationEntry } from '../../bridge/core/deduplicator.js';
+import type { DeduplicationStore } from '../../bridge/services/deduplication-store.js';
 import { createTestBridge, fixture, silentLogger, testConfig } from '../helpers.js';
 import type { OutputAdapter } from '../../bridge/adapters/adapter.js';
 import { createDefaultAdapterRegistry } from '../../bridge/adapters/registry.js';
@@ -7,6 +9,21 @@ import { NoopDeduplicationStore } from '../../bridge/services/deduplication-stor
 import type { DeliveryOutboxStore } from '../../bridge/services/delivery-outbox-store.js';
 
 describe('StreamBridge hardening', () => {
+  it('debounces deduplication persistence on ingest and flushes it on shutdown', async () => {
+    const config = await testConfig();
+    const registry = createDefaultAdapterRegistry(config, silentLogger);
+    const calls: string[] = []; let latest: readonly DeduplicationEntry[] = [];
+    const store: DeduplicationStore = { load: async () => [], scheduleSave: (entries) => { calls.push('schedule'); latest = entries; }, flush: async () => { calls.push('flush'); }, status: () => ({ enabled: true }) };
+    const bridge = new StreamBridge(config, silentLogger, { inputs: registry.createInputs(config.platforms), outputs: registry.createOutputs(config.outputs), deduplicationStore: store });
+    await bridge.start();
+    const template = await fixture();
+    for (let index = 0; index < 3; index += 1) await bridge.ingest({ ...template, eventId: `dedup-${String(index)}`, source: { ...template.source, eventId: `dedup-source-${String(index)}` } });
+    expect(calls).toEqual(['schedule', 'schedule', 'schedule']);
+    expect(latest).toHaveLength(3);
+    await bridge.stop();
+    expect(calls.at(-1)).toBe('flush');
+  });
+
   it('does not report acceptance or publish locally until the delivery obligation is durable', async () => {
     const config = await testConfig();
     const registry = createDefaultAdapterRegistry(config, silentLogger);

@@ -119,4 +119,19 @@ describe('operational reliability service', () => {
     expect(JSON.parse(await readFile(journal, 'utf8'))).toMatchObject({ counts: { 'chat.message': 25 } });
     await service.stop();
   });
+
+  it('debounces operational timeline writes during a burst and flushes them on demand', async () => {
+    vi.useFakeTimers(); vi.setSystemTime('2026-08-26T12:00:00.000Z');
+    const { service, dataRoot } = await createHarness();
+    const timeline = join(dataRoot, 'state', 'operational-timeline.json');
+    for (let index = 0; index < 25; index += 1) service.observe(event(`evt-${String(index)}`, 'chat.message', new Date().toISOString()));
+    await vi.advanceTimersByTimeAsync(1_499);
+    await expect(readFile(timeline, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    await vi.advanceTimersByTimeAsync(1); await service.flush();
+    expect((JSON.parse(await readFile(timeline, 'utf8')) as { events: unknown[] }).events).toHaveLength(25);
+    service.observe(event('evt-last', 'chat.message', new Date().toISOString()));
+    await service.flush();
+    expect((JSON.parse(await readFile(timeline, 'utf8')) as { events: unknown[] }).events).toHaveLength(26);
+    await service.stop();
+  });
 });

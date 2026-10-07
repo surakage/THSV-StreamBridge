@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import * as subathonModule from '../../addons/subathon-timer/dist/index.js';
 
@@ -51,4 +51,24 @@ describe('Subathon Timer helpers', () => {
     expect(awardForEvent({ eventType: 'engagement.milestone', platform: 'tiktok', payload: { metric: 'likes', value: 199 } }, settings, state)).toMatchObject({ seconds: 0 });
     expect(awardForEvent({ eventType: 'engagement.milestone', platform: 'tiktok', payload: { metric: 'likes', value: 305 } }, settings, state)).toMatchObject({ seconds: 90, thresholdBuckets: 3 });
   });
+
+  it('publishes the running timer every second but checkpoints private state every 30 seconds', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-08-08T20:00:00.000Z'));
+    let state: TimerState = { initialized: true, remainingSeconds: 120, maximumSeconds: 120, running: true, updatedAt: Date.now(), livePlatforms: ['twitch'] };
+    const writes: TimerState[] = []; const published: Array<Record<string, unknown>> = [];
+    const context = { settings: { enabled: true, showOverlay: true }, state: { read: async () => state, write: async (value: TimerState) => { state = value; writes.push(value); } }, overlay: { publish: async (_topic: string, payload: Record<string, unknown>) => { published.push(payload); } }, schedule: { after: (delay: number, task: () => unknown) => String(setTimeout(task, delay)), cancel: (id: string) => clearTimeout(Number(id)) } };
+    await subathon.start(context as unknown as TimerContext);
+    const writesAfterStart = writes.length; const publishedAfterStart = published.length;
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(writes.length).toBe(writesAfterStart);
+    expect(published.length - publishedAfterStart).toBe(29);
+    expect(published.at(-1)).toMatchObject({ remainingSeconds: 91 });
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(writes.length).toBe(writesAfterStart + 1); expect(state).toMatchObject({ remainingSeconds: 90, running: true });
+    expect(applyElapsed(state, Date.now() + 10_000)).toMatchObject({ remainingSeconds: 80 });
+    await vi.advanceTimersByTimeAsync(90_000);
+    expect(state).toMatchObject({ remainingSeconds: 0, running: false, lastReason: 'expired' });
+    await subathon.stop(context as unknown as TimerContext);
+  });
 });
+afterEach(() => { vi.useRealTimers(); });

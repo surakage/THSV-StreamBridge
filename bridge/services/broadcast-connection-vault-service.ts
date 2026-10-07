@@ -186,7 +186,7 @@ async function runDpapi(script: string, input: string): Promise<string> {
   return await new Promise<string>((resolve, reject) => {
     const child = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     const output: Buffer[] = []; const errors: Buffer[] = []; let bytes = 0;
-    const timer = setTimeout(() => { child.kill(); reject(new Error('Windows credential protection timed out.')); }, 5_000); timer.unref();
+    const timer = setTimeout(() => { child.kill(); reject(new Error('Windows credential protection timed out.')); }, 15_000); timer.unref();
     child.stdout.on('data', (chunk: Buffer) => { bytes += chunk.length; if (bytes <= 64 * 1024) output.push(chunk); else child.kill(); });
     child.stderr.on('data', (chunk: Buffer) => { if (errors.reduce((total, item) => total + item.length, 0) < 4_096) errors.push(chunk); });
     child.once('error', (error) => { clearTimeout(timer); reject(error); });

@@ -7,7 +7,9 @@ import type { Logger } from '../services/logger.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
 import type { DeduplicationStore } from '../services/deduplication-store.js';
 import type { DeliveryOutboxStore } from '../services/delivery-outbox-store.js';
+import { CoalescedTask } from './coalesced-task.js';
 import { EventDeduplicator } from './deduplicator.js';
+import { SceneChangeDeduplicator } from './scene-change-deduplicator.js';
 import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
@@ -47,6 +49,7 @@ export interface StreamBridgeDependencies {
 export class StreamBridge {
   private readonly bus = new InternalEventBus();
   private readonly deduplicator: EventDeduplicator;
+  private readonly sceneChanges = new SceneChangeDeduplicator();
   private readonly inputs: readonly InputAdapter[];
   private readonly simulationAdapter: SimulationAdapter;
   private readonly delivery: OutputDeliveryManager;
@@ -65,7 +68,13 @@ export class StreamBridge {
   private statePersistenceError: string | undefined;
   private nextSequence = 0;
   private lastPersistedSequence = 0;
-  private stateWriteChain: Promise<void> = Promise.resolve();
+  private latestAcceptedState: { readonly lastAcceptedEventAt: string; readonly lastEventId: string; readonly bridgeSequence: number } | undefined;
+  private readonly acceptedStateWrites = new CoalescedTask(async () => {
+    const value = this.latestAcceptedState;
+    if (value === undefined || value.bridgeSequence <= this.lastPersistedSequence) return;
+    await this.stateWriter('data/state/bridge-status.json', value);
+    this.lastPersistedSequence = value.bridgeSequence;
+  });
 
   public constructor(
     private readonly config: BridgeConfig,
@@ -196,16 +205,22 @@ export class StreamBridge {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
+    if (this.sceneChanges.isDuplicate(validatedEvent)) {
+      // The same switch already arrived from the other scene source (Streamer.bot relay or OBS watcher).
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      this.logger.debug('Duplicate scene switch from a second source ignored', { eventId: validatedEvent.eventId, provider: validatedEvent.payload['provider'], sceneName: validatedEvent.payload['sceneName'] });
+      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
+    }
     const lifecycleState = validatedEvent.metadata.simulated ? undefined : lifecycleStateFor(validatedEvent.eventType);
     if (lifecycleState !== undefined && this.lifecycleState.get(validatedEvent.platform) === lifecycleState) {
+      // Debounced: the store coalesces bursts and flushes on shutdown.
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
-      await this.dependencies.deduplicationStore.flush();
       this.logger.debug('Redundant lifecycle state ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
     try {
+      // Debounced: the store coalesces bursts and flushes on shutdown.
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
-      await this.dependencies.deduplicationStore.flush();
       this.timedActions?.observe(validatedEvent);
       if (!validatedEvent.metadata.simulated && validatedEvent.eventType === 'stream.online') {
         this.syncLivePlatformsFromTimedActions();
@@ -216,6 +231,7 @@ export class StreamBridge {
       }
     } catch (error) {
       this.deduplicator.forget(validatedEvent);
+      this.sceneChanges.forget(validatedEvent);
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
       await this.dependencies.deduplicationStore.flush().catch(() => undefined);
       throw error;
@@ -245,6 +261,7 @@ export class StreamBridge {
         derivedCommand = undefined;
       } else {
         this.deduplicator.forget(validatedEvent);
+        this.sceneChanges.forget(validatedEvent);
         if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
         throw error;
       }
@@ -287,6 +304,7 @@ export class StreamBridge {
       };
     } catch (error) {
       this.deduplicator.forget(validatedEvent);
+      this.sceneChanges.forget(validatedEvent);
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
       await this.dependencies.deduplicationStore.flush().catch(() => undefined);
       throw error;
@@ -399,15 +417,11 @@ export class StreamBridge {
 
   private async persistAcceptedState(event: NormalizedEvent, acceptedAt: string): Promise<void> {
     const bridgeSequence = event.metadata.bridgeSequence ?? 0;
-    const value = { lastAcceptedEventAt: acceptedAt, lastEventId: event.eventId, bridgeSequence };
-    const write = this.stateWriteChain.then(async () => {
-      if (bridgeSequence <= this.lastPersistedSequence) return;
-      await this.stateWriter('data/state/bridge-status.json', value);
-      this.lastPersistedSequence = bridgeSequence;
-    });
-    this.stateWriteChain = write.catch(() => undefined);
+    if (bridgeSequence > (this.latestAcceptedState?.bridgeSequence ?? 0)) this.latestAcceptedState = { lastAcceptedEventAt: acceptedAt, lastEventId: event.eventId, bridgeSequence };
+    // Concurrent ingests share one write of the highest accepted sequence
+    // instead of rewriting bridge-status.json once per event.
     try {
-      await write;
+      await this.acceptedStateWrites.request();
       this.statePersistenceError = undefined;
     } catch (error) {
       this.statePersistenceError = error instanceof Error ? error.message : String(error);

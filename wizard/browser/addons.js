@@ -1977,9 +1977,17 @@ async function installDiscoveredAddOn(event) {
   } catch (error) { reportAddOnFeedback(`The discovered add-on was not installed: ${error.message}`, 'error', button); }
 }
 
+// Twitch's embedded clip player rejects IP-address `parent` hosts, so overlays that play raid
+// targets' clips are handed to OBS on localhost (same loopback Bridge and port).
+function twitchEmbedSafeOrigin() {
+  const origin = new URL(location.origin);
+  if (origin.protocol === 'http:' && /^(?:127(?:\.\d{1,3}){3}|\[::1\])$/u.test(origin.hostname)) origin.hostname = 'localhost';
+  return origin.origin;
+}
+
 function renderAddOnOverlayTools(addOn) {
   const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
-  const url = `${location.origin}${overlayPath}`;
+  const url = `${addOn.moduleId === 'thsv.raid-scout' ? twitchEmbedSafeOrigin() : location.origin}${overlayPath}`;
   if (['thsv.fan-crown', 'thsv.first-five', 'thsv.viewer-spotlight', 'thsv.village-roll-call', 'thsv.chat-play-pack'].includes(addOn.moduleId)) {
     const variants = [['compact', 'Compact landscape', '700 × 410', 'compact'], ['regular', 'Regular landscape', '980 × 574', 'regular'], ['compact-vertical', 'Compact vertical', '410 × 700', 'compact&cardOrientation=vertical'], ['regular-vertical', 'Regular vertical', '574 × 980', 'regular&cardOrientation=vertical']].map(([key, name, dimensions, query]) => `<label>${name} · ${dimensions}<span class="inline-copy-field"><input readonly data-addon-overlay-url="${safe(`${addOn.moduleId}:${key}`)}" value="${safe(`${url}?cardSize=${query}`)}"><button type="button" data-copy-addon-overlay="${safe(`${addOn.moduleId}:${key}`)}">Copy</button></span></label>`).join('');
     return `<p>Choose either size for this individual overlay. Every redemption card uses the same outer frame within its size, so cards can share one position without different edges showing. Set your browser source to the dimensions shown.</p><div class="form-grid">${variants}</div><div class="button-row"><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>`;

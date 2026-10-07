@@ -81,9 +81,13 @@ public class CPHInline
         int currentAudience = fallbackAudience;
         string currentCategory = "";
         string currentGameId = "";
+        bool? broadcasterLive = null;
         try
         {
             JObject ownStream = FirstStream(GetJson("streams?user_id=" + Uri.EscapeDataString(broadcaster.UserId), token, clientId));
+            // Helix lists only live streams, so this lookup is also Raid Scout's live-state check
+            // when StreamBridge missed Twitch's stream-online signal.
+            broadcasterLive = ownStream != null;
             if (ownStream != null)
             {
                 currentAudience = BoundedInteger(ownStream["viewer_count"], fallbackAudience, 0, 10000000);
@@ -149,6 +153,7 @@ public class CPHInline
             ["sourceResults"] = sourceResults,
             ["sourceErrors"] = sourceErrors
         };
+        if (broadcasterLive.HasValue) payload["broadcasterLive"] = broadcasterLive.Value;
         Emit("discover", requestId, relayToken, true, "", payload);
         CPH.SetArgument("raidScoutDiscoveryValid", true);
         CPH.SetArgument("raidScoutCandidateCount", candidates.Count);

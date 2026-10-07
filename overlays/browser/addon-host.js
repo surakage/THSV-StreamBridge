@@ -10,6 +10,17 @@
   const moduleId = aliases[location.pathname] || location.pathname.slice('/overlay/addons/'.length);
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId)) return;
   const editorMode = new URLSearchParams(location.search).get('editor') === 'wizard';
+  // Twitch's clip player only embeds into a page whose hostname matches its `parent` value, and
+  // Twitch rejects IP-address parents (localhost is the supported local name). Raid Scout plays
+  // raid targets' clips through that player, so an OBS source still pointed at 127.0.0.1 or [::1]
+  // reopens itself on localhost (the same loopback Bridge, port, path, and query).
+  const twitchParentHost = !/^(?:\d{1,3}(?:\.\d{1,3}){3}|\[.*\])$/u.test(location.hostname) && (location.protocol === 'https:' || location.hostname === 'localhost');
+  if (moduleId === 'thsv.raid-scout' && !editorMode && location.protocol === 'http:' && /^(?:127(?:\.\d{1,3}){3}|\[::1\])$/u.test(location.hostname)) {
+    const target = new URL(location.href);
+    target.hostname = 'localhost';
+    location.replace(target.href);
+    return;
+  }
   const redemptionSize = new URLSearchParams(location.search).get('cardSize');
   if (['compact', 'regular'].includes(redemptionSize)) document.documentElement.dataset.redemptionSize = redemptionSize;
   if (new URLSearchParams(location.search).get('cardOrientation') === 'vertical') document.documentElement.dataset.redemptionOrientation = 'vertical';
@@ -205,8 +216,11 @@
   function safeTwitchClipEmbed(value, muted) {
     if (typeof value !== 'string' || value.length === 0 || value.length > 4_096) return undefined;
     try {
-      const url = new URL(value);
-      if (url.protocol !== 'https:' || url.hostname !== 'clips.twitch.tv' || url.pathname !== '/embed') return undefined;
+      const source = new URL(value);
+      const slug = source.searchParams.get('clip') || '';
+      if (source.protocol !== 'https:' || source.hostname !== 'clips.twitch.tv' || source.pathname !== '/embed' || !/^[A-Za-z0-9_-]{1,200}$/u.test(slug)) return undefined;
+      const url = new URL('https://clips.twitch.tv/embed');
+      url.searchParams.set('clip', slug);
       url.searchParams.set('parent', location.hostname);
       url.searchParams.set('autoplay', 'true');
       url.searchParams.set('muted', muted === true ? 'true' : 'false');
@@ -1078,6 +1092,16 @@
     const url = embedUrl || safeUrl(payload.url);
     const playbackId = typeof payload.playbackId === 'string' && /^[A-Za-z0-9._:-]{1,100}$/u.test(payload.playbackId) ? payload.playbackId : '';
     if (!url || !playbackId) return;
+    if (twitchEmbedUrl && !twitchParentHost) {
+      // Twitch would refuse this parent and show its own error inside the frame. Report the
+      // failure at once so the add-on continues without waiting for its start deadline.
+      if (activePlaybackId === playbackId) return;
+      clearMedia(activePlaybackId ? 'stopped' : undefined);
+      activePlaybackId = playbackId;
+      reportLifecycle('failed', 'Twitch clip embeds require this overlay to be opened from localhost.');
+      activePlaybackId = '';
+      return;
+    }
     // Recovery broadcasts and late OBS connections may deliver the same play message more than
     // once. It is an acknowledgement retry, not a request to seek back to zero. Reloading here
     // caused clips to stutter for a second and then appear to skip.
@@ -1125,6 +1149,9 @@
     // shared media slot forever. Once playback actually starts, the normal duration watchdog
     // replaces this short startup deadline.
     if (embeddedPlaybackKind === 'youtube') mediaTimer = setTimeout(() => clearMedia('timeout'), 20_000);
+    // The Twitch clip player has no playback API; its frame load is the start signal. A frame that
+    // never loads (offline, blocked) must release the slot within a few seconds.
+    if (embeddedPlaybackKind === 'twitch-clip') mediaTimer = setTimeout(() => clearMedia('timeout'), 8_000);
     if (!embedUrl) void startNativeMedia(playbackId, url);
   }
 

@@ -6,8 +6,8 @@ const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const LANGUAGE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/u;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.user-translate', name: 'Translate', version: '4.0.12',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.user-translate', name: 'Translate', version: '4.0.13',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.13', maximumTestedBridgeVersion: '4.0.13', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', RESULT_EVENT],
   commandsProvided: [
     { id: 'user-translate.generic', name: 'translate (usage: !translate buenos dias)' },
@@ -98,8 +98,14 @@ let stopped = false;
 let operation = Promise.resolve();
 function serialize(task) { operation = operation.then(task, task); return operation; }
 function cancelCleanup(context) { if (cleanupTimer !== undefined) context.schedule.cancel(cleanupTimer); cleanupTimer = undefined; }
-function scheduleCleanup(context) { cancelCleanup(context); cleanupTimer = context.schedule.after(60_000, () => serialize(async () => { cleanupTimer = undefined; await prune(context); if (!stopped) scheduleCleanup(context); })); }
-async function prune(context) { const state = sanitizeState(await context.state.read()); const cutoff = Date.now() - 120_000; state.pending = state.pending.filter((item) => item.createdAt >= cutoff); state.userCooldowns = state.userCooldowns.filter((item) => item.at >= Date.now() - 86_400_000); await context.state.write(state); }
+// Pending translations expire after two minutes, so cleanup runs every minute
+// only while requests are pending; otherwise an hourly pass trims day-old
+// cooldowns. State is written only when cleanup actually removed something.
+const PENDING_CLEANUP_MS = 60_000;
+const IDLE_CLEANUP_MS = 3_600_000;
+let cleanupDelay = 0;
+function scheduleCleanup(context, pending = true) { cancelCleanup(context); cleanupDelay = pending ? PENDING_CLEANUP_MS : IDLE_CLEANUP_MS; cleanupTimer = context.schedule.after(cleanupDelay, () => serialize(async () => { cleanupTimer = undefined; const remaining = await prune(context); if (!stopped) scheduleCleanup(context, remaining > 0); })); }
+async function prune(context) { const raw = await context.state.read(); const state = sanitizeState(raw); const cutoff = Date.now() - 120_000; state.pending = state.pending.filter((item) => item.createdAt >= cutoff); state.userCooldowns = state.userCooldowns.filter((item) => item.at >= Date.now() - 86_400_000); if (JSON.stringify(state) !== JSON.stringify(raw)) await context.state.write(state); return state.pending.length; }
 
 async function sendTutorial(event, parsed, context, settings) {
   if (event.metadata?.simulated === true) return;
@@ -120,6 +126,7 @@ async function requestTranslation(event, parsed, context, settings) {
   state.pending.push({ requestId, platform: event.platform, author: parsed.author || 'Viewer', mode: parsed.mode === 'automatic' ? 'automatic' : 'manual', sourceLanguage: requestSourceLanguage, targetLanguage: parsed.targetLanguage, createdAt: now });
   state.userCooldowns = [...state.userCooldowns.filter((item) => item.key !== key), { key, at: now }].slice(-500); state.lastRequestAt = now;
   await context.state.write(state); // Store correlation only; never persist the message being translated.
+  if (!stopped && cleanupDelay !== PENDING_CLEANUP_MS) scheduleCleanup(context, true);
   try {
     await context.streamerbot.runApprovedAction(TRANSLATE_ACTION_ID, { requestId, text: parsed.inputText, provider: settings.provider, sourceLanguage: requestSourceLanguage, targetLanguage: parsed.targetLanguage, timeoutSeconds: settings.timeoutSeconds });
   } catch {
@@ -175,7 +182,7 @@ async function handleEvent(event, context) {
 
 export default {
   manifest, required: false,
-  async start(context) { stopped = false; operation = Promise.resolve(); resetTranslateRuntime(); await prune(context); scheduleCleanup(context); },
-  async stop(context) { stopped = true; cancelCleanup(context); await operation; resetTranslateRuntime(); },
+  async start(context) { stopped = false; operation = Promise.resolve(); resetTranslateRuntime(); const pending = await prune(context); scheduleCleanup(context, pending > 0); },
+  async stop(context) { stopped = true; cancelCleanup(context); cleanupDelay = 0; await operation; resetTranslateRuntime(); },
   async onEvent(event, context) { await serialize(() => handleEvent(event, context)); },
 };

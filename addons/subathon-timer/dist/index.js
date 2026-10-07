@@ -24,9 +24,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.subathon-timer',
   name: 'Subathon Timer',
-  version: '4.0.12',
+  version: '4.0.13',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.13', maximumTestedBridgeVersion: '4.0.13',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -44,7 +44,7 @@ const manifest = {
   installationSteps: [
     'Install and enable the add-on, then choose your starting time, cap, and per-event bonuses.',
     'Use stream.online and stream.offline from your connected platform relays so the timer starts and pauses from real live state.',
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.12.sb package for Start, Pause, Resume, Reset, and Add Time actions.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.13.sb package for Start, Pause, Resume, Reset, and Add Time actions.',
     'Attach those optional control actions to hotkeys, scene triggers, or buttons in Streamer.bot. The imported actions relay only bounded local timer controls.',
     'Optional: enable the moderator commands if you also want chat-based controls.',
     'Use the core-owned hosted add-on overlay URL shown in the wizard. It renders the timer without executing add-on-supplied browser code.',
@@ -410,16 +410,30 @@ function scheduleTick(context, state) {
   });
 }
 
+// The 1 s tick updates the overlay from the last state this module wrote. The
+// stored remainingSeconds/updatedAt pair already determines the timer, so the
+// tick only rewrites private state when the timer stops or every
+// PERSIST_INTERVAL_MS as a safety checkpoint, not every second.
+const PERSIST_INTERVAL_MS = 30_000;
+let tickBase;
+
 async function persist(context, settings, state) {
   await context.state.write(state);
+  tickBase = { state, persistedAt: Date.now() };
   await publishState(context, settings, state);
   scheduleTick(context, state);
 }
 
 async function handleTick(context) {
   const settings = settingsFor(context);
-  let state = initializeState(sanitizeState(await context.state.read()), settings);
-  state = applyElapsed(state);
+  const base = tickBase?.state ?? initializeState(sanitizeState(await context.state.read()), settings);
+  const state = applyElapsed(base);
+  if (tickBase !== undefined && state.running && Date.now() - tickBase.persistedAt < PERSIST_INTERVAL_MS) {
+    tickBase = { state, persistedAt: tickBase.persistedAt };
+    await publishState(context, settings, state);
+    scheduleTick(context, state);
+    return;
+  }
   await persist(context, settings, state);
 }
 
@@ -551,6 +565,7 @@ export default {
   async start(context) {
     stopped = false;
     operation = Promise.resolve();
+    tickBase = undefined;
     const settings = settingsFor(context);
     const state = initializeState(sanitizeState(await context.state.read()), settings);
     await persist(context, settings, applyElapsed(state));
@@ -559,6 +574,7 @@ export default {
     stopped = true;
     cancelTick(context);
     await operation;
+    tickBase = undefined;
   },
   async onEvent(event, context) {
     await serialize(() => handleEvent(event, context));

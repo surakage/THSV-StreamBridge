@@ -1015,7 +1015,9 @@ function overlaySourceCatalog(){
   for(const addOn of overlaySetupInventory){
     if(!addOn?.enabled||addOn.health!=='installed'||!addOn.permissions?.includes('overlay.publish'))continue;
     const known=OVERLAY_ADD_ON_SOURCES[addOn.moduleId];
-    sources.push({id:addOn.moduleId,name:addOn.name,path:known?.path||`/overlay/addons/${encodeURIComponent(addOn.moduleId)}`,width:1920,height:1080,mode:overlayModeFor(addOn.moduleId),kind:'addon',moduleId:addOn.moduleId});
+    // Raid Scout plays raid targets' clips in Twitch's embed, which rejects IP-address parents.
+    const embedOrigin=addOn.moduleId==='thsv.raid-scout'&&location.protocol==='http:'&&/^(?:127(?:\.\d{1,3}){3}|\[::1\])$/u.test(location.hostname)?`http://localhost${location.port?`:${location.port}`:''}`:'';
+    sources.push({id:addOn.moduleId,name:addOn.name,path:known?.path||`${embedOrigin}/overlay/addons/${encodeURIComponent(addOn.moduleId)}`,width:1920,height:1080,mode:overlayModeFor(addOn.moduleId),kind:'addon',moduleId:addOn.moduleId});
   }
   return sources;
 }

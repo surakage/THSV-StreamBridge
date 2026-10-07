@@ -68,7 +68,8 @@ describe('Stream Launch Countdown installed add-on', () => {
     // A restart no longer resumes a saved running countdown, so start a one-second countdown explicitly.
     await registry.publish(control('set-and-start', { seconds: 1 }));
     let completionState: Record<string, unknown> = {};
-    for (let attempt = 0; attempt < 40 && completionState.completionActionSent !== true; attempt += 1) {
+    // The add-on records completionActionSent before it dispatches the action, so wait for both.
+    for (let attempt = 0; attempt < 40 && (completionState.completionActionSent !== true || actions.length === 0); attempt += 1) {
       await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
       completionState = JSON.parse(await readFile(statePath, 'utf8')) as Record<string, unknown>;
     }

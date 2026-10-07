@@ -5,6 +5,7 @@ import type { Logger } from '../services/logger.js';
 import type { DeliveryDeadLetter, DeliveryOutboxRecord, DeliveryOutboxSnapshot, DeliveryOutboxStore } from '../services/delivery-outbox-store.js';
 import { MemoryDeliveryOutboxStore } from '../services/delivery-outbox-store.js';
 import { OutputCapacityError, OutputUnavailableError } from './delivery-errors.js';
+import { CoalescedTask } from './coalesced-task.js';
 
 interface DeliveryMetrics {
   enqueued: number; acknowledged: number; failedAttempts: number; deadLettered: number;
@@ -35,7 +36,7 @@ export class DurableOutputDeliveryManager {
   private deadLetters: DeliveryDeadLetter[] = [];
   private stopping = false;
   private persistenceError: string | undefined;
-  private persistChain: Promise<void> = Promise.resolve();
+  private readonly persistence = new CoalescedTask(async () => { await this.store.save(structuredClone(this.snapshot())); });
   private enqueueChain: Promise<void> = Promise.resolve();
   private drainWaiters: Array<() => void> = [];
 
@@ -218,11 +219,13 @@ export class DurableOutputDeliveryManager {
   private pendingRecords(): DeliveryOutboxRecord[] { return this.runtimes.flatMap((runtime) => [...runtime.queue, ...runtime.active.values()]); }
   private snapshot(): DeliveryOutboxSnapshot { return { version: 1, pending: this.pendingRecords(), deadLetters: this.deadLetters }; }
 
+  /**
+   * Saves the current outbox. Calls made while a save is in flight share the
+   * next save, which snapshots the latest state when it starts, so each caller
+   * still waits for a write that includes its change.
+   */
   private async persist(): Promise<void> {
-    const snapshot = structuredClone(this.snapshot());
-    const write = this.persistChain.then(() => this.store.save(snapshot));
-    this.persistChain = write.catch(() => undefined);
-    try { await write; this.persistenceError = undefined; }
+    try { await this.persistence.request(); this.persistenceError = undefined; }
     catch (error) {
       this.persistenceError = error instanceof Error ? error.message : String(error);
       this.logger.error('Delivery outbox persistence failed', { error });

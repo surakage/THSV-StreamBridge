@@ -48,7 +48,7 @@ describe('direct scene connection manager', () => {
     const watchChanges = vi.fn(async (_onChange: () => void, signal: AbortSignal) => await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true })));
     const factoryImplementation: DirectSceneConnectionClientFactory = (profile) => ({ getSceneList: vi.fn(async () => ({ connectionId: profile.id, connectionName: profile.name, scenes: ['Scene'] })), watchChanges });
     const factory = vi.fn(factoryImplementation);
-    const manager = new DirectSceneConnectionManager(vault, [], factory, undefined, async () => ({ configured: true, running, executableName: 'Meld Studio.exe', ...(running ? { processId: 42 } : { differentInstallationProcessId: 99, state: 'different-installation-running' }) }), 5);
+    const manager = new DirectSceneConnectionManager(vault, [], factory, undefined, async () => ({ configured: true, running, executableName: 'Meld Studio.exe', ...(running ? { processId: 42 } : { differentInstallationProcessId: 99, state: 'different-installation-running' }) }), 5, 5);
     await manager.start(vi.fn()); await vi.waitFor(() => expect((manager.status() as { connections: Array<{ state: string }> }).connections[0]?.state).toBe('paused'));
     expect((manager.status() as { connections: Array<{ state: string; reconnectCount: number }> }).connections[0]).toMatchObject({ state: 'paused', reconnectCount: 0 });
     expect(factory).not.toHaveBeenCalled();
@@ -58,6 +58,24 @@ describe('direct scene connection manager', () => {
     running = false; await vi.waitFor(() => expect((manager.status() as { connections: Array<{ state: string }> }).connections[0]?.state).toBe('paused'));
     expect((manager.status() as { connections: Array<{ reconnectCount: number; differentInstallationProcessId: number }> }).connections[0]).toMatchObject({ reconnectCount: 0, differentInstallationProcessId: 99 });
     expect(factory).toHaveBeenCalledTimes(1);
+    await manager.stop();
+  });
+
+  it('records confirmation snapshots in history and notifies listeners only when the scene content changed', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-direct-unchanged-')); roots.push(root);
+    const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
+    await vault.save({ name: 'Main', provider: 'obs', url: 'ws://127.0.0.1:4455', enabled: true });
+    let current = 'Live'; let onChange: (() => void) | undefined;
+    const getSceneList = vi.fn(async () => ({ connectionId: 'main', connectionName: 'Main', scenes: ['Live', 'BRB'], currentScene: current }));
+    const manager = new DirectSceneConnectionManager(vault, [], () => ({ getSceneList, watchChanges: async (handler, signal) => { onChange = handler; await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true })); } }));
+    const listener = vi.fn(); await manager.start(listener);
+    await vi.waitFor(() => expect(onChange).toBeDefined()); expect(listener).toHaveBeenCalledTimes(1);
+    const eventCount = (): number => (manager.status() as { events: unknown[] }).events.length; const before = eventCount();
+    for (let index = 0; index < 3; index += 1) { const calls = getSceneList.mock.calls.length; onChange?.(); await vi.waitFor(() => expect(getSceneList.mock.calls.length).toBe(calls + 1)); }
+    await vi.waitFor(() => expect((manager.status() as { connections: Array<{ lastSnapshotAt?: string }> }).connections[0]?.lastSnapshotAt).toBeDefined());
+    expect(listener).toHaveBeenCalledTimes(1); expect(eventCount()).toBe(before);
+    current = 'BRB'; onChange?.();
+    await vi.waitFor(() => expect(listener).toHaveBeenCalledTimes(2)); expect(eventCount()).toBe(before + 1);
     await manager.stop();
   });
 

@@ -12,9 +12,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.first-five',
   name: 'First Five',
-  version: '4.0.12',
+  version: '4.0.13',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.13', maximumTestedBridgeVersion: '4.0.13',
   dependencies: ['thsv.viewer-foundation'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -483,6 +483,12 @@ const module = {
 export { CONTROLLER_ACTION_ID, monthKey };
 export default module;
 
+// Month rollover runs from one task aimed just past the next calendar-month
+// boundary in the tracker's time zone instead of a check every minute. The task
+// is re-armed at most hourly so sleep or a clock change cannot delay it long.
+const monthFormatters = new Map();
+function calendarMonthKey(timeZone, now = Date.now()) { let formatter = monthFormatters.get(timeZone); if (!formatter) { formatter = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit' }); monthFormatters.set(timeZone, formatter); } const parts = Object.fromEntries(formatter.formatToParts(new Date(now)).map((part) => [part.type, part.value])); return `${parts.year}-${parts.month}`; }
+function monthlyCheckDelay(timeZone, now = Date.now()) { const current = calendarMonthKey(timeZone, now); let low = Math.floor(now / 60_000) + 1, high = low + 32 * 1_440; while (low < high) { const middle = Math.floor((low + high) / 2); if (calendarMonthKey(timeZone, middle * 60_000) === current) low = middle + 1; else high = middle; } return Math.ceil(Math.min(3_600_000, Math.max(1_000, low * 60_000 - now + 1_000))); }
 let monthlyTask, monthlyStopped = true;
 async function monthlyCheck(context) { const settings = settingsFor(context); if (!settings.enabled) return; const state = sanitizeState(await context.state.read()); const rolled = rolloverMonth(state); if (rolled.state.leaderboardMonth !== state.leaderboardMonth) await context.state.write(rolled.state); }
-function armMonthly(context) { monthlyStopped = false; monthlyTask = context.schedule.after(60000, () => { const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; eventQueue = eventQueue.then(check, check); return eventQueue; }); }
+function armMonthly(context) { monthlyStopped = false; const timeZone = 'America/Chicago'; const armedMonth = calendarMonthKey(timeZone); monthlyTask = context.schedule.after(monthlyCheckDelay(timeZone), () => { if (monthlyStopped) return; if (calendarMonthKey(timeZone) === armedMonth) { armMonthly(context); return; } const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; eventQueue = eventQueue.then(check, check); return eventQueue; }); }

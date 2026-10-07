@@ -23,6 +23,7 @@ describe('five-platform timed rotations', () => {
     expect(action.selectedMessages['facebook']).toBe('Follow the Page');
   });
 
+  // Each emit persists rotation state to disk, which can exceed vi.waitFor's 1 s default on a loaded CI runner.
   it('fires at 15 minutes and exhausts each platform list before repeating', async () => {
     vi.useFakeTimers(); vi.setSystemTime('2026-10-02T16:00:00Z');
     const root = await mkdtemp(join(tmpdir(), 'five-platform-timer-'));
@@ -39,9 +40,9 @@ describe('five-platform timed rotations', () => {
       await adapter.start({ logger: silentLogger, emit: async event => { events.push(event as NormalizedEvent); return { accepted: true }; } });
       await adapter.control('start');
       await vi.advanceTimersByTimeAsync(899_999); expect(events).toHaveLength(0);
-      await vi.advanceTimersByTimeAsync(1); await vi.waitFor(() => expect(events).toHaveLength(1));
+      await vi.advanceTimersByTimeAsync(1); await vi.waitFor(() => expect(events).toHaveLength(1), { timeout: 10_000 });
       expect(events[0]?.payload['scheduledAt']).toBe('2026-10-02T16:15:00.000Z');
-      for (let index = 1; index < 30; index++) { await vi.advanceTimersByTimeAsync(900_000); await vi.waitFor(() => expect(events).toHaveLength(index + 1)); }
+      for (let index = 1; index < 30; index++) { await vi.advanceTimersByTimeAsync(900_000); await vi.waitFor(() => expect(events).toHaveLength(index + 1), { timeout: 10_000 }); }
       expect(events).toHaveLength(30);
       for (const key of Object.keys(messagesByPlatform)) {
         const texts = events.map(event => (event.payload['selectedMessages'] as Record<string, string>)[key]);

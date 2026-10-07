@@ -2,8 +2,8 @@
 const ID = 'thsv.lurk-tracker';
 const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
 export const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: ID, name: 'Village Lurk Tracker', version: '4.0.12',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12',
+  contractVersion: '2.0.0-preview.1', moduleId: ID, name: 'Village Lurk Tracker', version: '4.0.13',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.13', maximumTestedBridgeVersion: '4.0.13',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
@@ -71,12 +71,16 @@ export async function processLurkEvent(event, context, now = Date.now()) {
   return { lurking: isLurk, visits: entry.visits, seconds: entry.seconds };
 }
 const serialize = task => { chain = chain.then(task, task); return chain; };
-function arm(context) { if (stopped) return; taskId = context.schedule.after(60000, () => serialize(async () => { const config = settings(context); if (config.enabled) { const now = Date.now(); const before = sanitizeState(await context.state.read(), now, config.timeZone); const state = await roll(context, before, now, config.timeZone);
-      // The heartbeat only matters while someone is lurking (it bounds Bridge downtime on restart),
-      // so idle minutes no longer rewrite the state file.
-      if (state !== before || state.entries.some(entry => entry.since > 0)) { state.lastTickAt = now; await context.state.write(state); } } arm(context); })); }
+// While anyone is lurking, a 60 s heartbeat records lastTickAt so a restart can
+// exclude Bridge downtime. Otherwise the only timer is the month rollover, aimed
+// just past the next month boundary (re-armed at most hourly), and nothing is
+// written unless the month actually rolled.
+const LURK_HEARTBEAT_MS = 60_000;
+let heartbeat = false;
+function lurkDelay(context, active) { if (active) return LURK_HEARTBEAT_MS; const zone = settings(context).timeZone; const now = Date.now(); const current = monthKey(now, zone); let low = Math.floor(now / 60_000) + 1, high = low + 32 * 1_440; while (low < high) { const middle = Math.floor((low + high) / 2); if (monthKey(middle * 60_000, zone) === current) low = middle + 1; else high = middle; } return Math.ceil(Math.min(3_600_000, Math.max(1_000, low * 60_000 - now + 1_000))); }
+function arm(context, active = false) { if (stopped) return; if (taskId) context.schedule.cancel(taskId); heartbeat = active; taskId = context.schedule.after(lurkDelay(context, active), () => serialize(async () => { taskId = undefined; let lurking = false; const config = settings(context); if (config.enabled) { const now = Date.now(); const before = sanitizeState(await context.state.read(), now, config.timeZone); const state = await roll(context, before, now, config.timeZone); lurking = state.entries.some(e => e.since > 0); if (lurking || state.month !== before.month) { state.lastTickAt = now; await context.state.write(state); } } arm(context, lurking); })); }
 export default { manifest, required: false,
-  async start(context) { chain = Promise.resolve(); stopped = false; live.clear(); const config = settings(context); let state = sanitizeState(await context.state.read(), Date.now(), config.timeZone); for (const e of state.entries) settle(e, state.lastTickAt || e.since); state = await roll(context, state, Date.now(), config.timeZone); await context.state.write(state); unregisterDeletion = context.viewerFoundation.onDeleted?.(viewerId => serialize(async () => { const state = sanitizeState(await context.state.read(), Date.now(), config.timeZone); state.entries = state.entries.filter(e => e.viewerId !== viewerId); await context.state.write(state); return true; })); arm(context); },
-  async stop(context) { stopped = true; if (taskId) context.schedule.cancel(taskId); unregisterDeletion?.(); await chain.catch(() => undefined); const config = settings(context); const state = sanitizeState(await context.state.read(), Date.now(), config.timeZone); for (const e of state.entries) settle(e, Date.now()); await context.state.write(state); live.clear(); },
-  onEvent(event, context) { return serialize(() => processLurkEvent(event, context)); },
+  async start(context) { chain = Promise.resolve(); stopped = false; live.clear(); const config = settings(context); let state = sanitizeState(await context.state.read(), Date.now(), config.timeZone); for (const e of state.entries) settle(e, state.lastTickAt || e.since); state = await roll(context, state, Date.now(), config.timeZone); await context.state.write(state); unregisterDeletion = context.viewerFoundation.onDeleted?.(viewerId => serialize(async () => { const state = sanitizeState(await context.state.read(), Date.now(), config.timeZone); state.entries = state.entries.filter(e => e.viewerId !== viewerId); await context.state.write(state); return true; })); arm(context, state.entries.some(e => e.since > 0)); },
+  async stop(context) { stopped = true; if (taskId) context.schedule.cancel(taskId); taskId = undefined; heartbeat = false; unregisterDeletion?.(); await chain.catch(() => undefined); const config = settings(context); const state = sanitizeState(await context.state.read(), Date.now(), config.timeZone); for (const e of state.entries) settle(e, Date.now()); await context.state.write(state); live.clear(); },
+  onEvent(event, context) { return serialize(async () => { const result = await processLurkEvent(event, context); if (result?.lurking && !heartbeat) arm(context, true); return result; }); },
 };

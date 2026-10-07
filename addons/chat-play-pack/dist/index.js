@@ -30,8 +30,8 @@ const livePlatforms = new Set();
 let operation = Promise.resolve();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chat Play Pack', version: '4.0.12',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chat Play Pack', version: '4.0.13',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.13', maximumTestedBridgeVersion: '4.0.13',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline', OPEN_TDB_RESULT_EVENT, DICTIONARY_RESULT_EVENT],
   commandsProvided: [
@@ -371,10 +371,18 @@ async function process(event, context) {
 
 export default {
   manifest, required: false,
-  async start(context) { operation = Promise.resolve(); livePlatforms.clear(); recentViewers.clear(); commandCooldowns.clear(); await context.state.write(stateFor(await context.state.read())); armMonthly(context); },
+  async start(context) { operation = Promise.resolve(); livePlatforms.clear(); recentViewers.clear(); commandCooldowns.clear(); await monthlyCheck(context); armMonthly(context); },
   async stop(context) { monthlyStopped = true; if (monthlyTask) context?.schedule?.cancel(monthlyTask); monthlyTask = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); recentViewers.clear(); commandCooldowns.clear(); },
   async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; },
 };
 
+// Month rollover runs from one task aimed just past the next calendar-month
+// boundary in the tracker's time zone instead of a check every minute. The task
+// is re-armed at most hourly so sleep or a clock change cannot delay it long.
+const monthFormatters = new Map();
+function calendarMonthKey(timeZone, now = Date.now()) { let formatter = monthFormatters.get(timeZone); if (!formatter) { formatter = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit' }); monthFormatters.set(timeZone, formatter); } const parts = Object.fromEntries(formatter.formatToParts(new Date(now)).map((part) => [part.type, part.value])); return `${parts.year}-${parts.month}`; }
+function monthlyCheckDelay(timeZone, now = Date.now()) { const current = calendarMonthKey(timeZone, now); let low = Math.floor(now / 60_000) + 1, high = low + 32 * 1_440; while (low < high) { const middle = Math.floor((low + high) / 2); if (calendarMonthKey(timeZone, middle * 60_000) === current) low = middle + 1; else high = middle; } return Math.ceil(Math.min(3_600_000, Math.max(1_000, low * 60_000 - now + 1_000))); }
 let monthlyTask, monthlyStopped = true;
-function armMonthly(context) { monthlyStopped = false; monthlyTask = context.schedule.after(60000, () => { const check = async () => { try { const raw = await context.state.read(); const next = stateFor(raw); if (next.month !== raw?.month) await context.state.write(next); } finally { if (!monthlyStopped) armMonthly(context); } }; operation = operation.then(check, check); return operation; }); }
+// Normalizes stored state (including the monthly round reset) and writes only when that changes something.
+async function monthlyCheck(context) { const raw = await context.state.read(); const next = stateFor(raw); if (JSON.stringify(next) !== JSON.stringify(raw)) await context.state.write(next); }
+function armMonthly(context) { monthlyStopped = false; const timeZone = 'America/Chicago'; const armedMonth = calendarMonthKey(timeZone); monthlyTask = context.schedule.after(monthlyCheckDelay(timeZone), () => { if (monthlyStopped) return; if (calendarMonthKey(timeZone) === armedMonth) { armMonthly(context); return; } const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; operation = operation.then(check, check); return operation; }); }

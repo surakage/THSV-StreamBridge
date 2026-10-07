@@ -214,4 +214,28 @@ describe('OutputDeliveryManager', () => {
     expect(manager.ready()).toBe(false);
     await manager.stop();
   });
+
+  it('shares outbox saves across concurrent acknowledgements while each enqueue still waits for a durable write', async () => {
+    const output = new FakeOutput(); const delivered: string[] = [];
+    let release: (() => void) | undefined; const gate = new Promise<void>((resolve) => { release = resolve; });
+    output.deliverImpl = async (event) => { await gate; delivered.push(event.eventId); };
+    // Simulate real disk latency so overlapping saves are observable.
+    const store = new FlakyOutboxStore(new Set()); const save = store.save.bind(store);
+    store.save = async (snapshot) => { await new Promise((resolve) => setTimeout(resolve, 5)); await save(snapshot); };
+    const manager = new OutputDeliveryManager([output], 100, 8, 3, silentLogger, { store });
+    await manager.start();
+    const template = await fixture();
+    for (let index = 0; index < 8; index += 1) {
+      // Separate channels give separate delivery lanes, so acknowledgements overlap.
+      await manager.enqueue({ ...template, eventId: `burst-${String(index)}`, channel: { name: `channel-${String(index)}` } });
+      expect(store.snapshot.pending.some((record) => record.event.eventId === `burst-${String(index)}`)).toBe(true);
+    }
+    const beforeAcknowledgements = store.saves;
+    release?.();
+    await expect.poll(() => delivered.length).toBe(8);
+    await expect.poll(() => store.snapshot.pending.length).toBe(0);
+    // Eight simultaneous acknowledgements collapse into far fewer full outbox rewrites.
+    expect(store.saves - beforeAcknowledgements).toBeLessThanOrEqual(2);
+    await manager.stop();
+  });
 });
