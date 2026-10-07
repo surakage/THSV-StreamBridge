@@ -9,7 +9,7 @@ Each lifecycle action begins with an editable **Set Argument** named `thsvBridge
 - Launch Bridge may use **Core > Streamer.bot > Streamer.bot Started**.
 - Keep Shutdown Bridge manual.
 - Keep Check Connections manual so it can always show the current result on demand.
-- Attach Monitor Connections to a one-minute **Core > Timed Actions** trigger. It stores only the last in-memory health state and shows a toast when that state changes, so healthy checks do not create notification spam.
+- Attach Monitor Connections to a five-minute **Core > Timed Actions** trigger. It stores only the last in-memory health state and shows a toast when that state changes, so healthy checks do not create notification spam.
 
 Do not attach Shutdown Bridge to one platform's Stream Offline event. In a multistream, another platform may still be live. Native platform online/offline triggers stop stream-relative timed sessions only after every observed platform is offline; they do not stop the bridge service.
 

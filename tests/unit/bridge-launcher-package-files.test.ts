@@ -88,6 +88,15 @@ describe('Bridge Launcher Streamer.bot package', () => {
       expect(source).not.toContain('CreateNoWindow');
     }
     expect(launch).toContain('ReadinessWindowMs = 15_000');
+    // A re-import resets the install-path argument, so every lifecycle action falls back to the
+    // folder remembered by the last successful launch.
+    const shutdown = await readFile('packages/streamerbot/bridge-launcher/src/ShutdownBridge.cs', 'utf8');
+    for (const source of [launch, shutdown, wizard]) {
+      expect(source).toContain('if (!LooksInstalled(installPath) && TryReadRememberedInstall(out remembered))');
+      expect(source).toContain('"THSV StreamBridge", "install-location.txt"');
+    }
+    expect(launch).toMatch(/launch completed through its validated lifecycle launcher\."\);\s*RememberInstall\(installPath\);/u);
+    expect(shutdown).not.toContain('RememberInstall(');
     expect(launch).toMatch(/while \(true\);\s*return Fail\(lastProblem\);/u);
   });
 

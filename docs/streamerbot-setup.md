@@ -38,7 +38,7 @@ Each lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argu
 
 Only **Launch Bridge** may receive **Core > Streamer.bot > Streamer.bot Started**. Keep **Shutdown Bridge**, **Check Connections**, and **Open Setup Wizard** manual. Launch Bridge now verifies the live `/ready` result before showing its grouped green toast, so it confirms enabled platform adapters, Streamer.bot delivery, and modules rather than merely confirming a running process.
 
-For automatic connection warnings, create a one-minute Streamer.bot Timed Action and attach it to **THSV StreamBridge - Monitor Connections**. The monitor is state-aware: it reports its first result, stays silent while that result remains unchanged, shows one attention toast when a connection becomes unavailable or delivery degrades, and shows one green toast after recovery. Run **THSV StreamBridge - Check Connections** whenever you want an immediate toast even when the status has not changed. High-frequency intake actions do not create notifications.
+For automatic connection warnings, create a five-minute Streamer.bot Timed Action and attach it to **THSV StreamBridge - Monitor Connections**. The monitor is state-aware: it reports its first result, stays silent while that result remains unchanged, shows one attention toast when a connection becomes unavailable or delivery degrades, and shows one green toast after recovery. Run **THSV StreamBridge - Check Connections** whenever you want an immediate toast even when the status has not changed. High-frequency intake actions do not create notifications.
 
 ## 3. Import the receiver and projection packages
 
