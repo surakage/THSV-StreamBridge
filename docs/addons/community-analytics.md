@@ -1,7 +1,7 @@
 # Community Analytics setup
 
 **Module:** `thsv.community-analytics`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.
@@ -40,7 +40,7 @@ Community Analytics has no browser source. Its private reports remain in the aut
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `viewer.foundation.read`, `community.analytics.provide`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `viewer.foundation.read`, `community.analytics.provide`, `schedule.bounded`.
 
 Private storage: `data/addons/thsv.community-analytics/`, `data/addons/.state/thsv.community-analytics/`.
 

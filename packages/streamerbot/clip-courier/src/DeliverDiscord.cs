@@ -22,8 +22,8 @@ public class CPHInline
         string content = Read("clipCourierMessage", 1900);
 
         if (token.Length < 20 || requestId.Length == 0) return Fail("broker-authorization-missing");
-        if (!ValidWebhook(webhook)) return Fail("invalid-webhook");
-        if (content.Length == 0 || (mode != "channel" && mode != "forum")) return Fail("invalid-content-or-mode");
+        if (!ValidWebhook(webhook)) { Relay(token, requestId, false, mode, "", "", "invalid-webhook"); return Fail("invalid-webhook"); }
+        if (content.Length == 0 || (mode != "channel" && mode != "forum")) { Relay(token, requestId, false, mode, "", "", "invalid-content-or-mode"); return Fail("invalid-content-or-mode"); }
 
         string messageId;
         string threadId;

@@ -1,0 +1,88 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Tracks explicit lurks, automatic returns, and monthly participation recaps across five platforms.",
+  "changelog": "4.0.12: initial Village Lurk Tracker.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "chat.send",
+    "schedule.bounded",
+    "viewer.foundation.read"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.lurk-tracker",
+    "name": "Village Lurk Tracker",
+    "version": "4.0.12",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.12",
+    "maximumTestedBridgeVersion": "4.0.12",
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "chat.message",
+      "command.received",
+      "stream.online",
+      "stream.offline"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.lurk-tracker/",
+      "data/addons/.state/thsv.lurk-tracker/"
+    ],
+    "installationSteps": [
+      "Enable Viewer Foundation and this tracker.",
+      "Use the same lurk command as Viewer Foundation. Normal chat automatically ends the lurk.",
+      "Monthly recaps appear in Bridge before the new month starts."
+    ],
+    "uninstallationSteps": [
+      "Disable or uninstall the tracker; private reports stay available."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.lurk-tracker.runtime",
+        "description": "Tracks explicit lurks with monthly rollover and bounded private state."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 8738,
+      "sha256": "d57e1632f0cb3f2ed66c15775c0dfeb1790267d0b82bb4f488f0a3f046c05808"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 1215,
+      "sha256": "8259e849f6a27b71e1846ca5e23f599f2b5c14ffa11f6e1565238da74b1f7279"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 698,
+      "sha256": "62bc20007f4ef59b6ba159181b51aa545bfe4f00485afcdedd8c7fd65386ebbe"
+    },
+    {
+      "path": "README.md",
+      "size": 578,
+      "sha256": "c3a78f739c941c3fe352c5aeefb4fa84f0a18f04a8c9715ff11154da1633339b"
+    }
+  ]
+}

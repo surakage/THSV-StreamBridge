@@ -1,10 +1,10 @@
 # Raid Scout setup
 
 **Module:** `thsv.raid-scout`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
-Finds a safe live Twitch raid destination, retries bounded public clip previews, can request an ending Twitch ad, and safely ends only after Twitch reports that ad has finished.
+Previews Twitch raid destinations and delays shutdown through the raid countdown and any running ending ad.
 
 ## Built-in setup
 
@@ -36,8 +36,9 @@ Imported group: `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Cancel` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Broadcast Stopped` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Run Ending Ad` in `THSV Addon - Raid Scout`
-- `THSV Addon - Raid Scout - Test Go Live - OBS and Aitum` in `THSV Addon - Raid Scout`
+- `THSV StreamBridge - Go Live - OBS and Stream Suite` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Stop All OBS Streaming Outputs` in `THSV Addon - Raid Scout`
+- `THSV Addon - Raid Scout - Suggest and Confirm` in `THSV Addon - Raid Scout`
 
 Controller, Run Ending Ad, Test Go Live, and Stop All OBS Streaming Outputs ship triggerless. Test Go Live may be attached only to a protected creator control because it starts real OBS/Aitum broadcasts. Finish Stream, Suggest, Confirm, and Cancel emit exact bounded controls and never contact Twitch directly. Broadcast Stopped only confirms a provider stop signal. The ad action is dispatched once when the ending search begins; after clip completion and the raid attempt, the stop-all action is dispatched when the genuine Ad Run timer and configured safety gate finish even if Twitch rejects or cannot confirm the raid.
 

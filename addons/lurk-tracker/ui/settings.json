@@ -1,0 +1,33 @@
+{
+  "intro": "Explicit lurks are tracked across all five platforms. Talking automatically ends a lurk. A monthly recap saves participation before rankings reset.",
+  "order": [
+    "enabled",
+    "lurkCommand",
+    "timeZone",
+    "announceLurk",
+    "announceReturn",
+    "ignoredNames"
+  ],
+  "sections": [
+    {
+      "id": "setup",
+      "title": "Lurk participation",
+      "open": true,
+      "fields": [
+        "enabled",
+        "lurkCommand",
+        "timeZone"
+      ]
+    },
+    {
+      "id": "chat",
+      "title": "Chat messages and ignored accounts",
+      "open": false,
+      "fields": [
+        "announceLurk",
+        "announceReturn",
+        "ignoredNames"
+      ]
+    }
+  ]
+}

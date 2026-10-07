@@ -12,10 +12,14 @@ describe('Stream Break & End Guard package', () => {
   });
 
   it('keeps the one scene controller triggerless and provider bounded', async () => {
-    const manifest = JSON.parse(await readFile('packages/streamerbot/stream-session-guard/manifest.json', 'utf8')) as { actions: Array<{ brokerDispatched: boolean; mustRemainTriggerless: boolean }> };
+    const manifest = JSON.parse(await readFile('packages/streamerbot/stream-session-guard/manifest.json', 'utf8')) as { actions: Array<{ source: string; brokerDispatched?: boolean; mustRemainTriggerless?: boolean }> };
     const source = await readFile('packages/streamerbot/stream-session-guard/src/SceneController.cs', 'utf8');
-    expect(manifest.actions).toHaveLength(1); expect(manifest.actions[0]).toMatchObject({ brokerDispatched: true, mustRemainTriggerless: true });
+    const controls = await readFile('packages/streamerbot/stream-session-guard/src/ControlAutomation.cs', 'utf8');
+    const controllers = manifest.actions.filter((action) => action.source === 'src/SceneController.cs');
+    expect(controllers).toHaveLength(1); expect(controllers[0]).toMatchObject({ brokerDispatched: true, mustRemainTriggerless: true });
+    expect(manifest.actions.filter((action) => action.source !== 'src/SceneController.cs').every((action) => action.source === 'src/ControlAutomation.cs' && action.brokerDispatched !== true)).toBe(true);
     expect(source).toContain('CPH.ObsSetScene'); expect(source).toContain('CPH.SlobsSetScene'); expect(source).toContain('CPH.MeldStudioShowSceneByName');
     expect(source).not.toMatch(/StartStreaming|StopStreaming/iu);
+    expect(controls).not.toMatch(/SetScene|ShowScene|StartStreaming|StopStreaming/iu);
   });
 });

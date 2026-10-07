@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Accessibility Captions",
+  "version": "4.0.12",
+  "author": "surakage",
+  "description": "Relays recognized native Voice Control dictation to the Accessibility Captions add-on when speech WebSocket notifications are unavailable.",
+  "minimumStreamerBotVersion": "1.0.7",
+  "action": {
+    "id": "e2da11a3-1978-4d02-85de-4d234151c6f5",
+    "name": "THSV Closed Captions - Relay Dictation",
+    "group": "THSV Addon - Accessibility Captions",
+    "source": "src/Relay.cs",
+    "importFile": "THSV-StreamBridge-Accessibility-Captions-4.0.12.sb",
+    "excludeFromHistory": true,
+    "excludeFromPending": true,
+    "references": [
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+      ".\\Newtonsoft.Json.dll"
+    ]
+  },
+  "runtime": {
+    "queue": "THSV Closed Captions",
+    "concurrent": true
+  },
+  "manualTriggerSetup": [
+    "Voice Control > Dictation",
+    "Voice Control > Log"
+  ],
+  "triggerSafety": "Attach only Voice Control > Dictation and/or Voice Control > Log. Keep it outside the speech playback queue. The relay writes no audio or transcript files.",
+  "verificationStatus": "Source and package structure tested; live microphone caption acceptance remains creator-verified."
+}

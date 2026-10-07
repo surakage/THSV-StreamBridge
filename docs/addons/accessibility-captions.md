@@ -1,17 +1,17 @@
 # Accessibility Captions setup
 
 **Module:** `thsv.accessibility-captions`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Renders ephemeral high-contrast captions without retaining message bodies.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Accessibility-Captions-4.0.11.zip` from the same GitHub release as StreamBridge.
+1. Download and extract `THSV-StreamBridge-AddOn-Accessibility-Captions-4.0.12.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-Accessibility-Captions-4.0.12.thsv-addon` and review its permissions.
-3. No separate Streamer.bot import is required.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+3. Import `Streamer.bot/THSV-StreamBridge-Accessibility-Captions-4.0.12.sb` in Streamer.bot.
+4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps
 
@@ -20,7 +20,18 @@ Renders ephemeral high-contrast captions without retaining message bodies.
 
 ## Streamer.bot
 
-This add-on uses normalized bridge events and does not install a Streamer.bot action package.
+Minimum supported Streamer.bot version: `1.0.7`.
+
+Imported group: `THSV Addon - Accessibility Captions`
+
+- `THSV Closed Captions - Relay Dictation` in `THSV Addon - Accessibility Captions`
+
+Attach only Voice Control > Dictation and/or Voice Control > Log. Keep it outside the speech playback queue. The relay writes no audio or transcript files.
+
+Creator-selected triggers:
+
+- Voice Control > Dictation
+- Voice Control > Log
 
 ## Browser source
 
@@ -49,4 +60,4 @@ Dependencies: none.
 
 1. No caption text history is retained.
 
-If setup drifts, inspect the main THSV intake actions in the wizard, verify the saved add-on command settings, restart StreamBridge, then rerun the offline test.
+If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.

@@ -1,7 +1,7 @@
 # Clip Courier setup
 
 **Module:** `thsv.clip-courier`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum.

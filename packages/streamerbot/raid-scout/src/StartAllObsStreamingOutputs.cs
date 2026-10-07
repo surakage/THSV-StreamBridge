@@ -7,12 +7,16 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.IO;
 
 public class CPHInline
 {
     public bool Execute()
     {
         bool dryRun = CPH.TryGetArg("thsvGoLiveTestDryRun", out bool requestedDryRun) && requestedDryRun;
+        JArray suiteOutputs = TrySuiteOutputs();
+        if (suiteOutputs != null) return StartSuiteStreams(suiteOutputs, dryRun);
         int discoveredPluginOutputs = 0;
         int startedPluginOutputs = 0;
         int alreadyActivePluginOutputs = 0;
@@ -37,6 +41,14 @@ public class CPHInline
         {
             mainError = Bounded(error.Message, 300);
             CPH.LogError("THSV OBS/Aitum go-live test could not start OBS main: " + mainError);
+        }
+
+        if (!dryRun && (mainError.Length > 0 || !WaitForMainEncoderReady(30000, 2000)))
+        {
+            CPH.SetArgument("thsvGoLiveTestSuccess", false);
+            CPH.SetArgument("thsvGoLiveTestMainError", "OBS main encoder did not become ready; extra outputs were not started.");
+            CPH.LogWarn("THSV go-live stopped before extra outputs: OBS main encoder was not ready.");
+            return false;
         }
 
         var requestedPluginOutputs = new List<string>();
@@ -149,6 +161,37 @@ public class CPHInline
         return false;
     }
 
+    private bool WaitForMainEncoderReady(int timeoutMs, int settlingMs)
+    {
+        int deadline = unchecked(Environment.TickCount + timeoutMs);
+        int stableSince = 0;
+        bool stable = false;
+        CPH.LogInfo("THSV go-live is waiting for OBS main to transmit, then remain ready for two seconds before extra outputs start.");
+        while (unchecked(Environment.TickCount - deadline) < 0)
+        {
+            JObject status;
+            try { status = JObject.Parse(CPH.ObsSendRaw("GetStreamStatus", "{}")); }
+            catch { CPH.LogWarn("THSV go-live could not verify OBS main encoder readiness."); return false; }
+            if ((bool?)status["requestStatus"]?["result"] == false) return false;
+            while (status["responseData"] is JObject) status = (JObject)status["responseData"];
+            bool ready = (bool?)status["outputActive"] == true
+                && (bool?)status["outputReconnecting"] != true
+                && ((long?)status["outputBytes"] ?? 0) > 0;
+            if (!ready) stable = false;
+            else
+            {
+                if (!stable) { stableSince = Environment.TickCount; stable = true; }
+                if (unchecked(Environment.TickCount - stableSince) >= settlingMs)
+                {
+                    CPH.LogInfo("THSV go-live confirmed OBS main encoder is transmitting; starting enabled extra outputs.");
+                    return true;
+                }
+            }
+            Thread.Sleep(100);
+        }
+        return false;
+    }
+
     private void EnsureRequestSucceeded(string response, string requestName)
     {
         if (String.IsNullOrWhiteSpace(response)) return;
@@ -188,5 +231,126 @@ public class CPHInline
     {
         public string outputName { get; set; }
         public bool outputActive { get; set; }
+    }
+
+    private JObject SuiteRequest(string requestType, object requestData)
+    {
+        string request = JsonConvert.SerializeObject(new { vendorName = "aitum-stream-suite", requestType, requestData });
+        string response = CPH.ObsSendRaw("CallVendorRequest", request);
+        EnsureRequestSucceeded(response, "Stream Suite " + requestType);
+        JObject body = JObject.Parse(String.IsNullOrWhiteSpace(response) ? "{}" : response);
+        while (body["responseData"] is JObject) body = (JObject)body["responseData"];
+        if ((bool?)body["success"] != true) throw new InvalidOperationException("Stream Suite did not accept " + requestType + ".");
+        return body;
+    }
+    private JArray TrySuiteOutputs()
+    {
+        try { return SuiteRequest("get_outputs", new { })["outputs"] as JArray; }
+        catch { return null; }
+    }
+
+    private bool StartSuiteStreams(JArray discovered, bool dryRun)
+    {
+        try
+        {
+            // Read only this OBS profile's enable choices. Never log the profile or its stream keys.
+            JObject profileReply = JObject.Parse(CPH.ObsSendRaw("GetProfileList", "{}"));
+            while (profileReply["responseData"] is JObject) profileReply = (JObject)profileReply["responseData"];
+            string profileName = (string)profileReply["currentProfileName"];
+            string profilesRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obs-studio", "basic", "profiles");
+            JObject config = null;
+            foreach (string directory in Directory.GetDirectories(profilesRoot))
+            {
+                string ini = Path.Combine(directory, "basic.ini");
+                if (!File.Exists(ini)) continue;
+                bool match = false;
+                foreach (string line in File.ReadAllLines(ini)) if (line.Trim() == "Name=" + profileName) match = true;
+                string file = Path.Combine(directory, "aitum.json");
+                if (match && File.Exists(file)) { config = JObject.Parse(File.ReadAllText(file)); break; }
+            }
+            if (config == null) throw new InvalidOperationException("Cannot read the active Stream Suite profile's enabled outputs.");
+            var targets = new List<string>();
+            foreach (JToken item in (JArray)config["outputs"])
+            {
+                if ((string)item["type"] != "stream" || (bool?)item["enabled"] == false) continue;
+                string name = Bounded((string)item["name"], 200);
+                bool found = false;
+                foreach (JToken output in discovered) if ((string)output["name"] == name && (string)output["type"] == "stream") found = true;
+                if (!found) throw new InvalidOperationException("Configured streaming output is missing from Stream Suite: " + name);
+                targets.Add(name);
+            }
+            if (targets.Count == 0) throw new InvalidOperationException("No enabled Stream Suite streaming outputs are configured.");
+            CPH.SetArgument("thsvGoLiveTestDiscoveredAitumOutputs", targets.Count);
+            CPH.SetArgument("thsvGoLiveTestDryRun", dryRun);
+            if (dryRun)
+            {
+                CPH.SetArgument("thsvGoLiveTestSuccess", true);
+                CPH.LogInfo("THSV Stream Suite dry run completed without starting a broadcast; OBS main plus " + targets.Count + " enabled streaming outputs are ready.");
+                return true;
+            }
+            bool mainAlreadyActive = CPH.ObsIsStreaming();
+            if (!mainAlreadyActive) CPH.ObsStartStreaming();
+            if (!WaitForMainEncoderReady(30000, 2000)) throw new InvalidOperationException("OBS main encoder did not become ready within 30 seconds; extra outputs were not started.");
+            foreach (string target in targets)
+            {
+                if (!CPH.ObsIsStreaming()) throw new InvalidOperationException("OBS main stream stopped; extra output startup cancelled.");
+                bool active = false;
+                foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"]) if ((string)output["name"] == target) active = (bool?)output["active"] == true;
+                if (!active)
+                {
+                    try { SuiteRequest("start_output", new { output = target }); }
+                    catch { CPH.LogWarn("THSV Stream Suite initial start was not accepted for " + target + "; confirmation and bounded retry will follow."); }
+                    Thread.Sleep(2000);
+                }
+            }
+            int deadline = Environment.TickCount + 60000;
+            int nextRetry = Environment.TickCount + 10000;
+            var attempts = new Dictionary<string, int>();
+            foreach (string target in targets) attempts[target] = 1;
+            int activeTargets = 0;
+            do
+            {
+                if (!CPH.ObsIsStreaming()) throw new InvalidOperationException("OBS main stream stopped; extra output retries cancelled.");
+                activeTargets = 0;
+                var inactiveTargets = new List<string>(targets);
+                foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"])
+                    if (targets.Contains((string)output["name"]) && (bool?)output["active"] == true)
+                    {
+                        activeTargets++;
+                        inactiveTargets.Remove((string)output["name"]);
+                    }
+                if (activeTargets == targets.Count) break;
+                if (unchecked(Environment.TickCount - nextRetry) >= 0)
+                {
+                    foreach (string target in inactiveTargets)
+                    {
+                        if (!CPH.ObsIsStreaming()) throw new InvalidOperationException("OBS main stream stopped; extra output retries cancelled.");
+                        if (attempts[target] >= 3) continue;
+                        attempts[target]++;
+                        CPH.LogInfo("THSV Stream Suite retry " + attempts[target] + " of 3 for inactive output " + target + ".");
+                        try { SuiteRequest("start_output", new { output = target }); }
+                        catch { CPH.LogWarn("THSV Stream Suite retry was not accepted for " + target + "."); }
+                        Thread.Sleep(2000);
+                    }
+                    nextRetry = Environment.TickCount + 15000;
+                }
+                Thread.Sleep(500);
+            } while (unchecked(Environment.TickCount - deadline) < 0);
+            bool success = activeTargets == targets.Count;
+            CPH.SetArgument("thsvGoLiveTestSuccess", success);
+            CPH.SetArgument("thsvGoLiveTestMainAlreadyActive", mainAlreadyActive);
+            CPH.SetArgument("thsvGoLiveTestMainStarted", !mainAlreadyActive);
+            CPH.SetArgument("thsvGoLiveTestStartedAitumOutputs", activeTargets);
+            CPH.SetArgument("thsvGoLiveTestFailedAitumOutputs", targets.Count - activeTargets);
+            CPH.LogInfo("THSV Stream Suite go-live confirmed " + activeTargets + " of " + targets.Count + " enabled extra streams active.");
+            return success;
+        }
+        catch (Exception error)
+        {
+            CPH.SetArgument("thsvGoLiveTestSuccess", false);
+            CPH.SetArgument("thsvGoLiveTestMainError", Bounded(error.Message, 300));
+            CPH.LogWarn("THSV Stream Suite go-live failed: " + Bounded(error.Message, 300));
+            return false;
+        }
     }
 }

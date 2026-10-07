@@ -4,7 +4,7 @@ These guides are generated from the same reviewed manifests used by the setup wi
 
 | Feature | Module | Streamer.bot import |
 | --- | --- | --- |
-| [Accessibility Captions](./accessibility-captions.md) | `thsv.accessibility-captions` | Not required |
+| [Accessibility Captions](./accessibility-captions.md) | `thsv.accessibility-captions` | Included in add-on ZIP |
 | [Ad Break Companion](./ad-break-companion.md) | `thsv.ad-break-companion` | Built in; select its action in the universal import |
 | [Automated Shoutouts](./automated-shoutouts.md) | `thsv.automated-shoutouts` | Built in; select its action in the universal import |
 | [Category Pilot](./category-pilot.md) | `thsv.category-pilot` | Included in add-on ZIP |
@@ -22,6 +22,7 @@ These guides are generated from the same reviewed manifests used by the setup wi
 | [Free Game Check](./free-game-check.md) | `thsv.free-game-check` | Included in add-on ZIP |
 | [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Built in; select its action in the universal import |
 | [Live Beacon](./live-beacon.md) | `thsv.live-beacon` | Built in; select its action in the universal import |
+| [Village Lurk Tracker](./lurk-tracker.md) | `thsv.lurk-tracker` | Not required |
 | [Prize Wheel](./prize-wheel.md) | `thsv.prize-wheel` | Not required |
 | [Quote Vault](./quote-vault.md) | `thsv.quote-vault` | Built in; select its action in the universal import |
 | [Raid Scout](./raid-scout.md) | `thsv.raid-scout` | Built in; select its action in the universal import |

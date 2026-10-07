@@ -1,7 +1,7 @@
 # Chat Play Pack setup
 
 **Module:** `thsv.chat-play-pack`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, idempotent points, optional OpenTDB trivia, and dictionary-backed Unscramble.
@@ -47,7 +47,7 @@ When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `streamerbot.run-approved-action`, `viewer.foundation.read`, `viewer.foundation.mutate`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `streamerbot.run-approved-action`, `viewer.foundation.read`, `viewer.foundation.mutate`, `schedule.bounded`.
 
 Private storage: `data/addons/thsv.chat-play-pack/`, `data/addons/.state/thsv.chat-play-pack/`.
 

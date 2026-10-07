@@ -1,7 +1,7 @@
 # Chat Guard setup
 
 **Module:** `thsv.chat-guard`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Classifies normalized public chat, manages creator-approved trusted stable IDs, and optionally performs narrowly scoped, rate-limited moderation.

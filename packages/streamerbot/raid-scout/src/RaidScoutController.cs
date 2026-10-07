@@ -25,6 +25,12 @@ public class CPHInline
 
     public bool Execute()
     {
+        if (ReadBoolean("raidScoutCheckAuthorization", false)) return CheckRaidAuthorization();
+        if (ReadBoolean("raidScoutTestDryRun", false))
+        {
+            CPH.LogInfo("THSV Raid Scout controller: offline compile check passed; no operation sent.");
+            return true;
+        }
         string operation = Read("raidScoutOperation").ToLowerInvariant();
         string requestId = Bounded(Read("raidScoutRequestId"), 100);
         string relayToken = Bounded(Read("thsvAddonRelayToken"), 100);
@@ -212,25 +218,68 @@ public class CPHInline
     {
         string login = Read("raidScoutTargetLogin").TrimStart('@').ToLowerInvariant();
         string userId = Bounded(Read("raidScoutTargetUserId"), 64);
-        if (!IsLogin(login)) return Fail("raid", requestId, relayToken, "A valid Twitch target login is required.");
-        bool accepted = false;
-        if (userId.Length > 0)
+        string token = Bounded(CPH.TwitchOAuthToken, 4096);
+        string clientId = Bounded(CPH.TwitchClientId, 256);
+        TwitchUserInfo broadcaster = CPH.TwitchGetBroadcaster();
+        if (!IsLogin(login) || userId.Length == 0 || token.Length == 0 || clientId.Length == 0 || broadcaster == null)
+            return Fail("raid", requestId, relayToken, "An authenticated broadcaster and verified Twitch target are required.");
+        using (var request = new HttpRequestMessage(HttpMethod.Post, HelixRoot + "raids?from_broadcaster_id=" + Uri.EscapeDataString(broadcaster.UserId) + "&to_broadcaster_id=" + Uri.EscapeDataString(userId)))
+        using (var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
         {
-            try { accepted = CPH.TwitchStartRaidById(userId); }
-            catch (Exception exception) { CPH.LogWarn("THSV Raid Scout could not start the raid by user ID (" + exception.GetType().Name + "); trying the verified login fallback."); }
+            request.Headers.Add("Client-ID", clientId);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            using (var response = Http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellation.Token).GetAwaiter().GetResult())
+            {
+                string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                if (body.Length > MaximumResponseCharacters) return Fail("raid", requestId, relayToken, "Twitch returned an oversized raid response.");
+                JObject result = JObject.Parse(body);
+                if (!response.IsSuccessStatusCode) return Fail("raid", requestId, relayToken, "Twitch rejected the raid (HTTP " + ((int)response.StatusCode).ToString() + "): " + Bounded((string)result["message"], 220));
+                JArray data = result["data"] as JArray;
+                if (data == null || data.Count != 1 || String.IsNullOrWhiteSpace((string)data[0]["created_at"]))
+                    return Fail("raid", requestId, relayToken, "Twitch did not return a confirmed raid countdown response.");
+                Emit("raid", requestId, relayToken, true, "", new JObject { ["targetLogin"] = login, ["targetUserId"] = userId, ["createdAt"] = (string)data[0]["created_at"] });
+                CPH.SetArgument("raidScoutRaidAccepted", true);
+                CPH.SetArgument("raidScoutRaidTarget", login);
+                CPH.LogInfo("THSV Raid Scout: Twitch accepted the raid countdown; waiting for Raid Send to confirm the viewer handoff.");
+                return true;
+            }
         }
-        if (!accepted)
+    }
+
+    private bool CheckRaidAuthorization()
+    {
+        try
         {
-            try { accepted = CPH.TwitchStartRaidByName(login); }
-            catch (Exception exception) { CPH.LogWarn("THSV Raid Scout could not start the raid by login (" + exception.GetType().Name + ")."); }
+            using (var request = new HttpRequestMessage(HttpMethod.Get, "https://id.twitch.tv/oauth2/validate"))
+            using (var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("OAuth", CPH.TwitchOAuthToken);
+                using (var response = Http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellation.Token).GetAwaiter().GetResult())
+                {
+                    string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    if (!response.IsSuccessStatusCode || body.Length > MaximumResponseCharacters) throw new InvalidOperationException();
+                    JObject result = JObject.Parse(body);
+                    JArray scopes = result["scopes"] as JArray;
+                    bool permitted = false;
+                    bool commercialPermitted = false;
+                    if (scopes != null) foreach (JToken scope in scopes)
+                    {
+                        if ((string)scope == "channel:manage:raids") permitted = true;
+                        if ((string)scope == "channel:edit:commercial") commercialPermitted = true;
+                    }
+                    TwitchUserInfo broadcaster = CPH.TwitchGetBroadcaster();
+                    bool matches = broadcaster != null && (string)result["user_id"] == broadcaster.UserId;
+                    CPH.LogInfo("THSV Raid Scout authorization check: raid permission=" + permitted.ToString() + "; broadcaster matches=" + matches.ToString() + "; no raid sent.");
+                    CPH.LogInfo("THSV commercial authorization check: ad permission=" + commercialPermitted.ToString() + "; no commercial requested.");
+                    return permitted && matches;
+                }
+            }
         }
-        var payload = new JObject { ["targetLogin"] = login, ["targetUserId"] = userId };
-        Emit("raid", requestId, relayToken, accepted, accepted ? "" : "Twitch did not accept the raid request.", payload);
-        CPH.SetArgument("raidScoutRaidAccepted", accepted);
-        CPH.SetArgument("raidScoutRaidTarget", login);
-        if (accepted) CPH.LogInfo("THSV Raid Scout started one creator-confirmed Twitch raid.");
-        else CPH.LogWarn("THSV Raid Scout could not start the creator-confirmed Twitch raid.");
-        return accepted;
+        catch
+        {
+            CPH.LogWarn("THSV Raid Scout authorization check unavailable; no raid sent.");
+            return false;
+        }
     }
 
     private bool SettleRedemption(string operation, string requestId, string relayToken, bool fulfill)

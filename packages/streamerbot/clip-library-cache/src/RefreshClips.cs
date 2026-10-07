@@ -14,7 +14,18 @@ public class CPHInline
         int count = ReadInteger("clipCount", 40, 1, 100); TwitchUserInfo broadcaster;
         try { broadcaster = CPH.TwitchGetBroadcaster(); } catch (Exception error) { return Fail("Twitch broadcaster lookup failed (" + error.GetType().Name + ")."); }
         if (broadcaster == null || String.IsNullOrWhiteSpace(broadcaster.UserLogin)) return Fail("No Twitch broadcaster is connected.");
-        List<ClipData> clips; try { clips = CPH.GetClipsForUser(broadcaster.UserLogin, count, null); } catch (Exception error) { return Fail("Twitch clip lookup failed (" + error.GetType().Name + ")."); }
+        // The count-only lookup returns popular clips, not the latest clips. Reserve space
+        // for the last day's clips before merging the long-term playback library.
+        List<ClipData> clips = new List<ClipData>();
+        try {
+            DateTime end = DateTime.UtcNow;
+            var recent = CPH.GetClipsForUser(broadcaster.UserLogin, end.AddDays(-1), end, 100, null) ?? new List<ClipData>();
+            recent.RemoveAll(clip => clip == null);
+            recent.Sort((left, right) => right.CreatedAt.CompareTo(left.CreatedAt));
+            var seen = new HashSet<string>();
+            foreach (ClipData clip in recent) if (clip != null && seen.Add(clip.Id)) clips.Add(clip);
+            foreach (ClipData clip in CPH.GetClipsForUser(broadcaster.UserLogin, count, null) ?? new List<ClipData>()) if (clip != null && clips.Count < 100 && seen.Add(clip.Id)) clips.Add(clip);
+        } catch (Exception error) { return Fail("Twitch clip lookup failed (" + error.GetType().Name + ")."); }
         var values = new JArray(); foreach (ClipData clip in clips ?? new List<ClipData>()) if (clip != null && !String.IsNullOrWhiteSpace(clip.Id)) values.Add(new JObject { ["id"] = Bounded(clip.Id, 100), ["title"] = Bounded(clip.Title, 200), ["creatorName"] = Bounded(clip.CreatorName, 100), ["url"] = Bounded(clip.Url, 500), ["thumbnailUrl"] = Bounded(clip.ThumbnailUrl, 500), ["durationSeconds"] = clip.Duration, ["createdAt"] = clip.CreatedAt.ToString("O") });
         var envelope = new JObject { ["type"] = "thsv.addon", ["version"] = "1.0.0", ["moduleId"] = "thsv.clip-library-cache", ["eventType"] = "addon.thsv.clip-library-cache.snapshot", ["sourceEventType"] = "THSV Addon - Clip Library Cache - Refresh", ["relayId"] = Guid.NewGuid().ToString("N"), ["relayToken"] = token, ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = false, ["payload"] = new JObject { ["clips"] = values } };
         try { CPH.WebsocketBroadcastJson(envelope.ToString(Formatting.None)); } catch (Exception error) { return Fail("Clip relay failed (" + error.GetType().Name + ")."); }

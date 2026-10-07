@@ -1,7 +1,7 @@
 # Scene Actions setup
 
 **Module:** `thsv.scene-actions`
-**Version:** `4.0.11`
+**Version:** `4.0.12`
 **Publisher:** THSV StreamBridge
 
 Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.
@@ -30,6 +30,7 @@ Imported group: `THSV Addon - Scene Actions`
 - `THSV Scene - Gameplay` in `THSV Addon - Scene Actions`
 - `THSV Scene - Be Right Back` in `THSV Addon - Scene Actions`
 - `THSV Scene - Ending Soon` in `THSV Addon - Scene Actions`
+- `THSV Scene - BRB 180 Second Ad` in `THSV Addon - Scene Actions`
 
 Only the Intake action receives scene-change triggers. Starter target actions have no triggers and must be dispatched through creator-approved stable-ID mappings.
 
