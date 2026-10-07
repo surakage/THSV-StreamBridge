@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.0.13] - 2026-10-07
+
+- Kept one subscribed OBS WebSocket per endpoint for scene and live-state changes instead of opening a new authenticated connection every second, with a 15-second fallback check.
+- Made Streamer.bot and broadcast-app process checks asynchronous and cached, so the Bridge no longer launches netstat and PowerShell about once a second.
+- Debounced the deduplication and activity-timeline saves, coalesced overlapping status and delivery-queue writes, and wrote connection history and the scene catalog only when they change.
+- Delivered one scene change when Streamer.bot and OBS both report the same switch.
+- Replaced per-minute month-rollover checks in the monthly add-ons with one timer for the next month boundary, and stopped idle Chat Play Pack, User Translate and Lurk Tracker state rewrites.
+- Saved Starting Soon Countdown and Subathon Timer state on changes and every 30 seconds instead of every second.
+- Backed off Random Clip Player retries while Streamer.bot is unreachable, from 1 second to a 30-second cap.
+- Stopped bridge and wizard launches from holding Streamer.bot's WebSocket and Stream Deck ports, retried the launch readiness check for up to 15 seconds, and remembered the install folder across launcher re-imports.
+- Played raid targets' clips in Twitch's embedded clip player (served on localhost) instead of requesting download links Twitch only grants for your own channel.
+- Bounded Raid Scout clip previews to 45 seconds, checked live state when the stream-online signal was missed, and refused Suggest and Confirm or Go Live as the Stop Streaming action.
+- Fixed the wizard's timer-template apply and overview header regressions, and made CI tests platform- and timezone-independent.
+
 ## [4.0.9] - 2026-08-27
 
 - Began a new application release line without modifying the published 4.0.8 release.
