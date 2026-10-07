@@ -35,6 +35,9 @@ describe('Raid Scout package files', () => {
     expect(manifest.actions[8]?.arguments).toBeUndefined();
     expect(new Set(manifest.actions.map((action) => action.importFile))).toEqual(new Set([`THSV-StreamBridge-Raid-Scout-${manifest.version}.sb`]));
     expect(manifest.triggerSafety).toContain('Controller, Run Ending Ad, Test Go Live, and Stop All OBS Streaming Outputs ship triggerless');
+    const readme = await readFile('packages/streamerbot/raid-scout/README.md', 'utf8');
+    for (const action of manifest.actions) expect(readme, action.name).toContain(`\`${action.name}\``);
+    expect(readme).not.toContain('Test Go Live - OBS and Aitum');
     const control = await readFile('packages/streamerbot/raid-scout/src/RaidScoutControl.cs', 'utf8');
     expect(control).toContain('action == "broadcast-stopped"');
     expect(control).toContain('action == "finish"');
