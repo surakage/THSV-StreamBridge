@@ -245,7 +245,10 @@ const operationalReliability = new OperationalReliabilityService({
 });
 const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
   query: () => obsDirectSceneClient.isStreaming(),
-  intervalMs: 1_000,
+  // OBS StreamStateChanged events on the shared scene socket drive go-live and
+  // stop detection; this slow poll only covers missed events or a closed socket.
+  subscribe: (onSignal) => obsDirectSceneClient.onStreamStateSignal(onSignal),
+  intervalMs: 15_000,
   onStarted: async () => {
     await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
     overlayHub.recoverLiveSession(liveRecoveryPlatformIds);

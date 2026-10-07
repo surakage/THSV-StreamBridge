@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { access, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -59,5 +59,17 @@ describe('SceneCatalogService', () => {
     const connections = ((service.status()['providers'] as Record<string, { connections: Array<{ id: string }> }>).obs?.connections ?? []).map((connection) => connection.id);
     expect(connections).toEqual(['active', 'fallback']);
     await service.flush();
+  });
+
+  it('rewrites the catalog file only when a direct snapshot changes its content', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-scene-unchanged-')); roots.push(root);
+    const service = new SceneCatalogService(root); await service.start();
+    const path = join(root, 'scene-catalog.json');
+    service.acceptDirectSnapshot('obs', { connectionId: 'direct', connectionName: 'OBS', scenes: ['Live', 'BRB'], currentScene: 'Live' }); await service.flush();
+    await access(path); await rm(path);
+    for (let index = 0; index < 3; index += 1) service.acceptDirectSnapshot('obs', { connectionId: 'direct', connectionName: 'OBS', scenes: ['BRB', 'Live'], currentScene: 'Live' });
+    await service.flush(); await expect(access(path)).rejects.toThrow();
+    service.acceptDirectSnapshot('obs', { connectionId: 'direct', connectionName: 'OBS', scenes: ['Live', 'BRB'], currentScene: 'BRB' }); await service.flush();
+    await access(path);
   });
 });
