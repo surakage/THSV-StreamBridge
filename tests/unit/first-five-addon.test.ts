@@ -74,8 +74,8 @@ describe('First Five add-on', () => {
     const state = sanitizeState({
       leaderboardMonth: '2026-06',
       leaderboard: [{ userId: 'viewer-1', displayName: 'Winner', placements: [2, 0, 0, 0, 0], firstScoredAt: '2026-06-01T00:00:00.000Z', lastClaimedAt: '2026-06-02T00:00:00.000Z' }],
-    }, new Date('2026-06-15T00:00:00').getTime());
-    const result = rolloverMonth(state, new Date('2026-07-01T00:00:00').getTime());
+    }, new Date('2026-06-15T12:00:00-05:00').getTime());
+    const result = rolloverMonth(state, new Date('2026-07-01T12:00:00-05:00').getTime());
     expect(result.winner).toMatchObject({ displayName: 'Winner', points: 10 });
     expect(result.state).toMatchObject({ leaderboardMonth: '2026-07', leaderboard: [], previousMonth: { month: '2026-06' } });
   });

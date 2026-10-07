@@ -1,5 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import { basename, isAbsolute, join } from 'node:path';
+// The launcher only runs on Windows, so evaluate it with Windows path rules on every CI platform.
+import { win32 } from 'node:path';
+
+const basename = (path: string, suffix?: string): string => win32.basename(path, suffix);
+const isAbsolute = (path: string): boolean => win32.isAbsolute(path);
+const join = (...paths: string[]): string => win32.join(...paths);
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
