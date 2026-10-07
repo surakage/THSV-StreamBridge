@@ -17,6 +17,7 @@ import { StreamerBotNativeAdapter } from './streamerbot-native-adapter.js';
 import { StreamerBotAddOnRelayAdapter } from './streamerbot-addon-relay-adapter.js';
 import { StreamerBotSceneRelayAdapter } from './streamerbot-scene-relay-adapter.js';
 import { StreamerBotStreamlabsAdapter } from './streamerbot-streamlabs-adapter.js';
+import type { FacebookPageAdapter } from './facebook-page-adapter.js';
 
 export type InputAdapterFactory = (name: string, config: PlatformConfig) => InputAdapter;
 export type OutputAdapterFactory = (name: string, config: OutputConfig) => OutputAdapter;
@@ -44,6 +45,7 @@ const ADAPTER_CONTRACT_MODULES: Readonly<Record<string, readonly string[]>> = Ob
   'streamerbot-scene-relay': ['streamerbot-scene-relay-adapter', 'streamerbot-event-relay', 'normalization'],
   'streamerbot-streamlabs': ['streamerbot-streamlabs-adapter', 'streamerbot-event-relay', 'normalization'],
   streamerbot: ['streamerbot-adapter', 'streamerbot-event-relay'],
+  'facebook-page': ['facebook-page-adapter', 'facebook-milestones', 'facebook-timed-output'],
 });
 
 export async function adapterContractFingerprints(): Promise<Readonly<Record<string, string>>> {
@@ -132,8 +134,9 @@ export class AdapterRegistry {
   }
 }
 
-export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logger, streamerBotEventRelay = new StreamerBotEventRelay()): AdapterRegistry {
+export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logger, streamerBotEventRelay = new StreamerBotEventRelay(), facebook?: FacebookPageAdapter): AdapterRegistry {
   const registry = new AdapterRegistry();
+  if (facebook) registry.registerInternalInput('facebook-page', () => facebook);
   registry.registerInput('mock', (name, platform) => new MockAdapter(name, platform), () => ({
     legacy: ['chatInput', 'follows', 'subscriptions', 'gifts', 'donations', 'raids', 'moderation', 'engagement', 'channelUpdates', 'timedActions', 'rewards'],
     supported: ['chat.input', 'commands', 'follows', 'subscriptions', 'gift-subscriptions', 'raids', 'cheers', 'donations', 'gifts', 'moderation', 'stream-status', 'channel-rewards.redemptions'],

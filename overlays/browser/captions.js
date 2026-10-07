@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  if(new URLSearchParams(location.search).get('overlayOrientation')==='vertical') document.documentElement.dataset.overlayOrientation='vertical';
   const stage = document.getElementById('caption-stage');
   const caption = document.getElementById('caption');
   const captionText = document.getElementById('caption-text');
@@ -42,13 +43,14 @@
   function show(payload) {
     if (typeof payload?.text !== 'string' || payload.text.trim() === '') return;
     const durationMs = integer(payload.durationMs,1_000,30_000,6_000);
+    const templatePreview = payload.preview === true && payload.templatePreview === true;
     const declaredExpiry = typeof payload.expiresAt === 'string' ? Date.parse(payload.expiresAt) : Number.NaN;
     const remainingMs = Number.isFinite(declaredExpiry) ? Math.min(durationMs, declaredExpiry - Date.now()) : durationMs;
-    if (remainingMs <= 0) { clear(); return; }
+    if (!templatePreview && remainingMs <= 0) { clear(); return; }
     clearTimeout(hideTimer); applyStyle(payload.style); captionText.textContent = payload.text; caption.classList.remove('hidden','caption-enter');
     void caption.offsetWidth; caption.classList.add('caption-enter');
-    captionExpiresAt = Date.now() + remainingMs;
-    hideTimer = setTimeout(clear, remainingMs);
+    captionExpiresAt = templatePreview ? 0 : Date.now() + remainingMs;
+    if (!templatePreview) hideTimer = setTimeout(clear, remainingMs);
   }
   function clear() { clearTimeout(hideTimer); captionExpiresAt = 0; caption.classList.add('hidden'); caption.classList.remove('caption-enter'); captionText.textContent = ''; }
   function enforceExpiry() { if (captionExpiresAt > 0 && Date.now() >= captionExpiresAt) clear(); }
@@ -63,7 +65,6 @@
   addEventListener('obsSceneChanged',(event)=>{if(lockedObsScene!==undefined){reportHostVisibility();return}const detail=event.detail;const value=typeof detail==='string'?detail:detail?.name??detail?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()});
   refreshObsScene(); setInterval(reportHostVisibility,15_000);
   function connectDirectly(){const protocol=location.protocol==='https:'?'wss:':'ws:';const socket=new WebSocket(`${protocol}//${location.host}/overlay/events`);sendTransport=(payload)=>{if(socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(payload))};socket.addEventListener('open',reportHostVisibility);socket.addEventListener('message',(message)=>{try{receive(JSON.parse(message.data))}catch{}});socket.addEventListener('close',()=>setTimeout(connectDirectly,1500));}
-  function connect(){if('SharedWorker'in window){try{const worker=new SharedWorker('/overlay/worker-1.3.3.js','thsv-browser-overlay-1.3.3');sendTransport=(payload)=>worker.port.postMessage({kind:'transport.send',payload});worker.port.addEventListener('message',(message)=>{if(message.data?.kind==='transport.status'){if(message.data.state==='live')reportHostVisibility();return}receive(message.data)});worker.port.start();return}catch{}}connectDirectly();}
   addEventListener('beforeunload',()=>sendTransport({contractVersion:'thsv-addon-overlay-v1',kind:'host.visibility',rendererId,host:window.obsstudio?'obs':'browser',moduleId:'core.live-captions',surface:'/overlay/captions',visible:false}));
-  connect();
+  connectDirectly();
 })();

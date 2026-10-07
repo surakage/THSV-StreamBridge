@@ -418,6 +418,16 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .addon-choice{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 11px;background:var(--panel);cursor:pointer;font-weight:700}
 .addon-choice:has(input:checked){border-color:var(--button);background:var(--active);color:var(--active-text)}
 .addon-choice input{margin:0;flex:none}
+.chat-guard-limits{display:grid;gap:18px;padding:14px}
+.chat-guard-limits>section{min-width:0;padding:18px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel)}
+.chat-guard-limits h4{margin:0 0 14px}
+.chat-guard-limits .addon-settings-grid{gap:16px;padding:0}
+.chat-guard-limits>section[hidden]{display:none}
+.chat-guard-limits .addon-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.chat-guard-limits .addon-choice{min-height:48px;font-weight:600;line-height:1.5}
+.chat-guard-limits .addon-choice span{min-width:0}
+.chat-guard-limits .addon-setting>label{margin:0}
+@media(max-width:600px){.chat-guard-limits>section{padding:14px}.chat-guard-limits .addon-choice-grid{grid-template-columns:1fr}}
 .addon-toggle{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);padding:11px 12px;cursor:pointer}
 .addon-toggle>span{display:grid;gap:3px}
 .addon-toggle input{position:absolute;inset:0;z-index:1;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
@@ -799,6 +809,22 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .entity-remove:hover{background:var(--notice);transform:none}
 .entity-action{flex:none;background:transparent;color:var(--nav);padding:4px 8px;font-size:.85rem;box-shadow:none}
 .entity-action:hover{background:var(--active);transform:none}
+#timed-action-tree .entity-row{display:grid;grid-template-columns:18px minmax(0,1fr);gap:6px 8px;padding:6px 0}
+#timed-action-tree .entity-row>input{align-self:start;margin-top:11px}
+#timed-action-tree .entity-item{min-width:0;width:100%;white-space:normal;padding:7px 8px}
+#timed-action-tree .entity-item strong{overflow-wrap:anywhere;line-height:1.45}
+.timed-row-controls{grid-column:2;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border);padding-top:7px;margin:0 8px 4px}
+.timed-row-controls button{white-space:nowrap;font-size:.8rem;padding:5px 8px}
+.timed-platform-rotation{border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px}
+.timed-platform-rotation summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 12px}
+.timed-platform-rotation summary small{color:var(--small);font-weight:500}
+.timed-platform-rotation summary::before{color:var(--eyebrow)}
+.timed-platform-rotation label{display:block;margin-top:14px}
+.timed-platform-rotation textarea{width:100%;min-height:170px;resize:vertical}
+.timed-platform-rotation>small{display:block;margin-top:8px;color:var(--small)}
+.timed-quick-guide>summary{cursor:pointer;color:var(--text)}
+.timed-quick-guide:not([open]){padding:14px 18px}
+.timed-quick-guide[open]>summary{margin-bottom:12px}
 .entity-editor-panel{border:1px solid var(--border);border-radius:var(--radius-md);padding:22px;background:var(--surface);color:var(--subtle)}
 .entity-add-button{width:100%;margin-bottom:2px;background:transparent;border:1.5px dashed var(--border);color:var(--nav);box-shadow:none;font-weight:700}
 .entity-add-button:hover{background:var(--nav-hover);border-color:var(--button);border-style:solid;color:var(--text);transform:none}
@@ -848,3 +874,30 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .foundation-principles strong{color:var(--text);font-size:.95rem}.foundation-principles small{color:var(--muted);line-height:1.45}
 @media(max-width:760px){.foundation-principles{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Keep the optional Facebook setup readable independently of the shared inline forms. */
+.facebook-settings .facebook-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.facebook-settings .facebook-heading h3,.facebook-settings .facebook-heading p{margin:0 0 8px}
+.facebook-settings .facebook-heading .eyebrow{margin-bottom:5px}
+.facebook-settings .facebook-status-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 0;margin-bottom:4px}
+.facebook-settings .facebook-status-row p{margin:0;flex:1 1 280px;font-size:.9rem;color:var(--muted);overflow-wrap:anywhere}
+.facebook-settings .facebook-section{border:0;border-top:1px solid var(--border);border-radius:0;background:transparent;padding:0;margin:0;box-shadow:none}
+.facebook-settings .facebook-section>summary{padding:16px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:750}
+.facebook-settings .facebook-section>summary span{margin-left:auto;font-size:.8rem;color:var(--small);font-weight:400}
+.facebook-settings form{display:grid;align-items:start;gap:18px;padding:4px 0 18px;max-width:780px}
+.facebook-settings .facebook-connection-grid{grid-template-columns:minmax(0,1fr) 150px}
+.facebook-settings .facebook-alert-grid{grid-template-columns:minmax(0,1fr) minmax(180px,240px)}
+.facebook-settings label{min-width:0;display:grid;gap:7px}
+.facebook-settings .check{display:flex;align-items:center;gap:10px;font-weight:500;line-height:1.45}
+.facebook-settings .check input{flex:0 0 auto;margin:0}
+.facebook-settings .facebook-full{grid-column:1/-1}
+.facebook-settings .facebook-metrics{display:grid;gap:12px;margin:0;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm)}
+.facebook-settings .facebook-metrics legend{padding:0 5px;font-size:.8rem;color:var(--small)}
+.facebook-settings input:not([type=checkbox]){width:100%;min-width:0}
+.facebook-settings .button-row{display:flex;gap:10px;flex-wrap:wrap;margin:0}
+.facebook-settings button{white-space:normal;min-height:42px}
+.facebook-settings small{display:block;line-height:1.55;color:var(--small);font-weight:400}
+.facebook-settings .facebook-section-body{max-width:780px;padding:0 0 18px}
+.facebook-settings .facebook-section-body p{font-size:.9rem;color:var(--muted);line-height:1.55}
+.facebook-settings [hidden]{display:none!important}
+@media(max-width:650px){.facebook-settings .facebook-connection-grid,.facebook-settings .facebook-alert-grid{grid-template-columns:minmax(0,1fr)}.facebook-settings .facebook-section>summary span{display:none}.facebook-settings .facebook-heading .badge{font-size:.7rem}.facebook-settings .facebook-status-row .button-row{width:100%}}

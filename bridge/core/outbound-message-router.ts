@@ -1,6 +1,6 @@
 import type { AddOnOutboundMessageDeliveryV2, AddOnOutboundMessageRequestV2, AddOnOutboundPlatformV2 } from '../contracts/v2/addon-capability.js';
 
-export const OUTBOUND_PLATFORM_VALUES = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
+export const OUTBOUND_PLATFORM_VALUES = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'] as const;
 export type OutboundPlatform = AddOnOutboundPlatformV2;
 
 export const DEFAULT_OUTBOUND_CHARACTER_LIMITS: Readonly<Record<OutboundPlatform, number>> = Object.freeze({
@@ -8,6 +8,7 @@ export const DEFAULT_OUTBOUND_CHARACTER_LIMITS: Readonly<Record<OutboundPlatform
   youtube: 200,
   kick: 500,
   tiktok: 150,
+  facebook: 500,
 });
 
 export interface OutboundMessageRequest {

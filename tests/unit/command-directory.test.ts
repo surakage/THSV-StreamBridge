@@ -78,7 +78,7 @@ describe('CommandDirectoryService', () => {
     const catalogue = new CommandDirectoryService(config, registry).catalogue();
     const commands = catalogue.categories.flatMap((category) => category.commands);
 
-    expect(commands.find((entry) => entry.command === 'firstfive')?.platforms).toEqual(['youtube', 'tiktok']);
+    expect(commands.find((entry) => entry.command === 'firstfive')?.platforms).toEqual(['youtube', 'tiktok', 'facebook']);
     expect(commands.find((entry) => entry.command === 'card')?.platforms).toEqual(['youtube', 'tiktok']);
     expect(commands.find((entry) => entry.command === 'followage')?.platforms).toEqual(['twitch']);
     expect(commands.some((entry) => entry.command === 'streamcounter')).toBe(false);

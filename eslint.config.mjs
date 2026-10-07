@@ -2,7 +2,7 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['archive/**', 'artifacts/**', 'output/**', '.cache/**', 'dist/**', 'coverage/**', 'data/**', 'packages/**', 'playwright-report/**', 'test-results/**', 'examples/**/*.js', 'addons/**/*.js', 'addons/**/*.mjs', 'overlays/**/*.js', 'wizard/**/*.js', 'prototypes/**/*.js', 'eslint.config.mjs', 'tools/clean.mjs', 'tools/run-browser-test-server.mjs'] },
+  { ignores: ['first-five-fix/**', 'hotupdate/**', 'review-temp-20260719/**', 'site-scan-zip/**', 'streambridge/**', 'thsv-addon-compat/**', 'work/**', 'archive/**', 'artifacts/**', 'output/**', '.cache/**', 'dist/**', 'coverage/**', 'data/**', 'packages/**', 'playwright-report/**', 'test-results/**', 'examples/**/*.js', 'addons/**/*.js', 'addons/**/*.mjs', 'overlays/**/*.js', 'wizard/**/*.js', 'prototypes/**/*.js', 'eslint.config.mjs', 'tools/clean.mjs', 'tools/run-browser-test-server.mjs'] },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {

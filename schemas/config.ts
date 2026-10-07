@@ -76,13 +76,14 @@ const commandsSchema = z
 
 const timedActionIdSchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/);
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
-export const TIMED_CHAT_PLATFORM_VALUES = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
-export const TIMED_MESSAGE_CHARACTER_LIMITS = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } as const;
+export const TIMED_CHAT_PLATFORM_VALUES = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'] as const;
+export const TIMED_MESSAGE_CHARACTER_LIMITS = { twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 } as const;
 const platformMessageListsSchema = z.object({
   twitch: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.twitch)).min(2).max(200).optional(),
   youtube: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.youtube)).min(2).max(200).optional(),
   kick: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.kick)).min(2).max(200).optional(),
   tiktok: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.tiktok)).min(2).max(200).optional(),
+  facebook: z.array(z.string().trim().min(1).max(TIMED_MESSAGE_CHARACTER_LIMITS.facebook)).min(2).max(200).optional(),
 }).strict().refine((lists) => Object.values(lists).some((messages) => messages !== undefined && messages.length >= 2), 'Platform message rotation requires at least one platform with two messages.');
 const timedMessageGroupSchema = z.object({
   id: timedActionIdSchema,
@@ -280,6 +281,7 @@ export const PLATFORM_ALERT_TYPES: Readonly<Record<(typeof ALERT_PLATFORM_VALUES
   tiktok: ['follow', 'subscription', 'gift', 'milestone'],
   streamlabs: ['donation'],
   kofi: ['donation'],
+  facebook: ['milestone'],
 };
 export const alertPresentationSchema = z.object({
   profiles: z.partialRecord(

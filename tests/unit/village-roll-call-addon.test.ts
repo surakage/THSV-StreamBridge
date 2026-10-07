@@ -23,6 +23,7 @@ function harness() {
   const mutations: Array<Record<string, unknown>> = [];
   return {
     context: {
+      schedule: { after: () => 'monthly-task', cancel: () => true },
       settings: { enabled: true, rewardId: 'daily-check-in', kickRewardId: 'kick-check-in', commandName: 'checkin', pointsCost: 25, timeZone: 'America/Chicago' },
       state: { read: async () => state, write: async (value: unknown) => { state = value; } },
       chat: { send: async ({ message }: { message: string }) => { chat.push(message); } },
@@ -75,7 +76,7 @@ describe('Village Roll Call add-on', () => {
     const descriptor = JSON.parse(await readFile('addons/village-roll-call/module-package.json', 'utf8')) as {
       permissions: string[]; manifest: { actionsProvided: unknown[]; eventSubscriptions: string[] };
     };
-    expect(descriptor.permissions).toEqual(['events.subscribe', 'state.private', 'chat.send', 'overlay.publish', 'viewer.foundation.read', 'viewer.foundation.mutate']);
+    expect(descriptor.permissions).toEqual(['events.subscribe', 'state.private', 'chat.send', 'overlay.publish', 'viewer.foundation.read', 'viewer.foundation.mutate', 'schedule.bounded']);
     expect(descriptor.manifest.actionsProvided).toEqual([]);
     expect(descriptor.manifest.eventSubscriptions).toEqual(['reward.redemption', 'command.received', 'stream.online']);
   });

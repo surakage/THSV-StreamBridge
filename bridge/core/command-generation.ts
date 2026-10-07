@@ -22,11 +22,11 @@ const MAX_BATCH_SIZE = 20;
 const ROLES = ['viewer', 'subscriber', 'moderator', 'broadcaster'] as const;
 const COMMAND_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
 const NATIVE_COMMAND_PLATFORMS = ['twitch', 'youtube', 'kick'] as const;
-export const COMMAND_PLATFORM_LIMITS = { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } as const;
+export const COMMAND_PLATFORM_LIMITS = { twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 } as const;
 const COMMAND_SOURCE_BITS = { twitch: 1, youtube: 1_024, kick: 2_097_152 } as const;
 
 export type CommandGenerationRole = typeof ROLES[number];
-export type CommandPlatform = typeof COMMAND_PLATFORMS[number];
+export type CommandPlatform = typeof COMMAND_PLATFORMS[number] | 'facebook';
 export type CommandResponseMode = 'none' | 'platform-message' | 'custom-script';
 export type CommandPlatformMessages = Readonly<Partial<Record<CommandPlatform, string>>>;
 

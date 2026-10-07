@@ -4,10 +4,10 @@
 const MODULE_ID = 'thsv.village-hydration-station';
 const CONTROL_EVENT = 'addon.thsv.village-hydration-station.control';
 const SPEAK_ACTION_ID = '26c6f03c-b616-4db5-8c56-e0abe2dc3b6c';
-const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const NUMBER_WORDS = Object.freeze({ zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 });
 const FALLBACKS = Object.freeze({
-  enabled: true, automaticReminders: true, reminderIntervalMinutes: 45, snoozeMinutes: 10,
+  enabled: true, displayMode: 'reminder', sipMessage: 'Nice! A little sip goes a long way.', automaticReminders: true, reminderIntervalMinutes: 45, snoozeMinutes: 10,
   resetMode: 'daily', goalOunces: 64, defaultServingOunces: 8, maximumEntryOunces: 64,
   viewerRemindersEnabled: true, twitchRewardId: '', kickRewardId: '', viewerCommand: 'hydrate',
   viewerCommandPlatforms: ['youtube', 'tiktok'], viewerGlobalCooldownMinutes: 10, viewerCooldownMinutes: 60,
@@ -66,6 +66,7 @@ function settingsFor(context) {
   const raw = context.settings ?? {};
   const platforms = Array.isArray(raw.viewerCommandPlatforms) ? raw.viewerCommandPlatforms.filter((value) => ['youtube', 'tiktok'].includes(value)).slice(0, 2) : FALLBACKS.viewerCommandPlatforms;
   return {
+    displayMode: ['reminder', 'sips', 'volume'].includes(raw.displayMode) ? raw.displayMode : 'reminder', sipMessage: clean(raw.sipMessage, 300) || FALLBACKS.sipMessage,
     enabled: raw.enabled !== false, automaticReminders: raw.automaticReminders !== false,
     reminderIntervalMinutes: integer(raw.reminderIntervalMinutes, 5, 240, FALLBACKS.reminderIntervalMinutes), snoozeMinutes: integer(raw.snoozeMinutes, 1, 60, FALLBACKS.snoozeMinutes),
     resetMode: ['stream', 'daily', 'manual'].includes(raw.resetMode) ? raw.resetMode : FALLBACKS.resetMode,
@@ -92,7 +93,7 @@ function stateFor(raw, settings = FALLBACKS) {
   const cooldownEntries = value.viewerCooldowns && typeof value.viewerCooldowns === 'object' ? Object.entries(value.viewerCooldowns).filter(([key, at]) => clean(key, 300) === key && Number.isSafeInteger(at)).slice(-500) : [];
   const noticeValue = value.notice && typeof value.notice === 'object' ? value.notice : {};
   return {
-    totalOunces: integer(value.totalOunces, 0, 10_000, 0), entries, lastLoggedAt: integer(value.lastLoggedAt, 0, Number.MAX_SAFE_INTEGER, 0),
+    sipCount: integer(value.sipCount, 0, 10_000, 0), totalOunces: integer(value.totalOunces, 0, 10_000, 0), entries, lastLoggedAt: integer(value.lastLoggedAt, 0, Number.MAX_SAFE_INTEGER, 0),
     lastReminderAt: integer(value.lastReminderAt, 0, Number.MAX_SAFE_INTEGER, 0), nextReminderAt: integer(value.nextReminderAt, 0, Number.MAX_SAFE_INTEGER, 0),
     remindersThisStream: integer(value.remindersThisStream, 0, 10_000, 0), sequence: integer(value.sequence, 0, Number.MAX_SAFE_INTEGER, 0),
     sessionKey: clean(value.sessionKey, 80), dateKey: clean(value.dateKey, 10) || dayKey(), lastViewerReminderAt: integer(value.lastViewerReminderAt, 0, Number.MAX_SAFE_INTEGER, 0),
@@ -133,7 +134,7 @@ async function publish(context, settings, state) {
   if (!settings.showOverlay) { await context.overlay.publish(`${MODULE_ID}.hydration.hide`, { moduleId: MODULE_ID }).catch(() => undefined); return; }
   const now = Date.now(); const notice = state.notice.expiresAt > now ? state.notice : { kind: '', text: '', actor: '', platform: '', expiresAt: 0 };
   if (!notice.kind) return;
-  await context.overlay.publish(`${MODULE_ID}.hydration.update`, { moduleId: MODULE_ID, cardKind: 'hydration-station', visible: true, durationMs: Math.max(1_000, notice.expiresAt - now), totalOunces: state.totalOunces, goalOunces: settings.goalOunces, percentage: Math.min(100, Math.round((state.totalOunces / settings.goalOunces) * 1000) / 10), defaultServingOunces: settings.defaultServingOunces, nextReminderAt: livePlatforms.size && settings.automaticReminders ? state.nextReminderAt : 0, reminderIntervalMinutes: settings.reminderIntervalMinutes, showNumbers: settings.showNumbers, showNextReminder: settings.showNextReminder, live: livePlatforms.size > 0, livePlatforms: [...livePlatforms], sequence: state.sequence, notice, style: styleFor(settings), emittedAt: new Date().toISOString() }, { lane: 'foreground' });
+  await context.overlay.publish(`${MODULE_ID}.hydration.update`, { moduleId: MODULE_ID, cardKind: 'hydration-station', displayMode: settings.displayMode, sipCount: state.sipCount, visible: true, durationMs: Math.max(1_000, notice.expiresAt - now), totalOunces: state.totalOunces, goalOunces: settings.goalOunces, percentage: Math.min(100, Math.round((state.totalOunces / settings.goalOunces) * 1000) / 10), defaultServingOunces: settings.defaultServingOunces, nextReminderAt: livePlatforms.size && settings.automaticReminders ? state.nextReminderAt : 0, reminderIntervalMinutes: settings.reminderIntervalMinutes, showNumbers: settings.showNumbers, showNextReminder: settings.showNextReminder, live: livePlatforms.size > 0, livePlatforms: [...livePlatforms], sequence: state.sequence, notice, style: styleFor(settings), emittedAt: new Date().toISOString() }, { lane: 'foreground' });
 }
 function armNoticeClear(context, expiresAt) {
   cancelTask(context, noticeTimer); noticeTimer = undefined; const delay = Math.max(0, expiresAt - Date.now());
@@ -161,15 +162,20 @@ async function fireAutomaticReminder(context, expectedEpoch) {
   applyDailyReset(state, settings);
   const now = Date.now(); const message = settings.automaticReminderMessage;
   state.lastReminderAt = now; state.remindersThisStream += 1; state.nextReminderAt = now + settings.reminderIntervalMinutes * 60_000; state.sequence += 1;
-  state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 };
-  await context.state.write(state); armReminder(context, settings, state); await speak(context, settings, message);
+  state.notice = { kind: 'automatic', text: message, actor: '', platform: '', expiresAt: now + 12_000 };
+  await context.state.write(state); armReminder(context, settings, state); await publish(context, settings, state); armNoticeClear(context, state.notice.expiresAt); await speak(context, settings, message);
 }
 function applyDailyReset(state, settings) {
   const today = dayKey(); if (settings.resetMode !== 'daily' || state.dateKey === today) return false;
-  state.totalOunces = 0; state.entries = []; state.lastLoggedAt = 0; state.dateKey = today; state.sequence += 1; return true;
+  state.sipCount = 0; state.totalOunces = 0; state.entries = []; state.lastLoggedAt = 0; state.dateKey = today; state.sequence += 1; return true;
 }
 function setNextReminder(state, settings, delayMinutes = settings.reminderIntervalMinutes) { state.nextReminderAt = livePlatforms.size > 0 && settings.automaticReminders ? Date.now() + delayMinutes * 60_000 : 0; }
 async function logWater(context, settings, state, rawAmount, source) {
+  if (settings.displayMode !== 'volume') {
+    state.sipCount = Math.min(10_000, state.sipCount + 1); state.sequence += 1; setNextReminder(state, settings);
+    state.notice = { kind: 'logged', text: settings.sipMessage, actor: '', platform: '', expiresAt: Date.now() + 8_000 };
+    await context.state.write(state); armReminder(context, settings, state); await publish(context, settings, state); armNoticeClear(context, state.notice.expiresAt); await speak(context, settings, settings.sipMessage); return true;
+  }
   const amount = parseOunces(rawAmount, settings.defaultServingOunces);
   if (!Number.isSafeInteger(amount) || amount < 1 || amount > settings.maximumEntryOunces) return false;
   const now = Date.now(); const before = state.totalOunces; state.totalOunces = Math.min(10_000, state.totalOunces + amount); state.entries.push({ amount, at: now, source: clean(source, 30) }); state.entries = state.entries.slice(-50); state.lastLoggedAt = now; state.dateKey = dayKey(); state.sequence += 1; setNextReminder(state, settings);
@@ -184,11 +190,13 @@ async function creatorControl(event, context, settings, state) {
   else if (event.eventType === 'command.received' && settings.creatorCommandEnabled && clean(event.payload?.command, 64).toLowerCase() === settings.creatorCommand && isBroadcaster(event)) { const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments.map((item) => clean(String(item), 60)) : []; action = (args[0] || 'status').toLowerCase(); amountText = action === 'log' ? args.slice(1).join(' ') : args.join(' '); source = 'creator-command'; shouldReply = true; if (/^\d/u.test(action) || Object.hasOwn(NUMBER_WORDS, action)) { action = 'log'; amountText = args.join(' '); } }
   else return false;
   let reply = '';
-  if (action === 'log') { const success = await logWater(context, settings, state, amountText, source); reply = success ? `${String(state.totalOunces)} of ${String(settings.goalOunces)} ounces logged.` : `Enter 1-${String(settings.maximumEntryOunces)} ounces.`; }
+  if (action === 'log' || action === 'sip') { const success = await logWater(context, settings, state, amountText, source); reply = settings.displayMode !== 'volume' ? settings.sipMessage : success ? `${String(state.totalOunces)} of ${String(settings.goalOunces)} ounces logged.` : `Enter 1-${String(settings.maximumEntryOunces)} ounces.`; }
+  else if (action === 'undo' && settings.displayMode !== 'volume') { state.sipCount = Math.max(0, state.sipCount - 1); state.sequence += 1; await context.state.write(state); reply = 'Last sip removed.'; }
   else if (action === 'undo') { const entry = state.entries.pop(); if (entry) { state.totalOunces = Math.max(0, state.totalOunces - entry.amount); state.sequence += 1; setNextReminder(state, settings); state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); armReminder(context, settings, state); } reply = entry ? `${String(state.totalOunces)} ounces remain logged.` : 'There is no water entry to undo.'; }
-  else if (action === 'reset') { state.totalOunces = 0; state.entries = []; state.lastLoggedAt = 0; state.sequence += 1; setNextReminder(state, settings); state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); armReminder(context, settings, state); reply = 'Hydration tracking reset.'; }
+  else if (action === 'reset') { state.sipCount = 0; state.totalOunces = 0; state.entries = []; state.lastLoggedAt = 0; state.sequence += 1; setNextReminder(state, settings); state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); armReminder(context, settings, state); reply = 'Hydration reminders reset.'; }
   else if (action === 'snooze') { state.sequence += 1; setNextReminder(state, settings, settings.snoozeMinutes); state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); armReminder(context, settings, state); reply = `Hydration reminder snoozed for ${String(settings.snoozeMinutes)} minutes.`; }
-  else if (action === 'remind' || action === 'preview') { const message = action === 'preview' ? 'Preview: log water to watch the container fill.' : settings.automaticReminderMessage; state.sequence += 1; state.notice = action === 'preview' ? { kind: 'preview', text: message, actor: '', platform: '', expiresAt: Date.now() + 10_000 } : { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); if (action === 'preview') { await publish(context, settings, state); armNoticeClear(context, state.notice.expiresAt); } else await speak(context, settings, message); reply = message; }
+  else if (action === 'remind' || action === 'preview') { const message = action === 'preview' ? 'Take a moment for a sip of water. No need to finish the bottle.' : settings.automaticReminderMessage; state.sequence += 1; state.notice = { kind: 'preview', text: message, actor: '', platform: '', expiresAt: Date.now() + 10_000 } ; await context.state.write(state); await publish(context, settings, state); armNoticeClear(context, state.notice.expiresAt); if (action === 'remind') await speak(context, settings, message); reply = message; }
+  else if (action === 'status' && settings.displayMode !== 'volume') reply = settings.displayMode === 'sips' ? `${String(state.sipCount)} sips acknowledged. Take a sip whenever you feel like it.` : 'Hydration reminders are ready. Use !water sip after a sip, or !water snooze to wait a little.';
   else if (action === 'status') reply = `${String(state.totalOunces)} of ${String(settings.goalOunces)} ounces logged.`;
   else return false;
   if (shouldReply && reply) await context.chat.send({ message: reply, routing: 'source', sourcePlatform: event.platform, overflow: 'truncate' }).catch(() => undefined);
@@ -229,7 +237,7 @@ async function process(event, context) {
     const wasOffline = livePlatforms.size === 0;
     if (event.eventType === 'stream.online') { explicitlyOfflinePlatforms.delete(event.platform); livePlatforms.add(event.platform); }
     else { explicitlyOfflinePlatforms.add(event.platform); livePlatforms.delete(event.platform); }
-    if (event.eventType === 'stream.online' && wasOffline) { if (settings.resetMode === 'stream') { state.totalOunces = 0; state.entries = []; state.lastLoggedAt = 0; state.remindersThisStream = 0; state.sessionKey = clean(event.receivedAt, 80); state.sequence += 1; } setNextReminder(state, settings); }
+    if (event.eventType === 'stream.online' && wasOffline) { if (settings.resetMode === 'stream') { state.sipCount = 0; state.totalOunces = 0; state.entries = []; state.lastLoggedAt = 0; state.remindersThisStream = 0; state.sessionKey = clean(event.receivedAt, 80); state.sequence += 1; } setNextReminder(state, settings); }
     if (livePlatforms.size === 0) {
       state.nextReminderAt = 0; state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 };
       cancelTask(context, reminderTimer); cancelTask(context, noticeTimer); reminderTimer = undefined; noticeTimer = undefined;

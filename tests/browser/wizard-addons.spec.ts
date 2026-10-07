@@ -463,7 +463,7 @@ test('wizard configures raid scouting and chat safety add-ons', async ({ page })
   await expect(raidScoutSettings.getByLabel('Ending-scene broadcast app').locator('option')).toHaveText(['OBS Studio']);
   await page.evaluate(`state.broadcastConnections = { connections: [{ provider: 'meld', enabled: true }, { provider: 'streamlabs', enabled: true }] }; renderAddOns();`);
   const renderedRaidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
-  await renderedRaidScoutSettings.getByLabel('Start Raid Scout on an ending scene').check();
+  await renderedRaidScoutSettings.getByLabel('Start raid search').selectOption('scene-change');
   const endingScenePicker = renderedRaidScoutSettings.locator('[data-scene-name-picker]');
   await expect(endingScenePicker.getByLabel('Detected scene')).toBeVisible();
   await expect(endingScenePicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', '📁 Stream Ending', '🎞 Ending Soon']);

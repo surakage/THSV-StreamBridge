@@ -10,6 +10,10 @@
   const moduleId = aliases[location.pathname] || location.pathname.slice('/overlay/addons/'.length);
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId)) return;
   const editorMode = new URLSearchParams(location.search).get('editor') === 'wizard';
+  const redemptionSize = new URLSearchParams(location.search).get('cardSize');
+  if (['compact', 'regular'].includes(redemptionSize)) document.documentElement.dataset.redemptionSize = redemptionSize;
+  if (new URLSearchParams(location.search).get('cardOrientation') === 'vertical') document.documentElement.dataset.redemptionOrientation = 'vertical';
+  if (new URLSearchParams(location.search).get('overlayOrientation') === 'vertical') document.documentElement.dataset.overlayOrientation = 'vertical';
   const card = document.getElementById('card');
   const genericCard = document.getElementById('generic-card');
   const cardImage = document.getElementById('card-image');
@@ -142,6 +146,7 @@
   })();
   let cardTimer;
   let timerHideTimer;
+  let timerTickTimer;
   let timerPreviewHeld = false;
   let cardRevealTimer;
   let mediaTimer;
@@ -402,13 +407,17 @@
     return row;
   }
 
+  function setRedemptionPlatform(platform) { const colors = { twitch: '#bf94ff', kick: '#78ff55', youtube: '#ff7575', tiktok: '#58ede7', facebook: '#64a4ff' }; document.documentElement.style.setProperty('--redemption-platform', colors[platform] || '#f2cc68'); }
+
   function showRollCall(payload) {
+    setRedemptionPlatform(payload.platform);
     const leaders = (Array.isArray(payload.leaders) ? payload.leaders : [])
       .slice(0, 8).map((entry, index) => rollCallEntry(entry, index + 1)).filter(Boolean);
     rollCallTitle.textContent = boundedText(payload.headline || payload.title, 80, 'Village Roll Call');
     rollCallSubtitle.textContent = boundedText(payload.subtitle, 120, leaders.length ? 'Monthly check-in leaderboard' : 'The noticeboard is ready for its first villager');
     rollCallMonth.textContent = boundedText(payload.monthLabel, 40, 'CURRENT SEASON').toUpperCase();
-    rollCallPodium.replaceChildren(...leaders.slice(0, 3).map((entry) => buildRollCallRow(entry, true)));
+    const displayed = leaders.length ? leaders : [{ rank: 1, displayName: 'Your name belongs here', count: 0 }, { rank: 2, displayName: 'Check in today', count: 0 }, { rank: 3, displayName: 'Grow with the village', count: 0 }];
+    rollCallPodium.replaceChildren(...displayed.slice(0, 3).map((entry) => buildRollCallRow(entry, true)));
     rollCallRunners.replaceChildren(...leaders.slice(3).map((entry) => buildRollCallRow(entry, false)));
     rollCallRunners.classList.toggle('hidden', leaders.length <= 3);
     rollCallShell.dataset.mode = ['leaderboard', 'checkin', 'monthly-winner', 'preview'].includes(payload.mode) ? payload.mode : 'leaderboard';
@@ -439,6 +448,7 @@
     const held = payload.state !== 'open' && boundedText(holder.displayName, 100).length > 0;
     const displayName = held ? boundedText(holder.displayName, 100, 'Village Champion') : 'The crown is waiting';
     const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    setRedemptionPlatform(holder.platform || payload.platform);
     fanCrownShell.dataset.state = held ? 'held' : 'open'; fanCrownShell.dataset.background = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass'; fanCrownShell.dataset.font = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'display';
     fanCrownShell.style.setProperty('--crown-background', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#201335', .94)); fanCrownShell.style.setProperty('--crown-solid', safeColor(style.backgroundColor, '#201335')); fanCrownShell.style.setProperty('--crown-accent', safeColor(style.accentColor, '#f4cc63')); fanCrownShell.style.setProperty('--crown-text', safeColor(style.textColor, '#ffffff'));
     fanCrownEvent.textContent = boundedText(payload.eventTitle || payload.title, 50, held ? 'CROWN CAPTURED' : 'CROWN AVAILABLE'); fanCrownStatus.textContent = held ? 'CURRENT CROWN HOLDER' : 'WHO WILL CLAIM IT?';
@@ -455,6 +465,7 @@
 
   function showFirstFive(payload) {
     const platform = boundedText(payload.platform, 20, 'twitch').toLowerCase();
+    setRedemptionPlatform(platform);
     if (firstFiveActivePlatform) {
       if (firstFiveActivePlatform === platform && !firstFiveShell.classList.contains('hidden')) { renderFirstFive(payload, true); return; }
       const existing = firstFiveQueue.findIndex((item) => boundedText(item.platform, 20, 'twitch').toLowerCase() === platform);
@@ -468,11 +479,13 @@
   function renderFirstFive(payload, updating = false) {
     const queued = firstFiveQueue;
     if (!updating) { hideCard(); firstFiveQueue = queued; }
+    setRedemptionPlatform(payload.platform);
     firstFiveActivePlatform = boundedText(payload.platform, 20, 'twitch').toLowerCase();
     firstFiveGapMs = Math.max(1_000, Math.min(10_000, Number.isInteger(payload.queueGapMs) ? payload.queueGapMs : 2_000));
     const claims = (Array.isArray(payload.placements) ? payload.placements : []).filter((item) => item && typeof item === 'object').slice(0, 5);
     const claimAt = (position) => claims.find((item) => Number(item.position) === position);
-    firstFiveTitle.textContent = boundedText(payload.headline, 50, 'First Five');
+    const boardPlatformLabel = ({ twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' })[firstFiveActivePlatform];
+    firstFiveTitle.textContent = boardPlatformLabel ? `${boardPlatformLabel} First Five` : boundedText(payload.headline, 50, 'First Five');
     firstFiveSubtitle.textContent = boundedText(payload.subtitle, 100, claims.length >= 5 ? 'The arrival board is complete' : 'Who will arrive next?');
     firstFiveProgress.textContent = `${claims.length} / 5`;
     firstFiveMonth.textContent = `${boundedText(payload.monthLabel, 30, 'CURRENT MONTH').toUpperCase()} LEADERS`;
@@ -497,6 +510,7 @@
   function hideTimer(payload = {}) {
     if (timerPreviewHeld && payload.force !== true) return;
     timerPreviewHeld = false;
+    clearInterval(timerTickTimer);
     clearTimeout(timerHideTimer);
     if (timerShell.classList.contains('hidden')) {
       timerShell.removeAttribute('style'); timerShell.dataset.state = 'idle'; timerShell.dataset.variant = '';
@@ -560,6 +574,9 @@
     const total = Number.isFinite(payload.totalOunces) ? Math.max(0, Math.min(10_000, payload.totalOunces)) : 0;
     const goal = Number.isFinite(payload.goalOunces) ? Math.max(1, Math.min(512, payload.goalOunces)) : 64;
     const percentage = Math.max(0, Math.min(100, Number.isFinite(payload.percentage) ? payload.percentage : total / goal * 100));
+    const displayMode = ['reminder', 'sips', 'volume'].includes(payload.displayMode) ? payload.displayMode : 'reminder';
+    hydrationShell.dataset.mode = displayMode;
+    document.getElementById('hydration-sip-count').textContent = displayMode === 'sips' ? `${String(Math.max(0, Math.trunc(Number(payload.sipCount) || 0)))} sips acknowledged` : '';
     hydrationShell.dataset.container = ['bottle', 'glass', 'water-tower'].includes(style.containerStyle) ? style.containerStyle : 'bottle';
     hydrationShell.dataset.background = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass';
     hydrationShell.style.setProperty('--hydration-background', safeColor(style.backgroundColor, '#0b1720'));
@@ -574,7 +591,7 @@
     hydrationGoal.textContent = String(Math.round(goal * 10) / 10);
     hydrationPercent.textContent = `${String(Math.round(percentage))}%`;
     hydrationProgress.style.width = `${percentage}%`;
-    hydrationTitle.textContent = boundedText(payload.title, 80, 'Water Goal');
+    hydrationTitle.textContent = displayMode === 'volume' ? boundedText(payload.title, 80, 'Water Goal') : 'Sip & Stay Cozy';
     hydrationStatus.textContent = payload.live === true ? 'LIVE' : payload.templatePreview === true ? 'PREVIEW' : 'READY';
     hydrationShell.classList.toggle('hydration-hide-numbers', payload.showNumbers === false);
     const notice = payload.notice && typeof payload.notice === 'object' ? boundedText(payload.notice.text, 300) : '';
@@ -639,6 +656,7 @@
   }
 
   function showChatPlayWinner(payload) {
+    setRedemptionPlatform(payload.winner?.platform || payload.platform);
     const winner = payload.winner && typeof payload.winner === 'object' ? payload.winner : {};
     const displayName = boundedText(winner.displayName, 100, 'Viewer');
     const platform = boundedText(winner.platform, 20, 'twitch').toUpperCase();
@@ -726,7 +744,9 @@
     timerLabel.textContent = boundedText(payload.label, 80, 'TIMER') || 'TIMER';
     const completed = payload.completed === true;
     timerTime.textContent = completed ? (boundedText(payload.completionMessage, 200, 'The stream is starting now!') || 'The stream is starting now!')
-      : (/^(?:\d{2,4}:)?\d{2}:\d{2}$/u.test(payload.remainingText) ? payload.remainingText : computedTime);
+      : moduleId === 'thsv.starting-soon-countdown'
+        ? `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`
+        : (/^(?:\d{2,4}:)?\d{2}:\d{2}$/u.test(payload.remainingText) ? payload.remainingText : computedTime);
     timerTime.classList.toggle('timer-complete-message', completed);
     const badgeText = boundedText(payload.badgeText, 32);
     timerBadge.textContent = badgeText || (completed ? 'COMPLETE' : payload.running === true ? 'RUNNING' : payload.live === true ? 'PAUSED' : 'READY');
@@ -751,6 +771,21 @@
     timerShell.style.setProperty('--timer-border', safeColor(style.borderColor, '#85cbff'));
     clearTimeout(timerHideTimer);
     timerShell.classList.remove('hidden', 'timer-fading');
+    clearInterval(timerTickTimer);
+    if (payload.running === true && !completed && payload.preview !== true) {
+      const suppliedDeadline = Number(payload.endsAt);
+      const emittedAt = Date.parse(payload.emittedAt);
+      const deadline = Number.isFinite(suppliedDeadline) && suppliedDeadline > 0 ? suppliedDeadline
+        : (Number.isFinite(emittedAt) ? emittedAt : Date.now()) + remaining * 1000;
+      const tick = () => {
+        const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        timerTime.textContent = seconds >= 3600
+          ? [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60].map(v => String(v).padStart(2, '0')).join(':')
+          : [Math.floor(seconds / 60), seconds % 60].map(v => String(v).padStart(2, '0')).join(':');
+        timerProgress.style.width = String(Math.max(0, Math.min(100, seconds / maximum * 100))) + '%';
+      };
+      tick(); timerTickTimer = setInterval(tick, 100);
+    }
     playCompletionTone(payload);
   }
 
@@ -767,6 +802,7 @@
     if (payload.cardKind === 'chat-play-game') return showChatPlayGame(payload);
     if (payload.cardKind === 'chat-play-winner') return showChatPlayWinner(payload);
     if (payload.cardKind === 'shoutout-spotlight') return showShoutoutSpotlight(payload);
+    setRedemptionPlatform(payload.platform);
     const title = typeof payload.title === 'string' ? payload.title.slice(0, 200) : '';
     const text = typeof payload.text === 'string' ? payload.text.slice(0, 1_000) : '';
     const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
@@ -795,7 +831,7 @@
       const category = boundedText(front.category, 140);
       const followStatus = ['following', 'not-following', 'unknown'].includes(front.followStatus) ? front.followStatus : 'unknown';
       const spotlightImageUrl = safeUrl(front.imageUrl || payload.imageUrl);
-      const statistics = Array.isArray(payload.stats) ? payload.stats.slice(0, 10) : [];
+      const statistics = Array.isArray(payload.stats) ? payload.stats.slice(0, document.documentElement.dataset.redemptionOrientation === 'vertical' ? 4 : 6) : [];
       genericCard.classList.add('hidden'); spotlightCard.classList.remove('hidden');
       spotlightCard.dataset.flip = payload.flipToStats === true && statistics.length > 0 ? 'true' : 'false'; card.dataset.cardKind = 'viewer-spotlight';
       card.style.setProperty('--spotlight-flip-delay', `${Math.max(1800, Math.min(7000, Math.round(boundedDuration(payload.durationMs, 8_000) * 0.32)))}ms`);
@@ -820,9 +856,10 @@
       cardRevealTimer = setInterval(() => {
         visible += 1;
         cardText.textContent = words.slice(0, visible).join(' ');
+        if (moduleId === 'thsv.voice-relay') cardText.scrollTop = cardText.scrollHeight;
         if (visible >= words.length) clearInterval(cardRevealTimer);
       }, Math.max(40, Math.floor(revealDurationMs / Math.max(1, words.length))));
-    } else if (payload.cardKind !== 'viewer-spotlight') cardText.textContent = text;
+    } else if (payload.cardKind !== 'viewer-spotlight') { cardText.textContent = text; cardText.scrollTop = 0; }
     card.classList.remove('hidden');
     cardTimer = setTimeout(hideCard, boundedDuration(payload.durationMs, 8_000));
   }
@@ -830,23 +867,28 @@
   function showQueue(payload) {
     const entries = Array.isArray(payload.entries) ? payload.entries.slice(0, 20) : [];
     const total = Number.isSafeInteger(payload.count) ? Math.max(entries.length, Math.min(200, payload.count)) : entries.length;
-    const statusValue = boundedText(payload.status, 20, 'closed').toUpperCase();
-    const summary = entries.length === 0
-      ? 'No viewers are waiting.'
-      : `${entries.map((entry, index) => {
-        const position = Number.isSafeInteger(entry?.position) ? entry.position : index + 1;
-        const name = boundedText(entry?.displayName, 100, 'Viewer') || 'Viewer';
-        const platform = boundedText(entry?.platform, 20).toUpperCase();
-        const stateValue = boundedText(entry?.state, 20, 'waiting');
-        const gamertag = boundedText(entry?.gamertag, 80);
-        return `${position}. ${name}${platform ? ` (${platform})` : ''}${gamertag ? ` - ${gamertag}` : ''}${stateValue !== 'waiting' ? ` - ${stateValue}` : ''}`;
-      }).join(' • ')}${total > entries.length ? ` • +${total - entries.length} more waiting` : ''}`;
-    showCard({
-      title: `VIEWER LOBBY • ${statusValue} • ${total} ${total === 1 ? 'VIEWER' : 'VIEWERS'}`,
-      text: summary,
-      durationMs: 3_600_000,
-      style: payload.style,
-    });
+    const statusValue = boundedText(payload.status, 20, 'closed');
+    showCard({ title: 'Village Play Lobby', text: '', durationMs: 3_600_000, style: payload.style });
+    card.dataset.cardKind = 'viewer-lobby';
+    const line = (className, text) => { const node = document.createElement('span'); node.className = className; node.textContent = text; return node; };
+    cardText.replaceChildren(line('lobby-summary', statusValue.toUpperCase() + ' · ' + total + (total === 1 ? ' participant' : ' participants')));
+    const selected = entries.find(entry => entry?.state === 'selected' || entry?.state === 'playing');
+    const waiting = entries.filter(entry => entry !== selected);
+    const visible = [...(selected ? [selected] : []), ...waiting].slice(0, 4);
+    for (const entry of visible) {
+      const row = line('lobby-row', '');
+      const active = entry === selected;
+      row.dataset.selected = String(active);
+      row.append(line('lobby-rank', active ? (entry.state === 'playing' ? 'PLAYING' : 'UP NEXT') : String(entry.position || waiting.indexOf(entry) + 1).padStart(2, '0')));
+      const identity = line('lobby-identity', '');
+      identity.append(line('lobby-name', boundedText(entry.displayName, 100, 'Viewer')));
+      if (entry.gamertag) identity.append(line('lobby-gamertag', boundedText(entry.gamertag, 80)));
+      row.append(identity);
+      if (entry.platform) row.append(line('lobby-platform', boundedText(entry.platform, 20).toUpperCase()));
+      cardText.append(row);
+    }
+    if (!visible.length) cardText.append(line('lobby-empty', statusValue === 'open' ? 'Seats are open — waiting for players.' : 'The play queue is resting.'));
+    if (total > visible.length) cardText.append(line('lobby-more', '+' + (total - visible.length) + ' more in the lobby'));
   }
 
   function showLabels(payload) {
@@ -1340,7 +1382,7 @@
   if ('SharedWorker' in window) {
     try {
       resetOverlaySurface();
-      const worker = new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3');
+        const worker = new SharedWorker('/overlay/worker-1.3.5.js', 'thsv-browser-overlay-1.3.5');
       sendTransport = (payload) => worker.port.postMessage({ kind: 'transport.send', payload });
       worker.port.addEventListener('message', (message) => {
         if (message.data?.kind === 'transport.status') transportState(message.data.state);

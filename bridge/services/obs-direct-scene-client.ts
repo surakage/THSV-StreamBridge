@@ -30,8 +30,12 @@ export class ObsDirectSceneClient {
     let timer: NodeJS.Timeout | undefined;
     const onMessage = (raw: WebSocket.RawData): void => { try { const value = JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : Buffer.from(raw as ArrayBuffer).toString('utf8')) as unknown; if (!isRecord(value) || value['op'] !== 5) return; const eventType = string(record(value['d'])['eventType']); if (!['SceneCreated', 'SceneRemoved', 'SceneNameChanged', 'CurrentProgramSceneChanged', 'SceneListChanged'].includes(eventType)) return; if (timer !== undefined) clearTimeout(timer); timer = setTimeout(onChange, 100); timer.unref(); } catch { /* Ignore malformed provider events. */ } };
     socket.on('message', onMessage);
+    // Some OBS/provider combinations miss scene notifications during chained
+    // transitions. Confirm the snapshot periodically while this subscription
+    // is active; consumers still compare scene names before taking any action.
+    const confirmation = setInterval(onChange, 1_000); confirmation.unref();
     try { await waitUntilClosed(socket, signal, 'OBS'); }
-    finally { if (timer !== undefined) clearTimeout(timer); socket.off('message', onMessage); if (socket.readyState < WebSocket.CLOSING) socket.close(1000, 'Scene subscription stopped'); }
+    finally { clearInterval(confirmation); if (timer !== undefined) clearTimeout(timer); socket.off('message', onMessage); if (socket.readyState < WebSocket.CLOSING) socket.close(1000, 'Scene subscription stopped'); }
   }
 
   private async request(requestType: 'GetSceneList' | 'GetStreamStatus'): Promise<Record<string, unknown>> {

@@ -18,3 +18,11 @@ For TikTok, attach the imported **Broadcast Started** action to exactly one acti
 Enter either a plain login or the full Twitch, Kick, or TikTok profile URL. Live Beacon normalizes it before creating the viewer link. A real YouTube **Broadcast Started** event supplies `%broadcast.id%`, which becomes the exact `https://www.youtube.com/watch?v=...` URL. The saved YouTube channel URL is used only when that ID is unavailable and is converted to the channel's `/live` endpoint.
 
 Streamer.bot's trigger **Test** button sets the event's test flag. Live Beacon deliberately ignores those simulated provider events so a routine trigger test cannot ping a real Discord role. The triggerless Deliver action also intentionally rejects a manual run without StreamBridge's one-use broker token. Use a genuine provider start for live acceptance.
+
+Facebook is optional: select it under Platforms to announce. The connected Facebook Page adapter supplies genuine online events with a stable broadcast ID and associated video link. Configure Facebook forum destination, existing post ID, and welcome like the other platforms. It uses Facebook blue (#1877F2). A Page /live URL is available as a fallback; Facebook does not need an OBS fallback when Page detection is connected.
+
+Facebook post setup can override the shared setting: choose Create and remember a Facebook post to add it alongside existing posts for other platforms. A configured Facebook post ID takes priority.
+
+### Rich embeds
+
+Notifications now include a creator author/profile icon, category cover art, a large available stream preview, platform color, title, game/category, watch link, and localized start timestamps. `shareMissingMetadata` fills only missing fields from active streams (Twitch preferred); it never replaces the platform link or platform start time. Optional read-only Twitch lookups supply current metadata and artwork, with a shared four-second deadline. Missing metadata is labeled unavailable, and artwork lookup failures still allow delivery. `showArtwork` controls the images.

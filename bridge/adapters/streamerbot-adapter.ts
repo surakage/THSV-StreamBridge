@@ -8,7 +8,8 @@ import type { StreamerBotEventRelay } from './streamerbot-event-relay.js';
 import type { CommandAdministrationRequest } from '../core/command-administration.js';
 import type { RewardAdministrationRequest } from '../core/reward-administration.js';
 import type { AddOnActionArgumentsV2 } from '../contracts/v2/addon-capability.js';
-import { assertSecureVoiceRelayArguments } from '../contracts/voice-relay-handoff.js';
+import { assertSecureVoiceRelayArguments, VOICE_RELAY_SPEAK_ACTION_ID } from '../contracts/voice-relay-handoff.js';
+import { waitForVoiceRelayCompletion } from '../services/voice-relay-completion.js';
 import { projectMultiTimedAction, type MultiTimedAction } from '../core/multi-timed-actions.js';
 
 interface PendingRequest {
@@ -157,7 +158,18 @@ export class StreamerBotAdapter {
     }
     if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) throw new Error('Streamer.bot is unavailable');
     const requestId = randomUUID();
-    await this.sendRequest(requestId, { request: 'DoAction', id: requestId, action: { id: actionId }, args: argumentsValue }, signal);
+    if (actionId.toLowerCase() !== VOICE_RELAY_SPEAK_ACTION_ID) {
+      await this.sendRequest(requestId, { request: 'DoAction', id: requestId, action: { id: actionId }, args: argumentsValue }, signal);
+      return;
+    }
+    if (this.eventRelay === undefined) throw new Error('Village Voice playback completion relay is unavailable.');
+    const relayToken = argumentsValue['thsvAddonRelayToken'];
+    if (typeof relayToken !== 'string') throw new Error('Village Voice relay token is invalid.');
+    const tracker = waitForVoiceRelayCompletion(this.eventRelay, requestId, relayToken, signal);
+    try {
+      await this.sendRequest(requestId, { request: 'DoAction', id: requestId, action: { id: actionId }, args: { ...argumentsValue, voiceRelayExecutionId: requestId } }, signal);
+      await tracker.completion;
+    } finally { tracker.cancel(); }
   }
 
   public async requestCommandAdministration(request: CommandAdministrationRequest): Promise<void> {
@@ -336,7 +348,7 @@ export class StreamerBotAdapter {
       const id = randomUUID();
       // Reuse Streamer.bot's authenticated Streamlabs integration. This adds no provider
       // credential to StreamBridge and no second WebSocket connection.
-      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Streamlabs: ['Donation'], speechToText: ['Dictation'] } });
+      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Twitch: ['RaidSend'], Streamlabs: ['Donation'], SpeechToText: ['Dictation'] } });
     }
     this.markReady();
   }
@@ -450,7 +462,7 @@ export function buildMultiTimedActionArguments(action: MultiTimedAction): AddOnA
     multiTimedLateByMs: action.lateByMs,
     multiTimedSelectionMode: action.selectionMode,
     multiTimedSelectedMessage: action.selectedMessage,
-    multiTimedSelectedMessages: JSON.stringify(action.selectedMessages),
+    multiTimedSelectedMessages: JSON.stringify(Object.fromEntries(Object.entries(action.selectedMessages).filter(([platform]) => platform !== 'facebook'))),
     multiTimedContainerCycle: action.containerCycle,
     multiTimedContainerPosition: action.containerPosition,
     multiTimedContainerSize: action.containerSize,
@@ -459,7 +471,7 @@ export function buildMultiTimedActionArguments(action: MultiTimedAction): AddOnA
     multiTimedTargetProvider: action.targetProvider,
     multiTimedTargetActionId: action.targetActionId ?? '',
     multiTimedTargetActionName: action.targetActionName ?? '',
-    multiTimedDeliveryPlatforms: JSON.stringify(action.deliveryPlatforms),
+    multiTimedDeliveryPlatforms: JSON.stringify(action.deliveryPlatforms.filter(platform => platform !== 'facebook')),
     multiTimedActionDispatched: true,
   };
 }
@@ -472,10 +484,19 @@ function decodeMessage(data: WebSocket.RawData): string {
 }
 
 function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
+  if (message.event?.source === 'Twitch' && message.event.type === 'RaidSend' && isRecord(message.data)) return message;
   if (isSupportedRelay(message)) return message;
   if (message.event?.source === 'SpeechToText' && message.event.type === 'Dictation' && isRecord(message.data)) return message;
   if (message.event?.source === 'Streamlabs' && message.event.type === 'Donation' && isRecord(message.data)) return message;
   if (message.event?.source !== 'General' || message.event.type !== 'Custom' || !isRecord(message.data)) return undefined;
+  // Alpha Whisper can expose spoken phrases through Voice Control Log triggers.
+  // Keep this creator-installed relay ephemeral, outside normalized durable events.
+  if (message.data['type'] === 'thsv.caption' && message.data['version'] === '1.0.0' && isRecord(message.data['payload'])) {
+    const caption = message.data['payload'];
+    if (typeof caption['text'] === 'string' && caption['text'].length <= 2_000 && typeof caption['confidence'] === 'number' && Number.isFinite(caption['confidence'])) {
+      return { timeStamp: message['timeStamp'], event: { source: 'SpeechToText', type: 'Dictation' }, data: caption };
+    }
+  }
   return isSupportedRelay(message.data) ? message.data : undefined;
 }
 
@@ -483,7 +504,8 @@ function isSupportedRelay(value: Readonly<Record<string, unknown>>): boolean {
   return value['type'] === 'thsv.tikfinity'
     || value['type'] === 'thsv.platform'
     || value['type'] === 'thsv.addon'
-    || value['type'] === 'thsv.scene';
+    || value['type'] === 'thsv.scene'
+    || value['type'] === 'thsv.voice-result';
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {

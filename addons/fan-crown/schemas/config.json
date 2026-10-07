@@ -4,7 +4,11 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Fan Crown", "default": true },
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Fan Crown",
+      "default": true
+    },
     "rewardId": {
       "type": "string",
       "title": "Streamer.bot-owned Twitch Reward ID",
@@ -12,8 +16,20 @@
       "maxLength": 256,
       "default": ""
     },
-    "kickRewardId": { "type": "string", "title": "Kick Fan Crown Reward ID", "description": "Kick reward used for native captures. Streamer.bot does not currently document Kick reward title, price, fulfill, or refund methods.", "maxLength": 256, "default": "" },
-    "commandName": { "type": "string", "title": "YouTube and TikTok Fan Crown command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "maxLength": 64, "default": "fancrown" },
+    "kickRewardId": {
+      "type": "string",
+      "title": "Kick Fan Crown Reward ID",
+      "description": "Kick reward used for native captures. Streamer.bot does not currently document Kick reward title, price, fulfill, or refund methods.",
+      "maxLength": 256,
+      "default": ""
+    },
+    "commandName": {
+      "type": "string",
+      "title": "YouTube and TikTok Fan Crown command",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$",
+      "maxLength": 64,
+      "default": "fancrown"
+    },
     "baseRewardTitle": {
       "type": "string",
       "title": "Available reward title",
@@ -33,21 +49,58 @@
     "pricingMode": {
       "type": "string",
       "title": "Price increase mode",
-      "enum": ["fixed", "multiplier"],
+      "enum": [
+        "fixed",
+        "multiplier"
+      ],
       "default": "fixed"
     },
-    "baseCost": { "type": "integer", "title": "Base Channel Points cost", "minimum": 1, "maximum": 2000000000, "default": 500 },
-    "fixedIncrease": { "type": "integer", "title": "Points added after each capture", "minimum": 1, "maximum": 2000000000, "default": 250 },
-    "multiplier": { "type": "number", "title": "Multiplier after each capture", "minimum": 1.01, "maximum": 10, "default": 1.25 },
-    "maximumCost": { "type": "integer", "title": "Maximum Channel Points cost", "minimum": 1, "maximum": 2000000000, "default": 10000 },
-    "roundingIncrement": { "type": "integer", "title": "Round the next price up to", "minimum": 1, "maximum": 1000000, "default": 50 },
+    "baseCost": {
+      "type": "integer",
+      "title": "Base Channel Points cost",
+      "minimum": 1,
+      "maximum": 2000000000,
+      "default": 500
+    },
+    "fixedIncrease": {
+      "type": "integer",
+      "title": "Points added after each capture",
+      "minimum": 1,
+      "maximum": 2000000000,
+      "default": 250
+    },
+    "multiplier": {
+      "type": "number",
+      "title": "Multiplier after each capture",
+      "minimum": 1.01,
+      "maximum": 10,
+      "default": 1.25
+    },
+    "maximumCost": {
+      "type": "integer",
+      "title": "Maximum Channel Points cost",
+      "minimum": 1,
+      "maximum": 2000000000,
+      "default": 10000
+    },
+    "roundingIncrement": {
+      "type": "integer",
+      "title": "Round the next price up to",
+      "minimum": 1,
+      "maximum": 1000000,
+      "default": 50
+    },
     "resetEachStream": {
       "type": "boolean",
       "title": "Reset the crown and price when Twitch goes live",
       "description": "Monthly leaderboard totals remain intact. Leave disabled to let the crown persist across streams.",
       "default": false
     },
-    "blockCurrentHolder": { "type": "boolean", "title": "Require another viewer to challenge the current holder", "default": true },
+    "blockCurrentHolder": {
+      "type": "boolean",
+      "title": "Require another viewer to challenge the current holder",
+      "default": true
+    },
     "userCooldownMinutes": {
       "type": "integer",
       "title": "Per-viewer capture cooldown (minutes)",
@@ -56,9 +109,21 @@
       "maximum": 43200,
       "default": 0
     },
-    "allowBroadcaster": { "type": "boolean", "title": "Allow the broadcaster to capture the crown", "default": true },
-    "allowModerators": { "type": "boolean", "title": "Allow moderators to capture the crown", "default": true },
-    "announceCaptures": { "type": "boolean", "title": "Announce successful captures in Twitch chat", "default": true },
+    "allowBroadcaster": {
+      "type": "boolean",
+      "title": "Allow the broadcaster to capture the crown",
+      "default": true
+    },
+    "allowModerators": {
+      "type": "boolean",
+      "title": "Allow moderators to capture the crown",
+      "default": true
+    },
+    "announceCaptures": {
+      "type": "boolean",
+      "title": "Announce successful captures in Twitch chat",
+      "default": true
+    },
     "captureMessageTemplate": {
       "type": "string",
       "title": "Capture message",
@@ -67,7 +132,11 @@
       "maxLength": 1000,
       "default": "{name} captured the Fan Crown for {cost} points! Next challenge: {nextCost}."
     },
-    "notifyRejectedClaims": { "type": "boolean", "title": "Explain refunded redemptions in chat", "default": false },
+    "notifyRejectedClaims": {
+      "type": "boolean",
+      "title": "Explain refunded redemptions in chat",
+      "default": false
+    },
     "rejectedMessageTemplate": {
       "type": "string",
       "title": "Refund message",
@@ -76,7 +145,11 @@
       "maxLength": 1000,
       "default": "{name}, that Fan Crown redemption was refunded: {reason}."
     },
-    "announceMonthlyWinner": { "type": "boolean", "title": "Announce the completed monthly season winner", "default": true },
+    "announceMonthlyWinner": {
+      "type": "boolean",
+      "title": "Announce the completed monthly season winner",
+      "default": true
+    },
     "monthlyWinnerMessageTemplate": {
       "type": "string",
       "title": "Monthly winner message",
@@ -85,22 +158,65 @@
       "maxLength": 1000,
       "default": "{name} won the {month} Fan Crown season with {points} points and {captures} captures!"
     },
-    "showCrownCard": { "type": "boolean", "title": "Show the hosted Fan Crown overlay card", "default": true },
-    "crownCardSeconds": { "type": "integer", "title": "Overlay card duration (seconds)", "minimum": 5, "maximum": 3600, "default": 20 },
+    "showCrownCard": {
+      "type": "boolean",
+      "title": "Show the hosted Fan Crown overlay card",
+      "default": true
+    },
+    "crownCardSeconds": {
+      "type": "integer",
+      "title": "Overlay card duration (seconds)",
+      "minimum": 5,
+      "maximum": 3600,
+      "default": 20
+    },
     "overlayBackgroundMode": {
       "type": "string",
       "title": "Overlay background",
-      "enum": ["glass", "solid", "none"],
+      "enum": [
+        "glass",
+        "solid",
+        "none"
+      ],
       "default": "glass"
     },
-    "overlayBackgroundColor": { "type": "string", "title": "Overlay background color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#201335" },
-    "overlayBackgroundOpacity": { "type": "number", "title": "Overlay background opacity", "minimum": 0, "maximum": 1, "default": 0.94 },
-    "overlayAccentColor": { "type": "string", "title": "Overlay accent color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#f4cc63" },
-    "overlayTextColor": { "type": "string", "title": "Overlay text color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
+    "overlayBackgroundColor": {
+      "type": "string",
+      "title": "Overlay background color",
+      "format": "color",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#201335"
+    },
+    "overlayBackgroundOpacity": {
+      "type": "number",
+      "title": "Overlay background opacity",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.94
+    },
+    "overlayAccentColor": {
+      "type": "string",
+      "title": "Overlay accent color",
+      "format": "color",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#f4cc63"
+    },
+    "overlayTextColor": {
+      "type": "string",
+      "title": "Overlay text color",
+      "format": "color",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#ffffff"
+    },
     "overlayFontFamily": {
       "type": "string",
       "title": "Overlay font",
-      "enum": ["display", "broadcast", "serif", "mono"],
+      "enum": [
+        "display",
+        "broadcast",
+        "serif",
+        "mono"
+      ],
       "default": "display"
     }
   }

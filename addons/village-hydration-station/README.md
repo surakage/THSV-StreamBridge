@@ -1,15 +1,9 @@
 # Village Hydration Station
 
-Village Hydration Station provides live-only hydration reminders, creator-authorized ounce tracking, viewer reminder requests, optional Speaker.bot confirmations, and a persistent animated fill overlay.
+Friendly live-only reminders encourage a small sip without estimating ounces or finishing a bottle. The default **Friendly reminders** mode shows a compact sip reminder with the next reminder time. **Reminders with a sip counter** optionally shows the number of creator acknowledgments. Original volume tracking is available only as an optional legacy mode.
 
-Water tracking resets at the computer's local midnight by default, including during a stream that crosses into a new calendar day. Per-stream and manual reset modes remain available in the wizard.
+Use the broadcaster-only !water sip command, or the existing **Log Water** Streamer.bot action from Stream Deck, to acknowledge exactly one sip. No amount is required; old button amounts are ignored in reminder and sip-counter modes. Acknowledgments restart the reminder clock. Viewers can request reminders but never increment the sip counter. Use !water undo, snooze, remind, reset, or status for creator controls.
 
-Viewer activity never adds water. Twitch and Kick use stable native reward IDs; YouTube and TikTok use the automatically registered `!hydrate` command. Shared global and per-viewer cooldowns prevent cross-platform reminder spam.
+Automatic reminders show the overlay while live. Twitch/Kick rewards and the configured YouTube/TikTok command keep their cooldowns. Optional Speaker.bot announcements remain available. Sip counts reset according to the configured stream/daily/manual reset mode and are independent of historical ounce data.
 
-Creators can use `!water 8`, `!water undo`, `!water snooze`, `!water reset`, and `!water status`. The included Streamer.bot controls also support Stream Deck and creator hotkeys. Hydration does not subscribe to microphone dictation or use a Voice Control command.
-
-Speaker.bot is optional and only speaks the creator-authored reminder and confirmation text. Approve only the included triggerless **Speak** action when spoken announcements are enabled.
-
-Add `/overlay/addons/thsv.village-hydration-station` as a compact `520 x 620` browser source or position it inside a `1920 x 1080` source. The fill level is the bounded recorded total divided by the creator-configured goal. The wizard preview uses the same production template.
-
-The goal is a personal stream display target and is not medical advice.
+OBS: use /overlay/addons/thsv.village-hydration-station. Wizard sample previews use the selected display mode and can stay visible for editing.

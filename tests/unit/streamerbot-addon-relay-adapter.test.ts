@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeStreamerBotAddOnRelay } from '../../bridge/adapters/streamerbot-addon-relay-adapter.js';
+import { normalizeStreamerBotAddOnRelay, normalizeStreamerBotRaidSend } from '../../bridge/adapters/streamerbot-addon-relay-adapter.js';
 import { addOnRelayAuthorizer } from '../../bridge/services/addon-relay-authorizer.js';
 
 function relay(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -12,6 +12,12 @@ function relay(overrides: Record<string, unknown> = {}): Record<string, unknown>
 }
 
 describe('Streamer.bot add-on relay adapter', () => {
+  it('accepts only exact bounded break automation controls', () => {
+    const control = { moduleId: 'thsv.stream-session-guard', eventType: 'addon.thsv.stream-session-guard.control', relayToken: '', sourceEventType: 'THSV Stream Break & End Guard - pause', payload: { action: 'pause' } };
+    expect(normalizeStreamerBotAddOnRelay(relay(control)).payload).toEqual({ action: 'pause' });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'resume' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'pause', scene: 'Ending' } }))).toThrow('relay token');
+  });
   it('normalizes a namespaced add-on event with its payload intact', () => {
     const event = normalizeStreamerBotAddOnRelay(relay({ payload: { clipId: 'AwkwardClip', title: 'Nice play', durationSeconds: 12 } }));
     expect(event).toMatchObject({
@@ -291,5 +297,17 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({ payload: { action: 'reconcile-now' } });
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Follower Pulse - Snapshot Page' }))).toThrow('relay token');
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'reconcile-now', force: true } }))).toThrow('relay token');
+  });
+});
+
+describe('native Twitch raid completion', () => {
+  const message = { event: { source: 'Twitch', type: 'RaidSend' }, data: { createdAt: '2026-10-05T12:00:00Z', isTest: false, targetUser: { id: '123', login: 'alpha' }, viewers: 5 } };
+  it('normalizes a genuine handoff and preserves test status', () => {
+    expect(normalizeStreamerBotRaidSend(message)).toMatchObject({ eventType: 'addon.thsv.raid-scout.raid-completed', source: { eventName: 'Twitch.RaidSend' }, payload: { targetUserId: '123', targetLogin: 'alpha', viewers: 5 }, metadata: { simulated: false } });
+    expect(normalizeStreamerBotRaidSend({ ...message, data: { ...message.data, isTest: true } }).metadata.simulated).toBe(true);
+  });
+  it('rejects another event type and malformed identities', () => {
+    expect(() => normalizeStreamerBotRaidSend({ ...message, event: { source: 'Twitch', type: 'Raid' } })).toThrow();
+    expect(() => normalizeStreamerBotRaidSend({ ...message, data: { ...message.data, targetUser: { id: '', login: 'bad/login' } } })).toThrow();
   });
 });

@@ -8,7 +8,8 @@
     "events.subscribe",
     "state.private",
     "viewer.foundation.read",
-    "community.analytics.provide"
+    "community.analytics.provide",
+    "schedule.bounded"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -76,18 +77,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 22410,
-      "sha256": "40776e7ee2d62c498cb5da31f448a9bd064a48e0ca3fea0f7d7283632e301ab4"
+      "size": 23425,
+      "sha256": "1fe277cdec64d5411680591544c4794ebf7dab218fb75422c82f91245247b2d8"
     },
     {
       "path": "schemas/config.json",
-      "size": 3478,
-      "sha256": "a0ec8154c6f30d671cd21f56702bc981aabde7049140a4541fbef0fa658a2cb9"
+      "size": 4382,
+      "sha256": "73e7b278a49daabde0c711477244559b2d6c87f1bf296dd903ae47af854fcd01"
     },
     {
       "path": "ui/settings.json",
       "size": 2032,
-      "sha256": "842e53d1252ee412ccb0289b7e30d387c0d8f9234c652767be4c1efbc1ee9869"
+      "sha256": "22a5a81bf693931c3815ed500cddfc5480c7d9152b9408f6b3156ef533147c0c"
     },
     {
       "path": "README.md",

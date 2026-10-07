@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>THSV Add-on Overlay</title>
-  <link rel="stylesheet" href="/overlay/addons/host.css?v=3.5.0-media3">
+  <link rel="stylesheet" href="/overlay/addons/host.css?v=4.0.12-live-timing-1">
 </head>
 <body>
   <main id="stage" class="stage" aria-live="polite">
@@ -145,6 +145,7 @@
       <article class="hydration-card">
         <header class="hydration-header"><div class="hydration-brand"><span class="hydration-drop" aria-hidden="true">&#x1F4A7;</span><div><span class="hydration-eyebrow">Village Hydration</span><strong id="hydration-title">Water Goal</strong></div></div><span id="hydration-status" class="hydration-status">READY</span></header>
         <div class="hydration-body">
+          <div class="hydration-sip-copy"><strong>Take a sip. Stay cozy.</strong><p>A small pause for you and your water.</p><span id="hydration-sip-count"></span></div>
           <div id="hydration-vessel" class="hydration-vessel" aria-hidden="true"><div id="hydration-liquid" class="hydration-liquid"><span class="hydration-wave"></span><span class="hydration-bubbles"></span></div><span class="hydration-mark hydration-mark-75">75%</span><span class="hydration-mark hydration-mark-50">50%</span><span class="hydration-mark hydration-mark-25">25%</span></div>
           <div class="hydration-copy"><span class="hydration-total-label">Today's Water</span><div class="hydration-measure"><strong id="hydration-total">32</strong><span>of <b id="hydration-goal">64</b> oz</span></div><div class="hydration-progress-row"><div class="hydration-progress-track" aria-hidden="true"><span id="hydration-progress" class="hydration-progress"></span></div><strong id="hydration-percent" class="hydration-percent">50%</strong></div><span id="hydration-next" class="hydration-next">Next reminder in 45 min</span></div>
         </div>
@@ -170,6 +171,8 @@
     </section>
     <strong id="status" class="status" data-state="reconnecting">OFFLINE</strong>
   </main>
-  <script src="/overlay/addons/host.js?v=3.5.0-media3" type="module"></script>
+  <script src="/overlay/addons/host.js?v=4.0.12-live-timing-1" type="module"></script>
 </body>
 </html>
+
+

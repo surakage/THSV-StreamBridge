@@ -4,6 +4,7 @@ import {
   COMMAND_DIRECTORY_TARGET_MODULE_ID,
 } from '../core/effective-commands.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest } from '../core/outbound-message-router.js';
+import { DEFAULT_OUTBOUND_CHARACTER_LIMITS, type OutboundPlatform } from '../core/outbound-message-router.js';
 import type { Logger } from './logger.js';
 import type { CommandDirectoryService } from './command-directory.js';
 
@@ -20,13 +21,13 @@ export class CommandDirectoryResponder {
   ) {}
 
   public async handle(event: NormalizedEvent): Promise<void> {
-    if (!isCommandDirectoryInvocation(event)) return;
+    if (event.metadata.simulated || !isCommandDirectoryInvocation(event)) return;
     const platform = outboundPlatform(event.platform);
     if (platform === undefined) return;
 
     const publicUrl = this.directory.publicationStatus().publicUrl;
     const message = publicUrl === undefined
-      ? 'The stream command page is not available yet. Please try again shortly.'
+      ? this.inlineDirectory(platform)
       : `Stream commands: ${publicUrl}`;
 
     try {
@@ -43,6 +44,20 @@ export class CommandDirectoryResponder {
       this.logger.warn('Command directory chat response failed', { platform, error });
     }
   }
+
+  private inlineDirectory(platform: OutboundPlatform): string {
+    const catalog = this.directory.catalogue();
+    const names = [...new Set(catalog.categories.flatMap((category) => category.commands)
+      .filter((entry) => entry.platforms.includes(platform)).map((entry) => `${catalog.prefix}${entry.command}`))].sort();
+    if (names.length === 0) return 'No public commands are configured for this platform yet.';
+    const selected: string[] = [];
+    const limit = DEFAULT_OUTBOUND_CHARACTER_LIMITS[platform];
+    for (const name of names) {
+      if (Array.from(`Commands: ${[...selected, name].join(', ')} …`).length > limit) break;
+      selected.push(name);
+    }
+    return `Commands: ${selected.join(', ')}${selected.length < names.length ? ' …' : ''}`;
+  }
 }
 
 function isCommandDirectoryInvocation(event: NormalizedEvent): boolean {
@@ -51,6 +66,6 @@ function isCommandDirectoryInvocation(event: NormalizedEvent): boolean {
     && event.payload['targetModuleId'] === COMMAND_DIRECTORY_TARGET_MODULE_ID;
 }
 
-function outboundPlatform(value: string): 'twitch' | 'youtube' | 'kick' | 'tiktok' | undefined {
-  return value === 'twitch' || value === 'youtube' || value === 'kick' || value === 'tiktok' ? value : undefined;
+function outboundPlatform(value: string): 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook' | undefined {
+  return value === 'twitch' || value === 'youtube' || value === 'kick' || value === 'tiktok' || value === 'facebook' ? value : undefined;
 }

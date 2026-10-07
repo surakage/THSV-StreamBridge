@@ -8,6 +8,7 @@ import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCo
 import type { ClipMediaCacheRequest, ClipMediaCacheResult } from '../services/clip-media-cache.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
+import { archiveTrackerRollover } from '../services/monthly-tracker-reports.js';
 import type { Logger } from '../services/logger.js';
 import { addOnRelayAuthorizer } from '../services/addon-relay-authorizer.js';
 import { VOICE_RELAY_MODULE_ID, VOICE_RELAY_SPEAK_ACTION_ID } from '../contracts/voice-relay-handoff.js';
@@ -67,7 +68,7 @@ const PROVIDER_MODULES: Readonly<Record<string, string>> = Object.freeze({ 'thsv
 const viewerIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u);
 const viewerProjectionQuerySchema = z.object({
   viewerId: viewerIdSchema.optional(),
-  platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']).optional(),
+  platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']).optional(),
   userId: z.string().trim().min(1).max(256).optional(),
 }).strict().superRefine((query, context) => {
   const byViewer = query.viewerId !== undefined;
@@ -89,7 +90,7 @@ function parsedViewerMutation(value: unknown): ViewerFoundationMutationResultV1 
 }
 const viewerAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
-  z.object({ operation: z.literal('search'), viewerId: viewerIdSchema.optional(), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']).optional(), userId: z.string().trim().min(1).max(256).optional() }).strict()
+  z.object({ operation: z.literal('search'), viewerId: viewerIdSchema.optional(), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']).optional(), userId: z.string().trim().min(1).max(256).optional() }).strict()
     .superRefine((value, context) => {
       const byViewer = value.viewerId !== undefined;
       const byAccount = value.platform !== undefined && value.userId !== undefined;
@@ -104,12 +105,12 @@ const viewerAdminSchema = z.discriminatedUnion('operation', [
     }),
   z.object({ operation: z.literal('undo-correction'), auditId: z.string().regex(/^[a-f0-9]{32}$/u), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('audit'), limit: z.number().int().min(1).max(100).optional() }).strict(),
-  z.object({ operation: z.literal('link-audit'), linkAction: z.enum(['add', 'remove']), viewerId: viewerIdSchema, platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('link-audit'), linkAction: z.enum(['add', 'remove']), viewerId: viewerIdSchema, platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']), userId: z.string().trim().min(1).max(256), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('import-legacy'), migrationDigest: z.string().regex(/^[a-f0-9]{64}$/u), approvedByCreator: z.literal(true), legacyViewers: z.array(z.object({ viewerId: viewerIdSchema, points: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), lastAwardAt: z.record(z.string().regex(/^[a-z][a-z0-9.-]{0,63}$/u), z.number().int().nonnegative()).refine((value) => Object.keys(value).length <= 50) }).strict()).max(500) }).strict(),
 ]);
 const analyticsCountersSchema = z.object({ messages: z.number().int().nonnegative(), commands: z.number().int().nonnegative(), follows: z.number().int().nonnegative(), subscriptions: z.number().int().nonnegative(), memberships: z.number().int().nonnegative(), giftSubscriptions: z.number().int().nonnegative(), gifts: z.number().int().nonnegative(), cheers: z.number().int().nonnegative(), superChats: z.number().int().nonnegative(), raids: z.number().int().nonnegative(), rewardRedemptions: z.number().int().nonnegative() }).strict();
 const analyticsViewerProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), viewerId: viewerIdSchema, observed: z.boolean(), firstSeenAt: z.number().int().nonnegative().optional(), lastSeenAt: z.number().int().nonnegative().optional(), sessions: z.number().int().nonnegative(), counters: analyticsCountersSchema, activeSession: z.boolean(), activeLastSeenAt: z.number().int().nonnegative().optional(), scoreSeason: z.string().regex(/^\d{4}-\d{2}$/u).optional(), engagementScore: z.number().int().nonnegative().optional(), seasonRank: z.number().int().positive().optional(), rankCohortSize: z.number().int().nonnegative().optional() }).strict();
-const analyticsSessionProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), active: z.boolean(), startedAt: z.number().int().nonnegative().optional(), approximate: z.boolean(), livePlatforms: z.array(z.enum(['twitch', 'youtube', 'kick', 'tiktok'])).max(4), uniqueViewers: z.number().int().nonnegative(), counters: analyticsCountersSchema, retainedSessionCount: z.number().int().nonnegative().max(100) }).strict();
+const analyticsSessionProjectionSchema = z.object({ contractVersion: z.literal('1.0.0'), active: z.boolean(), startedAt: z.number().int().nonnegative().optional(), approximate: z.boolean(), livePlatforms: z.array(z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook'])).max(5), uniqueViewers: z.number().int().nonnegative(), counters: analyticsCountersSchema, retainedSessionCount: z.number().int().nonnegative().max(100) }).strict();
 
 export interface ModuleCapabilityGrant {
   readonly moduleId: string;
@@ -380,7 +381,13 @@ export class AddOnCapabilityBroker {
     this.require(grant, 'state.private', 'state.write');
     const parsed = parseRecord(value, 'Private add-on state');
     assertBoundedJson(parsed, 'Private add-on state');
-    try { await writeJsonAtomic(this.statePath(grant.moduleId), parsed); this.record(grant.moduleId, 'state.write', 'granted'); }
+    try {
+      if (['thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.community-analytics', 'thsv.lurk-tracker', 'thsv.chat-play-pack'].includes(grant.moduleId)) {
+        const previous = await this.readState(grant);
+        if (await archiveTrackerRollover(resolve(this.stateRoot, '..', '..', 'reports', 'monthly'), grant.moduleId, previous, parsed)) this.logger.info('Monthly tracker recap saved before reset', { moduleId: grant.moduleId });
+      }
+      await writeJsonAtomic(this.statePath(grant.moduleId), parsed); this.record(grant.moduleId, 'state.write', 'granted');
+    }
     catch (error) { this.record(grant.moduleId, 'state.write', 'failed'); throw error; }
   }
 
@@ -797,7 +804,7 @@ export class AddOnCapabilityBroker {
     this.requireViewerConsumer(grant, 'viewer.foundation.read', 'viewer.foundation.getProjection');
     const parsedValue = viewerProjectionQuerySchema.parse(query);
     const parsed: ViewerFoundationProjectionQueryV1 = parsedValue.viewerId === undefined
-      ? { platform: parsedValue.platform as 'twitch' | 'youtube' | 'kick' | 'tiktok', userId: parsedValue.userId as string }
+      ? { platform: parsedValue.platform as 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook', userId: parsedValue.userId as string }
       : { viewerId: parsedValue.viewerId };
     const provider = this.activeViewerProvider(grant);
     try {

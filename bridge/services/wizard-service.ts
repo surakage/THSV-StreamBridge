@@ -1159,6 +1159,8 @@ export async function inspectAddOnActionReadiness(addOns: readonly WizardAddOnSu
     const expected = Array.isArray(manifest?.['actions']) ? (manifest['actions'] as unknown[]).filter(isRecordValue).filter((action) => action['brokerDispatched'] === true) : [];
     for (const contract of expected) {
       const actionId = typeof contract['id'] === 'string' ? contract['id'] : '';
+      if (addOn.moduleId === 'thsv.raid-scout' && addOn.settings['endBroadcastAfterRaid'] === false &&
+        (actionId === '18a8de7c-1c5f-4a1e-8d58-7944c74060d5' || actionId === '0c4d8af8-593c-5e6a-b07f-948079c22cd1')) continue;
       const installed = actions.find((action) => action.id === actionId);
       const approved = addOn.approvedActionIds.includes(actionId);
       const mustRemainTriggerless = contract['mustRemainTriggerless'] === true;
@@ -1216,7 +1218,7 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
       const staleMatches = [...enabledProviders].filter((provider) => sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true && providerHealth.get(provider)?.fresh !== true);
       checks.push({ moduleId: addOn.moduleId, setting: 'automaticSceneNames', sceneName, providers: matches, staleProviders: staleMatches, ready: matches.length > 0, issue: matches.length > 0 ? undefined : staleMatches.length > 0 ? 'Exact scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact scene was not found in any enabled broadcast-app catalogue.' });
     }
-    if (addOn.moduleId === 'thsv.raid-scout' && addOn.settings['autoStartSceneEnabled'] === true) {
+    if (addOn.moduleId === 'thsv.raid-scout' && (addOn.settings['startMode'] === 'scene-change' || addOn.settings['startMode'] !== 'manual' && addOn.settings['autoStartSceneEnabled'] === true)) {
       const provider = typeof addOn.settings['autoStartProvider'] === 'string' ? addOn.settings['autoStartProvider'] : 'obs';
       const sceneName = typeof addOn.settings['autoStartSceneName'] === 'string' ? addOn.settings['autoStartSceneName'] : '';
       const exists = sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true;
@@ -1281,9 +1283,9 @@ function endingFlowChecklist(addOns: readonly WizardAddOnSummary[], actionReadin
   const settings = raidScout.settings;
   const stopEnabled = settings['endBroadcastAfterRaid'] === true;
   const steps = [
-    { id: 'ending-scene', ready: settings['autoStartSceneEnabled'] !== true || sceneChecks.every((item) => item['ready'] === true), detail: 'Ending scene is selected from the active app catalogue.' },
+    { id: 'ending-scene', ready: settings['startMode'] === 'manual' || settings['startMode'] !== 'scene-change' && settings['autoStartSceneEnabled'] !== true || sceneChecks.every((item) => item['ready'] === true), detail: 'Ending scene is selected from the active app catalogue.' },
     { id: 'raid-search', ready: actions.some((item) => item['ready'] === true), detail: 'Raid Scout controller is installed, enabled, approved, and triggerless.' },
-    { id: 'ending-ad', ready: settings['endBroadcastTiming'] !== 'after-ad' || actions.some((item) => item['name'] === 'THSV Addon - Raid Scout - Run Ending Ad' && item['ready'] === true), detail: 'Ending ad controller is ready when after-ad mode is selected.' },
+    { id: 'ending-ad', ready: !stopEnabled || settings['endBroadcastTiming'] !== 'after-ad' || actions.some((item) => item['name'] === 'THSV Addon - Raid Scout - Run Ending Ad' && item['ready'] === true), detail: 'Ending ad controller is ready when automatic ending after an ad is enabled.' },
     { id: 'clip-preview', ready: settings['previewClipBeforeRaid'] !== true || actions.every((item) => item['ready'] === true), detail: 'Raid clip preview uses the approved controller path.' },
     { id: 'raid-attempt', ready: actions.some((item) => item['ready'] === true), detail: 'Confirmed raid dispatch path is ready.' },
     { id: 'outputs-stopped', ready: !stopEnabled || typeof settings['endBroadcastActionId'] === 'string' && raidScout.approvedActionIds.includes(settings['endBroadcastActionId']), detail: 'Automatic broadcast stop remains separately approved.' },
@@ -1315,8 +1317,8 @@ function approvedLauncherRequest(input: unknown): Record<string, unknown> {
   return record;
 }
 
-function optionalStreamingApplication(value: unknown): 'obs' | 'meld' | 'streamlabs' | 'speakerbot' {
-  if (value !== 'obs' && value !== 'meld' && value !== 'streamlabs' && value !== 'speakerbot') throw new WizardTransactionError(400, 'application must be obs, meld, streamlabs, or speakerbot.');
+function optionalStreamingApplication(value: unknown): 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' {
+  if (value !== 'obs' && value !== 'meld' && value !== 'streamlabs' && value !== 'speakerbot' && value !== 'tikfinity') throw new WizardTransactionError(400, 'application must be obs, meld, streamlabs, speakerbot, or tikfinity.');
   return value;
 }
 

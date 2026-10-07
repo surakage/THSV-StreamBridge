@@ -1,0 +1,53 @@
+/* Matching solid Village Post frames for the four featured village overlays. */
+.fan-crown-card, .first-five-board, .roll-call-board, .timer-card {
+  background:
+    radial-gradient(circle at 12px 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at 12px calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    repeating-linear-gradient(2deg, #ffffff03 0 1px, transparent 1px 7px),
+    linear-gradient(105deg, #302719, #17261c 28%, #101b15 100%) !important;
+  border: 2px solid #8b713a !important;
+  border-radius: 8px 24px 8px 24px !important;
+  box-shadow: inset 0 0 0 5px #100f0b, inset 0 0 0 6px #766035,
+    inset 0 0 24px #050b07, 0 9px 22px #00000045 !important;
+  color: #f3ead5;
+  backdrop-filter: none !important;
+}
+.fan-crown-card::before, .first-five-board::before,
+.roll-call-board::before, .roll-call-board::after { display: none; }
+.fan-crown-shell { --crown-accent: #e0c47e !important; --crown-text: #f3ead5 !important; }
+.fan-crown-name { font-family: Georgia, 'Times New Roman', serif !important; font-weight: 700 !important; }
+.fan-crown-crest::before { border-color: #c5a65e; background: radial-gradient(circle at 35% 25%, #766035, #302719 55%, #101b15); box-shadow: inset 0 0 0 7px #d8b24c10, 0 8px 18px #050b0745; }
+.fan-crown-avatar-fallback { background: radial-gradient(circle at 40% 30%, #30452c, #122018) !important; font-family: Georgia, serif; }
+.fan-crown-avatar, .fan-crown-avatar-fallback { border: 4px double #c5a65e; }
+.fan-crown-event, .fan-crown-platform { border: 1px solid #94753c; border-radius: 3px; background: #392c16; color: #e0c47e; }
+.fan-crown-metrics > div, .fan-crown-leader { border-color: #8b713a66; border-radius: 4px; background: #0d1712; }
+.fan-crown-eyebrow, .first-five-eyebrow, .roll-call-eyebrow { color: #b9a475; font-family: Georgia, serif; letter-spacing: .15em; }
+.fan-crown-header, .first-five-header, .fan-crown-footer, .roll-call-footer { border-color: #8b713a66; }
+.first-five-header h1, .roll-call-header h1 { color: #e0c47e; text-shadow: 0 2px 2px #050b07; }
+.first-five-header p, .roll-call-header p, .roll-call-count, .roll-call-footer { color: #c5baa0; }
+.first-five-progress { color: #e0c47e; border-color: #c5a65e; background: #17261c; box-shadow: inset 0 0 0 3px #d8b24c10; }
+.first-five-place, .first-five-leader, .roll-call-place, .roll-call-runner {
+  border: 1px solid #8b713a66;
+  border-radius: 4px;
+  background: #0d1712 !important;
+  box-shadow: inset 0 1px 0 #d8b24c0a;
+}
+.first-five-rank, .first-five-name, .roll-call-name { color: #f3ead5; }
+.first-five-rank { color: #e0c47e; }
+.first-five-platform { color: #b9a475; background: #17261c; }
+.first-five-status { color: #b9a475; }
+.first-five-footer, .first-five-leader { color: #c5baa0; }
+.roll-call-place-1 { border-color: #c5a65e; background: linear-gradient(145deg, #392c16, #17261c) !important; }
+.roll-call-rank, .roll-call-place-1 .roll-call-rank { color: #e0c47e; border-color: #94753c; background: #302719; }
+.roll-call-place-2 .roll-call-rank { color: #c2c7b8; }
+.roll-call-place-3 .roll-call-rank { color: #c49382; }
+.timer-shell { --timer-accent: #e0c47e !important; --timer-text: #f3ead5 !important; --timer-muted: #c5baa0 !important; --timer-border: #8b713a !important; --timer-live: #e0c47e !important; }
+.timer-label { color: #e0c47e; font-family: Georgia, serif; }
+.timer-badge { color: #e0c47e !important; border-color: #94753c; border-radius: 3px; background: #392c16; }
+.timer-time { color: #e0c47e; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; text-shadow: 0 2px 2px #050b07; }
+.timer-progress-track { height: 8px; border: 1px solid #94753c66; background: #0d1712; border-radius: 3px; }
+.timer-progress-fill { background: linear-gradient(90deg, #7b9b72, #e0c47e); border-radius: 3px; }
+.timer-meta { color: #c5baa0; font-weight: 400; }
+#timer-platforms, #status { display: none !important; }

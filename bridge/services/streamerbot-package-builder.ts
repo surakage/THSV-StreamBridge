@@ -23,6 +23,9 @@ export interface StreamerBotPackageActionInput {
   readonly id?: string;
   readonly sourceSubActionId?: string;
   readonly sourceCode: string;
+  readonly followingSubActions?: readonly Readonly<Record<string, unknown>>[];
+  readonly queueName?: string;
+  readonly concurrent?: boolean;
   readonly references?: readonly string[];
   readonly arguments?: readonly StreamerBotPackageArgumentInput[];
   /** Hide high-frequency internal broker actions from Streamer.bot's Pending and History views. */
@@ -120,7 +123,7 @@ export function buildStreamerBotPackage(
     data: {
       actions: actions.map((action) => ({
         id: action.id ?? stableStreamerBotUuid(`${action.stableIdentitySeed}:action`),
-        queue: '00000000-0000-0000-0000-000000000000',
+        queue: action.queueName === undefined ? '00000000-0000-0000-0000-000000000000' : stableStreamerBotUuid(`queue:${action.queueName}`),
         enabled: true,
         excludeFromHistory: action.excludeFromHistory ?? false,
         excludeFromPending: action.excludeFromPending ?? false,
@@ -128,7 +131,7 @@ export function buildStreamerBotPackage(
         group: action.group,
         alwaysRun: false,
         randomAction: false,
-        concurrent: meta.concurrent,
+        concurrent: action.concurrent ?? meta.concurrent,
         triggers: (action.triggers ?? []).map((trigger) => ({
           commandId: trigger.commandId,
           id: trigger.id ?? stableStreamerBotUuid(`${trigger.stableIdentitySeed}:trigger`),
@@ -163,10 +166,15 @@ export function buildStreamerBotPackage(
           parentId: null,
           enabled: true,
           index: action.arguments?.length ?? 0,
-        }],
+        }, ...(action.followingSubActions ?? []).map((step, index) => ({
+          ...step,
+          id: step['id'] ?? stableStreamerBotUuid(`${action.stableIdentitySeed}:following:${String(index)}`),
+          weight: 0, parentId: null, enabled: true,
+          index: (action.arguments?.length ?? 0) + index + 1,
+        }))],
         collapsedGroups: [],
       })),
-      queues: [],
+      queues: [...new Set(actions.flatMap((action) => action.queueName === undefined ? [] : [action.queueName]))].map((name) => ({ id: stableStreamerBotUuid(`queue:${name}`), name, blocking: true, paused: false })),
       commands: commands.map((command) => ({
         id: command.id ?? stableStreamerBotUuid(`${command.stableIdentitySeed}:command`),
         name: command.name,

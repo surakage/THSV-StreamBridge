@@ -1,8 +1,12 @@
-import { createHash } from 'node:crypto';
+import { FacebookTimedOutput } from '../bridge/adapters/facebook-timed-output.js';
+import { DirectSceneHardwareSync } from '../bridge/services/direct-scene-hardware-sync.js';
+import { DirectSceneEventSync } from '../bridge/services/direct-scene-event-sync.js';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { StreamBridge } from '../bridge/core/bridge.js';
 import { adapterContractFingerprints, createDefaultAdapterRegistry } from '../bridge/adapters/registry.js';
+import { FacebookPageAdapter } from '../bridge/adapters/facebook-page-adapter.js';
 import { DiagnosticsServer } from '../bridge/services/http-server.js';
 import { loadConfigWithNotices } from '../bridge/services/config-loader.js';
 import { StructuredLogger } from '../bridge/services/logger.js';
@@ -61,9 +65,10 @@ const config = loadedConfig.config;
 const logger = new StructuredLogger(config.logging.level, config.logging.directory, config.logging.maxFileBytes, config.logging.backups);
 for (const notice of loadedConfig.notices) logger.warn(notice.message, { code: notice.code, configPath: resolve(configPath), ignoredPaths: notice.paths });
 const streamerBotEventRelay = new StreamerBotEventRelay();
-const registry = createDefaultAdapterRegistry(config, logger, streamerBotEventRelay);
+const facebook = new FacebookPageAdapter(dataRoot);
+const registry = createDefaultAdapterRegistry(config, logger, streamerBotEventRelay, facebook);
 const inputs = registry.createInputs(config.platforms);
-const outputs = registry.createOutputs(config.outputs);
+const outputs = [...registry.createOutputs(config.outputs), new FacebookTimedOutput(facebook, dataRoot, config.streamerbot.testMode)];
 const streamerBotInspector = outputs.find((output): output is StreamerBotAdapter => output instanceof StreamerBotAdapter);
 const deduplicationStore = config.deduplication.persistAcrossRestarts
   ? new FileDeduplicationStore(config.deduplication.stateFile, logger)
@@ -83,6 +88,12 @@ const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
 await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Village Voice secure handoff cleanup could not start', { error }));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
+  if (platform === 'facebook') {
+    signal?.throwIfAborted();
+    if (config.streamerbot.testMode) return;
+    await facebook.postTimedComment(message);
+    return;
+  }
   if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is not configured.');
   await streamerBotInspector.runApprovedAction(TIMED_MESSAGE_OUTPUT_ACTION_ID, {
     multiTimedValid: true,
@@ -94,6 +105,12 @@ const outboundRouter = new OutboundMessageRouter({ send: async (platform, messag
 } });
 const dockChatPlatforms = OUTBOUND_PLATFORM_VALUES.filter((platform) => enabledPlatformIds.has(platform));
 const dockOutboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
+  if (platform === 'facebook') {
+    signal?.throwIfAborted();
+    if (config.streamerbot.testMode) return;
+    await facebook.postTimedComment(message);
+    return;
+  }
   if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is not configured.');
   await streamerBotInspector.runApprovedAction(TIMED_MESSAGE_OUTPUT_ACTION_ID, {
     multiTimedValid: true,
@@ -188,7 +205,18 @@ const sceneCatalog = new SceneCatalogService(
   (provider, connectionIndex) => directSceneConnections.refresh(provider, connectionIndex),
 );
 await sceneCatalog.start();
-await directSceneConnections.start((provider, snapshot) => sceneCatalog.acceptDirectSnapshot(provider, snapshot));
+let sceneHardwareAction = '';
+try {
+  const hardware = JSON.parse(await readFile(join(dataRoot, 'configuration', 'scene-hardware.json'), 'utf8')) as { obsReconcileActionId?: unknown };
+  const approval = installedAddOns.find((addOn) => addOn.moduleId === 'thsv.scene-actions');
+  if (typeof hardware.obsReconcileActionId === 'string' && approval?.enabled && approval.settings['enabled'] !== false && approval.approvedActionIds.includes(hardware.obsReconcileActionId)) sceneHardwareAction = hardware.obsReconcileActionId;
+} catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') logger.warn('Could not load OBS hardware reconciliation configuration.'); }
+const sceneHardwareSync = new DirectSceneHardwareSync(typeof sceneHardwareAction === 'string' ? sceneHardwareAction : '', async (id) => {
+  if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is unavailable.');
+  await streamerBotInspector.runApprovedAction(id);
+}, () => logger.warn('OBS scene hardware reconciliation is unavailable; check Streamer.bot.'));
+const sceneEventSync = new DirectSceneEventSync(event => activeBridge.ingest(event), () => logger.warn('OBS scene transition delivery failed.'));
+await directSceneConnections.start((provider, snapshot) => { sceneCatalog.acceptDirectSnapshot(provider, snapshot); sceneHardwareSync.observe(provider, snapshot); sceneEventSync.observe(provider, snapshot); });
 sceneCatalog.reconcileActiveDirectConnections(await directSceneConnections.activeProfiles());
 const triggerAssurance = new StreamerBotTriggerAssuranceService({
   packageRoot: resolve('packages', 'streamerbot'),
@@ -217,15 +245,19 @@ const operationalReliability = new OperationalReliabilityService({
 });
 const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
   query: () => obsDirectSceneClient.isStreaming(),
+  intervalMs: 1_000,
   onStarted: async () => {
     await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
     overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
     operationalReliability.recoverLiveSession(liveRecoveryPlatformIds);
+    const snapshot = await obsDirectSceneClient.getSceneList();
+    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-started-' + randomUUID(), eventType: 'system.broadcast-started', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStarted' }, receivedAt: new Date().toISOString(), channel: { name: 'OBS' }, payload: { provider: 'obs', sceneName: snapshot.currentScene }, metadata: { simulated: false } });
   },
   onStopped: async () => {
     await activeBridge.endRecoveredLiveSession();
     overlayHub.endRecoveredLiveSession();
     await operationalReliability.endRecoveredLiveSession();
+    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-stopped-' + randomUUID(), eventType: 'system.broadcast-stopped', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStopped' }, receivedAt: new Date().toISOString(), channel: { name: 'OBS' }, payload: { provider: 'obs' }, metadata: { simulated: false } });
   },
   logger,
 });
@@ -335,6 +367,7 @@ const server = new DiagnosticsServer(
     send: (request) => dockOutboundRouter.route(request),
   },
   liveCaptions,
+  facebook,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -386,3 +419,4 @@ async function resolveRuntimeConfigPath(): Promise<string> {
 function fingerprint(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
+

@@ -1,0 +1,37 @@
+/* THSV Village Noticeboard — Chat Play */
+.chat-play-game-card,.chat-play-winner-card {
+  background:
+    radial-gradient(circle at 12px 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at 12px calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    repeating-linear-gradient(2deg, #ffffff03 0 1px, transparent 1px 7px),
+    linear-gradient(105deg, #302719, #17261c 28%, #101b15 100%) !important;
+  border: 2px solid #8b713a !important;
+  border-radius: 8px 24px 8px 24px !important;
+  box-shadow: inset 0 0 0 5px #100f0b, inset 0 0 0 6px #766035,
+    inset 0 0 24px #050b07, 0 9px 22px #00000045 !important;
+  color: #f3ead5;
+  backdrop-filter: none !important;
+}
+
+.chat-play-game-shell,.chat-play-winner-shell {color:#f3ead5;font-family:'Segoe UI',sans-serif;}
+.chat-play-game-card::before,.chat-play-winner-card::before,.chat-play-burst {display:none;}
+.chat-play-game-card header,.chat-play-winner-card header,.chat-play-game-card footer {border-color:#8b713a66;}
+.chat-play-eyebrow {color:#b9a475;font-family:Georgia,'Times New Roman',serif;font-weight:500;letter-spacing:.15em;}
+.chat-play-game-state,.chat-play-winner-game {border:1px solid #94753c;border-radius:3px;background:#392c16;color:#e0c47e;font-weight:600;}
+.chat-play-game-card h1,#chat-play-winner-name {font-family:Georgia,'Times New Roman',serif;color:#e0c47e;font-weight:700;text-shadow:0 2px 2px #050b07;}
+.chat-play-prompt {color:#f3ead5;font-weight:600;}
+.chat-play-game-shell[data-game="unscramble"] .chat-play-prompt {color:#e0c47e;font-family:Georgia,serif;font-weight:700;}
+.chat-play-choices span,.chat-play-duelists {border:1px solid #8b713a66;border-radius:4px;background:#0d1712;color:#f3ead5;}
+.chat-play-duelists strong {font-family:Georgia,serif;color:#e0c47e;font-weight:700;}
+.chat-play-duelists span {color:#b9a475;font-family:Georgia,serif;}
+.chat-play-hint {border-color:#b59851;background:#302719;color:#c5baa0;}
+.chat-play-game-card footer {color:#c5baa0;font-weight:500;}
+.chat-play-winner-avatar-wrap {border:4px double #c5a65e;background:#17261c;box-shadow:inset 0 0 0 5px #d8b24c10,0 8px 18px #050b0745;}
+.chat-play-winner-avatar-fallback {background:radial-gradient(circle at 35% 25%,#30452c,#122018);color:#e0c47e;font-family:Georgia,serif;font-weight:700;}
+.chat-play-victory {color:#b9a475;font-family:Georgia,serif;font-weight:500;letter-spacing:.15em;}
+#chat-play-winner-platform {border:1px solid #8b713a66;border-radius:3px;background:#17261c;color:#c5baa0;font-weight:500;}
+.chat-play-points {border:1px solid #8b713a66;border-radius:4px;background:#0d1712;}
+.chat-play-points small {color:#c5baa0;font-weight:500;}
+.chat-play-points strong {color:#e0c47e;font-family:Georgia,serif;font-weight:700;}

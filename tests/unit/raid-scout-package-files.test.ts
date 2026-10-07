@@ -7,7 +7,8 @@ describe('Raid Scout package files', () => {
       version: string; actions: Array<{ id: string; name: string; group: string; importFile: string; arguments?: Array<{ name: string; value: string }> }>;
       triggerSafety: string;
     };
-    expect(manifest.actions).toHaveLength(9);
+    expect(manifest.actions).toHaveLength(10);
+    expect(manifest.actions[9]).toMatchObject({ id: '28d07eab-b697-4b65-9b68-fd12a493d765', name: 'THSV Addon - Raid Scout - Suggest and Confirm', arguments: [{ name: 'raidScoutControlAction', value: 'finish' }] });
     expect(manifest.actions[0]).toMatchObject({
       id: '6a78d950-17b5-4a98-9de7-1a5b4275f31c',
       name: 'THSV Addon - Raid Scout - Controller',
@@ -21,7 +22,7 @@ describe('Raid Scout package files', () => {
     });
     expect(manifest.actions[7]).toMatchObject({
       id: '9a7f2c1d-5b84-4ec3-8d61-f7a209c4e836',
-      name: 'THSV Addon - Raid Scout - Test Go Live - OBS and Aitum',
+      name: 'THSV StreamBridge - Go Live - OBS and Stream Suite',
       group: 'THSV Addon - Raid Scout',
     });
     expect(manifest.actions[8]).toMatchObject({
@@ -41,7 +42,8 @@ describe('Raid Scout package files', () => {
     const stopAllOutputs = await readFile('packages/streamerbot/raid-scout/src/StopAllObsStreamingOutputs.cs', 'utf8');
     const startAllOutputs = await readFile('packages/streamerbot/raid-scout/src/StartAllObsStreamingOutputs.cs', 'utf8');
     const runEndingAd = await readFile('packages/streamerbot/raid-scout/src/RunEndingAd.cs', 'utf8');
-    expect(runEndingAd).toContain('CPH.TwitchRunCommercial(duration)');
+    expect(runEndingAd).toContain('https://api.twitch.tv/helix/channels/commercial');
+    expect(runEndingAd).toContain('response.IsSuccessStatusCode');
     expect(runEndingAd).toContain('Twitch Ads > Ad Run');
     expect(runEndingAd).toContain('ending-ad-request');
     expect(stopAllOutputs).toContain('GetOutputList');
@@ -80,8 +82,9 @@ describe('Raid Scout package files', () => {
     for (const contract of [
       'CPH.TwitchGetBroadcaster()',
       'CPH.TwitchGetExtendedUserInfoById',
-      'CPH.TwitchStartRaidById',
-      'CPH.TwitchStartRaidByName',
+      'HttpMethod.Post',
+      'raids?from_broadcaster_id=',
+      'response.IsSuccessStatusCode',
       'CPH.TwitchRedemptionFulfill',
       'CPH.TwitchRedemptionCancel',
       'https://api.twitch.tv/helix/',
@@ -123,9 +126,11 @@ describe('Raid Scout package files', () => {
     expect(schema.properties['endBroadcastAfterRaid']?.default).toBe(false);
     expect(schema.properties['endBroadcastProvider']?.default).toBe('obs');
     expect(schema.properties['endBroadcastAcknowledged']?.default).toBe(false);
+    expect(schema.properties['endBroadcastWithoutRaid']?.default).toBe(false);
+    expect(schema.properties['endBroadcastFallbackSeconds']?.default).toBe(30);
     expect(ui.sections.map((section) => section.id)).toEqual([
       'quick-start', 'discovery', 'preferred', 'limits', 'audience', 'language-category',
-      'channels-history', 'legacy-audience', 'messages', 'overlay-content', 'clip-preview', 'broadcast-ending', 'overlay-style', 'maintenance',
+      'channels-history', 'legacy-audience', 'messages', 'overlay-content', 'clip-preview', 'broadcast-ending', 'ending-fallbacks', 'overlay-style', 'maintenance',
     ]);
     expect(runtime).toContain('Starting a safe destination search');
     expect(runtime).toContain('NO SAFE MATCH');

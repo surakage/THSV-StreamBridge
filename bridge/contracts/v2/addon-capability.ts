@@ -147,7 +147,7 @@ export interface AddOnCoordinationCapabilityV2 {
   onChange(listener: (snapshot: AddOnCoordinationSnapshotV2) => void | Promise<void>): () => void;
 }
 
-export type AddOnOutboundPlatformV2 = 'twitch' | 'youtube' | 'kick' | 'tiktok';
+export type AddOnOutboundPlatformV2 = 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook';
 
 export interface AddOnOutboundMessageRequestV2 {
   readonly message: string;
@@ -200,7 +200,7 @@ export interface ViewerFoundationProjectionV1 {
 
 export interface ViewerFoundationProjectionQueryV1 {
   readonly viewerId?: string;
-  readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok';
+  readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook';
   readonly userId?: string;
 }
 
@@ -222,7 +222,7 @@ export interface ViewerFoundationMutationResultV1 extends ViewerFoundationProjec
 export interface ViewerFoundationAdminRequestV1 {
   readonly operation: 'status' | 'search' | 'export' | 'correct' | 'undo-correction' | 'delete' | 'audit' | 'link-audit' | 'import-legacy';
   readonly viewerId?: string;
-  readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok';
+  readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook';
   readonly userId?: string;
   readonly adjustment?: 'add' | 'remove' | 'reset';
   readonly amount?: number;
@@ -249,7 +249,7 @@ export type CommunityAnalyticsAdminResultV1 = Readonly<Record<string, JsonValueV
 export type QuoteVaultAdminRequestV1 =
   | { readonly operation: 'status' }
   | { readonly operation: 'sync-import'; readonly approvedByCreator: true }
-  | { readonly operation: 'add'; readonly quotedName: string; readonly text: string; readonly sourcePlatform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly approvedByCreator: true }
+  | { readonly operation: 'add'; readonly quotedName: string; readonly text: string; readonly sourcePlatform: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook'; readonly approvedByCreator: true }
   | { readonly operation: 'edit'; readonly quoteId: number; readonly quotedName: string; readonly text: string; readonly approvedByCreator: true }
   | { readonly operation: 'approve'; readonly quoteId: number; readonly approvedByCreator: true }
   | { readonly operation: 'delete'; readonly quoteId: number; readonly approvedByCreator: true }
@@ -260,17 +260,17 @@ export type QuoteVaultAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 export type ViewerSpotlightAdminRequestV1 =
   | { readonly operation: 'status' }
   | { readonly operation: 'stream-score'; readonly approvedByCreator: true }
-  | { readonly operation: 'display'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly displayName: string; readonly avatarUrl?: string; readonly sendDiscord?: boolean; readonly approvedByCreator: true };
+  | { readonly operation: 'display'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook'; readonly userId: string; readonly displayName: string; readonly avatarUrl?: string; readonly sendDiscord?: boolean; readonly approvedByCreator: true };
 
 export type ViewerSpotlightAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
 export type ChatGuardAdminRequestV1 =
   | { readonly operation: 'status' }
-  | { readonly operation: 'incidents'; readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly rule?: 'blocked-term' | 'blocked-domain' | 'unapproved-domain' | 'excessive-links' | 'excessive-caps' | 'repeated-characters' | 'long-message' | 'repeated-message'; readonly review?: 'unreviewed' | 'confirmed' | 'false-positive'; readonly enforcementStatus?: 'none' | 'dispatched' | 'succeeded' | 'failed' | 'unsupported'; readonly offset?: number; readonly limit?: number }
+  | { readonly operation: 'incidents'; readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook'; readonly rule?: 'blocked-term' | 'blocked-domain' | 'unapproved-domain' | 'excessive-links' | 'excessive-caps' | 'repeated-characters' | 'long-message' | 'repeated-message'; readonly review?: 'unreviewed' | 'confirmed' | 'false-positive'; readonly enforcementStatus?: 'none' | 'dispatched' | 'succeeded' | 'failed' | 'unsupported'; readonly offset?: number; readonly limit?: number }
   | { readonly operation: 'test'; readonly message: string; readonly priorMatchingMessages: number }
-  | { readonly operation: 'trust-add'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly label: string; readonly approvedByCreator: true }
+  | { readonly operation: 'trust-add'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook'; readonly userId: string; readonly label: string; readonly approvedByCreator: true }
   | { readonly operation: 'trust-remove'; readonly accountKey: string; readonly approvedByCreator: true }
-  | { readonly operation: 'permit'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok'; readonly userId: string; readonly durationMinutes: number; readonly maximumUses: number; readonly approvedByCreator: true }
+  | { readonly operation: 'permit'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook'; readonly userId: string; readonly durationMinutes: number; readonly maximumUses: number; readonly approvedByCreator: true }
   | { readonly operation: 'clear-permits'; readonly approvedByCreator: true }
   | { readonly operation: 'review'; readonly incidentId: string; readonly decision: 'confirmed' | 'false-positive'; readonly approvedByCreator: true }
   | { readonly operation: 'clear'; readonly approvedByCreator: true };
@@ -352,7 +352,7 @@ export interface CommunityAnalyticsSessionProjectionV1 {
   readonly active: boolean;
   readonly startedAt?: number;
   readonly approximate: boolean;
-  readonly livePlatforms: readonly ('twitch' | 'youtube' | 'kick' | 'tiktok')[];
+  readonly livePlatforms: readonly ('twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook')[];
   readonly uniqueViewers: number;
   readonly counters: CommunityAnalyticsCountersV1;
   readonly retainedSessionCount: number;

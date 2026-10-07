@@ -1,8 +1,9 @@
-import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
+import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
 
 // Compatible with standard Chromium/CEF browser sources.
 (() => {
   'use strict';
+  if(new URLSearchParams(location.search).get('overlayOrientation')==='vertical') document.documentElement.dataset.overlayOrientation='vertical';
   const chat = document.getElementById('chat');
   const alerts = document.getElementById('alerts');
   const status = document.getElementById('status');
@@ -23,7 +24,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
   const declaredObsScene = new URLSearchParams(location.search).get('obsScene');
   const lockedObsScene = typeof declaredObsScene === 'string' && declaredObsScene.trim().length > 0 && declaredObsScene.length <= 200 ? declaredObsScene.trim() : undefined;
   let obsScene = lockedObsScene;
-  const platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab', streamlabs: '#e7c6ff', kofi: '#ffd0a8' };
+  const platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab', streamlabs: '#e7c6ff', kofi: '#ffd0a8', facebook: '#9fc8ff' };
   document.body.dataset.mode = mode;
   document.body.dataset.dock = dockMode ? 'true' : 'false';
 
@@ -124,6 +125,8 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
 
   function receive(event) {
     if (event.kind === 'overlay.reset') resetOverlaySurface();
+    else if (event.kind === 'alert.preview.clear' && alertController.activeAlert?.templatePreview === true) alertController.reset();
+    else if (event.kind === 'chat.preview.clear') { for (const item of chat.querySelectorAll('[data-template-preview="true"]')) item.remove(); updateChatOverflow(); }
     else if (event.kind === 'chat.add' && (mode === 'chat' || mode === 'combined')) addChat(event.payload);
     else if (event.kind === 'chat.event' && (mode === 'chat' || mode === 'combined')) addEventMessage(event.payload);
     else if (event.kind === 'chat.remove' && (mode === 'chat' || mode === 'combined')) removeChat(event.payload.targetEventId);
@@ -177,7 +180,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     resetOverlaySurface();
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-1.3.3.js', 'thsv-browser-overlay-1.3.3');
+        const worker = new SharedWorker('/overlay/worker-1.3.5.js', 'thsv-browser-overlay-1.3.5');
         sendTransport = (payload) => worker.port.postMessage({ kind: 'transport.send', payload });
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);
@@ -195,6 +198,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     const item = element('li', `message platform-${safeClass(message.platform)}`);
     item.style.setProperty('--message-platform-bg', messageBackground(message.platform));
     item.dataset.eventId = message.eventId;
+    if (message.templatePreview === true) item.dataset.templatePreview = 'true';
     const identity = element('div', 'identity');
     if (clientConfig.chat.showProfilePictures) identity.append(buildAvatar(message.user, message.presentation, message.platform, 'chat-avatar'));
     if (clientConfig.chat.showPlatformLabels) identity.append(element('span', 'platform', message.platform.toUpperCase()));
@@ -452,7 +456,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
   function messageBackground(platform) {
     const chatConfig = clientConfig.chat;
     if (chatConfig.messageColorMode === 'transparent') return 'transparent';
-    const color = chatConfig.messageColorMode === 'platform' ? chatConfig.platformMessageColors[platform] || chatConfig.messageBackgroundColor : chatConfig.messageBackgroundColor;
+    const color = chatConfig.messageColorMode === 'platform' ? chatConfig.platformMessageColors[platform] || (platform === 'facebook' ? '#102641' : chatConfig.messageBackgroundColor) : chatConfig.messageBackgroundColor;
     return rgba(color, chatConfig.messageBackgroundOpacity);
   }
 
@@ -466,7 +470,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     const chatConfig = clientConfig.chat;
     if (chatConfig.messageColorMode === 'transparent') return chatConfig.textColor;
     const background = chatConfig.messageColorMode === 'platform'
-      ? chatConfig.platformMessageColors[platform] || chatConfig.messageBackgroundColor
+      ? chatConfig.platformMessageColors[platform] || (platform === 'facebook' ? '#102641' : chatConfig.messageBackgroundColor)
       : chatConfig.messageBackgroundColor;
     const preferred = platformNameColors[platform] || chatConfig.textColor;
     if (contrastRatio(preferred, background) >= 4.5) return preferred;
@@ -534,7 +538,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.3.js';
     dockComposer.hidden = false;
     dockTarget.replaceChildren();
     if (dockConfig.platforms.length > 1) dockTarget.append(new Option('All live chats', 'all'));
-    const names = { twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok' };
+    const names = { twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' };
     for (const platform of dockConfig.platforms) dockTarget.append(new Option(names[platform] || platform, platform));
     if (dockConfig.platforms.length === 0) {
       dockTarget.append(new Option('No chat platforms enabled', ''));

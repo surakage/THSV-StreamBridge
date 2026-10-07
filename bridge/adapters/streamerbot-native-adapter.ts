@@ -228,6 +228,10 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
   if (eventType === 'channel.follow') return { ...common, payload: {} };
   if (eventType === 'stream.online' || eventType === 'stream.offline') {
     const thumbnailUrl = validHttps(relay.streamThumbnailUrl);
+    // Never let an ambiguous local date move a provider's start time hours into the future.
+    const rawStart = clean(relay.streamStartedAt);
+    const startedAt = /(?:Z|[+-]\d{2}:\d{2})$/iu.test(rawStart) && Number.isFinite(Date.parse(rawStart))
+      && Date.parse(rawStart) <= Date.parse(relay.receivedAt) + 60_000 ? new Date(rawStart).toISOString() : undefined;
     return { ...common, user: undefined, payload: {
       ...connectedAccountContext,
       ...(clean(relay.streamId) === '' ? {} : { streamId: clean(relay.streamId) }),
@@ -235,7 +239,7 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
       ...(clean(relay.streamCategoryId) === '' ? {} : { categoryId: clean(relay.streamCategoryId) }),
       ...(clean(relay.streamCategoryName) === '' ? {} : { categoryName: clean(relay.streamCategoryName) }),
       ...(thumbnailUrl === undefined ? {} : { thumbnailUrl }),
-      ...(clean(relay.streamStartedAt) === '' ? {} : { startedAt: clean(relay.streamStartedAt) }),
+      ...(startedAt === undefined ? {} : { startedAt }),
     } };
   }
   if (eventType === 'channel.subscription' || eventType === 'channel.membership') {

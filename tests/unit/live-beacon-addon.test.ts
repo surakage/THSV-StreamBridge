@@ -1,11 +1,67 @@
 import { describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- verified executable add-on exports are intentionally loaded from plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import liveBeacon from '../../addons/live-beacon/dist/index.js';
+import liveBeacon, { enrichFromActiveStreams } from '../../addons/live-beacon/dist/index.js';
 
 function event(platform: 'twitch' | 'youtube', id: string) { return { eventType: 'stream.online', platform, receivedAt: '2026-07-27T12:00:00.000Z', source: { eventId: id }, metadata: { simulated: false }, channel: { name: platform === 'twitch' ? 'creator' : 'Creator Channel' }, payload: { streamId: id, title: 'Community night', categoryName: 'Gaming', startedAt: '2026-07-27T11:59:00.000Z' } }; }
 
 describe('Live Beacon add-on', () => {
+  it('fills TikTok missing metadata from active Twitch while retaining native links and timestamps', () => {
+    const entry = { platform: 'tiktok', title: '', category: '', url: 'https://www.tiktok.com/@creator/live', startedAt: '2026-10-05T12:00:00Z' };
+    const streams = new Map([['kick', { platform: 'kick', title: 'Kick title', category: 'Art' }], ['twitch', { platform: 'twitch', title: 'Twitch title', category: 'Palworld', categoryArtUrl: 'https://example.com/art.png', thumbnailUrl: 'https://example.com/live.jpg', profileImageUrl: 'https://example.com/profile.png' }]]);
+    expect(enrichFromActiveStreams(entry, streams)).toMatchObject({ title: 'Twitch title', category: 'Palworld', categoryArtUrl: 'https://example.com/art.png', thumbnailUrl: 'https://example.com/live.jpg', metadataSource: 'twitch', url: entry.url, startedAt: entry.startedAt });
+    expect(enrichFromActiveStreams({ ...entry, title: 'My TikTok title', category: 'Art' }, streams)).toMatchObject({ title: 'My TikTok title', category: 'Art' });
+    expect(enrichFromActiveStreams({ ...entry, category: 'Art' }, streams).thumbnailUrl).toBeUndefined();
+    expect(enrichFromActiveStreams(entry, streams, false)).toEqual(entry);
+    expect(enrichFromActiveStreams(entry, new Map())).toEqual(entry);
+  });
+
+  it('shares later online metadata with a pending TikTok fallback and removes offline donors', async () => {
+    let scheduled: (() => Promise<void>) | undefined; const runApprovedAction = vi.fn(async () => {});
+    const context = { settings: { enabled: true, platforms: ['tiktok'], fallbackPlatforms: ['tiktok'], tiktokLogin: 'creator' }, streamerbot: { runApprovedAction }, schedule: { after: vi.fn((_delay, task) => { scheduled = task; return 'task'; }), cancel: vi.fn() }, state: { read: vi.fn(async () => ({})), write: vi.fn() } };
+    await liveBeacon.start();
+    await liveBeacon.onEvent({ eventType: 'addon.thsv.live-beacon.broadcast-control', metadata: { simulated: false }, receivedAt: '2026-10-05T12:00:00Z', payload: { action: 'online' } }, context);
+    await liveBeacon.onEvent(event('twitch', 'twitch-live'), context); await scheduled?.();
+    expect(runApprovedAction).toHaveBeenCalledWith('b99f5eae-d962-4b71-b2c5-64c19917189f', expect.objectContaining({ liveBeaconPlatform: 'tiktok', liveBeaconTitle: 'Community night', liveBeaconCategory: 'Gaming', liveBeaconMetadataSource: 'twitch', liveBeaconStartedAt: '2026-10-05T12:00:00.000Z' }));
+    runApprovedAction.mockClear();
+    await liveBeacon.onEvent({ eventType: 'stream.offline', platform: 'twitch', metadata: { simulated: false } }, context);
+    await liveBeacon.onEvent({ eventType: 'addon.thsv.live-beacon.broadcast-control', metadata: { simulated: false }, receivedAt: '2026-10-05T13:00:00Z', payload: { action: 'online' } }, context); await scheduled?.();
+    expect(runApprovedAction).toHaveBeenLastCalledWith('b99f5eae-d962-4b71-b2c5-64c19917189f', expect.objectContaining({ liveBeaconTitle: '', liveBeaconCategory: '', liveBeaconMetadataSource: '' }));
+    await liveBeacon.stop(context);
+  });
+
+  it('drops a pending live notification when its platform goes offline during coalescing', async () => {
+    let scheduled: (() => Promise<void>) | undefined; const runApprovedAction = vi.fn(async () => {});
+    const context = { settings: { enabled: true, platforms: ['twitch'] }, streamerbot: { runApprovedAction }, schedule: { after: vi.fn((_delay, task) => { scheduled = task; return 'task'; }), cancel: vi.fn() }, state: { read: vi.fn(async () => ({})), write: vi.fn() } };
+    await liveBeacon.start(); await liveBeacon.onEvent(event('twitch', 'short-stream'), context);
+    await liveBeacon.onEvent({ eventType: 'stream.offline', platform: 'twitch', metadata: { simulated: false } }, context); await scheduled?.();
+    expect(runApprovedAction).not.toHaveBeenCalled(); await liveBeacon.stop(context);
+  });
+  it('announces Facebook only when selected, using the associated video and confirmed deduplication', async () => {
+    let scheduled: (() => Promise<void>) | undefined; let stored: Record<string, unknown> = {};
+    const runApprovedAction = vi.fn(async () => {});
+    const context = { settings: { enabled: true, platforms: ['twitch'], facebookPageUrl: 'https://www.facebook.com/123/live', destinationMode: 'forum', forumPostSetupMode: 'existing', facebookForumPostSetupMode: 'create' }, streamerbot: { runApprovedAction }, schedule: { after: vi.fn((_delay, task) => { scheduled = task; return 'task'; }), cancel: vi.fn() }, state: { read: vi.fn(async () => stored), write: vi.fn(async value => { stored = value; }) } };
+    const online = { eventType: 'stream.online', platform: 'facebook', source: { eventName: 'Facebook.BroadcastStatus' }, receivedAt: '2026-10-05T12:00:00.000Z', channel: { id: '123', name: 'The Hidden Sloth Village' }, metadata: { simulated: false }, payload: { streamId: '456', videoId: '789', streamUrl: 'https://www.facebook.com/watch/?v=789', title: 'Village live' } };
+    await liveBeacon.start(); await liveBeacon.onEvent(online, context); expect(scheduled).toBeUndefined();
+    context.settings.platforms.push('facebook');
+    await liveBeacon.onEvent(online, context); await scheduled?.();
+    expect(runApprovedAction).toHaveBeenCalledWith('b99f5eae-d962-4b71-b2c5-64c19917189f', expect.objectContaining({ liveBeaconPlatform: 'facebook', liveBeaconUrl: 'https://www.facebook.com/watch/?v=789', liveBeaconTitle: 'Village live', liveBeaconDeliveryId: 'facebook%7C456', liveBeaconThreadName: 'Facebook Live Notifications', liveBeaconForumWelcome: expect.stringContaining('Facebook') }));
+    await liveBeacon.onEvent({ eventType: 'addon.thsv.live-beacon.delivery-result', receivedAt: online.receivedAt, payload: { platform: 'facebook', deliveryId: 'facebook%7C456', success: true, threadId: '123456789' } }, context);
+    expect(stored['managedForumThreads']).toMatchObject({ facebook: '123456789' });
+    await liveBeacon.onEvent(online, context); await scheduled?.(); expect(runApprovedAction).toHaveBeenCalledTimes(1);
+    await liveBeacon.stop(context);
+  });
+
+  it('uses a Facebook Page fallback for missing video metadata and rejects foreign or credentialed URLs', async () => {
+    let scheduled: (() => Promise<void>) | undefined; const runApprovedAction = vi.fn(async () => {});
+    const context = { settings: { enabled: true, platforms: ['facebook'], facebookPageUrl: 'https://www.facebook.com/123/live' }, streamerbot: { runApprovedAction }, schedule: { after: vi.fn((_delay, task) => { scheduled = task; return 'task'; }), cancel: vi.fn() }, state: { read: vi.fn(async () => ({})), write: vi.fn() } };
+    await liveBeacon.start();
+    const online = { ...event('twitch', 'fb-live'), platform: 'facebook', payload: { streamId: '123', streamUrl: 'https://facebook.com.evil.example/video' } };
+    await liveBeacon.onEvent(online, context); await scheduled?.();
+    expect(runApprovedAction).toHaveBeenCalledWith('b99f5eae-d962-4b71-b2c5-64c19917189f', expect.objectContaining({ liveBeaconUrl: 'https://www.facebook.com/123/live' }));
+    await liveBeacon.stop(context); scheduled = undefined; context.settings.facebookPageUrl = 'https://user:password@facebook.com/page/live'; await liveBeacon.start();
+    await liveBeacon.onEvent(online, context); expect(scheduled).toBeUndefined(); await liveBeacon.stop(context);
+  });
   it('waits for nearby starts and then sends one approved Discord embed dispatch per platform', async () => {
     let scheduled: (() => Promise<void>) | undefined; const runApprovedAction = vi.fn(async () => {});
     const context = { settings: { enabled: true, platforms: ['twitch', 'youtube'], destinationMode: 'channel', twitchDestinationMode: 'forum', youtubeDestinationMode: 'channel', twitchForumThreadId: '123456789012345678', coalesceSeconds: 15, webhookName: 'Beacon', roleMentionId: '', messageTemplate: '{platform} live: {url}', twitchLogin: 'creator', youtubeChannelUrl: 'https://youtube.com/@creator', kickLogin: '', tiktokLogin: '' }, streamerbot: { runApprovedAction }, schedule: { after: vi.fn((_delay, task) => { scheduled = task; return 'task'; }), cancel: vi.fn() }, state: { read: vi.fn(async () => ({})), write: vi.fn() } };

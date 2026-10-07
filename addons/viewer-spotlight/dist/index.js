@@ -1,7 +1,7 @@
 // Viewer Spotlight is presentation-only. Identity and progression remain in Viewer Foundation;
 // observed counters remain in Community Analytics; names and avatars live only in this process queue.
 const MODULE_ID = 'thsv.viewer-spotlight';
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const VIEWER_ID = /^[a-z][a-z0-9-]{0,63}$/u;
 const COLOR = /^#[0-9a-f]{6}$/iu;
 const REWARD_ACTION_ID = '764a4658-e7fc-4b25-a792-e262759c76b7';
@@ -14,7 +14,7 @@ const FALLBACKS = Object.freeze({ enabled: false, disclosureAccepted: false, com
 const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Viewer Spotlight', version: '4.0.12', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12',
   dependencies: ['thsv.viewer-foundation', 'thsv.community-analytics'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'viewer-spotlight.card', name: 'card' }], actionsProvided: [{ id: 'viewer-spotlight.settle-reward', name: 'THSV Addon - Viewer Spotlight - Settle Reward' }, { id: 'viewer-spotlight.discord-snapshot', name: 'THSV Addon - Viewer Spotlight - Discord Snapshot' }], browserSourcesProvided: [],
-  dataStorageOwned: ['data/addons/thsv.viewer-spotlight/', 'data/addons/.state/thsv.viewer-spotlight/'], installationSteps: ['Install and enable Viewer Foundation and Community Analytics first.', 'Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.', 'Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube and TikTok card command. It registers automatically after restart.', 'Add /overlay/addons/thsv.viewer-spotlight as a browser source.'],
+  dataStorageOwned: ['data/addons/thsv.viewer-spotlight/', 'data/addons/.state/thsv.viewer-spotlight/'], installationSteps: ['Install and enable Viewer Foundation and Community Analytics first.', 'Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.', 'Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube, TikTok and Facebook card command. It registers automatically after restart.', 'Add /overlay/addons/thsv.viewer-spotlight as a browser source.'],
   uninstallationSteps: ['Uninstall the add-on. Its pseudonymous cooldown state remains preserved for a later reinstall.'], migrations: [], healthChecks: [{ id: 'thsv.viewer-spotlight.runtime', description: 'Confirms bounded self-request handling and projection-only overlay publication.' }] };
 
 let operation = Promise.resolve(); let queue = []; let active = false; let activeViewerId; let scheduledDrain; let unregisterDeletion; let stopped = true; const livePlatforms = new Set();
@@ -56,7 +56,17 @@ export function buildViewerSpotlightCard(request, foundation, analytics, setting
   if (settings.showObservedCommands && analytics.observed) fields.push(`${analytics.counters.commands.toLocaleString('en-US')} observed commands`);
   if (settings.showEngagementScore && Number.isSafeInteger(analytics.engagementScore)) fields.push(`${analytics.engagementScore.toLocaleString('en-US')} engagement score`);
   if (settings.showSeasonRank && Number.isSafeInteger(analytics.seasonRank) && Number.isSafeInteger(analytics.rankCohortSize)) fields.push(`#${analytics.seasonRank.toLocaleString('en-US')} of ${analytics.rankCohortSize.toLocaleString('en-US')} this month`);
-  return { title, text: fields.join(' • ') || 'Viewer card', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}), durationMs: settings.durationSeconds * 1000, presentationMode: settings.displayMode,
+  const stats = [];
+  if (settings.showPoints) stats.push({ label: foundation.currencyName || 'Village Points', value: foundation.points.toLocaleString('en-US') });
+  if (settings.showLevel) stats.push({ label: 'Village level', value: String(foundation.level) });
+  if (settings.showLatestAchievement && foundation.latestAchievement?.label) stats.push({ label: 'Latest achievement', value: clean(foundation.latestAchievement.label, 80) });
+  if (settings.showObservedSessions && analytics.observed) stats.push({ label: 'Observed sessions', value: String(analytics.sessions) });
+  if (settings.showObservedMessages && analytics.observed) stats.push({ label: 'Observed messages', value: String(analytics.counters.messages) });
+  if (settings.showObservedCommands && analytics.observed) stats.push({ label: 'Observed commands', value: String(analytics.counters.commands) });
+  if (settings.showEngagementScore && Number.isSafeInteger(analytics.engagementScore)) stats.push({ label: 'Engagement', value: String(analytics.engagementScore) });
+  if (settings.showSeasonRank && Number.isSafeInteger(analytics.seasonRank)) stats.push({ label: 'Monthly rank', value: `#${analytics.seasonRank}` });
+  return { cardKind: 'viewer-spotlight', platform: request.platform, front: { displayName: request.displayName, platformLabel: settings.showPlatformBadge ? platformLabel : 'THE VILLAGE', viewerType: 'Villager', followStatus: 'unknown', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}) }, stats, flipToStats: stats.length > 0,
+    title, text: fields.join(' • ') || 'Viewer card', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}), durationMs: settings.durationSeconds * 1000, presentationMode: settings.displayMode,
     style: { backgroundMode: settings.backgroundMode, backgroundColor: settings.backgroundColor, backgroundOpacity: settings.backgroundOpacity, accentColor: settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily } };
 }
 async function armDrain(context, delayMs) { if (scheduledDrain !== undefined || stopped) return; scheduledDrain = context.schedule.after(Math.max(1000, Math.min(86400000, Math.ceil(delayMs))), () => { scheduledDrain = undefined; active = false; activeViewerId = undefined; return serialize(() => drain(context)); }); }
@@ -70,6 +80,7 @@ async function drain(context, now = Date.now()) { if (stopped || active) return;
   try { await context.overlay.publish(`${MODULE_ID}.card.show`, card, { lane: 'foreground' }); } catch (error) { if (request.points || settings.refundRejectedRewards) await refundRequest(request, context, 'overlay-failed'); throw error; }
   if (request.reward) { try { await settleReward(request, 'fulfill', context); } catch { if (settings.refundRejectedRewards) await settleReward(request, 'refund', context).catch(() => undefined); } }
   if (request.discord === true) await sendDiscordSnapshot(card, request.displayName, context, settings).catch(() => undefined);
+  try { await context.chat.send({ message: `${request.displayName}, your Village Spotlight card is on screen!`, routing: 'source', sourcePlatform: request.platform, overflow: 'split' }); } catch { /* A chat outage does not replay the card. */ }
   state.lastShownAt = now; state.cardsThisSession += 1; await context.state.write(state); active = true; activeViewerId = request.viewerId; await armDrain(context, settings.durationSeconds * 1000 + 1000); }
 export async function processViewerSpotlightEvent(event, context, now = Date.now()) { const settings = settingsFor(context); const state = sanitizeState(await context.state.read());
   if (event.eventType === 'stream.online' && event.metadata?.simulated !== true) { const wasOffline = livePlatforms.size === 0; livePlatforms.add(event.platform); if (wasOffline) { state.cardsThisSession = 0; await context.state.write(state); } return { session: 'active' }; }
@@ -90,7 +101,7 @@ export async function processViewerSpotlightEvent(event, context, now = Date.now
   }
   if (event.eventType !== 'command.received' || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return undefined;
   if (Array.isArray(event.payload?.arguments) && event.payload.arguments.length > 0) return { accepted: false, reason: 'self-only' }; const userId = clean(event.user?.id, 256); if (!userId) return { accepted: false, reason: 'stable-user-id-required' };
-  if (!['youtube', 'tiktok'].includes(event.platform)) return { accepted: false, reason: 'native-reward-required' };
+  if (!['youtube', 'tiktok', 'facebook'].includes(event.platform)) return { accepted: false, reason: 'native-reward-required' };
   if (!await platformIsLive(event.platform, context)) return { accepted: false, reason: 'platform-offline' };
   const foundation = await context.viewerFoundation.getProjection({ platform: event.platform, userId }); if (!foundation) return { accepted: false, reason: 'ignored-or-unavailable' };
   const stableEventId = clean(event.eventId || event.source?.eventId, 100); if (!stableEventId) return { accepted: false, reason: 'stable-event-id-required' };

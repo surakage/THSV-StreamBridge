@@ -18,6 +18,27 @@ const stops: Array<() => Promise<void>> = [];
 afterEach(async () => { await Promise.allSettled(stops.splice(0).map((stop) => stop())); });
 
 describe('wizard HTTP surface', () => {
+  it('explains disabled follower tracking without exposing unexpected failures', async () => {
+    const config = await testConfig(); config.service.port = 0;
+    const bridge = createTestBridge(config);
+    let failure = 'Enable Follower Pulse before checking followers.';
+    bridge.administerFollowerPulse = () => Promise.reject(new Error(failure));
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined));
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const request = () => fetch(`http://127.0.0.1:${String(server.port)}/wizard/api/follower-pulse/admin`, {
+      method: 'POST', headers: { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ operation: 'reconcile', approvedByCreator: true }),
+    });
+    const disabled = await request();
+    expect(disabled.status).toBe(409);
+    expect(await disabled.json()).toEqual({ error: failure });
+    failure = 'Private unexpected runtime detail';
+    const unexpected = await request();
+    expect(unexpected.status).toBe(500);
+    expect(await unexpected.json()).toEqual({ error: 'Internal bridge error' });
+  });
+
   it('refuses to restart the Bridge for an update while any stream platform is live', async () => {
     const config = await testConfig();
     config.service.port = 0;

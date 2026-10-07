@@ -95,7 +95,7 @@ async function publish(context, settings, state, view) {
   try {
     await context.overlay.publish(`${MODULE_ID}.timer.update`, {
       moduleId: MODULE_ID, variant: 'ad-break', phase: state.phase, label,
-      remainingSeconds: view.remainingSeconds, maximumSeconds: active ? state.adLengthSeconds : integer(settings.leadSeconds, 15, 300, 60),
+      endsAt: state.targetAt, remainingSeconds: view.remainingSeconds, maximumSeconds: active ? state.adLengthSeconds : integer(settings.leadSeconds, 15, 300, 60),
       remainingText: formatRemaining(view.remainingSeconds), running: true, live: true, completed: false,
       badgeText: active ? 'IN PROGRESS' : awaiting ? 'STARTING' : 'UPCOMING', lastReason: message,
       contextText: active ? `${String(state.adLengthSeconds)} second Twitch ad break` : `Twitch · ${String(state.snoozesLeft)} snoozes available`,
@@ -129,7 +129,7 @@ function eventPayload(event, settings) {
   }
   if (event.eventType === STARTED_EVENT) {
     const now = Date.now(); const adLengthSeconds = integer(event.payload?.adLength, 1, 18_000, 30);
-    return { phase: 'active', targetAt: now + adLengthSeconds * 1_000, expiresAt: now + adLengthSeconds * 1_000, maximumSeconds: adLengthSeconds,
+    return { phase: 'active', targetAt: boundedDate(event.payload?.startedAt, boundedDate(event.receivedAt, now)) + adLengthSeconds * 1_000, expiresAt: boundedDate(event.payload?.startedAt, boundedDate(event.receivedAt, now)) + adLengthSeconds * 1_000, maximumSeconds: adLengthSeconds,
       adLengthSeconds, snoozesLeft: 0, simulated: event.metadata?.simulated === true, updatedAt: now };
   }
   if (event.eventType === CONTROL_EVENT && event.payload?.action === 'preview-upcoming') {

@@ -9,9 +9,15 @@ function runtime() {
     settings: { enabled: true, durationHours: 0, durationMinutes: 1, durationSeconds: 0, automaticSceneNames: ['📁 Starting Soon'], stopOutsideAutomaticScenes: true, showOverlay: true },
     approvedActionIds: [],
     state: { read: vi.fn(async () => state), write: vi.fn(async (next: Record<string, unknown>) => { state = next; }) },
-    overlay: { publish: vi.fn(async () => undefined) },
+    overlay: { publish: vi.fn(async (_topic: string, payload: Record<string, unknown>) => {
+      const rejectUndefined = (value: unknown): void => {
+        if (value === undefined) throw new Error('Overlay payload must contain JSON values');
+        if (value && typeof value === 'object') for (const child of Object.values(value)) rejectUndefined(child);
+      };
+      rejectUndefined(payload);
+    }) },
     streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
-    schedule: { after: vi.fn(() => Symbol('timer')), cancel: vi.fn() },
+    schedule: { after: vi.fn((ms: number, callback: () => unknown) => setTimeout(callback, ms)), cancel: vi.fn((timer: ReturnType<typeof setTimeout>) => clearTimeout(timer)) },
   };
   const control = (action: string, seconds?: number) => ({ eventType: 'addon.thsv.starting-soon-countdown.control', payload: { action, ...(seconds === undefined ? {} : { seconds }) } });
   return { context, state: () => state, control };
@@ -20,6 +26,40 @@ function runtime() {
 afterEach(async () => { await countdown.stop({ schedule: { cancel: vi.fn() } }); vi.useRealTimers(); });
 
 describe('Stream Launch Countdown add-on', () => {
+  it('shows the full duration on scene entry and waits two seconds after a real platform goes live', async () => {
+    vi.useFakeTimers();
+    const test = runtime(); await countdown.start(test.context);
+    await countdown.onEvent({ eventType: 'system.broadcast-started', platform: 'system', payload: { provider: 'obs', sceneName: '📁 Starting Soon' } }, test.context);
+    expect(test.state()).toMatchObject({ remainingSeconds: 60, running: false, visible: true, waitingForLive: true });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(test.state().remainingSeconds).toBe(60);
+    await countdown.onEvent({ eventType: 'stream.online', platform: 'twitch', payload: {} }, test.context);
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(test.state().running).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(test.state()).toMatchObject({ remainingSeconds: 60, running: true, visible: true });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(test.state().remainingSeconds).toBe(59);
+    const updates = test.context.overlay.publish.mock.calls.filter(([topic]) => topic.endsWith('.timer.update'));
+    expect(updates.at(-1)?.[1]).toMatchObject({ running: true, remainingSeconds: 59 });
+    expect(test.context.overlay.publish.mock.results.every(result => result.type === 'return')).toBe(true);
+    for (const result of test.context.overlay.publish.mock.results) if (result.type === 'return') await expect(result.value).resolves.toBeUndefined();
+    await countdown.onEvent({ eventType: 'system.broadcast-stopped', platform: 'system', payload: {} }, test.context);
+    expect(test.state()).toMatchObject({ remainingSeconds: 60, running: false, visible: true });
+  });
+  it('starts a fresh countdown on first online and preserves it for other platforms', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-04T01:00:00Z'));
+    const test = runtime(); await countdown.start(test.context);
+    await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Starting Soon' } }, test.context);
+    vi.setSystemTime(new Date('2026-10-04T01:00:20Z'));
+    await countdown.onEvent({ eventType: 'stream.online', platform: 'twitch', payload: {} }, test.context);
+    expect(test.state().remainingSeconds).toBe(60);
+    await vi.advanceTimersByTimeAsync(2000);
+    const startedAt = test.state().updatedAt;
+    vi.setSystemTime(new Date('2026-10-04T01:00:25Z'));
+    await countdown.onEvent({ eventType: 'stream.online', platform: 'youtube', payload: {} }, test.context);
+    expect(test.state().updatedAt).toBe(startedAt);
+  });
   it('builds a bounded duration and formats short or long countdowns', () => {
     expect(configuredDurationSeconds({ durationHours: 1, durationMinutes: 2, durationSeconds: 3 })).toBe(3_723);
     expect(configuredDurationSeconds({ durationHours: 0, durationMinutes: 0, durationSeconds: 0 })).toBe(1);
@@ -63,11 +103,32 @@ describe('Stream Launch Countdown add-on', () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2026-08-08T20:00:00.000Z'));
     const test = runtime(); await countdown.start(test.context);
     await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Starting Soon' } }, test.context);
-    vi.setSystemTime(new Date('2026-08-08T20:00:08.000Z'));
+    await countdown.onEvent({ eventType: 'stream.online', platform: 'kick', payload: {} }, test.context);
+    await vi.advanceTimersByTimeAsync(2000);
+    vi.setSystemTime(new Date('2026-08-08T20:00:10.000Z'));
+    await vi.advanceTimersByTimeAsync(1000);
     await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Starting Soon' } }, test.context);
-    expect(test.state()).toMatchObject({ remainingSeconds: 52, running: true, visible: true, lastReason: 'duplicate-start-ignored' });
+    expect(test.state()).toMatchObject({ remainingSeconds: 51, running: true, visible: true });
     await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Gaming' } }, test.context);
-    expect(test.state()).toMatchObject({ remainingSeconds: 52, running: false, visible: false, lastReason: 'stop' });
+    expect(test.state()).toMatchObject({ remainingSeconds: 51, running: false, visible: false, lastReason: 'stop' });
+  });
+
+  it('cancels a pending start on scene exit or all platforms offline and ignores simulated live events', async () => {
+    vi.useFakeTimers();
+    const test = runtime(); await countdown.start(test.context);
+    const scene = (sceneName: string) => ({ eventType: 'stream.scene-changed', payload: { sceneName } });
+    await countdown.onEvent(scene('📁 Starting Soon'), test.context);
+    await countdown.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: true }, payload: {} }, test.context);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(test.state().running).toBe(false);
+    await countdown.onEvent({ eventType: 'stream.online', platform: 'youtube', payload: {} }, test.context);
+    await countdown.onEvent(scene('📁 Gaming'), test.context);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(test.state()).toMatchObject({ running: false, visible: false });
+    await countdown.onEvent(scene('📁 Starting Soon'), test.context);
+    await countdown.onEvent({ eventType: 'stream.offline', platform: 'youtube', payload: {} }, test.context);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(test.state()).toMatchObject({ running: false, visible: true, remainingSeconds: 60, automaticStartAt: 0 });
   });
 
   it('can keep a manually started countdown running outside automatic scenes', async () => {

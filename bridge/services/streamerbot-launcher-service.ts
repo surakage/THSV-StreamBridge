@@ -53,8 +53,8 @@ export interface StartupReadinessBlocker {
   readonly recovery: string;
 }
 
-export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot';
-const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot'] as const satisfies readonly OptionalApplication[];
+export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity';
+const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity'] as const satisfies readonly OptionalApplication[];
 
 export interface OptionalApplicationStatus {
   readonly application: OptionalApplication;
@@ -503,7 +503,7 @@ export class StreamerBotLauncherService {
   private optionalProcesses(): readonly ProcessIdentity[] {
     const now = Date.now();
     if (this.optionalProcessCache !== undefined && this.optionalProcessCache.expiresAt > now) return this.optionalProcessCache.processes;
-    const processes = processesNamed(['obs64', 'Meld', 'Meld Studio', 'Streamlabs Desktop', 'slobs-client', 'Speaker.bot', 'SpeakerBot']);
+    const processes = processesNamed(OPTIONAL_APPLICATIONS.flatMap((application) => optionalApplicationMetadata(application).processNames));
     this.optionalProcessCache = { expiresAt: now + 10_000, processes };
     return processes;
   }
@@ -569,6 +569,10 @@ function optionalApplicationMetadata(application: OptionalApplication): {
   const profile = process.env['USERPROFILE'];
   const local = process.env['LOCALAPPDATA'];
   const programFiles = process.env['ProgramFiles'] ?? 'C:\\Program Files';
+  if (application === 'tikfinity') return {
+    label: 'TikFinity', executableNames: ['tikfinity.exe'], processNames: ['TikFinity'],
+    commonLocations: () => [local ? join(local, 'Programs', 'TikFinity', 'TikFinity.exe') : undefined],
+  };
   if (application === 'obs') return {
     label: 'OBS Studio',
     executableNames: ['obs64.exe'],
@@ -659,7 +663,7 @@ function applicationVersions(paths: readonly string[]): Readonly<Record<string, 
   const unique = [...new Set(paths)];
   if (process.platform !== 'win32' || unique.length === 0) return {};
   try {
-    const script = "$paths=ConvertFrom-Json $env:THSV_VERSION_PATHS; @($paths|ForEach-Object{$item=Get-Item -LiteralPath $_ -ErrorAction Stop; [pscustomobject]@{path=$item.FullName;version=$item.VersionInfo.FileVersion}})|ConvertTo-Json -Compress";
+    const script = "$paths=ConvertFrom-Json $env:THSV_VERSION_PATHS; @($paths|ForEach-Object{$item=Get-Item -LiteralPath $_ -ErrorAction Stop; $productVersion=$item.VersionInfo.ProductVersion; $detectedVersion=if([string]::IsNullOrWhiteSpace($productVersion)){$item.VersionInfo.FileVersion}else{$productVersion}; [pscustomobject]@{path=$item.FullName;version=$detectedVersion}})|ConvertTo-Json -Compress";
     const raw = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true, timeout: 8_000, env: { ...process.env, THSV_VERSION_PATHS: JSON.stringify(unique) } }).trim();
     if (raw.length === 0) return {};
     const parsed = JSON.parse(raw) as { path?: unknown; version?: unknown } | { path?: unknown; version?: unknown }[];

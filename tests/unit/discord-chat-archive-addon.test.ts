@@ -6,7 +6,7 @@ import discordChatArchive, { buildArchiveEmbeds, matchesIgnoredViewer, renderArc
 const DELIVERY_ACTION_ID = 'df40969d-5923-4432-bdca-ecdee451f150';
 const settings = {
   enabled: true,
-  enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'],
+  enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'],
   ignoreBots: true,
   ignoredUsers: [],
   ignoreCommands: false,
@@ -25,6 +25,7 @@ const settings = {
   youtubeColor: '#ff0033',
   kickColor: '#53fc18',
   tiktokColor: '#25f4ee',
+  facebookColor: '#1877f2',
   useViewerIdentityForSingleMessage: false,
   useViewerAvatarForSingleMessage: false,
   batchWindowSeconds: 5,
@@ -74,6 +75,15 @@ describe('Discord Chat Archive add-on', () => {
     expect(matchesIgnoredViewer('twitch:id:VIEWER-1', 'twitch', event.user)).toBe(true);
     expect(matchesIgnoredViewer('youtube:viewer', 'twitch', event.user)).toBe(false);
     expect(matchesIgnoredViewer('view', 'twitch', event.user)).toBe(false);
+  });
+
+  it('archives Facebook in blue while honoring Page identity and platform opt-out filters', () => {
+    const facebook = { ...event, platform: 'facebook', user: { ...event.user, name: 'The Hidden Sloth Village', displayName: 'The Hidden Sloth Village', id: 'page-123' } };
+    expect(selectChatMessage(facebook, { ...settings, ignoredUsers: ['the hidden sloth village'] })).toBeUndefined();
+    expect(selectChatMessage(facebook, { ...settings, ignoredUsers: ['facebook:id:page-123'] })).toBeUndefined();
+    expect(selectChatMessage(facebook, { ...settings, enabledPlatforms: ['twitch'] })).toBeUndefined();
+    const selected = selectChatMessage({ ...facebook, user: event.user, payload: { message: '@everyone hello' } }, settings);
+    expect(buildArchiveEmbeds([selected], settings)).toEqual([expect.objectContaining({ title: 'Facebook chat', color: 0x1877f2, description: expect.stringContaining('@\u200beveryone') })]);
   });
 
   it('neutralizes Discord mentions and markdown from untrusted message values', () => {
@@ -168,6 +178,7 @@ describe('Discord Chat Archive add-on', () => {
 
     await discordChatArchive.start(context);
     await discordChatArchive.onEvent({ eventType: 'stream.online', platform: 'twitch' }, context);
+    await discordChatArchive.onEvent({ eventType: 'stream.online', platform: 'facebook' }, context);
     await discordChatArchive.onEvent(event, context);
     await callbacks.find((entry) => entry.delay === 5_000)?.callback();
     const firstArguments = runApprovedAction.mock.calls[0]?.[1];
@@ -184,9 +195,15 @@ describe('Discord Chat Archive add-on', () => {
     await discordChatArchive.onEvent({ eventType: 'addon.thsv.discord-chat-archive.delivery-received', payload: { requestId: secondArguments?.discordArchiveRequestId, succeeded: true, threadId: '987654321' } }, context);
 
     await discordChatArchive.onEvent({ eventType: 'stream.offline', platform: 'twitch' }, context);
+    await discordChatArchive.onEvent({ ...event, platform: 'facebook', eventId: 'facebook-still-live' }, context);
+    await callbacks.filter((entry) => entry.delay === 5_000).at(-1)?.callback();
+    expect(runApprovedAction.mock.calls[2]?.[1]).toMatchObject({ discordArchiveThreadId: '987654321', discordArchiveEmbedsJson: expect.stringContaining('Facebook chat') });
+    const facebookArguments = runApprovedAction.mock.calls[2]?.[1];
+    await discordChatArchive.onEvent({ eventType: 'addon.thsv.discord-chat-archive.delivery-received', payload: { requestId: facebookArguments?.discordArchiveRequestId, succeeded: true, threadId: '987654321' } }, context);
+    await discordChatArchive.onEvent({ eventType: 'stream.offline', platform: 'facebook' }, context);
     await discordChatArchive.onEvent({ ...event, eventId: 'chat-3' }, context);
     await callbacks.filter((entry) => entry.delay === 5_000).at(-1)?.callback();
-    expect(runApprovedAction.mock.calls[2]?.[1]).toMatchObject({ discordArchiveThreadId: '' });
+    expect(runApprovedAction.mock.calls[3]?.[1]).toMatchObject({ discordArchiveThreadId: '' });
     await discordChatArchive.stop(context);
   });
 

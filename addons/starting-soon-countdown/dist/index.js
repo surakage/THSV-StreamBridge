@@ -14,7 +14,7 @@ const manifest = {
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.12', maximumTestedBridgeVersion: '4.0.12',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [CONTROL_EVENT, SCENE_EVENT, SCENE_SNAPSHOT_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  eventSubscriptions: [CONTROL_EVENT, SCENE_EVENT, SCENE_SNAPSHOT_EVENT, 'stream.online', 'stream.offline', 'system.broadcast-started', 'system.broadcast-stopped'], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Install and enable the add-on, then configure the duration, exact program-scene name, completion message, optional tone, and overlay style.',
@@ -32,6 +32,7 @@ const manifest = {
 const FALLBACKS = Object.freeze({
   enabled: true, durationHours: 0, durationMinutes: 10, durationSeconds: 0,
   automaticSceneNames: ['Starting Soon'], stopOutsideAutomaticScenes: true,
+  liveStartDelaySeconds: 2,
   completionMessage: 'The stream is starting now!', completionTone: 'soft-chime', toneVolume: 0.6,
   completionDisplaySeconds: 10, runCompletionAction: false, completionActionDelaySeconds: 0,
   showOverlay: true, overlayLabel: 'STARTING SOON',
@@ -99,6 +100,8 @@ export function sanitizeState(value, configuredSeconds = 600) {
     completionSequence: integer(source.completionSequence, 0, Number.MAX_SAFE_INTEGER, 0),
     completionActionSent: source.completionActionSent === true,
     completionActionDueAt: integer(source.completionActionDueAt, 0, Number.MAX_SAFE_INTEGER, 0),
+    automaticStartAt: integer(source.automaticStartAt, 0, Number.MAX_SAFE_INTEGER, 0),
+    waitingForLive: source.waitingForLive === true,
     lastReason: cleanText(source.lastReason, 80),
   };
 }
@@ -139,12 +142,14 @@ function overlayStyle(settings) {
   };
 }
 
-let tickTimer; let hideTimer; let completionActionTimer; let stopped = false; let operation = Promise.resolve();
+let tickTimer; let hideTimer; let completionActionTimer; let liveStartTimer; let stopped = false; let operation = Promise.resolve();
 function serialize(task) { operation = operation.then(task, task); return operation; }
 function cancelTimers(context) {
   if (tickTimer !== undefined) context.schedule.cancel(tickTimer);
   if (hideTimer !== undefined) context.schedule.cancel(hideTimer);
   if (completionActionTimer !== undefined) context.schedule.cancel(completionActionTimer);
+  if (liveStartTimer !== undefined) context.schedule.cancel(liveStartTimer);
+  liveStartTimer = undefined;
   tickTimer = undefined; hideTimer = undefined; completionActionTimer = undefined;
 }
 
@@ -184,9 +189,10 @@ async function publishState(context, settings, state, playCompletionTone = false
   try {
     await context.overlay.publish(`${MODULE_ID}.timer.update`, {
       moduleId: MODULE_ID, label: cleanText(settings.overlayLabel, 80) || FALLBACKS.overlayLabel,
-      remainingSeconds: state.remainingSeconds, maximumSeconds: state.maximumSeconds,
+      endsAt: state.updatedAt + state.remainingSeconds * 1000, remainingSeconds: state.remainingSeconds, maximumSeconds: state.maximumSeconds,
       remainingText: formatRemaining(state.remainingSeconds), running: state.running, live: state.running,
-      livePlatforms: [], contextText: 'Starting Soon scene',
+      livePlatforms: [...onlinePlatforms], contextText: 'Starting Soon scene',
+      waitingForLive: state.waitingForLive, ...(state.waitingForLive ? { badgeText: state.automaticStartAt > 0 ? 'STARTING' : 'WAITING FOR LIVE' } : {}),
       warning: !state.completed && state.remainingSeconds > 0 && state.remainingSeconds <= integer(settings.warningMinutes, 1, 60, 2) * 60,
       critical: !state.completed && state.remainingSeconds > 0 && state.remainingSeconds <= integer(settings.criticalSeconds, 1, 300, 30),
       completed: state.completed, completionMessage: cleanText(settings.completionMessage, 200) || FALLBACKS.completionMessage,
@@ -201,6 +207,13 @@ async function publishState(context, settings, state, playCompletionTone = false
 function schedule(context, settings, state) {
   cancelTimers(context);
   if (stopped) return;
+  if (state.automaticStartAt > 0 && state.waitingForLive) {
+    liveStartTimer = context.schedule.after(Math.max(1, state.automaticStartAt - Date.now()), () => serialize(async () => {
+      const latest = sanitizeState(await context.state.read(), configuredDurationSeconds(settings));
+      if (!latest.waitingForLive || latest.automaticStartAt === 0 || onlinePlatforms.size === 0 || !sceneShouldStart(currentSceneName, settings.automaticSceneNames)) return;
+      await applyControl({ action: 'set-and-start', seconds: configuredDurationSeconds(settings) }, context);
+    }));
+  }
   if (state.running && state.remainingSeconds > 0) {
     tickTimer = context.schedule.after(1_000, () => { tickTimer = undefined; return serialize(() => handleTick(context)); });
   }
@@ -255,6 +268,7 @@ async function applyControl(control, context) {
   const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
   let state = initializeState(sanitizeState(await context.state.read(), configured), configured);
   state = applyElapsed(state).state;
+  state.automaticStartAt = 0; state.waitingForLive = false;
   const now = Date.now();
   let reason = control.action;
   if (control.action === 'start') {
@@ -277,12 +291,25 @@ async function applyControl(control, context) {
   await persist(context, settings, state, control.action === 'complete');
 }
 
+let currentSceneName = '';
+const onlinePlatforms = new Set();
+let firstLiveAt = 0;
+async function prepareAutomatic(context) {
+  const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
+  const state = initializeState(sanitizeState(await context.state.read(), configured), configured);
+  const now = Date.now();
+  const due = onlinePlatforms.size > 0 ? Math.max(now + 1, firstLiveAt + integer(settings.liveStartDelaySeconds, 0, 30, 2) * 1000) : 0;
+  Object.assign(state, { remainingSeconds: configured, maximumSeconds: configured, running: false, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0, automaticStartAt: due, waitingForLive: true, updatedAt: now, lastReason: 'waiting-for-live' });
+  await persist(context, settings, state);
+}
 async function handleSceneChanged(event, context) {
   const settings = settingsFor(context);
   const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
   if (!cleanText(sceneName, 256)) return;
+  const duplicate = normalizedSceneName(currentSceneName) === normalizedSceneName(sceneName);
+  currentSceneName = cleanText(sceneName, 256);
   if (sceneShouldStart(sceneName, settings.automaticSceneNames)) {
-    await applyControl({ action: 'start', seconds: 0 }, context);
+    if (!duplicate) await prepareAutomatic(context);
   } else if (settings.stopOutsideAutomaticScenes !== false) {
     await applyControl({ action: 'stop', seconds: 0 }, context);
   }
@@ -291,9 +318,12 @@ async function handleSceneChanged(event, context) {
 export default {
   manifest, required: false,
   async start(context) {
-    stopped = false; operation = Promise.resolve();
+    stopped = false; operation = Promise.resolve(); currentSceneName = ''; onlinePlatforms.clear(); firstLiveAt = 0;
     const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
-    const elapsed = applyElapsed(initializeState(sanitizeState(await context.state.read(), configured), configured));
+    const initial = initializeState(sanitizeState(await context.state.read(), configured), configured);
+    // Re-establish the scene and actual platform live state before resuming automation.
+    Object.assign(initial, { running: false, visible: false, automaticStartAt: 0, waitingForLive: false });
+    const elapsed = applyElapsed(initial);
     const completionActionDelaySeconds = integer(settings.completionActionDelaySeconds, 0, 60, 0);
     if (elapsed.completedNow && settings.runCompletionAction === true) {
       elapsed.state.completionActionDueAt = Date.now() + completionActionDelaySeconds * 1_000;
@@ -306,6 +336,32 @@ export default {
   async stop(context) { stopped = true; cancelTimers(context); await operation; },
   async onEvent(event, context) {
     if (!settingsFor(context).enabled) return;
+    if (['stream.online', 'stream.offline', 'system.broadcast-started', 'system.broadcast-stopped'].includes(event.eventType) && event.metadata?.simulated !== true) {
+      await serialize(async () => {
+        const settings = settingsFor(context);
+        if (event.eventType === 'system.broadcast-started') {
+          if (event.payload?.sceneName) await handleSceneChanged(event, context);
+          return; // OBS sending video alone does not prove a connected platform is live.
+        }
+        if (event.eventType === 'system.broadcast-stopped') onlinePlatforms.clear();
+        else {
+          if (!['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(event.platform)) return;
+          if (event.eventType === 'stream.offline') onlinePlatforms.delete(event.platform);
+          else {
+            if (onlinePlatforms.size === 0) firstLiveAt = Date.now();
+            const firstOnline = onlinePlatforms.size === 0;
+            onlinePlatforms.add(event.platform);
+            if (firstOnline && sceneShouldStart(currentSceneName, settings.automaticSceneNames)) await prepareAutomatic(context);
+            return;
+          }
+        }
+        if (onlinePlatforms.size === 0) {
+          firstLiveAt = 0;
+          if (sceneShouldStart(currentSceneName, settings.automaticSceneNames)) await prepareAutomatic(context);
+        }
+      });
+      return;
+    }
     if (event.eventType === SCENE_EVENT || event.eventType === SCENE_SNAPSHOT_EVENT) { await serialize(() => handleSceneChanged(event, context)); return; }
     const control = controlPayload(event); if (control) await serialize(() => applyControl(control, context));
   },

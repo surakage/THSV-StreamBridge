@@ -7,7 +7,7 @@ import { buildEffectiveCommands, commandName, COMMAND_DIRECTORY_ALIASES, COMMAND
 import type { StreamerBotCommandSummary } from '../adapters/streamerbot-adapter.js';
 import { readCrashSafeText, writeCrashSafeText } from './crash-safe-state-file.js';
 
-const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'] as const;
+const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'] as const;
 type CommandPlatform = (typeof PLATFORMS)[number];
 
 export interface CommandDirectoryEntry {
@@ -92,7 +92,7 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'village-fun.random-color': { category: 'Fun', description: 'Choose a random named color and hex value.', usage: 'randomcolor' },
   'village-fun.chuck-norris': { category: 'Fun', description: 'Share a safe Chuck Norris joke when the optional command is enabled.', usage: 'chucknorris' },
   'village-fun.aesthetic': { category: 'Fun', description: 'Convert short safe text to full-width aesthetic characters.', usage: 'aesthetic <text>' },
-  'hydration-station.remind': { category: 'Wellness', description: 'Remind the creator to take a drink of water.', usage: 'hydrate', platforms: ['youtube', 'tiktok'] },
+  'hydration-station.remind': { category: 'Wellness', description: 'Remind the creator to take a drink of water.', usage: 'hydrate', platforms: ['youtube', 'tiktok', 'facebook'] },
   'hydration-station.creator': { hidden: true },
   'village-voice.speak': { category: 'Accessibility', description: 'Spend the configured reward or points to speak a message.', usage: 'speak <message>' },
   'village-draw.manage': { hidden: true },
@@ -361,7 +361,7 @@ function isCreatorControl(id: string, name: string): boolean {
 }
 
 function humanize(value: string): string { return value.replaceAll('-', ' '); }
-function platformLabel(value: CommandPlatform): string { return ({ twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok' } as const)[value]; }
+function platformLabel(value: CommandPlatform): string { return ({ twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' } as const)[value]; }
 function escapeHtml(value: string): string { return value.replace(/[&<>"']/gu, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ?? character); }
 
 function nonEmpty(value: string | undefined): string | undefined { const trimmed = value?.trim(); return trimmed ? trimmed : undefined; }

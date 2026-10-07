@@ -38,6 +38,7 @@ function context() {
   return {
     value: () => state,
     context: {
+      schedule: { after: vi.fn(() => 'monthly-task'), cancel: vi.fn(() => true) },
       settings,
       approvedActionIds: [CONTROLLER_ACTION_ID],
       state: { read: vi.fn(async () => state), write: vi.fn(async (value) => { state = value; }) },

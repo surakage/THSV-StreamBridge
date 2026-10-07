@@ -1,5 +1,5 @@
 {
-  "intro": "Fan Crown uses native rewards on Twitch and Kick, plus Viewer Foundation points on YouTube and TikTok. Twitch keeps full reward mutation and refund support.",
+  "intro": "Fan Crown uses native rewards on Twitch and Kick, plus Viewer Foundation points on YouTube, TikTok and Facebook. Twitch keeps full reward mutation and refund support.",
   "order": [
     "enabled", "rewardId", "kickRewardId", "commandName", "baseRewardTitle", "holderTitleTemplate",
     "pricingMode", "baseCost", "fixedIncrease", "multiplier", "maximumCost", "roundingIncrement",
@@ -20,10 +20,10 @@
     {
       "id": "setup",
       "title": "1. Connect each platform",
-      "description": "Paste Twitch and Kick reward IDs, then create the no-response Fan Crown command for YouTube and TikTok.",
+      "description": "Paste Twitch and Kick reward IDs, then create the no-response Fan Crown command for YouTube, TikTok and Facebook.",
       "open": true,
       "fields": ["enabled", "rewardId", "kickRewardId", "commandName", "baseRewardTitle", "holderTitleTemplate"],
-      "notice": "Recommended rewards — Twitch: Fan Crown, base cost from this page, gold #F2C94C, description 'Claim the crown and become the stream current No. 1 Fan', Skip Reward Queue off. Kick: use the same title, description, color, and a fixed cost equal to Base cost. Kick captures are native, but Streamer.bot cannot automatically change the Kick title/cost or refund a rejected claim. YouTube and TikTok spend the current displayed cost from Viewer Foundation."
+      "notice": "Recommended rewards — Twitch: Fan Crown, base cost from this page, gold #F2C94C, description 'Claim the crown and become the stream current No. 1 Fan', Skip Reward Queue off. Kick: use the same title, description, color, and a fixed cost equal to Base cost. Kick captures are native, but Streamer.bot cannot automatically change the Kick title/cost or refund a rejected claim. YouTube, TikTok and Facebook spend the current displayed cost from Viewer Foundation."
     },
     {
       "id": "pricing",

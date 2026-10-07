@@ -53,6 +53,9 @@ describe('LiveCaptionService', () => {
     service.preview({ settings: { ...config.liveCaptions, fontFamily: 'serif', fontSizePx: 72, backgroundMode: 'highlight' } });
     const preview = publishLiveCaption.mock.calls[0]?.[0];
     expect(preview).toMatchObject({ preview: true, style: { fontFamily: 'serif', fontSizePx: 72, backgroundMode: 'highlight' } });
+    expect(preview).not.toHaveProperty('templatePreview');
+    service.preview({ settings: config.liveCaptions, templatePreview: true });
+    expect(publishLiveCaption.mock.calls[1]?.[0]).toMatchObject({ preview: true, templatePreview: true });
     service.observeBridgeEvent({ schemaVersion: '1.0.0', eventId: 'offline-1', eventType: 'stream.offline', platform: 'twitch', source: { adapter: 'test', eventName: 'offline' }, receivedAt: new Date().toISOString(), channel: { name: 'test-channel' }, payload: {}, metadata: { simulated: false } });
     expect(clearLiveCaptions).toHaveBeenCalledWith('stream-offline');
   });

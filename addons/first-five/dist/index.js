@@ -1,4 +1,4 @@
-// First Five uses Twitch/Kick rewards and Viewer Foundation commands on YouTube/TikTok.
+// First Five uses Twitch/Kick rewards and Viewer Foundation commands on YouTube/TikTok/Facebook.
 // It stores one bounded per-stream claim set and one monthly weighted leaderboard.
 const CONTROLLER_ACTION_ID = '5807e453-1cdb-49bf-bad8-d50f785cbc77';
 const CONTROLLER_RESULT_EVENT = 'addon.thsv.first-five.controller-result';
@@ -27,7 +27,7 @@ const manifest = {
     'Import the separate First Five Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
     'Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.',
-    'Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube and TikTok command registers automatically after restart.',
+    'Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube, TikTok and Facebook command registers automatically after restart.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall.'],
   migrations: [],
@@ -85,8 +85,8 @@ function settingsFor(context) {
 }
 
 function monthKey(timestamp = Date.now()) {
-  const date = new Date(timestamp);
-  return `${String(date.getFullYear()).padStart(4, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit' }).formatToParts(new Date(timestamp)).map(p => [p.type,p.value]));
+  return `${parts.year}-${parts.month}`;
 }
 
 function placement(value) {
@@ -127,7 +127,7 @@ export function rankLeaderboard(entries) {
 export function sanitizeState(value, now = Date.now()) {
   const source = value && typeof value === 'object' ? value : {};
   // Persist one flat, backward-compatible list containing up to five claims per platform.
-  const placements = Array.isArray(source.placements) ? source.placements.map(placement).filter(Boolean).slice(0, 20) : [];
+  const placements = Array.isArray(source.placements) ? source.placements.map(placement).filter(Boolean).slice(0, 25) : [];
   const leaderboard = Array.isArray(source.leaderboard) ? source.leaderboard.map(leaderboardEntry).filter(Boolean).slice(0, 100) : [];
   const previous = source.previousMonth && typeof source.previousMonth === 'object' ? {
     month: clean(source.previousMonth.month, 7),
@@ -206,7 +206,7 @@ function withoutPending(state) {
 
 async function sendChat(context, message, platform = 'twitch') {
   if (!message) return;
-  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'reject' }); }
+  try { await context.chat.send({ message, routing: 'source', sourcePlatform: platform, overflow: 'split' }); }
   catch { /* Chat delivery is cosmetic and never rolls back a valid placement. */ }
 }
 
@@ -221,7 +221,7 @@ function platformPlacements(state, platform) {
 
 async function publishLeaderboard(context, settings, state, requestedPlatform = 'twitch') {
   if (!settings.showLeaderboardCard) return;
-  const platform = ['twitch', 'youtube', 'kick', 'tiktok'].includes(requestedPlatform) ? requestedPlatform : 'twitch';
+  const platform = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(requestedPlatform) ? requestedPlatform : 'twitch';
   const currentPlacements = platformPlacements(state, platform);
   const placements = state.placements.length
     ? state.placements.map((item) => `${ORDINALS[item.position - 1]}: ${item.displayName}`).join(' • ')
@@ -323,7 +323,7 @@ async function deactivateStream(context, settings) {
 }
 
 async function completeDirectClaim(context, settings, state, claim, platform) {
-  const completed = { ...state, placements: [...state.placements, claim].sort((left, right) => left.userId.localeCompare(right.userId) || left.position - right.position).slice(0, 20), leaderboard: addLeaderboardClaim(state.leaderboard, claim) };
+  const completed = { ...state, placements: [...state.placements, claim].sort((left, right) => left.userId.localeCompare(right.userId) || left.position - right.position).slice(0, 25), leaderboard: addLeaderboardClaim(state.leaderboard, claim) };
   await context.state.write(completed);
   if (settings.announceClaims) await sendChat(context, formatTemplate(settings.claimMessageTemplate, { name: claim.displayName, ordinal: ORDINALS[claim.position - 1], position: claim.position }, 500), platform);
   await publishLeaderboard(context, settings, completed, platform);
@@ -376,7 +376,7 @@ async function handleRedemption(event, context, settings, state) {
 }
 
 async function handlePointsCommand(event, context, settings, state) {
-  if (event.eventType !== 'command.received' || !['youtube', 'tiktok'].includes(event.platform) || event.metadata?.simulated === true || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return state;
+  if (event.eventType !== 'command.received' || !['youtube', 'tiktok', 'facebook'].includes(event.platform) || event.metadata?.simulated === true || clean(event.payload?.command, 64).toLowerCase() !== settings.commandName) return state;
   const providerUserId = clean(event.user?.id, 240); const displayName = clean(event.user?.displayName || event.user?.name, 100); const eventId = clean(event.eventId || event.source?.eventId, 200);
   const userId = providerUserId ? `${event.platform}:${providerUserId}` : ''; const position = platformPlacements(state, event.platform).length + 1;
   if (!userId || !displayName || !eventId || position > 5) return state;
@@ -412,7 +412,7 @@ async function handleControllerResult(event, context, settings, state) {
   const claim = state.pending.placement;
   const completed = {
     ...withoutPending(state),
-    placements: [...state.placements, claim].sort((left, right) => left.userId.localeCompare(right.userId) || left.position - right.position).slice(0, 20),
+    placements: [...state.placements, claim].sort((left, right) => left.userId.localeCompare(right.userId) || left.position - right.position).slice(0, 25),
     leaderboard: addLeaderboardClaim(state.leaderboard, claim),
   };
   await context.state.write(completed);
@@ -465,8 +465,11 @@ const module = {
     // Startup only normalizes persisted state. Visible cards are claim-driven so
     // restarting StreamBridge or beginning a stream never displays First Five.
     await context.state.write(sanitizeState(await context.state.read()));
+    await monthlyCheck(context);
+    armMonthly(context);
   },
-  async stop() {
+  async stop(context) {
+    monthlyStopped = true; if (monthlyTask) context?.schedule?.cancel(monthlyTask); monthlyTask = undefined;
     livePlatforms.clear();
     await eventQueue.catch(() => undefined);
     eventQueue = Promise.resolve();
@@ -479,3 +482,7 @@ const module = {
 
 export { CONTROLLER_ACTION_ID, monthKey };
 export default module;
+
+let monthlyTask, monthlyStopped = true;
+async function monthlyCheck(context) { const settings = settingsFor(context); if (!settings.enabled) return; const state = sanitizeState(await context.state.read()); const rolled = rolloverMonth(state); if (rolled.state.leaderboardMonth !== state.leaderboardMonth) await context.state.write(rolled.state); }
+function armMonthly(context) { monthlyStopped = false; monthlyTask = context.schedule.after(60000, () => { const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; eventQueue = eventQueue.then(check, check); return eventQueue; }); }

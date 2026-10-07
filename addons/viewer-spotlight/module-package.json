@@ -12,7 +12,8 @@
     "viewer.foundation.read",
     "viewer.foundation.mutate",
     "community.analytics.read",
-    "streamerbot.run-approved-action"
+    "streamerbot.run-approved-action",
+    "chat.send"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -66,7 +67,7 @@
     "installationSteps": [
       "Install and enable Viewer Foundation and Community Analytics first.",
       "Install Viewer Spotlight, review public fields, accept the disclosure, and enable it.",
-      "Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube and TikTok card command. It registers automatically after restart.",
+      "Create Twitch and Kick Viewer Spotlight rewards, then choose the YouTube, TikTok and Facebook card command. It registers automatically after restart.",
       "Add /overlay/addons/thsv.viewer-spotlight as a browser source."
     ],
     "uninstallationSteps": [
@@ -85,18 +86,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 24147,
-      "sha256": "02f136cec3dd87357f9e86e75840822dc27b3d52dceaae59412def37e54a92be"
+      "size": 25970,
+      "sha256": "bb179acc2da431544d6173c61db7f374cc05061add66ac475329579ad0f2aebd"
     },
     {
       "path": "schemas/config.json",
-      "size": 5898,
-      "sha256": "693d874133aff618f2a6120b01fbabdd1dd0dde21dbd2e1f22ad2c5437209b8d"
+      "size": 7312,
+      "sha256": "a28182fbec591f633d40f6393175eb05d880d5c49556cdd72d9964b06904992b"
     },
     {
       "path": "ui/settings.json",
-      "size": 4843,
-      "sha256": "52b286defb51eeb89a6d22273db1477e2f423956ce046ac048b98cc33bf2bd29"
+      "size": 4853,
+      "sha256": "8f63ce5a26d9ef80c35c25ddf88a894eb3c656d566e862d8a06abff9a66c9c46"
     },
     {
       "path": "README.md",

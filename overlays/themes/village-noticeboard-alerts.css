@@ -1,0 +1,90 @@
+/* A solid village noticeboard, with a restrained platform seal. */
+.alert {
+  background:
+    radial-gradient(circle at 12px 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at 12px calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    repeating-linear-gradient(2deg, #ffffff03 0 1px, transparent 1px 7px),
+    linear-gradient(105deg, #302719, #17261c 28%, #101b15 100%) !important;
+  border: 2px solid #8b713a !important;
+  border-radius: 8px 24px 8px 24px !important;
+  padding: 46px 34px 28px !important;
+  min-height: 204px;
+  box-shadow: inset 0 0 0 5px #100f0b, inset 0 0 0 6px #766035,
+    inset 0 0 24px #050b07, 0 9px 22px #00000045 !important;
+  backdrop-filter: none !important;
+}
+.alert::before {
+  content: 'THE HIDDEN SLOTH VILLAGE  /  VILLAGE POST';
+  inset: 17px 45px auto 152px;
+  width: auto; height: auto;
+  background: none !important;
+  opacity: 1 !important;
+  color: #b9a475;
+  font: 700 10px/1.3 Georgia, serif;
+  letter-spacing: .17em;
+}
+.alert::after {
+  content: '✦';
+  inset: 13px 20px auto auto;
+  width: 20px; height: 22px;
+  background: none !important;
+  color: #d8b24c;
+  font: 22px/1 Georgia, serif;
+  text-align: center;
+  opacity: .75 !important;
+}
+.alert .alert-identity { gap: 24px; }
+.alert .alert-avatar {
+  width: 92px; height: 92px;
+  border: 4px double #c5a65e !important;
+  padding: 5px;
+  background: #291f12 !important;
+  box-shadow: 0 0 0 5px #d8b24c12, 0 0 22px #d8b24c20 !important;
+}
+.alert .avatar-fallback {
+  background: radial-gradient(circle at 40% 30%, #30452c, #122018) !important;
+  color: #e0c47e;
+  font-family: Georgia, serif;
+  font-weight: 700;
+}
+.alert h2 {
+  color: #e0c47e !important;
+  font: 700 clamp(24px, 2vw, 37px)/1.12 Georgia, 'Times New Roman', serif !important;
+  letter-spacing: .015em;
+  margin-top: 9px;
+  text-shadow: 0 2px 2px #050b07 !important;
+}
+.alert p, .alert .alert-thank-you {
+  color: #f3ead5 !important;
+  font-weight: 500;
+  text-shadow: 0 1px 2px #050b07 !important;
+}
+.alert .alert-viewer-message { color: #c5baa0 !important; border-color: #b7a16633; }
+.alert .alert-platform {
+  border-radius: 3px;
+  color: var(--platform-accent, #b9a475) !important;
+  background: #0d1712 !important;
+  border: 1px solid color-mix(in srgb, var(--platform-accent, #b9a475) 45%, #17261c) !important;
+  letter-spacing: .13em;
+}
+.alert .alert-event {
+  color: #e0c47e !important;
+  background: #392c16 !important;
+  border: 1px solid #94753c !important;
+  border-radius: 3px;
+  letter-spacing: .13em;
+}
+.alert.platform-twitch { --platform-accent: #b09bbf; }
+.alert.platform-youtube { --platform-accent: #c49382; }
+.alert.platform-kick { --platform-accent: #9baa72; }
+.alert.platform-tiktok { --platform-accent: #86b5ad; }
+.alert.platform-streamlabs { --platform-accent: #83ab95; }
+.alert.platform-kofi { --platform-accent: #91afbc; }
+@media (max-width: 640px) {
+  .alert { padding: 38px 22px 22px !important; }
+  .alert::before { left: 22px; right: 38px; font-size: 8px; }
+  .alert .alert-identity { gap: 14px; }
+  .alert .alert-avatar { width: 64px; height: 64px; }
+}

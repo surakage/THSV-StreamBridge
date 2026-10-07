@@ -66,6 +66,10 @@ export class BrowserOverlayHub {
   private readonly startedPlaybackIds = new Map<string, Set<string>>();
   private readonly playbackOwners = new Map<string, Map<string, string>>();
   private readonly retainedLabelMessages = new Map<string, string>();
+  private readonly retainedTemplatePreviews = new Map<string, string>();
+  private retainedCaptionPreview: string | undefined;
+  private retainedAlertPreview: string | undefined;
+  private readonly retainedChatPreviews = new Map<string, string>();
   private readonly presentationQueue: QueuedPresentation[] = [];
   private readonly livePlatforms = new Set<string>();
   private offlineResetIssued = false;
@@ -84,6 +88,10 @@ export class BrowserOverlayHub {
       socket.send(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'hub.ready', emittedAt: new Date().toISOString() }));
       this.replayActiveMedia(socket);
       this.replayRetainedLabels(socket);
+      for (const message of this.retainedTemplatePreviews.values()) socket.send(message);
+      if (this.retainedCaptionPreview !== undefined) socket.send(this.retainedCaptionPreview);
+      if (this.retainedAlertPreview !== undefined) socket.send(this.retainedAlertPreview);
+      for (const message of this.retainedChatPreviews.values()) socket.send(message);
       this.logger.info('Browser overlay client connected', { clients: this.sockets.clients.size });
       socket.on('close', () => { this.addOnSubscriptions.delete(socket); this.hostVisibility.delete(socket); this.logger.info('Browser overlay client disconnected', { clients: this.sockets.clients.size }); });
       socket.on('message', (data) => this.receiveClientMessage(rawDataText(data), socket));
@@ -101,6 +109,14 @@ export class BrowserOverlayHub {
 
   public publish(event: NormalizedEvent): void {
     if (!event.metadata.simulated && event.eventType === 'stream.online') {
+      this.clearAlertPreview();
+      this.clearChatPreviews();
+      if (this.retainedCaptionPreview !== undefined) this.clearLiveCaptions('stream-online');
+      for (const moduleId of this.retainedTemplatePreviews.keys()) {
+        this.broadcast(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId, topic: `${moduleId}.preview.hide`, emittedAt: new Date().toISOString(), payload: { force: true } }));
+        this.retainedLabelMessages.delete(moduleId);
+      }
+      this.retainedTemplatePreviews.clear();
       this.livePlatforms.add(event.platform); this.offlineResetIssued = false;
     }
     else if (!event.metadata.simulated && event.eventType === 'stream.offline') {
@@ -115,21 +131,36 @@ export class BrowserOverlayHub {
     for (const overlayEvent of overlayEvents) {
       const message = JSON.stringify(overlayEvent);
       if (overlayEvent.kind === 'alert.show') {
+        this.clearAlertPreview();
         void this.enqueuePresentation('core.alerts', 'alert.show', overlayEvent.payload.display.durationMs, () => this.broadcast(message)).catch((error: unknown) => this.logger.warn('Overlay alert presentation was dropped', { error }));
       } else this.broadcast(message);
     }
     if (overlayEvents.length > 0) this.published += 1;
   }
 
-  public publishPreview(event: NormalizedEvent, override: BrowserOverlayConfig): number {
+  public publishPreview(event: NormalizedEvent, override: BrowserOverlayConfig, templatePreview = false): number {
     const previewEvent: NormalizedEvent = { ...event, metadata: { ...event.metadata, simulated: true, bridgeSequence: event.metadata.bridgeSequence ?? Number.MAX_SAFE_INTEGER } };
     const overlayEvents = projectBrowserOverlayEvents(previewEvent, { ...override, showSimulated: true, chat: { ...override.chat, events: { ...override.chat.events, enabled: false } } });
     for (const overlayEvent of overlayEvents) {
-      const message = JSON.stringify(overlayEvent);
+      const message = JSON.stringify(templatePreview && (overlayEvent.kind === 'alert.show' || overlayEvent.kind === 'chat.add') ? { ...overlayEvent, payload: { ...overlayEvent.payload, templatePreview: true } } : overlayEvent);
+      if (templatePreview && overlayEvent.kind === 'alert.show') this.retainedAlertPreview = message;
+      if (templatePreview && overlayEvent.kind === 'chat.add') this.retainedChatPreviews.set(overlayEvent.payload.platform, message);
       this.broadcast(message);
     }
     if (overlayEvents.length > 0) this.published += 1;
     return overlayEvents.length;
+  }
+
+  public clearAlertPreview(): void {
+    if (this.retainedAlertPreview === undefined) return;
+    this.retainedAlertPreview = undefined;
+    this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'alert.preview.clear' }));
+  }
+
+  public clearChatPreviews(): void {
+    if (this.retainedChatPreviews.size === 0) return;
+    this.retainedChatPreviews.clear();
+    this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'chat.preview.clear' }));
   }
 
   public publishAddOn(moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>, options?: AddOnOverlayPublishOptionsV2): Promise<void> {
@@ -167,13 +198,24 @@ export class BrowserOverlayHub {
       }
       this.broadcast(message); this.addOnPublished += 1;
     };
-    if (isPresentationStopTopic(moduleId, topic)) { this.cancelPresentations(moduleId); dispatch(); return Promise.resolve(); }
-    const lane = presentationLane(moduleId, topic, payload, options?.lane);
-    if (lane !== 'foreground') { dispatch(); return Promise.resolve(); }
     // A module event handler owns a short-lived capability grant. Holding this promise until
     // every earlier card finishes can outlive that grant and make later settlement/state work
     // fail even though the presentation was accepted correctly. Resolve on bounded queue
     // acceptance; dispatch failures are host-owned and remain visible in the bridge log.
+    if (payload['templatePreview'] === true || topic === `${moduleId}.preview.hide`) {
+      if (topic === `${moduleId}.preview.hide`) {
+        this.retainedTemplatePreviews.delete(moduleId);
+        this.retainedLabelMessages.delete(moduleId);
+      } else {
+        if (!this.retainedTemplatePreviews.has(moduleId) && this.retainedTemplatePreviews.size >= 200) throw new Error('Too many overlay templates are retained.');
+        this.retainedTemplatePreviews.set(moduleId, message);
+      }
+      dispatch();
+      return Promise.resolve();
+    }
+    if (isPresentationStopTopic(moduleId, topic)) { this.cancelPresentations(moduleId); dispatch(); return Promise.resolve(); }
+    const lane = presentationLane(moduleId, topic, payload, options?.lane);
+    if (lane !== 'foreground') { dispatch(); return Promise.resolve(); }
     const presentation = this.enqueuePresentation(moduleId, topic, presentationDuration(topic, payload, this.config.alertDurationMs), dispatch, playbackId);
     void presentation.catch((error: unknown) => {
       if (error instanceof OverlayPresentationCancelledError) {
@@ -187,11 +229,14 @@ export class BrowserOverlayHub {
 
   public publishLiveCaption(payload: Readonly<Record<string, unknown>>): void {
     if (!this.config.enabled) throw new Error('Browser overlays are disabled.');
-    this.broadcast(JSON.stringify({ contractVersion: 'thsv-live-captions-v1', kind: 'caption.show', emittedAt: new Date().toISOString(), payload }));
+    const message = JSON.stringify({ contractVersion: 'thsv-live-captions-v1', kind: 'caption.show', emittedAt: new Date().toISOString(), payload });
+    this.retainedCaptionPreview = payload['preview'] === true && payload['templatePreview'] === true ? message : undefined;
+    this.broadcast(message);
     this.liveCaptionsPublished += 1;
   }
 
   public clearLiveCaptions(reason: string): void {
+    this.retainedCaptionPreview = undefined;
     this.broadcast(JSON.stringify({ contractVersion: 'thsv-live-captions-v1', kind: 'caption.clear', emittedAt: new Date().toISOString(), reason: reason.slice(0, 100) }));
   }
 
@@ -239,8 +284,12 @@ export class BrowserOverlayHub {
     this.startedPlaybackIds.clear();
     this.playbackOwners.clear();
     this.retainedLabelMessages.clear();
+    this.retainedTemplatePreviews.clear();
     this.livePlatforms.clear();
+    this.retainedCaptionPreview = undefined;
     this.offlineResetIssued = false;
+    this.retainedAlertPreview = undefined;
+    this.retainedChatPreviews.clear();
     if (this.presentationTimer !== undefined) clearTimeout(this.presentationTimer);
     this.presentationTimer = undefined; this.activePresentation = undefined;
     for (const entry of this.presentationQueue.splice(0)) entry.reject(new OverlayPresentationCancelledError('Overlay presentation queue stopped.'));
@@ -251,6 +300,10 @@ export class BrowserOverlayHub {
   }
 
   private resetSurfaces(reason: 'stream-offline'): void {
+    this.retainedChatPreviews.clear();
+    this.retainedAlertPreview = undefined;
+    this.retainedCaptionPreview = undefined;
+    this.retainedTemplatePreviews.clear();
     this.activePlaybackIds.clear();
     this.activeMediaMessages.clear();
     this.startedPlaybackIds.clear();

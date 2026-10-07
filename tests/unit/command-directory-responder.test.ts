@@ -34,20 +34,41 @@ describe('CommandDirectoryResponder', () => {
 
     await responder.handle(command({ payload: { command: 'commands', targetModuleId: 'core.creator-configuration' } }));
     await responder.handle(command({ platform: 'system' }));
+    await responder.handle(command({ metadata: { simulated: true } }));
 
     expect(route).not.toHaveBeenCalled();
   });
 
-  it('fails closed to a retry message until publication supplies a public URL', async () => {
+  it('lists only commands supported on the invoking platform when publishing is off', async () => {
     const route = vi.fn().mockResolvedValue([{ platform: 'youtube', accepted: true, parts: 1 }]);
-    const directory = { publicationStatus: () => ({ enabled: true, state: 'ready' }) };
+    const directory = {
+      publicationStatus: () => ({ enabled: false, state: 'disabled' }),
+      catalogue: () => ({ prefix: '!', categories: [{ commands: [
+        { command: 'lurk', platforms: ['youtube', 'tiktok'] },
+        { command: 'discord', platforms: ['twitch'] },
+        { command: 'points', platforms: ['youtube', 'tiktok'] },
+      ] }] }),
+    };
     const responder = new CommandDirectoryResponder(directory as never, { route }, silentLogger);
 
     await responder.handle(command({ platform: 'youtube' }));
 
     expect(route).toHaveBeenCalledWith({
-      message: 'The stream command page is not available yet. Please try again shortly.',
+      message: 'Commands: !lurk, !points',
       routing: 'source', sourcePlatform: 'youtube', overflow: 'reject',
     });
+  });
+
+  it('bounds a long inline directory to TikTok\'s output limit', async () => {
+    const route = vi.fn().mockResolvedValue([{ platform: 'tiktok', accepted: true, parts: 1 }]);
+    const directory = {
+      publicationStatus: () => ({ enabled: false, state: 'disabled' }),
+      catalogue: () => ({ prefix: '!', categories: [{ commands: Array.from({ length: 50 }, (_, index) => ({ command: `command-${String(index)}`, platforms: ['tiktok'] })) }] }),
+    };
+    await new CommandDirectoryResponder(directory as never, { route }, silentLogger).handle(command({ platform: 'tiktok' }));
+    expect(route).toHaveBeenCalledOnce();
+    const request = route.mock.calls[0]?.[0] as { message: string };
+    expect(Array.from(request.message).length).toBeLessThanOrEqual(150);
+    expect(request.message).toMatch(/…$/u);
   });
 });

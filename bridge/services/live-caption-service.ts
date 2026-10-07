@@ -64,7 +64,8 @@ export class LiveCaptionService {
     const settings = previewSettings(input, this.config);
     const text = 'Live captions make every voice in the village easier to follow.';
     const durationMs = Math.max(settings.durationMs, 8_000);
-    this.overlay.publishLiveCaption({ text, confidence: 0.98, durationMs, expiresAt: new Date(this.now() + durationMs).toISOString(), preview: true, style: captionStyle(settings) });
+    const templatePreview = record(input)?.['templatePreview'] === true;
+    this.overlay.publishLiveCaption({ text, confidence: 0.98, durationMs, expiresAt: new Date(this.now() + durationMs).toISOString(), preview: true, ...(templatePreview ? { templatePreview: true } : {}), style: captionStyle(settings) });
     return { published: true, characters: text.length, overlayUrl: '/overlay/captions' };
   }
 

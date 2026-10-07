@@ -380,6 +380,7 @@ async function publishState(context, settings, state) {
     await context.overlay.publish(`${moduleId}.timer.update`, {
       moduleId,
       label: cleanText(settings.overlayLabel, 80) || 'SUBATHON',
+      endsAt: state.updatedAt + state.remainingSeconds * 1000,
       remainingSeconds: state.remainingSeconds,
       maximumSeconds: Math.max(0, settings.maximumMinutes * 60),
       remainingText: formatRemaining(state.remainingSeconds),
@@ -404,7 +405,8 @@ function scheduleTick(context, state) {
   if (!state.running || state.remainingSeconds === 0 || stopped) return;
   tickTimer = context.schedule.after(1_000, () => {
     tickTimer = undefined;
-    return serialize(() => handleTick(context));
+    // Return immediately; private I/O must not consume the broker callback budget.
+    void serialize(() => handleTick(context)).catch(() => undefined);
   });
 }
 

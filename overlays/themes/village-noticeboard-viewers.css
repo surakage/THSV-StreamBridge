@@ -1,0 +1,44 @@
+/* Quiet Village Post queue and collectible profile. */
+.card[data-card-kind="viewer-lobby"], .spotlight-face {
+  background:
+    radial-gradient(circle at 12px 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) 12px, #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at 12px calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), #d8b24c 0 2px, #382d1b 3px, transparent 4px),
+    repeating-linear-gradient(2deg, #ffffff03 0 1px, transparent 1px 7px),
+    linear-gradient(105deg, #302719, #17261c 28%, #101b15 100%) !important;
+  border: 2px solid #8b713a !important;
+  border-radius: 8px 24px 8px 24px !important;
+  box-shadow: inset 0 0 0 5px #100f0b, inset 0 0 0 6px #766035,
+    inset 0 0 24px #050b07, 0 9px 22px #00000045 !important;
+  color: #f3ead5;
+  backdrop-filter: none !important;
+}
+
+.card[data-card-kind="viewer-lobby"] {width:min(92vw,720px);padding:28px;min-height:0;font-family:'Segoe UI',sans-serif;}
+.card[data-card-kind="viewer-lobby"] .generic-card, .card[data-card-kind="viewer-lobby"] .card-copy {width:100%;}
+.card[data-card-kind="viewer-lobby"] strong {font-family:Georgia,serif;color:#e0c47e;font-size:28px;line-height:1.2;}
+.card[data-card-kind="viewer-lobby"] p {display:flex;flex-direction:column;gap:7px;font-size:18px;overflow:hidden;margin:10px 0 0;}
+.lobby-summary {font-size:12px;letter-spacing:.1em;color:#c5baa0;padding-bottom:9px;border-bottom:1px solid #8b713a66;}
+.lobby-row {display:flex;align-items:center;gap:12px;padding:8px 10px;background:#0d1712;border:1px solid #8b713a44;border-radius:3px;}
+.lobby-row[data-selected="true"] {border-color:#b59851;background:#302719;}
+.lobby-rank {flex:0 0 62px;font-size:11px;letter-spacing:.07em;color:#e0c47e;}
+.lobby-identity {flex:1;min-width:0;display:flex;flex-direction:column;}
+.lobby-name {white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f3ead5;}
+.lobby-gamertag {font-size:12px;color:#c5baa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lobby-platform {font-size:10px;color:#b9a475;letter-spacing:.05em;}
+.lobby-empty,.lobby-more {font-size:14px;color:#c5baa0;padding:5px 0;}
+.card[data-card-kind="viewer-spotlight"] {--card-accent:#e0c47e!important;--card-text:#f3ead5!important;--card-background:#122018!important;}
+.spotlight-foil {display:none;}
+.spotlight-face {padding:clamp(18px,3vmin,36px);}
+.spotlight-name,.spotlight-back-heading strong {font-family:Georgia,serif!important;color:#e0c47e!important;}
+.spotlight-rarity,.spotlight-back-heading small {font-family:Georgia,serif;font-weight:400;color:#b9a475;letter-spacing:.14em;}
+.spotlight-rarity,.spotlight-back-heading {border-color:#8b713a66;}
+.spotlight-avatar {width:clamp(110px,25vmin,230px);height:clamp(110px,25vmin,230px);border:4px double #b59851;border-radius:50%;box-shadow:none;}
+.spotlight-avatar-fallback {background:radial-gradient(circle at 35% 25%,#30452c,#122018);font-family:Georgia,serif;}
+.spotlight-stat {background:#0d1712;border:1px solid #8b713a66;border-radius:4px;min-height:70px;}
+.spotlight-stat-name,.spotlight-back-platform {color:#c5baa0;font-weight:500;}
+.spotlight-stat-value {color:#e0c47e;font-family:Georgia,serif;font-weight:700;}
+.spotlight-stat:last-child:nth-child(odd) {grid-column:1/-1;}
+.spotlight-platform,.spotlight-viewer-type,.spotlight-follow {background:#17261c;border-color:#8b713a66;color:#c5baa0;border-radius:3px;font-weight:500;}
+@keyframes spotlight-flip {from{transform:rotateY(0deg)}to{transform:rotateY(180deg)}}

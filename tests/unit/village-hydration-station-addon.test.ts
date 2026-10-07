@@ -7,7 +7,7 @@ function runtime(settings: Record<string, unknown> = {}, initialState: Record<st
   let state: Record<string, unknown> = initialState;
   const timers: Array<() => unknown> = [];
   const context = {
-    settings: { enabled: true, ...settings },
+    settings: { enabled: true, displayMode: 'volume', ...settings },
     state: { read: vi.fn(async () => state), write: vi.fn(async (next: Record<string, unknown>) => { state = next; }) },
     overlay: { publish: vi.fn(async () => undefined) }, chat: { send: vi.fn(async () => []) },
     streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
@@ -21,6 +21,31 @@ function event(eventType: string, platform = 'twitch', payload: Record<string, u
 }
 
 describe('Village Hydration Station add-on', () => {
+  it('defaults to friendly reminders and acknowledges one sip without measuring water', async () => {
+    expect(settingsFor({ settings: {} }).displayMode).toBe('reminder');
+    const test = runtime({ displayMode: 'reminder', resetMode: 'stream' }, { totalOunces: 32 });
+    await hydration.start(test.context);
+    await hydration.onEvent(event('command.received', 'twitch', { command: 'water', arguments: ['sip'] }), test.context);
+    expect(test.state().sipCount).toBe(0);
+    await hydration.onEvent(event('command.received', 'twitch', { command: 'water', arguments: ['sip'] }, ['broadcaster']), test.context);
+    expect(test.state()).toMatchObject({ sipCount: 1, totalOunces: 32 });
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-hydration-station.hydration.update', expect.objectContaining({ displayMode: 'reminder', sipCount: 1 }), { lane: 'foreground' });
+    await hydration.onEvent(event('addon.thsv.village-hydration-station.control', 'system', { action: 'log', amountText: '64' }), test.context);
+    expect(test.state()).toMatchObject({ sipCount: 2, totalOunces: 32 });
+    await hydration.onEvent(event('stream.online', 'facebook'), test.context);
+    expect(test.state().sipCount).toBe(0);
+    await hydration.stop(test.context);
+  });
+
+  it('shows an automatic visual sip reminder while live and never treats it as a sip', async () => {
+    const test = runtime({ displayMode: 'sips' });
+    await hydration.start(test.context);
+    await hydration.onEvent(event('stream.online'), test.context);
+    const reminder = test.timers.at(-1);
+    await reminder?.();
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-hydration-station.hydration.update', expect.objectContaining({ displayMode: 'sips', sipCount: 0, notice: expect.objectContaining({ kind: 'automatic' }) }), { lane: 'foreground' });
+    await hydration.stop(test.context);
+  });
   it('parses numeral and spoken ounce amounts', () => {
     expect(parseOunces('8 oz')).toBe(8);
     expect(parseOunces('twenty four ounces')).toBe(24);

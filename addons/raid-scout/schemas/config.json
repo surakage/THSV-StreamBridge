@@ -4,51 +4,283 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Raid Scout", "default": true },
-    "autoStartSceneEnabled": { "type": "boolean", "title": "Start Raid Scout on an ending scene", "description": "While Twitch is live, entering the exact scene in the selected broadcast app starts one search per stream. Repeated scene events are ignored.", "default": false },
-    "autoStartProvider": { "type": "string", "title": "Ending-scene broadcast app", "description": "Choose the app whose normalized Streamer.bot Scene Changed relay owns the ending scene.", "enum": ["obs", "meld", "streamlabs"], "default": "obs" },
-    "autoStartSceneName": { "type": "string", "title": "Ending scene name", "description": "Enter the scene name exactly as it appears in the selected app, including emoji or folder symbols.", "minLength": 1, "maxLength": 200, "default": "Stream Ending" },
-    "usePreferred": { "type": "boolean", "title": "Search preferred channels", "default": true },
-    "useFollowed": { "type": "boolean", "title": "Search followed live channels", "default": true },
-    "useCategory": { "type": "boolean", "title": "Search the current Twitch category", "default": true },
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Raid Scout",
+      "default": true
+    },
+    "autoStartSceneEnabled": {
+      "type": "boolean",
+      "title": "Start Raid Scout on an ending scene",
+      "description": "While Twitch is live, entering the exact scene in the selected broadcast app starts one search per stream. Repeated scene events are ignored.",
+      "default": false
+    },
+    "autoStartProvider": {
+      "type": "string",
+      "title": "Ending-scene broadcast app",
+      "description": "Choose the app whose normalized Streamer.bot Scene Changed relay owns the ending scene.",
+      "enum": [
+        "obs",
+        "meld",
+        "streamlabs"
+      ],
+      "default": "obs"
+    },
+    "autoStartSceneName": {
+      "type": "string",
+      "title": "Ending scene name",
+      "description": "Enter the scene name exactly as it appears in the selected app, including emoji or folder symbols.",
+      "minLength": 1,
+      "maxLength": 200,
+      "default": "Stream Ending"
+    },
+    "usePreferred": {
+      "type": "boolean",
+      "title": "Search preferred channels",
+      "default": true
+    },
+    "useFollowed": {
+      "type": "boolean",
+      "title": "Search followed live channels",
+      "default": true
+    },
+    "useCategory": {
+      "type": "boolean",
+      "title": "Search the current Twitch category",
+      "default": true
+    },
     "sourceOrder": {
       "type": "string",
       "title": "Legacy discovery request order",
       "description": "Retained for configuration compatibility. Discovery and selection now use the fixed preferred/local, followed-live, then same-category tier order.",
-      "enum": ["preferred-followed-category", "preferred-category-followed", "followed-preferred-category", "followed-category-preferred", "category-preferred-followed", "category-followed-preferred"],
+      "enum": [
+        "preferred-followed-category",
+        "preferred-category-followed",
+        "followed-preferred-category",
+        "followed-category-preferred",
+        "category-preferred-followed",
+        "category-followed-preferred"
+      ],
       "default": "preferred-followed-category"
     },
-    "preferredChannels": { "type": "string", "format": "multiline", "title": "Permanent preferred Twitch channels", "description": "Your creator-managed list is kept between streams. One login per line or comma-separated.", "maxLength": 5000, "default": "" },
-    "maximumPreferredLookups": { "type": "integer", "title": "Maximum preferred channels per search", "minimum": 1, "maximum": 25, "default": 20 },
-    "viewerSuggestionsEnabled": { "type": "boolean", "title": "Let viewers suggest channels", "default": false },
-    "viewerSuggestionRewardId": { "type": "string", "title": "Twitch suggestion reward ID", "description": "Create a Streamer.bot-owned Twitch reward that requires text input, then paste its stable reward ID here.", "maxLength": 256, "default": "" },
-    "kickViewerSuggestionRewardId": { "type": "string", "title": "Kick suggestion reward ID", "description": "Paste the stable Kick reward ID. Kick redemptions are accepted immediately because Streamer.bot does not currently expose Kick reward fulfill or refund methods.", "maxLength": 256, "default": "" },
-    "viewerSuggestionCommand": { "type": "string", "title": "YouTube and TikTok suggestion command", "description": "Use this command with a channel login, for example !raidsuggest creatorname.", "pattern": "^[a-z][a-z0-9-]{0,63}$", "default": "raidsuggest" },
-    "viewerSuggestionPointsCost": { "type": "integer", "title": "YouTube and TikTok points cost", "minimum": 1, "maximum": 1000000, "default": 50 },
-    "maximumViewerSuggestions": { "type": "integer", "title": "Maximum viewer suggestions per stream", "minimum": 1, "maximum": 25, "default": 20 },
-    "oneViewerSuggestionPerStream": { "type": "boolean", "title": "Allow one suggestion per viewer each stream", "default": true },
-    "announceViewerSuggestions": { "type": "boolean", "title": "Confirm accepted or rejected suggestions in Twitch chat", "default": true },
-    "viewerSuggestionAcceptedMessage": { "type": "string", "format": "multiline", "title": "Accepted suggestion message", "description": "Tokens: {viewer}, {channel}.", "minLength": 1, "maxLength": 500, "default": "{viewer}, added {channel} to tonight's raid list." },
-    "viewerSuggestionRejectedMessage": { "type": "string", "format": "multiline", "title": "Rejected suggestion message", "description": "Tokens: {viewer}, {channel}. Keep this generic so blocked-channel rules remain private.", "minLength": 1, "maxLength": 500, "default": "{viewer}, that raid suggestion could not be added." },
-    "maximumFollowedResults": { "type": "integer", "title": "Maximum followed candidates", "minimum": 1, "maximum": 100, "default": 25 },
-    "maximumFollowedPages": { "type": "integer", "title": "Maximum followed-stream pages", "description": "Each page is one Twitch request. Two is recommended.", "minimum": 1, "maximum": 3, "default": 2 },
-    "maximumCategoryResults": { "type": "integer", "title": "Maximum same-category candidates", "minimum": 1, "maximum": 100, "default": 100 },
-    "minimumViewers": { "type": "integer", "title": "Minimum candidate viewers", "minimum": 0, "maximum": 10000000, "default": 1 },
-    "maximumViewers": { "type": "integer", "title": "Maximum candidate viewers", "minimum": 1, "maximum": 10000000, "default": 100000 },
-    "allowViewerRangeFallback": { "type": "boolean", "title": "Use the closest safe match when the viewer ceiling is empty", "description": "If no otherwise-safe channel is at or below the maximum, Raid Scout may select the closest channel up to twice the configured maximum or 25 viewers above it. Language, channel, category, tag, self, and repeat protections remain enforced.", "default": true },
-    "currentAudienceEstimate": { "type": "integer", "title": "Fallback current audience estimate", "description": "Zero uses the broadcaster's live viewer count returned by Twitch.", "minimum": 0, "maximum": 10000000, "default": 0 },
-    "preferSimilarSize": { "type": "boolean", "title": "Legacy similar-size preference", "description": "Retained for configuration compatibility. Raid Scout now selects the eligible channel with the fewest viewers inside the first available tier: preferred/local, followed, then same category.", "default": true },
-    "minimumAudienceRatio": { "type": "number", "title": "Preferred minimum audience ratio", "minimum": 0.01, "maximum": 100, "default": 0.25 },
-    "maximumAudienceRatio": { "type": "number", "title": "Preferred maximum audience ratio", "minimum": 0.01, "maximum": 100, "default": 2 },
-    "preferredLanguage": { "type": "string", "title": "Preferred Twitch language code", "description": "Examples: en, es, fr. Leave empty for any language.", "maxLength": 12, "default": "" },
-    "requireMatchingLanguage": { "type": "boolean", "title": "Require the preferred language", "default": false },
-    "excludedChannels": { "type": "string", "format": "multiline", "title": "Blocked channels", "description": "One Twitch login per line.", "maxLength": 5000, "default": "" },
-    "excludedCategories": { "type": "string", "format": "multiline", "title": "Excluded categories", "description": "Case-insensitive partial matches, one per line.", "maxLength": 5000, "default": "" },
-    "excludedTags": { "type": "string", "format": "multiline", "title": "Excluded tags", "description": "Case-insensitive partial matches, one per line.", "maxLength": 5000, "default": "" },
-    "recentRaidStreams": { "type": "integer", "title": "Do not repeat a destination for this many streams", "minimum": 0, "maximum": 100, "default": 7 },
-    "confirmationMode": { "type": "string", "title": "Raid confirmation mode", "enum": ["required", "suggest-only", "automatic"], "default": "required" },
-    "suggestionExpiryMinutes": { "type": "integer", "title": "Suggestion expiry (minutes)", "minimum": 1, "maximum": 1440, "default": 15 },
-    "announceConfirmedRaid": { "type": "boolean", "title": "Announce only after Twitch accepts the raid", "default": true },
+    "preferredChannels": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Permanent preferred Twitch channels",
+      "description": "Your creator-managed list is kept between streams. One login per line or comma-separated.",
+      "maxLength": 5000,
+      "default": ""
+    },
+    "maximumPreferredLookups": {
+      "type": "integer",
+      "title": "Maximum preferred channels per search",
+      "minimum": 1,
+      "maximum": 25,
+      "default": 20
+    },
+    "viewerSuggestionsEnabled": {
+      "type": "boolean",
+      "title": "Let viewers suggest channels",
+      "default": false
+    },
+    "viewerSuggestionRewardId": {
+      "type": "string",
+      "title": "Twitch suggestion reward ID",
+      "description": "Create a Streamer.bot-owned Twitch reward that requires text input, then paste its stable reward ID here.",
+      "maxLength": 256,
+      "default": ""
+    },
+    "kickViewerSuggestionRewardId": {
+      "type": "string",
+      "title": "Kick suggestion reward ID",
+      "description": "Paste the stable Kick reward ID. Kick redemptions are accepted immediately because Streamer.bot does not currently expose Kick reward fulfill or refund methods.",
+      "maxLength": 256,
+      "default": ""
+    },
+    "viewerSuggestionCommand": {
+      "type": "string",
+      "title": "YouTube and TikTok suggestion command",
+      "description": "Use this command with a channel login, for example !raidsuggest creatorname.",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$",
+      "default": "raidsuggest"
+    },
+    "viewerSuggestionPointsCost": {
+      "type": "integer",
+      "title": "YouTube and TikTok points cost",
+      "minimum": 1,
+      "maximum": 1000000,
+      "default": 50
+    },
+    "maximumViewerSuggestions": {
+      "type": "integer",
+      "title": "Maximum viewer suggestions per stream",
+      "minimum": 1,
+      "maximum": 25,
+      "default": 20
+    },
+    "oneViewerSuggestionPerStream": {
+      "type": "boolean",
+      "title": "Allow one suggestion per viewer each stream",
+      "default": true
+    },
+    "announceViewerSuggestions": {
+      "type": "boolean",
+      "title": "Confirm accepted or rejected suggestions in Twitch chat",
+      "default": true
+    },
+    "viewerSuggestionAcceptedMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Accepted suggestion message",
+      "description": "Tokens: {viewer}, {channel}.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{viewer}, added {channel} to tonight's raid list."
+    },
+    "viewerSuggestionRejectedMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Rejected suggestion message",
+      "description": "Tokens: {viewer}, {channel}. Keep this generic so blocked-channel rules remain private.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{viewer}, that raid suggestion could not be added."
+    },
+    "maximumFollowedResults": {
+      "type": "integer",
+      "title": "Maximum followed candidates",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 25
+    },
+    "maximumFollowedPages": {
+      "type": "integer",
+      "title": "Maximum followed-stream pages",
+      "description": "Each page is one Twitch request. Two is recommended.",
+      "minimum": 1,
+      "maximum": 3,
+      "default": 2
+    },
+    "maximumCategoryResults": {
+      "type": "integer",
+      "title": "Maximum same-category candidates",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 100
+    },
+    "minimumViewers": {
+      "type": "integer",
+      "title": "Minimum candidate viewers",
+      "minimum": 0,
+      "maximum": 10000000,
+      "default": 1
+    },
+    "maximumViewers": {
+      "type": "integer",
+      "title": "Maximum candidate viewers",
+      "minimum": 1,
+      "maximum": 10000000,
+      "default": 100000
+    },
+    "allowViewerRangeFallback": {
+      "type": "boolean",
+      "title": "Use the closest safe match when the viewer ceiling is empty",
+      "description": "If no otherwise-safe channel is at or below the maximum, Raid Scout may select the closest channel up to twice the configured maximum or 25 viewers above it. Language, channel, category, tag, self, and repeat protections remain enforced.",
+      "default": true
+    },
+    "currentAudienceEstimate": {
+      "type": "integer",
+      "title": "Fallback current audience estimate",
+      "description": "Zero uses the broadcaster's live viewer count returned by Twitch.",
+      "minimum": 0,
+      "maximum": 10000000,
+      "default": 0
+    },
+    "preferSimilarSize": {
+      "type": "boolean",
+      "title": "Legacy similar-size preference",
+      "description": "Retained for configuration compatibility. Raid Scout now selects the eligible channel with the fewest viewers inside the first available tier: preferred/local, followed, then same category.",
+      "default": true
+    },
+    "minimumAudienceRatio": {
+      "type": "number",
+      "title": "Preferred minimum audience ratio",
+      "minimum": 0.01,
+      "maximum": 100,
+      "default": 0.25
+    },
+    "maximumAudienceRatio": {
+      "type": "number",
+      "title": "Preferred maximum audience ratio",
+      "minimum": 0.01,
+      "maximum": 100,
+      "default": 2
+    },
+    "preferredLanguage": {
+      "type": "string",
+      "title": "Preferred Twitch language code",
+      "description": "Examples: en, es, fr. Leave empty for any language.",
+      "maxLength": 12,
+      "default": ""
+    },
+    "requireMatchingLanguage": {
+      "type": "boolean",
+      "title": "Require the preferred language",
+      "default": false
+    },
+    "excludedChannels": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Blocked channels",
+      "description": "One Twitch login per line.",
+      "maxLength": 5000,
+      "default": ""
+    },
+    "excludedCategories": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Excluded categories",
+      "description": "Case-insensitive partial matches, one per line.",
+      "maxLength": 5000,
+      "default": ""
+    },
+    "excludedTags": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Excluded tags",
+      "description": "Case-insensitive partial matches, one per line.",
+      "maxLength": 5000,
+      "default": ""
+    },
+    "recentRaidStreams": {
+      "type": "integer",
+      "title": "Do not repeat a destination for this many streams",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 7
+    },
+    "confirmationMode": {
+      "type": "string",
+      "title": "Raid confirmation mode",
+      "enum": [
+        "required",
+        "suggest-only",
+        "automatic"
+      ],
+      "default": "required"
+    },
+    "suggestionExpiryMinutes": {
+      "type": "integer",
+      "title": "Suggestion expiry (minutes)",
+      "minimum": 1,
+      "maximum": 1440,
+      "default": 15
+    },
+    "announceConfirmedRaid": {
+      "type": "boolean",
+      "title": "Announce only after Twitch confirms viewers transferred",
+      "default": true
+    },
     "confirmedRaidMessage": {
       "type": "string",
       "format": "multiline",
@@ -58,31 +290,264 @@
       "maxLength": 1000,
       "default": "Next stop: {displayName} playing {category}! https://twitch.tv/{login}"
     },
-    "announceNoCandidate": { "type": "boolean", "title": "Post a no-candidate message in Twitch chat", "description": "Disabled by default to keep search progress private.", "default": false },
-    "noCandidateMessage": { "type": "string", "format": "multiline", "title": "No-candidate message", "minLength": 1, "maxLength": 500, "default": "Raid Scout could not find a safe live destination with the current filters." },
-    "showSearchProgress": { "type": "boolean", "title": "Show each search phase on the Raid Scout overlay", "description": "Shows preferred, followed, and same-category checks as private overlay progress. It does not post those steps to chat.", "default": true },
-    "showSuggestionCard": { "type": "boolean", "title": "Show suggestions in the Raid Scout browser card", "description": "Enabled so a private OBS/Meld/browser dock can show what Confirm will raid. Disable this if the same URL is placed on-stream and you want suggestions hidden from viewers.", "default": true },
-    "showConfirmedCard": { "type": "boolean", "title": "Show the confirmed Next Stop card", "default": true },
-    "cardSeconds": { "type": "integer", "title": "Card duration (seconds)", "minimum": 5, "maximum": 3600, "default": 20 },
-    "previewClipBeforeRaid": { "type": "boolean", "title": "Play one random clip before starting the confirmed raid", "description": "After Confirm, Raid Scout requests a bounded clip list, plays the selected clip through completion, then starts the raid. The ending ad can run in parallel from the moment Suggest begins.", "default": false },
-    "pauseOtherVideoOverlays": { "type": "boolean", "title": "Pause other THSV video overlays during the raid preview", "description": "Recommended. Confirming a raid temporarily fades and pauses Random Clip Player or another coordinated THSV video overlay so the two clips cannot overlap.", "default": true },
-    "clipLookupCount": { "type": "integer", "title": "Clips considered for random selection", "description": "Streamer.bot requests this many public clips for the selected channel. One is chosen locally at random.", "minimum": 1, "maximum": 40, "default": 20 },
-    "clipPreviewMuted": { "type": "boolean", "title": "Mute the raid clip preview", "description": "Keep enabled when browser-source autoplay blocks audio. OBS browser sources normally support unmuted playback.", "default": false },
-    "clipPreviewVolume": { "type": "number", "title": "Raid clip volume", "minimum": 0, "maximum": 1, "default": 0.8 },
-    "endBroadcastAfterRaid": { "type": "boolean", "title": "End the broadcast after the raid attempt", "description": "Disabled by default. In after-ad mode, Suggest starts or adopts the ad, confirmation and clip playback continue during it, and the approved stop action runs after the genuine ad timer even if Twitch rejects or cannot confirm the raid.", "default": false },
-    "endBroadcastProvider": { "type": "string", "title": "Broadcast application", "description": "Choose the application that owns the live broadcast. This keeps the stop action and Streaming Stopped confirmation on the same provider.", "enum": ["obs", "meld", "streamlabs"], "default": "obs" },
-    "endBroadcastActionId": { "type": "string", "title": "Provider Stop Streaming action", "description": "OBS Studio/Aitum: choose the included Stop All OBS Streaming Outputs action. Meld Studio: choose an action containing Meld Studio > Stop Streaming. Streamlabs Desktop: choose an action containing Streamlabs Desktop > Stop Streaming. Approve the same action below.", "maxLength": 36, "default": "" },
-    "endBroadcastTiming": { "type": "string", "title": "When to end the broadcast", "description": "After-ad asks Twitch to start the ending ad, then waits for a genuine Twitch Ad Run event and uses Twitch's reported duration. Countdown preserves the older fixed-delay behavior.", "enum": ["after-ad", "countdown"], "default": "after-ad" },
-    "endBroadcastDelaySeconds": { "type": "integer", "title": "Cancelable end-stream countdown (seconds)", "description": "Raid Scout Cancel aborts automatic ending only before the Stop Streaming action is sent.", "minimum": 5, "maximum": 60, "default": 10 },
-    "endBroadcastAdDurationSeconds": { "type": "integer", "title": "Ending Twitch ad length", "description": "The duration Raid Scout asks Twitch to run. Twitch's genuine Ad Run event remains the authoritative timer.", "enum": [30, 60, 90, 120, 150, 180], "default": 180 },
-    "endBroadcastAdWaitSeconds": { "type": "integer", "title": "Maximum wait for Twitch to confirm the ad (seconds)", "description": "After the raid attempt and ending-ad request, wait this long for a genuine Twitch Ad Run signal. If none arrives, leave the broadcast running because there is no trustworthy ad timer.", "minimum": 30, "maximum": 1800, "default": 45 },
-    "endBroadcastAdEndBufferSeconds": { "type": "integer", "title": "Extra buffer after the ad (seconds)", "description": "Small safety buffer added after Twitch's reported ad duration before Stop Streaming runs.", "minimum": 0, "maximum": 30, "default": 3 },
-    "endBroadcastAcknowledged": { "type": "boolean", "title": "I understand this can end my live broadcast", "description": "Required in addition to enabling the feature. Raid Scout never retries a failed or unconfirmed stop command.", "default": false },
-    "overlayBackgroundMode": { "type": "string", "title": "Overlay background", "enum": ["glass", "solid", "none"], "default": "glass" },
-    "overlayBackgroundColor": { "type": "string", "title": "Background color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#17122b" },
-    "overlayBackgroundOpacity": { "type": "number", "title": "Background opacity", "minimum": 0, "maximum": 1, "default": 0.94 },
-    "overlayAccentColor": { "type": "string", "title": "Accent color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#9146ff" },
-    "overlayTextColor": { "type": "string", "title": "Text color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
-    "overlayFontFamily": { "type": "string", "title": "Font", "enum": ["display", "broadcast", "serif", "mono"], "default": "display" }
+    "announceNoCandidate": {
+      "type": "boolean",
+      "title": "Post a no-candidate message in Twitch chat",
+      "description": "Disabled by default to keep search progress private.",
+      "default": false
+    },
+    "noCandidateMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "No-candidate message",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "Raid Scout could not find a safe live destination with the current filters."
+    },
+    "showSearchProgress": {
+      "type": "boolean",
+      "title": "Show each search phase on the Raid Scout overlay",
+      "description": "Shows preferred, followed, and same-category checks as private overlay progress. It does not post those steps to chat.",
+      "default": true
+    },
+    "showSuggestionCard": {
+      "type": "boolean",
+      "title": "Show suggestions in the Raid Scout browser card",
+      "description": "Enabled so a private OBS/Meld/browser dock can show what Confirm will raid. Disable this if the same URL is placed on-stream and you want suggestions hidden from viewers.",
+      "default": true
+    },
+    "showConfirmedCard": {
+      "type": "boolean",
+      "title": "Show the confirmed Next Stop card",
+      "default": true
+    },
+    "cardSeconds": {
+      "type": "integer",
+      "title": "Card duration (seconds)",
+      "minimum": 5,
+      "maximum": 3600,
+      "default": 20
+    },
+    "previewClipBeforeRaid": {
+      "type": "boolean",
+      "title": "Play one random clip before starting the confirmed raid",
+      "description": "After Confirm, Raid Scout requests a bounded clip list, plays the selected clip through completion, then starts the raid. The ending ad can run in parallel from the moment Suggest begins.",
+      "default": false
+    },
+    "pauseOtherVideoOverlays": {
+      "type": "boolean",
+      "title": "Pause other THSV video overlays during the raid preview",
+      "description": "Recommended. Confirming a raid temporarily fades and pauses Random Clip Player or another coordinated THSV video overlay so the two clips cannot overlap.",
+      "default": true
+    },
+    "clipLookupCount": {
+      "type": "integer",
+      "title": "Clips considered for random selection",
+      "description": "Streamer.bot requests this many public clips for the selected channel. One is chosen locally at random.",
+      "minimum": 1,
+      "maximum": 40,
+      "default": 20
+    },
+    "clipPreviewMuted": {
+      "type": "boolean",
+      "title": "Mute the raid clip preview",
+      "description": "Keep enabled when browser-source autoplay blocks audio. OBS browser sources normally support unmuted playback.",
+      "default": false
+    },
+    "clipPreviewVolume": {
+      "type": "number",
+      "title": "Raid clip volume",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.8
+    },
+    "endBroadcastAfterRaid": {
+      "type": "boolean",
+      "title": "End the broadcast after the raid attempt",
+      "description": "Disabled by default. The approved stop action runs after Twitch confirms the viewer handoff and the configured ending wait finishes. Enable finish-on-failure below to also finish a requested ending when a destination or raid is unavailable.",
+      "default": false
+    },
+    "endBroadcastProvider": {
+      "type": "string",
+      "title": "Broadcast application",
+      "description": "Choose the application that owns the live broadcast. This keeps the stop action and Streaming Stopped confirmation on the same provider.",
+      "enum": [
+        "obs",
+        "meld",
+        "streamlabs"
+      ],
+      "default": "obs"
+    },
+    "endBroadcastActionId": {
+      "type": "string",
+      "title": "Provider Stop Streaming action",
+      "description": "OBS Studio/Aitum: choose the included Stop All OBS Streaming Outputs action. Meld Studio: choose an action containing Meld Studio > Stop Streaming. Streamlabs Desktop: choose an action containing Streamlabs Desktop > Stop Streaming. Approve the same action below.",
+      "maxLength": 36,
+      "default": ""
+    },
+    "endBroadcastTiming": {
+      "type": "string",
+      "title": "When to end the broadcast",
+      "description": "After-ad asks Twitch to start the ending ad, then waits for a genuine Twitch Ad Run event and uses Twitch's reported duration. Countdown preserves the older fixed-delay behavior.",
+      "enum": [
+        "after-ad",
+        "countdown"
+      ],
+      "default": "after-ad"
+    },
+    "endBroadcastDelaySeconds": {
+      "type": "integer",
+      "title": "Cancelable end-stream countdown (seconds)",
+      "description": "Raid Scout Cancel aborts automatic ending only before the Stop Streaming action is sent.",
+      "minimum": 5,
+      "maximum": 60,
+      "default": 10
+    },
+    "endBroadcastAdDurationSeconds": {
+      "type": "integer",
+      "title": "Ending Twitch ad length",
+      "description": "The duration Raid Scout asks Twitch to run. Twitch's genuine Ad Run event remains the authoritative timer.",
+      "enum": [
+        30,
+        60,
+        90,
+        120,
+        150,
+        180
+      ],
+      "default": 180
+    },
+    "endBroadcastAdWaitSeconds": {
+      "type": "integer",
+      "title": "Maximum wait for Twitch to confirm the ad (seconds)",
+      "description": "Wait this long for a genuine Twitch Ad Run signal. With finish-on-failure enabled, a missing signal uses the full requested duration plus this confirmation grace; otherwise the broadcast stays live.",
+      "minimum": 30,
+      "maximum": 1800,
+      "default": 45
+    },
+    "endBroadcastAdEndBufferSeconds": {
+      "type": "integer",
+      "title": "Extra buffer after the ad (seconds)",
+      "description": "Small safety buffer added after Twitch's reported ad duration before Stop Streaming runs.",
+      "minimum": 0,
+      "maximum": 30,
+      "default": 3
+    },
+    "endBroadcastAcknowledged": {
+      "type": "boolean",
+      "title": "I understand this can end my live broadcast",
+      "description": "Required in addition to enabling the feature. Raid Scout never retries a failed or unconfirmed stop command.",
+      "default": false
+    },
+    "overlayBackgroundMode": {
+      "type": "string",
+      "title": "Overlay background",
+      "enum": [
+        "glass",
+        "solid",
+        "none"
+      ],
+      "default": "glass"
+    },
+    "overlayBackgroundColor": {
+      "type": "string",
+      "title": "Background color",
+      "format": "color",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#17122b"
+    },
+    "overlayBackgroundOpacity": {
+      "type": "number",
+      "title": "Background opacity",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.94
+    },
+    "overlayAccentColor": {
+      "type": "string",
+      "title": "Accent color",
+      "format": "color",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#9146ff"
+    },
+    "overlayTextColor": {
+      "type": "string",
+      "title": "Text color",
+      "format": "color",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#ffffff"
+    },
+    "overlayFontFamily": {
+      "type": "string",
+      "title": "Font",
+      "enum": [
+        "display",
+        "broadcast",
+        "serif",
+        "mono"
+      ],
+      "default": "display"
+    },
+    "startMode": {
+      "type": "string",
+      "title": "Start raid search",
+      "enum": [
+        "manual",
+        "scene-change"
+      ],
+      "description": "Manual uses the Streamer.bot Suggest action from a Stream Deck button. Scene change starts one search per Twitch stream when the selected ending scene opens. Manual controls remain available in either mode."
+    },
+    "selectionMode": {
+      "type": "string",
+      "title": "Destination selection",
+      "enum": [
+        "lowest-viewers",
+        "random"
+      ],
+      "default": "lowest-viewers",
+      "description": "Choose the fewest viewers, or randomly rotate through eligible channels without repeating until the current pool is exhausted. Preferred, followed, then category search tiers and safety filters still apply."
+    },
+    "sceneStartAction": {
+      "type": "string",
+      "title": "On the ending scene",
+      "enum": [
+        "suggest",
+        "suggest-and-confirm"
+      ],
+      "default": "suggest",
+      "description": "Choose whether opening the ending scene only suggests a destination or also confirms and starts the raid after discovery completes."
+    },
+    "endBroadcastAdStart": {
+      "type": "string",
+      "title": "Start the ending ad",
+      "enum": [
+        "search",
+        "confirmed"
+      ],
+      "default": "search",
+      "description": "Start the ending ad when discovery begins, or after a destination is found and confirmed, alongside its clip preview."
+    },
+    "endBroadcastAdFailureDelaySeconds": {
+      "type": "integer",
+      "title": "End after a confirmed ad failure (seconds)",
+      "description": "0 keeps streams live. A positive delay stops the approved broadcast outputs only after an explicit ad-request failure. A missing Ad Run signal alone does not trigger this fallback.",
+      "minimum": 0,
+      "maximum": 300,
+      "default": 0
+    },
+    "endBroadcastWithoutRaid": {
+      "type": "boolean",
+      "title": "Finish even when the raid or ad is unavailable",
+      "description": "For Finish Stream or automatic confirmed ending only. Failed raid clips release the video slot so your clips resume. No destination or unconfirmed raid continues to the ending wait without claiming raid success. A real Ad Run timer takes priority; an unanswered ad request waits its full requested duration plus confirmation grace. A rejected ad uses the farewell below. Cancel remains available until Stop Streaming is sent.",
+      "default": false
+    },
+    "endBroadcastFallbackSeconds": {
+      "type": "integer",
+      "title": "Farewell when Twitch rejects the ad (seconds)",
+      "description": "Your clips continue during this cancelable farewell. Used only with finish-on-failure enabled. An accepted or unanswered ad request always gets at least its full duration plus confirmation grace.",
+      "minimum": 15,
+      "maximum": 300,
+      "default": 30
+    }
   }
 }

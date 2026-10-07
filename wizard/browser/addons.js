@@ -684,14 +684,16 @@ function renderAddOnSettings(addOn) {
   const requestedSections = Array.isArray(addOn.settingsUi?.sections) ? addOn.settingsUi.sections : [];
   let openedEssentialSection = false;
   const sections = requestedSections.filter((section) => section && typeof section.title === 'string' && Array.isArray(section.fields)).map((section, sectionIndex) => {
-    const fields = renderNames(section.fields);
+    const guardLimits = addOn.moduleId === 'thsv.chat-guard' && section.id === 'action-limits';
+    const fields = guardLimits ? '' : renderNames(section.fields);
+    const groupedFields = guardLimits ? `<div class="chat-guard-limits"><section><h4>Where actions apply</h4><div class="addon-settings-grid">${renderNames(['enforcementPlatforms'])}</div></section><section><h4>Which rules can act</h4><div class="addon-settings-grid">${renderNames(['enforcedRules', 'minimumRuleMatches'])}</div></section><section><h4>Warnings and timeouts</h4><div class="addon-settings-grid">${renderNames(['warningMessage', 'timeoutSeconds'])}</div></section><section><h4>Action frequency</h4><div class="addon-settings-grid">${renderNames(['maximumEnforcementsPerMinute', 'perUserEnforcementCooldownSeconds'])}</div></section></div>` : '';
     const notice = typeof section.notice === 'string' && section.notice.trim() ? `<p class="addon-settings-notice">${safe(section.notice)}</p>` : '';
     const links = Array.isArray(section.links) ? section.links.map((link) => {
       const href = safeAddOnLink(link?.url);
       return href && typeof link?.label === 'string' ? `<a href="${safe(href)}" target="_blank" rel="noreferrer noopener">${safe(link.label)}</a>` : '';
     }).filter(Boolean).join('') : '';
-    if (!fields && !notice && !links) return '';
-    const body = `${notice}${links ? `<div class="addon-settings-links">${links}</div>` : ''}${fields ? `<div class="addon-settings-grid">${fields}</div>` : ''}`;
+    if (!fields && !groupedFields && !notice && !links) return '';
+    const body = `${notice}${links ? `<div class="addon-settings-links">${links}</div>` : ''}${groupedFields || (fields ? `<div class="addon-settings-grid">${fields}</div>` : '')}`;
     const disclosureId = typeof section.id === 'string' && section.id.trim() ? section.id.trim() : `section-${sectionIndex}`;
     const openByDefault = section.open === true && !openedEssentialSection;
     if (openByDefault) openedEssentialSection = true;
@@ -733,7 +735,7 @@ function updateAddOnFieldVisibility(form) {
       container.hidden = current !== expected;
     }
   });
-  form.querySelectorAll('.addon-settings-section').forEach((section) => {
+  form.querySelectorAll('.addon-settings-section, .chat-guard-limits>section').forEach((section) => {
     const settings = [...section.querySelectorAll('.addon-setting')];
     if (settings.length > 0) section.hidden = settings.every((setting) => setting.hidden);
   });
@@ -1742,6 +1744,9 @@ function followerPulseOutput(value) {
   const output = document.querySelector('[data-follower-pulse-output]');
   if (!output) return;
   if (!value || typeof value !== 'object') { output.innerHTML = `<p class="notice">${safe(String(value || 'Follower Pulse status is unavailable.'))}</p>`; return; }
+  const reconcile = document.querySelector('[data-follower-pulse-reconcile]');
+  if (reconcile) reconcile.disabled = value.enabled !== true;
+  const trackingNotice = value.enabled !== true ? '<p class="notice">Follower tracking is off. Turn on <strong>Enable Follower Pulse</strong> in settings, then save and restart StreamBridge before checking Twitch.</p>' : '';
   const lastScan = value.lastCompleteScanAt ? new Date(value.lastCompleteScanAt).toLocaleString() : 'No complete scan yet';
   const lastAttempt = value.lastAttemptAt ? new Date(value.lastAttemptAt).toLocaleString() : 'No attempt yet';
   const nextScan = value.nextScanAt ? new Date(value.nextScanAt).toLocaleString() : (value.scanActive ? 'Waiting for Twitch' : 'Not scheduled');
@@ -1751,7 +1756,7 @@ function followerPulseOutput(value) {
     : `<div class="item-list">${changes.map((change) => { const display = change.displayName || change.login || 'Unknown Twitch account'; const login = change.login && change.login.toLowerCase() !== String(display).toLowerCase() ? ` @${change.login}` : ''; return `<article class="item"><strong>${change.type === 'unfollow' ? 'Unfollowed' : 'Followed'} · ${safe(display)}</strong><small>${safe(login)}${login ? ' · ' : ''}${safe(new Date(change.occurredAt).toLocaleString())}</small></article>`; }).join('')}</div>`;
   const permissionBlocked = /moderator:read:followers|active Twitch OAuth token/iu.test(String(value.lastError || ''));
   const error = value.lastError ? `<p class="notice"><strong>Last scan issue:</strong> ${safe(value.lastError)}${permissionBlocked ? '<br><br><strong>Fix:</strong> Open Streamer.bot &rarr; Platforms &rarr; Twitch &rarr; Accounts, reconnect the <strong>Broadcaster Account</strong> (not the Bot Account), approve every requested permission, then return here and click <strong>Check Twitch now</strong>.' : ''}</p>` : '';
-  output.innerHTML = `<div class="grid"><article class="stat"><span>Baseline</span><strong>${value.baselineComplete ? 'Ready' : permissionBlocked ? 'Permission needed' : 'Not ready'}</strong><small>${value.baselineComplete ? 'Complete comparisons enabled' : permissionBlocked ? 'Reconnect the Twitch broadcaster account' : 'Waiting for one complete scan'}</small></article><article class="stat"><span>Tracked followers</span><strong>${safe(Number(value.trackedFollowerCount || 0).toLocaleString())}</strong><small>Last Twitch total: ${safe(Number(value.lastApiTotal || 0).toLocaleString())}</small></article><article class="stat"><span>Pending confirmation</span><strong>${safe(Number(value.pendingConfirmationCount || 0).toLocaleString())}</strong><small>${safe(Number(value.confirmMissingScans || 2))} complete missing scans required</small></article><article class="stat"><span>Snapshot</span><strong>${value.scanActive ? 'Checking now' : permissionBlocked ? 'Waiting for permission' : 'Idle'}</strong><small>Last attempt: ${safe(lastAttempt)}<br>Last complete: ${safe(lastScan)}<br>Next check: ${safe(nextScan)}${Number(value.consecutiveFailures || 0) > 0 && !permissionBlocked ? `<br>Retry level: ${safe(Number(value.consecutiveFailures))}` : ''}</small></article></div>${error}<h4>Recent confirmed changes</h4>${history}`;
+  output.innerHTML = `${trackingNotice}<div class="grid"><article class="stat"><span>Baseline</span><strong>${value.baselineComplete ? 'Ready' : permissionBlocked ? 'Permission needed' : 'Not ready'}</strong><small>${value.baselineComplete ? 'Complete comparisons enabled' : permissionBlocked ? 'Reconnect the Twitch broadcaster account' : 'Waiting for one complete scan'}</small></article><article class="stat"><span>Tracked followers</span><strong>${safe(Number(value.trackedFollowerCount || 0).toLocaleString())}</strong><small>Last Twitch total: ${safe(Number(value.lastApiTotal || 0).toLocaleString())}</small></article><article class="stat"><span>Pending confirmation</span><strong>${safe(Number(value.pendingConfirmationCount || 0).toLocaleString())}</strong><small>${safe(Number(value.confirmMissingScans || 2))} complete missing scans required</small></article><article class="stat"><span>Snapshot</span><strong>${value.scanActive ? 'Checking now' : permissionBlocked ? 'Waiting for permission' : 'Idle'}</strong><small>Last attempt: ${safe(lastAttempt)}<br>Last complete: ${safe(lastScan)}<br>Next check: ${safe(nextScan)}${Number(value.consecutiveFailures || 0) > 0 && !permissionBlocked ? `<br>Retry level: ${safe(Number(value.consecutiveFailures))}` : ''}</small></article></div>${error}<h4>Recent confirmed changes</h4>${history}`;
 }
 
 async function followerPulseAdmin(request) {
@@ -1975,6 +1980,10 @@ async function installDiscoveredAddOn(event) {
 function renderAddOnOverlayTools(addOn) {
   const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
   const url = `${location.origin}${overlayPath}`;
+  if (['thsv.fan-crown', 'thsv.first-five', 'thsv.viewer-spotlight', 'thsv.village-roll-call', 'thsv.chat-play-pack'].includes(addOn.moduleId)) {
+    const variants = [['compact', 'Compact landscape', '700 × 410', 'compact'], ['regular', 'Regular landscape', '980 × 574', 'regular'], ['compact-vertical', 'Compact vertical', '410 × 700', 'compact&cardOrientation=vertical'], ['regular-vertical', 'Regular vertical', '574 × 980', 'regular&cardOrientation=vertical']].map(([key, name, dimensions, query]) => `<label>${name} · ${dimensions}<span class="inline-copy-field"><input readonly data-addon-overlay-url="${safe(`${addOn.moduleId}:${key}`)}" value="${safe(`${url}?cardSize=${query}`)}"><button type="button" data-copy-addon-overlay="${safe(`${addOn.moduleId}:${key}`)}">Copy</button></span></label>`).join('');
+    return `<p>Choose either size for this individual overlay. Every redemption card uses the same outer frame within its size, so cards can share one position without different edges showing. Set your browser source to the dimensions shown.</p><div class="form-grid">${variants}</div><div class="button-row"><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>`;
+  }
   if (addOn.moduleId === 'thsv.stream-labels') {
     const labels = [
       ['follower', 'Latest follower / YouTube subscriber'],

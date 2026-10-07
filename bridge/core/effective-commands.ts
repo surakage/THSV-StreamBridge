@@ -14,7 +14,7 @@ interface CommandRule {
   readonly platformSetting?: string;
 }
 
-export const EFFECTIVE_COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok'] as const);
+export const EFFECTIVE_COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook'] as const);
 export type EffectiveCommandPlatform = (typeof EFFECTIVE_COMMAND_PLATFORMS)[number];
 
 export interface EffectiveAddOnCommand {
@@ -58,9 +58,9 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'chat-play.decline': { setting: 'declineCommand', enabledSetting: 'duelEnabled' },
   'clip-courier.create': { platforms: ['twitch'] },
   'custom-counter.command': { setting: 'commandName', minimumRole: 'moderator', enabledSetting: 'commandEnabled' },
-  'fan-crown.claim': { setting: 'commandName', platforms: ['youtube', 'tiktok'] },
-  'first-five.claim': { setting: 'commandName', platforms: ['youtube', 'tiktok'] },
-  'free-game-check.command': { setting: 'commandName', platforms: ['youtube', 'tiktok'] },
+  'fan-crown.claim': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
+  'first-five.claim': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
+  'free-game-check.command': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
   'prize-wheel.spin': { setting: 'spinCommand', minimumRole: 'moderator' },
   'quote-vault.quote': { setting: 'quoteCommand', platformSetting: 'enabledPlatforms' },
   'quote-vault.quotes': { setting: 'quotesCommand', platformSetting: 'enabledPlatforms' },
@@ -81,7 +81,7 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'subathon-timer.add-time': { setting: 'addTimeCommandName', minimumRole: 'moderator', enabledSetting: 'enableModeratorCommands' },
   'user-translate.generic': { setting: 'genericCommandName', platformSetting: 'enabledPlatforms' },
   'viewer-foundation.balance': { setting: 'pointsCommand' },
-  'viewer-spotlight.card': { setting: 'commandName', platforms: ['youtube', 'tiktok'], platformSetting: 'enabledPlatforms' },
+  'viewer-spotlight.card': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'], platformSetting: 'enabledPlatforms' },
   'village-draw.manage': { setting: 'giveawayCommand', minimumRole: 'moderator', platformSetting: 'eligiblePlatforms' },
   'village-draw.enter': { setting: 'enterCommand', platformSetting: 'eligiblePlatforms' },
   'village-draw.tickets': { setting: 'ticketsCommand', platformSetting: 'eligiblePlatforms' },
@@ -94,7 +94,7 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'village-jukebox.skip': { setting: 'moderatorSkipCommand', minimumRole: 'moderator', platformSetting: 'enabledPlatforms' },
   'village-polls.poll': { setting: 'pollCommand', minimumRole: 'moderator' },
   'village-polls.vote': { setting: 'voteCommand' },
-  'village-roll-call.checkin': { setting: 'commandName', platforms: ['youtube', 'tiktok'] },
+  'village-roll-call.checkin': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
   'village-fun.sloth-fact': { setting: 'slothFactCommand', enabledSetting: 'slothFactEnabled' },
   'village-fun.cat-fact': { setting: 'catFactCommand', enabledSetting: 'catFactEnabled' },
   'village-fun.joke': { setting: 'jokeCommand', enabledSetting: 'jokeEnabled' },
@@ -111,13 +111,13 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'village-fun.follow-age': { setting: 'followAgeCommand', enabledSetting: 'followAgeEnabled', platforms: ['twitch'] },
   'village-fun.chuck-norris': { setting: 'chuckNorrisCommand', enabledSetting: 'chuckNorrisEnabled' },
   'village-fun.aesthetic': { setting: 'aestheticCommand', enabledSetting: 'aestheticEnabled' },
-  'hydration-station.remind': { setting: 'viewerCommand', enabledSetting: 'viewerRemindersEnabled', platforms: ['youtube', 'tiktok'], platformSetting: 'viewerCommandPlatforms' },
+  'hydration-station.remind': { setting: 'viewerCommand', enabledSetting: 'viewerRemindersEnabled', platforms: ['youtube', 'tiktok', 'facebook'], platformSetting: 'viewerCommandPlatforms' },
   'hydration-station.creator': { setting: 'creatorCommand', enabledSetting: 'creatorCommandEnabled', minimumRole: 'broadcaster' },
   'viewer-lobby.join': { setting: 'joinCommand', platformSetting: 'platforms' },
   'viewer-lobby.leave': { setting: 'leaveCommand', platformSetting: 'platforms' },
   'viewer-lobby.position': { setting: 'positionCommand', platformSetting: 'platforms' },
   'viewer-lobby.queue': { setting: 'queueCommand', platformSetting: 'platforms' },
-  'village-voice.speak': { setting: 'pointsCommand', enabledSetting: 'viewerRequestsEnabled', platforms: ['youtube', 'tiktok'], platformSetting: 'pointsPlatforms' },
+  'village-voice.speak': { setting: 'pointsCommand', enabledSetting: 'viewerRequestsEnabled', platforms: ['youtube', 'tiktok', 'facebook'], platformSetting: 'pointsPlatforms' },
 });
 
 /**
@@ -257,7 +257,8 @@ function register(
 }
 
 function commandPlatforms(source: CommandDirectoryModuleSource, rule: CommandRule): readonly EffectiveCommandPlatform[] {
-  const platforms: readonly EffectiveCommandPlatform[] = rule.platforms ?? EFFECTIVE_COMMAND_PLATFORMS;
+  const facebookSupported = ['thsv.viewer-foundation', 'thsv.community-analytics', 'thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.viewer-spotlight', 'thsv.chat-play-pack'].includes(source.moduleId);
+  const platforms: readonly EffectiveCommandPlatform[] = (rule.platforms ?? EFFECTIVE_COMMAND_PLATFORMS).filter(platform => platform !== 'facebook' || facebookSupported);
   if (rule.platformSetting === undefined) return platforms;
   const configured = source.settings[rule.platformSetting];
   if (!Array.isArray(configured)) return platforms;
