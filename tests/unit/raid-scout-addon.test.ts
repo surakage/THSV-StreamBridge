@@ -951,6 +951,53 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid', raidScoutTargetLogin: 'alpha' }));
   });
 
+  it('stops waiting on clip downloads after two consecutive Streamer.bot timeouts so the raid proceeds', async () => {
+    const initial = sanitizeState({
+      broadcasterUserId: 'alpha',
+      suggestion: { candidate: candidate('alpha'), suggestedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 60_000).toISOString() },
+    });
+    const test = runtime({ previewClipBeforeRaid: true, showSearchProgress: false, clipLookupCount: 40 }, initial as Record<string, unknown>);
+    await raidScout.start(test.context);
+    await raidScout.onEvent(control('confirm'), test.context);
+    const lookup = test.value().pending as { requestId: string };
+    const clips = Array.from({ length: 40 }, (_, index) => ({ id: `own-${String(index)}`, embedUrl: `https://clips.twitch.tv/embed?clip=own-${String(index)}`, durationSeconds: 20 }));
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'clip', requestId: lookup.requestId, success: true, clips } }, test.context);
+    const downloads = () => test.context.streamerbot.runApprovedAction.mock.calls.filter(([, args]) => args.raidScoutOperation === 'clip-download');
+    expect(downloads()).toHaveLength(1);
+    expect(test.context.schedule.after).toHaveBeenLastCalledWith(25_000, expect.any(Function));
+    await test.runDelay(25_000);
+    expect(downloads()).toHaveLength(2);
+    expect(test.value().pending).toMatchObject({ operation: 'clip-download', clipTimeouts: 1 });
+    await test.runDelay(25_000);
+    expect(downloads()).toHaveLength(2);
+    expect(test.value().pending).toMatchObject({ operation: 'raid' });
+    expect(test.context.mediaSlot.release).toHaveBeenCalledTimes(1);
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'RAID PREVIEW SKIPPED' }), { lane: 'foreground' });
+  });
+
+  it('bounds the whole clip preview by one shared time budget', async () => {
+    let now = 1_800_000_000_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const initial = sanitizeState({
+      broadcasterUserId: 'alpha',
+      suggestion: { candidate: candidate('alpha'), suggestedAt: new Date(now).toISOString(), expiresAt: new Date(now + 60_000).toISOString() },
+    });
+    const test = runtime({ previewClipBeforeRaid: true, showSearchProgress: false }, initial as Record<string, unknown>);
+    await raidScout.start(test.context);
+    await raidScout.onEvent(control('confirm'), test.context);
+    const lookup = test.value().pending as { requestId: string };
+    now += 30_000;
+    const clips = ['a', 'b', 'c'].map((id) => ({ id, embedUrl: `https://clips.twitch.tv/embed?clip=${id}`, durationSeconds: 20 }));
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'clip', requestId: lookup.requestId, success: true, clips } }, test.context);
+    // Only the 15 seconds left in the 45-second preview budget are spent waiting on this download.
+    expect(test.context.schedule.after).toHaveBeenLastCalledWith(15_000, expect.any(Function));
+    now += 15_000;
+    await test.runDelay(15_000);
+    expect(test.context.streamerbot.runApprovedAction.mock.calls.filter(([, args]) => args.raidScoutOperation === 'clip-download')).toHaveLength(1);
+    expect(test.value().pending).toMatchObject({ operation: 'raid' });
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'RAID PREVIEW SKIPPED', text: expect.stringContaining('ran out of time') }), { lane: 'foreground' });
+  });
+
   it('keeps the download path for a clip that belongs to the broadcaster', async () => {
     const initial = sanitizeState({
       broadcasterUserId: 'alpha',

@@ -29,6 +29,10 @@ const CLIP_START_TIMEOUT_MS = 30_000;
 // normal continue path instead of holding the confirmed raid.
 const EMBED_START_TIMEOUT_MS = 8_000;
 const EMBED_END_GRACE_MS = 5_000;
+// A confirmed raid must never wait on an unresponsive Streamer.bot for each of up to 40 clips.
+// Clip lookup and download attempts share one budget and stop after two consecutive timeouts.
+const CLIP_PREVIEW_BUDGET_MS = 45_000;
+const MAXIMUM_CONSECUTIVE_CLIP_TIMEOUTS = 2;
 const RAID_MEDIA_LEASE_MS = 600_000;
 const BROADCAST_STOP_CONFIRMATION_MS = 15_000;
 // Start Raid acknowledges the request, not the viewer handoff. Twitch's API
@@ -287,11 +291,13 @@ function pendingRecord(value) {
   const actionId = clean(value.actionId, 36);
   const provider = ['obs', 'meld', 'streamlabs'].includes(value.provider) ? value.provider : 'obs';
   const executeAt = integer(value.executeAt, 0, Number.MAX_SAFE_INTEGER, 0);
+  const previewStartedAt = operation.startsWith('clip') ? integer(value.previewStartedAt, 0, Number.MAX_SAFE_INTEGER, 0) : 0;
+  const clipTimeouts = operation.startsWith('clip') ? integer(value.clipTimeouts, 0, 10, 0) : 0;
   if (!operation || !requestId || !startedAt || (operation !== 'discover' && !operation.startsWith('end-broadcast-') && !candidate)
     || (operation === 'clip-download' && !clip)
     || (operation === 'clip-playback' && (!playbackId || durationMs === 0))
     || (operation.startsWith('end-broadcast-') && (!actionId || !executeAt))) return undefined;
-  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(operation === 'clip-playback' && value.embedded === true ? { embedded: true } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}) };
+  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(operation === 'clip-playback' && value.embedded === true ? { embedded: true } : {}), ...(previewStartedAt ? { previewStartedAt } : {}), ...(clipTimeouts ? { clipTimeouts } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}) };
 }
 
 function broadcastProviderName(provider) {
@@ -832,7 +838,8 @@ async function releaseRaidMediaSlot(context) {
 function armControllerWatchdog(context, settings, pending) {
   cancelControllerWatchdog(context);
   const timeoutMs = pending.operation === 'discover' ? DISCOVERY_RESPONSE_TIMEOUT_MS
-    : pending.operation === 'raid' ? RAID_RESPONSE_TIMEOUT_MS : CLIP_RESPONSE_TIMEOUT_MS;
+    : pending.operation === 'raid' ? RAID_RESPONSE_TIMEOUT_MS
+      : Math.max(1_000, Math.min(CLIP_RESPONSE_TIMEOUT_MS, previewRemainingMs(pending)));
   controllerWatchdogTask = context.schedule.after(timeoutMs, () => queueScheduledWork(async () => {
     controllerWatchdogTask = undefined;
     const current = sanitizeState(await context.state.read());
@@ -860,13 +867,15 @@ function armControllerWatchdog(context, settings, pending) {
         await continueEndingWithoutRaid(context, settingsFor(context), recovered, 'The raid destination was unavailable.');
         return;
       }
-      await publishStatusCard(context, settings, 'CLIP SOURCE TIMED OUT', 'Trying the next available clip source.', 3_000);
       if (settings.endBroadcastWithoutRaid) {
+        await publishStatusCard(context, settings, 'CLIP SOURCE TIMED OUT', 'Continuing the confirmed raid; your clips continue.', 3_000);
         await releaseRaidMediaSlot(context);
         await requestRaid(context, withoutPending(current), candidate);
         return;
       }
-      await requestNextRaidClip(context, settings, withoutPending(current), candidate, current.pending.remainingClips || []);
+      await requestNextRaidClip(context, settings, withoutPending(current), candidate, current.pending.remainingClips || [], {
+        startedAt: current.pending.previewStartedAt, timeouts: (current.pending.clipTimeouts || 0) + 1,
+      });
       return;
     }
     if (pending.operation === 'raid') {
@@ -885,7 +894,7 @@ function armControllerWatchdog(context, settings, pending) {
 async function requestClip(context, settings, state, candidate) {
   if (state.pending || !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
   if (!await claimRaidMediaSlot(context, settings)) return requestRaid(context, state, candidate);
-  const pending = { operation: 'clip', requestId: requestId('clip'), startedAt: Date.now(), candidate };
+  const pending = { operation: 'clip', requestId: requestId('clip'), startedAt: Date.now(), previewStartedAt: Date.now(), candidate };
   const reserved = { ...state, pending, lastError: '' }; await context.state.write(reserved);
   await publishStatusCard(context, settings, 'RAID CLIP', `Finding one clip from ${candidate.displayName}...`, 2_000);
   try {
@@ -1072,7 +1081,7 @@ async function finishClipPreview(context, settings, state, playbackId, failed = 
   // embed would fail the same way, so continue to the raid instead of spending more time.
   if (failed && !state.pending.embedded && state.pending.remainingClips?.length && !settings.endBroadcastWithoutRaid) {
     await context.overlay.publish('thsv.raid-scout.media.stop', { fade: true }).catch(() => undefined);
-    return requestNextRaidClip(context, settings, next, candidate, state.pending.remainingClips);
+    return requestNextRaidClip(context, settings, next, candidate, state.pending.remainingClips, { startedAt: state.pending.previewStartedAt, timeouts: state.pending.clipTimeouts });
   }
   if (failed) {
     await context.overlay.publish('thsv.raid-scout.media.stop', { fade: true }).catch(() => undefined);
@@ -1272,21 +1281,37 @@ async function handleClipResult(event, context, settings, state) {
     await publishStatusCard(context, settings, 'NO CLIP AVAILABLE', `Moving directly to ${candidate.displayName}'s raid.`, 1_800);
     await context.state.write(base); await releaseRaidMediaSlot(context); return requestRaid(context, base, candidate);
   }
-  return requestNextRaidClip(context, settings, base, candidate, shuffle(clips));
+  return requestNextRaidClip(context, settings, base, candidate, shuffle(clips), { startedAt: state.pending.previewStartedAt });
 }
 
-async function requestNextRaidClip(context, settings, state, candidate, clips) {
+function previewRemainingMs(pending, now = Date.now()) {
+  const startedAt = pending?.previewStartedAt || pending?.startedAt || now;
+  return startedAt + CLIP_PREVIEW_BUDGET_MS - now;
+}
+
+async function requestNextRaidClip(context, settings, state, candidate, clips, preview = {}) {
   const [clip, ...remainingClips] = clips;
   if (!clip) {
     await publishStatusCard(context, settings, 'NO PLAYABLE CLIP', `Twitch returned no playable clip for ${candidate.displayName}. Moving directly to the raid.`, 1_800);
     const next = withoutPending(state); await context.state.write(next); await releaseRaidMediaSlot(context);
     return requestRaid(context, next, candidate);
   }
+  const previewStartedAt = preview.startedAt || Date.now();
+  const clipTimeouts = preview.timeouts || 0;
+  if (clipTimeouts >= MAXIMUM_CONSECUTIVE_CLIP_TIMEOUTS || previewRemainingMs({ previewStartedAt }) <= 0) {
+    await publishStatusCard(context, settings, 'RAID PREVIEW SKIPPED', clipTimeouts >= MAXIMUM_CONSECUTIVE_CLIP_TIMEOUTS
+      ? 'Streamer.bot stopped answering clip requests. Continuing the confirmed raid; your clips continue.'
+      : 'The raid preview ran out of time. Continuing the confirmed raid; your clips continue.', 4_000);
+    const next = { ...withoutPending(state), lastError: 'The raid clip preview exceeded its time limit and was skipped.' };
+    await context.state.write(next); await releaseRaidMediaSlot(context);
+    return requestRaid(context, next, candidate);
+  }
+  const previewMeta = { previewStartedAt, ...(clipTimeouts ? { clipTimeouts } : {}) };
   if (!isBroadcasterOwnClip(state, candidate)) {
     // Another channel's clip: Twitch never returns its download URL, so skip that request.
-    return startClipPlayback(context, settings, withoutPending(state), candidate, clip, remainingClips, requestId('clip-embed'), { embedUrl: clip.embedUrl });
+    return startClipPlayback(context, settings, withoutPending(state), candidate, clip, remainingClips, requestId('clip-embed'), { embedUrl: clip.embedUrl }, previewMeta);
   }
-  const pending = { operation: 'clip-download', requestId: requestId('clip-download'), startedAt: Date.now(), candidate, clip, remainingClips };
+  const pending = { operation: 'clip-download', requestId: requestId('clip-download'), startedAt: Date.now(), candidate, clip, remainingClips, ...previewMeta };
   const reserved = { ...withoutPending(state), pending, lastError: '' }; await context.state.write(reserved);
   try {
     await runController(context, {
@@ -1300,7 +1325,7 @@ async function requestNextRaidClip(context, settings, state, candidate, clips) {
       await releaseRaidMediaSlot(context);
       return requestRaid(context, withoutPending(reserved), candidate);
     }
-    return requestNextRaidClip(context, settings, withoutPending(reserved), candidate, remainingClips);
+    return requestNextRaidClip(context, settings, withoutPending(reserved), candidate, remainingClips, { startedAt: previewStartedAt, timeouts: clipTimeouts });
   }
 }
 
@@ -1320,8 +1345,9 @@ async function handleClipDownloadResult(event, context, settings, state) {
     await releaseRaidMediaSlot(context);
     return requestRaid(context, base, candidate);
   }
+  const previewMeta = { previewStartedAt: state.pending.previewStartedAt || Date.now() };
   if (!sourceUrl && !embedUrl) {
-    return requestNextRaidClip(context, settings, base, candidate, remainingClips);
+    return requestNextRaidClip(context, settings, base, candidate, remainingClips, { startedAt: previewMeta.previewStartedAt });
   }
   let playbackUrl;
   // Cached media reports actual playback progress. Use the Twitch embed when a verified
@@ -1347,7 +1373,7 @@ async function handleClipDownloadResult(event, context, settings, state) {
     await releaseRaidMediaSlot(context);
     return requestRaid(context, base, candidate);
   }
-  return startClipPlayback(context, settings, base, candidate, clip, remainingClips, state.pending.requestId, playbackUrl ? { url: playbackUrl } : { embedUrl });
+  return startClipPlayback(context, settings, base, candidate, clip, remainingClips, state.pending.requestId, playbackUrl ? { url: playbackUrl } : { embedUrl }, previewMeta);
 }
 
 // Clips belong to the raid target, which discovery never lets be the broadcaster. Keep the
@@ -1356,13 +1382,13 @@ function isBroadcasterOwnClip(state, candidate) {
   return Boolean(state.broadcasterUserId) && candidate?.userId === state.broadcasterUserId;
 }
 
-async function startClipPlayback(context, settings, base, candidate, clip, remainingClips, requestIdValue, source) {
+async function startClipPlayback(context, settings, base, candidate, clip, remainingClips, requestIdValue, source, previewMeta = {}) {
   const embedded = !source.url;
   const embedUrl = embedded ? safeHttps(source.embedUrl) : '';
-  if (embedded && !embedUrl) return requestNextRaidClip(context, settings, base, candidate, remainingClips);
+  if (embedded && !embedUrl) return requestNextRaidClip(context, settings, base, candidate, remainingClips, { startedAt: previewMeta.previewStartedAt, timeouts: previewMeta.clipTimeouts });
   const playbackId = requestId('raid-clip');
   const durationMs = Math.round(clip.durationSeconds * 1_000);
-  const pending = { operation: 'clip-playback', requestId: requestIdValue, startedAt: Date.now(), candidate, clip, remainingClips: remainingClips.slice(0, 2), playbackId, durationMs, ...(embedded ? { embedded: true } : {}) };
+  const pending = { operation: 'clip-playback', requestId: requestIdValue, startedAt: Date.now(), candidate, clip, remainingClips: remainingClips.slice(0, 2), playbackId, durationMs, ...(embedded ? { embedded: true } : {}), ...previewMeta };
   const reserved = { ...base, pending, lastError: '' }; await context.state.write(reserved);
   // The card and clip use separate overlay lanes (and can be separate OBS browser sources).
   // Explicitly dismiss the foreground card so the suggestion cannot sit above the video.
