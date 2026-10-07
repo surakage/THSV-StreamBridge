@@ -66,7 +66,8 @@
       "Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.",
       "For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.",
       "Configure preferred channels and filters, then test Suggest before enabling automatic mode.",
-      "In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible for the Raid Scout source so its cached clip renderer is already warm when the raid preview begins."
+      "In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible for the Raid Scout source so its cached clip renderer is already warm when the raid preview begins.",
+      "Use the Raid Scout overlay URL exactly as the wizard shows it (http://localhost:<port>/overlay/addons/thsv.raid-scout). Raid targets' clips play in Twitch's embedded clip player, which refuses 127.0.0.1; a source still set to 127.0.0.1 reopens itself on localhost automatically."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its bounded private suggestion and raid history remains preserved for a later reinstall."
@@ -86,8 +87,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 112008,
-      "sha256": "180dc8fe27a9ee606e53ca3136a4bcaf2af640e5b7f772c6ed99af2ae19b841d"
+      "size": 113967,
+      "sha256": "c04cb9f8f26d90251f260e0c88230f0e745892927861609a91133bb65e8f5da2"
     },
     {
       "path": "schemas/config.json",
@@ -101,8 +102,8 @@
     },
     {
       "path": "README.md",
-      "size": 9045,
-      "sha256": "9d7b178441cf183c96770f4ee605a4cd2f832e5efd2c4cb348899f24109c38ea"
+      "size": 9629,
+      "sha256": "2838dee0eacd83ca41c868bc69640945b58dba350eaadaa1f7e2f4d60b19280e"
     }
   ]
 }

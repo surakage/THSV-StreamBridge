@@ -22,6 +22,7 @@ Previews Twitch raid destinations and delays shutdown through the raid countdown
 6. For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.
 7. Configure preferred channels and filters, then test Suggest before enabling automatic mode.
 8. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible for the Raid Scout source so its cached clip renderer is already warm when the raid preview begins.
+9. Use the Raid Scout overlay URL exactly as the wizard shows it (http://localhost:<port>/overlay/addons/thsv.raid-scout). Raid targets' clips play in Twitch's embedded clip player, which refuses 127.0.0.1; a source still set to 127.0.0.1 reopens itself on localhost automatically.
 
 ## Streamer.bot
 

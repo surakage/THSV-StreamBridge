@@ -6,6 +6,7 @@ import { expect, test } from './fixtures.js';
 declare global {
   interface Window {
     __thsvPublishAddOnEvent?: (payload: unknown) => void;
+    __thsvSentAddOnMessages?: unknown[];
   }
 }
 
@@ -57,7 +58,10 @@ async function installAddOnOverlayTransport(page: Page): Promise<void> {
         queueMicrotask(() => this.dispatchEvent(new Event('open')));
       }
 
-      send(): void { /* The visual harness only receives publications. */ }
+      send(data: string): void {
+        // Lifecycle reports are recorded so tests can assert what the overlay told the add-on.
+        try { (window.__thsvSentAddOnMessages ??= []).push(JSON.parse(data)); } catch { /* Ignore non-JSON frames. */ }
+      }
       close(): void { this.dispatchEvent(new Event('close')); }
     }
     Object.defineProperty(globalThis, 'WebSocket', { configurable: true, value: TestWebSocket });
@@ -1608,12 +1612,67 @@ test('Prize Wheel spins equal slices, reveals the fixed winner, and remains boun
   await page.screenshot({ path: testInfo.outputPath('prize-wheel-cropped.png') });
 });
 
-test('Raid Scout mounts a locally cached native clip URL without an iframe handshake or blob conversion', async ({ page }) => {
+function localhostUrl(baseURL: string | undefined, path: string): string {
+  const url = new URL(path, baseURL);
+  url.hostname = 'localhost';
+  return url.href;
+}
+
+function lifecyclePhases(messages: unknown[] | undefined, playbackId: string): string[] {
+  return (messages ?? []).filter((message): message is { kind: string; playbackId: string; phase: string } => typeof message === 'object' && message !== null
+    && (message as { kind?: unknown }).kind === 'addon.lifecycle' && (message as { playbackId?: unknown }).playbackId === playbackId).map((message) => message.phase);
+}
+
+test('Raid Scout reopens a 127.0.0.1 OBS source on localhost and plays the raid clip in the Twitch embed', async ({ page, baseURL }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route((url) => url.pathname === '/overlay/addons/thsv.raid-scout', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  const embedRequests: string[] = [];
+  await page.route('https://clips.twitch.tv/**', async (route) => {
+    embedRequests.push(route.request().url());
+    await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>clip</title><p>clip</p>' });
+  });
+  expect(new URL(baseURL ?? '').hostname).toBe('127.0.0.1');
+  await page.goto('/overlay/addons/thsv.raid-scout?obsScene=Ending');
+  await page.waitForURL((url) => url.hostname === 'localhost' && url.pathname === '/overlay/addons/thsv.raid-scout' && url.searchParams.get('obsScene') === 'Ending');
+  await page.waitForFunction(() => typeof window.__thsvPublishAddOnEvent === 'function');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.raid-scout',
+    topic: 'thsv.raid-scout.media.play',
+    payload: { playbackId: 'raid-embed-1', embedUrl: 'https://clips.twitch.tv/embed?clip=Brave-Clip_42&parent=example.com', durationMs: 12_000, muted: false, title: 'Target clip' },
+  }));
+  await expect(page.locator('#embed-media')).toBeVisible();
+  await expect(page.locator('#media')).toBeHidden();
+  const source = new URL(await page.locator('#embed-media').getAttribute('src') ?? '');
+  expect(`${source.origin}${source.pathname}`).toBe('https://clips.twitch.tv/embed');
+  expect([...source.searchParams.entries()]).toEqual([['clip', 'Brave-Clip_42'], ['parent', 'localhost'], ['autoplay', 'true'], ['muted', 'false']]);
+  await expect.poll(() => embedRequests.length).toBeGreaterThan(0);
+  await expect.poll(async () => lifecyclePhases(await page.evaluate(() => window.__thsvSentAddOnMessages), 'raid-embed-1')).toEqual(['loading', 'started']);
+});
+
+test('an add-on overlay on an IP host reports a Twitch clip embed failure at once instead of framing a refused player', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.random-clip-player', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  let embedRequested = false;
+  await page.route('https://clips.twitch.tv/**', async (route) => { embedRequested = true; await route.abort(); });
+  await page.goto('/overlay/addons/thsv.random-clip-player');
+  expect(new URL(page.url()).hostname).toBe('127.0.0.1');
+  await page.waitForFunction(() => typeof window.__thsvPublishAddOnEvent === 'function');
+  await publishAddOnEvent(page, 'thsv.random-clip-player', 'thsv.random-clip-player.media.play', {
+    playbackId: 'embed-ip-host', embedUrl: 'https://clips.twitch.tv/embed?clip=Brave-Clip_42', durationMs: 12_000,
+  });
+  await expect.poll(async () => lifecyclePhases(await page.evaluate(() => window.__thsvSentAddOnMessages), 'embed-ip-host')).toEqual(['failed']);
+  await expect(page.locator('#embed-media')).toBeHidden();
+  expect(embedRequested).toBe(false);
+});
+
+test('Raid Scout mounts a locally cached native clip URL without an iframe handshake or blob conversion', async ({ page, baseURL }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.raid-scout', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
   await page.route('**/overlay/cache/raid-preview.mp4', async (route) => await route.fulfill({ contentType: 'video/mp4', body: Buffer.from([0, 0, 0, 0]) }));
-  await page.goto('/overlay/addons/thsv.raid-scout');
+  await page.goto(localhostUrl(baseURL, '/overlay/addons/thsv.raid-scout'));
   await page.locator('#media').evaluate((element) => {
     const media = element as HTMLVideoElement;
     let source = '';

@@ -296,33 +296,40 @@ describe('Raid Scout add-on', () => {
     await test.runDelay(183_000); expect(stopCalls(test)).toHaveLength(1);
   });
 
-  it('releases a failed raid preview for own clips instead of retrying previews', async () => {
+  it('releases a failed raid target embed for own clips instead of retrying previews', async () => {
     const now = Date.now();
     const test = fallbackRuntime({}, { previewClipBeforeRaid: true }); await raidScout.start(test.context);
     await raidScout.onEvent(control('finish'), test.context);
     await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 180 } }, test.context);
-    await controllerResult(test, 'discover', { success: true, candidates: [candidate('alpha')] });
+    await controllerResult(test, 'discover', { success: true, broadcasterUserId: 'owner', broadcasterLogin: 'owner', candidates: [candidate('alpha')] });
     const clips = ['one', 'two'].map(id => ({ id, embedUrl: `https://clips.twitch.tv/embed?clip=${id}`, durationSeconds: 20 }));
     await controllerResult(test, 'clip', { success: true, clips });
-    await controllerResult(test, 'clip-download', { success: true, landscapeUrl: 'https://example.com/clip.mp4' });
+    expect(test.value().pending).toMatchObject({ operation: 'clip-playback', embedded: true });
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ embedUrl: expect.stringMatching(/^https:\/\/clips\.twitch\.tv\/embed\?clip=(one|two)$/u), durationMs: 20_000 }), { lane: 'media' });
     const playback = test.value().pending as { playbackId: string };
     test.lifecycle({ playbackId: playback.playbackId, phase: 'failed', occurredAt: new Date(now).toISOString() });
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(test.context.mediaSlot.release).toHaveBeenCalledTimes(1);
     expect(test.value().pending).toMatchObject({ operation: 'raid' });
-    expect(test.context.streamerbot.runApprovedAction.mock.calls.filter(([,args]) => args.raidScoutOperation === 'clip-download')).toHaveLength(1);
+    expect(test.context.streamerbot.runApprovedAction.mock.calls.filter(([,args]) => args.raidScoutOperation === 'clip-download')).toHaveLength(0);
+    expect((test.context.overlay.publish.mock.calls as unknown as Array<[string, unknown]>).filter(([type]) => type === 'thsv.raid-scout.media.play')).toHaveLength(1);
   });
 
-  it('skips an unresolved embed and resumes own clips while the raid proceeds', async () => {
+  it('skips an embed that never starts and resumes own clips while the raid proceeds', async () => {
     const test = fallbackRuntime({}, { previewClipBeforeRaid: true }); await raidScout.start(test.context);
     await raidScout.onEvent(control('finish'), test.context);
     await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 180 } }, test.context);
     await controllerResult(test, 'discover', { success: true, candidates: [candidate('alpha')] });
-    await controllerResult(test, 'clip', { success: true, clips: [{ id: 'one', embedUrl: 'https://clips.twitch.tv/embed?clip=one', durationSeconds: 20 }] });
-    await controllerResult(test, 'clip-download', { success: false });
+    await controllerResult(test, 'clip', { success: true, clips: [{ id: 'one', embedUrl: 'https://clips.twitch.tv/embed?clip=one', durationSeconds: 20 }, { id: 'two', embedUrl: 'https://clips.twitch.tv/embed?clip=two', durationSeconds: 20 }] });
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'clip-download' }));
+    expect(test.context.schedule.after).toHaveBeenLastCalledWith(8_000, expect.any(Function));
+    expect(test.context.mediaSlot.release).not.toHaveBeenCalled();
+    await test.runDelay(8_000);
     expect(test.context.mediaSlot.release).toHaveBeenCalledTimes(1);
     expect(test.value().pending).toMatchObject({ operation: 'raid' });
-    expect((test.context.overlay.publish.mock.calls as unknown as Array<[string, unknown]>).some(([type]) => type === 'thsv.raid-scout.media.play')).toBe(false);
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.stop', { fade: true });
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'YOUR CLIPS CONTINUE' }), { lane: 'foreground' });
+    expect((test.context.overlay.publish.mock.calls as unknown as Array<[string, unknown]>).filter(([type]) => type === 'thsv.raid-scout.media.play')).toHaveLength(1);
   });
 
   it('bounds a stuck ending even with ads requested only after target confirmation', async () => {
@@ -788,11 +795,7 @@ describe('Raid Scout add-on', () => {
       eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
       payload: { operation: 'clip', requestId: clip.requestId, success: true, clips: [{ id: 'preflight-clip', embedUrl: 'https://clips.twitch.tv/embed?clip=preflight-clip', durationSeconds: 35 }] },
     }, testRuntime.context);
-    const download = testRuntime.value().pending as { requestId: string };
-    await raidScout.onEvent({
-      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
-      payload: { operation: 'clip-download', requestId: download.requestId, success: true },
-    }, testRuntime.context);
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'clip-playback', embedded: true });
     const playback = testRuntime.value().pending as { playbackId: string };
     now += 35_000;
     testRuntime.lifecycle({ playbackId: playback.playbackId, phase: 'ended', occurredAt: new Date(now).toISOString() });
@@ -911,12 +914,45 @@ describe('Raid Scout add-on', () => {
     await test.context.state.write(sanitizeState({ pending: { operation: 'clip-playback', requestId: 'preview', playbackId: 'first-preview', startedAt: Date.now(), durationMs: 12000, candidate: candidate('alpha'), clip: { id: 'first', durationSeconds: 12, embedUrl: 'https://clips.twitch.tv/embed?clip=first' }, remainingClips: [{ id: 'second', durationSeconds: 12, embedUrl: 'https://clips.twitch.tv/embed?clip=second' }] } }));
     test.lifecycle({ playbackId: 'first-preview', phase: 'failed', occurredAt: new Date().toISOString() });
     await new Promise(resolve => setTimeout(resolve, 0));
-    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'clip-download', raidScoutClipId: 'second' }));
-    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid' }));
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ embedUrl: 'https://clips.twitch.tv/embed?clip=second' }), { lane: 'media' });
+    expect(test.value().pending).toMatchObject({ operation: 'clip-playback', embedded: true, clip: { id: 'second' } });
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
   });
 
-  it('plays one bounded clip after confirmation and raids when the preview completes', async () => {
+  it('plays the raid target clip in the Twitch embed after confirmation without a download request', async () => {
     const initial = sanitizeState({
+      broadcasterUserId: 'owner',
+      suggestion: { candidate: candidate('alpha'), suggestedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 60_000).toISOString() },
+    });
+    const testRuntime = runtime({ previewClipBeforeRaid: true, showSearchProgress: false }, initial as Record<string, unknown>);
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent(control('confirm'), testRuntime.context);
+    const clipPending = testRuntime.value().pending as { requestId: string };
+    await raidScout.onEvent({
+      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
+      payload: { operation: 'clip', requestId: clipPending.requestId, success: true, clips: [{ id: 'clip-1', embedUrl: 'https://clips.twitch.tv/embed?clip=clip-1', title: 'A clip', thumbnailUrl: 'https://example.com/clip.jpg', durationSeconds: 12 }] },
+    }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'clip-download' }));
+    expect(testRuntime.context.mediaCache.fetch).not.toHaveBeenCalled();
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.hide', {}, { lane: 'foreground' });
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ embedUrl: 'https://clips.twitch.tv/embed?clip=clip-1', durationMs: 12_000, muted: false }), { lane: 'media' });
+    const playback = testRuntime.value().pending as { playbackId: string };
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'clip-playback', embedded: true, durationMs: 12_000 });
+    expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(8_000, expect.any(Function));
+    testRuntime.lifecycle({ playbackId: playback.playbackId, phase: 'started', occurredAt: new Date().toISOString() });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(17_000, expect.any(Function));
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid' }));
+    // The embed cannot report its own end; the duration bound completes it normally.
+    await testRuntime.runDelay(17_000);
+    expect(testRuntime.context.mediaSlot.release).toHaveBeenCalledTimes(1);
+    expect(testRuntime.context.overlay.publish).not.toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'YOUR CLIPS CONTINUE' }), expect.anything());
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid', raidScoutTargetLogin: 'alpha' }));
+  });
+
+  it('keeps the download path for a clip that belongs to the broadcaster', async () => {
+    const initial = sanitizeState({
+      broadcasterUserId: 'alpha',
       suggestion: { candidate: candidate('alpha'), suggestedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 60_000).toISOString() },
     });
     const testRuntime = runtime({ previewClipBeforeRaid: true, showSearchProgress: false }, initial as Record<string, unknown>);
@@ -953,7 +989,7 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid', raidScoutTargetLogin: 'alpha' }));
   });
 
-  it('uses the first returned Twitch embed when no direct download URL is available', async () => {
+  it('uses the first shuffled Twitch embed for the raid target without asking for a download URL', async () => {
     const initial = sanitizeState({
       suggestion: { candidate: candidate('alpha'), suggestedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 60_000).toISOString() },
     });
@@ -969,10 +1005,7 @@ describe('Raid Scout add-on', () => {
       ] },
     }, testRuntime.context);
     const first = testRuntime.value().pending as { requestId: string; clip: { id: string } };
-    await raidScout.onEvent({
-      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
-      payload: { operation: 'clip-download', requestId: first.requestId, success: false, clipId: first.clip.id, error: 'No playable URL.' },
-    }, testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'clip-download' }));
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({
       embedUrl: `https://clips.twitch.tv/embed?clip=${first.clip.id}`,
     }), { lane: 'media' });
@@ -1108,11 +1141,7 @@ describe('Raid Scout add-on', () => {
       eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
       payload: { operation: 'clip', requestId: clipPending.requestId, success: true, clips: [{ id: 'clip-ad', embedUrl: 'https://clips.twitch.tv/embed?clip=clip-ad', durationSeconds: 35 }] },
     }, testRuntime.context);
-    const downloadPending = testRuntime.value().pending as { requestId: string };
-    await raidScout.onEvent({
-      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false },
-      payload: { operation: 'clip-download', requestId: downloadPending.requestId, success: true },
-    }, testRuntime.context);
+    expect(testRuntime.value().pending).toMatchObject({ operation: 'clip-playback', embedded: true });
     const playback = testRuntime.value().pending as { playbackId: string };
     now += 35_000;
     testRuntime.lifecycle({ playbackId: playback.playbackId, phase: 'ended', occurredAt: new Date(now).toISOString() });
