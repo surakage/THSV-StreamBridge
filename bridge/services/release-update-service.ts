@@ -2,7 +2,7 @@ import { compareVersions } from './addon-package-manager.js';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { unzipSync } from 'fflate';
 import { verify, type Bundle } from 'sigstore';
 import { uncompress } from 'snappyjs';
@@ -75,6 +75,13 @@ export interface AppliedReleaseUpdate {
   readonly version: string;
   readonly installRoot: string;
   readonly message: string;
+}
+
+export interface CleanedReleaseUpdate {
+  /** Staged file and folder names removed from the update staging folder. */
+  readonly removed: readonly string[];
+  /** True when the unpacked staging folder is still in use and will be retried later. */
+  readonly pending: boolean;
 }
 
 export type UpdateProcessLauncher = (executable: string, argumentsValue: readonly string[], workingDirectory: string) => number | undefined;
@@ -185,6 +192,47 @@ export class ReleaseUpdateService {
     const pid = this.launchUpdate(executable, [applyScript, '--install-root', installRoot], preparedRoot);
     if (pid === undefined) throw new Error('Windows did not start the verified update helper. The current installation was not changed.');
     return { accepted: true, version: request.version, installRoot, message: 'The verified updater started. StreamBridge will stop, install with rollback protection, restart, and reopen the wizard.' };
+  }
+
+  /**
+   * Deletes the downloaded archive and unpacked staging folder of a core update once this
+   * process already runs that version or a newer one. The installer keeps its own rollback
+   * copies until the new version passes its health check, so the staged files are no longer
+   * needed by then. The updater runs from the staging folder, so it cannot remove itself;
+   * a folder that is still in use stays in place and is retried on a later call.
+   */
+  public async cleanupInstalledUpdate(): Promise<CleanedReleaseUpdate> {
+    let staged: Record<string, unknown>;
+    try {
+      staged = JSON.parse(await readFile(join(this.stagingRoot, STAGED_RELEASE_RECORD), 'utf8')) as Record<string, unknown>;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { removed: [], pending: false };
+      throw error;
+    }
+    const version = staged['version'];
+    if (typeof version !== 'string' || !VERSION_TAG.test(version) || compareVersions(version, this.currentVersion) > 0) return { removed: [], pending: false };
+    const removed: string[] = [];
+    const archiveName = staged['archiveName'];
+    if (typeof archiveName === 'string' && archiveName.length > 0 && archiveName.length <= 250 && basename(archiveName) === archiveName && archiveName !== STAGED_RELEASE_RECORD) {
+      for (const name of [archiveName, `${archiveName}.sha256`]) {
+        const path = join(this.stagingRoot, name);
+        if (await lstat(path).catch(() => undefined) === undefined) continue;
+        await rm(path, { force: true });
+        removed.push(name);
+      }
+    }
+    const preparedName = `prepared-${version}`;
+    const prepared = join(this.stagingRoot, preparedName);
+    if (await lstat(prepared).catch(() => undefined) !== undefined) {
+      // Renaming first fails as a whole while the updater still runs from the folder, so a
+      // busy staging folder is never left half deleted.
+      const retired = join(this.stagingRoot, `.retired-${preparedName}-${randomUUID()}`);
+      try { await rename(prepared, retired); } catch { return { removed, pending: true }; }
+      await rm(retired, { recursive: true, force: true });
+      removed.push(preparedName);
+    }
+    await rm(join(this.stagingRoot, STAGED_RELEASE_RECORD), { force: true });
+    return { removed, pending: false };
   }
 
   private async prepareRelease(artifact: Uint8Array, version: string, sha256: string): Promise<string> {

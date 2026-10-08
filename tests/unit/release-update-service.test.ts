@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { manualDispatchResolvesTagCommit, ReleaseUpdateService } from '../../bridge/services/release-update-service.js';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
@@ -100,6 +100,39 @@ describe('ReleaseUpdateService', () => {
       await expect(readFile(join(root, 'THSV-StreamBridge-2.1.0.zip'))).resolves.toEqual(Buffer.from(archive));
       await expect(readFile(join(root, 'prepared-2.1.0', 'installer', 'apply-update.mjs'), 'utf8')).resolves.toBe('helper');
       expect(verifyProvenance).toHaveBeenCalledOnce();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('deletes the staged archive and unpacked folder only after the installed version is running', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-update-'));
+    const archive = releaseArchive();
+    const digest = createHash('sha256').update(archive).digest('hex');
+    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
+    const request = vi.fn<typeof fetch>(async (input) => {
+      const url = requestUrl(input);
+      if (url.endsWith('/releases/latest')) return response({ tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0', draft: false, prerelease: false, assets: [
+        { name: 'THSV-StreamBridge-2.1.0.zip', browser_download_url: archiveUrl, size: archive.byteLength },
+        { name: 'THSV-StreamBridge-2.1.0.zip.sha256', browser_download_url: `${archiveUrl}.sha256`, size: 100 },
+      ] });
+      if (url === archiveUrl) return new Response(Buffer.from(archive));
+      if (url === `${archiveUrl}.sha256`) return new Response(`${digest}  THSV-StreamBridge-2.1.0.zip\n`);
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+    const verifyProvenance = vi.fn(async () => ({ repository: 'surakage/THSV-StreamBridge', workflow: 'release.yml@v2.1.0' }));
+    try {
+      await expect(new ReleaseUpdateService('2.1.0', undefined, request, root).cleanupInstalledUpdate()).resolves.toEqual({ removed: [], pending: false });
+      const before = new ReleaseUpdateService('2.0.0', undefined, request, root, verifyProvenance);
+      await before.stage({ version: '2.1.0', approvedByCreator: true });
+      await writeFile(join(root, 'last-update.log'), 'kept\n');
+      // The previous version still needs the staged files to retry the update.
+      await expect(before.cleanupInstalledUpdate()).resolves.toEqual({ removed: [], pending: false });
+      await expect(readFile(join(root, 'THSV-StreamBridge-2.1.0.zip'))).resolves.toEqual(Buffer.from(archive));
+      const after = new ReleaseUpdateService('2.1.0', undefined, request, root);
+      await expect(after.cleanupInstalledUpdate()).resolves.toEqual({ removed: ['THSV-StreamBridge-2.1.0.zip', 'THSV-StreamBridge-2.1.0.zip.sha256', 'prepared-2.1.0'], pending: false });
+      expect((await readdir(root)).sort()).toEqual(['last-update.log']);
+      await expect(after.cleanupInstalledUpdate()).resolves.toEqual({ removed: [], pending: false });
     } finally {
       await rm(root, { recursive: true, force: true });
     }
