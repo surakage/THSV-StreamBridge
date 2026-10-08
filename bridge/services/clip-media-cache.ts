@@ -4,7 +4,9 @@ import { join } from 'node:path';
 
 const MAXIMUM_TTL_SECONDS = 86_400;
 const MAXIMUM_FILE_BYTES = 52_428_800;
-const MAXIMUM_CACHE_BYTES = 262_144_000;
+/** Default total size of the shared clip cache (250 MiB). The oldest clips are evicted first. */
+export const DEFAULT_MAXIMUM_CACHE_BYTES = 262_144_000;
+const STALE_TEMPORARY_MS = 3_600_000;
 const MAXIMUM_REDIRECTS = 3;
 const TRUSTED_TWITCH_CLIP_ASSET = /^clips-media-assets\d*\.twitch\.tv$/u;
 const TRUSTED_TWITCH_CLIP_CLOUDFRONT = /^d1ndex63qxojbr\.cloudfront\.net$/u;
@@ -13,7 +15,11 @@ export interface ClipMediaCacheRequest { readonly sourceUrl: string; readonly ca
 export interface ClipMediaCacheResult { readonly url: string; readonly cacheHit: boolean; readonly bytes: number; readonly expiresAt: string }
 
 export class ClipMediaCache {
-  public constructor(private readonly root: string, private readonly request: typeof fetch = fetch) {}
+  private readonly maximumCacheBytes: number;
+
+  public constructor(private readonly root: string, private readonly request: typeof fetch = fetch, maximumCacheBytes = DEFAULT_MAXIMUM_CACHE_BYTES) {
+    this.maximumCacheBytes = Math.max(1_048_576, Math.floor(maximumCacheBytes));
+  }
 
   public async fetch(moduleId: string, input: ClipMediaCacheRequest, signal: AbortSignal): Promise<ClipMediaCacheResult> {
     const ttlSeconds = Math.min(MAXIMUM_TTL_SECONDS, Math.max(60, input.ttlSeconds));
@@ -25,6 +31,8 @@ export class ClipMediaCache {
     const bytes = await this.download(input.sourceUrl, maximumBytes, signal);
     const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, bytes, { flag: 'wx', mode: 0o600 });
     try { await rm(path, { force: true }); await rename(temporary, path); } catch (error) { await rm(temporary, { force: true }).catch(() => undefined); throw error; }
+    // Enforce the total cap after every download too, keeping the clip that was just requested.
+    await this.prune(path);
     return { url: `/overlay/cache/${filename}`, cacheHit: false, bytes: bytes.byteLength, expiresAt: new Date(Date.now() + ttlSeconds * 1_000).toISOString() };
   }
 
@@ -43,10 +51,15 @@ export class ClipMediaCache {
     throw new Error('Twitch clip cache redirect limit exceeded.');
   }
 
-  private async prune(): Promise<void> {
+  private async prune(keep?: string): Promise<void> {
     const entries = await readdir(this.root, { withFileTypes: true }).catch(() => []); const files: Array<{ path: string; size: number; mtimeMs: number }> = [];
-    for (const entry of entries.slice(0, 1_000)) { if (!entry.isFile() || !/^[a-f0-9]{64}\.mp4$/u.test(entry.name)) continue; const path = join(this.root, entry.name); const info = await stat(path).catch(() => undefined); if (!info?.isFile()) continue; if (Date.now() - info.mtimeMs > MAXIMUM_TTL_SECONDS * 1_000) { await rm(path, { force: true }); continue; } files.push({ path, size: info.size, mtimeMs: info.mtimeMs }); }
-    let total = files.reduce((sum, file) => sum + file.size, 0); for (const file of files.sort((a, b) => a.mtimeMs - b.mtimeMs)) { if (total <= MAXIMUM_CACHE_BYTES) break; await rm(file.path, { force: true }); total -= file.size; }
+    for (const entry of entries.slice(0, 1_000)) {
+      if (!entry.isFile()) continue; const path = join(this.root, entry.name);
+      // Interrupted downloads leave temporary files behind; remove them once they are clearly abandoned.
+      if (/^[a-f0-9]{64}\.mp4\.[0-9a-f-]{36}\.tmp$/u.test(entry.name)) { const info = await stat(path).catch(() => undefined); if (info !== undefined && Date.now() - info.mtimeMs > STALE_TEMPORARY_MS) await rm(path, { force: true }); continue; }
+      if (!/^[a-f0-9]{64}\.mp4$/u.test(entry.name)) continue; const info = await stat(path).catch(() => undefined); if (!info?.isFile()) continue; if (Date.now() - info.mtimeMs > MAXIMUM_TTL_SECONDS * 1_000) { await rm(path, { force: true }); continue; } files.push({ path, size: info.size, mtimeMs: info.mtimeMs });
+    }
+    let total = files.reduce((sum, file) => sum + file.size, 0); for (const file of files.sort((a, b) => a.mtimeMs - b.mtimeMs)) { if (total <= this.maximumCacheBytes) break; if (file.path === keep) continue; await rm(file.path, { force: true }); total -= file.size; }
   }
 }
 

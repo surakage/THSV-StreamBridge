@@ -1,8 +1,8 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ClipMediaCache, readCachedClip } from '../../bridge/services/clip-media-cache.js';
+import { ClipMediaCache, DEFAULT_MAXIMUM_CACHE_BYTES, readCachedClip } from '../../bridge/services/clip-media-cache.js';
 
 const temporary: string[] = [];
 afterEach(async () => Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
@@ -16,6 +16,25 @@ describe('ClipMediaCache', () => {
     const second = await cache.fetch('thsv.random-clip-player', input, new AbortController().signal);
     expect(first).toMatchObject({ cacheHit: false, bytes: 3 }); expect(second).toMatchObject({ cacheHit: true, bytes: 3, url: first.url }); expect(request).toHaveBeenCalledOnce();
     const filename = first.url.split('/').at(-1) ?? ''; await expect(readCachedClip(root, filename)).resolves.toMatchObject({ bytes: Buffer.from([1, 2, 3]) });
+  });
+
+  it('keeps the shared cache within its total size cap by evicting the oldest clips first', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-clip-cache-cap-')); temporary.push(root);
+    const clip = 400_000;
+    const request = vi.fn<typeof fetch>().mockImplementation(async () => new Response(new Uint8Array(clip), { status: 200, headers: { 'content-length': String(clip), 'content-type': 'video/mp4' } }));
+    const cache = new ClipMediaCache(root, request, 1_048_576);
+    const fetchClip = async (cacheKey: string) => cache.fetch('thsv.random-clip-player', { sourceUrl: 'https://clips.twitchcdn.net/clip.mp4', cacheKey, ttlSeconds: 3600, maximumBytes: 1_048_576 }, new AbortController().signal);
+    const nameOf = (url: string) => url.split('/').at(-1) ?? '';
+    const oldest = nameOf((await fetchClip('one')).url);
+    const middle = nameOf((await fetchClip('two')).url);
+    const now = Date.now() / 1_000;
+    await utimes(join(root, oldest), now - 120, now - 120); await utimes(join(root, middle), now - 60, now - 60);
+    // A stale temporary file from an interrupted download is removed as well.
+    const abandoned = `${'a'.repeat(64)}.mp4.${'0'.repeat(8)}-0000-0000-0000-${'0'.repeat(12)}.tmp`;
+    await writeFile(join(root, abandoned), 'partial'); await utimes(join(root, abandoned), now - 7_200, now - 7_200);
+    const newest = nameOf((await fetchClip('three')).url);
+    expect((await readdir(root)).sort()).toEqual([middle, newest].sort());
+    expect(DEFAULT_MAXIMUM_CACHE_BYTES).toBe(250 * 1_048_576);
   });
 
   it('accepts the legacy Twitch clip asset host returned by Streamer.bot', async () => {
