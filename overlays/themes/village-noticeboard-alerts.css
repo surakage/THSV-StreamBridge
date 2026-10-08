@@ -16,7 +16,7 @@
   backdrop-filter: none !important;
 }
 .alert::before {
-  content: 'THE HIDDEN SLOTH VILLAGE  /  VILLAGE POST';
+  content: 'COMMUNITY NOTICEBOARD  /  VILLAGE POST';
   inset: 17px 45px auto 152px;
   width: auto; height: auto;
   background: none !important;

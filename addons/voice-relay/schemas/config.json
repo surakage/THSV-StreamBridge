@@ -27,7 +27,7 @@
     "overlayAccentColor": { "type": "string", "title": "Speaker-card name color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ff5cc" },
     "overlayTextColor": { "type": "string", "title": "Speaker-card message color", "format": "color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
     "overlayFontSize": { "type": "integer", "title": "Speaker-card message size", "minimum": 20, "maximum": 72, "default": 38 },
-    "followTemplate": { "type": "string", "title": "Follow thank-you", "minLength": 1, "maxLength": 400, "default": "Welcome to The Hidden Sloth Village, {actor}! Glad to have you join the village." },
+    "followTemplate": { "type": "string", "title": "Follow thank-you", "minLength": 1, "maxLength": 400, "default": "Welcome to the community, {actor}! Glad to have you here." },
     "subscriptionTemplate": { "type": "string", "title": "Subscription thank-you", "minLength": 1, "maxLength": 400, "default": "Thank you for becoming part of the village, {actor}!" },
     "membershipTemplate": { "type": "string", "title": "Membership thank-you", "minLength": 1, "maxLength": 400, "default": "Thank you for becoming part of the village, {actor}!" },
     "giftSubscriptionTemplate": { "type": "string", "title": "Gift-subscription thank-you", "minLength": 1, "maxLength": 400, "default": "Thank you for sharing the village love, {actor}!" },

@@ -15,7 +15,7 @@ const DEFAULT_BLOCKED_TERMS = Object.freeze([
 // Viewer chat and viewer-authored alert messages remain separate, explicit opt-ins.
 const DEFAULT_TYPES = Object.freeze([...ALERT_TYPES]);
 const DEFAULT_TEMPLATES = Object.freeze({
-  'channel.follow': 'Welcome to The Hidden Sloth Village, {actor}! Glad to have you join the village.',
+  'channel.follow': 'Welcome to the community, {actor}! Glad to have you here.',
   'channel.subscription': 'Thank you for becoming part of the village, {actor}!',
   'channel.membership': 'Thank you for becoming part of the village, {actor}!',
   'channel.gift-subscription': 'Thank you for sharing the village love, {actor}!',

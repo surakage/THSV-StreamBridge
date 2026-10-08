@@ -399,7 +399,7 @@ export const chatOverlaySchema = z.object({
 
 const browserOverlaySchema = z.object({
   enabled: z.boolean().default(true),
-  brandLabel: z.string().trim().max(60).default('THE HIDDEN SLOTH VILLAGE'),
+  brandLabel: z.string().trim().max(60).default(''),
   maxChatMessages: z.number().int().min(1).max(200).default(8),
   maxAlertQueue: z.number().int().min(1).max(200).default(20),
   alertDurationMs: z.number().int().min(1_000).max(60_000).default(7_000),
@@ -563,7 +563,7 @@ const bridgeConfigObjectSchema = z
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({
-      enabled: true, brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, overlayGapMs: 1_000, showBots: true, showSimulated: true,
+      enabled: true, brandLabel: '', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, overlayGapMs: 1_000, showBots: true, showSimulated: true,
       chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [...DEFAULT_IGNORED_BOT_NAMES], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
       alerts: { profiles: {} },
     }),

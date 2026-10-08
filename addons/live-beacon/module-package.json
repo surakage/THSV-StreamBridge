@@ -75,8 +75,8 @@
     },
     {
       "path": "schemas/config.json",
-      "size": 11345,
-      "sha256": "22e818fff0884ec13623d0ac4d4e34106c417eae1531e4f1c60fe7f04a9f06e6"
+      "size": 11347,
+      "sha256": "8c3778c75d25a0ed07fc49e1b78d6b9bde2afc1c3b27486fda19f4d73bd458cc"
     },
     {
       "path": "ui/settings.json",

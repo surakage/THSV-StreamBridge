@@ -145,8 +145,12 @@ function settingsFor(context) {
   };
 }
 
+// Monthly boards follow the creator's saved IANA time zone, or this PC's own zone when left blank.
+function localTimeZone() { try { return new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } }
+function resolveTimeZone(value) { const zone = typeof value === 'string' ? value.trim().slice(0, 100) : ''; if (zone) { try { new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(); return zone; } catch { /* Invalid zones fall back to this PC's zone. */ } } return localTimeZone(); }
+let monthTimeZone = localTimeZone();
 export function monthKey(timestamp = Date.now()) {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit' }).formatToParts(new Date(timestamp)).map(p => [p.type,p.value]));
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: monthTimeZone, year: 'numeric', month: '2-digit' }).formatToParts(new Date(timestamp)).map(p => [p.type,p.value]));
   return `${parts.year}-${parts.month}`;
 }
 
@@ -656,7 +660,7 @@ function scheduleResetCheck(context, retryDelayMs) {
 const module = {
   manifest,
   required: false,
-  async start(context) {
+  async start(context) { monthTimeZone = resolveTimeZone(context.settings?.timeZone);
     stopped = false;
     const settings = settingsFor(context);
     if (settings.enabled && settings.configured) {

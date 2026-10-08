@@ -298,7 +298,7 @@ function alertDisplay(
 function defaultThankYouTemplate(alert: MultiAlert): string {
   const actor = alert.actor?.displayName ?? 'The community';
   switch (alert.alertType) {
-    case 'follow': return `Welcome to The Hidden Sloth Village, ${actor}! Glad to have you join the village.`;
+    case 'follow': return `Welcome to the community, ${actor}! Glad to have you here.`;
     case 'subscription':
     case 'membership': return `Thank you for becoming part of the village, ${actor}!`;
     case 'gift-subscription': return `Thank you for sharing the village love, ${actor}!`;

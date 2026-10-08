@@ -157,6 +157,13 @@
       "minimum": 2,
       "maximum": 100,
       "default": 5
+    },
+    "timeZone": {
+      "type": "string",
+      "title": "Monthly score season time zone",
+      "description": "Leave blank to use this PC's time zone, or enter an IANA time zone such as America/New_York. Invalid values fall back to this PC's time zone.",
+      "maxLength": 100,
+      "default": ""
     }
   }
 }

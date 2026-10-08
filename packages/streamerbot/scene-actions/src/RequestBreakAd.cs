@@ -1,5 +1,6 @@
 // Purpose: Requests one 180-second break ad through Raid Scout while OBS stays on the
-// Be Right Back scene and the stream is live. Rate limited to one attempt per minute.
+// break scene whose Scene Actions mapping dispatched it (the sceneName argument) and the
+// stream is live. Rate limited to one attempt per minute.
 // References: mscorlib.dll, System.dll, System.Core.dll, System.Net.Http.dll, netstandard.dll, Newtonsoft.Json.dll.
 using System;
 using Newtonsoft.Json.Linq;
@@ -20,8 +21,11 @@ public class CPHInline
         { CPH.LogInfo("THSV break ad offline compile check passed; no commercial requested."); return true; }
         lock (Gate)
         {
+            string breakScene;
+            if (!CPH.TryGetArg<string>("sceneName", out breakScene) || string.IsNullOrWhiteSpace(breakScene))
+            { CPH.LogInfo("THSV break ad skipped: map it to your break scene in Scene Actions."); return false; }
             string scene = (string)Obs("GetCurrentProgramScene")["currentProgramSceneName"];
-            if (scene != "🔴 Be Right Back" && scene != "🟠 Be Right Back")
+            if (!string.Equals(scene, breakScene, StringComparison.Ordinal))
             { CPH.LogInfo("THSV break ad canceled: OBS has already left the break scene."); return false; }
             if ((bool?)Obs("GetStreamStatus")["outputActive"] != true)
             { CPH.LogInfo("THSV break ad skipped while offline."); return true; }

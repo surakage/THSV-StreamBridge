@@ -84,8 +84,12 @@ function settingsFor(context) {
   };
 }
 
+// Monthly boards follow the creator's saved IANA time zone, or this PC's own zone when left blank.
+function localTimeZone() { try { return new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } }
+function resolveTimeZone(value) { const zone = typeof value === 'string' ? value.trim().slice(0, 100) : ''; if (zone) { try { new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(); return zone; } catch { /* Invalid zones fall back to this PC's zone. */ } } return localTimeZone(); }
+let monthTimeZone = localTimeZone();
 function monthKey(timestamp = Date.now()) {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit' }).formatToParts(new Date(timestamp)).map(p => [p.type,p.value]));
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: monthTimeZone, year: 'numeric', month: '2-digit' }).formatToParts(new Date(timestamp)).map(p => [p.type,p.value]));
   return `${parts.year}-${parts.month}`;
 }
 
@@ -458,7 +462,7 @@ async function handleEvent(event, context) {
 const module = {
   manifest,
   required: false,
-  async start(context) {
+  async start(context) { monthTimeZone = resolveTimeZone(context.settings?.timeZone);
     livePlatforms.clear();
     const settings = settingsFor(context);
     if (!settings.enabled || !settings.configured) return;
@@ -491,4 +495,4 @@ function calendarMonthKey(timeZone, now = Date.now()) { let formatter = monthFor
 function monthlyCheckDelay(timeZone, now = Date.now()) { const current = calendarMonthKey(timeZone, now); let low = Math.floor(now / 60_000) + 1, high = low + 32 * 1_440; while (low < high) { const middle = Math.floor((low + high) / 2); if (calendarMonthKey(timeZone, middle * 60_000) === current) low = middle + 1; else high = middle; } return Math.ceil(Math.min(3_600_000, Math.max(1_000, low * 60_000 - now + 1_000))); }
 let monthlyTask, monthlyStopped = true;
 async function monthlyCheck(context) { const settings = settingsFor(context); if (!settings.enabled) return; const state = sanitizeState(await context.state.read()); const rolled = rolloverMonth(state); if (rolled.state.leaderboardMonth !== state.leaderboardMonth) await context.state.write(rolled.state); }
-function armMonthly(context) { monthlyStopped = false; const timeZone = 'America/Chicago'; const armedMonth = calendarMonthKey(timeZone); monthlyTask = context.schedule.after(monthlyCheckDelay(timeZone), () => { if (monthlyStopped) return; if (calendarMonthKey(timeZone) === armedMonth) { armMonthly(context); return; } const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; eventQueue = eventQueue.then(check, check); return eventQueue; }); }
+function armMonthly(context) { monthlyStopped = false; const timeZone = monthTimeZone; const armedMonth = calendarMonthKey(timeZone); monthlyTask = context.schedule.after(monthlyCheckDelay(timeZone), () => { if (monthlyStopped) return; if (calendarMonthKey(timeZone) === armedMonth) { armMonthly(context); return; } const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; eventQueue = eventQueue.then(check, check); return eventQueue; }); }

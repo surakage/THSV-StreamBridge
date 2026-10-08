@@ -132,7 +132,9 @@ const pending = new Map();
 function clean(value, maximum = 350) { return Array.from(typeof value === 'string' ? value.replace(/[\p{Cc}\p{Cf}]+/gu, ' ').replace(/\s+/gu, ' ').trim() : '').slice(0, maximum).join(''); }
 function integer(value, minimum, maximum, fallback) { const parsed = Number(value); return Number.isSafeInteger(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback; }
 function commandName(value, fallback) { const result = clean(value, 64).toLowerCase(); return /^[a-z0-9][a-z0-9-]{0,63}$/u.test(result) ? result : fallback; }
-function timeZone(value) { const result=clean(value,64)||'America/Chicago';try{new Intl.DateTimeFormat('en-US',{timeZone:result}).format();return result;}catch{return'America/Chicago';} }
+// A blank or invalid zone uses this PC's own time zone; saved IANA zones keep working.
+function localTimeZone() { try{return new Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';}catch{return'UTC';} }
+function timeZone(value) { const result=clean(value,64);if(!result)return localTimeZone();try{new Intl.DateTimeFormat('en-US',{timeZone:result}).format();return result;}catch{return localTimeZone();} }
 function list(value) { return Array.isArray(value) ? [...new Set(value.map((item) => clean(item, 350)).filter(Boolean))].slice(0, 50) : []; }
 function settingsFor(context) { const raw = context.settings || {}; return {
   enabled:raw.enabled===true, useOnlineProviders:raw.useOnlineProviders!==false, avoidRecentRepeats:raw.avoidRecentRepeats!==false,

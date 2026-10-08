@@ -30,11 +30,11 @@ afterEach(() => { vi.useRealTimers(); });
 
 describe('monthly rollover timers', () => {
   it.each([
-    ['Chat Play Pack', chatPlayPack, {}],
-    ['Community Analytics', communityAnalytics, { enabled: true }],
-    ['First Five', firstFive, { enabled: true }],
-    ['Village Roll Call', rollCall, { enabled: true }],
-  ])('%s schedules one task for the next America/Chicago month boundary instead of a minute loop', async (_name, module, settings) => {
+    ['Chat Play Pack', chatPlayPack, { timeZone: 'America/Chicago' }],
+    ['Community Analytics', communityAnalytics, { enabled: true, timeZone: 'America/Chicago' }],
+    ['First Five', firstFive, { enabled: true, timeZone: 'America/Chicago' }],
+    ['Village Roll Call', rollCall, { enabled: true, timeZone: 'America/Chicago' }],
+  ])('%s schedules one task for the next saved America/Chicago month boundary instead of a minute loop', async (_name, module, settings) => {
     vi.useFakeTimers(); vi.setSystemTime('2026-10-31T23:30:00-05:00');
     const h = harness(settings);
     await module.start(h.context);
@@ -50,6 +50,27 @@ describe('monthly rollover timers', () => {
     await module.stop(quiet.context); await module.stop(h.context);
   });
 
+  it.each([
+    ['Chat Play Pack', chatPlayPack, {}],
+    ['Community Analytics', communityAnalytics, { enabled: true }],
+    ['First Five', firstFive, { enabled: true }],
+    ['Village Roll Call', rollCall, { enabled: true }],
+    ['Village Roll Call (invalid zone)', rollCall, { enabled: true, timeZone: 'Not/AZone' }],
+    ['First Five (invalid zone)', firstFive, { enabled: true, timeZone: 'Not/AZone' }],
+  ])('%s defaults to the PC time zone when no valid zone is saved', async (_name, module, settings) => {
+    const previous = process.env['TZ'];
+    process.env['TZ'] = 'Asia/Tokyo';
+    try {
+      vi.useFakeTimers(); vi.setSystemTime('2026-10-31T23:30:00+09:00');
+      const h = harness(settings);
+      await module.start(h.context);
+      expect(h.last().delay).toBe(30 * 60_000 + 1_000);
+      await module.stop(h.context);
+    } finally {
+      if (previous === undefined) delete process.env['TZ']; else process.env['TZ'] = previous;
+    }
+  });
+
   it('uses the configured Roll Call time zone for its boundary', async () => {
     vi.useFakeTimers(); vi.setSystemTime('2026-10-31T23:40:00Z');
     const h = harness({ enabled: true, timeZone: 'UTC' });
@@ -60,7 +81,7 @@ describe('monthly rollover timers', () => {
 
   it('Chat Play Pack writes its state only when normalization or the month changes it', async () => {
     vi.useFakeTimers(); vi.setSystemTime('2026-10-31T23:30:00-05:00');
-    const h = harness({});
+    const h = harness({ timeZone: 'America/Chicago' });
     await chatPlayPack.start(h.context);
     expect(h.write).toHaveBeenCalledTimes(1);
     await chatPlayPack.stop(h.context); await chatPlayPack.start(h.context);

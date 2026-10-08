@@ -5,7 +5,7 @@
     "pricingMode", "baseCost", "fixedIncrease", "multiplier", "maximumCost", "roundingIncrement",
     "resetEachStream", "blockCurrentHolder", "userCooldownMinutes", "allowBroadcaster", "allowModerators",
     "announceCaptures", "captureMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate",
-    "announceMonthlyWinner", "monthlyWinnerMessageTemplate",
+    "announceMonthlyWinner", "monthlyWinnerMessageTemplate", "timeZone",
     "showCrownCard", "crownCardSeconds", "overlayBackgroundMode", "overlayBackgroundColor",
     "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"
   ],
@@ -41,7 +41,7 @@
       "id": "chat",
       "title": "4. Platform chat messages",
       "description": "Capture announcements are editable. Refund explanations are disabled by default to avoid chat noise.",
-      "fields": ["announceCaptures", "captureMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate", "announceMonthlyWinner", "monthlyWinnerMessageTemplate"]
+      "fields": ["announceCaptures", "captureMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate", "announceMonthlyWinner", "monthlyWinnerMessageTemplate", "timeZone"]
     },
     {
       "id": "overlay",
