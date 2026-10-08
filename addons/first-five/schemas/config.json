@@ -187,6 +187,13 @@
       "minimum": 1,
       "maximum": 10,
       "default": 2
+    },
+    "timeZone": {
+      "type": "string",
+      "title": "Monthly leaderboard time zone",
+      "description": "Leave blank to use this PC's time zone, or enter an IANA time zone such as America/New_York. Invalid values fall back to this PC's time zone.",
+      "maxLength": 100,
+      "default": ""
     }
   }
 }

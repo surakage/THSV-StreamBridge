@@ -316,8 +316,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Live-Beacon-4.0.14.sb",
-          "size": 13824,
-          "sha256": "20b524cac9d72658104e4296dceee4bb709f94df1ef72a612f2f105806d193a5"
+          "size": 13820,
+          "sha256": "3410a7aeff65132bf0e3a8c8070f7def179e2be56355146c9ac19f969c528571"
         }
       ]
     },
@@ -470,8 +470,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Scene-Actions-4.0.14.sb",
-          "size": 7148,
-          "sha256": "f06033259a57247b7b9ed28c0249a141b456fc3fbb28dae3557f1ce745a377ed"
+          "size": 7384,
+          "sha256": "4893362ccce1aa06d64b2dd037a9929e84d592956869ab7ddc99581cca099fdf"
         }
       ]
     },

@@ -40,10 +40,9 @@
     "timeZone": {
       "type": "string",
       "title": "Calendar time zone",
-      "description": "IANA time zone used for each new day and month, for example America/Chicago.",
-      "minLength": 1,
+      "description": "Leave blank to use this PC's time zone, or enter an IANA time zone such as America/New_York. Used for each new day and month.",
       "maxLength": 100,
-      "default": "America/Chicago"
+      "default": ""
     },
     "successfulMessage": {
       "type": "string",

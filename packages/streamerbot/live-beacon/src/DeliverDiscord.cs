@@ -73,7 +73,7 @@ public class CPHInline
             ["description"] = Bounded(content, 1000), ["color"] = PlatformColor(platform),
             ["footer"] = new JObject { ["text"] = "THSV Live Beacon" + (ValidPlatform(metadataSource) && metadataSource != platform ? " · Shared details from " + PlatformLabel(metadataSource) : "") }
         };
-        var author = new JObject { ["name"] = Bounded((channelName.Length > 0 ? channelName : "The Hidden Sloth Village") + " · Join the Village", 256), ["url"] = liveUrl };
+        var author = new JObject { ["name"] = Bounded(channelName.Length > 0 ? channelName + " · Join the stream" : "Join the stream", 256), ["url"] = liveUrl };
         if (showArtwork && SafeImage(profile).Length > 0) author["icon_url"] = SafeImage(profile);
         embed["author"] = author;
         if (showArtwork && SafeImage(art).Length > 0) embed["thumbnail"] = new JObject { ["url"] = SafeImage(art) };

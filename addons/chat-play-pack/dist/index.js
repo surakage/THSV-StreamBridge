@@ -127,6 +127,10 @@ function cleanRound(raw) {
   return null;
 }
 
+// Monthly boards follow the creator's saved IANA time zone, or this PC's own zone when left blank.
+function localTimeZone() { try { return new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } }
+function resolveTimeZone(value) { const zone = typeof value === 'string' ? value.trim().slice(0, 100) : ''; if (zone) { try { new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(); return zone; } catch { /* Invalid zones fall back to this PC's zone. */ } } return localTimeZone(); }
+let monthTimeZone = localTimeZone();
 function stateFor(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
   const duels = Array.isArray(source.duels) ? source.duels.filter((item) => item && typeof item === 'object' && VIEWER_ID.test(item.challengerId) && VIEWER_ID.test(item.targetId) && item.challengerId !== item.targetId && PLATFORMS.includes(item.platform) && Number.isSafeInteger(item.createdAt)).slice(-50).map((item) => ({ id: clean(item.id, 80), challengerId: item.challengerId, challengerName: clean(item.challengerName, 80), challengerAvatarUrl: safeAvatarUrl(item.challengerAvatarUrl), targetId: item.targetId, targetName: clean(item.targetName, 80), targetAvatarUrl: safeAvatarUrl(item.targetAvatarUrl), platform: item.platform, createdAt: item.createdAt })) : [];
@@ -134,7 +138,7 @@ function stateFor(raw) {
   const apiTrivia = Array.isArray(source.apiTrivia) ? source.apiTrivia.map(cleanTrivia).filter(Boolean).slice(0, 50) : [];
   const apiUnscramble = Array.isArray(source.apiUnscramble) ? source.apiUnscramble.map(cleanUnscramble).filter(Boolean).slice(0, 30) : [];
   const pendingUnscramble = source.pendingUnscramble && typeof source.pendingUnscramble === 'object' && clean(source.pendingUnscramble.requestId, 100) ? { requestId: clean(source.pendingUnscramble.requestId, 100), platform: PLATFORMS.includes(source.pendingUnscramble.platform) ? source.pendingUnscramble.platform : 'twitch', requestedAt: integer(source.pendingUnscramble.requestedAt, 0, Number.MAX_SAFE_INTEGER, 0) } : null;
-  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit' }).formatToParts(new Date()).map(p=>[p.type,p.value])); const month = `${parts.year}-${parts.month}`;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: monthTimeZone, year: 'numeric', month: '2-digit' }).formatToParts(new Date()).map(p=>[p.type,p.value])); const month = `${parts.year}-${parts.month}`;
   return { month, monthlyRounds: source.month === month ? integer(source.monthlyRounds, 0, 1_000_000_000, 0) : 0, round: cleanRound(source.round), roundSequence: integer(source.roundSequence, 0, 1_000_000_000, 0), completedRounds: integer(source.completedRounds, 0, 1_000_000_000, 0), duels, awardLog, apiTrivia, apiUnscramble, recentTrivia: Array.isArray(source.recentTrivia) ? source.recentTrivia.map((item) => clean(item, 32)).filter((item) => /^[a-f0-9]{32}$/u.test(item)).slice(-100) : [], pendingTrivia: source.pendingTrivia && typeof source.pendingTrivia === 'object' && clean(source.pendingTrivia.requestId, 100) ? { requestId: clean(source.pendingTrivia.requestId, 100), platform: PLATFORMS.includes(source.pendingTrivia.platform) ? source.pendingTrivia.platform : 'twitch', requestedAt: integer(source.pendingTrivia.requestedAt, 0, Number.MAX_SAFE_INTEGER, 0) } : null, pendingUnscramble, usedUnscramble: Array.isArray(source.usedUnscramble) ? source.usedUnscramble.map(normalizedAnswer).filter(Boolean).slice(-200) : [] };
 }
 
@@ -371,7 +375,7 @@ async function process(event, context) {
 
 export default {
   manifest, required: false,
-  async start(context) { operation = Promise.resolve(); livePlatforms.clear(); recentViewers.clear(); commandCooldowns.clear(); await monthlyCheck(context); armMonthly(context); },
+  async start(context) { monthTimeZone = resolveTimeZone(context.settings?.timeZone); operation = Promise.resolve(); livePlatforms.clear(); recentViewers.clear(); commandCooldowns.clear(); await monthlyCheck(context); armMonthly(context); },
   async stop(context) { monthlyStopped = true; if (monthlyTask) context?.schedule?.cancel(monthlyTask); monthlyTask = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); recentViewers.clear(); commandCooldowns.clear(); },
   async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; },
 };
@@ -385,4 +389,4 @@ function monthlyCheckDelay(timeZone, now = Date.now()) { const current = calenda
 let monthlyTask, monthlyStopped = true;
 // Normalizes stored state (including the monthly round reset) and writes only when that changes something.
 async function monthlyCheck(context) { const raw = await context.state.read(); const next = stateFor(raw); if (JSON.stringify(next) !== JSON.stringify(raw)) await context.state.write(next); }
-function armMonthly(context) { monthlyStopped = false; const timeZone = 'America/Chicago'; const armedMonth = calendarMonthKey(timeZone); monthlyTask = context.schedule.after(monthlyCheckDelay(timeZone), () => { if (monthlyStopped) return; if (calendarMonthKey(timeZone) === armedMonth) { armMonthly(context); return; } const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; operation = operation.then(check, check); return operation; }); }
+function armMonthly(context) { monthlyStopped = false; const timeZone = monthTimeZone; const armedMonth = calendarMonthKey(timeZone); monthlyTask = context.schedule.after(monthlyCheckDelay(timeZone), () => { if (monthlyStopped) return; if (calendarMonthKey(timeZone) === armedMonth) { armMonthly(context); return; } const check = async () => { try { await monthlyCheck(context); } finally { if (!monthlyStopped) armMonthly(context); } }; operation = operation.then(check, check); return operation; }); }

@@ -33,7 +33,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
   const retainedChatHistory = 200;
   let compactBubbleCursor = 0;
   let clientConfig = {
-    brandLabel: 'THE HIDDEN SLOTH VILLAGE', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
+    brandLabel: '', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
     chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
   };
   let dockConfig = { enabled: false, platforms: [], characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } };

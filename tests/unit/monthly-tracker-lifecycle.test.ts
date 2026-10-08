@@ -23,18 +23,18 @@ afterEach(()=>vi.useRealTimers());
 describe('monthly tracker lifecycle',()=>{
   it('rolls First Five rankings while preserving an in-flight native reset and current stream placements',async()=>{
     vi.useFakeTimers();vi.setSystemTime('2026-10-31T23:00:00-05:00');
-    const h=monthlyContext({enabled:true,commandName:'firstfive'},{leaderboardMonth:'2026-10',leaderboard:[{userId:'youtube:viewer',displayName:'Villager',placements:[1,0,0,0,0]}],pending:{operation:'reset',requestId:'native-in-flight',startedAt:Date.now()},placements:[]});
+    const h=monthlyContext({enabled:true,commandName:'firstfive',timeZone:'America/Chicago'},{leaderboardMonth:'2026-10',leaderboard:[{userId:'youtube:viewer',displayName:'Villager',placements:[1,0,0,0,0]}],pending:{operation:'reset',requestId:'native-in-flight',startedAt:Date.now()},placements:[]});
     await firstFive.start(h.context);vi.setSystemTime('2026-11-01T00:00:30-05:00');await h.check();
     expect(h.state()).toMatchObject({leaderboardMonth:'2026-11',leaderboard:[],pending:{requestId:'native-in-flight'},placements:[]});await firstFive.stop(h.context);
   });
   it('rolls Roll Call without waiting for a stream or viewer event',async()=>{
     vi.useFakeTimers();vi.setSystemTime('2026-10-31T23:00:00-05:00');
-    const h=monthlyContext({enabled:true},{month:'2026-10',entries:[{userId:'twitch:viewer',displayName:'Villager',count:5,lastDay:'2026-10-31',firstAt:'2026-10-01T12:00:00Z',lastAt:'2026-10-31T12:00:00Z'}]});
+    const h=monthlyContext({enabled:true,timeZone:'America/Chicago'},{month:'2026-10',entries:[{userId:'twitch:viewer',displayName:'Villager',count:5,lastDay:'2026-10-31',firstAt:'2026-10-01T12:00:00Z',lastAt:'2026-10-31T12:00:00Z'}]});
     await rollCall.start(h.context);vi.setSystemTime('2026-11-01T00:00:30-05:00');await h.check();expect(h.state()).toMatchObject({month:'2026-11',entries:[],previousWinner:{displayName:'Villager',count:5}});await rollCall.stop(h.context);
   });
   it('splits an ongoing lurk across the monthly boundary and does not invent another lurk visit',async()=>{
     interface LurkState { month?: string; entries?: Array<{ seconds: number }> }
-    let state:LurkState={};const writes:LurkState[]=[];const context:TrackerContext<LurkState>={settings:{enabled:true,announceLurk:false},state:{read:async()=>state,write:async(s)=>{state=structuredClone(s);writes.push(structuredClone(s));}},viewerFoundation:{getProjection:async()=>({viewerId:'villager'})}};
+    let state:LurkState={};const writes:LurkState[]=[];const context:TrackerContext<LurkState>={settings:{enabled:true,announceLurk:false,timeZone:'America/Chicago'},state:{read:async()=>state,write:async(s)=>{state=structuredClone(s);writes.push(structuredClone(s));}},viewerFoundation:{getProjection:async()=>({viewerId:'villager'})}};
     const event={eventId:'lurk',eventType:'command.received',platform:'twitch',user:{id:'1',displayName:'Villager',actorType:'human'},payload:{command:'lurk'},metadata:{simulated:false}};
     await processLurkEvent(event,context,Date.parse('2026-10-31T23:55:00-05:00'));
     await processLurkEvent({...event,eventId:'returned',eventType:'chat.message',payload:{message:'Hello!'}},context,Date.parse('2026-11-01T00:01:00-05:00'));

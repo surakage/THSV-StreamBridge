@@ -147,6 +147,15 @@ const activeBridge = new StreamBridge(config, logger, { inputs, outputs, dedupli
 const installedAddOns = await addOnWizard.list();
 const buildProvenance = await readBuildProvenance(dataRoot);
 const releaseUpdates = new ReleaseUpdateService(STREAMBRIDGE_VERSION, undefined, undefined, join(dataRoot, 'updates'));
+// After a one-click core update, its verified archive and unpacked staging folder stay in
+// data/updates. Remove them once the updater, which runs from that folder, has exited.
+const cleanupStagedCoreUpdate = (): void => {
+  void releaseUpdates.cleanupInstalledUpdate().then((result) => {
+    if (result.removed.length > 0) logger.info('Removed installed core update staging files', { removed: result.removed });
+    if (result.pending) setTimeout(cleanupStagedCoreUpdate, 10 * 60_000).unref();
+  }).catch((error: unknown) => logger.warn('Installed core update staging cleanup failed', { error }));
+};
+setTimeout(cleanupStagedCoreUpdate, 3 * 60_000).unref();
 const addOnUpdates = new AddOnUpdateService(CORE_CONTRACT_VERSION, undefined, undefined, undefined, join(dataRoot, 'updates'));
 const automaticUpdates = new AutomaticUpdateMonitor({
   streamerBotConnected: () => streamerBotInspector?.status()['state'] === 'connected',

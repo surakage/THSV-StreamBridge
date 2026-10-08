@@ -18,11 +18,10 @@
     },
     "timeZone": {
       "type": "string",
-      "default": "America/Chicago",
-      "enum": [
-        "America/Chicago"
-      ],
-      "title": "Monthly calendar"
+      "default": "",
+      "maxLength": 100,
+      "title": "Monthly calendar time zone",
+      "description": "Leave blank to use this PC's time zone, or enter an IANA time zone such as America/New_York. Invalid values fall back to this PC's time zone."
     },
     "announceLurk": {
       "type": "boolean",
@@ -41,12 +40,9 @@
         "maxLength": 80
       },
       "maxItems": 100,
-      "default": [
-        "suraruisuh",
-        "suraruisuh_bot",
-        "The Hidden Sloth Village"
-      ],
-      "title": "Accounts to ignore"
+      "default": [],
+      "title": "Accounts to ignore",
+      "description": "Your broadcaster and connected bot accounts are ignored automatically. Add any other account names here, one per line."
     }
   }
 }

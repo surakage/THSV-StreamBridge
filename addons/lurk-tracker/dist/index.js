@@ -16,11 +16,25 @@ let chain = Promise.resolve(), taskId, stopped = true, unregisterDeletion;
 const live = new Set();
 const clean = (v, n = 80) => typeof v === 'string' ? [...v.replace(/[\u0000-\u001f\u007f]/gu, '').trim()].slice(0, n).join('') : '';
 const number = v => Number.isSafeInteger(v) && v >= 0 ? v : 0;
-export function monthKey(now, zone = 'America/Chicago') {
+// A blank or invalid zone uses this PC's own time zone; saved IANA zones such as America/Chicago keep working.
+export function localTimeZone() { try { return new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } }
+function validTimeZone(value) { const zone = clean(value, 100); if (!zone) return localTimeZone(); try { new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(); return zone; } catch { return localTimeZone(); } }
+export function monthKey(now, zone = localTimeZone()) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit' }).formatToParts(now).map(p => [p.type, p.value]));
   return `${parts.year}-${parts.month}`;
 }
-function settings(context) { return { enabled: false, lurkCommand: 'lurk', timeZone: 'America/Chicago', announceLurk: true, announceReturn: false, ignoredNames: ['suraruisuh', 'suraruisuh_bot', 'the hidden sloth village'], ...context.settings }; }
+function settings(context) { const config = { enabled: false, lurkCommand: 'lurk', timeZone: '', announceLurk: true, announceReturn: false, ignoredNames: [], ...context.settings }; return { ...config, timeZone: validTimeZone(config.timeZone) }; }
+// The broadcaster and Streamer.bot's connected bot account are recognized from bridge event data, so no personal account names ship as defaults.
+export function isConnectedAccount(event) {
+  const user = event?.user || {};
+  const roles = Array.isArray(user.roles) ? user.roles.map(role => clean(String(role), 64).toLowerCase()) : [];
+  if (event?.payload?.fromConnectedAccount === true || roles.includes('broadcaster')) return true;
+  const list = value => Array.isArray(value) ? value : [];
+  const ids = [event?.channel?.id, ...list(event?.payload?.connectedAccountIds)].map(v => clean(v, 256)).filter(Boolean);
+  if (clean(user.id, 256) && ids.includes(clean(user.id, 256))) return true;
+  const names = [event?.channel?.name, ...list(event?.payload?.connectedAccountNames)].map(v => clean(v).toLowerCase()).filter(name => name && !PLATFORMS.includes(name));
+  return [user.name, user.displayName].some(v => { const name = clean(v).toLowerCase(); return name !== '' && names.includes(name); });
+}
 export function sanitizeState(raw, now = Date.now(), zone) {
   const entries = (Array.isArray(raw?.entries) ? raw.entries : []).filter(e => /^[a-z][a-z0-9-]{0,63}$/u.test(e?.viewerId) && clean(e.displayName)).slice(0, 150).map(e => ({ viewerId: e.viewerId, displayName: clean(e.displayName), visits: Math.min(100000, number(e.visits)), seconds: number(e.seconds), since: number(e.since), platform: PLATFORMS.includes(e.platform) ? e.platform : 'twitch' }));
   return { version: 1, month: /^\d{4}-\d{2}$/u.test(raw?.month) ? raw.month : monthKey(now, zone), entries, lastTickAt: number(raw?.lastTickAt), processed: (Array.isArray(raw?.processed) ? raw.processed : []).filter(v => typeof v === 'string').map(v => clean(v, 256)).slice(-40) };
@@ -44,7 +58,7 @@ export async function processLurkEvent(event, context, now = Date.now()) {
   let state = await roll(context, sanitizeState(await context.state.read(), now, config.timeZone), now, config.timeZone);
   if (event.eventType === 'stream.online') { live.add(event.platform); state.lastTickAt = now; await context.state.write(state); return; }
   if (event.eventType === 'stream.offline') { live.delete(event.platform); for (const entry of state.entries) if (!live.size || entry.platform === event.platform) settle(entry, now); state.lastTickAt = now; await context.state.write(state); return; }
-  if (event.user?.actorType !== 'human' || !event.user?.id || config.ignoredNames.some(name => [event.user.name, event.user.displayName].some(v => clean(v).toLowerCase() === name.toLowerCase()))) return;
+  if (event.user?.actorType !== 'human' || !event.user?.id || isConnectedAccount(event) || config.ignoredNames.some(name => [event.user.name, event.user.displayName].some(v => clean(v).toLowerCase() === name.toLowerCase()))) return;
   const command = clean(event.payload?.command, 40).toLowerCase();
   const isLurk = event.eventType === 'command.received' && command === config.lurkCommand;
   // Raw command chat can arrive before its normalized command. It must not unlurk first.

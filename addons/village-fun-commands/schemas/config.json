@@ -27,7 +27,7 @@
     "hugsCommand": { "type": "string", "title": "Hug leaderboard command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "default": "hugs" },
     "timezoneEnabled": { "type": "boolean", "title": "Streamer timezone and local time", "default": true },
     "timezoneCommand": { "type": "string", "title": "Timezone command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "default": "timezone" },
-    "timezoneName": { "type": "string", "title": "Streamer timezone", "minLength": 1, "maxLength": 64, "default": "America/Chicago", "description": "Use an IANA timezone such as America/Chicago, America/New_York, Europe/London, or Asia/Tokyo." },
+    "timezoneName": { "type": "string", "title": "Streamer timezone", "maxLength": 64, "default": "", "description": "Leave blank to use this PC's time zone, or enter an IANA timezone such as America/Chicago, America/New_York, Europe/London, or Asia/Tokyo." },
     "timezoneLabel": { "type": "string", "title": "Timezone response label", "minLength": 1, "maxLength": 50, "default": "Streamer time" },
     "diceEnabled": { "type": "boolean", "title": "Dice rolls", "default": true },
     "diceCommand": { "type": "string", "title": "Dice command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "default": "dice" },

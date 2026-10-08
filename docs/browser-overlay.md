@@ -74,7 +74,7 @@ For the clearest standalone Alerts in Meld, keep both the layer and locked **Bro
 ```json
   "browserOverlay": {
   "enabled": true,
-  "brandLabel": "THE HIDDEN SLOTH VILLAGE",
+  "brandLabel": "",
   "maxChatMessages": 8,
   "maxAlertQueue": 20,
   "alertDurationMs": 7000,

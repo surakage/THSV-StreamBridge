@@ -14,7 +14,6 @@ const DEFAULT_IGNORED_USERS = Object.freeze([
   'twitch:kofistreambot', 'twitch:streamlabs', 'twitch:botrix', 'youtube:botrix', 'kick:botrix',
   'tiktok:botrix', 'twitch:commanderroot', 'twitch:deepbot', 'twitch:phantombot',
   'twitch:stay_hydrated_bot', 'twitch:coebot', 'twitch:pretzelrocks', 'twitch:streamavatars',
-  'twitch:suraruisuh', 'twitch:suraruisuh_bot',
 ]);
 const DEFAULT_SPAM_TERMS = Object.freeze([
   'want to become famous', 'buy followers', 'buy viewers', 'cheap viewers',

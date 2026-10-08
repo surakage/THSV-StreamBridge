@@ -6,7 +6,7 @@ const FALLBACKS = Object.freeze({
   kickRewardId: '',
   commandName: 'checkin',
   pointsCost: 25,
-  timeZone: 'America/Chicago',
+  timeZone: '',
   successfulMessage: '{name} checked in! You have {count} check-ins for {month} and rank #{rank}.',
   duplicateMessage: '{name}, you already checked in today.',
   announceDuplicates: true,
@@ -54,10 +54,13 @@ function scopedUserId(value) {
   const userId = clean(value, 256);
   return userId && !userId.includes(':') ? `twitch:${userId}` : userId;
 }
+// A blank or invalid zone uses this PC's own time zone; saved IANA zones such as America/Chicago keep working.
+function localTimeZone() { try { return new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } }
 function validTimeZone(value) {
-  const candidate = clean(value, 100) || FALLBACKS.timeZone;
+  const candidate = clean(value, 100);
+  if (!candidate) return localTimeZone();
   try { new Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(); return candidate; }
-  catch { return FALLBACKS.timeZone; }
+  catch { return localTimeZone(); }
 }
 function settingsFor(context) {
   const raw = { ...FALLBACKS, ...(context.settings || {}) };
