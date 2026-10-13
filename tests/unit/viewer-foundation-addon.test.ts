@@ -73,14 +73,14 @@ describe('Viewer Foundation add-on', () => {
       processed: Array.from({ length: 60 }, (_, index) => ({ id: index.toString(16).padStart(32, '0'), at: 1000 + index })),
     }, { levelStepPoints: 10, maximumViewers: 25, processedEventLimit: 25, processedEventTtlHours: 720 }, 2000);
     expect(Object.keys(state.viewers)).toHaveLength(25); expect(state.processed).toHaveLength(25);
-    expect(viewerProjection(state, 'viewer-39', { levelStepPoints: 10 })).toEqual({ contractVersion: '1.0.0', viewerId: 'viewer-39', linked: false, currencyName: 'Village Points', points: 39, level: 4, nextLevelAt: 40 });
+    expect(viewerProjection(state, 'viewer-39', { levelStepPoints: 10 })).toEqual({ contractVersion: '1.0.0', viewerId: 'viewer-39', linked: false, currencyName: 'Points', points: 39, level: 4, nextLevelAt: 40 });
     const deleted = deleteViewerRecord(state, 'viewer-39', { levelStepPoints: 10 });
     expect(deleted.removed).toBe(true); expect(deleted.state.viewers['viewer-39']).toBeUndefined();
   });
 
   it('derives bounded milestone achievements from points without storing another profile', () => {
     const projection = viewerProjection({ viewers: { alex: { points: 2_600, level: 27, lastSeenAt: 1 } } }, 'alex', { levelStepPoints: 100, achievementsEnabled: true });
-    expect(projection).toMatchObject({ points: 2_600, latestAchievement: { id: 'village-veteran', label: 'Village Veteran', points: 2_500 } });
+    expect(projection).toMatchObject({ points: 2_600, latestAchievement: { id: 'village-veteran', label: 'Veteran', points: 2_500 } });
     expect(projection.achievements).toHaveLength(4);
     expect(viewerProjection({ viewers: { alex: { points: 2_600, level: 27, lastSeenAt: 1 } } }, 'alex', { levelStepPoints: 100, achievementsEnabled: false })).not.toHaveProperty('achievements');
   });

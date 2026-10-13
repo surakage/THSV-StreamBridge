@@ -372,6 +372,17 @@ export interface AddOnCommunityAnalyticsCapabilityV2 {
   getSessionProjection(): Promise<CommunityAnalyticsSessionProjectionV1>;
 }
 
+/** The creator's community, as add-ons should name it in viewer-facing text. */
+export interface AddOnCommunityV2 {
+  /**
+   * Never blank. Resolved on every read: the creator's configured community name, else the
+   * broadcaster channel name most recently seen on a live (non-simulated) platform event,
+   * else the generic "the community". Add-ons expand a `{community}` token in their messages
+   * from this value so shared installs never speak for another creator's community.
+   */
+  readonly name: string;
+}
+
 export interface ModuleRuntimeContextV2 {
   readonly moduleId: string;
   readonly grantedPermissions: readonly AddOnPermissionV2[];
@@ -390,4 +401,6 @@ export interface ModuleRuntimeContextV2 {
   readonly provider: AddOnProviderCapabilityV2;
   readonly viewerFoundation: AddOnViewerFoundationCapabilityV2;
   readonly communityAnalytics: AddOnCommunityAnalyticsCapabilityV2;
+  /** The creator's community name for viewer-facing text; see {@link AddOnCommunityV2}. Needs no permission. */
+  readonly community: AddOnCommunityV2;
 }

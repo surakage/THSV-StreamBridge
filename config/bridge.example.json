@@ -28,6 +28,9 @@
     "persistAcrossRestarts": true,
     "stateFile": "data/state/deduplication.json"
   },
+  "community": {
+    "name": ""
+  },
   "commands": {
     "enabled": true,
     "prefix": "!",

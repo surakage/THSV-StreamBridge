@@ -51,8 +51,21 @@ function safeAvatarUrl(value) { const url = safeHttpsUrl(value); return url.leng
 function uniquePlatforms(value, fallback = PLATFORMS) {
   return Array.isArray(value) ? [...new Set(value.filter((item) => PLATFORMS.includes(item)))].slice(0, 4) : [...fallback];
 }
+// The host resolves the community name (Settings > Community name, else the channel name);
+// hosts without it fall back to the last live event's channel name, then a generic phrase.
+let lastChannelName = '';
+function noteChannel(event) {
+  const channel = clean(event?.channel?.name, 60);
+  if (event?.metadata?.simulated !== true && PLATFORMS.includes(event?.platform) && channel && channel.toLowerCase() !== event.platform) lastChannelName = channel;
+}
+function communityName(context) { return clean(context?.community?.name, 60) || lastChannelName || 'the community'; }
+function expandCommunity(template, community) {
+  return template.replace(/\{community\}/gu, (_token, offset) => offset === 0 ? `${community.charAt(0).toLocaleUpperCase('en-US')}${community.slice(1)}` : community);
+}
 function settingsFor(context) {
   const raw = context.settings || {};
+  const community = communityName(context);
+  const text = (value, maximum, fallback) => clean(expandCommunity(clean(value, maximum) || fallback, community), maximum);
   return {
     enabled: raw.enabled === true,
     commandPrefix: typeof raw.commandPrefix === 'string' && /^\S$/u.test(raw.commandPrefix) ? raw.commandPrefix : '!',
@@ -60,8 +73,8 @@ function settingsFor(context) {
     enterCommand: clean(raw.enterCommand, 40).toLowerCase() || 'enter',
     ticketsCommand: clean(raw.ticketsCommand, 40).toLowerCase() || 'tickets',
     myTicketsCommand: clean(raw.myTicketsCommand, 40).toLowerCase() || 'mytickets',
-    name: clean(raw.giveawayName, 100) || 'Village Giveaway',
-    description: clean(raw.description, 500) || 'Enter for a chance to win!',
+    name: text(raw.giveawayName, 100, '{community} Giveaway'),
+    description: text(raw.description, 500, 'Enter for a chance to win!'),
     prize: clean(raw.prizeItem, 160) || 'Mystery Prize',
     imageUrl: safeHttpsUrl(raw.prizeImageUrl),
     entryMode: ENTRY_MODES.includes(raw.entryMode) ? raw.entryMode : 'free-single',
@@ -72,10 +85,10 @@ function settingsFor(context) {
     eligiblePlatforms: uniquePlatforms(raw.eligiblePlatforms),
     announcementPlatforms: uniquePlatforms(raw.announcementPlatforms),
     streamEndBehavior: ['leave-open', 'pause', 'close'].includes(raw.streamEndBehavior) ? raw.streamEndBehavior : 'close',
-    openMessage: clean(raw.openMessage, 1_000) || '{name} is open! Prize: {prize}. Use {entryCommand}.',
-    winnerMessage: clean(raw.winnerMessage, 1_000) || '{winner} won {prize} in {name}!',
-    canceledMessage: clean(raw.canceledMessage, 1_000) || '{name} was canceled. Purchased tickets were refunded.',
-    confirmationMessage: clean(raw.confirmationMessage, 500) || '{viewer}, you now have {tickets} ticket(s) in {name}. Remaining: {points} {currency}.',
+    openMessage: text(raw.openMessage, 1_000, '{name} is open! Prize: {prize}. Use {entryCommand}.'),
+    winnerMessage: text(raw.winnerMessage, 1_000, '{winner} won {prize} in {name}!'),
+    canceledMessage: text(raw.canceledMessage, 1_000, '{name} was canceled. Purchased tickets were refunded.'),
+    confirmationMessage: text(raw.confirmationMessage, 500, '{viewer}, you now have {tickets} ticket(s) in {name}. Remaining: {points} {currency}.'),
     backgroundColor: color(raw.backgroundColor, '#10201b'), accentColor: color(raw.accentColor, '#7ff5cc'),
     textColor: color(raw.textColor, '#ffffff'), winnerColor: color(raw.winnerColor, '#ffd166'),
     backgroundOpacity: typeof raw.backgroundOpacity === 'number' && Number.isFinite(raw.backgroundOpacity) ? Math.min(0.95, Math.max(0.2, raw.backgroundOpacity)) : 0.72,
@@ -84,7 +97,7 @@ function settingsFor(context) {
     ticketLayout: raw.ticketLayout === 'wide' ? 'wide' : 'compact', drawAnimationSeconds: integer(raw.drawAnimationSeconds, 2, 10, 4),
     showConfetti: raw.showConfetti !== false, showPrizeImage: raw.showPrizeImage !== false, showWinnerAvatar: raw.showWinnerAvatar !== false,
     showPlatformBadge: raw.showPlatformBadge !== false, showEntryCount: raw.showEntryCount !== false, playWinnerTone: raw.playWinnerTone === true,
-    winnerOverlayMessage: clean(raw.winnerOverlayMessage, 160) || 'The village has chosen!',
+    winnerOverlayMessage: text(raw.winnerOverlayMessage, 160, 'The community has chosen!'),
   };
 }
 function safeEntry(value) {
@@ -402,6 +415,7 @@ async function control(request, context, now = Date.now(), randomIndex = secureR
   }
 }
 async function processEvent(event, context) {
+  noteChannel(event);
   const settings = settingsFor(context); if (!settings.enabled) return;
   if (event.eventType === 'stream.online' && event.metadata?.simulated !== true && PLATFORMS.includes(event.platform)) { livePlatforms.add(event.platform); return; }
   if (event.eventType === 'stream.offline' && event.metadata?.simulated !== true && PLATFORMS.includes(event.platform)) {

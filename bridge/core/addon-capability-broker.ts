@@ -127,7 +127,14 @@ export interface AddOnCapabilityBrokerDependencies {
   readonly routeOutboundMessage?: (request: AddOnOutboundMessageRequestV2, signal: AbortSignal) => Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
   readonly publishProviderEvent?: (event: NormalizedEvent) => Promise<void>;
   readonly cacheClipMedia?: (moduleId: string, request: ClipMediaCacheRequest, signal: AbortSignal) => Promise<ClipMediaCacheResult>;
+  /** The creator's configured community name; blank falls back to the broadcaster channel name. Read on every access. */
+  readonly communityName?: () => string;
 }
+
+export const DEFAULT_COMMUNITY_NAME = 'the community';
+const COMMUNITY_CHANNEL_PLATFORMS = new Set(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
+// Adapters fall back to these when a relay omits the broadcaster, so they never name a community.
+const PLACEHOLDER_CHANNEL_NAMES = new Set(['twitch', 'youtube', 'kick', 'tiktok', 'facebook', 'streamlabs', 'kofi', 'system', 'local', 'obs', 'preview channel', 'unknown']);
 
 interface CapabilityAudit {
   granted: number;
@@ -195,6 +202,7 @@ export class AddOnCapabilityBroker {
   private readonly coordinationLeases = new Map<string, CoordinationLease>();
   private readonly coordinationListeners = new Map<string, Set<CoordinationListener>>();
   private readonly coordinationCooldowns = new Map<string, number>();
+  private lastBroadcasterChannelName: string | undefined;
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {}
 
@@ -206,6 +214,7 @@ export class AddOnCapabilityBroker {
     const permissions = Object.freeze([...grant.permissions]);
     const approvedActionIds = Object.freeze([...grant.approvedActionIds]);
     const has = (permission: AddOnPermissionV2): boolean => permissions.includes(permission);
+    const communityName = (): string => this.communityName();
     const context: ModuleRuntimeContextV2 = {
       moduleId: grant.moduleId,
       grantedPermissions: permissions,
@@ -255,8 +264,24 @@ export class AddOnCapabilityBroker {
         getViewerProjection: (viewerId: string) => this.getCommunityAnalyticsViewerProjection(grant, viewerId),
         getSessionProjection: () => this.getCommunityAnalyticsSessionProjection(grant),
       }),
+      community: Object.freeze({ get name(): string { return communityName(); } }),
     };
     return Object.freeze(context);
+  }
+
+  /** The community name add-ons should use now: configured name, else the last real broadcaster channel, else a generic phrase. */
+  public communityName(): string {
+    let configured = '';
+    try { configured = (this.dependencies.communityName?.() ?? '').trim(); } catch { /* Fall back to the observed channel. */ }
+    return configured.slice(0, 60) || this.lastBroadcasterChannelName || DEFAULT_COMMUNITY_NAME;
+  }
+
+  /** Remembers the broadcaster channel of a live platform event so add-ons can name the community without configuration. */
+  public observeEvent(event: Pick<NormalizedEvent, 'platform' | 'channel' | 'metadata'>): void {
+    if (event.metadata.simulated || !COMMUNITY_CHANNEL_PLATFORMS.has(event.platform)) return;
+    const name = event.channel.name.replace(/[\p{Cc}\s]+/gu, ' ').trim().slice(0, 60);
+    if (name === '' || PLACEHOLDER_CHANNEL_NAMES.has(name.toLowerCase())) return;
+    this.lastBroadcasterChannelName = name;
   }
 
   public cleanup(moduleId: string): void {

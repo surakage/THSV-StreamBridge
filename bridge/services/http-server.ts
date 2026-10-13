@@ -1004,7 +1004,7 @@ export class DiagnosticsServer {
         const requestedPreviewMode = previewRequest !== null && typeof previewRequest === 'object' && !Array.isArray(previewRequest)
           ? (previewRequest as Record<string, unknown>)['mode'] : undefined;
         const previewMode = typeof requestedPreviewMode === 'string' ? requestedPreviewMode : '';
-        await this.overlayHub.publishAddOn(moduleId, topic, { ...buildAddOnOverlayPreview(addOn, previewMode), templatePreview: true });
+        await this.overlayHub.publishAddOn(moduleId, topic, { ...buildAddOnOverlayPreview(addOn, previewMode, await this.wizard.communityName()), templatePreview: true });
         return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic });
       }
       const addOnOverlayDraftPreviewMatch = request.method === 'POST' ? /^\/wizard\/api\/addons\/([^/]+)\/overlay-preview-draft$/u.exec(request.url ?? '') : null;
@@ -1021,7 +1021,7 @@ export class DiagnosticsServer {
         const topic = addOnOverlayPreviewTopic(moduleId);
         const event = {
           contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId, topic,
-          emittedAt: new Date().toISOString(), payload: { ...buildAddOnOverlayPreview(addOn, previewMode), templatePreview: true },
+          emittedAt: new Date().toISOString(), payload: { ...buildAddOnOverlayPreview(addOn, previewMode, await this.wizard.communityName()), templatePreview: true },
         };
         return this.reply(response, 200, { accepted: true, simulated: true, persisted: false, moduleId, event });
       }
@@ -1330,7 +1330,9 @@ async function readLegacyViewerMigration(dataRoot: string): Promise<LegacyViewer
   }
 }
 
-export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode = ''): Readonly<Record<string, unknown>> {
+// `community` is the creator's saved community name; previews have no live channel, so blank shows a placeholder.
+export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode = '', community = ''): Readonly<Record<string, unknown>> {
+  const withCommunity = (value: string): string => value.split('{community}').join(community.trim() || 'Your Community');
   if (addOn.moduleId === 'thsv.village-hydration-station') {
     const goalOunces = boundedPreviewInteger(addOn.settings['goalOunces'], 8, 512, 64);
     const totalOunces = Math.max(1, Math.round(goalOunces / 2));
@@ -1519,8 +1521,8 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   }
   if (addOn.moduleId === 'thsv.village-draw') {
     return {
-      cardKind: 'village-draw', phase: 'winner', giveawayName: previewText(addOn.settings['giveawayName'], 'Village Giveaway'),
-      prizeName: previewText(addOn.settings['prizeItem'], 'Mystery Prize'), winnerMessage: previewText(addOn.settings['winnerOverlayMessage'], 'The village has chosen!'),
+      cardKind: 'village-draw', phase: 'winner', giveawayName: withCommunity(previewText(addOn.settings['giveawayName'], '{community} Giveaway')),
+      prizeName: previewText(addOn.settings['prizeItem'], 'Mystery Prize'), winnerMessage: withCommunity(previewText(addOn.settings['winnerOverlayMessage'], 'The community has chosen!')),
       winner: { displayName: 'Example Villager With A Long Name', platform: 'twitch', avatarUrl: '' },
       entrants: ['CozySloth', 'Early Bird', 'Night Owl', 'Village Wanderer', 'Example Villager'], entrantCount: 42, ticketCount: 84,
       imageUrl: typeof addOn.settings['prizeImageUrl'] === 'string' && addOn.settings['prizeImageUrl'].startsWith('https://') ? addOn.settings['prizeImageUrl'] : '',
@@ -1697,7 +1699,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   const fields: string[] = [];
   const stats: Array<{ label: string; value: string }> = [];
   const addField = (label: string, value: string, legacy: string): void => { stats.push({ label, value }); fields.push(legacy); };
-  if (settings['showPoints'] !== false) addField('Village Points', '2,450', '2,450 points');
+  if (settings['showPoints'] !== false) addField('Points', '2,450', '2,450 points');
   if (settings['showLevel'] !== false) addField('Level', '25', 'Level 25');
   if (settings['showLatestAchievement'] !== false) addField('Achievement', 'Community Supporter', 'Community Supporter');
   if (settings['showObservedSessions'] === true) addField('Sessions', '14', '14 observed sessions');

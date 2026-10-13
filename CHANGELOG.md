@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+- Added a Community name setting (Overview > Community) that add-ons use in viewer-facing text. Blank uses the broadcaster's channel name from live events, then "the community". Add-ons read it from the new `context.community.name`.
+- Add-on defaults now use a `{community}` token instead of "the village": Automated Shoutouts welcomes, Village Lurk Tracker's lurk reply, Discord Chat Archive's forum post name and session header, and Village Draw's giveaway name. Saved values keep working, and `{community}` also expands in saved text.
+- Viewer Foundation's points name now defaults to "Points" and its achievement labels to Regular, Veteran and Legend; achievement IDs are unchanged. Viewer Spotlight, Free Game Check and the Village Draw overlay use neutral wording. The THSV product name, add-on names and Streamer.bot action names are unchanged.
+- Existing installs: set Settings > Community name (for example 'The Hidden Sloth Village'); if you never saved a points name, it now shows 'Points' until you set one.
+
 ## [4.0.14] - 2026-10-07
 
 - Republished the 4.0.13 changes after its release build stopped on a launcher test that only passed before noon UTC; the test now mocks the clock before saving. No application changes beyond 4.0.13.
