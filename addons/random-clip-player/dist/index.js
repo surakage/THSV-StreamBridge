@@ -34,7 +34,7 @@ const MAX_LIBRARY_CLIPS = 100;
 // tests, for instance). A real installed context always has a complete settings object, since the
 // loader validates it against schemas/config.json with defaults applied before this ever runs.
 const FALLBACKS = Object.freeze({
-  automaticSceneNames: ['BRB', 'Stream Ending'],
+  automaticSceneNames: ['role:break', 'role:ending'],
   stopOutsideAutomaticScenes: true,
   secondsBetweenClips: 5,
   clipCount: 20,
@@ -61,6 +61,14 @@ function readSettings(context) {
   const automaticSceneNames = Array.isArray(settings.automaticSceneNames) ? settings.automaticSceneNames.filter((value) => typeof value === 'string' && value.trim()).slice(0, 20) : FALLBACKS.automaticSceneNames;
   const stopOutsideAutomaticScenes = settings.stopOutsideAutomaticScenes !== false;
   return { automaticSceneNames, stopOutsideAutomaticScenes, secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume, cacheVideo, cacheTtlHours, cacheMaximumFileMb };
+}
+
+// A "role:break" style value follows the scene the creator mapped to that role under Add-ons >
+// Scene roles in the wizard ('' while unmapped). Any other value is an exact scene name.
+function resolveSceneSetting(value, context) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!/^role:/iu.test(text)) return text;
+  try { return typeof context?.scenes?.resolve === 'function' ? context.scenes.resolve(text) : ''; } catch { return ''; }
 }
 
 export function normalizedSceneName(value) {
@@ -421,10 +429,11 @@ async function setPlaybackEnabled(enabled, context) {
 async function handleSceneChanged(event, context) {
   if (event.metadata?.simulated === true) return;
   const settings = readSettings(context);
-  if (settings.automaticSceneNames.length === 0) return;
+  const automaticSceneNames = settings.automaticSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean);
+  if (automaticSceneNames.length === 0) return;
   const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
   if (!normalizedSceneName(sceneName)) return;
-  const enabled = sceneShouldPlay(sceneName, settings.automaticSceneNames);
+  const enabled = sceneShouldPlay(sceneName, automaticSceneNames);
   if (enabled || settings.stopOutsideAutomaticScenes) await setPlaybackEnabled(enabled, context);
 }
 

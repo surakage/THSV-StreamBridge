@@ -29,10 +29,10 @@
     "autoStartSceneName": {
       "type": "string",
       "title": "Ending scene name",
-      "description": "Enter the scene name exactly as it appears in the selected app, including emoji or folder symbols.",
+      "description": "Enter the scene name exactly as it appears in the selected app, including emoji or folder symbols. role:ending uses the Ending scene you chose under Add-ons > Scene roles.",
       "minLength": 1,
       "maxLength": 200,
-      "default": "Stream Ending"
+      "default": "role:ending"
     },
     "usePreferred": {
       "type": "boolean",

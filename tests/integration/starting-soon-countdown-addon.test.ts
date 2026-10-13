@@ -28,7 +28,8 @@ describe('Stream Launch Countdown installed add-on', () => {
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.starting-soon-countdown');
     if (!module) throw new Error('Stream Launch Countdown must load through the installed add-on path.');
     const overlays: Array<{ topic: string; payload: Record<string, unknown> }> = [];
-    const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, { publishOverlay: async (_moduleId, topic, payload) => { overlays.push({ topic, payload }); } });
+    // The shipped default scene is role:starting, which follows the creator's Starting scene role.
+    const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, { sceneRoles: () => ({ starting: 'Starting Soon' }), publishOverlay: async (_moduleId, topic, payload) => { overlays.push({ topic, payload }); } });
     const registry = new ModuleRegistry([{ ...module, capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: [] } }], silentLogger, 5_000, broker);
     const statePath = join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json');
     await registry.start();

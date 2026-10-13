@@ -31,7 +31,7 @@ const manifest = {
 
 const FALLBACKS = Object.freeze({
   enabled: true, durationHours: 0, durationMinutes: 10, durationSeconds: 0,
-  automaticSceneNames: ['Starting Soon'], stopOutsideAutomaticScenes: true,
+  automaticSceneNames: ['role:starting'], stopOutsideAutomaticScenes: true,
   liveStartDelaySeconds: 2,
   completionMessage: 'The stream is starting now!', completionTone: 'soft-chime', toneVolume: 0.6,
   completionDisplaySeconds: 10, runCompletionAction: false, completionActionDelaySeconds: 0,
@@ -61,7 +61,18 @@ function hexColor(value, fallback) {
   return /^#[0-9a-fA-F]{6}$/u.test(normalized) ? normalized : fallback;
 }
 
-function settingsFor(context) { return { ...FALLBACKS, ...(context.settings ?? {}) }; }
+// A "role:break" style value follows the scene the creator mapped to that role under Add-ons >
+// Scene roles in the wizard ('' while unmapped). Any other value is an exact scene name.
+function resolveSceneSetting(value, context) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!/^role:/iu.test(text)) return text;
+  try { return typeof context?.scenes?.resolve === 'function' ? context.scenes.resolve(text) : ''; } catch { return ''; }
+}
+
+function settingsFor(context) {
+  const settings = { ...FALLBACKS, ...(context.settings ?? {}) };
+  return Array.isArray(settings.automaticSceneNames) ? { ...settings, automaticSceneNames: settings.automaticSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean) } : settings;
+}
 
 function normalizedSceneName(value) { return cleanText(value, 256).toLocaleLowerCase('en-US'); }
 

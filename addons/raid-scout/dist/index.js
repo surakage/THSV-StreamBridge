@@ -106,7 +106,7 @@ const manifest = {
 };
 
 const FALLBACKS = Object.freeze({
-  enabled: true, autoStartSceneEnabled: false, autoStartProvider: 'obs', autoStartSceneName: '', preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
+  enabled: true, autoStartSceneEnabled: false, autoStartProvider: 'obs', autoStartSceneName: 'role:ending', preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
   viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', kickViewerSuggestionRewardId: '', viewerSuggestionCommand: 'raidsuggest', viewerSuggestionPointsCost: 50, maximumViewerSuggestions: 20,
   oneViewerSuggestionPerStream: true, announceViewerSuggestions: true,
   viewerSuggestionAcceptedMessage: '{viewer}, added {channel} to tonight\'s raid list.',
@@ -1664,12 +1664,25 @@ async function handleRaidCompleted(event, context, settings, state) {
   return beginBroadcastEnd(context, settings, completed, candidate);
 }
 
+// A "role:break" style value follows the scene the creator mapped to that role under Add-ons >
+// Scene roles in the wizard ('' while unmapped). Any other value is an exact scene name.
+function resolveSceneSetting(value, context) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!/^role:/iu.test(text)) return text;
+  try { return typeof context?.scenes?.resolve === 'function' ? context.scenes.resolve(text) : ''; } catch { return ''; }
+}
+// Scene names match ignoring case and any leading emoji or symbols, such as "🔴 Ending".
+export function sceneKey(value) {
+  const text = clean(value, 200).toLowerCase();
+  return text.replace(/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}|\u{20E3}|\s)+/u, '') || text;
+}
+
 async function handleSceneChanged(event, context, settings, state) {
   if (event.metadata?.simulated === true || !settings.autoStartSceneEnabled) return state;
   const provider = clean(event.payload?.provider, 30).toLowerCase();
   const sceneName = clean(event.payload?.sceneName, 200);
-  const sceneKey = value => value.toLowerCase().replace(/^[🔴🟠]\s*/u, '');
-  if ((provider && provider !== settings.autoStartProvider) || !sceneName || sceneKey(sceneName) !== sceneKey(settings.autoStartSceneName)) return state;
+  const endingScene = resolveSceneSetting(settings.autoStartSceneName, context);
+  if ((provider && provider !== settings.autoStartProvider) || !sceneName || !endingScene || sceneKey(sceneName) !== sceneKey(endingScene)) return state;
   if (!state.twitchLive) return startSceneFlowWithoutLiveSignal(context, settings, state);
   if (state.autoSceneStartedCycle === state.streamCycle || state.pending) return state;
 

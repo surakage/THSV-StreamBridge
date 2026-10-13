@@ -358,6 +358,22 @@ export interface CommunityAnalyticsSessionProjectionV1 {
   readonly retainedSessionCount: number;
 }
 
+/** A stream phase the creator maps to one of their own broadcast-app scenes in the setup wizard. */
+export type AddOnSceneRoleV2 = 'starting' | 'live' | 'break' | 'ending';
+
+/**
+ * Read-only scene roles. Add-ons accept a scene setting such as "role:break" so shipped defaults
+ * never name one creator's scenes. Read from the active configuration on every call; needs no permission.
+ */
+export interface AddOnScenesV2 {
+  /** The creator's exact scene name for a role, or '' when that role is not mapped. */
+  sceneFor(role: AddOnSceneRoleV2): string;
+  /** The role whose mapped scene matches this name (ignoring case, surrounding spaces and leading emoji), if any. */
+  roleOf(sceneName: string): AddOnSceneRoleV2 | undefined;
+  /** Expands a "role:<role>" setting value to the mapped scene ('' when unmapped); any other value is returned trimmed. */
+  resolve(value: string): string;
+}
+
 export interface CommunityAnalyticsProviderV1 {
   getViewerProjection(viewerId: string): Promise<CommunityAnalyticsViewerProjectionV1>;
   getSessionProjection(): Promise<CommunityAnalyticsSessionProjectionV1>;
@@ -379,6 +395,8 @@ export interface ModuleRuntimeContextV2 {
   has(permission: AddOnPermissionV2): boolean;
   /** The add-on's own creator-saved settings, already validated against its configurationSchema with defaults applied. Empty for a declarative package or one with no schema properties. */
   readonly settings: Readonly<Record<string, unknown>>;
+  /** The creator's scene-role mapping; see {@link AddOnScenesV2}. */
+  readonly scenes: AddOnScenesV2;
   readonly state: AddOnStateCapabilityV2;
   readonly streamerbot: AddOnStreamerBotCapabilityV2;
   readonly schedule: AddOnScheduleCapabilityV2;

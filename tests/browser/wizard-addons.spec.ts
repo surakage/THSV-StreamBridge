@@ -387,8 +387,8 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   }]; renderAddOns();`);
   await sceneSettings.locator('summary').filter({ hasText: 'Scene mappings' }).click();
   await expect(sceneSettings.getByText('Scene-to-action mappings')).toBeVisible();
-  await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(5);
-  await expect(sceneSettings.locator('[data-scene-mapping-field="sceneName"]').first()).toHaveValue('Starting Soon');
+  await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(4);
+  await expect(sceneSettings.locator('[data-scene-mapping-field="sceneName"]').first()).toHaveValue('role:starting');
   await expect(sceneSettings.locator('[data-scene-mapping-field="actionId"]').first()).toHaveValue('68fa3646-8b6c-4ef0-bf96-19474de8b620');
   await sceneSettings.getByRole('button', { name: 'Add scene mapping' }).click();
   await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(6);
@@ -439,7 +439,7 @@ test('Stream Break & End Guard derives its cadence and selects detected scenes w
   await expect(settings.getByLabel('Exact scene name')).toHaveCount(0);
 
   const breakPicker = settings.locator('[data-scene-name-picker]').filter({ hasText: 'Break scene' });
-  await expect(breakPicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', 'BRB', 'Meld Break', 'Meld Ending', 'Meld Live']);
+  await expect(breakPicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', 'Meld Break', 'Meld Ending', 'Meld Live', 'Scene role: starting (not set yet)', 'Scene role: live (not set yet)', 'Scene role: break (not set yet)', 'Scene role: ending (not set yet)']);
   await breakPicker.getByLabel('Detected scene').selectOption('Meld Break');
   await expect(breakPicker.getByLabel('Detected scene')).toHaveValue('Meld Break');
   await breakPicker.getByRole('button', { name: 'Refresh scenes' }).click();
@@ -466,7 +466,7 @@ test('wizard configures raid scouting and chat safety add-ons', async ({ page })
   await renderedRaidScoutSettings.getByLabel('Start raid search').selectOption('scene-change');
   const endingScenePicker = renderedRaidScoutSettings.locator('[data-scene-name-picker]');
   await expect(endingScenePicker.getByLabel('Detected scene')).toBeVisible();
-  await expect(endingScenePicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', '📁 Stream Ending', '🎞 Ending Soon']);
+  await expect(endingScenePicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', '📁 Stream Ending', '🎞 Ending Soon', 'Scene role: starting (not set yet)', 'Scene role: live (not set yet)', 'Scene role: break (not set yet)', 'Scene role: ending (not set yet)']);
   await endingScenePicker.getByLabel('Detected scene').selectOption('📁 Stream Ending');
   await expect(endingScenePicker.getByLabel('Exact scene name')).toHaveValue('📁 Stream Ending');
   await raidScoutSettings.locator('summary').filter({ hasText: 'Where to search' }).click();

@@ -14,7 +14,7 @@ Stream Launch Countdown is a separate optional add-on for a stream's Starting So
 
 Do not add OBS scene triggers to the imported Start or Stop actions. StreamBridge listens to its normalized program-scene updates and starts the countdown when the active program scene exactly matches a configured name. Leaving that scene stops and hides the countdown when **Stop outside automatic scenes** is enabled.
 
-Matching is case-insensitive but otherwise exact, so `📁 Starting Soon` and `Starting Soon` are different names. Preview-only changes in OBS Studio Mode do not restart the program countdown, and duplicate scene events preserve the remaining time.
+The default scene, `role:starting`, is the scene you chose as your Starting scene under **Add-ons > Scene roles**. Matching is case-insensitive but otherwise exact, so `📁 Starting Soon` and `Starting Soon` are different names. Preview-only changes in OBS Studio Mode do not restart the program countdown, and duplicate scene events preserve the remaining time.
 
 The imported Streamer.bot package provides optional manual controls: Start, Stop, Pause, Resume, Reset, Complete Now, and Set & Start. Set & Start exposes an editable `countdownSeconds` Set Argument from 1 through 86400 for a one-off duration. Complete Now safely previews the configured finish state and tone.
 

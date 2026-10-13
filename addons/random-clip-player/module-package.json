@@ -89,13 +89,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 27537,
-      "sha256": "fd3a9aa45efc923c74372607ea80a69a054475808c87a3e9df4684f59a9446f1"
+      "size": 28113,
+      "sha256": "7197235d1c8d7f6433a6ee33a98f52834ac5037bb28b0ad3954b0a4ec3e02a69"
     },
     {
       "path": "schemas/config.json",
-      "size": 2988,
-      "sha256": "f710deea62954bac5842509353719c24a4086a2e746dd209e1124031bf27b961"
+      "size": 3074,
+      "sha256": "4a0c5fff45dce0abd74f2e8576f7880f6caa3e976e8ba9e055d4428ec75e137f"
     },
     {
       "path": "migrations/001-interval-to-pause.mjs",

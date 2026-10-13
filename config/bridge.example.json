@@ -135,6 +135,12 @@
     "enabled": true,
     "rules": []
   },
+  "sceneRoles": {
+    "starting": "",
+    "live": "",
+    "break": "",
+    "ending": ""
+  },
   "liveCaptions": {
     "enabled": false,
     "minimumConfidence": 0.7,
