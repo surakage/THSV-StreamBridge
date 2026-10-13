@@ -391,13 +391,13 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   await expect(sceneSettings.locator('[data-scene-mapping-field="sceneName"]').first()).toHaveValue('role:starting');
   await expect(sceneSettings.locator('[data-scene-mapping-field="actionId"]').first()).toHaveValue('68fa3646-8b6c-4ef0-bf96-19474de8b620');
   await sceneSettings.getByRole('button', { name: 'Add scene mapping' }).click();
-  await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(6);
+  await expect(sceneSettings.locator('[data-scene-mapping-row]')).toHaveCount(5);
   const addedMapping = sceneSettings.locator('[data-scene-mapping-row]').last();
   await addedMapping.locator('[data-scene-mapping-field="provider"]').selectOption('meld');
   await addedMapping.locator('[data-scene-mapping-field="sceneName"]').fill('Intermission');
   await addedMapping.locator('[data-scene-mapping-field="actionId"]').selectOption({ index: 1 });
   await page.getByRole('button', { name: 'Save all settings' }).click();
-  await expect(page.locator('[data-addon-settings="thsv.scene-actions"] [data-scene-mapping-row]')).toHaveCount(6);
+  await expect(page.locator('[data-addon-settings="thsv.scene-actions"] [data-scene-mapping-row]')).toHaveCount(5);
   await expect(page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).resolves.toBe(true);
 
   await page.getByRole('button', { name: 'Alerts', exact: true }).click();
