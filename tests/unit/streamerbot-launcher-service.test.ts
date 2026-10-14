@@ -138,6 +138,19 @@ describe('public Streamer.bot launcher configuration', () => {
     expect((await reloaded.status()).optionalApps.tikfinity).toMatchObject({ configured: true, enabled: true, executable: tikfinity });
   });
 
+  it('stores TikTok LIVE Studio by its launcher and rejects other executables', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-tiktok-studio-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data'); const portable = join(root, 'portable'); const studioRoot = join(root, 'TikTok LIVE Studio');
+    const streamerBot = join(portable, 'Streamer.bot.exe'); const studio = join(studioRoot, 'TikTok LIVE Studio Launcher.exe'); const wrong = join(studioRoot, 'TikTok LIVE Studio Uninstaller.exe');
+    await mkdir(portable, { recursive: true }); await mkdir(studioRoot, { recursive: true });
+    await Promise.all([writeFile(streamerBot, 'streamerbot'), writeFile(studio, 'studio'), writeFile(wrong, 'uninstaller')]);
+    const service = windowsLauncher(dataRoot);
+    await service.save(streamerBot);
+    const status = await service.saveOptionalApplication('tiktokstudio', studio, true);
+    expect(status.optionalApps.tiktokstudio).toMatchObject({ label: 'TikTok LIVE Studio', configured: true, enabled: true, executable: studio, executableExists: true });
+    await expect(service.saveOptionalApplication('tiktokstudio', wrong, true)).rejects.toThrow('real TikTok LIVE Studio executable');
+  });
+
   it('rejects missing files and misleading executable names', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-streamerbot-launcher-invalid-')); temporaryRoots.push(root);
     const service = windowsLauncher(join(root, 'data'));

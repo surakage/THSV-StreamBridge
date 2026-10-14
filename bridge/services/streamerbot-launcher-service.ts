@@ -1,7 +1,7 @@
 import { execFile, execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises';
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
@@ -53,8 +53,8 @@ export interface StartupReadinessBlocker {
   readonly recovery: string;
 }
 
-export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity';
-const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity'] as const satisfies readonly OptionalApplication[];
+export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio';
+const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity', 'tiktokstudio'] as const satisfies readonly OptionalApplication[];
 
 export interface OptionalApplicationStatus {
   readonly application: OptionalApplication;
@@ -498,8 +498,9 @@ export class StreamerBotLauncherService {
         return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: runningProcess !== undefined, ...(runningProcess === undefined ? {} : { processId: runningProcess.pid }), state: 'not-configured', message: `${metadata.label} is optional. Choose its exact executable only if the one-button launcher should start it.` }] as const;
       }
       const executableExists = await isFile(saved.executable);
-      const runningProcess = namedProcesses.find((candidate) => candidate.path !== undefined && samePath(candidate.path, saved.executable));
-      const differentInstallation = namedProcesses.find((candidate) => candidate.path !== undefined && !samePath(candidate.path, saved.executable));
+      const isSaved = (path: string): boolean => samePath(path, saved.executable) || (metadata.sameInstallFolder === true && isInsideFolder(path, dirname(saved.executable)));
+      const runningProcess = namedProcesses.find((candidate) => candidate.path !== undefined && isSaved(candidate.path));
+      const differentInstallation = namedProcesses.find((candidate) => candidate.path !== undefined && !isSaved(candidate.path));
       const running = runningProcess !== undefined;
       const circuit = circuits[application];
       const circuitOpen = circuit?.openUntil !== undefined && Date.parse(circuit.openUntil) > Date.now() && circuit.recentFailures >= 3;
@@ -569,6 +570,7 @@ export function parseOptionalStartupWarnings(output: string): readonly string[] 
 }
 
 function samePath(left: string, right: string): boolean { return resolve(left).toLocaleLowerCase('en-US') === resolve(right).toLocaleLowerCase('en-US'); }
+function isInsideFolder(path: string, folder: string): boolean { const inner = relative(resolve(folder), resolve(path)); return inner !== '' && !inner.startsWith('..') && !isAbsolute(inner); }
 function isNonEmptyString(value: unknown): value is string { return typeof value === 'string' && value.trim().length > 0; }
 function isPositiveInteger(value: unknown): value is number { return typeof value === 'number' && Number.isInteger(value) && value > 0; }
 function isNonNegativeInteger(value: unknown): value is number { return typeof value === 'number' && Number.isInteger(value) && value >= 0; }
@@ -612,6 +614,8 @@ function optionalApplicationMetadata(application: OptionalApplication): {
   readonly executableNames: readonly string[];
   readonly processNames: readonly string[];
   readonly commonLocations: () => readonly (string | undefined)[];
+  /** The saved file is a launcher; the running app is any matching process inside its folder. */
+  readonly sameInstallFolder?: boolean;
 } {
   const profile = process.env['USERPROFILE'];
   const local = process.env['LOCALAPPDATA'];
@@ -619,6 +623,12 @@ function optionalApplicationMetadata(application: OptionalApplication): {
   if (application === 'tikfinity') return {
     label: 'TikFinity', executableNames: ['tikfinity.exe'], processNames: ['TikFinity'],
     commonLocations: () => [local ? join(local, 'Programs', 'TikFinity', 'TikFinity.exe') : undefined],
+  };
+  // The Start-menu shortcut runs the stable Launcher, which opens the versioned
+  // "<version>\TikTok LIVE Studio.exe" and keeps the app updated.
+  if (application === 'tiktokstudio') return {
+    label: 'TikTok LIVE Studio', executableNames: ['tiktok live studio launcher.exe', 'tiktok live studio.exe'], processNames: ['TikTok LIVE Studio'], sameInstallFolder: true,
+    commonLocations: () => [join(programFiles, 'TikTok LIVE Studio', 'TikTok LIVE Studio Launcher.exe')],
   };
   if (application === 'obs') return {
     label: 'OBS Studio',

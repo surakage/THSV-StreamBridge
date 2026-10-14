@@ -248,6 +248,17 @@ describe('wizard launcher package', () => {
     expect(styles).toContain('.addon-choice-grid');
   });
 
+  it('puts Bridge updates first on the overview and offers TikTok LIVE Studio as an optional app', async () => {
+    const shell = await readFile('wizard/browser/index.html', 'utf8');
+    const script = await readFile('wizard/browser/app.js', 'utf8');
+    const overview = shell.slice(shell.indexOf('data-panel="overview"'), shell.indexOf('data-panel=', shell.indexOf('data-panel="overview"') + 30));
+    expect(overview.indexOf('id="check-updates"')).toBeGreaterThan(-1);
+    expect(overview.indexOf('id="check-updates"')).toBeLessThan(overview.indexOf('id="guided-setup"'));
+    expect(shell.match(/id="check-updates"/g)).toHaveLength(1);
+    for (const id of ['optional-tiktokstudio-state', 'optional-tiktokstudio-enabled', 'optional-tiktokstudio-executable', 'choose-optional-tiktokstudio', 'reset-optional-tiktokstudio-circuit']) expect(shell).toContain(`id="${id}"`);
+    expect(script).toContain("tiktokstudio:'TikTok LIVE Studio'");
+  });
+
   it('hosts add-on card and media overlays without package-controlled markup or unsafe URL protocols', async () => {
     const shell = await readFile('overlays/browser/addon-host.html', 'utf8');
     const script = await readFile('overlays/browser/addon-host.js', 'utf8');

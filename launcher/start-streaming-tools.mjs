@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { appendFile, mkdir, readFile, rename, rm, stat, utimes, writeFile } from 'node:fs/promises';
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -81,6 +81,7 @@ async function startStreamingTools() {
   await writeStartupProgress('starting-broadcast-apps', 'Starting enabled broadcast applications.');
   for (const application of ['obs', 'meld', 'streamlabs']) optionalWarnings.push(...await startOptionalApplication(application, launcherConfig));
   optionalWarnings.push(...await startOptionalApplication('tikfinity', launcherConfig));
+  optionalWarnings.push(...await startOptionalApplication('tiktokstudio', launcherConfig));
   if (optionalWarnings.length > 0) process.stdout.write(`Optional app warning: ${optionalWarnings.join(' ')}\n`);
   else process.stdout.write('Enabled optional streaming apps are ready.\n');
   process.stdout.write('\n========== STARTUP SUMMARY ==========\n');
@@ -257,7 +258,7 @@ async function validateCoreLauncherConfiguration(configuration) {
 }
 
 async function startOptionalApplication(application, launcherConfig) {
-  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity' };
+  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity', tiktokstudio: 'TikTok LIVE Studio' };
   const saved = launcherConfig?.optionalApps?.[application];
   if (saved?.enabled !== true) {
     applicationResults.push({ application: labels[application], status: 'SKIPPED', detail: 'Not enabled in launcher settings.' });
@@ -283,6 +284,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     streamlabs: { label: 'Streamlabs Desktop', processNames: ['Streamlabs Desktop', 'slobs-client'], executableNames: ['streamlabs desktop.exe', 'slobs-client.exe'] },
     speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'], executableNames: ['speaker.bot.exe'] },
     tikfinity: { label: 'TikFinity', processNames: ['TikFinity'], executableNames: ['tikfinity.exe'] },
+    tiktokstudio: { label: 'TikTok LIVE Studio', processNames: ['TikTok LIVE Studio'], executableNames: ['tiktok live studio launcher.exe', 'tiktok live studio.exe'], sameInstallFolder: true },
   };
   const definition = definitions[application];
   const saved = launcherConfig?.optionalApps?.[application];
@@ -295,12 +297,14 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
   const circuit = await optionalApplicationCircuit(application);
   if (circuit.open) return [`${definition.label} automatic startup is temporarily paused after ${String(circuit.failureCount)} recent failures. Try it manually, then use the Wizard preflight after ${new Date(circuit.openUntil).toLocaleTimeString()}.`];
   const existingProcesses = processesNamed(definition.processNames);
-  const selectedProcess = existingProcesses.find((candidate) => typeof candidate.path === 'string' && samePath(candidate.path, executable));
+  // A launcher-style app (TikTok LIVE Studio) runs a versioned exe from inside the saved launcher's folder.
+  const isSaved = (candidate) => typeof candidate.path === 'string' && (samePath(candidate.path, executable) || (definition.sameInstallFolder === true && isInsideFolder(candidate.path, dirname(executable))));
+  const selectedProcess = existingProcesses.find(isSaved);
   if (selectedProcess !== undefined) {
     process.stdout.write(`${definition.label} is already running from the saved executable (PID ${String(selectedProcess.pid)}).\n`);
     return warnings;
   }
-  const otherInstallations = existingProcesses.filter((candidate) => typeof candidate.path === 'string' && !samePath(candidate.path, executable));
+  const otherInstallations = existingProcesses.filter((candidate) => typeof candidate.path === 'string' && !isSaved(candidate));
   if (otherInstallations.length > 0) process.stdout.write(`A different ${definition.label} installation is running. Starting the exact saved executable: ${executable}\n`);
   let pid;
   try {
@@ -312,7 +316,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
   }
   process.stdout.write(`Allowing ${definition.label} to initialize before continuing.\n`);
   await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
-  const selectedNowRunning = processesNamed(definition.processNames).some((candidate) => typeof candidate.path === 'string' && samePath(candidate.path, executable));
+  const selectedNowRunning = processesNamed(definition.processNames).some(isSaved);
   if (!isAlive(pid) && !selectedNowRunning) {
     await recordOptionalApplicationFailure(application, 'The process exited during its startup grace period.');
     const detail = otherInstallations.length > 0 ? ` A different installation remains open; reselect the intended executable in the Wizard if ${definition.label} is single-instance.` : '';
@@ -410,6 +414,10 @@ function processesNamed(names) {
 
 function samePath(left, right) {
   return resolve(left).toLocaleLowerCase('en-US') === resolve(right).toLocaleLowerCase('en-US');
+}
+function isInsideFolder(path, folder) {
+  const inner = relative(resolve(folder), resolve(path));
+  return inner !== '' && !inner.startsWith('..') && !isAbsolute(inner);
 }
 
 async function isFile(path) {
