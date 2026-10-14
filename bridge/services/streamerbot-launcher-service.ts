@@ -53,8 +53,8 @@ export interface StartupReadinessBlocker {
   readonly recovery: string;
 }
 
-export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity';
-const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity'] as const satisfies readonly OptionalApplication[];
+export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktoklive';
+const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity', 'tiktoklive'] as const satisfies readonly OptionalApplication[];
 
 export interface OptionalApplicationStatus {
   readonly application: OptionalApplication;
@@ -619,6 +619,13 @@ function optionalApplicationMetadata(application: OptionalApplication): {
   if (application === 'tikfinity') return {
     label: 'TikFinity', executableNames: ['tikfinity.exe'], processNames: ['TikFinity'],
     commonLocations: () => [local ? join(local, 'Programs', 'TikFinity', 'TikFinity.exe') : undefined],
+  };
+  if (application === 'tiktoklive') return {
+    label: 'TikTok LIVE Studio', executableNames: ['tiktok live studio.exe'], processNames: ['TikTok LIVE Studio'],
+    commonLocations: () => [
+      join(programFiles, 'TikTok LIVE Studio', 'TikTok LIVE Studio.exe'),
+      local ? join(local, 'Programs', 'TikTok LIVE Studio', 'TikTok LIVE Studio.exe') : undefined,
+    ],
   };
   if (application === 'obs') return {
     label: 'OBS Studio',

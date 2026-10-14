@@ -79,7 +79,7 @@ async function startStreamingTools() {
     process.stderr.write(`[WARNING] StreamBridge: ${detail} Continuing with other installed apps.\n`);
   }
   await writeStartupProgress('starting-broadcast-apps', 'Starting enabled broadcast applications.');
-  for (const application of ['obs', 'meld', 'streamlabs']) optionalWarnings.push(...await startOptionalApplication(application, launcherConfig));
+  for (const application of ['obs', 'meld', 'streamlabs', 'tiktoklive']) optionalWarnings.push(...await startOptionalApplication(application, launcherConfig));
   optionalWarnings.push(...await startOptionalApplication('tikfinity', launcherConfig));
   if (optionalWarnings.length > 0) process.stdout.write(`Optional app warning: ${optionalWarnings.join(' ')}\n`);
   else process.stdout.write('Enabled optional streaming apps are ready.\n');
@@ -257,7 +257,7 @@ async function validateCoreLauncherConfiguration(configuration) {
 }
 
 async function startOptionalApplication(application, launcherConfig) {
-  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity' };
+  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity', tiktoklive: 'TikTok LIVE Studio' };
   const saved = launcherConfig?.optionalApps?.[application];
   if (saved?.enabled !== true) {
     applicationResults.push({ application: labels[application], status: 'SKIPPED', detail: 'Not enabled in launcher settings.' });
@@ -283,6 +283,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     streamlabs: { label: 'Streamlabs Desktop', processNames: ['Streamlabs Desktop', 'slobs-client'], executableNames: ['streamlabs desktop.exe', 'slobs-client.exe'] },
     speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'], executableNames: ['speaker.bot.exe'] },
     tikfinity: { label: 'TikFinity', processNames: ['TikFinity'], executableNames: ['tikfinity.exe'] },
+    tiktoklive: { label: 'TikTok LIVE Studio', processNames: ['TikTok LIVE Studio'], executableNames: ['tiktok live studio.exe'] },
   };
   const definition = definitions[application];
   const saved = launcherConfig?.optionalApps?.[application];

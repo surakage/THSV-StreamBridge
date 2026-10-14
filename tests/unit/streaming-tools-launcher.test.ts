@@ -36,7 +36,7 @@ describe('one-button streaming tools launcher', () => {
     const streamerBotStart = source.indexOf('await startStreamerBotWithBridgeRecovery()');
     const speakerBotStart = source.indexOf("startOptionalApplication('speakerbot'");
     const bridgeCheck = source.indexOf('if (await bridgeReady(baseUrl))');
-    const broadcastAppsStart = source.indexOf("for (const application of ['obs', 'meld', 'streamlabs'])");
+    const broadcastAppsStart = source.indexOf("for (const application of ['obs', 'meld', 'streamlabs', 'tiktoklive'])");
     expect(streamerBotStart).toBeGreaterThan(-1);
     expect(source).toContain('startStreamerBotWithBridgeRecovery');
     expect(source).toContain("runLauncher(join(launcherRoot, 'stop.mjs')");
@@ -49,7 +49,7 @@ describe('one-button streaming tools launcher', () => {
     expect(source).toContain("join(launcherRoot, 'start.mjs')");
     expect(source).toContain("`${url}/ready`");
     expect(source).toContain('readLauncherConfiguration()');
-    expect(source).toContain("['obs', 'meld', 'streamlabs']");
+    expect(source).toContain("['obs', 'meld', 'streamlabs', 'tiktoklive']");
     expect(source).toContain('startOptionalApplication(application, launcherConfig)');
     expect(source).toContain("saved?.enabled !== true");
     expect(source).toContain('samePath(candidate.path, executable)');
