@@ -536,6 +536,11 @@ export class WizardService {
     catch (error) { throw new WizardTransactionError(400, error instanceof Error ? error.message : String(error)); }
   }
 
+  /** The saved community name, or blank when unset or unavailable. */
+  public async communityName(): Promise<string> {
+    try { return (await this.configuration?.communityName()) ?? ''; } catch { return ''; }
+  }
+
   public async overview(): Promise<Readonly<Record<string, unknown>>> {
     return {
       version: STREAMBRIDGE_VERSION,

@@ -174,7 +174,7 @@ describe('wizard add-on management', () => {
     const packages = join(root, 'packages'); const state = join(root, 'state');
     const service = new AddOnWizardService(packages, state);
     const integration = await service.viewerFoundation();
-    expect(integration.settings).toMatchObject({ enabled: true, currencyName: 'Village Points' });
+    expect(integration.settings).toMatchObject({ enabled: true, currencyName: 'Points' });
     await expect(service.saveViewerFoundationSettings({ ...integration.settings, currencyName: 'Sloth Seeds' })).resolves.toMatchObject({ saved: true, restartRequired: true });
     await expect(service.viewerFoundation()).resolves.toMatchObject({ settings: expect.objectContaining({ currencyName: 'Sloth Seeds' }) as unknown });
     await expect(service.list()).resolves.toEqual([]);

@@ -135,6 +135,7 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
     await activeBridge.ingest(event);
   },
   cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
+  communityName: () => config.community.name,
 });
 const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
 const bundledExtensionUpdate = await addOnWizard.updateInstalledBundledExtensions();

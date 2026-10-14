@@ -102,10 +102,10 @@
     "forumThreadName": {
       "type": "string",
       "title": "Forum post name",
-      "description": "Tokens: {date} and {time}. The name is clamped to Discord's 100-character limit.",
+      "description": "Tokens: {community}, {date}, and {time}. {community} is your community name. The name is clamped to Discord's 100-character limit.",
       "minLength": 1,
       "maxLength": 100,
-      "default": "Village chat · {date} · {time}"
+      "default": "{community} chat · {date} · {time}"
     },
     "forumTagIds": {
       "type": "array",
@@ -138,9 +138,10 @@
     "sessionHeaderTitle": {
       "type": "string",
       "title": "Session header title",
+      "description": "Token: {community} is your community name.",
       "minLength": 1,
       "maxLength": 80,
-      "default": "Village Stream Chat Archive"
+      "default": "{community} Stream Chat Archive"
     },
     "showMessageTimes": {
       "type": "boolean",

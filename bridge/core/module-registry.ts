@@ -106,6 +106,7 @@ export class ModuleRegistry {
     const commandTarget = event.eventType === 'command.received' && typeof event.payload['targetModuleId'] === 'string'
       ? event.payload['targetModuleId']
       : undefined;
+    this.broker.observeEvent(event);
     for (const moduleId of this.order) {
       if (blockedModuleIds.has(moduleId)) continue;
       const state = this.states.get(moduleId);

@@ -308,10 +308,10 @@
     const prizeImage = style.showPrizeImage === false ? undefined : safeUrl(payload.imageUrl); const avatar = style.showWinnerAvatar === false ? undefined : safeUrl(winner.avatarUrl);
     drawShell.dataset.layout = style.layout === 'wide' ? 'wide' : 'compact'; drawShell.dataset.phase = phase; drawShell.dataset.font = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
     drawShell.style.setProperty('--draw-background', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#10201b', .72)); drawShell.style.setProperty('--draw-accent', safeColor(style.accentColor, '#ffd166')); drawShell.style.setProperty('--draw-text', safeColor(style.textColor, '#ffffff'));
-    drawGiveaway.textContent = boundedText(payload.giveawayName, 100, 'Village Giveaway'); drawPrize.textContent = boundedText(payload.prizeName, 160, 'Mystery Prize');
+    drawGiveaway.textContent = boundedText(payload.giveawayName, 100, 'Giveaway'); drawPrize.textContent = boundedText(payload.prizeName, 160, 'Mystery Prize');
     drawStatus.textContent = phase === 'open' ? 'ENTRIES OPEN' : 'DRAWING…'; drawName.textContent = phase === 'open' ? 'Your ticket could be next' : 'Mixing the tickets…';
-    drawMessage.textContent = phase === 'open' ? boundedText(payload.entryHint || payload.description, 220, 'Enter for a chance to win!') : 'One lucky villager will be revealed shortly.';
-    drawPlatform.textContent = ''; drawCount.textContent = style.showEntryCount === false ? '' : `${Number.isSafeInteger(payload.entrantCount) ? payload.entrantCount : 0} villagers • ${Number.isSafeInteger(payload.ticketCount) ? payload.ticketCount : 0} tickets`;
+    drawMessage.textContent = phase === 'open' ? boundedText(payload.entryHint || payload.description, 220, 'Enter for a chance to win!') : 'One lucky winner will be revealed shortly.';
+    drawPlatform.textContent = ''; drawCount.textContent = style.showEntryCount === false ? '' : `${Number.isSafeInteger(payload.entrantCount) ? payload.entrantCount : 0} entrants • ${Number.isSafeInteger(payload.ticketCount) ? payload.ticketCount : 0} tickets`;
     drawSeal.textContent = phase === 'open' ? '★' : '?'; drawImage.classList.add('hidden'); if (prizeImage) { drawImage.src = prizeImage; drawImage.classList.remove('hidden'); }
     drawShell.classList.remove('hidden', 'draw-leaving');
     clearTimeout(drawHideTimer);
@@ -319,7 +319,7 @@
     const entrants = (Array.isArray(payload.entrants) ? payload.entrants : []).map((name) => boundedText(name, 80)).filter(Boolean).slice(0, 20); let cursor = 0;
     if (entrants.length) drawCycleTimer = setInterval(() => { drawName.textContent = entrants[cursor % entrants.length]; cursor += 1; }, 160);
     drawRevealTimer = setTimeout(() => {
-      clearInterval(drawCycleTimer); drawShell.dataset.phase = 'winner'; drawStatus.textContent = 'WINNING TICKET'; drawName.textContent = winnerName; drawName.dataset.length = winnerName.length > 42 ? 'very-long' : winnerName.length > 28 ? 'long' : 'normal'; drawPrize.textContent = boundedText(payload.prizeName, 160, 'Mystery Prize'); drawMessage.textContent = boundedText(payload.winnerMessage, 160, 'The village has chosen!');
+      clearInterval(drawCycleTimer); drawShell.dataset.phase = 'winner'; drawStatus.textContent = 'WINNING TICKET'; drawName.textContent = winnerName; drawName.dataset.length = winnerName.length > 42 ? 'very-long' : winnerName.length > 28 ? 'long' : 'normal'; drawPrize.textContent = boundedText(payload.prizeName, 160, 'Mystery Prize'); drawMessage.textContent = boundedText(payload.winnerMessage, 160, 'The community has chosen!');
       drawPlatform.textContent = style.showPlatformBadge === false ? '' : winnerPlatform; drawSeal.textContent = [...winnerName][0]?.toUpperCase() || '★';
       if (avatar) { drawImage.src = avatar; drawImage.classList.remove('hidden'); }
       addDrawConfetti(style.showConfetti); playDrawTone(style.playWinnerTone); drawShell.classList.add('draw-winner-reveal'); setTimeout(() => drawShell.classList.remove('draw-winner-reveal'), 650);

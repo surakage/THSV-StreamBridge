@@ -58,13 +58,13 @@ const FALLBACKS = Object.freeze({
   raidTemplate: 'Thank you {displayName} for the raid with {viewers} viewers! They stream {category}. Watch them at {channelUrl}',
   twitchFirstChatTemplate: 'Go watch {displayName} streaming {category}: {channelUrl}',
   twitchViewerWelcomeTemplate: 'Welcome to the stream, {displayName}! Thanks for joining us on Twitch.',
-  twitchViewerWelcomeAlternates: ['Glad you made it, {displayName}! Welcome to the Twitch side of the village.', 'Hey {displayName}! Settle in and enjoy the stream with us.', 'A new Villager has arrived! Welcome in, {displayName}.'],
+  twitchViewerWelcomeAlternates: ['Glad you made it, {displayName}! Welcome to the Twitch side of {community}.', 'Hey {displayName}! Settle in and enjoy the stream with us.', 'Someone new has arrived! Welcome in, {displayName}.'],
   youtubeWelcomeTemplate: 'Welcome to the stream, {displayName}! Thanks for joining us on YouTube.',
-  youtubeWelcomeAlternates: ['Glad you found the village, {displayName}! Welcome to the YouTube stream.', 'Hey {displayName}! Thanks for spending some time with us on YouTube.', 'Welcome in, {displayName}! The village is happy to have you here.'],
+  youtubeWelcomeAlternates: ['Glad you found {community}, {displayName}! Welcome to the YouTube stream.', 'Hey {displayName}! Thanks for spending some time with us on YouTube.', 'Welcome in, {displayName}! Everyone in {community} is happy to have you here.'],
   kickWelcomeTemplate: 'Welcome to the stream, {displayName}! Thanks for joining us on Kick.',
-  kickWelcomeAlternates: ['Glad you made it, {displayName}! Welcome to the Kick side of the village.', 'Hey {displayName}! Pull up a seat and enjoy the Kick stream.', 'A new Villager has arrived on Kick! Welcome, {displayName}.'],
+  kickWelcomeAlternates: ['Glad you made it, {displayName}! Welcome to the Kick side of {community}.', 'Hey {displayName}! Pull up a seat and enjoy the Kick stream.', 'Someone new has arrived on Kick! Welcome, {displayName}.'],
   tiktokWelcomeTemplate: 'Welcome, {displayName}! Thanks for joining the TikTok live.',
-  tiktokWelcomeAlternates: ['Hey {displayName}! Welcome to the village on TikTok LIVE.', 'Glad you found us, {displayName}! Enjoy the TikTok LIVE.', 'Welcome in, {displayName}! Thanks for joining the village.'],
+  tiktokWelcomeAlternates: ['Hey {displayName}! Welcome to {community} on TikTok LIVE.', 'Glad you found us, {displayName}! Enjoy the TikTok LIVE.', 'Welcome in, {displayName}! Thanks for joining {community}.'],
   manualTwitchTemplate: 'Go watch {displayName} streaming {category}: {channelUrl}',
   manualChannelTemplate: 'Go check out {displayName} at {channelUrl} and show them some love!',
   globalCooldownSeconds: 30, userCooldownMinutes: 60, onePerStream: true,
@@ -143,8 +143,18 @@ export function channelUrl(platform, user) {
   return '';
 }
 
-export function renderTemplate(template, candidate) {
+// {community} comes from the host's community name (Settings > Community name, else the channel name).
+// Hosts without that context fall back to the event's channel name, then a generic phrase.
+export function communityName(context, event) {
+  const configured = cleanText(context?.community?.name, 60);
+  if (configured) return configured;
+  const channel = cleanText(event?.channel?.name, 60);
+  return channel && channel.toLocaleLowerCase('en-US') !== String(event?.platform || '').toLocaleLowerCase('en-US') ? channel : 'the community';
+}
+
+export function renderTemplate(template, candidate, community = 'the community') {
   const tokens = {
+    '{community}': community,
     '{displayName}': displayNameForPresentation(candidate.user),
     '{user}': candidate.user.name,
     '{platform}': candidate.platform,
@@ -366,7 +376,7 @@ function serialize(task) {
 async function preview(candidate, message, context, settings) {
   if (!settings.showOverlayCard || !settings.overlayPlatforms.includes(candidate.platform)) return;
   const isWelcome = candidate.trigger === 'first-chat' && !candidate.category;
-  const cardText = isWelcome ? message : renderTemplate(settings.overlayCardTemplate, candidate) || message;
+  const cardText = isWelcome ? message : renderTemplate(settings.overlayCardTemplate, candidate, communityName(context)) || message;
   try {
     await context.overlay.publish(`${context.moduleId}.card.show`, {
       cardKind: 'shoutout-spotlight', trigger: candidate.trigger, presentation: isWelcome ? 'welcome' : 'creator', platform: candidate.platform,
@@ -393,7 +403,7 @@ function scheduleDrain(context, delayMs) {
 
 async function enqueueReady(candidate, event, context) {
   const settings = settingsFor(context);
-  const rendered = renderTemplate(templateFor(settings, candidate), candidate);
+  const rendered = renderTemplate(templateFor(settings, candidate), candidate, communityName(context, event));
   const destinations = settings.deliveryMode === 'source' ? [candidate.platform] : settings.selectedPlatforms;
   const message = fitMessageToPlatforms(rendered, candidate, destinations);
   if (!message) return;
@@ -426,7 +436,7 @@ async function requestTwitchCreator(candidate, event, context) {
     // never call Twitch or claim an unverified viewer is a creator.
     if (candidate.category || candidate.trigger === 'first-chat') {
       const previewCandidate = { ...candidate, categoryVerified: true };
-      await preview(previewCandidate, fitMessageToPlatforms(renderTemplate(templateFor(settings, previewCandidate), previewCandidate), previewCandidate, ['twitch']), context, settings);
+      await preview(previewCandidate, fitMessageToPlatforms(renderTemplate(templateFor(settings, previewCandidate), previewCandidate, communityName(context, event)), previewCandidate, ['twitch']), context, settings);
     }
     return;
   }
@@ -488,7 +498,7 @@ async function handleTwitchProfile(event, context) {
 }
 
 async function sendCandidate(candidate, context, settings, state) {
-  const rendered = renderTemplate(templateFor(settings, candidate), candidate);
+  const rendered = renderTemplate(templateFor(settings, candidate), candidate, communityName(context));
   const aliases = viewerKeys(candidate.platform, candidate.user);
   const key = viewerKey(candidate.platform, candidate.user);
   let nativeSucceeded = false;

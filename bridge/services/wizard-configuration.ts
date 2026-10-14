@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
-import { alertPresentationSchema, bridgeConfigSchema, chatOverlaySchema, filtersSchema, liveCaptionsSchema, sceneRolesSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
+import { alertPresentationSchema, bridgeConfigSchema, chatOverlaySchema, communitySchema, filtersSchema, liveCaptionsSchema, sceneRolesSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
 import type { PlatformCapabilityReport } from '../contracts/v2/capability.js';
 import { stripUtf8Bom } from './config-loader.js';
 
@@ -35,6 +35,7 @@ const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
   }).strict() }).strict(),
   z.object({ kind: z.literal('live-captions'), liveCaptions: liveCaptionsSchema }).strict(),
   z.object({ kind: z.literal('log-storage-policy'), logStoragePolicy: logStoragePolicySchema }).strict(),
+  z.object({ kind: z.literal('community'), community: communitySchema }).strict(),
 ]);
 
 const wizardConfigurationImportSchema = z.object({
@@ -49,6 +50,7 @@ const wizardConfigurationImportSchema = z.object({
   alertSettings: z.object({ maxAlertQueue: z.number().int().min(1).max(200), alertDurationMs: z.number().int().min(1_000).max(60_000), overlayGapMs: z.number().int().min(250).max(10_000).default(1_000), showSimulated: z.boolean(), alerts: alertPresentationSchema }).strict().optional(),
   liveCaptions: liveCaptionsSchema.optional(),
   logStoragePolicy: logStoragePolicySchema.optional(),
+  community: communitySchema.optional(),
 }).strict();
 
 export type WizardConfigurationChange = z.infer<typeof wizardConfigurationChangeSchema>;
@@ -84,6 +86,7 @@ export interface WizardConfigurationExport {
   readonly alertSettings: Pick<BridgeConfig['browserOverlay'], 'maxAlertQueue' | 'alertDurationMs' | 'overlayGapMs' | 'showSimulated' | 'alerts'>;
   readonly liveCaptions: BridgeConfig['liveCaptions'];
   readonly logStoragePolicy?: z.infer<typeof logStoragePolicySchema>;
+  readonly community: BridgeConfig['community'];
 }
 
 export interface WizardConfigurationActivation {
@@ -121,6 +124,12 @@ export class WizardConfigurationGateway {
     return config.commands.prefix;
   }
 
+  // The creator's saved community name (blank means add-ons use the channel name).
+  public async communityName(): Promise<string> {
+    const config = await this.readConfig();
+    return config.community.name;
+  }
+
   public async snapshot(): Promise<Readonly<Record<string, unknown>>> {
     const config = await this.readConfig();
     return {
@@ -136,6 +145,7 @@ export class WizardConfigurationGateway {
       chatSettings: pickChatSettings(config),
       alertSettings: pickAlertSettings(config),
       liveCaptions: config.liveCaptions,
+      community: config.community,
       capabilities: this.capabilitySource(config.platforms),
     };
   }
@@ -184,6 +194,8 @@ export class WizardConfigurationGateway {
       draft.candidate = { ...draft.candidate, browserOverlay: { ...current, ...change.alertSettings } };
     } else if (change.kind === 'live-captions') {
       draft.candidate = { ...draft.candidate, liveCaptions: change.liveCaptions };
+    } else if (change.kind === 'community') {
+      draft.candidate = { ...draft.candidate, community: change.community };
     } else {
       draft.logStoragePolicy = change.logStoragePolicy;
     }
@@ -205,6 +217,7 @@ export class WizardConfigurationGateway {
     if (imported.alertSettings !== undefined) result = this.stage(id, { kind: 'alerts', alertSettings: imported.alertSettings },leaseOwner);
     if (imported.liveCaptions !== undefined) result = this.stage(id, { kind: 'live-captions', liveCaptions: imported.liveCaptions },leaseOwner);
     if (imported.logStoragePolicy !== undefined) result = this.stage(id, { kind: 'log-storage-policy', logStoragePolicy: imported.logStoragePolicy },leaseOwner);
+    if (imported.community !== undefined) result = this.stage(id, { kind: 'community', community: imported.community },leaseOwner);
     return result;
   }
 
@@ -221,6 +234,7 @@ export class WizardConfigurationGateway {
       alertSettings: pickAlertSettings(config),
       liveCaptions: config.liveCaptions,
       ...(logStoragePolicy === undefined ? {} : { logStoragePolicy }),
+      community: config.community,
     };
   }
 
