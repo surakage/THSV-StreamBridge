@@ -37,7 +37,7 @@ describe('Random Clip Player add-on package', () => {
     if (module === undefined) throw new Error('The add-on must load through the exact same path a real install uses.');
     if (cacheModule === undefined) throw new Error('The shared clip cache dependency must load.');
     expect(module.manifest.eventSubscriptions).toEqual(['addon.thsv.random-clip-player.clips-received', 'addon.thsv.clip-library-cache.snapshot', 'addon.thsv.random-clip-player.clip-download-received', 'addon.thsv.random-clip-player.control', 'stream.scene-changed', 'system.scene-catalog']);
-    expect(module.settings).toEqual({ automaticSceneNames: ['BRB', 'Stream Ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 5, clipCount: 20, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
+    expect(module.settings).toEqual({ automaticSceneNames: ['role:break', 'role:ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 5, clipCount: 20, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
     // A bridge restart must not resume a playback session that was enabled in the prior process.
     await mkdir(join(stateRoot, 'thsv.random-clip-player'), { recursive: true });
     await writeFile(join(stateRoot, 'thsv.random-clip-player', 'runtime-state.json'), JSON.stringify({ clips: [], seenClipIds: [], playbackEnabled: true }));
@@ -47,6 +47,8 @@ describe('Random Clip Player add-on package', () => {
     let releaseCache: ((value: { url: string; cacheHit: boolean; bytes: number; expiresAt: string }) => void) | undefined;
     const preparedCache = new Promise<{ url: string; cacheHit: boolean; bytes: number; expiresAt: string }>((resolve) => { releaseCache = resolve; });
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
+      // The shipped default scenes are role:break and role:ending, which follow the creator's scene roles.
+      sceneRoles: () => ({ break: 'BRB', ending: 'Stream Ending' }),
       runStreamerBotAction: async (actionId, args) => { dispatchedActions.push({ actionId, args }); },
       publishOverlay: async (_moduleId, topic, payload) => { publishedTopics.push({ topic, payload }); },
       subscribeOverlayLifecycle: () => () => undefined,
@@ -275,7 +277,7 @@ describe('Random Clip Player add-on package', () => {
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.random-clip-player');
     if (module === undefined) throw new Error('The add-on must load through the exact same path a real install uses.');
     // Unset properties still fall back to the schema's own defaults, exactly like the wizard's settings form does.
-    expect(module.settings).toEqual({ automaticSceneNames: ['BRB', 'Stream Ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 3, clipCount: 5, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
+    expect(module.settings).toEqual({ automaticSceneNames: ['role:break', 'role:ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 3, clipCount: 5, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
   });
 
   it('preserves the old minute interval as seconds when upgrading saved settings', async () => {
@@ -288,6 +290,6 @@ describe('Random Clip Player add-on package', () => {
     const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.random-clip-player');
     if (module === undefined) throw new Error('Migrated settings must not prevent the add-on from loading.');
-    expect(module.settings).toEqual({ automaticSceneNames: ['BRB', 'Stream Ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 600, clipCount: 7, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
+    expect(module.settings).toEqual({ automaticSceneNames: ['role:break', 'role:ending'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 600, clipCount: 7, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
   });
 });

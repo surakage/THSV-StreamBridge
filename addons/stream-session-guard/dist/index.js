@@ -30,8 +30,8 @@ const FALLBACKS = Object.freeze({
   enabled: false, provider: 'obs', connectionIndex: 0,
   breaksEnabled: true, breakScheduleMode: 'automatic', breakIntervalMinutes: 60, warningMinutes: 5, breakDurationMinutes: 5,
   breakPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], breakEnabledScenes: [],
-  breakSceneName: 'BRB', returnMode: 'previous', returnSceneName: '',
-  streamLimitEnabled: true, maximumStreamMinutes: 240, endingSceneName: 'Stream Ending', endWarningSceneName: '', endingSceneMode: 'automatic',
+  breakSceneName: 'role:break', returnMode: 'previous', returnSceneName: '',
+  streamLimitEnabled: true, maximumStreamMinutes: 240, endingSceneName: 'role:ending', endWarningSceneName: '', endingSceneMode: 'automatic',
   showOverlayWarning: true, overlayBackgroundMode: 'glass',
   overlayBackgroundColor: '#101722', overlayBackgroundOpacity: 0.92, overlayAccentColor: '#f4c95d',
   overlayTextColor: '#ffffff', overlayMutedColor: '#d9e2ef', overlayWarningColor: '#f4c95d',
@@ -42,7 +42,18 @@ function clean(value, maximum = 200) { const text = typeof value === 'string' ? 
 function integer(value, minimum, maximum, fallback) { return Number.isInteger(value) ? Math.min(maximum, Math.max(minimum, value)) : fallback; }
 function number(value, minimum, maximum, fallback) { return Number.isFinite(value) ? Math.min(maximum, Math.max(minimum, Number(value))) : fallback; }
 function color(value, fallback) { const text = clean(value, 16); return /^#[0-9a-f]{6}$/iu.test(text) ? text : fallback; }
-function settingsFor(context) { return { ...FALLBACKS, ...(context.settings ?? {}) }; }
+// A "role:break" style value follows the scene the creator mapped to that role under Add-ons >
+// Scene roles in the wizard ('' while unmapped). Any other value is an exact scene name.
+function resolveSceneSetting(value, context) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!/^role:/iu.test(text)) return text;
+  try { return typeof context?.scenes?.resolve === 'function' ? context.scenes.resolve(text) : ''; } catch { return ''; }
+}
+function settingsFor(context) {
+  const settings = { ...FALLBACKS, ...(context.settings ?? {}) };
+  const resolved = Object.fromEntries(['breakSceneName', 'returnSceneName', 'endingSceneName', 'endWarningSceneName'].map((key) => [key, resolveSceneSetting(settings[key], context)]));
+  return { ...settings, ...resolved, ...(Array.isArray(settings.breakEnabledScenes) ? { breakEnabledScenes: settings.breakEnabledScenes.map((name) => resolveSceneSetting(name, context)).filter(Boolean) } : {}) };
+}
 function provider(value) { return PROVIDERS.includes(value) ? value : 'obs'; }
 function platform(value) { return ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(value) ? value : ''; }
 export function breakEligible(settings, state) {

@@ -222,6 +222,7 @@ async function loadAddOns() {
     if (state.selectedAddOnId && !state.addOns.some((addOn) => addOn.moduleId === state.selectedAddOnId)) state.selectedAddOnId = '';
     if (!state.selectedAddOnId && state.addOns.length) state.selectedAddOnId = state.addOns[0].moduleId;
     renderAddOns();
+    renderSceneRoles();
     void refreshSceneCatalogOnOpen();
     renderDiscoveredAddOns();
     renderTrustedPublishers();
@@ -466,6 +467,33 @@ function renderAddOnField(name, schema, value, ui = {}) {
   return wrapper(`<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 500)}">${help}</label>`);
 }
 
+// Scene roles: the creator maps each stream phase to one of their own scenes once, and add-on
+// settings that say "role:break" (the shipped defaults) follow that mapping.
+const SCENE_ROLE_FIELDS = [
+  ['starting', 'Starting scene', 'Shown before you go live, such as a Starting Soon countdown.'],
+  ['live', 'Main live scene', 'Your usual on-stream scene.'],
+  ['break', 'Break scene', 'Your be-right-back scene. Break timers switch here and clips play here.'],
+  ['ending', 'Ending scene', 'Your end-of-stream scene. Stream limits switch here, clips play here, and auto-raid can start here.'],
+];
+function savedSceneRoles() {
+  const staged = (state.draft?.stagedChanges || []).filter((change) => change.kind === 'scene-roles').pop();
+  return staged?.sceneRoles || state.overview?.configuration?.sceneRoles || {};
+}
+function renderSceneRoles() {
+  const form = byId('scene-roles-form'); if (!form) return;
+  const roles = savedSceneRoles();
+  form.querySelector('[data-scene-role-fields]').innerHTML = SCENE_ROLE_FIELDS.map(([role, label, help]) => renderSceneNamePicker(role, safe(label), roles[role] || '', `<small>${safe(help)} Leave blank if you do not use one.</small>`, { noRoles: true })).join('');
+  attachSceneCatalogPickers(form); populateSceneCatalogControls(form);
+}
+byId('scene-roles-form')?.addEventListener('submit', async (event) => {
+  event.preventDefault(); const form = event.target; const status = byId('scene-roles-state');
+  const sceneRoles = Object.fromEntries(SCENE_ROLE_FIELDS.map(([role]) => [role, String(form.elements.namedItem(role)?.value || '').trim().slice(0, 200)]));
+  try {
+    await stageConfigurationChange({ kind: 'scene-roles', sceneRoles });
+    status.textContent = 'Scene roles staged. Save with backup, then restart StreamBridge to apply them.';
+  } catch (error) { status.textContent = error.message; }
+});
+
 async function refreshSceneCatalogOnOpen() {
   if (state.sceneCatalogRefreshRequested || state.sceneCatalog?.refreshAvailable !== true) return;
   state.sceneCatalogRefreshRequested = true;
@@ -481,7 +509,8 @@ function decorativeSceneName(scene){const compact=String(scene).replace(/[\s\d._
 function currentScenes(provider){return new Set((state.sceneCatalog?.providers?.[provider]?.connections||[]).map((connection)=>connection.currentScene).filter(Boolean))}
 function catalogScenes(provider) { return (Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []).filter((scene)=>!decorativeSceneName(scene)); }
 function categorizedScenes(provider,selected='',query=''){const current=currentScenes(provider);const normalized=query.trim().toLocaleLowerCase();const groups={Current:[],Used:[],Likely:[],Other:[]};for(const scene of catalogScenes(provider)){if(normalized&&!scene.toLocaleLowerCase().includes(normalized))continue;const group=current.has(scene)?'Current':scene===selected?'Used':/(start|soon|brb|break|end|raid|game|chat|ad|countdown)/iu.test(scene)?'Likely':'Other';groups[group].push(scene)}return groups}
-function catalogSceneOptions(provider, selected = '',query='',preserveSaved=false) { const groups=categorizedScenes(provider,selected,query);const scenes=Object.values(groups).flat();const count=scenes.length;const saved=preserveSaved&&selected&&!scenes.includes(selected)?`<optgroup label="Saved — refresh required"><option value="${safe(selected)}" selected>${safe(selected)}</option></optgroup>`:'';return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${saved}${Object.entries(groups).filter(([,entries])=>entries.length).map(([label,entries])=>`<optgroup label="${label}">${entries.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}`; }
+function sceneRoleOptions(selected=''){const roles=savedSceneRoles();return `<optgroup label="Scene roles (Add-ons > Scene roles)">${SCENE_ROLE_FIELDS.map(([role])=>{const value=`role:${role}`;const mapped=String(roles[role]||'');return `<option value="${value}" ${value===selected?'selected':''}>Scene role: ${role} (${mapped?safe(mapped):'not set yet'})</option>`}).join('')}</optgroup>`}
+function catalogSceneOptions(provider, selected = '',query='',preserveSaved=false,includeRoles=true) { const groups=categorizedScenes(provider,selected,query);const scenes=Object.values(groups).flat();const count=scenes.length;const roleToken=includeRoles&&/^role:(starting|live|break|ending)$/u.test(selected);const saved=preserveSaved&&selected&&!roleToken&&!scenes.includes(selected)?`<optgroup label="Saved — refresh required"><option value="${safe(selected)}" selected>${safe(selected)}</option></optgroup>`:'';return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${saved}${Object.entries(groups).filter(([,entries])=>entries.length).map(([label,entries])=>`<optgroup label="${label}">${entries.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}${includeRoles?sceneRoleOptions(selected):''}`; }
 function enabledSceneProviders(selected = '') {
   const enabled = new Set(['obs', selected]);
   for (const connection of state.broadcastConnections?.connections || []) if (connection.enabled === true) enabled.add(connection.provider);
@@ -496,7 +525,7 @@ function renderSceneNamePicker(name, label, value, help, ui) {
   const selectAttributes = detectedOnly ? ` name="${safe(name)}" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"` : '';
   const manual = detectedOnly ? '' : `<label>Exact scene name<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"></label>`;
   const status = detectedOnly ? 'Choose a scene detected from the connected broadcast app. Refreshing never changes the active scene.' : 'Select a categorized exact name above, or keep the manual value for a scene that has not been observed yet. Decorative separators are hidden.';
-  return `<fieldset class="scene-name-picker" data-scene-name-picker><legend>${label}</legend><label>Filter list<input type="search" data-scene-catalog-search placeholder="Search current, used, likely, or other scenes"></label><label>Detected scene<select data-scene-catalog-select${selectAttributes}>${catalogSceneOptions('obs', value ?? '', '', detectedOnly)}</select></label>${manual}${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>${status}</small></fieldset>`;
+  return `<fieldset class="scene-name-picker" data-scene-name-picker><legend>${label}</legend><label>Filter list<input type="search" data-scene-catalog-search placeholder="Search current, used, likely, or other scenes"></label><label>Detected scene<select data-scene-catalog-select${selectAttributes}>${catalogSceneOptions('obs', value ?? '', '', detectedOnly, ui.noRoles !== true)}</select></label>${manual}${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>${status}</small></fieldset>`;
 }
 function providerForSceneInput(input) {
   const form = input.closest('form'); const providerField = input.dataset.providerField;
@@ -504,7 +533,7 @@ function providerForSceneInput(input) {
 }
 function populateSceneCatalogControls(root = document) {
   root.querySelectorAll('[data-scene-list-picker]').forEach((picker) => { const provider = picker.querySelector('[data-scene-catalog-provider]').value; picker.querySelector('[data-scene-catalog-select]').innerHTML = catalogSceneOptions(provider); });
-  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const picker = input.closest('[data-scene-name-picker]'); const select = picker?.querySelector('[data-scene-catalog-select]'); const query=picker?.querySelector('[data-scene-catalog-search]')?.value||'';if (select) select.innerHTML = catalogSceneOptions(providerForSceneInput(input), input.value,query,input.tagName==='SELECT'); });
+  root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const picker = input.closest('[data-scene-name-picker]'); const select = picker?.querySelector('[data-scene-catalog-select]'); const query=picker?.querySelector('[data-scene-catalog-search]')?.value||'';if (select) select.innerHTML = catalogSceneOptions(providerForSceneInput(input), input.value,query,input.tagName==='SELECT',!input.closest('#scene-roles-form')); });
 }
 async function refreshSceneCatalog(button) {
   const picker = button.closest('[data-scene-list-picker]'); const input = button.closest('.addon-setting, [data-scene-mapping-row]')?.querySelector('[data-scene-name-input]');

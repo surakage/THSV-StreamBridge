@@ -66,10 +66,10 @@
     "breakSceneName": {
       "type": "string",
       "title": "Break scene",
-      "description": "Choose the exact scene to show when the break begins.",
+      "description": "Choose the exact scene to show when the break begins. role:break uses the Break scene you chose under Add-ons > Scene roles.",
       "minLength": 1,
       "maxLength": 256,
-      "default": "BRB"
+      "default": "role:break"
     },
     "returnMode": {
       "type": "string",
@@ -102,10 +102,10 @@
     "endingSceneName": {
       "type": "string",
       "title": "Ending scene",
-      "description": "Used for automatic ending. Opening this scene manually also hands off to your configured ending sequence.",
+      "description": "Used for automatic ending. Opening this scene manually also hands off to your configured ending sequence. role:ending uses the Ending scene you chose under Add-ons > Scene roles.",
       "minLength": 1,
       "maxLength": 256,
-      "default": "Stream Ending"
+      "default": "role:ending"
     },
     "showOverlayWarning": {
       "type": "boolean",

@@ -209,7 +209,7 @@
     "endingSceneMode": {
       "labels": {
         "automatic": "Switch to Ending automatically at zero",
-        "manual": "Stay in Just Chatting until I use Stream Deck"
+        "manual": "Stay in my current scene until I use Stream Deck"
       },
       "visibleWhen": {
         "field": "streamLimitEnabled",

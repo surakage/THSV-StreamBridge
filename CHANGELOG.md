@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+- Added scene roles: choose your own Starting, Main live, Break and Ending scenes once under **Add-ons > Scene roles** in the setup wizard. Scene pickers in add-on settings now offer these roles alongside detected scenes, and the pre-stream check names any role an add-on uses but you have not mapped.
+- Stream Break & End Guard, Random Clip Player, Stream Launch Countdown, Raid Scout and the Scene Actions starter mappings now default to roles (`role:break`, `role:ending`, `role:starting`, `role:live`) instead of the scene names `BRB`, `Stream Ending`, `Starting Soon`, `Just Chatting` and `Be Right Back`, so a shared install works with any streamer's scenes. The Gameplay starter mapping is no longer created; its imported action is still available to map.
+- Raid Scout's ending-scene match now ignores any leading emoji, not only 🔴 and 🟠.
+- Existing installs: scene names you already saved in these add-ons keep working unchanged and need no action. If you never saved those add-on settings (so they were still using the shipped `BRB`, `Stream Ending` or `Starting Soon` names), map your Starting, Break and Ending scenes under **Add-ons > Scene roles**, save with backup and restart StreamBridge; until a role is mapped, the features that use it do nothing.
+
 ## [4.0.14] - 2026-10-07
 
 - Republished the 4.0.13 changes after its release build stopped on a launcher test that only passed before noon UTC; the test now mocks the clock before saving. No application changes beyond 4.0.13.

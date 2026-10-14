@@ -28,7 +28,7 @@ The package does not manufacture trigger export records because Streamer.bot doe
 
 The same scene picker is available for Stream Launch Countdown, Random Clip Player, and Raid Scout. OBS supplies a complete scene list through the read-only `GetSceneList` request. Streamlabs Desktop and Meld Studio do not expose equivalent full-list methods through Streamer.bot, so the wizard learns their exact names from genuine Scene Changed events. The Refresh button never switches a scene, and manual entry always remains available.
 
-Starter mappings initially target the imported Starting Soon, Just Chatting, Gameplay, Be Right Back, and Ending Soon actions. Their C# blocks are intentionally empty; add normal Streamer.bot sub-actions or replace the block. They can be renamed safely.
+Starter mappings use scene roles instead of fixed scene names: `role:starting`, `role:live`, `role:break`, and `role:ending` run the imported Starting Soon, Just Chatting, Be Right Back, and Ending Soon actions when OBS enters the scene you chose for that role under **Add-ons > Scene roles**. A role you leave unmapped runs nothing. Any mapping can instead name an exact scene, and the imported Gameplay action can be mapped the same way. Their C# blocks are intentionally empty; add normal Streamer.bot sub-actions or replace the block. They can be renamed safely.
 
 ## Safety
 

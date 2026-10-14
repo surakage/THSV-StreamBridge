@@ -8,11 +8,11 @@
     "automaticSceneNames": {
       "type": "array",
       "title": "Exact broadcast-app scenes that play clips",
-      "description": "Enter one exact OBS, Meld, or Streamlabs program-scene name per line, including any emoji, icon, bracketed text, or punctuation. Matching ignores capitalization only.",
+      "description": "Enter one exact OBS, Meld, or Streamlabs program-scene name per line, including any emoji, icon, bracketed text, or punctuation. Matching ignores capitalization only. role:break and role:ending use the scenes you chose under Add-ons > Scene roles.",
       "items": { "type": "string", "minLength": 1, "maxLength": 120 },
       "maxItems": 20,
       "uniqueItems": true,
-      "default": ["BRB", "Stream Ending"]
+      "default": ["role:break", "role:ending"]
     },
     "stopOutsideAutomaticScenes": {
       "type": "boolean",
