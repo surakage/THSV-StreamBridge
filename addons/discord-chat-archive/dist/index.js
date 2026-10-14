@@ -31,11 +31,11 @@ const FALLBACKS = Object.freeze({
   commandPrefix: '!',
   includeSimulatedMessages: false,
   destinationMode: 'channel',
-  forumThreadName: 'Village chat · {date} · {time}',
+  forumThreadName: '{community} chat · {date} · {time}',
   forumTagIds: [],
   layoutStyle: 'clean-embeds',
   showSessionHeader: true,
-  sessionHeaderTitle: 'Village Stream Chat Archive',
+  sessionHeaderTitle: '{community} Stream Chat Archive',
   showMessageTimes: true,
   twitchColor: '#9146ff',
   youtubeColor: '#ff0033',
@@ -64,6 +64,7 @@ let forumThreadId = '';
 let sessionHeaderSent = false;
 let sessionStartedAt = '';
 let archiveSessionKey = '';
+let lastChannelName = '';
 const livePlatforms = new Set();
 let operation = Promise.resolve();
 const pendingDeliveries = new Map();
@@ -199,8 +200,15 @@ export function buildArchiveEmbeds(items, settings) {
   return embeds.map(({ platform: _platform, ...embed }) => embed);
 }
 
-function sessionHeader(settings, receivedAt) {
-  return `## ${escapeDiscordValue(settings.sessionHeaderTitle, 80)}\n**${escapeDiscordValue(formatDate(receivedAt), 64)} · ${escapeDiscordValue(formatTime(receivedAt), 32)}**\n${settings.enabledPlatforms.map(platformLabel).join(', ')} messages are color-coded below.`;
+// The host resolves the community name (Settings > Community name, else the channel name);
+// hosts without it fall back to the last archived chat's channel name, then a generic phrase.
+export function communityName(context) { return cleanText(context?.community?.name, 60) || lastChannelName || 'the community'; }
+export function expandCommunity(template, community) {
+  return String(template).replace(/\{community\}/gu, (_token, offset) => offset === 0 ? `${community.charAt(0).toLocaleUpperCase('en-US')}${community.slice(1)}` : community);
+}
+
+function sessionHeader(settings, receivedAt, community = 'the community') {
+  return `## ${escapeDiscordValue(expandCommunity(settings.sessionHeaderTitle, community), 80)}\n**${escapeDiscordValue(formatDate(receivedAt), 64)} · ${escapeDiscordValue(formatTime(receivedAt), 32)}**\n${settings.enabledPlatforms.map(platformLabel).join(', ')} messages are color-coded below.`;
 }
 
 export function renderArchiveLine(template, item) {
@@ -312,7 +320,7 @@ function flush(context, settings) {
   if (archiveSessionKey !== sessionKey) { archiveSessionKey = sessionKey; forumThreadId = ''; sessionHeaderSent = false; }
   const includesHeader = settings.showSessionHeader !== false && !sessionHeaderSent;
   const requestId = `discord-archive-${Date.now().toString(36)}-${String(++requestSequence)}`;
-  const delivery = { requestId, ...batch, content: [includesHeader ? sessionHeader(settings, batch.firstReceivedAt) : '', batch.content].filter(Boolean).join('\n'), embedsJson: JSON.stringify(batch.embeds), includesHeader, mode: settings.destinationMode, attempts: 0 };
+  const delivery = { requestId, ...batch, content: [includesHeader ? sessionHeader(settings, batch.firstReceivedAt, communityName(context)) : '', batch.content].filter(Boolean).join('\n'), embedsJson: JSON.stringify(batch.embeds), includesHeader, mode: settings.destinationMode, attempts: 0 };
   pendingDeliveries.set(requestId, delivery);
   void sendAttempt(delivery, context, settings);
 }
@@ -329,7 +337,7 @@ async function sendAttempt(delivery, context, settings) {
       discordArchiveAvatarUrl: delivery.avatarUrl,
       discordArchiveDestinationMode: delivery.mode,
       discordArchiveThreadId: delivery.mode === 'forum' ? forumThreadId : '',
-      discordArchiveThreadName: settings.forumThreadName.replaceAll('{date}', formatDate(delivery.firstReceivedAt)).replaceAll('{time}', formatTime(delivery.firstReceivedAt)),
+      discordArchiveThreadName: cleanText(expandCommunity(settings.forumThreadName, communityName(context)).replaceAll('{date}', formatDate(delivery.firstReceivedAt)).replaceAll('{time}', formatTime(delivery.firstReceivedAt)), 100),
       discordArchiveForumTagIds: settings.forumTagIds.join(','),
       discordArchiveSimulated: false,
     });
@@ -386,11 +394,13 @@ function enqueueMessage(event, context, settings) {
     droppedMessages += 1;
   }
   queuedMessages.push(selected);
+  if (event.metadata?.simulated !== true && selected.channelName && selected.channelName.toLowerCase() !== selected.platform) lastChannelName = cleanText(selected.channelName, 60);
   scheduleFlush(context, settings);
 }
 
 export function resetDiscordChatArchiveRuntime() {
   queuedMessages = [];
+  lastChannelName = '';
   droppedMessages = 0;
   flushTaskId = undefined;
   stopped = true;

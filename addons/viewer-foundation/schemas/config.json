@@ -19,10 +19,10 @@
     "currencyName": {
       "type": "string",
       "title": "Points name",
-      "description": "The creator-facing name shown in balance and add-on messages, such as Village Points, Acorns, or Stars.",
+      "description": "The creator-facing name shown in balance and add-on messages, such as Points, Acorns, or Stars.",
       "minLength": 1,
       "maxLength": 40,
-      "default": "Village Points"
+      "default": "Points"
     },
     "pointsCommand": {
       "type": "string",

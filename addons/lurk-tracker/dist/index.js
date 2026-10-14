@@ -51,6 +51,9 @@ async function roll(context, state, now, zone) {
   await context.state.write(state);
   return { version: 1, month: current, entries: continuing, lastTickAt: now, processed: state.processed };
 }
+// The host resolves the community name (Settings > Community name, else the channel name);
+// hosts without it fall back to the event's channel name, then a generic phrase.
+export function communityName(context, event) { const configured = clean(context?.community?.name, 60); if (configured) return configured; const channel = clean(event?.channel?.name, 60); return channel && !PLATFORMS.includes(channel.toLowerCase()) ? channel : 'the community'; }
 async function say(context, event, message) { try { await context.chat.send({ message, routing: 'source', sourcePlatform: event.platform, overflow: 'split' }); } catch { /* No retries for possibly sent comments. */ } }
 export async function processLurkEvent(event, context, now = Date.now()) {
   const config = settings(context);
@@ -80,7 +83,7 @@ export async function processLurkEvent(event, context, now = Date.now()) {
   state.processed.push(id); state.processed = state.processed.slice(-40); state.lastTickAt = now;
   state.entries.sort((a,b) => b.seconds - a.seconds || b.visits - a.visits);
   await context.state.write(state);
-  if (isLurk && config.announceLurk) await say(context, event, `${entry.displayName} is lurking. Thanks for keeping the village company! Chat again to return.`);
+  if (isLurk && config.announceLurk) await say(context, event, `${entry.displayName} is lurking. Thanks for keeping ${communityName(context, event)} company! Chat again to return.`);
   if (!isLurk && config.announceReturn) await say(context, event, `Welcome back, ${entry.displayName}! Your lurk has ended.`);
   return { lurking: isLurk, visits: entry.visits, seconds: entry.seconds };
 }

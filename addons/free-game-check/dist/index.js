@@ -109,7 +109,7 @@ async function beginRequest(event, context) {
   let points;
   if (kind === 'points') {
     const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: providerUserId });
-    if (!projection) { await sendSource(context, event.platform, `${displayName}, your Village Points profile is not available yet.`); return; }
+    if (!projection) { await sendSource(context, event.platform, `${displayName}, your points profile is not available yet.`); return; }
     const idempotencyKey = `free-game-check:${requestKey}`;
     try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.pointsCost, reason: 'Free Game Check request', idempotencyKey }); points = { viewerId: projection.viewerId, amount: settings.pointsCost, idempotencyKey }; }
     catch { await sendSource(context, event.platform, `${displayName}, you need ${String(settings.pointsCost)} ${projection.currencyName || 'points'} to check for free games.`); return; }

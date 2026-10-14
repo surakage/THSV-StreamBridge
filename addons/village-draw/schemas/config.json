@@ -10,7 +10,7 @@
     "enterCommand": { "type": "string", "title": "Single-entry command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "enter" },
     "ticketsCommand": { "type": "string", "title": "Multiple-ticket purchase command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "tickets" },
     "myTicketsCommand": { "type": "string", "title": "Ticket balance command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "mytickets" },
-    "giveawayName": { "type": "string", "title": "Giveaway name", "minLength": 1, "maxLength": 100, "default": "Village Giveaway" },
+    "giveawayName": { "type": "string", "title": "Giveaway name", "description": "{community} becomes your community name.", "minLength": 1, "maxLength": 100, "default": "{community} Giveaway" },
     "description": { "type": "string", "format": "multiline", "title": "Description", "minLength": 1, "maxLength": 500, "default": "Enter for a chance to win!" },
     "prizeItem": { "type": "string", "title": "Prize item", "minLength": 1, "maxLength": 160, "default": "Mystery Prize" },
     "prizeImageUrl": { "type": "string", "title": "Optional HTTPS prize image", "pattern": "^$|^https://", "maxLength": 2048, "default": "" },
@@ -43,6 +43,6 @@
     "showPlatformBadge": { "type": "boolean", "title": "Show the winner platform", "default": true },
     "showEntryCount": { "type": "boolean", "title": "Show entrant and ticket totals", "default": true },
     "playWinnerTone": { "type": "boolean", "title": "Play a short winner tone", "description": "Browser-source audio must be enabled in OBS, Meld, or Streamlabs Desktop.", "default": false },
-    "winnerOverlayMessage": { "type": "string", "title": "Winner reveal message", "minLength": 1, "maxLength": 160, "default": "The village has chosen!" }
+    "winnerOverlayMessage": { "type": "string", "title": "Winner reveal message", "minLength": 1, "maxLength": 160, "default": "The community has chosen!" }
   }
 }
