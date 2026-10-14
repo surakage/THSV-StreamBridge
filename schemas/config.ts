@@ -529,6 +529,10 @@ export const outputSchema = z.object({
   settings: z.record(z.string(), z.json()).default({}),
 }).strict();
 
+export const communitySchema = z.object({
+  name: z.string().trim().max(60).default(''),
+}).strict();
+
 const bridgeConfigObjectSchema = z
   .object({
     configVersion: z.literal('1.0.0'),
@@ -572,6 +576,9 @@ const bridgeConfigObjectSchema = z
         stateFile: z.string().min(1).default('data/state/deduplication.json'),
       })
       .strict(),
+    // The creator's community name for viewer-facing add-on text. Blank means add-ons use the
+    // broadcaster's channel name, so a shared install never speaks for another creator's community.
+    community: communitySchema.default({ name: '' }),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({

@@ -15,10 +15,10 @@ const EVENT_POINTS = Object.freeze({
 const ACTIVITY_KEYS = Object.freeze([...Object.keys(EVENT_POINTS), 'chat.consistency', 'time.active', 'time.lurk']);
 const ACHIEVEMENTS = Object.freeze([
   Object.freeze({ id: 'first-steps', label: 'First Steps', points: 100 }),
-  Object.freeze({ id: 'village-regular', label: 'Village Regular', points: 500 }),
+  Object.freeze({ id: 'village-regular', label: 'Regular', points: 500 }),
   Object.freeze({ id: 'community-supporter', label: 'Community Supporter', points: 1_000 }),
-  Object.freeze({ id: 'village-veteran', label: 'Village Veteran', points: 2_500 }),
-  Object.freeze({ id: 'village-legend', label: 'Village Legend', points: 5_000 }),
+  Object.freeze({ id: 'village-veteran', label: 'Veteran', points: 2_500 }),
+  Object.freeze({ id: 'village-legend', label: 'Legend', points: 5_000 }),
 ]);
 
 const manifest = {
@@ -44,7 +44,7 @@ const manifest = {
 };
 
 const FALLBACKS = Object.freeze({
-  enabled: true, includeSimulated: false, currencyName: 'Village Points', pointsCommand: 'points', accountLinks: [],
+  enabled: true, includeSimulated: false, currencyName: 'Points', pointsCommand: 'points', accountLinks: [],
   chatMessagePoints: 1, chatCooldownSeconds: 60,
   chatConsistencyMessages: 5, chatConsistencyPoints: 5,
   activeMinutesRequired: 10, activeMinutesPoints: 5, activeWindowMinutes: 20,
@@ -109,7 +109,7 @@ function settingsFor(context) {
   return {
     ...raw,
     links,
-    currencyName: clean(raw.currencyName, 40) || 'Village Points',
+    currencyName: clean(raw.currencyName, 40) || 'Points',
     pointsCommand: clean(raw.pointsCommand, 40).toLowerCase() || 'points',
     chatMessagePoints: integer(raw.chatMessagePoints, 0, 10000, 1),
     chatCooldownSeconds: integer(raw.chatCooldownSeconds, 0, 86400, 60),

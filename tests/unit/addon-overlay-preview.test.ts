@@ -64,7 +64,7 @@ describe('hosted add-on overlay previews', () => {
       title: 'Preview Viewer', text: '2,450 points • 14 observed sessions • 328 observed messages • 512 engagement score • #3 of 24 this month', durationMs: 14_000, preview: true,
       front: { displayName: 'Preview Viewer', platformLabel: '', viewerType: 'Streamer', category: 'Just Chatting', followStatus: 'following' },
       stats: [
-        { label: 'Village Points', value: '2,450' }, { label: 'Sessions', value: '14' },
+        { label: 'Points', value: '2,450' }, { label: 'Sessions', value: '14' },
         { label: 'Messages', value: '328' }, { label: 'Engagement', value: '512' },
         { label: 'Monthly Rank', value: '#3 of 24' },
       ],

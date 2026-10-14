@@ -21,7 +21,7 @@ The authenticated local wizard provides live private-state status, search by Vie
 
 Correction undo is intentionally conservative. Copy the correction audit ID from the result or recent history; undo succeeds only while the current balance still equals that correction's recorded result. Any later award, spend, refund, or correction makes the old undo fail rather than overwrite newer activity.
 
-Achievements are intentionally deterministic: First Steps (100), Village Regular (500), Community Supporter (1,000), Village Veteran (2,500), and Village Legend (5,000). Changing point-award settings does not rewrite prior event history; the unlocked list is recalculated from the viewer's current total.
+Achievements are intentionally deterministic: First Steps (100), Regular (500), Community Supporter (1,000), Veteran (2,500), and Legend (5,000). Changing point-award settings does not rewrite prior event history; the unlocked list is recalculated from the viewer's current total.
 
 Silent viewer presence cannot be verified consistently across Twitch, YouTube, Kick, and TikTok. Active-time awards therefore settle only when a viewer continues chatting inside the configured activity window. Lurk time begins with the configured normalized lurk command and settles on the viewer's next message or after the final observed platform goes offline. Catch-up awards are capped per event.
 

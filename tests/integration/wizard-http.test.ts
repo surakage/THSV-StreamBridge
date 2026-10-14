@@ -199,7 +199,7 @@ describe('wizard HTTP surface', () => {
     const foundationBody = await foundation.json() as { integration: { moduleId: string; integration: boolean; settings: Record<string, unknown> } };
     expect(foundationBody.integration.moduleId).toBe('thsv.viewer-foundation');
     expect(foundationBody.integration.integration).toBe(true);
-    expect(foundationBody.integration.settings['currencyName']).toBe('Village Points');
+    expect(foundationBody.integration.settings['currencyName']).toBe('Points');
     const savedFoundation = await fetch(`${baseUrl}/wizard/api/viewer-foundation/settings`, { method: 'PUT', headers, body: JSON.stringify({ ...foundationBody.integration.settings, currencyName: 'Bridge Leaves' }) });
     expect(savedFoundation.status).toBe(200);
     const savedFoundationBody = await savedFoundation.json() as { moduleId: string; saved: boolean; restartRequired: boolean; settings: Record<string, unknown> };

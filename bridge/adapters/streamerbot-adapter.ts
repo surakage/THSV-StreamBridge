@@ -219,6 +219,11 @@ export class StreamerBotAdapter {
 
   public async deliver(event: NormalizedEvent): Promise<void> {
     const timedAction = projectMultiTimedAction(event);
+    if (timedAction !== undefined && !timedActionNeedsStreamerBot(timedAction)) {
+      // Facebook-only timed messages are posted by FacebookTimedOutput; the Streamer.bot sender
+      // would receive an empty platform list and reject every run.
+      return;
+    }
     if (timedAction?.targetProvider === 'run-existing-action' && timedAction.targetActionId !== undefined) {
       // Timed targets are selected by exact UUID in the local configuration and the event can
       // only be produced by TimedActionsAdapter. Invoke the target directly so delivery does not
@@ -439,6 +444,14 @@ export class StreamerBotAdapter {
       this.scheduleReconnect();
     }), delay);
   }
+}
+
+const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
+
+/** The built-in timed-message sender delivers to every selected platform except Facebook. */
+export function timedActionNeedsStreamerBot(action: MultiTimedAction): boolean {
+  if (action.targetProvider !== 'run-existing-action' || action.targetActionId !== TIMED_MESSAGE_OUTPUT_ACTION_ID) return true;
+  return action.deliveryPlatforms.some((platform) => platform !== 'facebook');
 }
 
 export function buildMultiTimedActionArguments(action: MultiTimedAction): AddOnActionArgumentsV2 {

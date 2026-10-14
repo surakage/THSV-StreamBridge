@@ -48,7 +48,9 @@ async function settleReward(request, operationName, context) { if (!request?.rew
 async function refundPoints(request, context, suffix) { if (!request?.points) return; await context.viewerFoundation.mutate({ viewerId: request.points.viewerId, operation: 'refund', amount: request.points.amount, reason: 'Viewer Spotlight request refund', idempotencyKey: `${request.points.idempotencyKey}:${suffix}` }); }
 async function refundRequest(request, context, suffix) { await settleReward(request, 'refund', context).catch(() => undefined); await refundPoints(request, context, suffix).catch(() => undefined); }
 async function sendDiscordSnapshot(card, displayName, context, settings) { if (!settings.discordSnapshotsEnabled) return; await context.streamerbot.runApprovedAction(DISCORD_ACTION_ID, { viewerSpotlightDiscordMessage: `${card.title}\n${card.text}`.slice(0, 1900), viewerSpotlightDiscordMode: settings.discordDestinationMode, viewerSpotlightDiscordThreadName: `${displayName} viewer spotlight`.slice(0, 100), viewerSpotlightDiscordWebhookName: settings.discordWebhookName }); }
-export function buildViewerSpotlightCard(request, foundation, analytics, settings) { const platformLabel = request.platform === 'tiktok' ? 'TikTok' : request.platform === 'youtube' ? 'YouTube' : request.platform[0].toUpperCase() + request.platform.slice(1); const title = `${request.displayName}${settings.showPlatformBadge ? ` • ${platformLabel}` : ''}`; const fields = [];
+// The host resolves the community name (Settings > Community name, else the channel name); older hosts show a neutral label.
+function communityName(context) { const name = clean(context?.community?.name, 60); return name === 'the community' ? '' : name; }
+export function buildViewerSpotlightCard(request, foundation, analytics, settings, community = '') { const platformLabel = request.platform === 'tiktok' ? 'TikTok' : request.platform === 'youtube' ? 'YouTube' : request.platform[0].toUpperCase() + request.platform.slice(1); const title = `${request.displayName}${settings.showPlatformBadge ? ` • ${platformLabel}` : ''}`; const fields = [];
   if (settings.showPoints) fields.push(`${foundation.points.toLocaleString('en-US')} points`); if (settings.showLevel) fields.push(`Level ${foundation.level}`);
   if (settings.showLatestAchievement && foundation.latestAchievement?.label) fields.push(clean(foundation.latestAchievement.label, 80));
   if (settings.showObservedSessions && analytics.observed) fields.push(`${analytics.sessions.toLocaleString('en-US')} observed sessions`);
@@ -57,15 +59,15 @@ export function buildViewerSpotlightCard(request, foundation, analytics, setting
   if (settings.showEngagementScore && Number.isSafeInteger(analytics.engagementScore)) fields.push(`${analytics.engagementScore.toLocaleString('en-US')} engagement score`);
   if (settings.showSeasonRank && Number.isSafeInteger(analytics.seasonRank) && Number.isSafeInteger(analytics.rankCohortSize)) fields.push(`#${analytics.seasonRank.toLocaleString('en-US')} of ${analytics.rankCohortSize.toLocaleString('en-US')} this month`);
   const stats = [];
-  if (settings.showPoints) stats.push({ label: foundation.currencyName || 'Village Points', value: foundation.points.toLocaleString('en-US') });
-  if (settings.showLevel) stats.push({ label: 'Village level', value: String(foundation.level) });
+  if (settings.showPoints) stats.push({ label: foundation.currencyName || 'Points', value: foundation.points.toLocaleString('en-US') });
+  if (settings.showLevel) stats.push({ label: 'Level', value: String(foundation.level) });
   if (settings.showLatestAchievement && foundation.latestAchievement?.label) stats.push({ label: 'Latest achievement', value: clean(foundation.latestAchievement.label, 80) });
   if (settings.showObservedSessions && analytics.observed) stats.push({ label: 'Observed sessions', value: String(analytics.sessions) });
   if (settings.showObservedMessages && analytics.observed) stats.push({ label: 'Observed messages', value: String(analytics.counters.messages) });
   if (settings.showObservedCommands && analytics.observed) stats.push({ label: 'Observed commands', value: String(analytics.counters.commands) });
   if (settings.showEngagementScore && Number.isSafeInteger(analytics.engagementScore)) stats.push({ label: 'Engagement', value: String(analytics.engagementScore) });
   if (settings.showSeasonRank && Number.isSafeInteger(analytics.seasonRank)) stats.push({ label: 'Monthly rank', value: `#${analytics.seasonRank}` });
-  return { cardKind: 'viewer-spotlight', platform: request.platform, front: { displayName: request.displayName, platformLabel: settings.showPlatformBadge ? platformLabel : 'THE VILLAGE', viewerType: 'Villager', followStatus: 'unknown', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}) }, stats, flipToStats: stats.length > 0,
+  return { cardKind: 'viewer-spotlight', platform: request.platform, front: { displayName: request.displayName, platformLabel: settings.showPlatformBadge ? platformLabel : (clean(community, 60).toLocaleUpperCase('en-US') || 'SPOTLIGHT'), viewerType: 'Viewer', followStatus: 'unknown', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}) }, stats, flipToStats: stats.length > 0,
     title, text: fields.join(' • ') || 'Viewer card', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}), durationMs: settings.durationSeconds * 1000, presentationMode: settings.displayMode,
     style: { backgroundMode: settings.backgroundMode, backgroundColor: settings.backgroundColor, backgroundOpacity: settings.backgroundOpacity, accentColor: settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily } };
 }
@@ -76,11 +78,11 @@ async function drain(context, now = Date.now()) { if (stopped || active) return;
   const remainingGlobal = state.lastShownAt > 0 ? state.lastShownAt + settings.globalCooldownSeconds * 1000 - now : 0; if (remainingGlobal > 0) return armDrain(context, remainingGlobal);
   const request = queue.shift(); if (!request) return; const foundation = await context.viewerFoundation.getProjection({ viewerId: request.viewerId }); const analytics = await context.communityAnalytics.getViewerProjection(request.viewerId);
   if (!foundation || !analytics.observed || settings.ignoredViewerIds.has(request.viewerId)) { if (request.points || settings.refundRejectedRewards) await refundRequest(request, context, 'projection-rejected'); return drain(context, now); }
-  const card = buildViewerSpotlightCard(request, foundation, analytics, settings);
+  const card = buildViewerSpotlightCard(request, foundation, analytics, settings, communityName(context));
   try { await context.overlay.publish(`${MODULE_ID}.card.show`, card, { lane: 'foreground' }); } catch (error) { if (request.points || settings.refundRejectedRewards) await refundRequest(request, context, 'overlay-failed'); throw error; }
   if (request.reward) { try { await settleReward(request, 'fulfill', context); } catch { if (settings.refundRejectedRewards) await settleReward(request, 'refund', context).catch(() => undefined); } }
   if (request.discord === true) await sendDiscordSnapshot(card, request.displayName, context, settings).catch(() => undefined);
-  try { await context.chat.send({ message: `${request.displayName}, your Village Spotlight card is on screen!`, routing: 'source', sourcePlatform: request.platform, overflow: 'split' }); } catch { /* A chat outage does not replay the card. */ }
+  try { await context.chat.send({ message: `${request.displayName}, your Spotlight card is on screen!`, routing: 'source', sourcePlatform: request.platform, overflow: 'split' }); } catch { /* A chat outage does not replay the card. */ }
   state.lastShownAt = now; state.cardsThisSession += 1; await context.state.write(state); active = true; activeViewerId = request.viewerId; await armDrain(context, settings.durationSeconds * 1000 + 1000); }
 export async function processViewerSpotlightEvent(event, context, now = Date.now()) { const settings = settingsFor(context); const state = sanitizeState(await context.state.read());
   if (event.eventType === 'stream.online' && event.metadata?.simulated !== true) { const wasOffline = livePlatforms.size === 0; livePlatforms.add(event.platform); if (wasOffline) { state.cardsThisSession = 0; await context.state.write(state); } return { session: 'active' }; }
