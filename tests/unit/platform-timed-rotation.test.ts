@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { timedActionsSchema, type PlatformConfig } from '../../schemas/config.js';
 import { projectMultiTimedAction } from '../../bridge/core/multi-timed-actions.js';
-import { buildMultiTimedActionArguments } from '../../bridge/adapters/streamerbot-adapter.js';
+import { buildMultiTimedActionArguments, StreamerBotAdapter, timedActionNeedsStreamerBot } from '../../bridge/adapters/streamerbot-adapter.js';
 import { TimedActionsAdapter } from '../../bridge/adapters/timed-actions-adapter.js';
 import { silentLogger } from '../helpers.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
@@ -23,7 +23,24 @@ describe('five-platform timed rotations', () => {
     expect(action.selectedMessages['facebook']).toBe('Follow the Page');
   });
 
+  it('leaves Facebook-only timers to Facebook output instead of the Streamer.bot sender', async () => {
+    const event = JSON.parse(await readFile('tests/fixtures/system-timed-message-output.json', 'utf8')) as NormalizedEvent;
+    event.payload['selectedMessages'] = { facebook: 'Follow the Page' };
+    const project = (platforms: string[]) => { event.payload['deliveryPlatforms'] = platforms; const action = projectMultiTimedAction(event); if (!action) throw new Error('Missing timed action'); return action; };
+    expect(timedActionNeedsStreamerBot(project(['facebook']))).toBe(false);
+    expect(timedActionNeedsStreamerBot(project(['facebook', 'youtube']))).toBe(true);
+    expect(timedActionNeedsStreamerBot(project(['tiktok']))).toBe(true);
+
+    const runApprovedAction = vi.fn(async () => undefined);
+    const adapter = Object.assign(Object.create(StreamerBotAdapter.prototype) as StreamerBotAdapter, { runApprovedAction });
+    event.payload['deliveryPlatforms'] = ['facebook'];
+    await adapter.deliver(event);
+    expect(runApprovedAction).not.toHaveBeenCalled();
+  });
+
   // Each emit persists rotation state to disk, which can exceed vi.waitFor's 1 s default on a loaded CI runner.
+  // The adapter re-arms only after that write, so the clock must not move until the next run is armed:
+  // advancing earlier makes the "skip" missed-run policy drop a run.
   it('fires at 15 minutes and exhausts each platform list before repeating', async () => {
     vi.useFakeTimers(); vi.setSystemTime('2026-10-02T16:00:00Z');
     const root = await mkdtemp(join(tmpdir(), 'five-platform-timer-'));
@@ -36,13 +53,14 @@ describe('five-platform timed rotations', () => {
     const platform: PlatformConfig = { enabled: true, inputEnabled: true, outputEnabled: false, adapter: 'timed-actions', capabilities: ['timedActions'], reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 } };
     const events: NormalizedEvent[] = [];
     const adapter = new TimedActionsAdapter('timers', platform, config, () => 0.6);
+    const waitUntilArmed = () => vi.waitFor(() => expect((adapter as unknown as { timers: Map<string, unknown> }).timers.has('rotation')).toBe(true), { timeout: 10_000 });
     try {
       await adapter.start({ logger: silentLogger, emit: async event => { events.push(event as NormalizedEvent); return { accepted: true }; } });
       await adapter.control('start');
       await vi.advanceTimersByTimeAsync(899_999); expect(events).toHaveLength(0);
       await vi.advanceTimersByTimeAsync(1); await vi.waitFor(() => expect(events).toHaveLength(1), { timeout: 10_000 });
       expect(events[0]?.payload['scheduledAt']).toBe('2026-10-02T16:15:00.000Z');
-      for (let index = 1; index < 30; index++) { await vi.advanceTimersByTimeAsync(900_000); await vi.waitFor(() => expect(events).toHaveLength(index + 1), { timeout: 10_000 }); }
+      for (let index = 1; index < 30; index++) { await waitUntilArmed(); await vi.advanceTimersByTimeAsync(900_000); await vi.waitFor(() => expect(events).toHaveLength(index + 1), { timeout: 10_000 }); }
       expect(events).toHaveLength(30);
       for (const key of Object.keys(messagesByPlatform)) {
         const texts = events.map(event => (event.payload['selectedMessages'] as Record<string, string>)[key]);
