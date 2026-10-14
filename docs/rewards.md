@@ -5,7 +5,7 @@ creator-approved Twitch reward administration. The bridge does not invent platfo
 
 ## Install
 
-1. Re-import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.14.sb` so the existing Twitch and Kick intake actions contain the current relay source. Back up Streamer.bot and restore the trigger matrix after an overwrite import.
+1. Re-import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.14.sb` so the existing Twitch and Kick intake actions contain the current relay source. The import includes the intake triggers, so nothing needs to be reattached afterward.
 2. Add `TwitchRewardRedemption` only to `THSV Twitch - Intake` and `KickRewardRedemption` only to `THSV Kick - Intake`.
 3. Import `packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-4.0.14.sb` and review its custom C# warning. The action must remain triggerless.
 4. Keep `streamerbot.rewardAdministrationActionAlias` set to `THSV StreamBridge - Reward Administration`.

@@ -84,6 +84,7 @@ async function run() {
       THSV_STARTUP_RUN_ID: startupRunId,
       THSV_STREAMBRIDGE_CONFIG: configPath,
       THSV_STREAMBRIDGE_DATA_ROOT: dataRoot,
+      THSV_STREAMBRIDGE_INSTALL_ROOT: installRoot,
       THSV_STREAMBRIDGE_ADDONS_ROOT: join(installRoot, 'addons', 'packages'),
       THSV_STREAMBRIDGE_ADDON_STATE_ROOT: join(installRoot, 'addons', 'state'),
     };

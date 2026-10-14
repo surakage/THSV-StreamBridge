@@ -22,6 +22,16 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         ".\\Newtonsoft.Json.dll"
+      ],
+      "triggers": [
+        {
+          "type": 186,
+          "settings": {
+            "minutes": [
+              1
+            ]
+          }
+        }
       ]
     },
     {
@@ -40,6 +50,11 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         ".\\Newtonsoft.Json.dll"
+      ],
+      "triggers": [
+        {
+          "type": 139
+        }
       ]
     },
     {
@@ -102,8 +117,7 @@
     "concurrent": true
   },
   "manualTriggerSetup": [
-    "Attach Twitch > Ads > Upcoming Ad only to Upcoming Ad Intake.",
-    "Attach Twitch > Ads > Ad Run only to Ad Run Intake.",
+    "Included in the import, do not add again: Twitch > Ads > Upcoming Ad on Upcoming Ad Intake (1 minute before) and Twitch > Ads > Ad Run on Ad Run Intake.",
     "Leave Preview Upcoming, Preview Active, and Clear Display triggerless."
   ],
   "triggerSafety": "These actions relay bounded Twitch ad timing only. They cannot start, snooze, schedule, or cancel an ad.",

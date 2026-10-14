@@ -1,6 +1,6 @@
 import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { buildStreamerBotPackage, stableStreamerBotUuid } from '../../bridge/services/streamerbot-package-builder.js';
+import { buildStreamerBotPackage, stableStreamerBotUuid, streamerBotManifestTriggerInput } from '../../bridge/services/streamerbot-package-builder.js';
 
 interface DecodedPackage {
   readonly data: {
@@ -80,6 +80,32 @@ describe('Streamer.bot package builder', () => {
 
   it('rejects an empty package', () => {
     expect(() => buildStreamerBotPackage(meta, [])).toThrow('at least one action');
+  });
+
+  it('embeds fixed native triggers in the same shape Streamer.bot stores them, with stable IDs', () => {
+    const action = { name: 'Intake', group: 'Tests', sourceCode: 'return true;', stableIdentitySeed: 'intake' };
+    const triggers = [
+      streamerBotManifestTriggerInput({ type: 133 }, 'Package', 'Intake'),
+      streamerBotManifestTriggerInput({ type: 102, settings: { min: -1, max: -1 } }, 'Package', 'Intake'),
+      streamerBotManifestTriggerInput({ type: 112, settings: { rewardId: '' }, id: 'pinned-trigger' }, 'Package', 'Intake'),
+    ];
+    const first = buildStreamerBotPackage(meta, [{ ...action, triggers }]);
+    expect(buildStreamerBotPackage(meta, [{ ...action, triggers }])).toBe(first);
+    expect(decode(first).data.actions[0]?.triggers).toEqual([
+      { id: stableStreamerBotUuid('Package:Intake:native:133:trigger'), type: 133, enabled: true, exclusions: [] },
+      { min: -1, max: -1, id: stableStreamerBotUuid('Package:Intake:native:102:trigger'), type: 102, enabled: true, exclusions: [] },
+      { rewardId: '', id: 'pinned-trigger', type: 112, enabled: true, exclusions: [] },
+    ]);
+    // Settings can never override the identity fields.
+    expect(decode(buildStreamerBotPackage(meta, [{ ...action, triggers: [{ type: 101, settings: { type: 999, enabled: false }, stableIdentitySeed: 'x' }] }])).data.actions[0]?.triggers)
+      .toEqual([{ id: stableStreamerBotUuid('x:trigger'), type: 101, enabled: true, exclusions: [] }]);
+  });
+
+  it('rejects duplicate, invalid, or forbidden native triggers', () => {
+    const action = { name: 'Intake', group: 'Tests', sourceCode: 'return true;', stableIdentitySeed: 'intake' };
+    expect(() => buildStreamerBotPackage(meta, [{ ...action, triggers: [{ type: 133, stableIdentitySeed: 'a' }, { type: 133, stableIdentitySeed: 'b' }] }])).toThrow('same native trigger type twice');
+    expect(() => buildStreamerBotPackage(meta, [{ ...action, triggers: [{ type: 401, stableIdentitySeed: 'a' }] }])).toThrow('invalid native trigger type');
+    expect(() => buildStreamerBotPackage(meta, [{ ...action, mustRemainTriggerless: true, triggers: [{ type: 133, stableIdentitySeed: 'a' }] }])).toThrow('must remain triggerless');
   });
 
   it('exports verified command source flags, cooldowns, and filtering settings', () => {

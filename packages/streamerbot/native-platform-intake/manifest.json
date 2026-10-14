@@ -12,7 +12,68 @@
       "id": "5b43c53a-1e4b-5608-b343-5f88c2884677",
       "sourceSubActionId": "d92f9b5c-98a1-55e8-8baf-ed6625a56b70",
       "source": "src/RelayPlatform.cs",
-      "importFile": "THSV-StreamBridge-Native-Platform-Intake-4.0.14.sb"
+      "importFile": "THSV-StreamBridge-Native-Platform-Intake-4.0.14.sb",
+      "triggers": [
+        {
+          "type": 133
+        },
+        {
+          "type": 101
+        },
+        {
+          "type": 102,
+          "settings": {
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": 104,
+          "settings": {
+            "tiers": 16,
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": 105,
+          "settings": {
+            "tiers": 16,
+            "min": -1,
+            "max": -1,
+            "subType": 0,
+            "monthsGifted": 15
+          }
+        },
+        {
+          "type": 106,
+          "settings": {
+            "tiers": 16,
+            "min": -1,
+            "max": -1,
+            "subType": 0
+          }
+        },
+        {
+          "type": 107,
+          "settings": {
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": 112,
+          "settings": {
+            "rewardId": ""
+          }
+        },
+        {
+          "type": 154
+        },
+        {
+          "type": 155
+        }
+      ]
     },
     {
       "name": "THSV YouTube - Intake",
@@ -20,7 +81,51 @@
       "id": "38df4ccc-2d85-5a9d-8fa6-6711f513c2bd",
       "sourceSubActionId": "b86a8912-505e-521b-b1e6-af594ad43f90",
       "source": "src/RelayPlatform.cs",
-      "importFile": "THSV-StreamBridge-Native-Platform-Intake-4.0.14.sb"
+      "importFile": "THSV-StreamBridge-Native-Platform-Intake-4.0.14.sb",
+      "triggers": [
+        {
+          "type": 4003
+        },
+        {
+          "type": 4006,
+          "settings": {
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": 4007,
+          "settings": {
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": 4030,
+          "settings": {
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": 4018
+        },
+        {
+          "type": 4008
+        },
+        {
+          "type": 4009
+        },
+        {
+          "type": 4015
+        },
+        {
+          "type": 4019
+        },
+        {
+          "type": 4002
+        }
+      ]
     },
     {
       "name": "THSV Kick - Intake",
@@ -28,7 +133,47 @@
       "id": "a6b02419-c344-5853-8166-eb6b6adb02d7",
       "sourceSubActionId": "617795f3-c965-5af5-b7f4-0e873d2c8c1f",
       "source": "src/RelayPlatform.cs",
-      "importFile": "THSV-StreamBridge-Native-Platform-Intake-4.0.14.sb"
+      "importFile": "THSV-StreamBridge-Native-Platform-Intake-4.0.14.sb",
+      "triggers": [
+        {
+          "type": 35010
+        },
+        {
+          "type": 35011
+        },
+        {
+          "type": 35016
+        },
+        {
+          "type": 35015
+        },
+        {
+          "type": 35017,
+          "settings": {
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": 35025,
+          "settings": {
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": 35024,
+          "settings": {
+            "rewardId": ""
+          }
+        },
+        {
+          "type": 35012
+        },
+        {
+          "type": 35013
+        }
+      ]
     }
   ],
   "runtime": {
@@ -76,42 +221,14 @@
   },
   "manualTriggerSetup": {
     "twitch": [
-      "Chat > Message",
-      "Channel > Follow",
-      "Chat > Cheer",
-      "Subscriptions > Subscription",
-      "Subscriptions > Resubscription",
-      "Subscriptions > Gift Subscription",
-      "Subscriptions > Gift Bomb",
-      "Raid > Raid",
-      "Channel Reward > Reward Redemption",
-      "Channel > Stream Online",
-      "Channel > Stream Offline"
+      "Included in the import, do not add again: Chat > Message, Channel > Follow, Chat > Cheer, Subscriptions > Subscription/Resubscription, Subscriptions > Gift Subscription, Subscriptions > Gift Bomb, Raid > Raid, Channel Reward > Reward Redemption, Channel > Stream Online, Channel > Stream Offline."
     ],
     "youtube": [
-      "Chat > Message",
-      "Chat > Super Chat",
-      "Chat > Super Sticker",
-      "Chat > Jewels Gifted",
-      "General > New Subscriber",
-      "General > New Sponsor",
-      "Membership > Member Milestone",
-      "Membership > Gift",
-      "Broadcast > Started",
-      "Broadcast > Ended"
+      "Included in the import, do not add again: Chat > Message, Chat > Super Chat, Chat > Super Sticker, Chat > Jewels Gifted, General > New Subscriber, General > New Sponsor, Membership > Member Milestone, Membership > Gift, Broadcast > Started, Broadcast > Ended."
     ],
     "kick": [
-      "Chat > Message",
-      "Channel > Follow",
-      "Subscriptions > Subscription",
-      "Subscriptions > Resubscription",
-      "Subscriptions > Gift Subscription",
-      "Subscriptions > Mass Gift Subscription",
-      "Kicks > Gifted",
-      "Channel Reward > Reward Redemption",
-      "Channel > Stream Online",
-      "Channel > Stream Offline"
+      "Included in the import, do not add again: Chat > Message, Channel > Follow, Subscriptions > Resubscription, Subscriptions > Gift Subscription, Subscriptions > Mass Gift Subscription, Kicks > Gifted, Channel Reward > Reward Redemption, Channel > Stream Online, Channel > Stream Offline."
     ]
   },
-  "triggerSafety": "Attach only the listed triggers to the matching platform intake action. Internal receiver, projection, administration, timed-output, and wizard actions intentionally remain triggerless."
+  "triggerSafety": "The import attaches the listed triggers to the matching platform intake action, and re-importing replaces them rather than adding copies. Do not attach them by hand as well. Internal receiver, projection, administration, timed-output, and wizard actions intentionally remain triggerless."
 }

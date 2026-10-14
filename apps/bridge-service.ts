@@ -8,6 +8,7 @@ import { StreamBridge } from '../bridge/core/bridge.js';
 import { adapterContractFingerprints, createDefaultAdapterRegistry } from '../bridge/adapters/registry.js';
 import { FacebookPageAdapter } from '../bridge/adapters/facebook-page-adapter.js';
 import { DiagnosticsServer } from '../bridge/services/http-server.js';
+import { detectManagedInstallRoot, rememberInstallLocation } from '../bridge/services/install-location-service.js';
 import { loadConfigWithNotices } from '../bridge/services/config-loader.js';
 import { StructuredLogger } from '../bridge/services/logger.js';
 import { FileDeduplicationStore, NoopDeduplicationStore } from '../bridge/services/deduplication-store.js';
@@ -390,6 +391,12 @@ process.once('uncaughtException', (error) => { logger.error('Uncaught exception'
 process.once('unhandledRejection', (error) => { logger.error('Unhandled rejection', { error }); void shutdown('unhandledRejection'); });
 
 try {
+  // Lets the Streamer.bot Launch/Shutdown/Open Setup Wizard actions find this install after a
+  // re-import resets their install-path argument. Best-effort: it never blocks or fails startup.
+  const managedInstallRoot = detectManagedInstallRoot(process.env, process.cwd());
+  if (managedInstallRoot !== undefined) void rememberInstallLocation(managedInstallRoot, process.env['LOCALAPPDATA'])
+    .then((result) => { if (result === 'written') logger.info('Recorded the install folder for the Streamer.bot launcher actions', { installRoot: managedInstallRoot }); })
+    .catch((error: unknown) => logger.warn('The install folder could not be recorded for the Streamer.bot launcher actions', { error }));
   liveCaptions.start();
   await activeBridge.start();
   await obsBroadcastMonitor.start();

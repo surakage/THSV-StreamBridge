@@ -11,11 +11,26 @@ import { gzipSync } from 'node:zlib';
 // to a manually created action, decoded and inspected): the binding lives on the action's own
 // `triggers` array, not on the command. `type: 401` is Streamer.bot's internal value for
 // "Command Triggered" observed in that same export.
-export interface StreamerBotPackageTriggerInput {
+export interface StreamerBotPackageCommandTriggerInput {
   readonly commandId: string;
   readonly id?: string;
   readonly stableIdentitySeed: string;
 }
+
+// A native provider trigger (for example Twitch Chat Message) whose type and settings do not
+// depend on the creator's setup. The shape — settings fields, then id/type/enabled/exclusions on
+// the action's own `triggers` array — matches the trigger records Streamer.bot writes to its
+// actions.json (see tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json) and the records the
+// trigger assurance repair creates. Only types verified in the trigger contract registry belong
+// here; an unverified type number could bind the action to the wrong event.
+export interface StreamerBotPackageNativeTriggerInput {
+  readonly type: number;
+  readonly settings?: Readonly<Record<string, unknown>>;
+  readonly id?: string;
+  readonly stableIdentitySeed: string;
+}
+
+export type StreamerBotPackageTriggerInput = StreamerBotPackageCommandTriggerInput | StreamerBotPackageNativeTriggerInput;
 
 export interface StreamerBotPackageActionInput {
   readonly name: string;
@@ -111,6 +126,12 @@ export function buildStreamerBotPackage(
   commands: readonly StreamerBotPackageCommandInput[] = [],
 ): string {
   if (actions.length === 0) throw new Error('A Streamer.bot package must define at least one action.');
+  for (const action of actions) {
+    if (action.mustRemainTriggerless === true && (action.triggers ?? []).length > 0) throw new Error(`${action.name} must remain triggerless.`);
+    const nativeTypes = (action.triggers ?? []).flatMap((trigger) => 'commandId' in trigger ? [] : [trigger.type]);
+    if (nativeTypes.some((type) => !Number.isInteger(type) || type <= 0 || type === 401)) throw new Error(`${action.name} declares an invalid native trigger type.`);
+    if (new Set(nativeTypes).size !== nativeTypes.length) throw new Error(`${action.name} declares the same native trigger type twice.`);
+  }
   const exported = {
     meta: {
       name: meta.name,
@@ -132,13 +153,19 @@ export function buildStreamerBotPackage(
         alwaysRun: false,
         randomAction: false,
         concurrent: action.concurrent ?? meta.concurrent,
-        triggers: (action.triggers ?? []).map((trigger) => ({
+        triggers: (action.triggers ?? []).map((trigger) => 'commandId' in trigger ? {
           commandId: trigger.commandId,
           id: trigger.id ?? stableStreamerBotUuid(`${trigger.stableIdentitySeed}:trigger`),
           type: 401,
           enabled: true,
           exclusions: [],
-        })),
+        } : {
+          ...(trigger.settings ?? {}),
+          id: trigger.id ?? stableStreamerBotUuid(`${trigger.stableIdentitySeed}:trigger`),
+          type: trigger.type,
+          enabled: true,
+          exclusions: [],
+        }),
         subActions: [
           ...(action.arguments ?? []).map((argument, index) => ({
             variableName: argument.name,
@@ -237,4 +264,27 @@ export function stableStreamerBotUuid(input: string): string {
   bytes[8] = (bytes[8] ?? 0) & 0x3f | 0x80;
   const hex = bytes.toString('hex');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/** A trigger as declared in a packages/streamerbot manifest action: a command binding or a fixed native trigger. */
+export type StreamerBotManifestTrigger =
+  | { readonly commandId: string; readonly id?: string; readonly stableIdentitySeed?: string }
+  | { readonly type: number; readonly settings?: Readonly<Record<string, unknown>>; readonly id?: string; readonly stableIdentitySeed?: string };
+
+// Shared by tools/build-streamerbot-export.ts and the import cohesion test so a manifest trigger
+// always becomes the same builder input, and therefore the same stable trigger ID on every build.
+export function streamerBotManifestTriggerInput(trigger: StreamerBotManifestTrigger, packageName: string, actionName: string): StreamerBotPackageTriggerInput {
+  if ('commandId' in trigger) {
+    return {
+      commandId: trigger.commandId,
+      ...(trigger.id === undefined ? {} : { id: trigger.id }),
+      stableIdentitySeed: trigger.stableIdentitySeed ?? `${packageName}:${actionName}:${trigger.commandId}`,
+    };
+  }
+  return {
+    type: trigger.type,
+    ...(trigger.settings === undefined ? {} : { settings: trigger.settings }),
+    ...(trigger.id === undefined ? {} : { id: trigger.id }),
+    stableIdentitySeed: trigger.stableIdentitySeed ?? `${packageName}:${actionName}:native:${String(trigger.type)}`,
+  };
 }

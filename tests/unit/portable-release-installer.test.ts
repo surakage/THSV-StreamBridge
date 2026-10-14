@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
@@ -50,12 +50,18 @@ async function writePortableRelease(root: string, version: string, marker: strin
   }));
 }
 
+// The installer records its folder in %LOCALAPPDATA%\THSV StreamBridge\install-location.txt, so every
+// test install gets a private LOCALAPPDATA and never touches the real one on a creator's PC.
+function isolatedEnvironment(destination: string, localAppData = join(dirname(destination), 'local-app-data')): NodeJS.ProcessEnv {
+  return { ...process.env, LOCALAPPDATA: localAppData };
+}
+
 function install(source: string, destination: string, ...extra: string[]): ReturnType<typeof spawnSync> {
-  return spawnSync(process.execPath, [join(source, 'installer', 'install.mjs'), '--install-root', destination, '--no-start', '--no-shortcuts', '--skip-acl', ...extra], { encoding: 'utf8', timeout: 60_000 });
+  return spawnSync(process.execPath, [join(source, 'installer', 'install.mjs'), '--install-root', destination, '--no-start', '--no-shortcuts', '--skip-acl', ...extra], { encoding: 'utf8', timeout: 60_000, env: isolatedEnvironment(destination) });
 }
 
 function installWithHealthCheck(source: string, destination: string, ...extra: string[]): ReturnType<typeof spawnSync> {
-  return spawnSync(process.execPath, [join(source, 'installer', 'install.mjs'), '--install-root', destination, '--no-shortcuts', '--skip-acl', ...extra], { encoding: 'utf8', timeout: 60_000 });
+  return spawnSync(process.execPath, [join(source, 'installer', 'install.mjs'), '--install-root', destination, '--no-shortcuts', '--skip-acl', ...extra], { encoding: 'utf8', timeout: 60_000, env: isolatedEnvironment(destination) });
 }
 
 function processOutput(result: ReturnType<typeof spawnSync>): string {
@@ -103,6 +109,32 @@ describe('portable Windows release installer', () => {
     expect(source).toContain("'bridge-health-timeout'");
     expect(source.indexOf("child.once('spawn'")).toBeLessThan(source.indexOf('await writeFile(pidPath'));
   });
+
+  it('records the install folder for the Streamer.bot launcher actions without redirecting a working install', async () => {
+    const temporary = await mkdtemp(join(tmpdir(), 'thsv-install-location-'));
+    const source = join(temporary, 'release'); const localAppData = join(temporary, 'local-app-data');
+    const locationFile = join(localAppData, 'THSV StreamBridge', 'install-location.txt');
+    const run = (destination: string): ReturnType<typeof spawnSync> => spawnSync(process.execPath, [join(source, 'installer', 'install.mjs'), '--install-root', destination, '--no-start', '--no-shortcuts', '--skip-acl'], { encoding: 'utf8', timeout: 60_000, env: isolatedEnvironment(destination, localAppData) });
+    try {
+      await writePortableRelease(source, '3.0.0', 'location');
+      const first = join(temporary, 'Managed Bridge');
+      const firstResult = run(first);
+      expect(firstResult.status, processOutput(firstResult)).toBe(0);
+      expect(await readFile(locationFile, 'utf8')).toBe(first);
+
+      // A second, scratch install leaves the working first install recorded.
+      const second = join(temporary, 'scratch');
+      const secondResult = run(second);
+      expect(secondResult.status, processOutput(secondResult)).toBe(0);
+      expect(await readFile(locationFile, 'utf8')).toBe(first);
+
+      // Once the recorded folder is no longer an installation, the next install or update takes over.
+      await rm(join(first, 'runtime'), { recursive: true, force: true });
+      const update = run(second);
+      expect(update.status, processOutput(update)).toBe(0);
+      expect(await readFile(locationFile, 'utf8')).toBe(second);
+    } finally { await rm(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
+  }, 60_000);
 
   it('installs side by side, preserves creator data, rejects downgrades, and generates unique per-install tokens', async () => {
     if (process.platform !== 'win32') return;

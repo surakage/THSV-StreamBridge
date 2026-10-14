@@ -34,7 +34,7 @@ Import these first if you want Streamer.bot to start StreamBridge or open the wi
 - `packages\streamerbot\bridge-launcher\THSV-StreamBridge-Bridge-Launcher-4.0.14.sb`
 - `packages\streamerbot\wizard-launcher\THSV-StreamBridge-Setup-Wizard-Launcher-4.0.14.sb`
 
-Each lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave `%LOCALAPPDATA%\THSV StreamBridge` for the default installation, or edit that argument for a custom path. Do not edit the C# just to change the path.
+Each lifecycle action begins with an editable `thsvBridgeInstallPath` **Set Argument**. Leave it blank: the actions find the install StreamBridge last started from (recorded in `%LOCALAPPDATA%\THSV StreamBridge\install-location.txt`). Type a path only to force a different install. Do not edit the C# just to change the path.
 
 Only **Launch Bridge** may receive **Core > Streamer.bot > Streamer.bot Started**. Keep **Shutdown Bridge**, **Check Connections**, and **Open Setup Wizard** manual. Launch Bridge now verifies the live `/ready` result before showing its grouped green toast, so it confirms enabled platform adapters, Streamer.bot delivery, and modules rather than merely confirming a running process.
 

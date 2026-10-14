@@ -43,6 +43,11 @@ const contracts = Object.freeze([
       unavailableAliases: Object.freeze(['KickSubscription']),
   }),
   Object.freeze({
+      // 706 read from a creator's alpha.15 actions.json, where Launch Bridge runs with source "StreamerbotStarted".
+      packageId: 'bridge-launcher', actionName: 'THSV StreamBridge - Launch Bridge', optional: true,
+      triggerTypes: Object.freeze([706]), triggerLabels: Object.freeze(['Streamer.bot Started']),
+  }),
+  Object.freeze({
       packageId: 'scene-actions', actionName: 'THSV Scene Actions - Intake', optional: true,
       triggerTypes: Object.freeze([14004, 22003, 33007]),
       triggerLabels: Object.freeze(['OBS Studio Scene Changed', 'Streamlabs Desktop Scene Changed', 'Meld Studio Scene Changed']),

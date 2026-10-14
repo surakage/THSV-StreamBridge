@@ -38,7 +38,7 @@ The current source does **not** require `System.Core.dll`, `System.Net.Http.dll`
 4. Select **Save and Compile**.
 5. Do not enable live platform triggers until compilation succeeds.
 
-The Bridge Launcher has one editable **Set Argument** above each C# block. Leave `thsvBridgeInstallPath` at `%LOCALAPPDATA%\THSV StreamBridge`, or replace it with a custom install path without editing or recompiling code.
+The Bridge Launcher has one editable **Set Argument** above each C# block. Leave `thsvBridgeInstallPath` blank so the actions find the install StreamBridge last ran from, or type a custom install path without editing or recompiling code.
 
 If a package still fails, copy the exact compiler error and the package version from its `manifest.json`. Adding unrelated assemblies can hide the real incompatibility and makes a creator installation harder to reproduce.
 

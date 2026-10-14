@@ -17,6 +17,29 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
+      ],
+      "triggers": [
+        {
+          "type": 14004,
+          "settings": {
+            "sceneName": null,
+            "obsId": null
+          }
+        },
+        {
+          "type": 22003,
+          "settings": {
+            "sdId": "00000000-0000-0000-0000-000000000000",
+            "sceneName": null
+          }
+        },
+        {
+          "type": 33007,
+          "settings": {
+            "sceneName": null,
+            "meldStudioId": null
+          }
+        }
       ]
     },
     {
@@ -95,9 +118,8 @@
     "concurrent": true
   },
   "manualTriggerSetup": [
-    "Add OBS Studio > Scene Changed (Connection: Any; Scene: any) to THSV Scene Actions - Intake.",
-    "Add Streamlabs Desktop > Scene Changed (Instance: Any; Scene: any) to THSV Scene Actions - Intake.",
-    "Add Meld Studio > Scene Changed (Connection: Any) to THSV Scene Actions - Intake. If your Streamer.bot version requires a Scene value, attach one copy per scene."
+    "Included in the import, do not add again: OBS Studio > Scene Changed, Streamlabs Desktop > Scene Changed and Meld Studio > Scene Changed (any connection, any scene) on THSV Scene Actions - Intake.",
+    "If your Streamer.bot version requires a Meld Studio Scene value, choose it on the imported Meld Studio trigger."
   ],
   "triggerSafety": "Only the Intake action receives scene-change triggers. Starter target actions have no triggers and must be dispatched through creator-approved stable-ID mappings.",
   "verificationStatus": "Official trigger variables and CPH methods are source-verified; live OBS, Streamlabs Desktop, and Meld acceptance remains creator-verified."
