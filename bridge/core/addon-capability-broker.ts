@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
 import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import type { AddOnScenesV2 } from '../contracts/v2/addon-capability.js';
+import { createSceneRoles, type SceneRoleMap } from './scene-roles.js';
 import type { ClipMediaCacheRequest, ClipMediaCacheResult } from '../services/clip-media-cache.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { writeJsonAtomic } from '../services/atomic-state.js';
@@ -120,6 +122,8 @@ export interface ModuleCapabilityGrant {
 interface ActiveModuleCapabilityGrant extends ModuleCapabilityGrant { readonly generation: number; readonly dependencies: readonly string[] }
 
 export interface AddOnCapabilityBrokerDependencies {
+  /** The creator's scene-role mapping from the active configuration, read on every access. */
+  readonly sceneRoles?: () => SceneRoleMap | undefined;
   readonly runStreamerBotAction?: (actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>;
   readonly prepareStreamerBotAction?: (moduleId: string, actionId: string, argumentsValue: AddOnActionArgumentsV2) => Promise<{ readonly argumentsValue: AddOnActionArgumentsV2; readonly dispose: (accepted: boolean) => Promise<void> }>;
   readonly publishOverlay?: (moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>, options?: AddOnOverlayPublishOptionsV2) => Promise<void>;
@@ -204,7 +208,12 @@ export class AddOnCapabilityBroker {
   private readonly coordinationCooldowns = new Map<string, number>();
   private lastBroadcasterChannelName: string | undefined;
 
-  public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {}
+  public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {
+    this.scenes = createSceneRoles(() => this.dependencies.sceneRoles?.());
+  }
+
+  /** Read-only scene roles shared by every add-on context. */
+  public readonly scenes: AddOnScenesV2;
 
   public contextFor(rawGrant: ModuleCapabilityGrant, settings: Readonly<Record<string, unknown>> = {}, dependencies: readonly string[] = []): ModuleRuntimeContextV2 {
     const validatedGrant = validateGrant(rawGrant);
@@ -221,6 +230,7 @@ export class AddOnCapabilityBroker {
       approvedActionIds,
       has,
       settings: Object.freeze({ ...settings }),
+      scenes: this.scenes,
       state: Object.freeze({
         read: () => this.readState(grant),
         write: (value: AddOnPrivateStateV2) => this.writeState(grant, value),

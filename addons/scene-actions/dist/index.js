@@ -46,7 +46,14 @@ export function sceneMappingMatches(mapping, event, settings) {
 }
 
 function compare(left, right, caseSensitive) { return caseSensitive ? left === right : left.toLocaleLowerCase() === right.toLocaleLowerCase(); }
-function settingsFor(context) { const value = { ...FALLBACKS, ...(context.settings || {}) }; return { ...value, enabledProviders: Array.isArray(value.enabledProviders) ? value.enabledProviders.filter((entry) => PROVIDERS.includes(entry)) : PROVIDERS, mappings: parseSceneMappings(value.mappings) }; }
+// A "role:break" style value follows the scene the creator mapped to that role under Add-ons >
+// Scene roles in the wizard ('' while unmapped). Any other value is an exact scene name.
+function resolveSceneSetting(value, context) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!/^role:/iu.test(text)) return text;
+  try { return typeof context?.scenes?.resolve === 'function' ? context.scenes.resolve(text) : ''; } catch { return ''; }
+}
+function settingsFor(context) { const value = { ...FALLBACKS, ...(context.settings || {}) }; return { ...value, enabledProviders: Array.isArray(value.enabledProviders) ? value.enabledProviders.filter((entry) => PROVIDERS.includes(entry)) : PROVIDERS, mappings: parseSceneMappings(value.mappings).map((mapping) => ({ ...mapping, sceneName: resolveSceneSetting(mapping.sceneName, context) })).filter((mapping) => mapping.sceneName !== '') }; }
 function sanitizeState(value) { const source = value && typeof value === 'object' ? value : {}; const recentEvents = Array.isArray(source.recentEvents) ? source.recentEvents.filter((entry) => entry && typeof entry.key === 'string' && Number.isFinite(entry.at)).slice(-50).map((entry) => ({ key: clean(entry.key, 700), at: Math.floor(entry.at) })) : []; const recentRuns = Array.isArray(source.recentRuns) ? source.recentRuns.filter(Number.isFinite).slice(-50).map(Math.floor) : []; return { recentEvents, recentRuns }; }
 
 async function dispatch(mapping, scene, context) {

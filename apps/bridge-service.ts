@@ -125,6 +125,7 @@ const dockOutboundRouter = new OutboundMessageRouter({ send: async (platform, me
   }, signal);
 } });
 const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
+  sceneRoles: () => config.sceneRoles,
   ...(streamerBotInspector === undefined ? {} : { runStreamerBotAction: (actionId, argumentsValue, signal) => streamerBotInspector.runApprovedAction(actionId, argumentsValue, signal) }),
   prepareStreamerBotAction: (moduleId, actionId, argumentsValue) => voiceRelayHandoff.prepare(moduleId, actionId, argumentsValue, config.streamerbot.testMode),
   publishOverlay: async (moduleId, topic, payload, options) => overlayHub.publishAddOn(moduleId, topic, payload, options),

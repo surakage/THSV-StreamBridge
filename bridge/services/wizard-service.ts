@@ -44,6 +44,7 @@ import type { OperationalReliabilityService } from './operational-reliability-se
 import type { BroadcastConnectionVaultService } from './broadcast-connection-vault-service.js';
 import { DirectSceneConnectionError, type DirectSceneConnectionManager } from './direct-scene-connection-manager.js';
 import type { ScheduledReliabilityPreflightService } from './scheduled-reliability-preflight-service.js';
+import { createSceneRoles, sceneRoleToken, type SceneRoleMap } from '../core/scene-roles.js';
 
 export interface StreamerBotInspector {
   inspectActions(): Promise<readonly StreamerBotActionSummary[]>;
@@ -257,7 +258,8 @@ export class WizardService {
     const requiredBroadcastReady = Object.values(broadcastAutomation).every((value) => (value as Readonly<Record<string, unknown>>)['ready'] === true);
     const broadcastConnectionGate = (this.directSceneConnections?.status()['strictGate'] ?? { enabled: false, ready: true }) as Readonly<Record<string, unknown>>;
     const addOnActionReadiness = await inspectAddOnActionReadiness(installedAddOns, inspection.actions, inspection.available);
-    const sceneConfiguration = inspectSceneConfiguration(installedAddOns, sceneCatalog, broadcastAutomation);
+    const sceneRoles = await this.configuration?.sceneRoles().catch(() => undefined);
+    const sceneConfiguration = inspectSceneConfiguration(installedAddOns, sceneCatalog, broadcastAutomation, sceneRoles);
     const criticalOverlays = inspectCriticalOverlayReadiness(installedAddOns, this.overlayStatus?.() ?? {});
     const timedActionCanary = inspectTimedActionCanary(rehearsal, inspection.actions, inspection.available);
     const speakerBotReadiness = inspectSpeakerBotReadiness(installedAddOns, optionalApps?.['speakerbot']);
@@ -1195,7 +1197,11 @@ export function inspectSpeakerBotReadiness(addOns: readonly WizardAddOnSummary[]
   };
 }
 
-export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[], sceneCatalog: Readonly<Record<string, unknown>>, broadcastAutomation: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[], sceneCatalog: Readonly<Record<string, unknown>>, broadcastAutomation: Readonly<Record<string, unknown>>, sceneRoles?: SceneRoleMap): Readonly<Record<string, unknown>> {
+  // "role:break" style settings are checked against the scene the creator mapped to that role.
+  const roles = createSceneRoles(() => sceneRoles);
+  const unmappedRole = (value: string): string | undefined => { const role = sceneRoleToken(value); return role !== undefined && roles.sceneFor(role) === '' ? role : undefined; };
+  const unmappedIssue = (role: string): string => `The ${role} scene role is not mapped; choose your ${role} scene under Add-ons > Scene roles.`;
   const providers = isRecordValue(sceneCatalog['providers']) ? sceneCatalog['providers'] : {};
   const enabledProviders = new Set(Object.entries(broadcastAutomation).filter(([, value]) => !isRecordValue(value) || value['enabled'] === true || value['automationReady'] === true).map(([provider]) => provider));
   if (enabledProviders.size === 0) enabledProviders.add('obs');
@@ -1218,14 +1224,20 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
   const checks: Record<string, unknown>[] = [];
   for (const addOn of addOns.filter((item) => item.enabled && item.health === 'installed')) {
     const configured = Array.isArray(addOn.settings['automaticSceneNames']) ? addOn.settings['automaticSceneNames'].filter((scene): scene is string => typeof scene === 'string' && scene.trim().length > 0) : [];
-    for (const sceneName of configured) {
+    for (const configuredName of configured) {
+      const sceneName = roles.resolve(configuredName);
+      const unmapped = unmappedRole(configuredName);
+      if (unmapped !== undefined) { checks.push({ moduleId: addOn.moduleId, setting: 'automaticSceneNames', sceneName: configuredName, providers: [], staleProviders: [], ready: false, issue: unmappedIssue(unmapped) }); continue; }
       const matches = [...enabledProviders].filter((provider) => providerHealth.get(provider)?.fresh === true && sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true);
       const staleMatches = [...enabledProviders].filter((provider) => sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true && providerHealth.get(provider)?.fresh !== true);
       checks.push({ moduleId: addOn.moduleId, setting: 'automaticSceneNames', sceneName, providers: matches, staleProviders: staleMatches, ready: matches.length > 0, issue: matches.length > 0 ? undefined : staleMatches.length > 0 ? 'Exact scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact scene was not found in any enabled broadcast-app catalogue.' });
     }
     if (addOn.moduleId === 'thsv.raid-scout' && (addOn.settings['startMode'] === 'scene-change' || addOn.settings['startMode'] !== 'manual' && addOn.settings['autoStartSceneEnabled'] === true)) {
       const provider = typeof addOn.settings['autoStartProvider'] === 'string' ? addOn.settings['autoStartProvider'] : 'obs';
-      const sceneName = typeof addOn.settings['autoStartSceneName'] === 'string' ? addOn.settings['autoStartSceneName'] : '';
+      const configuredName = typeof addOn.settings['autoStartSceneName'] === 'string' ? addOn.settings['autoStartSceneName'] : '';
+      const sceneName = roles.resolve(configuredName);
+      const unmapped = unmappedRole(configuredName);
+      if (unmapped !== undefined) { checks.push({ moduleId: addOn.moduleId, setting: 'autoStartSceneName', provider, sceneName: configuredName, ready: false, issue: unmappedIssue(unmapped) }); continue; }
       const exists = sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true;
       const ready = enabledProviders.has(provider) && providerHealth.get(provider)?.fresh === true && exists;
       checks.push({ moduleId: addOn.moduleId, setting: 'autoStartSceneName', provider, sceneName, ready, issue: ready ? undefined : !enabledProviders.has(provider) ? 'The selected ending-scene app is not enabled.' : exists ? 'Exact ending scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact ending scene was not found in the selected app catalogue.' });
@@ -1238,7 +1250,10 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
         ...(addOn.settings['streamLimitEnabled'] === false ? [] : [['endingSceneName', addOn.settings['endingSceneName']]]),
       ] as Array<[string, unknown]>;
       for (const [setting, rawSceneName] of selected) {
-        const sceneName = typeof rawSceneName === 'string' ? rawSceneName : '';
+        const configuredName = typeof rawSceneName === 'string' ? rawSceneName : '';
+        const sceneName = roles.resolve(configuredName);
+        const unmapped = unmappedRole(configuredName);
+        if (unmapped !== undefined) { checks.push({ moduleId: addOn.moduleId, setting, provider, sceneName: configuredName, ready: false, issue: unmappedIssue(unmapped) }); continue; }
         const exists = sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true;
         const ready = enabledProviders.has(provider) && providerHealth.get(provider)?.fresh === true && exists;
         checks.push({ moduleId: addOn.moduleId, setting, provider, sceneName, ready, issue: ready ? undefined : !enabledProviders.has(provider) ? 'The selected session-guard app is not enabled.' : exists ? 'Exact session-guard scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact session-guard scene was not found in the selected app catalogue.' });

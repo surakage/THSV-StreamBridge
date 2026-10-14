@@ -3,13 +3,12 @@
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable Scene Actions", "default": true },
     "enabledProviders": { "type": "array", "title": "Scene providers", "items": { "type": "string", "enum": ["obs", "streamlabs", "meld"] }, "minItems": 1, "maxItems": 3, "uniqueItems": true, "default": ["obs", "streamlabs", "meld"] },
-    "mappings": { "type": "array", "title": "Scene mappings", "description": "Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID.", "items": { "type": "string", "minLength": 20, "maxLength": 1000 }, "maxItems": 50, "uniqueItems": true,
+    "mappings": { "type": "array", "title": "Scene mappings", "description": "Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID. A scene of role:starting, role:live, role:break or role:ending follows the scenes you chose under Add-ons > Scene roles.", "items": { "type": "string", "minLength": 20, "maxLength": 1000 }, "maxItems": 50, "uniqueItems": true,
       "default": [
-        "{\"id\":\"starting-soon\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Starting Soon\",\"actionId\":\"68fa3646-8b6c-4ef0-bf96-19474de8b620\",\"delaySeconds\":0}",
-        "{\"id\":\"just-chatting\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Just Chatting\",\"actionId\":\"93ff064c-dd73-44fd-9a7e-f0b9499e4760\",\"delaySeconds\":0}",
-        "{\"id\":\"gameplay\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Gameplay\",\"actionId\":\"6f22b156-ad06-42c2-bc5d-92ce89c02510\",\"delaySeconds\":0}",
-        "{\"id\":\"be-right-back\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Be Right Back\",\"actionId\":\"8b58b594-06c3-45e9-9fc1-f2655b02b92f\",\"delaySeconds\":0}",
-        "{\"id\":\"ending-soon\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"Ending Soon\",\"actionId\":\"c7f5238b-33e1-4095-9dbe-06a331218c74\",\"delaySeconds\":0}"
+        "{\"id\":\"starting-soon\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"role:starting\",\"actionId\":\"68fa3646-8b6c-4ef0-bf96-19474de8b620\",\"delaySeconds\":0}",
+        "{\"id\":\"just-chatting\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"role:live\",\"actionId\":\"93ff064c-dd73-44fd-9a7e-f0b9499e4760\",\"delaySeconds\":0}",
+        "{\"id\":\"be-right-back\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"role:break\",\"actionId\":\"8b58b594-06c3-45e9-9fc1-f2655b02b92f\",\"delaySeconds\":0}",
+        "{\"id\":\"ending-soon\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"role:ending\",\"actionId\":\"c7f5238b-33e1-4095-9dbe-06a331218c74\",\"delaySeconds\":0}"
       ] },
     "caseSensitive": { "type": "boolean", "title": "Scene names are case-sensitive", "default": false },
     "duplicateWindowMs": { "type": "integer", "title": "Duplicate suppression window (milliseconds)", "minimum": 100, "maximum": 10000, "default": 1500 },

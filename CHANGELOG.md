@@ -6,6 +6,10 @@
 - Add-on defaults now use a `{community}` token instead of "the village": Automated Shoutouts welcomes, Village Lurk Tracker's lurk reply, Discord Chat Archive's forum post name and session header, and Village Draw's giveaway name. Saved values keep working, and `{community}` also expands in saved text.
 - Viewer Foundation's points name now defaults to "Points" and its achievement labels to Regular, Veteran and Legend; achievement IDs are unchanged. Viewer Spotlight, Free Game Check and the Village Draw overlay use neutral wording. The THSV product name, add-on names and Streamer.bot action names are unchanged.
 - Existing installs: set Overview > Community name in the setup wizard (for example 'The Hidden Sloth Village'); add-ons you already saved keep their wording, while add-ons never saved switch to the new neutral defaults (for example 'Points').
+- Added scene roles: choose your own Starting, Main live, Break and Ending scenes once under **Add-ons > Scene roles** in the setup wizard. Scene pickers in add-on settings now offer these roles alongside detected scenes, and the pre-stream check names any role an add-on uses but you have not mapped.
+- Stream Break & End Guard, Random Clip Player, Stream Launch Countdown, Raid Scout and the Scene Actions starter mappings now default to roles (`role:break`, `role:ending`, `role:starting`, `role:live`) instead of the scene names `BRB`, `Stream Ending`, `Starting Soon`, `Just Chatting` and `Be Right Back`, so a shared install works with any streamer's scenes. The Gameplay starter mapping is no longer created; its imported action is still available to map.
+- Raid Scout's ending-scene match now ignores any leading emoji, not only 🔴 and 🟠.
+- Existing installs: scene names you already saved in these add-ons keep working unchanged and need no action. If you never saved those add-on settings (so they were still using the shipped `BRB`, `Stream Ending` or `Starting Soon` names), map your Starting, Break and Ending scenes under **Add-ons > Scene roles**, save with backup and restart StreamBridge; until a role is mapped, the features that use it do nothing.
 
 ## [4.0.14] - 2026-10-07
 

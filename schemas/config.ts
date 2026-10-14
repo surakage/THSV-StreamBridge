@@ -500,6 +500,18 @@ export const filtersSchema = z.object({
   }
 });
 
+export const SCENE_ROLE_VALUES = ['starting', 'live', 'break', 'ending'] as const;
+export type SceneRole = (typeof SCENE_ROLE_VALUES)[number];
+const sceneRoleNameSchema = z.string().trim().max(200).refine((value) => !/[\p{Cc}]/u.test(value), 'Scene names cannot contain control characters.').default('');
+// The creator's own broadcast-app scene for each stream phase. Add-ons target a role (for example
+// "role:break") instead of a scene name, so shared defaults work for any streamer. Blank = unmapped.
+export const sceneRolesSchema = z.object({
+  starting: sceneRoleNameSchema,
+  live: sceneRoleNameSchema,
+  break: sceneRoleNameSchema,
+  ending: sceneRoleNameSchema,
+}).strict();
+
 export const platformSchema = z
   .object({
     enabled: z.boolean(),
@@ -582,6 +594,7 @@ const bridgeConfigObjectSchema = z
       position: 'bottom', maximumWidthPercent: 86, maximumLines: 3, animation: 'fade',
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
+    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', break: '', ending: '' }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
