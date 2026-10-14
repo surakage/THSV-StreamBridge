@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { timedActionsSchema, type PlatformConfig } from '../../schemas/config.js';
 import { projectMultiTimedAction } from '../../bridge/core/multi-timed-actions.js';
-import { buildMultiTimedActionArguments } from '../../bridge/adapters/streamerbot-adapter.js';
+import { buildMultiTimedActionArguments, StreamerBotAdapter, timedActionNeedsStreamerBot } from '../../bridge/adapters/streamerbot-adapter.js';
 import { TimedActionsAdapter } from '../../bridge/adapters/timed-actions-adapter.js';
 import { silentLogger } from '../helpers.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
@@ -21,6 +21,21 @@ describe('five-platform timed rotations', () => {
     expect(JSON.parse(args['multiTimedSelectedMessages'] as string)).toEqual({ twitch: 'Prime reminder' });
     expect(JSON.parse(args['multiTimedDeliveryPlatforms'] as string)).toEqual(['twitch']);
     expect(action.selectedMessages['facebook']).toBe('Follow the Page');
+  });
+
+  it('leaves Facebook-only timers to Facebook output instead of the Streamer.bot sender', async () => {
+    const event = JSON.parse(await readFile('tests/fixtures/system-timed-message-output.json', 'utf8')) as NormalizedEvent;
+    event.payload['selectedMessages'] = { facebook: 'Follow the Page' };
+    const project = (platforms: string[]) => { event.payload['deliveryPlatforms'] = platforms; const action = projectMultiTimedAction(event); if (!action) throw new Error('Missing timed action'); return action; };
+    expect(timedActionNeedsStreamerBot(project(['facebook']))).toBe(false);
+    expect(timedActionNeedsStreamerBot(project(['facebook', 'youtube']))).toBe(true);
+    expect(timedActionNeedsStreamerBot(project(['tiktok']))).toBe(true);
+
+    const runApprovedAction = vi.fn(async () => undefined);
+    const adapter = Object.assign(Object.create(StreamerBotAdapter.prototype) as StreamerBotAdapter, { runApprovedAction });
+    event.payload['deliveryPlatforms'] = ['facebook'];
+    await adapter.deliver(event);
+    expect(runApprovedAction).not.toHaveBeenCalled();
   });
 
   // Each emit persists rotation state to disk, which can exceed vi.waitFor's 1 s default on a loaded CI runner.
