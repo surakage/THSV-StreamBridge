@@ -18,7 +18,7 @@ Version 1.1.0 also relays provider-supported chat identity presentation. Twitch 
 
 The supported trigger types and creator-facing picker paths are declared in `manifest.json`. A platform action must only be assigned triggers from its own platform. Twitch and Kick Stream Online/Offline plus YouTube Broadcast Started/Ended are included so stream-relative timed sessions have real lifecycle input. Test-trigger runs retain Streamer.bot's `isTest` marker and do not count toward production progression unless the creator explicitly enables simulated progression.
 
-The portable package deliberately contains no provider trigger objects. On a first import, attach the documented triggers after reviewing the C#. On an upgrade, do not approve Streamer.bot's overwrite prompt unless you have backed up or recorded the current bindings: Streamer.bot replaces the action's trigger collection during overwrite, so the matrix must be reattached afterward. The THSV managed migration path preserves the old trigger arrays while replacing only the reviewed C# source.
+The package includes the documented provider triggers on each intake action, with the same type numbers and default settings the trigger assurance check expects. Streamer.bot replaces an action's trigger collection when an import overwrites it, so re-importing restores exactly this set and never adds copies. Remove any copies you attached by hand before this change only if trigger assurance reports duplicates.
 
 Do not attach triggers to Core Receiver, Multi-Chat, Multi-Commands, Multi-Alerts, Multi-Timed Actions, Timed Message Output, or administration actions. Those actions run only through the validated internal chain.
 

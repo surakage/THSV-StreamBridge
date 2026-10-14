@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildStreamerBotPackage } from '../../bridge/services/streamerbot-package-builder.js';
+import { buildStreamerBotPackage, streamerBotManifestTriggerInput, type StreamerBotManifestTrigger } from '../../bridge/services/streamerbot-package-builder.js';
 
 interface ExportArgument {
   readonly name: string;
@@ -24,7 +24,7 @@ interface ExportAction {
   readonly arguments?: readonly ExportArgument[];
   readonly excludeFromHistory?: boolean;
   readonly excludeFromPending?: boolean;
-  readonly triggers?: readonly { readonly commandId: string; readonly id?: string; readonly stableIdentitySeed?: string }[];
+  readonly triggers?: readonly StreamerBotManifestTrigger[];
 }
 
 interface ExportCommand {
@@ -88,11 +88,7 @@ describe('generated Streamer.bot import cohesion', () => {
         ...(action.references === undefined ? {} : { references: action.references }),
         ...(action.excludeFromHistory === undefined ? {} : { excludeFromHistory: action.excludeFromHistory }),
         ...(action.excludeFromPending === undefined ? {} : { excludeFromPending: action.excludeFromPending }),
-        ...(action.triggers === undefined ? {} : { triggers: action.triggers.map((trigger) => ({
-          commandId: trigger.commandId,
-          ...(trigger.id === undefined ? {} : { id: trigger.id }),
-          stableIdentitySeed: trigger.stableIdentitySeed ?? `${manifest.name}:${action.name}:${trigger.commandId}`,
-        })) }),
+        ...(action.triggers === undefined ? {} : { triggers: action.triggers.map((trigger) => streamerBotManifestTriggerInput(trigger, manifest.name, action.name)) }),
         ...(action.arguments === undefined ? {} : {
           arguments: action.arguments.map((argument) => ({
             name: argument.name,

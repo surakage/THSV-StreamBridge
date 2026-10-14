@@ -2,7 +2,7 @@
 
 This package installs **THSV StreamBridge - Launch Bridge**, **Shutdown Bridge**, **Check Connections**, and **Monitor Connections**.
 
-Each lifecycle action begins with an editable **Set Argument** named `thsvBridgeInstallPath`. Its default value is the expandable path `%LOCALAPPDATA%\THSV StreamBridge`; edit that sub-action only when using a custom managed installation or source checkout. Check Connections and Monitor Connections instead use `thsvBridgeHealthForceToast`: manual checks set it to `true`, while the recurring monitor sets it to `false` to suppress unchanged results.
+Each lifecycle action begins with an editable **Set Argument** named `thsvBridgeInstallPath`. It ships blank, which means automatic: the action uses the folder StreamBridge records in `%LOCALAPPDATA%\THSV StreamBridge\install-location.txt` each time it starts (the installer writes it too), then falls back to `%LOCALAPPDATA%\THSV StreamBridge`. Type a folder only to force a different managed installation or a source checkout; re-importing resets it to blank. Check Connections and Monitor Connections instead use `thsvBridgeHealthForceToast`: manual checks set it to `true`, while the recurring monitor sets it to `false` to suppress unchanged results.
 
 ## Trigger setup
 

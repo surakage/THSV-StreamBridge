@@ -93,6 +93,9 @@ try {
     installerMode: 'verified-portable-release',
   };
   await writeJsonAtomic(recordPath, record);
+  await rememberInstallLocation(installRoot).catch((error) => {
+    process.stderr.write(`Warning: the install folder could not be recorded for the Streamer.bot launcher actions (${error instanceof Error ? error.message : String(error)}).\n`);
+  });
 
   if (startAfterInstall) {
     const result = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait', ...(openWizardAfterInstall ? ['--open-wizard', '--guided'] : [])], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
@@ -458,6 +461,25 @@ function compareVersions(left, right) {
   const a = parse(left); const b = parse(right);
   for (let index = 0; index < 3; index += 1) if (a[index] !== b[index]) return a[index] < b[index] ? -1 : 1;
   if (a[3] === b[3]) return 0; if (a[3] === undefined) return 1; if (b[3] === undefined) return -1; return String(a[3]).localeCompare(String(b[3]));
+}
+
+// The Streamer.bot Launch/Shutdown/Open Setup Wizard actions read
+// %LOCALAPPDATA%\THSV StreamBridge\install-location.txt when their install-path argument is blank.
+// The running bridge rewrites it on every start (bridge/services/install-location-service.ts); the
+// installer only fills it in when it is missing or names a folder that is no longer installed, so a
+// scratch or test install never redirects an existing, working installation.
+async function rememberInstallLocation(root) {
+  const localAppData = process.env.LOCALAPPDATA?.trim();
+  if (!localAppData) return;
+  const path = join(localAppData, PRODUCT, 'install-location.txt');
+  let current = '';
+  try { current = (await readFile(path, 'utf8')).split(/\r?\n/u)[0]?.trim() ?? ''; } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+  if (current === root) return;
+  if (current !== '' && await exists(join(current, 'runtime', 'node.exe')) && await exists(join(current, 'launcher', 'start.mjs'))) return;
+  await mkdir(dirname(path), { recursive: true });
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  try { await writeFile(temporary, root, 'utf8'); await renameWithRetry(temporary, path); }
+  finally { await rm(temporary, { force: true }).catch(() => undefined); }
 }
 
 async function writeJsonAtomic(path, value) { await mkdir(dirname(path), { recursive: true }); const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, 'utf8'); await renameWithRetry(temporary, path); }

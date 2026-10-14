@@ -20,7 +20,7 @@ describe('Streamer.bot universal import service', () => {
     expect(catalogue.packages.find((item) => item.folder === 'scene-catalog')).toMatchObject({ kind: 'core', required: true, available: true });
     expect(catalogue.packages.find((item) => item.folder === 'raid-scout')).toMatchObject({ kind: 'extension', available: true });
     expect(catalogue.packages.find((item) => item.folder === 'subathon-timer')).toMatchObject({ kind: 'addon', available: false });
-    expect(catalogue.packages.find((item) => item.folder === 'native-platform-intake')?.triggerRecommendations).toContain('Twitch: Chat > Message');
+    expect(catalogue.packages.find((item) => item.folder === 'native-platform-intake')?.triggerRecommendations).toContain('Twitch: Included in the import, do not add again: Chat > Message, Channel > Follow, Chat > Cheer, Subscriptions > Subscription/Resubscription, Subscriptions > Gift Subscription, Subscriptions > Gift Bomb, Raid > Raid, Channel Reward > Reward Redemption, Channel > Stream Online, Channel > Stream Offline.');
   });
 
   it('combines required packages and selected features while retaining canonical stable IDs', async () => {

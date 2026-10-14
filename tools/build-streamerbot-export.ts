@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
-import { buildStreamerBotPackage } from '../bridge/services/streamerbot-package-builder.js';
+import { buildStreamerBotPackage, streamerBotManifestTriggerInput, type StreamerBotManifestTrigger } from '../bridge/services/streamerbot-package-builder.js';
 
 interface ExportManifest {
   readonly name: string;
@@ -32,10 +32,9 @@ interface ExportAction {
     readonly excludeFromPending?: boolean;
     readonly brokerDispatched?: boolean;
     readonly mustRemainTriggerless?: boolean;
-    readonly triggers?: readonly ExportTrigger[];
+    readonly triggers?: readonly StreamerBotManifestTrigger[];
 }
 
-interface ExportTrigger { readonly commandId: string; readonly id?: string; readonly stableIdentitySeed?: string }
 interface ExportCommand {
   readonly id?: string; readonly name: string; readonly command: string; readonly enabled: boolean;
   readonly caseSensitive: boolean; readonly sources?: number; readonly ignoreBotAccount?: boolean;
@@ -90,11 +89,7 @@ const encoded = buildStreamerBotPackage(
     ...(action.excludeFromPending === undefined ? {} : { excludeFromPending: action.excludeFromPending }),
     ...(action.brokerDispatched === undefined ? {} : { brokerDispatched: action.brokerDispatched }),
     ...(action.mustRemainTriggerless === undefined ? {} : { mustRemainTriggerless: action.mustRemainTriggerless }),
-    ...(action.triggers === undefined ? {} : { triggers: action.triggers.map((trigger) => ({
-      commandId: trigger.commandId,
-      ...(trigger.id === undefined ? {} : { id: trigger.id }),
-      stableIdentitySeed: trigger.stableIdentitySeed ?? `${manifest.name}:${action.name}:${trigger.commandId}`,
-    })) }),
+    ...(action.triggers === undefined ? {} : { triggers: action.triggers.map((trigger) => streamerBotManifestTriggerInput(trigger, manifest.name, action.name)) }),
     ...(action.arguments === undefined ? {} : {
       arguments: action.arguments.map((argument) => ({
         name: argument.name,

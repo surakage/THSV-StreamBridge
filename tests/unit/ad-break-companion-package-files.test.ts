@@ -10,7 +10,7 @@ describe('Ad Break Companion Streamer.bot package', () => {
     expect(manifest.actions).toHaveLength(5);
     expect(new Set(manifest.actions.map((action) => action.group))).toEqual(new Set(['THSV Addon - Ad Break Companion']));
     expect(manifest.actions.map((action) => action.arguments[0]?.value)).toEqual(['upcoming', 'started', 'preview-upcoming', 'preview-active', 'hide']);
-    expect(manifest.manualTriggerSetup.join(' ')).toContain('Twitch > Ads > Upcoming Ad');
+    expect(manifest.manualTriggerSetup.join(' ')).toContain('Included in the import, do not add again: Twitch > Ads > Upcoming Ad');
     expect(manifest.manualTriggerSetup.join(' ')).toContain('Twitch > Ads > Ad Run');
   });
 

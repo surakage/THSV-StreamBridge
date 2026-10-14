@@ -1,5 +1,6 @@
 // Purpose: Starts THSV StreamBridge from either the managed Windows installation or a source checkout.
-// Edit the Set Argument sub-action above this code to use a custom install folder.
+// Leave the thsvBridgeInstallPath Set Argument above this code blank to find the install
+// automatically; type a folder there only to force a different install.
 // References: mscorlib.dll and System.dll (standard .NET Framework references bundled with Windows).
 using System;
 using System.Diagnostics;
@@ -61,29 +62,42 @@ public class CPHInline
     private const int HealthTimeoutMs = 5_000;
     private const string HealthUrl = "http://127.0.0.1:8787/ready";
 
-    // Resolve the editable action argument first, then preserve the legacy global as a migration fallback.
+    // Resolution order:
+    //   1. an explicit thsvBridgeInstallPath argument that names a real installation;
+    //   2. install-location.txt, which StreamBridge rewrites every time it starts and the
+    //      installer writes on install and update;
+    //   3. the explicit argument as typed, then the legacy global variable, then the default folder.
+    // A blank argument, "auto", or the old shipped default "%LOCALAPPDATA%\THSV StreamBridge"
+    // all mean "find it automatically", so a re-import that resets the argument cannot break this.
     private bool TryResolveInstallPath(out string installPath)
     {
-        string configured;
-        bool hasArgument = CPH.TryGetArg(InstallPathArgument, out configured) && !String.IsNullOrWhiteSpace(configured);
-        if (!hasArgument)
-        {
-            string legacy = CPH.GetGlobalVar<string>(InstallPathArgument, true);
-            configured = String.IsNullOrWhiteSpace(legacy)
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "THSV StreamBridge")
-                : legacy;
-        }
         try
         {
-            installPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(configured.Trim()));
-            // Re-importing this package resets the argument to its default, so fall back to the
-            // folder remembered by the last successful launch when the argument has no install.
-            string remembered;
-            if (!LooksInstalled(installPath) && TryReadRememberedInstall(out remembered))
+            string configured;
+            string explicitPath = String.Empty;
+            if (CPH.TryGetArg(InstallPathArgument, out configured) && !IsAutomaticInstallPath(configured))
             {
-                CPH.LogInfo("THSV StreamBridge is using its remembered install folder because the configured folder has no installation.");
-                installPath = remembered;
+                explicitPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(configured.Trim()));
+                if (LooksInstalled(explicitPath))
+                {
+                    installPath = explicitPath;
+                    return true;
+                }
             }
+            string remembered;
+            if (TryReadRememberedInstall(out remembered))
+            {
+                if (explicitPath.Length > 0) CPH.LogInfo("THSV StreamBridge is using its recorded install folder because the configured folder has no installation.");
+                installPath = remembered;
+                return true;
+            }
+            if (explicitPath.Length > 0)
+            {
+                installPath = explicitPath;
+                return true;
+            }
+            string legacy = CPH.GetGlobalVar<string>(InstallPathArgument, true);
+            installPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(IsAutomaticInstallPath(legacy) ? DefaultInstallFolder : legacy.Trim()));
             return true;
         }
         catch (Exception exception)
@@ -91,6 +105,16 @@ public class CPHInline
             installPath = String.Empty;
             return Fail("install path is invalid (" + exception.GetType().Name + ").");
         }
+    }
+
+    private const string DefaultInstallFolder = "%LOCALAPPDATA%\\THSV StreamBridge";
+
+    private static bool IsAutomaticInstallPath(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value)) return true;
+        string trimmed = value.Trim().TrimEnd('\\', '/');
+        return String.Equals(trimmed, "auto", StringComparison.OrdinalIgnoreCase)
+            || String.Equals(trimmed, DefaultInstallFolder, StringComparison.OrdinalIgnoreCase);
     }
 
     // Shell execution keeps the launcher from inheriting Streamer.bot's handles. Without

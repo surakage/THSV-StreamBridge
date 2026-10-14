@@ -88,12 +88,27 @@ describe('Bridge Launcher Streamer.bot package', () => {
       expect(source).not.toContain('CreateNoWindow');
     }
     expect(launch).toContain('ReadinessWindowMs = 15_000');
-    // A re-import resets the install-path argument, so every lifecycle action falls back to the
-    // folder remembered by the last successful launch.
+    // A re-import resets the install-path argument, so every lifecycle action resolves: an explicit
+    // installed argument, then install-location.txt (written by the bridge and the installer), then
+    // the legacy global and default folder. Blank, "auto", and the old shipped default mean automatic.
     const shutdown = await readFile('packages/streamerbot/bridge-launcher/src/ShutdownBridge.cs', 'utf8');
     for (const source of [launch, shutdown, wizard]) {
-      expect(source).toContain('if (!LooksInstalled(installPath) && TryReadRememberedInstall(out remembered))');
       expect(source).toContain('"THSV StreamBridge", "install-location.txt"');
+      expect(source).toContain('if (CPH.TryGetArg(InstallPathArgument, out configured) && !IsAutomaticInstallPath(configured))');
+      expect(source).toContain('private const string DefaultInstallFolder = "%LOCALAPPDATA%\\\\THSV StreamBridge";');
+      expect(source).toContain('String.Equals(trimmed, DefaultInstallFolder, StringComparison.OrdinalIgnoreCase)');
+      const explicitInstalled = source.indexOf('if (LooksInstalled(explicitPath))');
+      const remembered = source.indexOf('if (TryReadRememberedInstall(out remembered))');
+      const legacy = source.indexOf('CPH.GetGlobalVar<string>(InstallPathArgument, true)');
+      expect(explicitInstalled).toBeGreaterThan(0);
+      expect(remembered).toBeGreaterThan(explicitInstalled);
+      expect(legacy).toBeGreaterThan(remembered);
+    }
+    for (const folder of ['bridge-launcher', 'wizard-launcher']) {
+      const manifest = JSON.parse(await readFile(`packages/streamerbot/${folder}/manifest.json`, 'utf8')) as { actions?: readonly ManifestAction[]; action?: ManifestAction };
+      const installArguments = (manifest.actions ?? (manifest.action === undefined ? [] : [manifest.action])).flatMap((action) => action.arguments ?? []).filter((argument) => argument.name === 'thsvBridgeInstallPath');
+      expect(installArguments.length).toBeGreaterThan(0);
+      for (const argument of installArguments) expect(argument.value).toBe('');
     }
     expect(launch).toMatch(/launch completed through its validated lifecycle launcher\."\);\s*RememberInstall\(installPath\);/u);
     expect(shutdown).not.toContain('RememberInstall(');

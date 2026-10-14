@@ -13,7 +13,7 @@
     "arguments": [
       {
         "name": "thsvBridgeInstallPath",
-        "value": "%LOCALAPPDATA%\\THSV StreamBridge",
+        "value": "",
         "autoType": false,
         "id": "63b67568-c8b4-5efa-a93d-09e2bfa54b5c"
       }

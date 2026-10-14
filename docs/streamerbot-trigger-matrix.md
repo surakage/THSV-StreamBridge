@@ -1,6 +1,6 @@
 # Streamer.bot trigger matrix
 
-Add triggers only to the actions listed below. Streamer.bot owns provider connections and trigger objects, so a first portable import installs the reviewed actions without creating creator-owned trigger bindings. **Do not use Streamer.bot's overwrite import as an in-place code updater:** overwriting an existing intake action replaces its trigger collection with the package's empty collection. Back up Streamer.bot first and either reattach the matrix below after an overwrite or use a reviewed migration that preserves the existing trigger objects.
+The imports now carry every trigger whose type and settings do not depend on your setup: the three platform intakes below, the Scene Actions intake (OBS Studio, Streamlabs Desktop and Meld Studio Scene Changed, any scene) and the two Ad Break Companion intakes. Streamer.bot's import overwrites an existing action with the same name, including its trigger collection, so re-importing replaces these triggers instead of adding copies; do not also attach them by hand. Triggers that depend on your setup (Launch Bridge's Streamer.bot Started, the Monitor Connections timed action, broadcast-app start/stop, hotkeys, scene-specific and Ko-fi or Voice Control triggers) are not in the imports yet and are removed by an overwrite import, so reattach them afterward. **Trigger assurance** in the wizard reports any contract trigger that is missing, disabled or duplicated.
 
 ## THSV Twitch - Intake
 
