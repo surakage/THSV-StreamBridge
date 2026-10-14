@@ -38,10 +38,10 @@ describe('Bridge Launcher Streamer.bot package', () => {
 
     for (const [index, manifestAction] of manifest.actions.entries()) {
       const action = exported.data.actions[index];
-      // No trigger is baked into either export: no confirmed schema for a Streamer.bot startup
-      // or stream-offline trigger exists anywhere in its public documentation, so the creator
-      // adds them through Streamer.bot's own trigger picker, which needs no guess at all.
-      expect(action).toMatchObject({ name: manifestAction.name, group: manifestAction.group, concurrent: true, triggers: [] });
+      // Only Launch Bridge carries a trigger: Streamer.bot Started (706), read from a creator's own
+      // actions.json. Stream-offline and timer triggers stay with the creator's trigger picker.
+      expect(action).toMatchObject({ name: manifestAction.name, group: manifestAction.group, concurrent: true });
+      expect(action?.triggers.map((trigger) => (trigger as { type: number }).type)).toEqual(manifestAction.name === 'THSV StreamBridge - Launch Bridge' ? [706] : []);
 
       const setting = action?.subActions.find((item) => item.type === 123 && item.enabled);
       expect(setting).toMatchObject({ index: 0, variableName: manifestAction.arguments?.[0]?.name, value: manifestAction.arguments?.[0]?.value });

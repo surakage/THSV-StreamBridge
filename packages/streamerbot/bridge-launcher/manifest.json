@@ -24,7 +24,12 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
       ],
       "source": "src/LaunchBridge.cs",
-      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.14.sb"
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.0.14.sb",
+      "triggers": [
+        {
+          "type": 706
+        }
+      ]
     },
     {
       "name": "THSV StreamBridge - Shutdown Bridge",

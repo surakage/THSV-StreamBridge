@@ -130,10 +130,10 @@ describe('StreamerBotTriggerAssuranceService', () => {
     await writeFile(actionsPath, JSON.stringify(document));
 
     const before = await service.status();
-    expect((before['issues'] as { missingTriggers: unknown[] }).missingTriggers).toHaveLength(34);
+    expect((before['issues'] as { missingTriggers: unknown[] }).missingTriggers).toHaveLength(35);
 
     const result = await service.reconcile({ approvedByCreator: true });
-    expect(result['changed']).toBe(34);
+    expect(result['changed']).toBe(35);
     expect((result['status'] as Record<string, unknown>)['ready']).toBe(true);
 
     const backup = result['backup'] as { path: string };

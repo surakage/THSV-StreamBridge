@@ -67,22 +67,22 @@ describe('fixed Streamer.bot triggers embedded in the generated imports', () => 
         embedded += 1;
       }
     }
-    expect(embedded).toBe(34);
+    expect(embedded).toBe(35);
   });
 
-  it('keeps the bridge launcher and every other non-contract action free of guessed native triggers', async () => {
+  it('keeps every non-contract action free of guessed native triggers and starts the bridge with Streamer.bot', async () => {
     const contractActions = new Set(STREAMERBOT_TRIGGER_REGISTRY_107.contracts.map((contract) => contract.actionName));
     const actions = await completeUniversalImport();
     for (const action of actions.filter((candidate) => !contractActions.has(candidate.name))) {
       expect(action.triggers.every((trigger) => trigger.type === 401), action.name).toBe(true);
     }
-    expect(actions.find((action) => action.name === 'THSV StreamBridge - Launch Bridge')?.triggers).toEqual([]);
+    expect(actions.find((action) => action.name === 'THSV StreamBridge - Launch Bridge')?.triggers.map((trigger) => trigger.type)).toEqual([706]);
   });
 
   it('carries the embedded triggers through the universal import with unique trigger IDs', async () => {
     const actions = await completeUniversalImport();
     const triggers = actions.flatMap((action) => action.triggers);
-    expect(triggers.filter((trigger) => trigger.type !== 401)).toHaveLength(34);
+    expect(triggers.filter((trigger) => trigger.type !== 401)).toHaveLength(35);
     expect(new Set(triggers.map((trigger) => trigger.id)).size).toBe(triggers.length);
     expect(actions.find((action) => action.name === 'THSV Twitch - Intake')?.triggers.map((trigger) => trigger.type)).toEqual([133, 101, 102, 104, 105, 106, 107, 112, 154, 155]);
   });

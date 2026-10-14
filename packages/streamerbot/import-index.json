@@ -58,12 +58,12 @@
       "name": "THSV StreamBridge - Bridge Launcher",
       "version": "4.0.14",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "c563dd7e75669e69aaf60240448fb363037da39665ffcd9bbe5a43ad1594e24e",
+      "manifestSha256": "bf7a3b233dc51746bc89873ce96d9f9108d1b172fab947c9c78aae340cc7c0aa",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Bridge-Launcher-4.0.14.sb",
-          "size": 14608,
-          "sha256": "0861cdfc979d0e6f1efc8d6c8b5e1b7bddb8e4d3f6bb20eb57a6cae15c16e94d"
+          "size": 14672,
+          "sha256": "848e59b33fd721b53b272aa46efd82ba30e20dbedcafdde21b7cd61ab9f8b52e"
         }
       ]
     },
