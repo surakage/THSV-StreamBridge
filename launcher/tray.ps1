@@ -31,6 +31,7 @@ $script:lastAcceptanceNotificationAt = [DateTimeOffset]::MinValue
 $script:lastBroadcastProcessSignature = $null
 $script:lastBroadcastLatencySignature = $null
 $script:lastBroadcastReliabilitySignature = $null
+$script:lastStreamOutputSignature = $null
 $script:lastScheduledPreflightSignature = $null
 $script:lastBalloonView = 'diagnostics'
 $script:lastBalloonFocus = 'connection-center-title'
@@ -103,6 +104,7 @@ function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolT
         'process-binding' { @('diagnostics', 'direct-connections-title') }
         'latency' { @('diagnostics', 'direct-connections-title') }
         'reliability' { @('diagnostics', 'direct-connections-title') }
+        'stream-output' { @('diagnostics', 'direct-connections-title') }
         'preflight' { @('diagnostics', 'scheduled-reliability-preflight') }
         'startup' { @('streamerbot', 'streamerbot-launcher-state') }
         default { @('diagnostics', 'connection-center-title') }
@@ -176,6 +178,12 @@ function Update-Status {
             $breaches = @($notification.reliabilityBreaches); $worst = $breaches | Sort-Object score | Select-Object -First 1
             Show-Balloon 'Sustained broadcast reliability warning' "$($breaches.Count) connection$(if ($breaches.Count -eq 1) { ' has' } else { 's have' }) remained degraded long enough to alert. Lowest score: $($worst.score)/100." ([System.Windows.Forms.ToolTipIcon]::Warning) 'reliability'
         }
+        $outputSignature = [string]$broadcast.outputHealth.signature
+        if ($null -ne $script:lastStreamOutputSignature -and $script:lastStreamOutputSignature -ne $outputSignature -and -not [string]::IsNullOrWhiteSpace($outputSignature)) {
+            $labels = (@($broadcast.outputHealth.alerts) | ForEach-Object { [string]$_.label }) -join ', '
+            Show-Balloon 'Stream output keeps dropping' "$labels keeps disconnecting and reconnecting. That platform may have ended your LIVE or rejected the stream key; get a new key there and restart that output." ([System.Windows.Forms.ToolTipIcon]::Error) 'stream-output'
+        }
+        $script:lastStreamOutputSignature = $outputSignature
         $script:lastBroadcastProcessSignature = $processSignature
         $script:lastBroadcastLatencySignature = $latencySignature
         $script:lastBroadcastReliabilitySignature = $reliabilitySignature
