@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.",
-  "changelog": "4.0.17: aligned with THSV StreamBridge 4.0.17, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.16: aligned with THSV StreamBridge 4.0.16, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.15: aligned with THSV StreamBridge 4.0.15, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.14: aligned with THSV StreamBridge 4.0.14, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.13: aligned with THSV StreamBridge 4.0.13, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: aligned with THSV StreamBridge 4.0.12, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.11: aligned with THSV StreamBridge 4.0.11, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: aligned with THSV StreamBridge 4.0.10, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.9: aligned with THSV StreamBridge 4.0.9, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.8: aligned with THSV StreamBridge 4.0.8, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.7: aligned with THSV StreamBridge 4.0.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.6: aligned with THSV StreamBridge 4.0.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.5: aligned with THSV StreamBridge 4.0.5, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.4: aligned with THSV StreamBridge 4.0.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
+  "changelog": "4.0.18: aligned with THSV StreamBridge 4.0.18, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.17: aligned with THSV StreamBridge 4.0.17, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.16: aligned with THSV StreamBridge 4.0.16, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.15: aligned with THSV StreamBridge 4.0.15, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.14: aligned with THSV StreamBridge 4.0.14, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.13: aligned with THSV StreamBridge 4.0.13, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: aligned with THSV StreamBridge 4.0.12, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.11: aligned with THSV StreamBridge 4.0.11, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: aligned with THSV StreamBridge 4.0.10, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.9: aligned with THSV StreamBridge 4.0.9, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.8: aligned with THSV StreamBridge 4.0.8, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.7: aligned with THSV StreamBridge 4.0.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.6: aligned with THSV StreamBridge 4.0.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.5: aligned with THSV StreamBridge 4.0.5, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.4: aligned with THSV StreamBridge 4.0.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.3: aligned with THSV StreamBridge 4.0.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.2: aligned with THSV StreamBridge 4.0.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.1: aligned with THSV StreamBridge 4.0.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.0: aligned with THSV StreamBridge 4.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.6.0: aligned with THSV StreamBridge 3.6.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: aligned with THSV StreamBridge 3.0.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.1: aligned with THSV StreamBridge 2.6.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.6.0: aligned with the stable THSV StreamBridge 2.6.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-jukebox",
     "name": "Village Jukebox",
-    "version": "4.0.17",
+    "version": "4.0.18",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.17",
-    "maximumTestedBridgeVersion": "4.0.17",
+    "minimumBridgeVersion": "4.0.18",
+    "maximumTestedBridgeVersion": "4.0.18",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -107,7 +107,7 @@
     {
       "path": "dist/index.js",
       "size": 31910,
-      "sha256": "f20a926f80e661fc33f3c785b78876c5efc90c9981d671eb4c051f1c851e0590"
+      "sha256": "11a032f80628f27537489312c7a45f50df9f2c966264ef56cf0e6b10b65d1301"
     },
     {
       "path": "schemas/config.json",
@@ -122,7 +122,7 @@
     {
       "path": "README.md",
       "size": 2849,
-      "sha256": "48093b4b0b474b9ef7d85f2e7c2e1dd8bbb0b670e48402a5ce941d3f568f8dae"
+      "sha256": "8b08cc61c725161c9b03c0f37bdf1dd72547746d31497ad6f865568442a4c637"
     }
   ]
 }

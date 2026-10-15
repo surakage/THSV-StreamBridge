@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.0.18] - 2026-10-15
+
+- StreamBridge now warns you when one stream output keeps dropping. While you are live it checks every streaming output in OBS (the main stream, Twitch Enhanced Broadcasting and plugin outputs such as Aitum Stream Suite's TikTok, Kick and YouTube outputs) every 10 seconds. If one drops 3 times within 2 minutes, the StreamBridge tray shows a notification naming it, for example when TikTok has ended your LIVE and the stream key no longer works. A single network blip stays quiet, you get one notification per problem, and it clears after a minute of stable streaming or when you stop that output. It only uses StreamBridge's existing OBS connection.
+- Installs are about 11 MB smaller: the release no longer ships source maps, type declarations, TypeScript sources or Markdown docs from its runtime folders, which StreamBridge never loads. License and notice files stay.
+- After an update, StreamBridge now also removes downloaded update zips and prepared folders left behind by older versions, which could add up to over 100 MB.
+- Clip Library Cache refreshes the clip list hourly while you are offline and right away when you go live, instead of every 15 minutes (or your chosen interval) around the clock. While live it keeps your chosen interval.
+- When GitHub's hourly limit for update checks runs out, Overview > Bridge updates now says so and when to check again, instead of "GitHub release check returned HTTP 403".
+- While Streamer.bot is closed, add-ons such as Clip Library Cache and Follower Pulse now log one warning per add-on and a line when Streamer.bot is reachable again, instead of an error on every attempt.
+- Browser tests no longer connect to a real OBS on the same PC.
+
 ## [4.0.17] - 2026-10-15
 
 - Scene roles is now on the Add-ons page, where the settings and docs point, and loads its scene pickers when that page opens. It was previously left on the Extensions page.
