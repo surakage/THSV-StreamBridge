@@ -46,6 +46,7 @@ import { SceneCatalogService, SCENE_CATALOG_ACTION_ID } from '../bridge/services
 import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerbot-trigger-assurance-service.js';
 import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
+import { ObsOutputHealthMonitor } from '../bridge/services/obs-output-health-monitor.js';
 import { OperationalReliabilityService } from '../bridge/services/operational-reliability-service.js';
 import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } from '../bridge/services/broadcast-connection-vault-service.js';
 import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-connection-manager.js';
@@ -255,6 +256,9 @@ const operationalReliability = new OperationalReliabilityService({
   capabilityStatus: () => capabilityBroker.diagnostics(),
   listAddOns: async () => (await addOnWizard.list()).map((addOn) => ({ moduleId: addOn.moduleId, version: addOn.version })),
 });
+// Warns the creator when one platform output (for example TikTok in Aitum) keeps dropping while
+// the rest of the stream is healthy. Samples only over the already-open OBS socket.
+const obsOutputHealth = new ObsOutputHealthMonitor({ sample: () => obsDirectSceneClient.getStreamingOutputs(), logger });
 const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
   query: () => obsDirectSceneClient.isStreaming(),
   // OBS StreamStateChanged events on the shared scene socket drive go-live and
@@ -303,6 +307,7 @@ const wizard: WizardService = new WizardService(
   () => logLifecycleStatus.status(),
   (input) => logLifecycleStatus.preview(input),
   (input) => logLifecycleStatus.applyAndPrune(input),
+  () => obsOutputHealth.status(),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
@@ -357,6 +362,7 @@ async function shutdown(signal: string): Promise<void> {
   automaticUpdates.stop();
   scheduledReliabilityPreflight.stop();
   obsBroadcastMonitor.stop();
+  obsOutputHealth.stop();
   logger.info('Shutdown requested', { signal });
   try {
     liveCaptions.stop();
@@ -400,6 +406,7 @@ try {
   liveCaptions.start();
   await activeBridge.start();
   await obsBroadcastMonitor.start();
+  obsOutputHealth.start();
   await operationalReliability.start();
   await scheduledReliabilityPreflight.start();
   await server.start();

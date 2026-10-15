@@ -8,6 +8,15 @@ export interface DirectSceneSnapshot {
   readonly currentScene?: string;
 }
 
+/** One streaming (service) output as OBS reports it. `durationMs` is how long the current connection has been sending; it restarts after every reconnect. */
+export interface ObsStreamOutputSample {
+  readonly name: string;
+  readonly reconnecting: boolean;
+  readonly durationMs: number;
+}
+
+const MAXIMUM_SAMPLED_OUTPUTS = 16;
+
 /** OBS WebSocket event subscription bits (obs-websocket protocol v5). */
 const OBS_EVENT_SCENES = 1 << 2;
 const OBS_EVENT_OUTPUTS = 1 << 6;
@@ -37,6 +46,30 @@ export class ObsDirectSceneClient {
   }
 
   public async isStreaming(): Promise<boolean> { return (await this.request('GetStreamStatus'))['outputActive'] === true; }
+
+  /**
+   * Active streaming outputs (the main stream and plugin outputs such as Aitum's per-platform
+   * outputs) with their reconnect state. Reads only over the already-open subscribed socket, so
+   * periodic sampling never opens extra OBS connections; returns undefined while none is open.
+   */
+  public async getStreamingOutputs(): Promise<readonly ObsStreamOutputSample[] | undefined> {
+    const shared = openSessions.get(this.url);
+    if (shared?.readyState !== WebSocket.OPEN) return undefined;
+    const deadline = AbortSignal.timeout(this.timeoutMs);
+    const listed = await sendRequest(shared, deadline, 'GetOutputList');
+    const outputs = (Array.isArray(listed['outputs']) ? listed['outputs'] : []).map(record)
+      .filter((output) => output['outputActive'] === true && record(output['outputFlags'])['OBS_OUTPUT_SERVICE'] === true && string(output['outputName']) !== '')
+      .slice(0, MAXIMUM_SAMPLED_OUTPUTS);
+    const samples: ObsStreamOutputSample[] = [];
+    for (const output of outputs) {
+      const name = string(output['outputName']);
+      const status = await sendRequest(shared, deadline, 'GetOutputStatus', { outputName: name });
+      if (status['outputActive'] !== true) continue;
+      const durationMs = status['outputDuration'];
+      samples.push({ name, reconnecting: status['outputReconnecting'] === true, durationMs: typeof durationMs === 'number' && Number.isFinite(durationMs) ? durationMs : 0 });
+    }
+    return samples;
+  }
 
   /** True while a subscribed socket for this endpoint is open and identified. */
   public hasOpenSession(): boolean { return openSessions.get(this.url)?.readyState === WebSocket.OPEN; }
@@ -104,10 +137,10 @@ export class ObsDirectSceneClient {
   }
 }
 
-async function sendRequest(socket: WebSocket, deadline: AbortSignal, requestType: string): Promise<Record<string, unknown>> {
+async function sendRequest(socket: WebSocket, deadline: AbortSignal, requestType: string, requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
   const requestId = randomUUID();
   const response = nextMessage(socket, deadline, 7, requestId);
-  socket.send(JSON.stringify({ op: 6, d: { requestType, requestId } }));
+  socket.send(JSON.stringify({ op: 6, d: { requestType, requestId, ...(requestData === undefined ? {} : { requestData }) } }));
   const data = record((await response)['d']);
   const status = record(data['requestStatus']); if (status['result'] !== true) throw new Error(`OBS ${requestType} failed: ${string(status['comment']) || 'unknown response'}`);
   return record(data['responseData']);

@@ -190,6 +190,7 @@ export class WizardService {
     private readonly logLifecycleStatus?: () => Promise<Readonly<Record<string, unknown>>>,
     private readonly logLifecyclePreview?: (input: unknown) => Promise<Readonly<Record<string, unknown>>>,
     private readonly logLifecycleApply?: (input: unknown) => Promise<Readonly<Record<string, unknown>>>,
+    private readonly streamOutputHealthStatus?: () => Readonly<Record<string, unknown>>,
   ) {}
 
   public async previewLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -364,8 +365,9 @@ export class WizardService {
   }
 
   public broadcastConnectionStatus(): Readonly<Record<string, unknown>> {
-    if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false };
-    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] } };
+    const outputHealth = this.streamOutputHealthStatus?.();
+    if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false, ...(outputHealth === undefined ? {} : { outputHealth }) };
+    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, ...(outputHealth === undefined ? {} : { outputHealth }) };
   }
 
   public broadcastConnectionMetadataExport(): Readonly<Record<string, unknown>> {
