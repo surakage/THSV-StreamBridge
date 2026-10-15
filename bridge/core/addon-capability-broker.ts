@@ -193,6 +193,7 @@ export class AddOnCapabilityBroker {
   private readonly capabilityIncidents = new Map<string, CapabilityIncident>();
   private readonly scheduled = new Map<string, ScheduledEntry>();
   private readonly actionActivity = new Map<string, ActionActivity>();
+  private readonly streamerBotOfflineModules = new Set<string>();
   private readonly overlaySubscriptions = new Map<string, Set<() => void>>();
   private readonly outboundActivity = new Map<string, OutboundActivity>();
   private readonly providerEventStarts = new Map<string, number[]>();
@@ -453,11 +454,17 @@ export class AddOnCapabilityBroker {
       await this.dependencies.runStreamerBotAction(actionId, { ...prepared.argumentsValue, thsvAddonRelayToken: relayToken }, controller.signal);
       accepted = true;
       this.record(grant.moduleId, 'streamerbot.run-approved-action', 'granted');
+      if (this.streamerBotOfflineModules.delete(grant.moduleId)) this.logger.info('Add-on Streamer.bot actions are reaching Streamer.bot again', { moduleId: grant.moduleId });
       this.logger.info('Add-on Streamer.bot action dispatch accepted', { moduleId: grant.moduleId, actionId });
     }
     catch (error) {
       this.record(grant.moduleId, 'streamerbot.run-approved-action', 'failed');
-      this.logger.error('Add-on Streamer.bot action dispatch failed', { moduleId: grant.moduleId, actionId, error });
+      // While Streamer.bot is closed, periodic add-ons fail every few minutes. Report the outage once
+      // per add-on and keep the repeats at debug level so real failures stay visible in the log.
+      if (error instanceof Error && error.message === 'Streamer.bot is unavailable') {
+        if (this.streamerBotOfflineModules.has(grant.moduleId)) this.logger.debug('Add-on Streamer.bot action skipped while Streamer.bot is unavailable', { moduleId: grant.moduleId, actionId });
+        else { this.streamerBotOfflineModules.add(grant.moduleId); this.logger.warn('Add-on Streamer.bot actions are waiting for Streamer.bot to reconnect', { moduleId: grant.moduleId, actionId }); }
+      } else this.logger.error('Add-on Streamer.bot action dispatch failed', { moduleId: grant.moduleId, actionId, error });
       throw error;
     }
     finally {
