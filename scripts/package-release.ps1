@@ -372,6 +372,12 @@ try {
     } finally { Pop-Location }
     Remove-Item -LiteralPath (Join-Path $appRoot 'package-lock.json') -Force
     Remove-Item -LiteralPath (Join-Path $appRoot 'node_modules\.package-lock.json') -Force -ErrorAction SilentlyContinue
+    # Node never loads source maps (StreamBridge runs without --enable-source-maps), type declarations
+    # or TypeScript sources at run time, so they only take up space in every install. License and
+    # notice files stay.
+    Get-ChildItem -LiteralPath (Join-Path $appRoot 'node_modules'), (Join-Path $appRoot 'dist') -File -Recurse |
+        Where-Object { $_.Name -match '\.(map|[cm]?ts|md|markdown)$' -and $_.Name -notmatch '^(licen[cs]e|notice|copying)' } |
+        Remove-Item -Force
 
     Copy-Item -LiteralPath (Join-Path $repo 'installer\install.mjs') -Destination $installerRoot
     Copy-Item -LiteralPath (Join-Path $repo 'installer\apply-update.mjs') -Destination $installerRoot

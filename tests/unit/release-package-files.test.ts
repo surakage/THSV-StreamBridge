@@ -21,6 +21,9 @@ describe('public release scripts', () => {
     expect(source).toContain('SHASUMS256.txt');
     expect(source).toContain('official SHA-256 verification');
     expect(source).toContain('npm.cmd ci --omit=dev --ignore-scripts');
+    expect(source).toContain("Where-Object { $_.Name -match '\\.(map|[cm]?ts|md|markdown)$' -and $_.Name -notmatch '^(licen[cs]e|notice|copying)' }");
+    expect(source.indexOf('npm.cmd ci --omit=dev')).toBeLessThan(source.indexOf("-match '\\.(map|[cm]?ts|md|markdown)$'"));
+    expect(source.indexOf("-match '\\.(map|[cm]?ts|md|markdown)$'")).toBeLessThan(source.indexOf('$unsignedPayloadManifest = [ordered]@{'));
     expect(source).toContain('Install THSV StreamBridge.cmd');
     expect(source).toContain('start-streamerbot-safely.mjs');
     expect(source).toContain('Start THSV Streamer.bot Safely.cmd');
