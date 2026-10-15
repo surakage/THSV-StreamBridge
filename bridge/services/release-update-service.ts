@@ -1,7 +1,7 @@
 import { compareVersions } from './addon-package-manager.js';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { unzipSync } from 'fflate';
 import { verify, type Bundle } from 'sigstore';
@@ -18,6 +18,8 @@ const MAXIMUM_RELEASE_EXPANDED_BYTES = 536_870_912;
 const STAGED_RELEASE_RECORD = 'staged-release.json';
 const UPDATE_CHECK_CACHE_MS = 21_600_000;
 const VERSION_TAG = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?$/u;
+/** Core update leftovers in data/updates: unpacked folders and downloaded archives with checksums. */
+const ORPHANED_CORE_UPDATE = /^(?:prepared-(\d+\.\d+\.\d+)|THSV-StreamBridge-(\d+\.\d+\.\d+)(?:-windows-x64)?\.zip(?:\.sha256)?)$/u;
 
 interface GitHubReleaseAsset {
   readonly name?: unknown;
@@ -211,40 +213,51 @@ export class ReleaseUpdateService {
    * process already runs that version or a newer one. The installer keeps its own rollback
    * copies until the new version passes its health check, so the staged files are no longer
    * needed by then. The updater runs from the staging folder, so it cannot remove itself;
-   * a folder that is still in use stays in place and is retried on a later call.
+   * a folder that is still in use stays in place and is retried on a later call. Update files
+   * for this version or older that no staged record names any more (for example from an
+   * update installed before this cleanup existed) are swept up the same way.
    */
   public async cleanupInstalledUpdate(): Promise<CleanedReleaseUpdate> {
-    let staged: Record<string, unknown>;
+    let staged: Record<string, unknown> | undefined;
     try {
       staged = JSON.parse(await readFile(join(this.stagingRoot, STAGED_RELEASE_RECORD), 'utf8')) as Record<string, unknown>;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { removed: [], pending: false };
-      throw error;
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
-    const version = staged['version'];
-    if (typeof version !== 'string' || !VERSION_TAG.test(version) || compareVersions(version, this.currentVersion) > 0) return { removed: [], pending: false };
     const removed: string[] = [];
-    const archiveName = staged['archiveName'];
-    if (typeof archiveName === 'string' && archiveName.length > 0 && archiveName.length <= 250 && basename(archiveName) === archiveName && archiveName !== STAGED_RELEASE_RECORD) {
-      for (const name of [archiveName, `${archiveName}.sha256`]) {
-        const path = join(this.stagingRoot, name);
-        if (await lstat(path).catch(() => undefined) === undefined) continue;
-        await rm(path, { force: true });
-        removed.push(name);
+    let pending = false;
+    const version = staged?.['version'];
+    if (staged !== undefined && typeof version === 'string' && VERSION_TAG.test(version) && compareVersions(version, this.currentVersion) <= 0) {
+      const archiveName = staged['archiveName'];
+      if (typeof archiveName === 'string' && archiveName.length > 0 && archiveName.length <= 250 && basename(archiveName) === archiveName && archiveName !== STAGED_RELEASE_RECORD) {
+        for (const name of [archiveName, `${archiveName}.sha256`]) if (await this.removeStagedEntry(name)) removed.push(name);
       }
+      const preparedName = `prepared-${version}`;
+      if (await this.removeStagedEntry(preparedName, true)) removed.push(preparedName);
+      else if (await lstat(join(this.stagingRoot, preparedName)).catch(() => undefined) !== undefined) pending = true;
+      if (!pending) await rm(join(this.stagingRoot, STAGED_RELEASE_RECORD), { force: true });
     }
-    const preparedName = `prepared-${version}`;
-    const prepared = join(this.stagingRoot, preparedName);
-    if (await lstat(prepared).catch(() => undefined) !== undefined) {
-      // Renaming first fails as a whole while the updater still runs from the folder, so a
-      // busy staging folder is never left half deleted.
-      const retired = join(this.stagingRoot, `.retired-${preparedName}-${randomUUID()}`);
-      try { await rename(prepared, retired); } catch { return { removed, pending: true }; }
-      await rm(retired, { recursive: true, force: true });
-      removed.push(preparedName);
+    // Orphans: core update archives and unpacked folders for this version or older.
+    const entries = await readdir(this.stagingRoot).catch(() => [] as string[]);
+    for (const name of entries.sort()) {
+      const match = ORPHANED_CORE_UPDATE.exec(name);
+      const orphanVersion = match?.[1] ?? match?.[2];
+      if (orphanVersion === undefined || compareVersions(orphanVersion, this.currentVersion) > 0) continue;
+      if (await this.removeStagedEntry(name, name.startsWith('prepared-'))) removed.push(name);
+      else if (name.startsWith('prepared-')) pending = true;
     }
-    await rm(join(this.stagingRoot, STAGED_RELEASE_RECORD), { force: true });
-    return { removed, pending: false };
+    return { removed, pending };
+  }
+
+  /** Removes one staging entry. Folders are renamed first, so a folder still in use is left whole. */
+  private async removeStagedEntry(name: string, folder = false): Promise<boolean> {
+    const path = join(this.stagingRoot, name);
+    if (await lstat(path).catch(() => undefined) === undefined) return false;
+    if (!folder) { await rm(path, { force: true }); return true; }
+    const retired = join(this.stagingRoot, `.retired-${name}-${randomUUID()}`);
+    try { await rename(path, retired); } catch { return false; }
+    await rm(retired, { recursive: true, force: true });
+    return true;
   }
 
   private async prepareRelease(artifact: Uint8Array, version: string, sha256: string): Promise<string> {

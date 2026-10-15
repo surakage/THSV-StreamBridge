@@ -15,4 +15,34 @@ describe('Clip Library Cache', () => {
     expect(state.clips).toHaveLength(60); expect(JSON.stringify(state)).not.toContain('signed.example');
     expect(clipLibraryCache.manifest.dependencies).toEqual([]);
   });
+  it('refreshes at the creator interval while live, hourly while offline, and right away at go-live', async () => {
+    const delays: number[] = []; const tasks: (() => Promise<void>)[] = []; let state: unknown = {};
+    const runApprovedAction = async () => undefined;
+    const context = {
+      settings: { refreshMinutes: 5 },
+      state: { read: async () => state, write: async (value: unknown) => { state = value; } },
+      streamerbot: { runApprovedAction },
+      schedule: { after: (delay: number, task: () => Promise<void>) => { delays.push(delay); tasks.push(task); return `task-${tasks.length}`; }, cancel: () => undefined },
+    };
+    const runLatest = async () => { const task = tasks.at(-1); if (task) await task(); };
+    const event = (eventType: string, platform: string, simulated = false) => ({ eventType, platform, metadata: { simulated } });
+    await clipLibraryCache.start(context);
+    expect(delays.at(-1)).toBe(1000);
+    await runLatest();
+    expect(delays.at(-1)).toBe(60 * 60_000);
+    await clipLibraryCache.onEvent(event('stream.online', 'twitch', true), context);
+    expect(delays.at(-1)).toBe(60 * 60_000);
+    await clipLibraryCache.onEvent(event('stream.online', 'twitch'), context);
+    expect(delays.at(-1)).toBe(1000);
+    await runLatest();
+    expect(delays.at(-1)).toBe(5 * 60_000);
+    await clipLibraryCache.onEvent(event('stream.online', 'youtube'), context);
+    await clipLibraryCache.onEvent(event('stream.offline', 'twitch'), context);
+    await runLatest();
+    expect(delays.at(-1)).toBe(5 * 60_000);
+    await clipLibraryCache.onEvent(event('stream.offline', 'youtube'), context);
+    await runLatest();
+    expect(delays.at(-1)).toBe(60 * 60_000);
+    await clipLibraryCache.stop(context);
+  });
 });
