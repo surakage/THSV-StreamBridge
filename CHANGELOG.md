@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.0.17] - 2026-10-15
+
+- Scene roles is now on the Add-ons page, where the settings and docs point, and loads its scene pickers when that page opens. It was previously left on the Extensions page.
+- The Scene roles card is a compact grid with one shared Refresh scenes button instead of a long column of repeated controls.
+- Added a separate Just Chatting scene role (`role:chatting`) next to Main live. The Scene Actions starter "Just Chatting" mapping uses it on new installs; saved mappings are unchanged.
+- The Extensions page now has a searchable component list with status dots, and each component opens in tabs (Settings, Streamer.bot, Overlay, Data, Status) instead of one long page. Each component remembers its last tab, and "Configure" on a group card jumps to it.
+- Existing installs: after updating, open **Add-ons > Scene roles**, map your scenes (including Just Chatting if you use one), save with backup and restart StreamBridge.
+
 ## [4.0.16] - 2026-10-15
 
 - Bridge updates is now the first card on the Overview page, so the update check is easy to find.
