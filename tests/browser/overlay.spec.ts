@@ -515,6 +515,11 @@ test('wizard progressively reveals advanced blocker, alert, and add-on controls'
 
   await page.locator('[data-view="addon-marketplace"]').click();
   await expect(page.locator('[data-disclosure-key="panel:addon-marketplace:install"]')).not.toHaveAttribute('open', '');
+  // Settings and docs point creators to "Add-ons > Scene roles", so the card lives on the Add-ons page.
+  const sceneRoles = page.locator('[data-panel="addon-marketplace"] #scene-roles');
+  await expect(sceneRoles).toBeVisible();
+  await expect(sceneRoles.locator('[data-scene-role-fields] [data-scene-name-picker]')).toHaveCount(4);
+  await expect(page.locator('[data-panel="addons"] #scene-roles')).toHaveCount(0);
 });
 
 test('wizard shows only the selected platform events and exposes platform color modes', async ({ page }) => {
