@@ -152,6 +152,26 @@ describe('ReleaseUpdateService', () => {
     }
   });
 
+  it('sweeps orphaned update files for the running version or older and keeps newer ones', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-orphaned-update-'));
+    try {
+      // Left behind by an update installed before cleanup existed: no staged record names them.
+      await mkdir(join(root, 'prepared-1.9.0', 'runtime'), { recursive: true });
+      await writeFile(join(root, 'prepared-1.9.0', 'runtime', 'node.exe'), 'old runtime');
+      await writeFile(join(root, 'THSV-StreamBridge-1.9.0.zip'), 'old archive');
+      await writeFile(join(root, 'THSV-StreamBridge-1.9.0.zip.sha256'), 'old checksum');
+      await mkdir(join(root, 'prepared-2.2.0'));
+      await writeFile(join(root, 'THSV-StreamBridge-2.2.0.zip'), 'newer archive');
+      for (const kept of ['last-update.log', 'automatic-update-status.json', 'streamerbot-compatibility-feed-cache.json']) await writeFile(join(root, kept), 'kept');
+      await mkdir(join(root, 'sigstore-tuf'));
+      const result = await new ReleaseUpdateService('2.1.0', undefined, undefined, root).cleanupInstalledUpdate();
+      expect(result).toEqual({ removed: ['THSV-StreamBridge-1.9.0.zip', 'THSV-StreamBridge-1.9.0.zip.sha256', 'prepared-1.9.0'], pending: false });
+      expect((await readdir(root)).sort()).toEqual(['THSV-StreamBridge-2.2.0.zip', 'automatic-update-status.json', 'last-update.log', 'prepared-2.2.0', 'sigstore-tuf', 'streamerbot-compatibility-feed-cache.json']);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('starts only a matching prepared update from a managed offline installation', async () => {
     const installRoot = await mkdtemp(join(tmpdir(), 'thsv-managed-update-'));
     const root = join(installRoot, 'data', 'updates');
