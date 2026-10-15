@@ -5,6 +5,10 @@ import { join } from 'node:path';
 import { zipSync } from 'fflate';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
+async function openAddOnTab(page: Page, moduleId: string, tab: 'settings' | 'streamerbot' | 'overlay' | 'data' | 'status'): Promise<void> {
+  await page.locator(`[data-addon-id="${moduleId}"] [data-addon-tab="${tab}"]`).click();
+}
+
 async function packageAddOn(root: string): Promise<Uint8Array> {
   const descriptorBytes = await readFile(join(root, 'module-package.json'));
   const descriptor = JSON.parse(descriptorBytes.toString('utf8')) as { files: Array<{ path: string }> };
@@ -140,6 +144,22 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await page.getByRole('button', { name: 'Configure Voice & Language' }).click();
   await expect(page.locator('#addon-selector')).toHaveValue('thsv.voice-relay');
   await expect(page.locator('[data-addon-id="thsv.voice-relay"]')).toBeVisible();
+  const extensionNav = page.getByRole('navigation', { name: 'Extension components' });
+  await expect(extensionNav.locator('[data-extension-nav-addon="thsv.voice-relay"]')).toHaveAttribute('aria-current', 'true');
+  await extensionNav.getByLabel('Find a component').fill('no such component');
+  await expect(extensionNav).toContainText('No component matches that search.');
+  await extensionNav.getByLabel('Find a component').fill('village voice');
+  await expect(extensionNav.locator('[data-extension-nav-addon]')).toHaveCount(1);
+  const voiceCard = page.locator('[data-addon-id="thsv.voice-relay"]');
+  await expect(voiceCard.getByRole('tab', { name: 'Settings' })).toHaveAttribute('aria-selected', 'true');
+  await voiceCard.getByRole('tab', { name: 'Settings' }).press('End');
+  await expect(voiceCard.getByRole('tab', { name: 'Status' })).toBeFocused();
+  await expect(voiceCard.locator('[data-addon-tab-panel="status"]')).toBeVisible();
+  await expect(voiceCard.locator('[data-addon-tab-panel="settings"]')).toBeHidden();
+  await page.evaluate('renderAddOns();');
+  await expect(page.locator('[data-addon-id="thsv.voice-relay"]').getByRole('tab', { name: 'Status' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByLabel('Find a component')).toHaveValue('village voice');
+  await page.getByLabel('Find a component').fill('');
   await page.evaluate(`state.addOns = state.addOns.filter((candidate) => candidate.moduleId !== 'thsv.voice-relay'); renderAddOns();`);
   const groupDetails = page.locator('.main-feature-details');
   await groupDetails.nth(0).locator('summary').click();
@@ -173,6 +193,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   })()`);
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-card-status')).not.toContainText('Restart required');
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-card-status')).toContainText('Not loaded');
+  await openAddOnTab(page, 'sample.declarative-settings', 'status');
   await page.getByText('Package and publisher details', { exact: true }).click();
   await expect(page.getByText('THSV StreamBridge Project', { exact: false })).toBeVisible();
   await expect(page.getByText('state.private', { exact: false })).toBeVisible();
@@ -183,6 +204,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await expect(page.getByRole('button', { name: 'Download for review' })).toBeVisible();
   await expect(page.getByText('Saved settings and private state remain intact', { exact: false })).toBeVisible();
 
+  await openAddOnTab(page, 'sample.declarative-settings', 'settings');
   const addOnHeading = page.locator('[data-addon-settings] [name="heading"]');
   await addOnHeading.fill('My private add-on setting');
   await page.locator('[data-addon-settings] select[name="accent"]').selectOption('green');
@@ -286,6 +308,7 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   const providerTerms = userTranslateSettings.getByRole('link', { name: 'MyMemory terms' });
   await expect(providerTerms).toHaveAttribute('href', 'https://mymemory.translated.net/terms-and-conditions');
   await expect(providerTerms).toHaveAttribute('rel', 'noreferrer noopener');
+  await openAddOnTab(page, 'thsv.user-translate', 'streamerbot');
   const triggerStatus = page.locator('[data-addon-id="thsv.user-translate"] .addon-trigger-readiness .status-chip');
   await expect(triggerStatus).toBeVisible();
   expect(await triggerStatus.evaluate((element) => {
@@ -350,6 +373,7 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   const countdownOverlay = await context.newPage();
   await countdownOverlay.goto(`${origin}/overlay/countdown`);
   await expect(countdownOverlay.locator('#timer-shell')).toBeAttached();
+  await openAddOnTab(page, 'thsv.starting-soon-countdown', 'overlay');
   await page.locator('[data-addon-id="thsv.starting-soon-countdown"]').getByText('Open overlay & test', { exact: true }).click();
   await page.locator('[data-addon-id="thsv.starting-soon-countdown"] [data-preview-addon-overlay="thsv.starting-soon-countdown"]').click();
   await expect(page.locator('#wizard-feedback')).toContainText('Exact-template preview sent for thsv.starting-soon-countdown');
@@ -513,6 +537,7 @@ test('wizard configures raid scouting and chat safety add-ons', async ({ page })
   await expect(chatGuardSettings.locator('summary').filter({ hasText: 'Common spam checks' })).toBeVisible();
   await expect(chatGuardSettings.getByLabel('Turn on safe observation')).not.toBeChecked();
   await page.evaluate(`state.addOns.find((addOn) => addOn.moduleId === 'thsv.chat-guard').enabled = true; renderAddOns();`);
+  await openAddOnTab(page, 'thsv.chat-guard', 'data');
   await expect(page.getByText('Optional: trust a specific viewer', { exact: true })).toBeVisible();
   await expect(page.getByText('Moderation dashboard', { exact: true })).toBeVisible();
   await expect(chatGuardSettings.getByLabel('Allow Chat Guard to take automatic actions')).toHaveCount(1);
@@ -609,6 +634,7 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await expect(page.locator('[data-addon-id="thsv.village-draw"] .addon-trigger-readiness')).toContainText('Use the existing chat intakes');
   await expect(page.locator('[data-addon-id="thsv.village-draw"] .addon-trigger-readiness')).toContainText('Direct chat commands');
   await page.evaluate(`state.addOns.find((addOn) => addOn.moduleId === 'thsv.village-draw').enabled = true; renderAddOns();`);
+  await openAddOnTab(page, 'thsv.village-draw', 'data');
   await expect(page.getByText('Run the giveaway', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open entries' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Cancel and refund' })).toBeVisible();
@@ -624,6 +650,7 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   });
   await installAddOnArchive(page, executableArchive, 'no-op.thsv-addon', 'sample.no-op');
   await expect(page.getByRole('article').getByText('Sample No-Op Add-On 1.0.0', { exact: true })).toBeVisible();
+  await openAddOnTab(page, 'sample.no-op', 'streamerbot');
   await page.getByText('Approve Streamer.bot actions', { exact: true }).click();
   await expect(page.getByText('Your saved action grants remain active.', { exact: false })).toBeVisible();
   await page.evaluate(`state.liveActions = [
@@ -661,6 +688,7 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Save action grants' }).click();
   await expect(page.locator('#wizard-feedback')).toContainText('Action grants saved for sample.no-op', { timeout: 15_000 });
+  await openAddOnTab(page, 'sample.no-op', 'overlay');
   await page.getByText('Open overlay & test', { exact: true }).click();
   const overlayUrl = await page.locator('[data-addon-overlay-url="sample.no-op"]').inputValue();
   expect(overlayUrl).toBe(`${origin}/overlay/addons/sample.no-op`);
@@ -689,6 +717,7 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await expect(visualEditor.locator('[data-overlay-draft-state]')).toContainText('Draft preview - not saved');
   await expect.poll(async () => editorOverlay.locator('#hydration-shell').evaluate((element) => element.style.getPropertyValue('--hydration-water'))).toBe('#1266ee');
   expect(await page.evaluate(`state.addOns.find((candidate) => candidate.moduleId === 'thsv.village-hydration-station').settings.waterColor`)).not.toBe('#1266ee');
+  await openAddOnTab(page, 'thsv.village-hydration-station', 'overlay');
   await hydrationCard.getByText('Open overlay & test', { exact: true }).click();
   const hydrationOverlay = await context.newPage();
   await hydrationOverlay.goto(`${origin}/overlay/addons/thsv.village-hydration-station`);
@@ -749,6 +778,7 @@ test('Quote Vault exposes a responsive creator-managed quote library', async ({ 
   await page.getByLabel(/I reviewed and trust/u).check();
   await page.getByRole('button', { name: 'Verify and install' }).click();
   const card = page.locator('[data-addon-id="thsv.quote-vault"]');
+  await openAddOnTab(page, 'thsv.quote-vault', 'data');
   await expect(card.getByText('Quote library', { exact: true })).toBeVisible();
   await expect(card.locator('[data-quote-vault-row]')).toHaveCount(12);
   await expect(card.getByText('Page 1 of 3', { exact: true })).toBeVisible();

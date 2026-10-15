@@ -1172,6 +1172,97 @@ function renderInstalledAddOnCatalog(selected) {
   return `${renderBroadcastAppCompatibility()}<section class="installed-addon-catalog" aria-label="Installed optional add-ons"><div class="catalog-heading"><div><p class="addon-kicker">Optional and separately installed</p><h3>Installed add-ons</h3><p>Add-ons are independent features you choose to add. They are not required by the seven built-in extensions.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
 }
 
+const ADDON_TAB_STORAGE_KEY = 'thsv-wizard-addon-tabs';
+
+function loadAddOnTabChoices() {
+  try { const value = JSON.parse(localStorage.getItem(ADDON_TAB_STORAGE_KEY) || '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch { return {}; }
+}
+
+function rememberAddOnTab(moduleId, tab) {
+  state.addOnTabs = { ...(state.addOnTabs || loadAddOnTabChoices()), [moduleId]: tab };
+  try { localStorage.setItem(ADDON_TAB_STORAGE_KEY, JSON.stringify(state.addOnTabs)); } catch { /* The tab is still remembered for this visit. */ }
+}
+
+/** Splits one component into focused tabs; a tab with nothing to show is left out. Each component remembers its last tab. */
+function renderAddOnTabs(addOn, tabs) {
+  const available = tabs.filter(([, , body]) => typeof body === 'string' && body.trim() !== '');
+  if (!available.length) return '';
+  state.addOnTabs ||= loadAddOnTabChoices();
+  const remembered = state.addOnTabs[addOn.moduleId];
+  const active = available.some(([id]) => id === remembered) ? remembered : available[0][0];
+  const key = safe(addOn.moduleId.replace(/[^a-z0-9-]+/giu, '-'));
+  const tabbed = available.length > 1;
+  const bar = tabbed ? `<div class="addon-tabs" role="tablist" aria-label="${safe(addOn.name)} sections">${available.map(([id, label]) => `<button type="button" role="tab" class="addon-tab" id="addon-tab-${key}-${id}" aria-controls="addon-panel-${key}-${id}" aria-selected="${String(id === active)}" tabindex="${id === active ? '0' : '-1'}" data-addon-tab="${id}">${safe(label)}</button>`).join('')}</div>` : '';
+  const panels = available.map(([id, , body]) => `<div class="addon-flow addon-tab-panel" ${tabbed ? `role="tabpanel" aria-labelledby="addon-tab-${key}-${id}"` : ''} id="addon-panel-${key}-${id}" data-addon-tab-panel="${id}" ${id === active ? '' : 'hidden'}>${body}</div>`).join('');
+  return `<div class="addon-tabbed" data-addon-tabs-for="${safe(addOn.moduleId)}">${bar}${panels}</div>`;
+}
+
+function selectAddOnTab(button, focus = false) {
+  const root = button.closest('[data-addon-tabs-for]');
+  if (!root) return;
+  const tab = button.dataset.addonTab;
+  root.querySelectorAll('[data-addon-tab]').forEach((item) => { const selected = item === button; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1; });
+  root.querySelectorAll('[data-addon-tab-panel]').forEach((panel) => { panel.hidden = panel.dataset.addonTabPanel !== tab; });
+  rememberAddOnTab(root.dataset.addonTabsFor, tab);
+  if (focus) button.focus();
+}
+
+function attachAddOnTabs(root) {
+  root.querySelectorAll('[data-addon-tab]').forEach((button) => {
+    button.addEventListener('click', () => selectAddOnTab(button));
+    button.addEventListener('keydown', (event) => {
+      const tabs = [...button.parentElement.querySelectorAll('[data-addon-tab]')];
+      const index = tabs.indexOf(button);
+      const next = { ArrowRight: tabs[(index + 1) % tabs.length], ArrowLeft: tabs[(index - 1 + tabs.length) % tabs.length], Home: tabs[0], End: tabs.at(-1) }[event.key];
+      if (next) { event.preventDefault(); selectAddOnTab(next, true); }
+    });
+  });
+}
+
+function extensionNavMatches(addOn, feature, query) {
+  return !query || `${addOn.name} ${addOn.moduleId} ${addOn.description || ''} ${feature.name}`.toLocaleLowerCase('en-US').includes(query);
+}
+
+function renderExtensionNavGroups(selected) {
+  const query = String(state.extensionNavQuery || '').trim().toLocaleLowerCase('en-US');
+  const groups = mainFeatureFamilies().map((feature) => {
+    const components = feature.modules.map((id) => state.addOns.find((addOn) => addOn.moduleId === id)).filter(Boolean).filter((addOn) => extensionNavMatches(addOn, feature, query));
+    if (!components.length) return '';
+    return `<div class="extension-nav-group" data-extension-nav-group="${safe(feature.id)}"><p class="extension-nav-heading">${safe(feature.name)}</p><ul>${components.map((addOn) => {
+      const component = featureComponentState(addOn);
+      const current = addOn.moduleId === selected.moduleId;
+      return `<li><button type="button" class="extension-nav-item${current ? ' is-selected' : ''}" data-extension-nav-addon="${safe(addOn.moduleId)}" title="${safe(`${addOn.name}: ${component.label}`)}" ${current ? 'aria-current="true"' : ''}><span class="status-dot dot-${component.statusClass}" aria-hidden="true"></span><span class="extension-nav-name">${safe(addOn.name)}</span><span class="visually-hidden">, ${safe(component.label)}</span></button></li>`;
+    }).join('')}</ul></div>`;
+  }).join('');
+  return groups || '<p class="notice">No component matches that search.</p>';
+}
+
+/** Left-hand list of every built-in component, grouped, with a status dot and a search box. */
+function renderExtensionNavigator(selected) {
+  return `<nav class="extension-nav" aria-label="Extension components"><label class="extension-nav-search">Find a component<input type="search" data-extension-nav-search value="${safe(state.extensionNavQuery || '')}" placeholder="Search by name" autocomplete="off"></label><div class="extension-nav-list" data-extension-nav-list>${renderExtensionNavGroups(selected)}</div></nav>`;
+}
+
+function attachExtensionNavItems(root) {
+  root.querySelectorAll('[data-extension-nav-addon]').forEach((button) => button.addEventListener('click', () => {
+    state.selectedAddOnId = button.dataset.extensionNavAddon;
+    renderAddOns();
+    document.querySelector(`[data-extension-nav-addon="${CSS.escape(state.selectedAddOnId)}"]`)?.focus();
+  }));
+}
+
+function attachExtensionNavigator(nav) {
+  if (!nav) return;
+  attachExtensionNavItems(nav);
+  nav.querySelector('[data-extension-nav-search]')?.addEventListener('input', (event) => {
+    state.extensionNavQuery = event.target.value;
+    const selected = state.addOns.find((addOn) => addOn.moduleId === state.selectedAddOnId);
+    const list = nav.querySelector('[data-extension-nav-list]');
+    if (!selected || !list) return;
+    list.innerHTML = renderExtensionNavGroups(selected);
+    attachExtensionNavItems(list);
+  });
+}
+
 function renderAddOns() {
   const list = byId('addon-list');
   const marketplaceList = byId('addon-marketplace-list');
@@ -1186,7 +1277,7 @@ function renderAddOns() {
   state.selectedAddOnId = selected.moduleId;
   const selectedFeature = mainFeatureForModule(selected.moduleId);
   const selectedIsExtension = selectedFeature?.managementMode === 'bridge-managed-components';
-  const selector = `<label class="addon-selector">${selectedIsExtension ? 'Manage a built-in extension component' : 'Manage an installed add-on'}<select id="addon-selector">${addOnSelectorOptions(selected, selectedIsExtension)}</select></label>`;
+  const selector = `<label class="addon-selector${selectedIsExtension ? ' addon-jump' : ''}">${selectedIsExtension ? 'Manage a built-in extension component' : 'Manage an installed add-on'}<select id="addon-selector">${addOnSelectorOptions(selected, selectedIsExtension)}</select></label>`;
   const selectedCard = [selected].map((addOn) => {
     const feature = mainFeatureForModule(addOn.moduleId);
     const bridgeManaged = feature?.managementMode === 'bridge-managed-components';
@@ -1215,9 +1306,15 @@ function renderAddOns() {
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
     const packageDetails = rejected ? '' : `<details class="form-section addon-package-details" data-disclosure-key="${safe(`addon:${addOn.moduleId}:package-details`)}"><summary><span><strong>Package and publisher details</strong><small>Permissions, source, updates, release notes, and security information.</small></span></summary><div class="addon-step-body"><p><strong>Publisher:</strong> ${safe(addOn.author)}</p><p><strong>Package type:</strong> ${safe(addOn.packageKind)}</p><p><strong>Permissions:</strong> ${safe(permissions)}</p>${trustLinks}${liveChatWarning}${providerWarning}${viewerWarning}${addOn.packageKind === 'executable' ? '<p class="notice">Executable add-ons run with the same Windows account permissions as StreamBridge. The broker limits supported framework operations, but it is not an operating-system sandbox. Install executable packages only from publishers you trust.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}</div></details>`;
     const maintenance = rejected ? '' : `<details class="form-section addon-maintenance" data-disclosure-key="${safe(`addon:${addOn.moduleId}:maintenance`)}"><summary><span><strong>${bridgeManaged ? 'Advanced component maintenance' : 'Enable, disable, or uninstall'}</strong><small>${bridgeManaged ? `This component normally stays managed inside ${safe(feature.name)}.` : 'Routine maintenance and removal controls.'}</small></span></summary><div class="addon-step-body">${bridgeManaged ? `<p class="notice"><strong>Bridge-managed component:</strong> disabling or uninstalling this package degrades ${safe(feature.name)} but does not erase its private settings.</p>` : ''}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Enable and disable changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></div></details>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">${bridgeManaged ? `${safe(feature.name)} component` : 'Installed add-on'}</p><h3 title="${safe(`${addOn.name} ${addOn.version}`)}"><span>${safe(addOn.name)}</span> <small>${safe(addOn.version)}</small></h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status"><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}<div class="addon-flow">${setupGuide}${!rejected && !fields ? '<p class="notice">This component has no creator-editable settings. Continue to its connection and testing steps.</p>' : ''}${settings}${triggerReadiness}${actionGrant}${overlayTools}${viewerAdministration}${acceptance}</div>${packageDetails}${maintenance}</article>`;
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">${bridgeManaged ? `${safe(feature.name)} component` : 'Installed add-on'}</p><h3 title="${safe(`${addOn.name} ${addOn.version}`)}"><span>${safe(addOn.name)}</span> <small>${safe(addOn.version)}</small></h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status"><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}${renderAddOnTabs(addOn, [
+      ['settings', 'Settings', `${setupGuide}${!rejected && !fields ? '<p class="notice">This component has no creator-editable settings. Use its other tabs to connect and test it.</p>' : ''}${settings}`],
+      ['streamerbot', 'Streamer.bot', `${triggerReadiness}${actionGrant}`],
+      ['overlay', 'Overlay', overlayTools],
+      ['data', 'Data', viewerAdministration],
+      ['status', 'Status', `${acceptance}${packageDetails}${maintenance}`],
+    ])}</article>`;
   }).join('');
-  const selectedArea = `<section class="selected-package-area ${selectedIsExtension ? 'selected-extension-area' : 'selected-addon-area'}"><div class="catalog-heading"><div><p class="addon-kicker">${selectedIsExtension ? 'Built-in extension settings' : 'Optional add-on settings'}</p><h3>${selectedIsExtension ? safe(selectedFeature.name) : 'Manage installed add-on'}</h3></div></div>${selector}${selectedCard}</section>`;
+  const selectedArea = `<section class="selected-package-area ${selectedIsExtension ? 'selected-extension-area' : 'selected-addon-area'}"><div class="catalog-heading"><div><p class="addon-kicker">${selectedIsExtension ? 'Built-in extension settings' : 'Optional add-on settings'}</p><h3>${selectedIsExtension ? safe(selectedFeature.name) : 'Manage installed add-on'}</h3></div>${selectedIsExtension ? selector : ''}</div>${selectedIsExtension ? `<div class="extension-workspace">${renderExtensionNavigator(selected)}<div class="extension-workspace-main">${selectedCard}</div></div>` : `${selector}${selectedCard}`}</section>`;
   const addOnArea = renderInstalledAddOnCatalog(selected) + (selectedIsExtension ? '' : selectedArea);
   list.innerHTML = renderPendingAddOnChanges() + renderMainFeatureHub() + (selectedIsExtension ? selectedArea : '') + (marketplaceList ? '' : addOnArea);
   if (marketplaceList) marketplaceList.innerHTML = renderPendingAddOnChanges() + addOnArea;
@@ -1225,8 +1322,17 @@ function renderAddOns() {
   // closed choices immediately so sections never flash or return to their package defaults.
   restoreDisclosureStates(list);
   if (marketplaceList) restoreDisclosureStates(marketplaceList);
+  attachExtensionNavigator(list.querySelector('.extension-nav'));
+  attachAddOnTabs(list);
+  if (marketplaceList) attachAddOnTabs(marketplaceList);
   byId('addon-selector')?.addEventListener('change', (event) => { state.selectedAddOnId = event.target.value; renderAddOns(); });
-  document.querySelectorAll('[data-select-feature-addon]').forEach((button) => button.addEventListener('click', () => { state.selectedAddOnId = button.dataset.selectFeatureAddon; renderAddOns(); byId('addon-selector')?.focus(); }));
+  document.querySelectorAll('[data-select-feature-addon]').forEach((button) => button.addEventListener('click', () => {
+    state.selectedAddOnId = button.dataset.selectFeatureAddon;
+    renderAddOns();
+    const current = document.querySelector('.extension-nav-item.is-selected');
+    current?.closest('.extension-workspace')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    (current || byId('addon-selector'))?.focus({ preventScroll: Boolean(current) });
+  }));
   document.querySelectorAll('[data-select-installed-addon]').forEach((button) => button.addEventListener('click', () => { state.selectedAddOnId = button.dataset.selectInstalledAddon; renderAddOns(); byId('addon-selector')?.focus(); }));
   document.querySelectorAll('[data-feature-migration]').forEach((form) => form.addEventListener('submit', applyFeatureMigration));
   document.querySelectorAll('[data-toggle-feature-family]').forEach((button) => button.addEventListener('click', toggleFeatureFamily));
