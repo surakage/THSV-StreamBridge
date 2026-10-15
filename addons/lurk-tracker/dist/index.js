@@ -2,8 +2,8 @@
 const ID = 'thsv.lurk-tracker';
 const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
 export const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: ID, name: 'Village Lurk Tracker', version: '4.0.15',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.15', maximumTestedBridgeVersion: '4.0.15',
+  contractVersion: '2.0.0-preview.1', moduleId: ID, name: 'Village Lurk Tracker', version: '4.0.16',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.16', maximumTestedBridgeVersion: '4.0.16',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
