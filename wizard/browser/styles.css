@@ -317,6 +317,26 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .installed-addon-card-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}.installed-addon-card-footer .status-chip{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}.installed-addon-card-footer button{flex:0 0 auto}
 .selected-package-area>.addon-card{min-width:0;margin:0}.selected-extension-area{border-color:color-mix(in srgb,var(--accent) 38%,var(--border));background:color-mix(in srgb,var(--panel) 95%,var(--accent) 5%)}
 @media(max-width:620px){.main-feature-heading,.catalog-heading{display:grid}.main-feature-heading>.status-chip,.catalog-heading>.status-chip{justify-self:start}.main-feature-card-title{grid-template-columns:1fr}.main-feature-card-actions{justify-items:start}.main-feature-card-actions button{width:100%}.installed-addon-card-footer{align-items:flex-start;flex-direction:column}.installed-addon-card-footer button{width:100%}}
+/* Extensions workspace: component list on the left, the selected component in tabs on the right. */
+.selected-extension-area>.catalog-heading{align-items:flex-end}.selected-extension-area .addon-jump{width:min(100%,340px);margin:0;font-size:.85rem}
+.extension-workspace{display:grid;grid-template-columns:minmax(220px,260px) minmax(0,1fr);gap:18px;align-items:start;min-width:0}
+.extension-workspace-main{min-width:0}.extension-workspace-main>.addon-card{margin:0}
+.extension-nav{position:sticky;top:12px;display:grid;gap:12px;max-height:calc(100vh - 24px);padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+.extension-nav-search{display:grid;gap:6px;margin:0;font-size:.8rem;font-weight:700}.extension-nav-search input{width:100%}
+.extension-nav-list{display:grid;gap:12px;min-height:0;overflow-y:auto;padding-right:2px}
+.extension-nav-heading{margin:0 0 4px;color:var(--eyebrow);font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.extension-nav-group ul{display:grid;gap:2px;list-style:none;margin:0;padding:0}
+.extension-nav-item{box-shadow:none;display:flex;align-items:center;gap:9px;width:100%;min-height:34px;padding:6px 9px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--text);font-weight:600;text-align:left}
+.extension-nav-item:hover{background:var(--panel);transform:none}.extension-nav-item.is-selected{border-color:color-mix(in srgb,var(--accent) 55%,var(--border));background:color-mix(in srgb,var(--panel) 85%,var(--accent) 15%)}
+.extension-nav-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-dot{flex:0 0 auto;width:9px;height:9px;border-radius:50%;background:var(--muted)}.status-dot.dot-status-ready{background:#2fa776}.status-dot.dot-status-warning{background:#e09a2b}
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.addon-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:0 24px 14px;padding:4px;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.addon-tab{box-shadow:none;flex:1 1 auto;min-height:36px;padding:7px 14px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:700}
+.addon-tab:hover{background:transparent;color:var(--text);transform:none}.addon-tab[aria-selected="true"],.addon-tab[aria-selected="true"]:hover{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 50%,var(--border))}
+.addon-tab-panel{padding-bottom:20px}.addon-tab-panel[hidden]{display:none}
+@media(max-width:980px){.extension-workspace{grid-template-columns:1fr}.extension-nav{position:static;max-height:none}.extension-nav-list{max-height:260px}}
+@media(max-width:620px){.selected-extension-area>.catalog-heading{align-items:stretch}.selected-extension-area .addon-jump{width:100%}.addon-tabs{margin:0 18px 12px}.addon-tab{flex-basis:40%}}
 .addon-card{padding:0;overflow:hidden;background:var(--surface);border-color:var(--border)}
 .addon-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:24px 24px 12px}
 .addon-card-header>div{min-width:0}.addon-card-header h3{display:flex;align-items:baseline;gap:8px;min-width:0;max-width:100%;margin:1px 0 4px;font-size:clamp(1.28rem,2.2vw,1.65rem);white-space:nowrap}.addon-card-header h3>span{min-width:0;overflow:hidden;text-overflow:ellipsis}.addon-card-header h3>small{flex:0 0 auto;color:var(--small);font-size:.72em}
