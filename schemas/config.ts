@@ -500,7 +500,7 @@ export const filtersSchema = z.object({
   }
 });
 
-export const SCENE_ROLE_VALUES = ['starting', 'live', 'break', 'ending'] as const;
+export const SCENE_ROLE_VALUES = ['starting', 'live', 'chatting', 'break', 'ending'] as const;
 export type SceneRole = (typeof SCENE_ROLE_VALUES)[number];
 const sceneRoleNameSchema = z.string().trim().max(200).refine((value) => !/[\p{Cc}]/u.test(value), 'Scene names cannot contain control characters.').default('');
 // The creator's own broadcast-app scene for each stream phase. Add-ons target a role (for example
@@ -508,6 +508,7 @@ const sceneRoleNameSchema = z.string().trim().max(200).refine((value) => !/[\p{C
 export const sceneRolesSchema = z.object({
   starting: sceneRoleNameSchema,
   live: sceneRoleNameSchema,
+  chatting: sceneRoleNameSchema,
   break: sceneRoleNameSchema,
   ending: sceneRoleNameSchema,
 }).strict();
@@ -594,7 +595,7 @@ const bridgeConfigObjectSchema = z
       position: 'bottom', maximumWidthPercent: 86, maximumLines: 3, animation: 'fade',
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
-    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', break: '', ending: '' }),
+    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', chatting: '', break: '', ending: '' }),
     streamerbot: z
       .object({
         enabled: z.boolean(),

@@ -141,6 +141,7 @@
   "sceneRoles": {
     "starting": "",
     "live": "",
+    "chatting": "",
     "break": "",
     "ending": ""
   },

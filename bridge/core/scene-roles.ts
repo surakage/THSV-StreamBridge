@@ -1,9 +1,9 @@
 import type { AddOnSceneRoleV2, AddOnScenesV2 } from '../contracts/v2/addon-capability.js';
 
-export const SCENE_ROLES: readonly AddOnSceneRoleV2[] = Object.freeze(['starting', 'live', 'break', 'ending']);
+export const SCENE_ROLES: readonly AddOnSceneRoleV2[] = Object.freeze(['starting', 'live', 'chatting', 'break', 'ending']);
 export type SceneRoleMap = Readonly<Partial<Record<AddOnSceneRoleV2, string>>>;
 
-const ROLE_TOKEN = /^role:\s*(starting|live|break|ending)$/iu;
+const ROLE_TOKEN = /^role:\s*(starting|live|chatting|break|ending)$/iu;
 // Leading emoji, symbols, variation selectors and joiners that creators put before scene names ("🔴 BRB").
 const LEADING_DECORATION = /^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}|\u{20E3}|\s)+/u;
 

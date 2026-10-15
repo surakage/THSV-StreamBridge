@@ -470,10 +470,11 @@ function renderAddOnField(name, schema, value, ui = {}) {
 // Scene roles: the creator maps each stream phase to one of their own scenes once, and add-on
 // settings that say "role:break" (the shipped defaults) follow that mapping.
 const SCENE_ROLE_FIELDS = [
-  ['starting', 'Starting scene', 'Shown before you go live, such as a Starting Soon countdown.'],
-  ['live', 'Main live scene', 'Your usual on-stream scene.'],
-  ['break', 'Break scene', 'Your be-right-back scene. Break timers switch here and clips play here.'],
-  ['ending', 'Ending scene', 'Your end-of-stream scene. Stream limits switch here, clips play here, and auto-raid can start here.'],
+  ['starting', 'Starting scene', 'Before you go live, e.g. a Starting Soon countdown.'],
+  ['live', 'Main live scene', 'Your usual on-stream scene, e.g. Gameplay.'],
+  ['chatting', 'Just Chatting scene', 'Your talking or camera scene, if separate from the main one.'],
+  ['break', 'Break scene', 'Be right back. Break timers switch here and clips play here.'],
+  ['ending', 'Ending scene', 'End of stream. Stream limits, clips and auto-raid use it.'],
 ];
 function savedSceneRoles() {
   const staged = (state.draft?.stagedChanges || []).filter((change) => change.kind === 'scene-roles').pop();
@@ -482,7 +483,8 @@ function savedSceneRoles() {
 function renderSceneRoles() {
   const form = byId('scene-roles-form'); if (!form) return;
   const roles = savedSceneRoles();
-  form.querySelector('[data-scene-role-fields]').innerHTML = SCENE_ROLE_FIELDS.map(([role, label, help]) => renderSceneNamePicker(role, safe(label), roles[role] || '', `<small>${safe(help)} Leave blank if you do not use one.</small>`, { noRoles: true })).join('');
+  form.querySelector('[data-scene-role-fields]').innerHTML = SCENE_ROLE_FIELDS.map(([role, label, help]) => renderSceneNamePicker(role, safe(label), roles[role] || '', `<small>${safe(help)}</small>`, { noRoles: true, compact: true })).join('');
+  const actions = form.querySelector('[data-scene-role-actions]'); if (actions && !actions.childElementCount) actions.innerHTML = '<button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button><small>Pick each scene from OBS or type its exact name. Leave a role blank if you do not use it.</small>';
   attachSceneCatalogPickers(form); populateSceneCatalogControls(form);
 }
 byId('scene-roles-form')?.addEventListener('submit', async (event) => {
@@ -522,6 +524,8 @@ function renderSceneListPicker(name, label, value, help) {
 }
 function renderSceneNamePicker(name, label, value, help, ui) {
   const detectedOnly = ui.requireDetected === true;
+  // Compact pickers (Scene roles) share one Refresh button and drop the per-field filter and status.
+  if (ui.compact === true) return `<fieldset class="scene-name-picker compact" data-scene-name-picker><legend>${label}</legend><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions("obs", value ?? "", "", false, ui.noRoles !== true)}</select></label><label>Exact scene name<input name="${safe(name)}" type="text" value="${safe(value ?? "")}" maxlength="500" data-scene-name-input data-provider-field=""></label>${help}</fieldset>`;
   const selectAttributes = detectedOnly ? ` name="${safe(name)}" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"` : '';
   const manual = detectedOnly ? '' : `<label>Exact scene name<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="500" data-scene-name-input data-provider-field="${safe(ui.providerField || '')}"></label>`;
   const status = detectedOnly ? 'Choose a scene detected from the connected broadcast app. Refreshing never changes the active scene.' : 'Select a categorized exact name above, or keep the manual value for a scene that has not been observed yet. Decorative separators are hidden.';

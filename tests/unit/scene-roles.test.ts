@@ -29,6 +29,18 @@ describe('scene roles', () => {
     expect(sceneMatchKey('🔴')).toBe('🔴');
   });
 
+  it('keeps a Just Chatting scene separate from the main live scene', async () => {
+    const scenes = createSceneRoles(() => ({ live: '🔴 Gameplay', chatting: '🔴 Just Chatting' }));
+    expect(scenes.resolve('role:chatting')).toBe('🔴 Just Chatting');
+    expect(scenes.resolve('role:live')).toBe('🔴 Gameplay');
+    expect(scenes.roleOf('Just Chatting')).toBe('chatting');
+    expect(scenes.roleOf('🟠 Gameplay')).toBe('live');
+    expect(sceneRoleToken('role:Chatting')).toBe('chatting');
+    const wizard = await readFile('wizard/browser/addons.js', 'utf8');
+    expect(wizard).toContain("['chatting', 'Just Chatting scene'");
+    expect(wizard).toContain('compact: true');
+  });
+
   it('expands role tokens and leaves exact scene names unchanged', () => {
     const scenes = createSceneRoles(() => ({ break: 'BRB' }));
     expect(scenes.resolve('role:break')).toBe('BRB');
@@ -61,10 +73,10 @@ describe('scene roles', () => {
     const config = await testConfig();
     const withoutRoles: Record<string, unknown> = { ...config };
     delete withoutRoles['sceneRoles'];
-    expect(bridgeConfigSchema.parse(withoutRoles).sceneRoles).toEqual({ starting: '', live: '', break: '', ending: '' });
-    expect(bridgeConfigSchema.parse({ ...config, sceneRoles: { ...ROLES } }).sceneRoles).toEqual(ROLES);
+    expect(bridgeConfigSchema.parse(withoutRoles).sceneRoles).toEqual({ starting: '', live: '', chatting: '', break: '', ending: '' });
+    expect(bridgeConfigSchema.parse({ ...config, sceneRoles: { ...ROLES } }).sceneRoles).toEqual({ ...ROLES, chatting: '' });
     const example = JSON.parse(await readFile('config/bridge.example.json', 'utf8')) as { sceneRoles: unknown };
-    expect(example.sceneRoles).toEqual({ starting: '', live: '', break: '', ending: '' });
+    expect(example.sceneRoles).toEqual({ starting: '', live: '', chatting: '', break: '', ending: '' });
   });
 });
 
@@ -80,7 +92,7 @@ describe('add-on scene defaults follow scene roles', () => {
     expect(await schemaDefaults('stream-session-guard')).toMatchObject({ breakSceneName: 'role:break', endingSceneName: 'role:ending' });
     expect((await schemaDefaults('raid-scout'))['autoStartSceneName']).toBe('role:ending');
     const mappings = ((await schemaDefaults('scene-actions'))['mappings'] as string[]).map((entry) => (JSON.parse(entry) as { sceneName: string }).sceneName);
-    expect(mappings).toEqual(['role:starting', 'role:live', 'role:break', 'role:ending']);
+    expect(mappings).toEqual(['role:starting', 'role:chatting', 'role:break', 'role:ending']);
     for (const folder of ['random-clip-player', 'starting-soon-countdown', 'stream-session-guard', 'raid-scout', 'scene-actions']) {
       const source = await readFile(`addons/${folder}/dist/index.js`, 'utf8');
       expect(source, folder).not.toMatch(/'BRB'|'Stream Ending'|'Starting Soon'|\[🔴🟠\]/u);
