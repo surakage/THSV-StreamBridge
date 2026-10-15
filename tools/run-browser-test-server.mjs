@@ -35,4 +35,9 @@ process.env.THSV_STREAMBRIDGE_CONTROL_TOKEN = 'playwright-control-token-with-32-
 process.env.THSV_STREAMBRIDGE_DATA_ROOT = directory;
 process.env.THSV_STREAMBRIDGE_ADDONS_ROOT = join(directory, 'addons', 'packages');
 process.env.THSV_STREAMBRIDGE_ADDON_STATE_ROOT = join(directory, 'addons', 'state');
+// Never let a disposable test Bridge reach the creator's real broadcast app. Each test
+// starts its own Bridge, so on a streaming PC a full run would otherwise open hundreds
+// of scene queries against the live OBS WebSocket. Port 1 on loopback refuses at once.
+process.env.THSV_OBS_WEBSOCKET_URL = 'ws://127.0.0.1:1';
+for (const name of ['THSV_OBS_WEBSOCKET_PASSWORD', 'THSV_MELD_WEBSOCKET_URL', 'THSV_STREAMLABS_REMOTE_TOKEN', 'THSV_STREAMLABS_WEBSOCKET_URL']) delete process.env[name];
 await import('../dist/apps/bridge-service.js');
