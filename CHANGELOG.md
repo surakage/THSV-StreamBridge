@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [4.0.16] - 2026-10-15
 
 - Bridge updates is now the first card on the Overview page, so the update check is easy to find.
 - Added TikTok LIVE Studio to the optional programs StreamBridge can start with your streaming tools (Streamer.bot page). Choose `TikTok LIVE Studio Launcher.exe`; an already-open TikTok LIVE Studio from the same install folder is recognised instead of started twice.
