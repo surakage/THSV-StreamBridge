@@ -61,6 +61,20 @@ describe('ReleaseUpdateService', () => {
     ]);
   });
 
+  it('explains a GitHub rate limit instead of showing a bare HTTP 403', async () => {
+    const reset = Math.floor(Date.now() / 1_000) + 1_800;
+    const request = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('temporarily unavailable', { status: 503 }))
+      .mockResolvedValueOnce(new Response('{}', { status: 403, headers: { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(reset) } }));
+    const status = await new ReleaseUpdateService('2.0.0', undefined, request).check(true);
+    expect(status).toMatchObject({ available: false, error: expect.stringContaining("GitHub's hourly limit for update checks was reached") as unknown });
+    expect(status.error).toContain(new Date(reset * 1_000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+    const forbidden = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('temporarily unavailable', { status: 503 }))
+      .mockResolvedValueOnce(new Response('{}', { status: 403 }));
+    await expect(new ReleaseUpdateService('2.0.0', undefined, forbidden).check(true)).resolves.toMatchObject({ error: 'GitHub release check returned HTTP 403.' });
+  });
+
   it('fails closed for untrusted asset URLs and network failures', async () => {
     const untrusted = vi.fn<typeof fetch>().mockResolvedValue(response({
       tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0', draft: false, prerelease: false,

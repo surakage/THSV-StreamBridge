@@ -103,6 +103,18 @@ export interface GitHubProvenanceOptions {
   readonly cacheRoot: string;
 }
 
+// GitHub allows 60 unsigned API requests an hour per network, shared with every other app on it.
+// When that runs out, say so and when it resets instead of showing a bare HTTP 403.
+function githubFailure(response: Response, label: string): string {
+  const rateLimited = response.status === 429 || (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0');
+  if (!rateLimited) return `${label} returned HTTP ${String(response.status)}.`;
+  const reset = Number(response.headers.get('x-ratelimit-reset')) * 1_000;
+  const retryAfter = Number(response.headers.get('retry-after')) * 1_000;
+  const resumeAt = reset > 0 ? reset : retryAfter > 0 ? Date.now() + retryAfter : undefined;
+  const when = resumeAt === undefined ? 'in about an hour' : `after ${new Date(resumeAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  return `GitHub's hourly limit for update checks was reached on this network. Check again ${when}, or download the latest release from the GitHub releases page.`;
+}
+
 export class ReleaseUpdateService {
   private cachedStatus: ReleaseUpdateStatus | undefined;
 
@@ -304,11 +316,11 @@ export class ReleaseUpdateService {
       } catch { /* The official website is a discovery convenience; GitHub remains the fallback authority. */ }
     }
     const response = await this.fetchRelease(`https://api.github.com/repos/${this.repository}/releases/latest`, this.releaseRequestOptions());
-    if (!response.ok) throw new Error(`GitHub release check returned HTTP ${String(response.status)}.`);
+    if (!response.ok) throw new Error(githubFailure(response, 'GitHub release check'));
     const latest = await response.json() as GitHubRelease;
     if (isStableCoreRelease(latest)) return { release: latest, source: 'github' };
     const listingResponse = await this.fetchRelease(`https://api.github.com/repos/${this.repository}/releases?per_page=20`, this.releaseRequestOptions());
-    if (!listingResponse.ok) throw new Error(`GitHub release listing returned HTTP ${String(listingResponse.status)}.`);
+    if (!listingResponse.ok) throw new Error(githubFailure(listingResponse, 'GitHub release listing'));
     const listing = await listingResponse.json() as unknown;
     const release = Array.isArray(listing) ? listing.find((candidate): candidate is GitHubRelease => isStableCoreRelease(candidate)) : undefined;
     if (release === undefined) throw new Error('No public stable StreamBridge release was found in the latest GitHub releases.');
