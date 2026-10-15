@@ -114,6 +114,27 @@ describe('AddOnCapabilityBroker', () => {
     await expect(context.streamerbot.runApprovedAction(ACTION_ONE, Object.fromEntries(Array.from({ length: 51 }, (_, index) => [`key${String(index)}`, index])))).rejects.toThrow('at most 50 keys');
   });
 
+  it('reports a Streamer.bot outage once per add-on and logs when actions recover', async () => {
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const dispatch = vi.fn<(actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('Streamer.bot is unavailable'))
+      .mockRejectedValueOnce(new Error('Streamer.bot is unavailable'))
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('Action timed out'));
+    const broker = new AddOnCapabilityBroker(logger, await stateRoot(), { runStreamerBotAction: dispatch });
+    const context = broker.contextFor({ moduleId: 'sample.actions', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [ACTION_ONE] });
+    await expect(context.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toThrow('unavailable');
+    await expect(context.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toThrow('unavailable');
+    expect(logger.warn).toHaveBeenCalledOnce();
+    expect(logger.warn).toHaveBeenCalledWith('Add-on Streamer.bot actions are waiting for Streamer.bot to reconnect', expect.objectContaining({ moduleId: 'sample.actions' }));
+    expect(logger.debug).toHaveBeenCalledWith('Add-on Streamer.bot action skipped while Streamer.bot is unavailable', expect.objectContaining({ moduleId: 'sample.actions' }));
+    expect(logger.error).not.toHaveBeenCalled();
+    await context.streamerbot.runApprovedAction(ACTION_ONE);
+    expect(logger.info).toHaveBeenCalledWith('Add-on Streamer.bot actions are reaching Streamer.bot again', { moduleId: 'sample.actions' });
+    await expect(context.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toThrow('timed out');
+    expect(logger.error).toHaveBeenCalledWith('Add-on Streamer.bot action dispatch failed', expect.objectContaining({ moduleId: 'sample.actions' }));
+  });
+
   it('dispatches prepared action arguments without the original sensitive value and always disposes them', async () => {
     const dispose = vi.fn(async () => undefined);
     const dispatch = vi.fn<(actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>>().mockRejectedValue(new Error('dispatch failed'));
