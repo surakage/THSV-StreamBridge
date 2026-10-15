@@ -359,7 +359,7 @@ export interface CommunityAnalyticsSessionProjectionV1 {
 }
 
 /** A stream phase the creator maps to one of their own broadcast-app scenes in the setup wizard. */
-export type AddOnSceneRoleV2 = 'starting' | 'live' | 'break' | 'ending';
+export type AddOnSceneRoleV2 = 'starting' | 'live' | 'chatting' | 'break' | 'ending';
 
 /**
  * Read-only scene roles. Add-ons accept a scene setting such as "role:break" so shipped defaults
