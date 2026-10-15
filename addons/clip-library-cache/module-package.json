@@ -30,7 +30,9 @@
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
-      "addon.thsv.clip-library-cache.snapshot"
+      "addon.thsv.clip-library-cache.snapshot",
+      "stream.online",
+      "stream.offline"
     ],
     "commandsProvided": [],
     "actionsProvided": [
@@ -66,13 +68,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 5129,
-      "sha256": "7682ff22e973a1b20d164a9a13d5543dccba771e7cbf2eb5db944f1ad2ff4578"
+      "size": 5927,
+      "sha256": "0d2649814ce5b5f55e3dd0d9fb9edc383a7da38a088ab9af762a8cf19227cae2"
     },
     {
       "path": "schemas/config.json",
-      "size": 1060,
-      "sha256": "7616c38ed9eebf122eaa5b660e94144dd37d9212dc3b0388324b38f6ca45f604"
+      "size": 1164,
+      "sha256": "347a8cc4478b7d73f0a1819b1c5096dd0a85acbb0f8b3aca87ae19273c667bf7"
     },
     {
       "path": "ui/settings.json",
