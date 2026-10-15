@@ -2475,6 +2475,8 @@ byId('trusted-publisher-form').addEventListener('submit', async (event) => {
   } catch (error) { byId('addon-state').textContent = error.message; }
 });
 document.querySelector('[data-view="addons"]').addEventListener('click', loadAddOns);
+// The Add-ons page (optional packages and Scene roles) reads the same inventory, so opening it loads it too.
+document.querySelector('[data-view="addon-marketplace"]')?.addEventListener('click', loadAddOns);
 byId('refresh-viewer-foundation')?.addEventListener('click', loadViewerFoundation);
 document.querySelector('[data-view="viewer-foundation"]')?.addEventListener('click', loadViewerFoundation);
 byId('refresh-community-analytics')?.addEventListener('click', loadCommunityAnalytics);
@@ -2483,7 +2485,7 @@ document.querySelector('[data-view="alerts"]')?.addEventListener('click', loadKo
 // If navigation persistence restores the Add-ons page after a reload, authentication loads its
 // inventory without requiring the creator to leave the page and return.
 document.addEventListener('wizard:authenticated', () => {
-  if (document.querySelector('[data-view="addons"]').classList.contains('active')) void loadAddOns();
+  if (document.querySelector('[data-view="addons"]').classList.contains('active') || document.querySelector('[data-view="addon-marketplace"]')?.classList.contains('active')) void loadAddOns();
   if (document.querySelector('[data-view="viewer-foundation"]')?.classList.contains('active')) void loadViewerFoundation();
   if (document.querySelector('[data-view="community-analytics"]')?.classList.contains('active')) void loadCommunityAnalytics();
   if (document.querySelector('[data-view="alerts"]')?.classList.contains('active')) void loadKofiDonationsIntegration();
