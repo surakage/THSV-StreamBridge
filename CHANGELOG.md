@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+- Bridge updates is now the first card on the Overview page, so the update check is easy to find.
+- Added TikTok LIVE Studio to the optional programs StreamBridge can start with your streaming tools (Streamer.bot page). Choose `TikTok LIVE Studio Launcher.exe`; an already-open TikTok LIVE Studio from the same install folder is recognised instead of started twice.
+
 ## [4.0.15] - 2026-10-14
 
 - Added a Community name setting (Overview > Community) that add-ons use in viewer-facing text. Blank uses the broadcaster's channel name from live events, then "the community". Add-ons read it from the new `context.community.name`.

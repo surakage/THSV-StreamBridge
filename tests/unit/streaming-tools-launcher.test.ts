@@ -29,6 +29,30 @@ describe('one-button streaming tools launcher', () => {
     expect(results[0]?.detail).toContain('missing or invalid');
     expect(results[1]).toMatchObject({ application: 'OBS Studio', status: 'SUCCESS' });
   });
+  it('treats TikTok LIVE Studio running from inside its launcher folder as already open', async () => {
+    const source = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
+    const functions = source.slice(source.indexOf('async function startOptionalApplication('), source.indexOf('async function optionalApplicationCircuit('));
+    const helper = source.slice(source.indexOf('function isInsideFolder('), source.indexOf('async function isFile('));
+    const results: Array<{ application: string; status: string; detail: string }> = [];
+    const launcherPath = 'C:\\Program Files\\TikTok LIVE Studio\\TikTok LIVE Studio Launcher.exe';
+    let launched = 0;
+    const context = {
+      applicationResults: results, basename, isAbsolute, join, dirname: (path: string) => win32.dirname(path), relative: (from: string, to: string) => win32.relative(from, to), resolve: (path: string) => win32.resolve(path),
+      process: { env: {}, stdout: { write: () => undefined } },
+      isFile: async (path: string) => path === launcherPath,
+      optionalApplicationCircuit: async () => ({ open: false }),
+      processesNamed: () => [{ pid: 456, path: 'C:\\Program Files\\TikTok LIVE Studio\\1.36.6\\TikTok LIVE Studio.exe' }],
+      samePath: (left: string, right: string) => left.toLowerCase() === right.toLowerCase(),
+      launchDetached: async () => { launched += 1; return 1; },
+    };
+    await runInNewContext(`${functions}\n${helper}\n(async () => {
+      await startOptionalApplication('tiktokstudio', { optionalApps: { tiktokstudio: { enabled: true, executable: ${JSON.stringify(launcherPath)} } } });
+    })()`, context);
+    expect(results[0]).toMatchObject({ application: 'TikTok LIVE Studio', status: 'SUCCESS' });
+    expect(launched).toBe(0);
+    expect(source).toContain("startOptionalApplication('tiktokstudio', launcherConfig)");
+  });
+
   it('starts Streamer.bot, then Speaker.bot, makes the bridge ready, and opens enabled broadcast apps last', async () => {
     const source = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
     expect(source).toContain("join(launcherRoot, 'tray.ps1')");
