@@ -28,3 +28,9 @@ export function startStreamerBotSafely(options?: {
   readonly save?: boolean;
   readonly output?: NodeJS.WriteStream;
 }): Promise<SafeStartResult>;
+export type YouTubeChatLibraryRepair = 'repaired' | 'already-configured' | 'no-signed-copy' | 'shipped-copy-signed' | 'not-applicable';
+export function repairYouTubeChatLibrary(directory: string, options?: {
+  readonly output?: { write(message: string): unknown };
+  readonly inspectLibrary?: (path: string) => { readonly signed: boolean; readonly version: string };
+  readonly today?: Date;
+}): YouTubeChatLibraryRepair;
