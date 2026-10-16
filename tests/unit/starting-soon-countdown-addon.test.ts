@@ -89,6 +89,30 @@ describe('Stream Launch Countdown add-on', () => {
     expect(test.state()).toMatchObject({ remainingSeconds: 52, maximumSeconds: 60, running: true, visible: true, lastReason: 'start-resumed' });
   });
 
+  it('keeps a running countdown going when Studio Mode or a quick click briefly leaves the scene', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-16T01:50:00.000Z'));
+    const test = runtime(); await countdown.start(test.context);
+    const scene = (sceneName: string) => ({ eventType: 'stream.scene-changed', payload: { sceneName } });
+    await countdown.onEvent(scene('📁 Starting Soon'), test.context);
+    await countdown.onEvent({ eventType: 'stream.online', platform: 'twitch', payload: {} }, test.context);
+    await vi.advanceTimersByTimeAsync(12_000);
+    expect(applyElapsed(test.state()).state).toMatchObject({ remainingSeconds: 50, running: true });
+
+    await countdown.onEvent(scene('📁 Gaming'), test.context);
+    expect(test.state()).toMatchObject({ running: false, visible: false });
+    await vi.advanceTimersByTimeAsync(3_000);
+    await countdown.onEvent(scene('📁 Starting Soon'), test.context);
+    expect(test.state()).toMatchObject({ remainingSeconds: 47, maximumSeconds: 60, running: true, visible: true, waitingForLive: false, lastReason: 'scene-return-resumed' });
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(applyElapsed(test.state()).state.remainingSeconds).toBe(42);
+
+    // Returning after more than a minute away starts over, as before.
+    await countdown.onEvent(scene('📁 Gaming'), test.context);
+    await vi.advanceTimersByTimeAsync(61_000);
+    await countdown.onEvent(scene('📁 Starting Soon'), test.context);
+    expect(test.state()).toMatchObject({ remainingSeconds: 60, running: false, waitingForLive: true });
+  });
+
   it('uses Set & Start as the explicit running countdown override', async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2026-08-08T20:00:00.000Z'));
     const test = runtime(); await countdown.start(test.context);
