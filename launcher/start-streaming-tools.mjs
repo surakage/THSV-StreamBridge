@@ -304,6 +304,13 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     process.stdout.write(`${definition.label} is already running from the saved executable (PID ${String(selectedProcess.pid)}).\n`);
     return warnings;
   }
+  // Windows hides the location of an app running as administrator (TikTok LIVE Studio does), so it
+  // cannot be matched to the saved install. Treat it as already running instead of starting a second copy.
+  const hiddenProcess = existingProcesses.find((candidate) => typeof candidate.path !== 'string');
+  if (hiddenProcess !== undefined) {
+    process.stdout.write(`${definition.label} is already running (PID ${String(hiddenProcess.pid)}; it runs as administrator, so Windows does not report its location).\n`);
+    return warnings;
+  }
   const otherInstallations = existingProcesses.filter((candidate) => typeof candidate.path === 'string' && !isSaved(candidate));
   if (otherInstallations.length > 0) process.stdout.write(`A different ${definition.label} installation is running. Starting the exact saved executable: ${executable}\n`);
   let pid;
@@ -311,12 +318,21 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     pid = await launchDetached(executable);
     process.stdout.write(`Started optional app: ${definition.label}.\n`);
   } catch (error) {
+    // EACCES here means the app requires administrator rights. Opening it the way Explorer does lets
+    // Windows handle that; TikTok LIVE Studio's launcher works this way.
+    if (error?.code === 'EACCES' && await openWithShell(executable)) {
+      process.stdout.write(`Started optional app: ${definition.label} (it runs as administrator, so Windows opened it).\n`);
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
+      if (processesNamed(definition.processNames).length > 0) { await clearOptionalApplicationFailures(application); return warnings; }
+      // It may still be waiting on a Windows permission prompt; that is not a startup failure.
+      return [`${definition.label} was asked to open; if Windows showed a permission prompt, approve it there.`];
+    }
     await recordOptionalApplicationFailure(application, error instanceof Error ? error.message : String(error));
     return [`${definition.label} could not start (${error instanceof Error ? error.message : String(error)}).`];
   }
   process.stdout.write(`Allowing ${definition.label} to initialize before continuing.\n`);
   await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
-  const selectedNowRunning = processesNamed(definition.processNames).some(isSaved);
+  const selectedNowRunning = processesNamed(definition.processNames).some((candidate) => isSaved(candidate) || typeof candidate.path !== 'string');
   if (!isAlive(pid) && !selectedNowRunning) {
     await recordOptionalApplicationFailure(application, 'The process exited during its startup grace period.');
     const detail = otherInstallations.length > 0 ? ` A different installation remains open; reselect the intended executable in the Wizard if ${definition.label} is single-instance.` : '';
@@ -378,6 +394,16 @@ function startTrayShell() {
       process.stdout.write('THSV StreamBridge Tray is available.\n');
       resolveLaunch([]);
     });
+  });
+}
+
+/** Opens an executable through the Windows shell, like double-clicking it, which handles apps that require administrator rights. */
+function openWithShell(executable) {
+  return new Promise((resolveOpen) => {
+    const quote = (value) => `'${value.replaceAll("'", "''")}'`;
+    const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Start-Process -FilePath ${quote(executable)} -WorkingDirectory ${quote(dirname(executable))}`], { windowsHide: true, stdio: 'ignore' });
+    child.once('error', () => resolveOpen(false));
+    child.once('exit', (code) => resolveOpen(code === 0));
   });
 }
 
