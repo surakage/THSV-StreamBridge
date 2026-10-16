@@ -191,6 +191,7 @@ export class WizardService {
     private readonly logLifecyclePreview?: (input: unknown) => Promise<Readonly<Record<string, unknown>>>,
     private readonly logLifecycleApply?: (input: unknown) => Promise<Readonly<Record<string, unknown>>>,
     private readonly streamOutputHealthStatus?: () => Readonly<Record<string, unknown>>,
+    private readonly tiktokLiveReminderStatus?: () => Readonly<Record<string, unknown>>,
   ) {}
 
   public async previewLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -366,8 +367,9 @@ export class WizardService {
 
   public broadcastConnectionStatus(): Readonly<Record<string, unknown>> {
     const outputHealth = this.streamOutputHealthStatus?.();
-    if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false, ...(outputHealth === undefined ? {} : { outputHealth }) };
-    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, ...(outputHealth === undefined ? {} : { outputHealth }) };
+    const tiktokLiveReminder = this.tiktokLiveReminderStatus?.();
+    if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false, ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }) };
+    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }) };
   }
 
   public broadcastConnectionMetadataExport(): Readonly<Record<string, unknown>> {

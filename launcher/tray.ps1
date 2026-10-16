@@ -32,6 +32,8 @@ $script:lastBroadcastProcessSignature = $null
 $script:lastBroadcastLatencySignature = $null
 $script:lastBroadcastReliabilitySignature = $null
 $script:lastStreamOutputSignature = $null
+$script:lastTikTokReminderSignature = $null
+$script:lastBalloonLaunch = $null
 $script:lastScheduledPreflightSignature = $null
 $script:lastBalloonView = 'diagnostics'
 $script:lastBalloonFocus = 'connection-center-title'
@@ -110,6 +112,7 @@ function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolT
         default { @('diagnostics', 'connection-center-title') }
     }
     $script:lastBalloonView = $target[0]
+    $script:lastBalloonLaunch = $null
     $script:lastBalloonFocus = $target[1]
     $notify.BalloonTipTitle = $Title
     $notify.BalloonTipText = $Text
@@ -184,6 +187,15 @@ function Update-Status {
             Show-Balloon 'Stream output keeps dropping' "$labels keeps disconnecting and reconnecting. That platform may have ended your LIVE or rejected the stream key; get a new key there and restart that output." ([System.Windows.Forms.ToolTipIcon]::Error) 'stream-output'
         }
         $script:lastStreamOutputSignature = $outputSignature
+        $tiktokReminder = $broadcast.tiktokLiveReminder
+        $tiktokSignature = [string]$tiktokReminder.signature
+        if ($null -ne $script:lastTikTokReminderSignature -and $script:lastTikTokReminderSignature -ne $tiktokSignature -and -not [string]::IsNullOrWhiteSpace($tiktokSignature)) {
+            Show-Balloon ([string]$tiktokReminder.title) ([string]$tiktokReminder.text) ([System.Windows.Forms.ToolTipIcon]::Info) 'tiktok-studio'
+            # Clicking this reminder opens TikTok LIVE Studio; launching it again brings the running app forward.
+            $launchPath = [string]$tiktokReminder.launchPath
+            if (-not [string]::IsNullOrWhiteSpace($launchPath) -and (Test-Path -LiteralPath $launchPath -PathType Leaf)) { $script:lastBalloonLaunch = $launchPath }
+        }
+        $script:lastTikTokReminderSignature = $tiktokSignature
         $script:lastBroadcastProcessSignature = $processSignature
         $script:lastBroadcastLatencySignature = $latencySignature
         $script:lastBroadcastReliabilitySignature = $reliabilitySignature
@@ -274,6 +286,10 @@ $notify.Text = 'THSV StreamBridge - Checking status'
 $notify.ContextMenuStrip = $menu
 $notify.Visible = $true
 $notify.Add_BalloonTipClicked({
+    if (-not [string]::IsNullOrWhiteSpace($script:lastBalloonLaunch)) {
+        try { Start-Process -FilePath $script:lastBalloonLaunch; return }
+        catch { Write-TrayLog "Could not open TikTok LIVE Studio: $($_.Exception.Message)" }
+    }
     try { Start-Launcher 'open-wizard.mjs' @("--view=$($script:lastBalloonView)", "--focus=$($script:lastBalloonFocus)") }
     catch { Write-TrayLog "Could not open notification target: $($_.Exception.Message)" }
 })
