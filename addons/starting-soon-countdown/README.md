@@ -11,7 +11,7 @@ A creator-controlled launch countdown for a Starting Soon scene. Choose any dura
 5. Add the wizard's `/overlay/countdown` URL as a 1920x1080 browser source in OBS, Meld, or Streamlabs Desktop, then crop and position it as needed.
 6. Optional: create a triggerless Streamer.bot action that switches to your next scene, approve exactly that action in the add-on's wizard card, then enable **Run an approved Streamer.bot action at zero**.
 
-StreamBridge consumes the normalized program-scene event directly. Entering a configured scene starts or resumes the countdown; leaving it pauses and hides the overlay. OBS Studio Mode preview changes therefore do not reset the running program timer. The imported Start and Stop actions are manual fallbacks and need no OBS triggers.
+StreamBridge consumes the normalized program-scene event directly. Entering a configured scene starts or resumes the countdown; leaving it pauses and hides the overlay. OBS Studio Mode preview changes therefore do not reset the running program timer, and a running countdown keeps counting if you toggle Studio Mode or click another scene and come back within a minute. The imported Start and Stop actions are manual fallbacks and need no OBS triggers.
 
 ## Controls
 
