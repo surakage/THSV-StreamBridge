@@ -7,6 +7,10 @@ Add-Type -AssemblyName System.Drawing
 Add-Type -Namespace Thsv.Native -Name IconHandle -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("user32.dll")]
 public static extern bool DestroyIcon(System.IntPtr handle);
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+public static extern bool ShowWindowAsync(System.IntPtr handle, int command);
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+public static extern bool SetForegroundWindow(System.IntPtr handle);
 '@
 
 if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
@@ -32,6 +36,7 @@ $script:lastBroadcastProcessSignature = $null
 $script:lastBroadcastLatencySignature = $null
 $script:lastBroadcastReliabilitySignature = $null
 $script:lastStreamOutputSignature = $null
+$script:lastObsStreaming = $null
 $script:lastScheduledPreflightSignature = $null
 $script:lastBalloonView = 'diagnostics'
 $script:lastBalloonFocus = 'connection-center-title'
@@ -122,6 +127,19 @@ function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolT
     } catch { }
 }
 
+# TikTok LIVE Studio has no hotkey or API to go live or end a LIVE, so when OBS starts or stops
+# streaming the tray brings it to the front with a reminder. Nothing is clicked for the creator.
+function Show-TikTokLiveStudioReminder([bool]$Streaming) {
+    $studio = @(Get-Process -Name 'TikTok LIVE Studio' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [System.IntPtr]::Zero }) | Select-Object -First 1
+    if ($null -eq $studio) { return }
+    try { [void][Thsv.Native.IconHandle]::ShowWindowAsync($studio.MainWindowHandle, 9); [void][Thsv.Native.IconHandle]::SetForegroundWindow($studio.MainWindowHandle) } catch { }
+    if ($Streaming) {
+        Show-Balloon 'Start your TikTok LIVE' 'OBS is streaming. Click Go LIVE in TikTok LIVE Studio if you have not already.' ([System.Windows.Forms.ToolTipIcon]::Info) 'stream-output'
+    } else {
+        Show-Balloon 'End your TikTok LIVE' 'OBS stopped streaming. Click End LIVE in TikTok LIVE Studio to finish your TikTok LIVE.' ([System.Windows.Forms.ToolTipIcon]::Info) 'stream-output'
+    }
+}
+
 function Read-StartupReport {
     try {
         if (-not (Test-Path -LiteralPath $startupReportPath -PathType Leaf)) { return $null }
@@ -184,6 +202,11 @@ function Update-Status {
             Show-Balloon 'Stream output keeps dropping' "$labels keeps disconnecting and reconnecting. That platform may have ended your LIVE or rejected the stream key; get a new key there and restart that output." ([System.Windows.Forms.ToolTipIcon]::Error) 'stream-output'
         }
         $script:lastStreamOutputSignature = $outputSignature
+        if ($null -ne $broadcast.outputHealth.streaming) {
+            $obsStreaming = $broadcast.outputHealth.streaming -eq $true
+            if ($null -ne $script:lastObsStreaming -and $script:lastObsStreaming -ne $obsStreaming) { Show-TikTokLiveStudioReminder $obsStreaming }
+            $script:lastObsStreaming = $obsStreaming
+        }
         $script:lastBroadcastProcessSignature = $processSignature
         $script:lastBroadcastLatencySignature = $latencySignature
         $script:lastBroadcastReliabilitySignature = $reliabilitySignature

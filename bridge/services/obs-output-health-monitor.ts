@@ -81,6 +81,10 @@ export class ObsOutputHealthMonitor {
       intervalMs: this.options.intervalMs ?? DEFAULT_INTERVAL_MS,
       ...(this.lastSampleAt === undefined ? {} : { lastSampleAt: this.lastSampleAt }),
       ...(this.lastError === undefined ? {} : { lastError: this.lastError }),
+      // Whether any OBS streaming output is live, left out until OBS has been sampled so a bridge
+      // restart mid-stream is not mistaken for a stop. The tray uses it to remind the creator to
+      // start and end their LIVE in TikTok LIVE Studio, which has no hotkey or API for it.
+      ...(this.obsConnected ? { streaming: this.outputs.size > 0 } : {}),
       outputs,
       alerts,
       // The tray shows a notification whenever this changes to a non-empty value.

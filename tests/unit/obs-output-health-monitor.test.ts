@@ -15,7 +15,7 @@ function harness(options: { alertAfterDroppedSamples?: number; recoveryMs?: numb
   return {
     logger, monitor,
     async step(next: readonly ObsStreamOutputSample[] | undefined, advanceMs = 10_000) { now += advanceMs; samples = next; await monitor.tick(); },
-    status: () => monitor.status() as { alerts: { name: string; label: string }[]; signature: string; obsConnected: boolean },
+    status: () => monitor.status() as { alerts: { name: string; label: string }[]; signature: string; obsConnected: boolean; streaming?: boolean },
   };
 }
 
@@ -25,6 +25,18 @@ describe('ObsOutputHealthMonitor', () => {
     expect(streamOutputLabel('adv_stream')).toBe('Main stream');
     expect(streamOutputLabel('rtmp multitrack video')).toBe('Twitch Enhanced Broadcasting');
     expect(streamOutputLabel('Custom Output')).toBe('Custom Output');
+  });
+
+  it('reports whether OBS is streaming so the tray can remind about TikTok LIVE Studio', async () => {
+    const h = harness();
+    expect(h.status().streaming).toBeUndefined();
+    await h.step([{ name: 'adv_stream', reconnecting: false, durationMs: 5_000 }]);
+    expect(h.status().streaming).toBe(true);
+    await h.step([]);
+    expect(h.status().streaming).toBe(false);
+    await h.step([{ name: 'adv_stream', reconnecting: false, durationMs: 5_000 }]);
+    await h.step(undefined);
+    expect(h.status().streaming).toBeUndefined();
   });
 
   it('reports an output caught in a reconnect loop while the healthy outputs stay quiet', async () => {
