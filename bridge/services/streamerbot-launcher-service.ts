@@ -499,7 +499,9 @@ export class StreamerBotLauncherService {
       }
       const executableExists = await isFile(saved.executable);
       const isSaved = (path: string): boolean => samePath(path, saved.executable) || (metadata.sameInstallFolder === true && isInsideFolder(path, dirname(saved.executable)));
-      const runningProcess = namedProcesses.find((candidate) => candidate.path !== undefined && isSaved(candidate.path));
+      // A matching process whose location Windows hides (for example an app running as administrator)
+      // still counts as running; it cannot be told apart from the saved install.
+      const runningProcess = namedProcesses.find((candidate) => candidate.path !== undefined && isSaved(candidate.path)) ?? namedProcesses.find((candidate) => candidate.path === undefined);
       const differentInstallation = namedProcesses.find((candidate) => candidate.path !== undefined && !isSaved(candidate.path));
       const running = runningProcess !== undefined;
       const circuit = circuits[application];
@@ -599,13 +601,26 @@ async function processIdentity(run: ProcessProbeRunner, pid: number): Promise<Pr
     return { pid: value.pid, name: value.name ?? 'Unknown process', ...(typeof value.path === 'string' ? { path: value.path } : {}) };
   } catch { return undefined; }
 }
+/**
+ * Normalizes Get-Process JSON. Windows reports a null Path for a process this account cannot
+ * inspect, such as TikTok LIVE Studio running as administrator; such a process keeps its name and
+ * id but has no known location.
+ */
+function processIdentities(value: unknown): readonly ProcessIdentity[] {
+  return (Array.isArray(value) ? value : [value]).flatMap((item) => {
+    if (typeof item !== 'object' || item === null) return [];
+    const candidate = item as Record<string, unknown>;
+    const pid = candidate['pid']; const name = candidate['name']; const path = candidate['path'];
+    if (typeof pid !== 'number' || typeof name !== 'string') return [];
+    return [{ pid, name, ...(typeof path === 'string' && path.trim() !== '' ? { path } : {}) }];
+  });
+}
 async function streamerBotProcesses(run: ProcessProbeRunner): Promise<readonly ProcessIdentity[]> {
   try {
     const command = "@(Get-Process -Name 'Streamer.bot' -ErrorAction SilentlyContinue|ForEach-Object{[pscustomobject]@{pid=$_.Id;name=$_.ProcessName;path=$_.Path}})|ConvertTo-Json -Compress";
     const raw = (await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout: 5_000 })).trim();
     if (!raw) return [];
-    const value = JSON.parse(raw) as ProcessIdentity | ProcessIdentity[];
-    return Array.isArray(value) ? value : [value];
+    return processIdentities(JSON.parse(raw) as unknown);
   } catch { return []; }
 }
 
@@ -687,8 +702,7 @@ async function processesNamed(run: ProcessProbeRunner, names: readonly string[])
     const command = `@(${quoted}|ForEach-Object{Get-Process -Name $_ -ErrorAction SilentlyContinue}|Sort-Object Id -Unique|ForEach-Object{[pscustomobject]@{pid=$_.Id;name=$_.ProcessName;path=$_.Path}})|ConvertTo-Json -Compress`;
     const raw = (await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { timeout: 5_000 })).trim();
     if (!raw) return [];
-    const value = JSON.parse(raw) as ProcessIdentity | ProcessIdentity[];
-    return Array.isArray(value) ? value : [value];
+    return processIdentities(JSON.parse(raw) as unknown);
   } catch { return []; }
 }
 

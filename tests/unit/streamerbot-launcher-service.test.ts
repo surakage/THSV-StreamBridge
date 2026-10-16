@@ -151,6 +151,24 @@ describe('public Streamer.bot launcher configuration', () => {
     await expect(service.saveOptionalApplication('tiktokstudio', wrong, true)).rejects.toThrow('real TikTok LIVE Studio executable');
   });
 
+  it('treats an app whose location Windows hides (running as administrator) as running instead of failing', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-hidden-process-path-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data'); const portable = join(root, 'portable'); const studioRoot = join(root, 'TikTok LIVE Studio');
+    const streamerBot = join(portable, 'Streamer.bot.exe'); const studio = join(studioRoot, 'TikTok LIVE Studio Launcher.exe');
+    await mkdir(portable, { recursive: true }); await mkdir(studioRoot, { recursive: true });
+    await Promise.all([writeFile(streamerBot, 'streamerbot'), writeFile(studio, 'studio')]);
+    // Get-Process reports "path": null for a process this account cannot inspect.
+    const runner: ProcessProbeRunner = async (file, args) => (file === 'powershell.exe' && String(args.at(-1)).includes("'TikTok LIVE Studio'")
+      ? JSON.stringify([{ pid: 37924, name: 'TikTok LIVE Studio', path: null }, { pid: 37925, name: 'TikTok LIVE Studio', path: null }])
+      : '');
+    const service = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32', runner);
+    await service.save(streamerBot);
+    const status = await service.saveOptionalApplication('tiktokstudio', studio, true);
+    if (process.platform === 'win32') expect(status.optionalApps.tiktokstudio).toMatchObject({ running: true, processId: 37924, state: 'running' });
+    else expect(status.optionalApps.tiktokstudio).toMatchObject({ configured: true });
+    await expect(service.status()).resolves.toBeDefined();
+  });
+
   it('rejects missing files and misleading executable names', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-streamerbot-launcher-invalid-')); temporaryRoots.push(root);
     const service = windowsLauncher(join(root, 'data'));
