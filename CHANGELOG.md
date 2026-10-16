@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.22] - 2026-10-16
+
+- YouTube chat keeps working after Streamer.bot updates on PCs with Windows Smart App Control on. Streamer.bot 1.1.0 alpha builds ship an unsigned Google.Protobuf library that Smart App Control blocks, and every Streamer.bot update removes the fix that points it at a Google-signed copy. When StreamBridge starts Streamer.bot, it now puts that fix back first, after backing up Streamer.bot.exe.config, and notes it in the startup output. It only does this when a signed copy is in Streamer.bot's `dlls\google-protobuf-signed-<version>` folder, the shipped library is unsigned and the fix is missing; otherwise it changes nothing, and a failed check never stops Streamer.bot from starting.
+
 ## [4.0.21] - 2026-10-16
 
 - Automatic TikTok Go LIVE now works when OBS Virtual Camera is off when you start streaming. StreamBridge turns Virtual Camera on and now waits up to 5 seconds for OBS to report it running, instead of checking once right away, seeing it still off and falling back to the reminder. You no longer need to press Start Virtual Camera before Start Streaming.
