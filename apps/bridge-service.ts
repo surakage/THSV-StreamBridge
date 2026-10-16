@@ -47,6 +47,7 @@ import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerb
 import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
 import { ObsOutputHealthMonitor } from '../bridge/services/obs-output-health-monitor.js';
+import { TikTokLiveReminder } from '../bridge/services/tiktok-live-reminder.js';
 import { OperationalReliabilityService } from '../bridge/services/operational-reliability-service.js';
 import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } from '../bridge/services/broadcast-connection-vault-service.js';
 import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-connection-manager.js';
@@ -259,6 +260,9 @@ const operationalReliability = new OperationalReliabilityService({
 // Warns the creator when one platform output (for example TikTok in Aitum) keeps dropping while
 // the rest of the stream is healthy. Samples only over the already-open OBS socket.
 const obsOutputHealth = new ObsOutputHealthMonitor({ sample: () => obsDirectSceneClient.getStreamingOutputs(), logger });
+// TikTok LIVE Studio cannot be started or ended from outside, so the tray reminds the creator
+// to Go LIVE when OBS starts streaming and to End LIVE when it stops.
+const tiktokLiveReminder = new TikTokLiveReminder({ studio: async () => (await streamerBotLauncher.status()).optionalApps.tiktokstudio });
 const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
   query: () => obsDirectSceneClient.isStreaming(),
   // OBS StreamStateChanged events on the shared scene socket drive go-live and
@@ -266,6 +270,7 @@ const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
   subscribe: (onSignal) => obsDirectSceneClient.onStreamStateSignal(onSignal),
   intervalMs: 15_000,
   onStarted: async () => {
+    void tiktokLiveReminder.broadcastStarted();
     await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
     overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
     operationalReliability.recoverLiveSession(liveRecoveryPlatformIds);
@@ -273,6 +278,7 @@ const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
     await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-started-' + randomUUID(), eventType: 'system.broadcast-started', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStarted' }, receivedAt: new Date().toISOString(), channel: { name: 'OBS' }, payload: { provider: 'obs', sceneName: snapshot.currentScene }, metadata: { simulated: false } });
   },
   onStopped: async () => {
+    void tiktokLiveReminder.broadcastStopped();
     await activeBridge.endRecoveredLiveSession();
     overlayHub.endRecoveredLiveSession();
     await operationalReliability.endRecoveredLiveSession();
@@ -308,8 +314,10 @@ const wizard: WizardService = new WizardService(
   (input) => logLifecycleStatus.preview(input),
   (input) => logLifecycleStatus.applyAndPrune(input),
   () => obsOutputHealth.status(),
+  () => tiktokLiveReminder.status(),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
+activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
 activeBridge.subscribe((event) => operationalReliability.observe(event));
