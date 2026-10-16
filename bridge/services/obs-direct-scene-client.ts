@@ -47,6 +47,13 @@ export class ObsDirectSceneClient {
 
   public async isStreaming(): Promise<boolean> { return (await this.request('GetStreamStatus'))['outputActive'] === true; }
 
+  /** Turns OBS Virtual Camera on unless it already runs. Resolves true when it is running afterwards. */
+  public async ensureVirtualCamera(): Promise<boolean> {
+    if ((await this.request('GetVirtualCamStatus'))['outputActive'] === true) return true;
+    await this.request('StartVirtualCam');
+    return (await this.request('GetVirtualCamStatus'))['outputActive'] === true;
+  }
+
   /**
    * Active streaming outputs (the main stream and plugin outputs such as Aitum's per-platform
    * outputs) with their reconnect state. Reads only over the already-open subscribed socket, so
@@ -117,7 +124,7 @@ export class ObsDirectSceneClient {
     }
   }
 
-  private async request(requestType: 'GetSceneList' | 'GetStreamStatus'): Promise<Record<string, unknown>> {
+  private async request(requestType: 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam'): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType);

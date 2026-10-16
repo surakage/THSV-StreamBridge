@@ -7,6 +7,7 @@ import type {
   StreamerBotInspectionAuditEntry,
 } from '../adapters/streamerbot-adapter.js';
 import { WizardConfigurationError, type WizardConfigurationDraft, type WizardConfigurationExport, type WizardConfigurationGateway } from './wizard-configuration.js';
+import type { TikTokLiveAutomation } from './tiktok-live-automation.js';
 import { reconcileCommandSync, type CommandSyncStore } from './command-sync-store.js';
 import type { SyncedCommand } from '../contracts/v2/command-sync.js';
 import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
@@ -192,6 +193,7 @@ export class WizardService {
     private readonly logLifecycleApply?: (input: unknown) => Promise<Readonly<Record<string, unknown>>>,
     private readonly streamOutputHealthStatus?: () => Readonly<Record<string, unknown>>,
     private readonly tiktokLiveReminderStatus?: () => Readonly<Record<string, unknown>>,
+    private readonly tiktokLiveAutomation?: Pick<TikTokLiveAutomation, 'status' | 'setEnabled'>,
   ) {}
 
   public async previewLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -822,6 +824,17 @@ export class WizardService {
   public async restoreConfigurationBackup(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration restore is unavailable.');
     return this.configuration.restoreBackup(input);
+  }
+
+  public async tiktokLiveAutomationStatus(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.tiktokLiveAutomation === undefined) return { available: false };
+    return { available: true, ...await this.tiktokLiveAutomation.status() };
+  }
+
+  public async setTiktokLiveAutomation(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    if (this.tiktokLiveAutomation === undefined) throw new WizardTransactionError(503, 'TikTok LIVE Studio automation is unavailable in this installation.');
+    try { return { available: true, ...await this.tiktokLiveAutomation.setEnabled(input) }; }
+    catch (error) { throw new WizardTransactionError(400, error instanceof Error ? error.message : 'Invalid TikTok LIVE Studio automation setting.'); }
   }
 
   public async streamerBotLauncherStatus(): Promise<Readonly<Record<string, unknown>>> {

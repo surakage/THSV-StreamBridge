@@ -399,6 +399,15 @@ export class DiagnosticsServer {
         const body = await readBody(request, 512);
         return this.reply(response, 200, await this.wizard.chooseOptionalStreamingApplication(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/tiktok-live-automation' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.tiktokLiveAutomationStatus());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/tiktok-live-automation' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 256);
+        return this.reply(response, 200, await this.wizard.setTiktokLiveAutomation(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/streamerbot-launcher/optional/enable' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, 512);
