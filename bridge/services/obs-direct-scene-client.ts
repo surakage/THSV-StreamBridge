@@ -48,10 +48,17 @@ export class ObsDirectSceneClient {
   public async isStreaming(): Promise<boolean> { return (await this.request('GetStreamStatus'))['outputActive'] === true; }
 
   /** Turns OBS Virtual Camera on unless it already runs. Resolves true when it is running afterwards. */
-  public async ensureVirtualCamera(): Promise<boolean> {
+  public async ensureVirtualCamera(startTimeoutMs = 5_000): Promise<boolean> {
     if ((await this.request('GetVirtualCamStatus'))['outputActive'] === true) return true;
     await this.request('StartVirtualCam');
-    return (await this.request('GetVirtualCamStatus'))['outputActive'] === true;
+    // OBS answers StartVirtualCam before the output reports active (on the creator's PC by about
+    // 2 ms), so wait briefly for it instead of checking once.
+    const deadline = Date.now() + startTimeoutMs;
+    for (;;) {
+      if ((await this.request('GetVirtualCamStatus'))['outputActive'] === true) return true;
+      if (Date.now() >= deadline) return false;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
   }
 
   /**
