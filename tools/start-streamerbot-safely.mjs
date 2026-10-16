@@ -1,6 +1,6 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL, URL } from 'node:url';
@@ -119,6 +119,10 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
     listener = portListener(port);
     if (listener !== undefined) throw portConflict(port, listener, processDetails(listener.pid));
 
+    // Streamer.bot reads its .config only at startup, so a YouTube chat repair must land before launch.
+    try { repairYouTubeChatLibrary(dirname(exe), { output }); }
+    catch (error) { output.write(`YouTube chat library check skipped: ${error instanceof Error ? error.message : String(error)}\n`); }
+
     for (let attempt = 1; attempt <= START_ATTEMPTS; attempt += 1) {
       writeStreamerBotProgress(resolvedInstallRoot, startupStartedAt, startupRunId, 'starting-streamerbot', `Starting Streamer.bot (attempt ${String(attempt)} of ${String(START_ATTEMPTS)}).`, { attempt, port });
       const child = spawn(exe, [], { cwd: dirname(exe), detached: true, stdio: 'ignore', windowsHide: false });
@@ -171,6 +175,66 @@ class StreamerBotStartupExitError extends Error {
     super('Streamer.bot exited before its WebSocket server became ready. A retry was attempted; review the newest Streamer.bot log and Windows Application log for the underlying crash.');
     this.name = 'StreamerBotStartupExitError';
   }
+}
+
+/**
+ * Windows Smart App Control blocks unsigned DLLs. Streamer.bot 1.1.0-alpha builds ship an unsigned
+ * Google.Protobuf.dll, which its YouTube live chat needs, so YouTube chat silently fails on PCs with
+ * Smart App Control on. The fix is a binding redirect in Streamer.bot.exe.config to a Google-signed
+ * copy kept in dlls/google-protobuf-signed-<version>/. Every Streamer.bot update replaces that config,
+ * so this re-applies the redirect before launch. It changes nothing unless a signed copy is present,
+ * the shipped DLL is unsigned, and the config has no Google.Protobuf binding of its own; it backs the
+ * config up first.
+ */
+export function repairYouTubeChatLibrary(directory, { output = process.stdout, inspectLibrary = inspectLibraryWithPowerShell, today = new Date() } = {}) {
+  const configPath = join(directory, 'Streamer.bot.exe.config');
+  const shippedPath = join(directory, 'Google.Protobuf.dll');
+  if (!existsSync(configPath) || !existsSync(shippedPath)) return 'not-applicable';
+  const config = readFileSync(configPath, 'utf8');
+  if (/assemblyIdentity\s+name="Google\.Protobuf"/u.test(config)) return 'already-configured';
+  const signed = signedProtobufCopy(directory);
+  if (signed === undefined) return 'no-signed-copy';
+  const shipped = inspectLibrary(shippedPath);
+  if (shipped.signed) return 'shipped-copy-signed';
+  if (!/^\d+\.\d+\.\d+\.\d+$/u.test(shipped.version) || config.split('  </runtime>').length !== 2) return 'not-applicable';
+  const newline = config.includes('\r\n') ? '\r\n' : '\n';
+  const block = [
+    '    <!-- THSV: Windows Smart App Control blocks the unsigned Google.Protobuf shipped here, which',
+    `         stops YouTube chat. Use the Google-signed ${signed.version} copy instead. Undo: delete this block. -->`,
+    '    <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">',
+    '      <dependentAssembly>',
+    '        <assemblyIdentity name="Google.Protobuf" publicKeyToken="a7d26565bac4d604" culture="neutral" />',
+    `        <bindingRedirect oldVersion="0.0.0.0-${shipped.version}" newVersion="${signed.version}.0" />`,
+    `        <codeBase version="${signed.version}.0" href="dlls/${signed.folder}/Google.Protobuf.dll" />`,
+    '      </dependentAssembly>',
+    '    </assemblyBinding>',
+    '',
+  ].join(newline);
+  const backupPath = `${configPath}.before-thsv-youtube-chat-fix-${today.toISOString().slice(0, 10)}`;
+  if (!existsSync(backupPath)) writeFileSync(backupPath, config, 'utf8');
+  const temporary = `${configPath}.${randomUUID()}.tmp`;
+  writeFileSync(temporary, config.replace('  </runtime>', `${block}  </runtime>`), 'utf8');
+  renameSync(temporary, configPath);
+  output.write(`Re-applied the YouTube chat fix for Smart App Control: Streamer.bot now loads the Google-signed Google.Protobuf ${signed.version} (backup: ${basename(backupPath)}).\n`);
+  return 'repaired';
+}
+
+function signedProtobufCopy(directory) {
+  let folders;
+  try { folders = readdirSync(join(directory, 'dlls'), { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name); } catch { return undefined; }
+  const candidates = folders.flatMap((folder) => {
+    const match = /^google-protobuf-signed-(\d+)\.(\d+)\.(\d+)$/u.exec(folder);
+    return match !== null && existsSync(join(directory, 'dlls', folder, 'Google.Protobuf.dll')) ? [{ folder, version: `${match[1]}.${match[2]}.${match[3]}`, parts: match.slice(1, 4).map(Number) }] : [];
+  });
+  candidates.sort((left, right) => right.parts[0] - left.parts[0] || right.parts[1] - left.parts[1] || right.parts[2] - left.parts[2]);
+  return candidates[0];
+}
+
+function inspectLibraryWithPowerShell(path) {
+  const literal = path.replaceAll("'", "''");
+  const raw = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `$f=Get-Item -LiteralPath '${literal}'; [pscustomobject]@{signed=((Get-AuthenticodeSignature -LiteralPath '${literal}').Status -eq 'Valid'); version=[string]$f.VersionInfo.FileVersion}|ConvertTo-Json -Compress`], { encoding: 'utf8', windowsHide: true, timeout: 15_000 });
+  const value = JSON.parse(raw);
+  return { signed: value.signed === true, version: typeof value.version === 'string' ? value.version.trim() : '' };
 }
 
 function resolveStreamerBotExecutable(installRoot) {
