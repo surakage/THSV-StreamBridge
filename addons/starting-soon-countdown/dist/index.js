@@ -226,7 +226,7 @@ function schedule(context, settings, state) {
   cancelTimers(context);
   if (stopped) return;
   if (state.automaticStartAt > 0 && state.waitingForLive) {
-    liveStartTimer = context.schedule.after(Math.max(1, state.automaticStartAt - Date.now()), () => serialize(async () => {
+    liveStartTimer = context.schedule.after(Math.max(1_000, Math.ceil(state.automaticStartAt - Date.now())), () => serialize(async () => {
       const latest = sanitizeState(await context.state.read(), configuredDurationSeconds(settings));
       if (!latest.waitingForLive || latest.automaticStartAt === 0 || onlinePlatforms.size === 0 || !sceneShouldStart(currentSceneName, settings.automaticSceneNames)) return;
       await applyControl({ action: 'set-and-start', seconds: configuredDurationSeconds(settings) }, context);

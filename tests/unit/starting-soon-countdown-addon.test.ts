@@ -113,6 +113,21 @@ describe('Stream Launch Countdown add-on', () => {
     expect(test.state()).toMatchObject({ remainingSeconds: 60, running: false, waitingForLive: true });
   });
 
+  it('starts within a second when the scene is entered while already live, using the add-on timer minimum', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-16T01:54:00.000Z'));
+    const test = runtime();
+    // Add-on timers reject delays under one second, as the real capability broker does.
+    test.context.schedule.after = vi.fn((ms: number, callback: () => unknown) => { if (!Number.isInteger(ms) || ms < 1_000) throw new Error('Scheduled delays must be at least 1000 ms.'); return setTimeout(callback, ms); });
+    await countdown.start(test.context);
+    await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Gaming' } }, test.context);
+    await countdown.onEvent({ eventType: 'stream.online', platform: 'twitch', payload: {} }, test.context);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await countdown.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: '📁 Starting Soon' } }, test.context);
+    expect(test.state()).toMatchObject({ remainingSeconds: 60, waitingForLive: true });
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(test.state()).toMatchObject({ remainingSeconds: 60, running: true, waitingForLive: false });
+  });
+
   it('uses Set & Start as the explicit running countdown override', async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2026-08-08T20:00:00.000Z'));
     const test = runtime(); await countdown.start(test.context);
