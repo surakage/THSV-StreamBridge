@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.19] - 2026-10-16
+
+- Stream Launch Countdown no longer starts over and freezes at 5:00 when you toggle OBS Studio Mode (or click another scene and back) on the Starting scene. A countdown that was running keeps counting if you return to the Starting scene within a minute.
+- Fixed the countdown's go-live timer, which could be scheduled for less than the 1 second minimum and fail to fire.
+- TikTok LIVE Studio reminders: when OBS starts streaming and TikTok LIVE Studio is one of your optional programs, the StreamBridge tray reminds you to press Go LIVE in LIVE Studio (skipped if TikTok events are already coming in), and reminds you to end the TikTok LIVE when OBS stops. Clicking the reminder opens LIVE Studio.
+- Optional automatic Go LIVE and End LIVE in TikTok LIVE Studio together with OBS, using the same local control LIVE Studio offers its official Stream Deck plugin. Turn it on under Setup Wizard > Streamer.bot > TikTok LIVE Studio; it is off by default. StreamBridge turns on the OBS Virtual Camera, only presses Go LIVE when LIVE Studio is not live and only presses End LIVE when it is live, leaves a paused LIVE alone, and falls back to the reminder if anything fails. The last result is shown in the wizard.
+
 ## [4.0.18] - 2026-10-15
 
 - StreamBridge now warns you when one stream output keeps dropping. While you are live it checks every streaming output in OBS (the main stream, Twitch Enhanced Broadcasting and plugin outputs such as Aitum Stream Suite's TikTok, Kick and YouTube outputs) every 10 seconds. If one drops 3 times within 2 minutes, the StreamBridge tray shows a notification naming it, for example when TikTok has ended your LIVE and the stream key no longer works. A single network blip stays quiet, you get one notification per problem, and it clears after a minute of stable streaming or when you stop that output. It only uses StreamBridge's existing OBS connection.
