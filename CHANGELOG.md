@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.21] - 2026-10-16
+
+- Automatic TikTok Go LIVE now works when OBS Virtual Camera is off when you start streaming. StreamBridge turns Virtual Camera on and now waits up to 5 seconds for OBS to report it running, instead of checking once right away, seeing it still off and falling back to the reminder. You no longer need to press Start Virtual Camera before Start Streaming.
+
 ## [4.0.20] - 2026-10-16
 
 - Fixed "Internal bridge error" in the setup wizard (readiness check, Streamer.bot page and updates) while TikTok LIVE Studio or another optional program runs as administrator. Windows hides the location of such a program, and StreamBridge now treats it as running with an unknown location instead of failing. StreamBridge still sees it as running, so it does not open a second copy, and the TikTok LIVE Studio reminders and automatic Go LIVE / End LIVE work while LIVE Studio is open.
