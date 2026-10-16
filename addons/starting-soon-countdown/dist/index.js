@@ -226,7 +226,7 @@ function schedule(context, settings, state) {
   cancelTimers(context);
   if (stopped) return;
   if (state.automaticStartAt > 0 && state.waitingForLive) {
-    liveStartTimer = context.schedule.after(Math.max(1, state.automaticStartAt - Date.now()), () => serialize(async () => {
+    liveStartTimer = context.schedule.after(Math.max(1_000, Math.ceil(state.automaticStartAt - Date.now())), () => serialize(async () => {
       const latest = sanitizeState(await context.state.read(), configuredDurationSeconds(settings));
       if (!latest.waitingForLive || latest.automaticStartAt === 0 || onlinePlatforms.size === 0 || !sceneShouldStart(currentSceneName, settings.automaticSceneNames)) return;
       await applyControl({ action: 'set-and-start', seconds: configuredDurationSeconds(settings) }, context);
@@ -326,15 +326,34 @@ async function prepareAutomatic(context) {
   Object.assign(state, { remainingSeconds: configured, maximumSeconds: configured, running: false, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0, automaticStartAt: due, waitingForLive: true, updatedAt: now, lastReason: 'waiting-for-live' });
   await persist(context, settings, state);
 }
+// Toggling OBS Studio Mode, or a quick click on another scene and back, briefly leaves the
+// Starting scene. A countdown that was running when the scene was left keeps counting through
+// a return within this window instead of starting over.
+const SCENE_RETURN_RESUME_MS = 60_000;
+let sceneLeft;
+async function resumeAfterSceneReturn(context, left) {
+  const settings = settingsFor(context);
+  const elapsed = applyElapsed({ ...left.state, visible: true, lastReason: 'scene-return-resumed' });
+  await persist(context, settings, elapsed.state, elapsed.completedNow);
+}
 async function handleSceneChanged(event, context) {
   const settings = settingsFor(context);
   const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
   if (!cleanText(sceneName, 256)) return;
   const duplicate = normalizedSceneName(currentSceneName) === normalizedSceneName(sceneName);
+  const wasInAutomaticScene = currentSceneName !== '' && sceneShouldStart(currentSceneName, settings.automaticSceneNames);
   currentSceneName = cleanText(sceneName, 256);
   if (sceneShouldStart(sceneName, settings.automaticSceneNames)) {
-    if (!duplicate) await prepareAutomatic(context);
+    if (duplicate) return;
+    const left = sceneLeft; sceneLeft = undefined;
+    if (left !== undefined && Date.now() - left.at <= SCENE_RETURN_RESUME_MS) await resumeAfterSceneReturn(context, left);
+    else await prepareAutomatic(context);
   } else if (settings.stopOutsideAutomaticScenes !== false) {
+    if (wasInAutomaticScene) {
+      const configured = configuredDurationSeconds(settings);
+      const current = applyElapsed(initializeState(sanitizeState(await context.state.read(), configured), configured)).state;
+      sceneLeft = current.running && !current.completed && current.remainingSeconds > 0 ? { state: current, at: Date.now() } : undefined;
+    }
     await applyControl({ action: 'stop', seconds: 0 }, context);
   }
 }
@@ -342,7 +361,7 @@ async function handleSceneChanged(event, context) {
 export default {
   manifest, required: false,
   async start(context) {
-    stopped = false; operation = Promise.resolve(); currentSceneName = ''; onlinePlatforms.clear(); firstLiveAt = 0; tickBase = undefined;
+    stopped = false; operation = Promise.resolve(); currentSceneName = ''; sceneLeft = undefined; onlinePlatforms.clear(); firstLiveAt = 0; tickBase = undefined;
     const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
     const initial = initializeState(sanitizeState(await context.state.read(), configured), configured);
     // Re-establish the scene and actual platform live state before resuming automation.
