@@ -1676,13 +1676,43 @@ export function sceneKey(value) {
   const text = clean(value, 200).toLowerCase();
   return text.replace(/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}|\u{20E3}|\s)+/u, '') || text;
 }
+// Either color variant of the configured ending scene counts ("🔴 Ending Soon" and "🟠 Ending Soon").
+export function endingSceneMatches(sceneName, endingScene) {
+  return Boolean(sceneName) && Boolean(endingScene) && sceneKey(sceneName) === sceneKey(endingScene);
+}
+// A Studio Mode toggle or a preview flip can report the ending scene for a few milliseconds. The
+// ending flow (ad, raid, Stop Streaming) is irreversible, so it starts only when the ending scene is
+// still the current scene after this confirmation delay.
+export const ENDING_SCENE_CONFIRM_MS = 3_000;
+let lastSceneName = '';
+let endingSceneConfirmTask;
+function cancelEndingSceneConfirmation(context) {
+  if (endingSceneConfirmTask) context?.schedule?.cancel?.(endingSceneConfirmTask);
+  endingSceneConfirmTask = undefined;
+}
 
 async function handleSceneChanged(event, context, settings, state) {
   if (event.metadata?.simulated === true || !settings.autoStartSceneEnabled) return state;
   const provider = clean(event.payload?.provider, 30).toLowerCase();
   const sceneName = clean(event.payload?.sceneName, 200);
+  if (provider && provider !== settings.autoStartProvider) return state;
+  if (sceneName) lastSceneName = sceneName;
   const endingScene = resolveSceneSetting(settings.autoStartSceneName, context);
-  if ((provider && provider !== settings.autoStartProvider) || !sceneName || !endingScene || sceneKey(sceneName) !== sceneKey(endingScene)) return state;
+  if (!sceneName || !endingScene || !endingSceneMatches(sceneName, endingScene)) { cancelEndingSceneConfirmation(context); return state; }
+  // Confirm the ending scene stays on screen before the irreversible ending flow starts.
+  cancelEndingSceneConfirmation(context);
+  endingSceneConfirmTask = context.schedule.after(ENDING_SCENE_CONFIRM_MS, () => queueScheduledWork(async () => {
+    endingSceneConfirmTask = undefined;
+    const latestSettings = settingsFor(context);
+    if (stopped || !latestSettings.enabled || !latestSettings.autoStartSceneEnabled) return;
+    const latestEnding = resolveSceneSetting(latestSettings.autoStartSceneName, context);
+    if (!latestEnding || !endingSceneMatches(lastSceneName, latestEnding)) return;
+    await startEndingSceneFlow(context, latestSettings, sanitizeState(await context.state.read()));
+  }));
+  return state;
+}
+
+async function startEndingSceneFlow(context, settings, state) {
   if (!state.twitchLive) return startSceneFlowWithoutLiveSignal(context, settings, state);
   if (state.autoSceneStartedCycle === state.streamCycle || state.pending) return state;
 
@@ -1738,7 +1768,7 @@ const moduleDefinition = {
   required: false,
   async start(context) {
     cancelAdFailureEnd(context);
-    stopped = false; mediaLeaseId = undefined; activeAdEndsAt = 0; endingAdRequestedAt = 0; endingAdAttemptFailed = false; cancelControllerWatchdog(context); cancelBroadcastEndTasks(context);
+    stopped = false; lastSceneName = ''; cancelEndingSceneConfirmation(context); mediaLeaseId = undefined; activeAdEndsAt = 0; endingAdRequestedAt = 0; endingAdAttemptFailed = false; cancelControllerWatchdog(context); cancelBroadcastEndTasks(context);
     lifecycleUnsubscribe = context.overlay.onLifecycle((event) => { void handleOverlayLifecycle(event, context); });
     let state = sanitizeState(await context.state.read());
     if (state.pending?.operation === 'discover') {
@@ -1754,7 +1784,7 @@ const moduleDefinition = {
   async stop(context) {
     if (endingFlowWatchdogTask) context?.schedule?.cancel?.(endingFlowWatchdogTask); endingFlowWatchdogTask = undefined;
     cancelAdFailureEnd(context);
-    stopped = true; endingAdRequestedAt = 0; endingAdAttemptFailed = false; cancelProgress(context); cancelClipFallback(context); cancelControllerWatchdog(context); cancelBroadcastEndTasks(context); lifecycleUnsubscribe?.(); lifecycleUnsubscribe = undefined;
+    stopped = true; endingAdRequestedAt = 0; endingAdAttemptFailed = false; cancelEndingSceneConfirmation(context); cancelProgress(context); cancelClipFallback(context); cancelControllerWatchdog(context); cancelBroadcastEndTasks(context); lifecycleUnsubscribe?.(); lifecycleUnsubscribe = undefined;
     try { await context?.overlay?.publish?.('thsv.raid-scout.media.stop', { fade: true }); } catch { /* Optional overlay. */ }
     await releaseRaidMediaSlot(context);
     await eventQueue.catch(() => undefined);

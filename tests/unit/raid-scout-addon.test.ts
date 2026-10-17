@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import raidScout, { CONTROLLER_ACTION_ID, RAID_SCOUT_CONTROL_ACTION_IDS, filterCandidates, sanitizeState, selectCandidate } from '../../addons/raid-scout/dist/index.js';
+import raidScout, { CONTROLLER_ACTION_ID, ENDING_SCENE_CONFIRM_MS, RAID_SCOUT_CONTROL_ACTION_IDS, filterCandidates, sanitizeState, selectCandidate } from '../../addons/raid-scout/dist/index.js';
 import { readFileSync } from 'node:fs';
 
 const END_BROADCAST_ACTION_ID = '30c8f99d-884b-45f4-8840-cd384e7bddbe';
@@ -208,6 +208,16 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
   };
 }
 
+/** Mirrors ENDING_SCENE_CONFIRM_MS in the add-on (asserted below). */
+const SCENE_CONFIRM_MS = 3_000;
+
+/** Sends a scene change and lets the ending-scene confirmation delay pass, as when the scene stays on screen. */
+async function sceneChange(runtimeValue: ReturnType<typeof runtime>, event: Record<string, unknown>): Promise<void> {
+  await raidScout.onEvent(event, runtimeValue.context);
+  await runtimeValue.runDelay(SCENE_CONFIRM_MS);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 function control(action: string) {
   return {
     eventType: 'addon.thsv.raid-scout.control',
@@ -382,10 +392,29 @@ describe('Raid Scout add-on', () => {
     test.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
     await raidScout.start(test.context);
     await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, test.context);
-    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🟠 Ending Soon' }, metadata: { simulated: false } }, test.context);
+    await sceneChange(test, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🟠 Ending Soon' }, metadata: { simulated: false } });
     const calls = test.context.streamerbot.runApprovedAction.mock.calls;
     expect(calls[0]?.[0]).toBe(RUN_ENDING_AD_ACTION_ID);
     expect(calls[1]?.[0]).toBe(CONTROLLER_ACTION_ID);
+    expect(test.value().pending).toMatchObject({ operation: 'discover' });
+  });
+
+  it('ignores a momentary flicker to the ending scene, such as an OBS Studio Mode toggle', async () => {
+    expect(ENDING_SCENE_CONFIRM_MS).toBe(SCENE_CONFIRM_MS);
+    const test = runtime({ startMode: 'scene-change', autoStartSceneName: '🔴 Ending Soon', sceneStartAction: 'suggest-and-confirm', endBroadcastAdStart: 'search', endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastAcknowledged: true });
+    test.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
+    await raidScout.start(test.context);
+    await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, test.context);
+    // Oct 16, 7:52:53 PM: "🟠 Ending Soon" for 9 ms, then straight back to Starting Soon.
+    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🟠 Ending Soon' }, metadata: { simulated: false } }, test.context);
+    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🔴 Starting Soon' }, metadata: { simulated: false } }, test.context);
+    await test.runDelay(SCENE_CONFIRM_MS);
+    await test.runScheduled();
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(test.value().pending).toBeUndefined();
+    // Actually switching to the ending scene and staying there still starts the flow.
+    await sceneChange(test, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🔴 Ending Soon' }, metadata: { simulated: false } });
+    expect(test.context.streamerbot.runApprovedAction.mock.calls[0]?.[0]).toBe(RUN_ENDING_AD_ACTION_ID);
     expect(test.value().pending).toMatchObject({ operation: 'discover' });
   });
 
@@ -473,7 +502,7 @@ describe('Raid Scout add-on', () => {
     const testRuntime = runtime({ startMode: 'manual', autoStartSceneEnabled: true, autoStartSceneName: 'Ending Soon' });
     await raidScout.start(testRuntime.context);
     await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
-    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } }, testRuntime.context);
+    await sceneChange(testRuntime, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } });
     expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
     await raidScout.onEvent(control('suggest'), testRuntime.context);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
@@ -483,7 +512,7 @@ describe('Raid Scout add-on', () => {
     const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneEnabled: false, autoStartSceneName: 'Ending Soon' });
     await raidScout.start(testRuntime.context);
     await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
-    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } }, testRuntime.context);
+    await sceneChange(testRuntime, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } });
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
     expect(testRuntime.value().pending).toMatchObject({ autoConfirm: true });
   });
@@ -661,8 +690,8 @@ describe('Raid Scout add-on', () => {
     testRuntime.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
     await raidScout.start(testRuntime.context);
     const scene = { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } };
-    await raidScout.onEvent(scene, testRuntime.context);
-    await raidScout.onEvent(scene, testRuntime.context);
+    await sceneChange(testRuntime, scene);
+    await sceneChange(testRuntime, scene);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
     const pending = testRuntime.value().pending as { requestId: string };
     await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'discover', requestId: pending.requestId, success: true, broadcasterUserId: 'owner', broadcasterLogin: 'owner', candidates: [candidate('ending_target')] } }, testRuntime.context);
@@ -829,12 +858,12 @@ describe('Raid Scout add-on', () => {
     const testRuntime = runtime({ autoStartSceneEnabled: true, autoStartSceneName: '📁 Stream Ending' });
     await raidScout.start(testRuntime.context);
     await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
-    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Gameplay' }, metadata: { simulated: false } }, testRuntime.context);
+    await sceneChange(testRuntime, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Gameplay' }, metadata: { simulated: false } });
     expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
 
     const endingScene = { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '📁 Stream Ending' }, metadata: { simulated: false } };
-    await raidScout.onEvent(endingScene, testRuntime.context);
-    await raidScout.onEvent(endingScene, testRuntime.context);
+    await sceneChange(testRuntime, endingScene);
+    await sceneChange(testRuntime, endingScene);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
     expect(testRuntime.value()).toMatchObject({ twitchLive: true, streamCycle: 1, autoSceneStartedCycle: 1, pending: { operation: 'discover' } });
@@ -847,8 +876,8 @@ describe('Raid Scout add-on', () => {
     const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneName: 'Ending Soon' }, sanitizeState({ twitchLive: false, streamCycle: 4, autoSceneStartedCycle: 4 }) as Record<string, unknown>);
     await raidScout.start(testRuntime.context);
     const endingScene = { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } };
-    await raidScout.onEvent(endingScene, testRuntime.context);
-    await raidScout.onEvent(endingScene, testRuntime.context);
+    await sceneChange(testRuntime, endingScene);
+    await sceneChange(testRuntime, endingScene);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
     expect(testRuntime.value().pending).toMatchObject({ operation: 'discover', autoConfirm: true, liveCheck: true });
@@ -857,7 +886,7 @@ describe('Raid Scout add-on', () => {
     await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'discover', requestId: pending.requestId, success: true, broadcasterUserId: 'owner', broadcasterLogin: 'owner', broadcasterLive: true, candidates: [candidate('recovered_target')] } }, testRuntime.context);
     expect(testRuntime.value()).toMatchObject({ twitchLive: true, streamCycle: 5, autoSceneStartedCycle: 5 });
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid', raidScoutTargetLogin: 'recovered_target' }));
-    await raidScout.onEvent(endingScene, testRuntime.context);
+    await sceneChange(testRuntime, endingScene);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(2);
   });
 
@@ -869,7 +898,7 @@ describe('Raid Scout add-on', () => {
     const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneName: 'Ending Soon' }, sanitizeState({ twitchLive: false, streamCycle: 4 }) as Record<string, unknown>);
     await raidScout.start(testRuntime.context);
     const endingScene = { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } };
-    await raidScout.onEvent(endingScene, testRuntime.context);
+    await sceneChange(testRuntime, endingScene);
     const pending = testRuntime.value().pending as { requestId: string };
     await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'discover', requestId: pending.requestId, success: true, broadcasterUserId: 'owner', broadcasterLogin: 'owner', candidates: [candidate('target')], ...result } }, testRuntime.context);
     expect(testRuntime.value().pending).toBeUndefined();
@@ -879,7 +908,7 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.show', expect.objectContaining({ title: 'AUTO-RAID DID NOT RUN', text: expect.stringContaining('Finish Stream') }), { lane: 'foreground' });
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
     // Repeated scene-active signals do not loop the check; Finish Stream still works manually.
-    await raidScout.onEvent(endingScene, testRuntime.context);
+    await sceneChange(testRuntime, endingScene);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
     await raidScout.onEvent(control('finish'), testRuntime.context);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
@@ -896,9 +925,9 @@ describe('Raid Scout add-on', () => {
     const testRuntime = runtime({ autoStartSceneEnabled: true, autoStartProvider: 'meld', autoStartSceneName: 'Ending Soon' });
     await raidScout.start(testRuntime.context);
     await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
-    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } }, testRuntime.context);
+    await sceneChange(testRuntime, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: 'Ending Soon' }, metadata: { simulated: false } });
     expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
-    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'meld', sceneName: 'Ending Soon' }, metadata: { simulated: false } }, testRuntime.context);
+    await sceneChange(testRuntime, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'meld', sceneName: 'Ending Soon' }, metadata: { simulated: false } });
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
     expect(testRuntime.value()).toMatchObject({ autoSceneStartedCycle: 1, pending: { operation: 'discover' } });
   });
