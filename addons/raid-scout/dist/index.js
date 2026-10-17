@@ -1676,9 +1676,14 @@ export function sceneKey(value) {
   const text = clean(value, 200).toLowerCase();
   return text.replace(/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}|\u{20E3}|\s)+/u, '') || text;
 }
-// Either color variant of the configured ending scene counts ("🔴 Ending Soon" and "🟠 Ending Soon").
+// The configured ending scene matches an event scene. A configured name with its own leading emoji
+// ("🔴 Ending Soon") matches only that exact scene (ignoring case), so a differently marked scene such as
+// "🟠 Ending Soon" never starts the ending flow. A plain configured name still ignores leading emoji.
 export function endingSceneMatches(sceneName, endingScene) {
-  return Boolean(sceneName) && Boolean(endingScene) && sceneKey(sceneName) === sceneKey(endingScene);
+  const configured = clean(endingScene, 200).toLowerCase();
+  if (!sceneName || !configured) return false;
+  if (sceneKey(configured) !== configured) return clean(sceneName, 200).toLowerCase() === configured;
+  return sceneKey(sceneName) === configured;
 }
 // A Studio Mode toggle or a preview flip can report the ending scene for a few milliseconds. The
 // ending flow (ad, raid, Stop Streaming) is irreversible, so it starts only when the ending scene is

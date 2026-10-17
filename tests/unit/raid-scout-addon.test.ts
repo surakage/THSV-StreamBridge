@@ -387,12 +387,15 @@ describe('Raid Scout add-on', () => {
     await unarmed.runScheduled(); expect(stopCalls(unarmed)).toHaveLength(0);
   });
 
-  it('requests the ending ad on scene entry before searching, for either color variant', async () => {
+  it('requests the ending ad on scene entry before searching, only for the exact configured scene', async () => {
     const test = runtime({ startMode: 'scene-change', autoStartSceneName: '🔴 Ending Soon', sceneStartAction: 'suggest-and-confirm', endBroadcastAdStart: 'search', endBroadcastAfterRaid: true, endBroadcastActionId: END_BROADCAST_ACTION_ID, endBroadcastAcknowledged: true });
     test.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
     await raidScout.start(test.context);
     await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, test.context);
+    // A differently marked scene (🟠) never counts as the configured 🔴 ending scene.
     await sceneChange(test, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🟠 Ending Soon' }, metadata: { simulated: false } });
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    await sceneChange(test, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🔴 ending soon' }, metadata: { simulated: false } });
     const calls = test.context.streamerbot.runApprovedAction.mock.calls;
     expect(calls[0]?.[0]).toBe(RUN_ENDING_AD_ACTION_ID);
     expect(calls[1]?.[0]).toBe(CONTROLLER_ACTION_ID);
@@ -405,8 +408,8 @@ describe('Raid Scout add-on', () => {
     test.context.approvedActionIds.push(RUN_ENDING_AD_ACTION_ID, END_BROADCAST_ACTION_ID);
     await raidScout.start(test.context);
     await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, test.context);
-    // Oct 16, 7:52:53 PM: "🟠 Ending Soon" for 9 ms, then straight back to Starting Soon.
-    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🟠 Ending Soon' }, metadata: { simulated: false } }, test.context);
+    // A 9 ms blip of the ending scene (as on Oct 16, 7:52:53 PM), then straight back to Starting Soon.
+    await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🔴 Ending Soon' }, metadata: { simulated: false } }, test.context);
     await raidScout.onEvent({ eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'obs', sceneName: '🔴 Starting Soon' }, metadata: { simulated: false } }, test.context);
     await test.runDelay(SCENE_CONFIRM_MS);
     await test.runScheduled();
