@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.23] - 2026-10-17
+
+- Start THSV Streaming Tools no longer reports TikTok LIVE Studio as FAILED when it opens fine. LIVE Studio's launcher needs administrator rights, so Windows refused the direct start ("EACCES"); StreamBridge now opens it the way double-clicking does and reports success once it runs, or mentions a waiting Windows permission prompt instead of a failure. An already-open LIVE Studio is now recognised as running even though Windows hides where it runs from, so it is not started a second time.
+
 ## [4.0.22] - 2026-10-16
 
 - YouTube chat keeps working after Streamer.bot updates on PCs with Windows Smart App Control on. Streamer.bot 1.1.0 alpha builds ship an unsigned Google.Protobuf library that Smart App Control blocks, and every Streamer.bot update removes the fix that points it at a Google-signed copy. When StreamBridge starts Streamer.bot, it now puts that fix back first, after backing up Streamer.bot.exe.config, and notes it in the startup output. It only does this when a signed copy is in Streamer.bot's `dlls\google-protobuf-signed-<version>` folder, the shipped library is unsigned and the fix is missing; otherwise it changes nothing, and a failed check never stops Streamer.bot from starting.
