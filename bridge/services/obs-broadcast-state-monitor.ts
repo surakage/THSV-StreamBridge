@@ -12,6 +12,19 @@ export interface ObsBroadcastStateMonitorOptions {
    * `intervalMs` only acts as a slow fallback poll. Returns an unsubscribe.
    */
   readonly subscribe?: (onSignal: () => void) => () => void;
+  /**
+   * While streaming, OBS refusing connections for this long means OBS closed or crashed, so the
+   * stream is over even though OBS never reported stopping. Defaults to 30 seconds.
+   */
+  readonly closedAfterMs?: number;
+  readonly now?: () => number;
+}
+
+/** Nothing is listening on the OBS WebSocket port: OBS is not running. */
+function obsNotRunning(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  const message = error instanceof Error ? error.message : String(error);
+  return code === 'ECONNREFUSED' || /ECONNREFUSED/u.test(message);
 }
 
 export class ObsBroadcastStateMonitor {
@@ -25,6 +38,7 @@ export class ObsBroadcastStateMonitor {
   private lastAttemptAt: string | undefined;
   private lastSuccessAt: string | undefined;
   private lastError: string | undefined;
+  private unreachableSince: number | undefined;
 
   public constructor(private readonly options: ObsBroadcastStateMonitorOptions) {}
 
@@ -61,6 +75,7 @@ export class ObsBroadcastStateMonitor {
     this.lastAttemptAt = new Date().toISOString();
     try {
       const active = await this.options.query();
+      this.unreachableSince = undefined;
       this.unavailableLogged = false;
       this.attempts = 0;
       this.lastSuccessAt = new Date().toISOString();
@@ -74,6 +89,17 @@ export class ObsBroadcastStateMonitor {
     } catch (error) {
       this.attempts += 1;
       this.lastError = error instanceof Error ? error.message : String(error);
+      if (obsNotRunning(error)) {
+        const now = this.options.now?.() ?? Date.now();
+        this.unreachableSince ??= now;
+        if (this.state === 'active' && now - this.unreachableSince >= (this.options.closedAfterMs ?? 30_000)) {
+          // OBS crashed or was closed mid-stream: it will never report the stream stopping, so close the
+          // session here (TikTok LIVE, timed messages and live state all follow the normal stop path).
+          this.state = 'inactive';
+          this.options.logger.warn('OBS closed or crashed while streaming; treating the stream as ended', { unreachableForMs: now - this.unreachableSince });
+          await this.options.onStopped();
+        }
+      } else this.unreachableSince = undefined;
       if (!this.unavailableLogged) {
         this.options.logger.info('Direct OBS broadcast-state monitoring is temporarily unavailable; platform lifecycle signals remain active', { error });
         this.unavailableLogged = true;
