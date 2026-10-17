@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.25] - 2026-10-17
+
+- If OBS crashes or is closed while you are live, StreamBridge now treats the stream as ended once OBS has refused connections for 30 seconds: TikTok LIVE Studio ends, timed messages stop and the session closes, the same as a normal stop. Before, a crash left the session open, so TikTok LIVE stayed up and timed messages kept firing until OBS was reopened. Brief hiccups or a busy OBS do not count.
+- Raid Scout's "Stop All OBS Streaming Outputs" now stops outputs one at a time, waiting up to 5 seconds for each to finish, with OBS's main stream still last. Stopping several outputs that share one encoder at the same moment could crash OBS. Ending a stream takes a few seconds longer. Streamer.bot keeps its existing copy of this action until it is updated or re-imported.
+
 ## [4.0.24] - 2026-10-17
 
 - Raid Scout no longer ends the stream when a different scene is picked for a moment. A saved scene name that starts with an emoji now only matches that exact emoji, so "🟠 Ending Soon" no longer counts as "🔴 Ending Soon"; the same rule applies to the scene roles on the Add-ons page. Raid Scout also waits until the ending scene has stayed on screen for 3 seconds before it starts the ending ad, the raid and Stop Streaming, so a Studio Mode toggle or a mis-click is ignored. Saved names without an emoji still match any decorated variant.
