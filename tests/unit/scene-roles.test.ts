@@ -8,7 +8,7 @@ import sceneActions from '../../addons/scene-actions/dist/index.js';
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import { sceneKey } from '../../addons/raid-scout/dist/index.js';
 import { AddOnCapabilityBroker } from '../../bridge/core/addon-capability-broker.js';
-import { createSceneRoles, sceneMatchKey, sceneRoleToken, type SceneRoleMap } from '../../bridge/core/scene-roles.js';
+import { createSceneRoles, sceneMatchKey, sceneNamesMatch, sceneRoleToken, type SceneRoleMap } from '../../bridge/core/scene-roles.js';
 import { inspectSceneConfiguration } from '../../bridge/services/wizard-service.js';
 import type { WizardAddOnSummary } from '../../bridge/services/addon-wizard-service.js';
 import { bridgeConfigSchema } from '../../schemas/config.js';
@@ -17,12 +17,16 @@ import { silentLogger, testConfig } from '../helpers.js';
 const ROLES: SceneRoleMap = { starting: '📁 Starting Soon', live: 'Just Chatting', break: '🔴 Be Right Back', ending: 'Stream Ending' };
 
 describe('scene roles', () => {
-  it('maps roles to scenes and scenes back to roles, ignoring case, spaces and leading emoji', () => {
+  it('maps roles to scenes and scenes back to roles, ignoring case and spaces, and emoji only when the saved name has none', () => {
     const scenes = createSceneRoles(() => ROLES);
     expect(scenes.sceneFor('break')).toBe('🔴 Be Right Back');
     expect(scenes.roleOf('🔴 Be Right Back')).toBe('break');
-    expect(scenes.roleOf('  be right back ')).toBe('break');
+    expect(scenes.roleOf('  🔴 be right back ')).toBe('break');
+    expect(scenes.roleOf('be right back')).toBeUndefined();
     expect(scenes.roleOf('🟠 Stream Ending')).toBe('ending');
+    expect(scenes.roleOf('🟠 Be Right Back')).toBeUndefined();
+    expect(sceneNamesMatch('🔴 Be Right Back', '🔴 be right back')).toBe(true);
+    expect(sceneNamesMatch('🔴 Be Right Back', '🟠 Be Right Back')).toBe(false);
     expect(scenes.roleOf('Gameplay')).toBeUndefined();
     expect(scenes.roleOf('')).toBeUndefined();
     expect(sceneMatchKey('🔴🟠  BRB')).toBe('brb');
@@ -33,8 +37,8 @@ describe('scene roles', () => {
     const scenes = createSceneRoles(() => ({ live: '🔴 Gameplay', chatting: '🔴 Just Chatting' }));
     expect(scenes.resolve('role:chatting')).toBe('🔴 Just Chatting');
     expect(scenes.resolve('role:live')).toBe('🔴 Gameplay');
-    expect(scenes.roleOf('Just Chatting')).toBe('chatting');
-    expect(scenes.roleOf('🟠 Gameplay')).toBe('live');
+    expect(scenes.roleOf('🔴 Just Chatting')).toBe('chatting');
+    expect(scenes.roleOf('🟠 Gameplay')).toBeUndefined();
     expect(sceneRoleToken('role:Chatting')).toBe('chatting');
     const wizard = await readFile('wizard/browser/addons.js', 'utf8');
     expect(wizard).toContain("['chatting', 'Just Chatting scene'");
@@ -153,7 +157,7 @@ describe('add-on scene defaults follow scene roles', () => {
     expect(runApprovedAction).toHaveBeenCalledTimes(2);
   });
 
-  it('Raid Scout matches its ending scene ignoring any leading emoji, as it did for the old fixed prefixes', () => {
+  it('Raid Scout scene keys drop case and any leading emoji', () => {
     expect(sceneKey('🔴 Ending Soon')).toBe(sceneKey('Ending Soon'));
     expect(sceneKey('🟠 Ending Soon')).toBe('ending soon');
     expect(sceneKey('📁 Stream Ending')).toBe('stream ending');

@@ -1671,14 +1671,24 @@ function resolveSceneSetting(value, context) {
   if (!/^role:/iu.test(text)) return text;
   try { return typeof context?.scenes?.resolve === 'function' ? context.scenes.resolve(text) : ''; } catch { return ''; }
 }
-// Scene names match ignoring case and any leading emoji or symbols, such as "🔴 Ending".
+// Scene names match ignoring case. A saved scene that starts with an emoji ("🔴 Ending Soon") only matches that exact emoji, so a
+// look-alike such as "🟠 Ending Soon" never starts the ending flow.
+export function scenesMatch(saved, observed) {
+  const savedName = clean(saved, 200).toLowerCase();
+  const observedName = clean(observed, 200).toLowerCase();
+  if (!savedName || !observedName) return false;
+  if (sceneKey(savedName) !== savedName) return savedName === observedName;
+  return sceneKey(savedName) === sceneKey(observedName);
+}
+
+// Scene name without case or leading emoji ("🔴 Ending" becomes "ending").
 export function sceneKey(value) {
   const text = clean(value, 200).toLowerCase();
   return text.replace(/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}|\u{20E3}|\s)+/u, '') || text;
 }
-// Either color variant of the configured ending scene counts ("🔴 Ending Soon" and "🟠 Ending Soon").
+// Only the configured ending scene counts: "🔴 Ending Soon" matches itself, not "🟠 Ending Soon".
 export function endingSceneMatches(sceneName, endingScene) {
-  return Boolean(sceneName) && Boolean(endingScene) && sceneKey(sceneName) === sceneKey(endingScene);
+  return scenesMatch(endingScene, sceneName);
 }
 // A Studio Mode toggle or a preview flip can report the ending scene for a few milliseconds. The
 // ending flow (ad, raid, Stop Streaming) is irreversible, so it starts only when the ending scene is
