@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.24] - 2026-10-17
+
+- Raid Scout no longer ends the stream when a different scene is picked for a moment. A saved scene name that starts with an emoji now only matches that exact emoji, so "🟠 Ending Soon" no longer counts as "🔴 Ending Soon"; the same rule applies to the scene roles on the Add-ons page. Raid Scout also waits until the ending scene has stayed on screen for 3 seconds before it starts the ending ad, the raid and Stop Streaming, so a Studio Mode toggle or a mis-click is ignored. Saved names without an emoji still match any decorated variant.
+
 ## [4.0.23] - 2026-10-17
 
 - Start THSV Streaming Tools no longer reports TikTok LIVE Studio as FAILED when it opens fine. LIVE Studio's launcher needs administrator rights, so Windows refused the direct start ("EACCES"); StreamBridge now opens it the way double-clicking does and reports success once it runs, or mentions a waiting Windows permission prompt instead of a failure. An already-open LIVE Studio is now recognised as running even though Windows hides where it runs from, so it is not started a second time.
