@@ -34,6 +34,49 @@ describe('OBS broadcast state monitor', () => {
   });
 });
 
+describe('OBS broadcast state monitor when OBS crashes or closes mid-stream', () => {
+  const refused = (): Error => Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:4455'), { code: 'ECONNREFUSED' });
+
+  it('ends the stream once OBS has refused connections for 30 seconds while streaming', async () => {
+    vi.useFakeTimers();
+    let obs: 'live' | 'gone' | 'idle' = 'live';
+    const onStarted = vi.fn(async () => undefined); const onStopped = vi.fn(async () => undefined);
+    const monitor = new ObsBroadcastStateMonitor({ query: async () => { if (obs === 'gone') throw refused(); return obs === 'live'; }, onStarted, onStopped, logger: silentLogger, intervalMs: 15_000 });
+    await monitor.start();
+    expect(onStarted).toHaveBeenCalledOnce();
+    // Oct 17, 1:09:28 PM: OBS crashed while streaming and never reported stopping.
+    obs = 'gone';
+    await vi.advanceTimersByTimeAsync(15_000);
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(onStopped).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(onStopped).toHaveBeenCalledOnce();
+    // Still gone, then reopened without streaming: the session is not closed a second time.
+    await vi.advanceTimersByTimeAsync(30_000);
+    obs = 'idle'; await vi.advanceTimersByTimeAsync(15_000);
+    expect(onStopped).toHaveBeenCalledOnce();
+    expect(monitor.status()).toMatchObject({ state: 'inactive' });
+    monitor.stop();
+  });
+
+  it('keeps the stream when OBS is only briefly unreachable or the error is not "not running"', async () => {
+    vi.useFakeTimers();
+    let failure: Error | undefined;
+    const onStopped = vi.fn(async () => undefined);
+    const monitor = new ObsBroadcastStateMonitor({ query: async () => { if (failure) throw failure; return true; }, onStarted: async () => undefined, onStopped, logger: silentLogger, intervalMs: 15_000 });
+    await monitor.start();
+    failure = refused(); await vi.advanceTimersByTimeAsync(15_000);
+    failure = undefined; await vi.advanceTimersByTimeAsync(15_000);
+    failure = refused(); await vi.advanceTimersByTimeAsync(15_000);
+    failure = undefined; await vi.advanceTimersByTimeAsync(15_000);
+    // A timeout means OBS is still running (perhaps busy), so it never counts as closed.
+    failure = new Error('OBS WebSocket scene query timed out.');
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(onStopped).not.toHaveBeenCalled();
+    monitor.stop();
+  });
+});
+
 describe('OBS broadcast state monitor with push signals', () => {
   it('samples immediately on a stream-state signal, keeps the slow fallback poll, and does not drop a signal that arrives mid-sample', async () => {
     vi.useFakeTimers();

@@ -50,6 +50,10 @@ describe('Raid Scout package files', () => {
     expect(runEndingAd).toContain('Twitch Ads > Ad Run');
     expect(runEndingAd).toContain('ending-ad-request');
     expect(stopAllOutputs).toContain('GetOutputList');
+    // Outputs sharing an encoder are stopped one at a time; stopping them together crashed OBS.
+    expect(stopAllOutputs).toContain('WaitForSuiteOutputToStop(target, Environment.TickCount + PerOutputStopTimeoutMs);');
+    expect(stopAllOutputs).toContain('WaitForOutputToStopUntil(outputName, Environment.TickCount + PerOutputStopTimeoutMs);');
+    expect(stopAllOutputs.match(/Thread\.Sleep\(SequentialStopGapMs\)/gu)).toHaveLength(2);
     expect(stopAllOutputs).toContain('StopOutput');
     expect(stopAllOutputs).toContain('ObsOutputServiceFlag');
     expect(stopAllOutputs).toContain('aitum_multi_output_');

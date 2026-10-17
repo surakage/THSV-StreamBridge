@@ -12,6 +12,9 @@ using System.IO;
 public class CPHInline
 {
     private const int ObsOutputServiceFlag = 8;
+    // Outputs are stopped one at a time: wait up to this long for each to finish, then pause briefly.
+    private const int PerOutputStopTimeoutMs = 5000;
+    private const int SequentialStopGapMs = 750;
 
     public bool Execute()
     {
@@ -63,6 +66,9 @@ public class CPHInline
                         string stopResponse = CPH.ObsSendRaw("StopOutput", request);
                         EnsureRequestSucceeded(stopResponse, "StopOutput");
                         requestedPluginOutputs.Add(outputName);
+                        // One output at a time: outputs that share an encoder must not stop together.
+                        WaitForOutputToStopUntil(outputName, Environment.TickCount + PerOutputStopTimeoutMs);
+                        Thread.Sleep(SequentialStopGapMs);
                     }
                     catch (Exception error)
                     {
@@ -244,6 +250,23 @@ public class CPHInline
         if ((bool?)body["success"] != true) throw new InvalidOperationException("Stream Suite did not accept " + requestType + ".");
         return body;
     }
+    private void WaitForSuiteOutputToStop(string target, int deadline)
+    {
+        while (unchecked(Environment.TickCount - deadline) < 0)
+        {
+            try
+            {
+                bool stillActive = false;
+                foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"])
+                    if ((string)output["name"] == target && (bool?)output["active"] == true) stillActive = true;
+                if (!stillActive) return;
+            }
+            catch { return; }
+            Thread.Sleep(100);
+        }
+        CPH.LogWarn("THSV Stream Suite output '" + Bounded(target, 200) + "' had not stopped before the next one was stopped.");
+    }
+
     private JArray TrySuiteOutputs()
     {
         try { return SuiteRequest("get_outputs", new { })["outputs"] as JArray; }
@@ -266,7 +289,11 @@ public class CPHInline
         foreach (string target in targets)
         {
             try { SuiteRequest("stop_output", new { output = target }); }
-            catch { failed++; CPH.LogWarn("THSV Stream Suite could not dispatch one streaming-output stop."); }
+            catch { failed++; CPH.LogWarn("THSV Stream Suite could not dispatch one streaming-output stop."); continue; }
+            // Stopping several outputs that share one encoder at the same instant can crash OBS's
+            // encoder thread (seen on a creator PC on 2026-10-17). Let each finish before the next.
+            WaitForSuiteOutputToStop(target, Environment.TickCount + PerOutputStopTimeoutMs);
+            Thread.Sleep(SequentialStopGapMs);
         }
         int deadline = Environment.TickCount + 3000;
         int active = targets.Count;
