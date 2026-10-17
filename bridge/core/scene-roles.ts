@@ -18,6 +18,19 @@ export function sceneMatchKey(value: unknown): string {
   return (stripped || name).toLocaleLowerCase('en-US');
 }
 
+/**
+ * Whether an observed scene is the saved one. A saved name that starts with an emoji ("🔴 Ending Soon")
+ * only matches that exact emoji, so "🟠 Ending Soon" stays a different scene; a saved name without one
+ * still matches any decorated variant ("Ending Soon" matches "🔴 Ending Soon").
+ */
+export function sceneNamesMatch(saved: unknown, observed: unknown): boolean {
+  const savedName = clean(saved);
+  const observedName = clean(observed);
+  if (savedName === '' || observedName === '') return false;
+  if (LEADING_DECORATION.test(savedName)) return savedName.toLocaleLowerCase('en-US') === observedName.toLocaleLowerCase('en-US');
+  return sceneMatchKey(savedName) === sceneMatchKey(observedName);
+}
+
 /** The role named by a "role:<role>" setting value, if it is one. */
 export function sceneRoleToken(value: unknown): AddOnSceneRoleV2 | undefined {
   const match = ROLE_TOKEN.exec(clean(value));
@@ -32,10 +45,8 @@ export function createSceneRoles(read: () => SceneRoleMap | undefined): AddOnSce
   return Object.freeze({
     sceneFor,
     roleOf(sceneName: string): AddOnSceneRoleV2 | undefined {
-      const key = sceneMatchKey(sceneName);
-      if (key === '') return undefined;
       const roles = current();
-      return SCENE_ROLES.find((role) => clean(roles[role]) !== '' && sceneMatchKey(roles[role]) === key);
+      return SCENE_ROLES.find((role) => sceneNamesMatch(roles[role], sceneName));
     },
     resolve(value: string): string {
       const role = sceneRoleToken(value);
