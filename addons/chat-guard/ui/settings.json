@@ -1,6 +1,6 @@
 {
   "intro": "Beginner setup: turn on safe observation, select your platforms, add any words or domains you always want flagged, save, and test. Observation never moderates anyone. Automatic actions remain a separate optional step.",
-  "order": ["enabled", "enabledPlatforms", "blockedTerms", "blockedDomains", "detectLinks", "detectRepeatedMessages", "detectCaps", "detectRepeatedCharacters", "detectLongMessages", "exemptBroadcaster", "exemptModerators", "exemptVips", "exemptSubscribers", "enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "repeatOffenderTimeoutEnabled", "repeatOffenderThreshold", "repeatOffenderWindowSeconds", "repeatOffenderTimeoutSeconds", "allowedDomains", "maximumLinks", "minimumCapsLetters", "maximumCapsPercent", "maximumCharacterRun", "maximumMessageCharacters", "repeatWindowSeconds", "repeatMessageCount", "enforcementPlatforms", "enforcedRules", "minimumRuleMatches", "timeoutSeconds", "warningMessage", "maximumEnforcementsPerMinute", "perUserEnforcementCooldownSeconds", "ignoredAccounts", "includeSimulated", "retainedIncidents", "retentionHours", "maximumTrackedObservations"],
+  "order": ["enabled", "enabledPlatforms", "blockedTerms", "blockedDomains", "detectLinks", "detectRepeatedMessages", "detectCaps", "detectRepeatedCharacters", "detectLongMessages", "exemptBroadcaster", "exemptModerators", "exemptVips", "exemptSubscribers", "enforcementEnabled", "creatorApprovedEnforcement", "banTerms", "banPlatforms", "enforcementMode", "repeatOffenderTimeoutEnabled", "repeatOffenderThreshold", "repeatOffenderWindowSeconds", "repeatOffenderTimeoutSeconds", "allowedDomains", "maximumLinks", "minimumCapsLetters", "maximumCapsPercent", "maximumCharacterRun", "maximumMessageCharacters", "repeatWindowSeconds", "repeatMessageCount", "enforcementPlatforms", "enforcedRules", "minimumRuleMatches", "timeoutSeconds", "warningMessage", "maximumEnforcementsPerMinute", "perUserEnforcementCooldownSeconds", "ignoredAccounts", "includeSimulated", "retainedIncidents", "retentionHours", "maximumTrackedObservations"],
   "sections": [
     {
       "id": "quick-start",
@@ -29,7 +29,7 @@
       "id": "automatic-actions",
       "title": "4. Optional automatic action",
       "description": "Skip this section if you only want reports and rule testing.",
-      "fields": ["enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "repeatOffenderTimeoutEnabled", "repeatOffenderThreshold", "repeatOffenderWindowSeconds", "repeatOffenderTimeoutSeconds"],
+      "fields": ["enforcementEnabled", "creatorApprovedEnforcement", "enforcementMode", "banTerms", "banPlatforms", "repeatOffenderTimeoutEnabled", "repeatOffenderThreshold", "repeatOffenderWindowSeconds", "repeatOffenderTimeoutSeconds"],
       "notice": "Recommended live policy: Warn first, then suppress the third matched offender for ten minutes on every THSV overlay. Twitch, YouTube, and Kick also receive native timeouts; TikTok uses the local timeout because TikFinity exposes no native moderation action. Both approval switches must be on before Chat Guard can act."
     },
     {
@@ -57,6 +57,7 @@
   "fields": {
     "blockedTerms": { "rows": 5 },
     "blockedDomains": { "rows": 4 },
+    "banTerms": { "rows": 4 },
     "allowedDomains": { "rows": 4 },
     "ignoredAccounts": { "rows": 4 },
     "enforcementMode": { "labels": { "observe": "Observe only - no action", "warn": "Warn in the same platform chat", "delete": "Delete the message where supported", "timeout": "Temporarily time out the viewer", "ban": "Ban the viewer" } },

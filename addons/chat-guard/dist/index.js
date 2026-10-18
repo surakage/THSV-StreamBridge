@@ -14,7 +14,7 @@ const manifest = {
 };
 const FALLBACKS = Object.freeze({ enabled: false, includeSimulated: false, enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], ignoredAccounts: ['twitch|name:nightbot', 'twitch|name:streamelements', 'youtube|name:streamelements', 'kick|name:streamelements', 'twitch|name:fossabot', 'twitch|name:moobot', 'twitch|name:sery_bot', 'twitch|name:soundalerts', 'twitch|name:wizebot', 'twitch|name:kofistreambot', 'twitch|name:streamlabs', 'twitch|name:botrix', 'youtube|name:botrix', 'kick|name:botrix', 'tiktok|name:botrix', 'twitch|name:commanderroot', 'twitch|name:deepbot', 'twitch|name:phantombot', 'twitch|name:stay_hydrated_bot', 'twitch|name:coebot', 'twitch|name:pretzelrocks', 'twitch|name:streamavatars'], exemptBroadcaster: true, exemptModerators: true, exemptVips: true, exemptSubscribers: false,
   enforcementEnabled: false, creatorApprovedEnforcement: false, enforcementMode: 'observe', enforcementPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], enforcedRules: ['blocked-term', 'blocked-domain'], minimumRuleMatches: 1, timeoutSeconds: 60, warningMessage: 'Please keep chat safe and follow the channel rules.', maximumEnforcementsPerMinute: 5, perUserEnforcementCooldownSeconds: 60,
-  repeatOffenderTimeoutEnabled: true, repeatOffenderThreshold: 3, repeatOffenderWindowSeconds: 600, repeatOffenderTimeoutSeconds: 600,
+  repeatOffenderTimeoutEnabled: true, repeatOffenderThreshold: 3, repeatOffenderWindowSeconds: 600, repeatOffenderTimeoutSeconds: 600, banTerms: [], banPlatforms: ['kick'],
   blockedTerms: ['nigger', 'nigga', 'faggot', 'kike', 'wetback', 'tranny', 'chink', 'gook', 'spic', 'beaner', 'raghead', 'zipperhead', 'porch monkey', 'white power', 'heil hitler', 'gas the jews', 'kill yourself', 'go kill yourself', 'kys', 'rape you', 'dox you', 'swat you', 'child porn', 'crack', 'cocaine', 'crystal meth', 'meth', 'methamphetamine', 'heroin', 'fentanyl', 'oxycontin', 'oxycodone', 'mdma', 'ecstasy', 'molly', 'lsd', 'smoke weed', 'sell drugs', 'buy drugs', 'do drugs', 'want to become famous', 'buy followers', 'buy viewers', 'cheap viewers', 'get more viewers at', 'promote your channel at', 'grow your channel fast', 'best viewers on'], blockedDomains: ['bigfollows.com', 'streamboo.com', 'bestviewers.com', 'viewers.shop'], allowedDomains: [], detectLinks: true, maximumLinks: 2, detectCaps: true, minimumCapsLetters: 12, maximumCapsPercent: 80, detectRepeatedCharacters: true, maximumCharacterRun: 8,
   detectLongMessages: true, maximumMessageCharacters: 500, detectRepeatedMessages: true, repeatWindowSeconds: 30, repeatMessageCount: 3, retainedIncidents: 200, retentionHours: 24, maximumTrackedObservations: 500 });
 const PLATFORM = /^(twitch|youtube|kick|tiktok)$/u;
@@ -36,6 +36,8 @@ function settingsFor(context) {
     enforcementPlatforms: new Set(Array.isArray(raw.enforcementPlatforms) ? raw.enforcementPlatforms.filter((item) => PLATFORM.test(item)) : FALLBACKS.enforcementPlatforms),
     enforcedRules: new Set(Array.isArray(raw.enforcedRules) ? raw.enforcedRules.filter((item) => RULE.test(item)) : FALLBACKS.enforcedRules),
     ignoredAccounts: new Set(Array.isArray(raw.ignoredAccounts) ? raw.ignoredAccounts.map((item) => clean(item, 330).toLowerCase()).filter(Boolean).slice(0, 500) : []),
+    banTerms: Array.isArray(raw.banTerms) ? raw.banTerms.map((item) => clean(item, 80).toLocaleLowerCase()).filter(Boolean).slice(0, 100) : [],
+    banPlatforms: new Set(Array.isArray(raw.banPlatforms) ? raw.banPlatforms.filter((item) => item === 'twitch' || item === 'youtube' || item === 'kick') : FALLBACKS.banPlatforms),
     blockedTerms: Array.isArray(raw.blockedTerms) ? raw.blockedTerms.map((item) => clean(item, 80).toLocaleLowerCase()).filter(Boolean).slice(0, 100) : [],
     blockedDomains: Array.isArray(raw.blockedDomains) ? [...new Set(raw.blockedDomains.map(normalizeDomain).filter(Boolean))].slice(0, 200) : [],
     allowedDomains: Array.isArray(raw.allowedDomains) ? [...new Set(raw.allowedDomains.map(normalizeDomain).filter(Boolean))].slice(0, 200) : [],
@@ -73,17 +75,18 @@ function canEnforce(platform, mode, event) {
   return platform === 'twitch' || platform === 'youtube' || platform === 'kick';
 }
 async function enforceIncident(event, incident, context, settings, state, now) {
-  const baseMode = settings.enforcementMode;
+  const banListed = incident.rules.includes('ban-term') && settings.banPlatforms.has(event.platform);
+  const baseMode = banListed ? 'ban' : settings.enforcementMode;
   if (!settings.enforcementEnabled || !settings.creatorApprovedEnforcement || baseMode === 'observe' || incident.simulated) return 'none';
-  if (!settings.enforcementPlatforms.has(event.platform)) return 'not-selected';
+  if (!banListed && !settings.enforcementPlatforms.has(event.platform)) return 'not-selected';
   const actionableRules = incident.rules.filter((rule) => settings.enforcedRules.has(rule));
-  if (actionableRules.length < settings.minimumRuleMatches) return 'below-threshold';
+  if (!banListed && actionableRules.length < settings.minimumRuleMatches) return 'below-threshold';
   const repeatCutoff = now - settings.repeatOffenderWindowSeconds * 1000;
   const offenseCount = state.incidents.filter((item) => item.accountHash === incident.accountHash && item.at >= repeatCutoff && item.rules.some((rule) => settings.enforcedRules.has(rule))).length;
   const escalated = settings.repeatOffenderTimeoutEnabled && ['warn', 'delete'].includes(baseMode) && offenseCount >= settings.repeatOffenderThreshold;
   const mode = escalated ? 'timeout' : baseMode;
   const recent = state.enforcementResults.filter((item) => item.at >= now - 60_000 && item.status !== 'unsupported').length;
-  const sameViewerRecentlyEnforced = state.enforcementResults.some((item) => item.accountHash === incident.accountHash && item.at >= now - settings.perUserEnforcementCooldownSeconds * 1000 && item.status !== 'unsupported' && (!escalated || item.mode === 'timeout' || item.mode === 'ban'));
+  const sameViewerRecentlyEnforced = state.enforcementResults.some((item) => item.accountHash === incident.accountHash && item.at >= now - settings.perUserEnforcementCooldownSeconds * 1000 && item.status !== 'unsupported' && ((!escalated && !banListed) || item.mode === 'ban' || (!banListed && item.mode === 'timeout')));
   if (recent >= settings.maximumEnforcementsPerMinute || sameViewerRecentlyEnforced || (!escalated && !canEnforce(event.platform, mode, event))) { state.enforcementResults.push({ incidentId: incident.id, accountHash: incident.accountHash, at: now, platform: event.platform, mode, status: 'unsupported', error: recent >= settings.maximumEnforcementsPerMinute ? 'Per-minute enforcement cap reached.' : sameViewerRecentlyEnforced ? 'Per-viewer enforcement cooldown is active.' : 'Mode is unsupported for this platform or missing a stable message ID.' }); return 'unsupported'; }
   if (mode === 'warn') {
     const delivered = await context.chat.send({ message: settings.warningMessage, routing: 'source', sourcePlatform: event.platform, overflow: 'reject' });
@@ -145,6 +148,7 @@ function literalTermMatches(message, term) {
 function classify(message, previousMatches, settings) {
   const rules = [];
   const normalized = message.toLocaleLowerCase();
+  if (settings.banTerms.some((term) => literalTermMatches(normalized, term))) rules.push('ban-term');
   if (settings.blockedTerms.some((term) => literalTermMatches(normalized, term))) rules.push('blocked-term');
   const linkHosts = extractLinkHosts(message);
   if (settings.blockedDomains.some((domain) => linkHosts.some((host) => domainMatches(host, domain)))) rules.push('blocked-domain');
