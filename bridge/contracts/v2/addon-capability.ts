@@ -266,7 +266,7 @@ export type ViewerSpotlightAdminResultV1 = Readonly<Record<string, JsonValueV2>>
 
 export type ChatGuardAdminRequestV1 =
   | { readonly operation: 'status' }
-  | { readonly operation: 'incidents'; readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook'; readonly rule?: 'blocked-term' | 'blocked-domain' | 'unapproved-domain' | 'excessive-links' | 'excessive-caps' | 'repeated-characters' | 'long-message' | 'repeated-message'; readonly review?: 'unreviewed' | 'confirmed' | 'false-positive'; readonly enforcementStatus?: 'none' | 'dispatched' | 'succeeded' | 'failed' | 'unsupported'; readonly offset?: number; readonly limit?: number }
+  | { readonly operation: 'incidents'; readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook'; readonly rule?: 'ban-term' | 'blocked-term' | 'blocked-domain' | 'unapproved-domain' | 'excessive-links' | 'excessive-caps' | 'repeated-characters' | 'long-message' | 'repeated-message'; readonly review?: 'unreviewed' | 'confirmed' | 'false-positive'; readonly enforcementStatus?: 'none' | 'dispatched' | 'succeeded' | 'failed' | 'unsupported'; readonly offset?: number; readonly limit?: number }
   | { readonly operation: 'test'; readonly message: string; readonly priorMatchingMessages: number }
   | { readonly operation: 'trust-add'; readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook'; readonly userId: string; readonly label: string; readonly approvedByCreator: true }
   | { readonly operation: 'trust-remove'; readonly accountKey: string; readonly approvedByCreator: true }

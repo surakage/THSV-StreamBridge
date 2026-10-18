@@ -21,6 +21,15 @@ describe('Chat Guard add-on', () => {
     await expect(processChatGuardEvent(event('meth and crack', { eventId: 'whole-word-match' }), testRuntime.context, 2_000)).resolves.toMatchObject({ flagged: true, rules: ['blocked-term'] });
   });
 
+  it('flags the default Kick chatbot-ad spam phrases', async () => {
+    const testRuntime = runtime();
+    const kick = (message: string, eventId: string) => event(message, { eventId, platform: 'kick', user: { id: 'kick-bot', name: 'spam-bot', actorType: 'human', roles: [] } });
+    await expect(processChatGuardEvent(kick('Make your stream fire with "Bot Liva com" @1e7b5d', 'liva'), testRuntime.context, 1_000)).resolves.toMatchObject({ flagged: true, rules: ['blocked-term'] });
+    await expect(processChatGuardEvent(kick('With AI-powered chatbots, your chat stays active around the clock. (If you do not wish to receive any more messages, type !noads in the chat)', 'noads'), testRuntime.context, 2_000)).resolves.toMatchObject({ flagged: true, rules: expect.arrayContaining(['blocked-term']) });
+    await expect(processChatGuardEvent(kick('anyone know a good bot for chat?', 'ordinary-bot'), testRuntime.context, 3_000)).resolves.toMatchObject({ flagged: false });
+    await expect(processChatGuardEvent(kick('olivia commented on my clip', 'ordinary-name'), testRuntime.context, 4_000)).resolves.toMatchObject({ flagged: false });
+  });
+
   it('warns first and escalates a continuous repeat offender to one timeout', async () => {
     const testRuntime = runtime({ blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'warn', repeatOffenderTimeoutEnabled: true, repeatOffenderThreshold: 3, repeatOffenderWindowSeconds: 600, repeatOffenderTimeoutSeconds: 600, maximumEnforcementsPerMinute: 20, perUserEnforcementCooldownSeconds: 60 });
     await expect(processChatGuardEvent(event('flag once', { eventId: 'repeat-one', platform: 'youtube' }), testRuntime.context, 1_000)).resolves.toMatchObject({ enforcement: 'succeeded' });
@@ -29,6 +38,29 @@ describe('Chat Guard add-on', () => {
     expect(testRuntime.context.chat.send).toHaveBeenCalledTimes(1);
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledOnce();
     expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith('9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9', expect.objectContaining({ chatGuardPlatform: 'youtube', chatGuardMode: 'timeout', chatGuardTimeoutSeconds: 600, chatGuardReason: expect.stringContaining('repeat-offender') }));
+  });
+
+  it('bans spam-bot phrases on the selected platforms while the everyday mode stays Warn', async () => {
+    const testRuntime = runtime({ banTerms: ['bot liva', '!noads'], banPlatforms: ['kick'], blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'warn', enforcementPlatforms: ['twitch'], enforcedRules: ['blocked-term'], maximumEnforcementsPerMinute: 20 });
+    const kick = (id: string) => ({ platform: 'kick', eventId: id, source: { eventId: `msg-${id}` }, user: { id: `kick-${id}`, name: `spammer-${id}`, actorType: 'human', roles: [] } });
+    const spam = event('Make your stream fire with "Bot Liva com" @1e7b5d', kick('one'));
+    await expect(shouldBlockChatGuardDisplay(spam, testRuntime.context, 1_000)).resolves.toBe(true);
+    await expect(processChatGuardEvent(spam, testRuntime.context, 1_000)).resolves.toMatchObject({ flagged: true, rules: ['ban-term'], enforcement: 'dispatched' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith('9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9', expect.objectContaining({ chatGuardPlatform: 'kick', chatGuardMode: 'ban', chatGuardUserId: 'kick-one' }));
+    await expect(processChatGuardEvent(event('type !noads in the chat', { ...kick('two'), platform: 'youtube' }), testRuntime.context, 2_000)).resolves.toMatchObject({ rules: ['ban-term'], enforcement: 'not-selected' });
+    await expect(processChatGuardEvent(event('flag here', kick('three')), testRuntime.context, 3_000)).resolves.toMatchObject({ rules: ['blocked-term'], enforcement: 'not-selected' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledOnce();
+    expect(testRuntime.context.chat.send).not.toHaveBeenCalled();
+  });
+
+  it('bans a previously warned viewer once a spam-bot phrase matches, but never twice', async () => {
+    const testRuntime = runtime({ banTerms: ['bot liva'], blockedTerms: ['flag'], enforcementEnabled: true, creatorApprovedEnforcement: true, enforcementMode: 'warn', repeatOffenderTimeoutEnabled: false, maximumEnforcementsPerMinute: 20 });
+    const kick = (id: string) => ({ platform: 'kick', eventId: id, source: { eventId: `msg-${id}` }, user: { id: 'kick-repeat', name: 'spammer', actorType: 'human', roles: [] } });
+    await expect(processChatGuardEvent(event('flag', kick('a')), testRuntime.context, 1_000)).resolves.toMatchObject({ enforcement: 'succeeded' });
+    await expect(processChatGuardEvent(event('bot liva', kick('b')), testRuntime.context, 2_000)).resolves.toMatchObject({ enforcement: 'dispatched' });
+    await expect(processChatGuardEvent(event('bot liva again', kick('c')), testRuntime.context, 3_000)).resolves.toMatchObject({ enforcement: 'unsupported' });
+    await expect(processChatGuardEvent(event('bot liva', kick('d')), runtime({ banTerms: ['bot liva'], blockedTerms: [], enforcementEnabled: true, creatorApprovedEnforcement: false, enforcementMode: 'warn' }).context, 4_000)).resolves.toMatchObject({ rules: ['ban-term'], enforcement: 'none' });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledOnce();
   });
 
   it('applies a local timeout on TikTok and suppresses later messages without claiming native moderation', async () => {
