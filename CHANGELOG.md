@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.27] - 2026-10-18
+
+- Chat Guard now catches the Kick chatbot-ad spam ("Make your stream fire with Bot Liva com", "With AI-powered chatbots, your chat stays active around the clock... type !noads") with new default blocked phrases: bot liva, botliva, make your stream fire, ai-powered chatbot, chat stays active around the clock and !noads. Existing installs with a saved word list need these added to it.
+- New Chat Guard list "Spam-bot phrases that get an instant ban" (section 4, Optional automatic action). A message matching it is hidden and, when both automatic-action switches are on, the sender is banned on the chosen platforms (Kick by default) while everything else keeps the everyday action. The same account is never banned twice; mods and VIPs stay exempt.
+
 ## [4.0.26] - 2026-10-18
 
 - After an internet drop, the tray names each platform that did not come back. When several stream outputs drop at once, StreamBridge treats it as an internet drop; once the connection has been back for a minute and platforms have had up to 3 more minutes to report, one notice lists every output OBS gave up on or is still retrying and every platform that reported its stream ending (for example YouTube Auto-stop or Facebook) while OBS kept streaming. If everything came back, it stays quiet. The "keeps dropping" alert no longer fires for every output while the drop is in progress.
