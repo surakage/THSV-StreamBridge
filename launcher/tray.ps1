@@ -32,6 +32,7 @@ $script:lastBroadcastProcessSignature = $null
 $script:lastBroadcastLatencySignature = $null
 $script:lastBroadcastReliabilitySignature = $null
 $script:lastStreamOutputSignature = $null
+$script:lastOutageRecapSignature = $null
 $script:lastTikTokReminderSignature = $null
 $script:lastBalloonLaunch = $null
 $script:lastScheduledPreflightSignature = $null
@@ -107,6 +108,7 @@ function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolT
         'latency' { @('diagnostics', 'direct-connections-title') }
         'reliability' { @('diagnostics', 'direct-connections-title') }
         'stream-output' { @('diagnostics', 'direct-connections-title') }
+        'stream-outage' { @('diagnostics', 'direct-connections-title') }
         'preflight' { @('diagnostics', 'scheduled-reliability-preflight') }
         'startup' { @('streamerbot', 'streamerbot-launcher-state') }
         default { @('diagnostics', 'connection-center-title') }
@@ -187,6 +189,14 @@ function Update-Status {
             Show-Balloon 'Stream output keeps dropping' "$labels keeps disconnecting and reconnecting. That platform may have ended your LIVE or rejected the stream key; get a new key there and restart that output." ([System.Windows.Forms.ToolTipIcon]::Error) 'stream-output'
         }
         $script:lastStreamOutputSignature = $outputSignature
+        $outageRecap = $broadcast.outputHealth.outageRecap
+        $outageSignature = [string]$outageRecap.signature
+        if ($null -ne $script:lastOutageRecapSignature -and $script:lastOutageRecapSignature -ne $outageSignature -and -not [string]::IsNullOrWhiteSpace($outageSignature)) {
+            $endedNames = @($outageRecap.ended | ForEach-Object { [string]$_ })
+            $endedText = if ($endedNames.Count -le 1) { $endedNames -join '' } else { (($endedNames | Select-Object -First ($endedNames.Count - 1)) -join ', ') + ' and ' + $endedNames[-1] }
+            Show-Balloon 'Some platforms ended during the internet drop' "$endedText did not come back after your connection dropped. Start $(if ($endedNames.Count -eq 1) { 'it' } else { 'them' }) again there; the other platforms are live." ([System.Windows.Forms.ToolTipIcon]::Warning) 'stream-outage'
+        }
+        $script:lastOutageRecapSignature = $outageSignature
         $tiktokReminder = $broadcast.tiktokLiveReminder
         $tiktokSignature = [string]$tiktokReminder.signature
         if ($null -ne $script:lastTikTokReminderSignature -and $script:lastTikTokReminderSignature -ne $tiktokSignature -and -not [string]::IsNullOrWhiteSpace($tiktokSignature)) {

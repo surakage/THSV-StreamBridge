@@ -331,6 +331,7 @@ const wizard: WizardService = new WizardService(
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
+activeBridge.subscribe((event) => obsOutputHealth.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
 activeBridge.subscribe((event) => operationalReliability.observe(event));

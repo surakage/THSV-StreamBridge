@@ -6,8 +6,10 @@ import { ObsOutputHealthMonitor, streamOutputLabel } from '../../bridge/services
 
 const TIKTOK = 'Aitum Stream Suite Output TikTok Output';
 const KICK = 'Aitum Stream Suite Output Kick Output';
+const FACEBOOK = 'Aitum Stream Suite Output Facebook Output';
+const YOUTUBE = 'Aitum Stream Suite Output YouTube Vertical';
 
-function harness(options: { alertAfterDroppedSamples?: number; recoveryMs?: number } = {}) {
+function harness(options: { alertAfterDroppedSamples?: number; recoveryMs?: number; outageSettleMs?: number } = {}) {
   let now = Date.parse('2026-10-13T19:56:00.000Z');
   let samples: readonly ObsStreamOutputSample[] | undefined = [];
   const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -15,7 +17,7 @@ function harness(options: { alertAfterDroppedSamples?: number; recoveryMs?: numb
   return {
     logger, monitor,
     async step(next: readonly ObsStreamOutputSample[] | undefined, advanceMs = 10_000) { now += advanceMs; samples = next; await monitor.tick(); },
-    status: () => monitor.status() as { alerts: { name: string; label: string }[]; signature: string; obsConnected: boolean },
+    status: () => monitor.status() as { alerts: { name: string; label: string }[]; signature: string; obsConnected: boolean; outageInProgress?: boolean; outageRecap?: { ended: string[]; signature: string } },
   };
 }
 
@@ -132,5 +134,38 @@ describe('ObsDirectSceneClient.getStreamingOutputs', () => {
     expect(connections).toBe(1);
     expect(requests.filter((request) => request.requestType === 'GetOutputStatus').map((request) => request.requestData)).toEqual([{ outputName: 'adv_stream' }, { outputName: TIKTOK }]);
     stop.abort(); await watching;
+  });
+  it('after an internet drop, names the platforms that did not come back', async () => {
+    const h = harness();
+    const healthy = (ms: number) => [{ name: 'adv_stream', reconnecting: false, durationMs: ms }, { name: KICK, reconnecting: false, durationMs: ms }, { name: FACEBOOK, reconnecting: false, durationMs: ms }, { name: YOUTUBE, reconnecting: false, durationMs: ms }];
+    await h.step(healthy(3_600_000));
+    // Oct 17, 11:44 PM: the internet drops and every output waits to reconnect.
+    for (let index = 0; index < 36; index += 1) await h.step(healthy(0).map((output) => ({ ...output, reconnecting: true })));
+    expect(h.status().outageInProgress).toBe(true);
+    // Per-output "keeps dropping" alerts wait for the recap instead of firing for every platform.
+    expect(h.status().alerts.length).toBeGreaterThan(1);
+    expect(h.status().signature).toBe('');
+    // YouTube's Auto-stop ends the broadcast while OBS is offline.
+    h.monitor.observe({ eventType: 'stream.offline', platform: 'youtube', metadata: { simulated: false } });
+    h.monitor.observe({ eventType: 'stream.offline', platform: 'twitch', metadata: { simulated: true } });
+    // Internet back: main, Kick and YouTube reconnect; Facebook keeps refusing the reconnect.
+    for (let index = 1; index <= 30; index += 1) {
+      const age = index * 10_000;
+      await h.step([{ name: 'adv_stream', reconnecting: false, durationMs: age }, { name: KICK, reconnecting: false, durationMs: age }, { name: FACEBOOK, reconnecting: true, durationMs: 0 }, { name: YOUTUBE, reconnecting: false, durationMs: age }]);
+    }
+    expect(h.status().outageInProgress).toBeUndefined();
+    expect(h.status().outageRecap?.ended).toEqual(['Facebook Output', 'YouTube']);
+    expect(h.logger.warn).toHaveBeenCalledWith(expect.stringContaining('did not come back'), expect.objectContaining({ ended: ['Facebook Output', 'YouTube'] }));
+  });
+
+  it('stays quiet when every platform comes back after an internet drop', async () => {
+    const h = harness();
+    await h.step([{ name: TIKTOK, reconnecting: false, durationMs: 600_000 }, { name: KICK, reconnecting: false, durationMs: 600_000 }]);
+    for (let index = 0; index < 6; index += 1) await h.step([{ name: TIKTOK, reconnecting: true, durationMs: 0 }, { name: KICK, reconnecting: true, durationMs: 0 }]);
+    h.monitor.observe({ eventType: 'stream.offline', platform: 'kick', metadata: { simulated: false } });
+    h.monitor.observe({ eventType: 'stream.online', platform: 'kick', metadata: { simulated: false } });
+    for (let index = 1; index <= 30; index += 1) await h.step([{ name: TIKTOK, reconnecting: false, durationMs: index * 10_000 }, { name: KICK, reconnecting: false, durationMs: index * 10_000 }]);
+    expect(h.status().outageRecap).toBeUndefined();
+    expect(h.logger.info).toHaveBeenCalledWith(expect.stringContaining('every stream output came back'), expect.any(Object));
   });
 });
