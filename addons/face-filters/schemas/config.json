@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Face Filters",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Face Filters", "description": "Requires Streamfog connected in Streamer.bot and your face camera in OBS switched to the Streamfog virtual camera.", "default": false },
+    "lenses": { "type": "array", "title": "Lenses", "description": "One lens per line: Label | exact Streamfog lens name | !command | channel point reward title | seconds. Leave the command or reward column empty to skip it. Example: Banana | Banana Head | !banana | Banana Face | 30", "items": { "type": "string", "minLength": 1, "maxLength": 400 }, "maxItems": 25, "uniqueItems": true, "default": ["Banana | Banana | !banana | | 30", "Sloth | Sloth | !sloth | | 30", "Female | Female | !female | | 30", "Mystery | Mystery | !mystery | | 30"] },
+    "filterCommand": { "type": "string", "title": "Main command", "description": "Viewers type !filter banana, or !filter random. !filter on its own lists the lenses.", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$", "default": "filter" },
+    "allowRandom": { "type": "boolean", "title": "Allow !filter random", "default": true },
+    "commandPlatforms": { "type": "array", "title": "Chats that can use lens commands", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "commandRole": { "type": "string", "title": "Who can use lens commands", "enum": ["viewer", "subscriber", "moderator", "broadcaster"], "default": "viewer" },
+    "defaultDurationSeconds": { "type": "integer", "title": "Default lens length (seconds)", "description": "Used when a lens line has no seconds column.", "minimum": 5, "maximum": 600, "default": 30 },
+    "gapSeconds": { "type": "integer", "title": "Pause between queued lenses (seconds)", "minimum": 0, "maximum": 30, "default": 2 },
+    "globalCooldownSeconds": { "type": "integer", "title": "Command cooldown for everyone (seconds)", "description": "Channel point redemptions, moderators, and you skip cooldowns.", "minimum": 0, "maximum": 3600, "default": 20 },
+    "viewerCooldownSeconds": { "type": "integer", "title": "Command cooldown per viewer (seconds)", "minimum": 0, "maximum": 3600, "default": 120 },
+    "maximumQueue": { "type": "integer", "title": "Lenses that can wait in line", "description": "Only one lens shows at a time. Set to 0 to refuse requests while a lens is on.", "minimum": 0, "maximum": 20, "default": 5 },
+    "onlyWhileLive": { "type": "boolean", "title": "Only while live", "description": "Moderators and you can still test lenses while offline.", "default": true },
+    "chatReplies": { "type": "boolean", "title": "Reply in chat", "default": true },
+    "startedMessage": { "type": "string", "title": "Lens started message", "description": "Placeholders: {viewer}, {lens}, {seconds}.", "maxLength": 300, "default": "{viewer} put the {lens} filter on for {seconds}s!" },
+    "queuedMessage": { "type": "string", "title": "Lens queued message", "description": "Placeholders: {viewer}, {lens}, {position}.", "maxLength": 300, "default": "{viewer}, {lens} is queued (#{position})." },
+    "cooldownMessage": { "type": "string", "title": "Cooldown message", "description": "Placeholders: {viewer}, {seconds}.", "maxLength": 300, "default": "{viewer}, face filters are cooling down. Try again in {seconds}s." },
+    "unknownMessage": { "type": "string", "title": "Lens list message", "description": "Placeholders: {list}, {command}, {random}.", "maxLength": 300, "default": "Face filters: {list}. Use !{command} <name>{random}." }
+  }
+}

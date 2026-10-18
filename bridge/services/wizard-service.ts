@@ -1354,8 +1354,8 @@ function approvedLauncherRequest(input: unknown): Record<string, unknown> {
   return record;
 }
 
-function optionalStreamingApplication(value: unknown): 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' {
-  if (value !== 'obs' && value !== 'meld' && value !== 'streamlabs' && value !== 'speakerbot' && value !== 'tikfinity' && value !== 'tiktokstudio') throw new WizardTransactionError(400, 'application must be obs, meld, streamlabs, speakerbot, or tikfinity.');
+function optionalStreamingApplication(value: unknown): 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' | 'streamfog' {
+  if (value !== 'obs' && value !== 'meld' && value !== 'streamlabs' && value !== 'speakerbot' && value !== 'tikfinity' && value !== 'tiktokstudio' && value !== 'streamfog') throw new WizardTransactionError(400, 'application must be obs, meld, streamlabs, speakerbot, tikfinity, tiktokstudio, or streamfog.');
   return value;
 }
 

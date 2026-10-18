@@ -14,7 +14,7 @@ describe('main feature registry', () => {
     expect(mainFeatureModuleIds('clip-engine')).not.toContain('thsv.raid-scout');
     expect(mainFeatureModuleIds('community-insights')).toEqual(['thsv.follower-pulse']);
     expect(mainFeatureModuleIds('community-insights', true)).toContain('thsv.community-analytics');
-    expect(mainFeatureModuleIds('community-play')).toEqual(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands']);
+    expect(mainFeatureModuleIds('community-play')).toEqual(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters']);
     expect(mainFeatureModuleIds('voice-language')).toEqual(['thsv.voice-relay', 'thsv.user-translate']);
     for (const family of MAIN_FEATURE_FAMILIES) {
       expect(family.managementMode).toBe('bridge-managed-components');
@@ -32,7 +32,7 @@ describe('main feature registry', () => {
 
   it('maps every grouped component to a package that can be bundled with a fresh installation', async () => {
     for (const moduleId of MAIN_FEATURE_FAMILIES.flatMap((family) => family.modules)) {
-      const folders = ['ad-break-companion', 'automated-shoutouts', 'chat-guard', 'chat-play-pack', 'clip-courier', 'clip-library-cache', 'custom-counter', 'discord-chat-archive', 'fan-crown', 'first-five', 'follower-pulse', 'live-beacon', 'quote-vault', 'raid-scout', 'random-clip-player', 'scene-actions', 'starting-soon-countdown', 'stream-session-guard', 'user-translate', 'viewer-spotlight', 'village-fun-commands', 'village-hydration-station', 'village-roll-call', 'voice-relay'];
+      const folders = ['ad-break-companion', 'automated-shoutouts', 'chat-guard', 'chat-play-pack', 'clip-courier', 'clip-library-cache', 'custom-counter', 'discord-chat-archive', 'face-filters', 'fan-crown', 'first-five', 'follower-pulse', 'live-beacon', 'quote-vault', 'raid-scout', 'random-clip-player', 'scene-actions', 'starting-soon-countdown', 'stream-session-guard', 'user-translate', 'viewer-spotlight', 'village-fun-commands', 'village-hydration-station', 'village-roll-call', 'voice-relay'];
       const matches = [];
       for (const folder of folders) {
         const descriptor = JSON.parse(await readFile(`addons/${folder}/module-package.json`, 'utf8')) as { manifest: { moduleId: string } };

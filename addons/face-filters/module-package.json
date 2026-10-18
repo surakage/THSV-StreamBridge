@@ -1,0 +1,97 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.",
+  "changelog": "4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "chat.send",
+    "schedule.bounded"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.face-filters",
+    "name": "Face Filters",
+    "version": "4.0.27",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.27",
+    "maximumTestedBridgeVersion": "4.0.27",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "command.received",
+      "reward.redemption",
+      "stream.online",
+      "stream.offline"
+    ],
+    "commandsProvided": [
+      {
+        "id": "face-filters.filter",
+        "name": "filter"
+      }
+    ],
+    "actionsProvided": [
+      {
+        "id": "face-filters.activate",
+        "name": "THSV Extension - Face Filters - Activate Lens"
+      }
+    ],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.face-filters/",
+      "data/addons/.state/thsv.face-filters/"
+    ],
+    "installationSteps": [
+      "Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).",
+      "In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.",
+      "Import the Face Filters Streamer.bot package, approve only Activate Lens in the wizard, and leave it triggerless.",
+      "List each lens as: Label | exact Streamfog lens name | !command | channel point reward title | seconds. Leave a column empty to skip it.",
+      "Enable the extension, restart StreamBridge, and use the wizard test to confirm one lens appears on camera."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension. Streamfog ends any active lens when its duration runs out."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.face-filters.runtime",
+        "description": "Confirms bounded lens parsing, cooldowns, a single serialized lens queue, and approved Streamfog dispatch."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 13350,
+      "sha256": "a4f81e64fa174cab6b825d7f11c6bed6195d08b01b87514e734cc4aa020da3a4"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3758,
+      "sha256": "89f2924ef0f318df5c22ac35cdfeca2d9d22deab010ca71b3b3d6780180295ae"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 2496,
+      "sha256": "d6a0251d7ff3b04039933d3e0be2bd233e249fa18b4877f86b6c326b38884426"
+    },
+    {
+      "path": "README.md",
+      "size": 800,
+      "sha256": "169becbddc1416ac1b8aa1add650a20ab84302df8aa50da0e7e5aa713dbcc342"
+    }
+  ]
+}

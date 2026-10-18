@@ -51,7 +51,7 @@ Community Insights adds optional Follower Pulse reconciliation on top of the bui
 
 ## Community Play
 
-Community Play combines Custom Counter, Chat Play Pack, and Village Fun Commands. Counters, game state, commands, and platform routing remain isolated per component while the wizard provides one interactive-toolkit entry point and combined health summary.
+Community Play combines Custom Counter, Chat Play Pack, Village Fun Commands, and Face Filters (Streamfog lenses triggered by chat commands or channel point rewards). Counters, game state, commands, and platform routing remain isolated per component while the wizard provides one interactive-toolkit entry point and combined health summary.
 
 ## Voice & Language
 

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "THSV StreamBridge - Face Filters",
+  "version": "4.0.27",
+  "author": "surakage",
+  "description": "One broker-authorized, triggerless action that turns on a Streamfog face lens by name for a bounded duration.",
+  "minimumStreamerBotVersion": "1.0.7",
+  "actions": [
+    {
+      "id": "5b0f3c2e-7a1d-4e8b-9c64-2f1a8d7e3b51",
+      "name": "THSV Extension - Face Filters - Activate Lens",
+      "group": "THSV Extension - Face Filters",
+      "source": "src/ActivateLens.cs",
+      "followingSubActions": [
+        {
+          "type": 37004,
+          "lensName": "%faceFilterLensName%",
+          "duration": "%faceFilterDuration%"
+        }
+      ],
+      "importFile": "THSV-StreamBridge-Face-Filters-4.0.27.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
+    }
+  ],
+  "runtime": {
+    "queue": "THSV Extensions",
+    "concurrent": false
+  },
+  "manualTriggerSetup": {
+    "controller": []
+  },
+  "triggerSafety": "Activate Lens must remain triggerless. StreamBridge supplies a one-use broker token, one Streamfog lens name, and a 5-600 second duration.",
+  "verificationStatus": "The Streamfog Activate Lens by Name sub-action (type 37004, lensName and duration fields) was copied from a creator-built Streamer.bot 1.1.0 action; live lens activation remains creator acceptance-tested."
+}

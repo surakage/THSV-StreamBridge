@@ -98,6 +98,11 @@
         <div class="button-row"><button id="choose-optional-tiktokstudio" type="button" class="ghost">Choose TikTok LIVE Studio Launcher</button><button id="reset-optional-tiktokstudio-circuit" type="button" class="ghost hidden">Clear crash pause</button></div>
         <div class="tiktok-live-automation" id="tiktok-live-automation"><label class="compact-toggle"><input id="tiktok-live-automation-enabled" type="checkbox"><span>Go LIVE and End LIVE together with OBS</span></label><small>When OBS starts streaming, StreamBridge turns on OBS Virtual Camera and presses Go LIVE in TikTok LIVE Studio; when OBS stops, it presses End LIVE. Needs LIVE Studio open and its official Stream Deck plugin installed. It only presses after LIVE Studio confirms you are not already live (or are live, when ending); otherwise you get a reminder instead.</small><small id="tiktok-live-automation-last"></small></div>
       </article>
+      <article class="optional-launcher-app" data-optional-app="streamfog">
+        <div class="optional-launcher-heading"><span><strong>Streamfog</strong><small id="optional-streamfog-state">Not configured</small></span><label class="compact-toggle"><input id="optional-streamfog-enabled" type="checkbox"><span>Start automatically</span></label></div>
+        <label>Streamfog executable<input id="optional-streamfog-executable" type="text" readonly placeholder="Not selected"></label>
+        <div class="button-row"><button id="choose-optional-streamfog" type="button" class="ghost">Choose Streamfog</button><button id="reset-optional-streamfog-circuit" type="button" class="ghost hidden">Clear crash pause</button></div>
+      </article>
     </section>
     <div id="streamerbot-candidates" class="item-list"></div>
     <div class="button-row">
