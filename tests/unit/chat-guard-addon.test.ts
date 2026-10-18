@@ -27,6 +27,7 @@ describe('Chat Guard add-on', () => {
     await expect(processChatGuardEvent(kick('Make your stream fire with "Bot Liva com" @1e7b5d', 'liva'), testRuntime.context, 1_000)).resolves.toMatchObject({ flagged: true, rules: ['blocked-term'] });
     await expect(processChatGuardEvent(kick('With AI-powered chatbots, your chat stays active around the clock. (If you do not wish to receive any more messages, type !noads in the chat)', 'noads'), testRuntime.context, 2_000)).resolves.toMatchObject({ flagged: true, rules: expect.arrayContaining(['blocked-term']) });
     await expect(processChatGuardEvent(kick('anyone know a good bot for chat?', 'ordinary-bot'), testRuntime.context, 3_000)).resolves.toMatchObject({ flagged: false });
+    await expect(processChatGuardEvent(kick('olivia commented on my clip', 'ordinary-name'), testRuntime.context, 4_000)).resolves.toMatchObject({ flagged: false });
   });
 
   it('warns first and escalates a continuous repeat offender to one timeout', async () => {
