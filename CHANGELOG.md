@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.26] - 2026-10-18
+
+- After an internet drop, the tray names each platform that did not come back. When several stream outputs drop at once, StreamBridge treats it as an internet drop; once the connection has been back for a minute and platforms have had up to 3 more minutes to report, one notice lists every output OBS gave up on or is still retrying and every platform that reported its stream ending (for example YouTube Auto-stop or Facebook) while OBS kept streaming. If everything came back, it stays quiet. The "keeps dropping" alert no longer fires for every output while the drop is in progress.
+
 ## [4.0.25] - 2026-10-17
 
 - If OBS crashes or is closed while you are live, StreamBridge now treats the stream as ended once OBS has refused connections for 30 seconds: TikTok LIVE Studio ends, timed messages stop and the session closes, the same as a normal stop. Before, a crash left the session open, so TikTok LIVE stayed up and timed messages kept firing until OBS was reopened. Brief hiccups or a busy OBS do not count.
