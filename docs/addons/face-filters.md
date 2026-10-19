@@ -1,7 +1,7 @@
 # Face Filters setup
 
 **Module:** `thsv.face-filters`
-**Version:** `4.0.27`
+**Version:** `4.0.31`
 **Publisher:** THSV StreamBridge
 
 Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.
@@ -16,7 +16,7 @@ Lets chat trigger Streamfog face lenses on your camera with commands or channel 
 
 1. Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).
 2. In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.
-3. Import the Face Filters Streamer.bot package, approve only Activate Lens in the wizard, and leave it triggerless.
+3. Import the Face Filters Streamer.bot package, approve Activate Lens and Deactivate Lens in the wizard, and leave both triggerless.
 4. Add one row per lens: a name, the exact Streamfog lens name, an optional !command, optional Twitch and/or Kick reward IDs, and seconds. Leave a box empty to skip it.
 5. Enable the extension, restart StreamBridge, and use the wizard test to confirm one lens appears on camera.
 
@@ -27,8 +27,9 @@ Minimum supported Streamer.bot version: `1.0.7`.
 Imported group: `THSV Extension - Face Filters`
 
 - `THSV Extension - Face Filters - Activate Lens` in `THSV Extension - Face Filters`
+- `THSV Extension - Face Filters - Deactivate Lens` in `THSV Extension - Face Filters`
 
-Activate Lens must remain triggerless. StreamBridge supplies a one-use broker token, one Streamfog lens name, and a 5-600 second duration.
+Activate Lens and Deactivate Lens must remain triggerless. StreamBridge supplies a one-use broker token, the Streamfog lens name, and a 5-600 second duration, then runs Deactivate Lens when that time is up.
 
 ## Browser source
 

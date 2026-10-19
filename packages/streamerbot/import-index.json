@@ -232,12 +232,12 @@
       "name": "THSV StreamBridge - Face Filters",
       "version": "4.0.31",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "e8d1bd82c54baf6fc337ce30d9554d0a2a4249820496549a6f0ebff48cf211a8",
+      "manifestSha256": "81fe075046deb462a35d44d4856e477f037d7f2c64981dd9ebc23b3600b3fce4",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Face-Filters-4.0.31.sb",
-          "size": 2480,
-          "sha256": "ca71250947622016a97f0890d0b201c032cc6bfa867d392910f7d95d5c4ae424"
+          "size": 3156,
+          "sha256": "64222fbbae24901026dcae443071b2932f4dd6f10a3a638ac149b874a17e027f"
         }
       ]
     },

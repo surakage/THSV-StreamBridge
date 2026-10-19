@@ -881,7 +881,7 @@ const RECOMMENDED_ADDON_ACTION_NAMES = {
   'thsv.clip-library-cache': ['THSV Addon - Clip Library Cache - Refresh'],
   'thsv.creator-controls': ['THSV Addon - Creator Controls - Provider Controller'],
   'thsv.discord-chat-archive': ['THSV Addon - Discord Chat Archive - Deliver'],
-  'thsv.face-filters': ['THSV Extension - Face Filters - Activate Lens'],
+  'thsv.face-filters': ['THSV Extension - Face Filters - Activate Lens', 'THSV Extension - Face Filters - Deactivate Lens'],
   'thsv.fan-crown': ['THSV Addon - Fan Crown - Controller'],
   'thsv.first-five': ['THSV Addon - First Five - Controller'],
   'thsv.follower-pulse': ['THSV Addon - Follower Pulse - Snapshot Page'],

@@ -5,12 +5,14 @@ import { describe, expect, it } from 'vitest';
 import { manifest as runtimeManifest } from '../../addons/face-filters/dist/index.js';
 
 describe('Face Filters package files', () => {
-  it('ships one triggerless broker action that guards the request and then runs Streamfog Activate Lens by Name', async () => {
+  it('ships triggerless Activate and Deactivate Lens broker actions guarding the Streamfog sub-actions', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/face-filters/manifest.json', 'utf8')) as { actions: Array<{ id: string; importFile: string }> };
-    expect(manifest.actions).toHaveLength(1);
+    expect(manifest.actions).toHaveLength(2);
     expect(manifest.actions[0]).toMatchObject({ id: '5b0f3c2e-7a1d-4e8b-9c64-2f1a8d7e3b51', brokerDispatched: true, mustRemainTriggerless: true });
+    expect(manifest.actions[1]).toMatchObject({ id: 'c3a7e2d4-6b1f-4f0a-8e52-9d4b7a1c6e38', name: 'THSV Extension - Face Filters - Deactivate Lens', brokerDispatched: true, mustRemainTriggerless: true });
     const runtime = await readFile('addons/face-filters/dist/index.js', 'utf8');
     expect(runtime).toContain(`ACTIVATE_ACTION_ID = '${manifest.actions[0]?.id ?? ''}'`);
+    expect(runtime).toContain(`DEACTIVATE_ACTION_ID = '${manifest.actions[1]?.id ?? ''}'`);
     const decoded = Buffer.from((await readFile(`packages/streamerbot/face-filters/${manifest.actions[0]?.importFile ?? ''}`, 'utf8')).trim(), 'base64');
     expect(decoded.subarray(0, 4).toString('ascii')).toBe('SBAE');
     const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { data: { actions: Array<{ triggers: unknown[]; subActions: Array<Record<string, unknown>> }> } };
@@ -18,9 +20,14 @@ describe('Face Filters package files', () => {
     expect(action?.triggers).toEqual([]);
     expect(action?.subActions.map((step) => step['type'])).toEqual([99_999, 37_004]);
     expect(action?.subActions[1]).toMatchObject({ lensName: '%faceFilterLensName%', duration: '%faceFilterDuration%' });
+    // Streamfog's Deactivate Lens is sub-action type 37002 (verified by the creator on Streamer.bot 1.1.0).
+    const deactivate = exported.data.actions[1];
+    expect(deactivate?.triggers).toEqual([]);
+    expect(deactivate?.subActions.map((step) => step['type'])).toEqual([99_999, 37_002]);
     const guard = await readFile('packages/streamerbot/face-filters/src/ActivateLens.cs', 'utf8');
     expect(guard).toContain('thsvAddonRelayToken');
     expect(guard).toContain('seconds < 5 || seconds > 600');
+    expect(await readFile('packages/streamerbot/face-filters/src/DeactivateLens.cs', 'utf8')).toContain('token.Length >= 20');
   });
 
   it('edits lenses as labelled rows that save in the same one-line format the runtime parses', async () => {

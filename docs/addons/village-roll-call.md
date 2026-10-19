@@ -1,7 +1,7 @@
 # Village Roll Call setup
 
 **Module:** `thsv.village-roll-call`
-**Version:** `4.0.27`
+**Version:** `4.0.31`
 **Publisher:** THSV StreamBridge
 
 Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.
