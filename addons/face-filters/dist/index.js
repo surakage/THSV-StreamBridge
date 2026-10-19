@@ -26,7 +26,7 @@ const manifest = {
     'Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).',
     'In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.',
     'Import the Face Filters Streamer.bot package, approve only Activate Lens in the wizard, and leave it triggerless.',
-    'List each lens as: Label | exact Streamfog lens name | !command | channel point reward title | seconds. Leave a column empty to skip it.',
+    'Add one row per lens: a name, the exact Streamfog lens name, an optional !command, optional Twitch and/or Kick reward IDs, and seconds. Leave a box empty to skip it.',
     'Enable the extension, restart StreamBridge, and use the wizard test to confirm one lens appears on camera.',
   ],
   uninstallationSteps: ['Disable the extension. Streamfog ends any active lens when its duration runs out.'], migrations: [],
@@ -49,13 +49,15 @@ function command(value) { const match = clean(value, 65).toLowerCase().match(/^!
 function key(value) { return clean(value, 80).toLowerCase(); }
 function format(template, values) { let result = clean(template, 300); for (const [name, value] of Object.entries(values)) result = result.replaceAll(`{${name}}`, [...String(value).replace(/[\u0000-\u001f\u007f]/gu, ' ')].slice(0, 200).join('')); return clean(result, 400); }
 
-// One lens per line: Label | Streamfog lens name | !command | channel point reward title | seconds.
+// One lens per line: Label | Streamfog lens name | !command | reward IDs | seconds.
+// Rewards match by stable ID only (renaming a reward never breaks it); a comma separates a Twitch and a Kick ID.
 function parseLens(line, defaultSeconds) {
   const parts = clean(line, 400).split('|').map((part) => clean(part, 120));
   const label = clean(parts[0], 40); const lensName = clean(parts[1], 100) || label;
   if (!label || !lensName) return undefined;
   const seconds = parts[4] ? integer(Number.parseInt(parts[4], 10), 5, 600, defaultSeconds) : defaultSeconds;
-  return { label, lensName, command: command(parts[2]), reward: clean(parts[3], 100), seconds };
+  const rewardIds = [...new Set(clean(parts[3], 300).split(',').map((value) => clean(value, 256)).filter(Boolean))].slice(0, 4);
+  return { label, lensName, command: command(parts[2]), rewardIds, seconds };
 }
 function settingsFor(context) {
   const raw = context.settings ?? {};
@@ -91,8 +93,8 @@ async function reply(context, settings, event, template, values) {
 function resolveRequest(event, settings) {
   if (event.eventType === 'reward.redemption') {
     if (event.payload?.verifiedTransport !== true) return undefined;
-    const title = key(event.payload?.rewardTitle); const id = clean(event.payload?.rewardId, 256);
-    const lens = settings.lenses.find((candidate) => candidate.reward && (key(candidate.reward) === title || candidate.reward === id));
+    const id = clean(event.payload?.rewardId, 256); if (!id) return undefined;
+    const lens = settings.lenses.find((candidate) => candidate.rewardIds.includes(id));
     return lens ? { lens, paid: true } : undefined;
   }
   if (event.eventType !== 'command.received' || !settings.commandPlatforms.has(event.platform)) return undefined;

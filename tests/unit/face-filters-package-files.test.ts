@@ -26,7 +26,7 @@ describe('Face Filters package files', () => {
   it('edits lenses as labelled rows that save in the same one-line format the runtime parses', async () => {
     const ui = JSON.parse(await readFile('addons/face-filters/ui/settings.json', 'utf8')) as { fields: { lenses: { control: string; itemLabel: string; columns: Array<{ label: string; type?: string }> } } };
     expect(ui.fields.lenses).toMatchObject({ control: 'row-list', itemLabel: 'lens' });
-    expect(ui.fields.lenses.columns.map((column) => column.label)).toEqual(['Name', 'Streamfog lens', 'Chat command', 'Channel point reward', 'Seconds']);
+    expect(ui.fields.lenses.columns.map((column) => column.label)).toEqual(['Name', 'Streamfog lens', 'Chat command', 'Channel point reward ID', 'Seconds']);
     expect(ui.fields.lenses.columns[4]?.type).toBe('number');
     const wizard = await readFile('wizard/browser/addons.js', 'utf8');
     expect(wizard).toContain("ui.control === 'row-list'");
